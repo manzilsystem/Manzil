@@ -2,171 +2,244 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manzil - نظام إدارة العقارات والسكن</title>
-    <!-- Tailwind CSS CDN -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Manzil - منزل</title>
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#090d16">
+    <link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"Manzil - منزل","short_name":"Manzil","start_url":".","display":"standalone","background_color":"#090d16","theme_color":"#090d16","icons":[{"src":"https://api.iconify.design/lucide:building.svg?color=%236366f1","sizes":"192x192","type":"image/svg+xml"}]}'>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Cairo', sans-serif; }
+        body { font-family: 'Cairo', sans-serif; background-color: #090d16; color: #f8fafc; }
+        .glass { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+        .slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        /* Hide scrollbars for clean mobile look */
+        ::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col pb-24 selection:bg-indigo-500 selection:text-white">
 
-    <!-- Header -->
-    <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-50">
-        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-3 space-x-reverse">
-                <span class="text-2xl font-bold tracking-wide">Manzil 🏡</span>
-                <span class="text-xs bg-indigo-600 px-2 py-1 rounded-full text-indigo-100">إدارة العقارات الذكية</span>
+    <!-- Top Header / App Bar -->
+    <header class="glass sticky top-0 z-40 border-b border-slate-800/80 px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center space-x-3 space-x-reverse">
+            <div class="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-extrabold text-lg shadow-inner">
+                🏠
             </div>
-            <div class="flex items-center space-x-2 space-x-reverse">
-                <button onclick="syncWithGist()" id="syncBtn" class="bg-indigo-600 hover:bg-indigo-500 text-xs px-3 py-2 rounded-lg font-medium transition flex items-center gap-1">
-                    🔄 مزامنة السحابة
-                </button>
-                <button onclick="openSettings()" class="p-2 hover:bg-indigo-600 rounded-full transition" title="الإعدادات">
-                    ⚙️
-                </button>
+            <div>
+                <h1 class="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
+                    Manzil <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30">Pro</span>
+                </h1>
+                <p class="text-[10px] text-slate-400">إدارة العقارات السحابية</p>
             </div>
+        </div>
+        <div class="flex items-center space-x-2 space-x-reverse">
+            <button onclick="syncWithGist()" id="syncBtn" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700/60 transition text-xs flex items-center gap-1 shadow-sm active:scale-95">
+                🔄 <span class="hidden sm:inline">مزامنة</span>
+            </button>
+            <button onclick="openSettingsModal()" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700/60 transition active:scale-95">
+                ⚙️
+            </button>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="max-w-4xl mx-auto px-4 py-6 flex-grow w-full space-y-6">
+    <!-- Main Dynamic Content Container -->
+    <main class="max-w-md mx-auto w-full px-4 pt-4 space-y-4 flex-grow">
 
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-3 gap-3">
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center">
-                <p class="text-xs text-gray-500 mb-1">إجمالي الخزنة</p>
-                <h3 id="totalBalance" class="text-lg font-bold text-indigo-600">0 ج.م</h3>
+        <!-- Financial Summary Hero Card -->
+        <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 p-5 border border-indigo-500/20 shadow-2xl">
+            <div class="absolute -left-6 -top-6 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <p class="text-xs text-slate-400 font-medium">صافي الخزنة الحالية</p>
+                    <h2 id="totalBalance" class="text-2xl font-black text-white mt-0.5 tracking-tight">0 ج.م</h2>
+                </div>
+                <span class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full font-semibold">مستقر</span>
             </div>
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center">
-                <p class="text-xs text-gray-500 mb-1">المححصل هذا الشهر</p>
-                <h3 id="monthlyCollected" class="text-lg font-bold text-emerald-600">0 ج.م</h3>
-            </div>
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center">
-                <p class="text-xs text-gray-500 mb-1">إجمالي المصروفات</p>
-                <h3 id="totalExpenses" class="text-lg font-bold text-rose-600">0 ج.م</h3>
+            <div class="grid grid-cols-2 gap-2.5 pt-3 border-t border-slate-800/60">
+                <div class="bg-slate-900/50 p-2.5 rounded-2xl border border-slate-800/40">
+                    <p class="text-[10px] text-slate-400">تحصيلات الشهر</p>
+                    <p id="monthlyCollected" class="text-sm font-bold text-emerald-400 mt-0.5">0 ج.م</p>
+                </div>
+                <div class="bg-slate-900/50 p-2.5 rounded-2xl border border-slate-800/40">
+                    <p class="text-[10px] text-slate-400">إجمالي المصروفات</p>
+                    <p id="totalExpenses" class="text-sm font-bold text-rose-400 mt-0.5">0 ج.م</p>
+                </div>
             </div>
         </div>
 
-        <!-- Navigation Tabs -->
-        <div class="flex border-b border-gray-200 text-sm font-semibold">
-            <button onclick="switchTab('tenants')" id="tab-tenants" class="flex-1 py-3 text-center border-b-2 border-indigo-600 text-indigo-600 transition">الشقق والاشتراكات</button>
-            <button onclick="switchTab('expenses')" id="tab-expenses" class="flex-1 py-3 text-center text-gray-500 border-b-2 border-transparent transition">المصروفات والصيانة</button>
+        <!-- Quick Search Bar -->
+        <div class="relative">
+            <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-slate-500 text-xs">🔍</span>
+            <input type="text" id="searchInput" oninput="filterData()" placeholder="بحث سريع عن ساكن، شقة، أو مصروف..." class="w-full bg-slate-900/80 border border-slate-800 rounded-2xl pr-10 pl-4 py-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/60 transition shadow-inner">
         </div>
 
-        <!-- Tab 1: Tenants -->
-        <div id="section-tenants" class="space-y-4">
-            <div class="flex justify-between items-center">
-                <h2 class="font-bold text-gray-700">قائمة الشقق والمدفوعات</h2>
-                <button onclick="openAddTenantModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-2 rounded-lg shadow transition">+ إضافة شقة / ساكن</button>
+        <!-- Tab 1: Tenants View -->
+        <div id="section-tenants" class="space-y-3">
+            <div class="flex justify-between items-center px-1">
+                <h3 class="font-bold text-xs text-slate-400 tracking-wider">الشقق والاشتراكات</h3>
+                <button onclick="openTenantModal()" class="text-xs text-indigo-400 font-bold hover:text-indigo-300 transition">+ إضافة شقة</button>
             </div>
-            <div id="tenantsList" class="space-y-3">
+            <div id="tenantsList" class="space-y-2.5">
                 <!-- Dynamic Tenants -->
             </div>
         </div>
 
-        <!-- Tab 2: Expenses -->
-        <div id="section-expenses" class="hidden space-y-4">
-            <div class="flex justify-between items-center">
-                <h2 class="font-bold text-gray-700">سجل المصروفات</h2>
-                <button onclick="openAddExpenseModal()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs px-3 py-2 rounded-lg shadow transition">+ إضافة مصروف</button>
+        <!-- Tab 2: Expenses View (Hidden by default) -->
+        <div id="section-expenses" class="hidden space-y-3">
+            <div class="flex justify-between items-center px-1">
+                <h3 class="font-bold text-xs text-slate-400 tracking-wider">سجل المصروفات</h3>
+                <button onclick="openExpenseModal()" class="text-xs text-rose-400 font-bold hover:text-rose-300 transition">+ تسجيل مصروف</button>
             </div>
-            <div id="expensesList" class="space-y-3">
+            <div id="expensesList" class="space-y-2.5">
                 <!-- Dynamic Expenses -->
+            </div>
+        </div>
+
+        <!-- Tab 3: Reports View (Hidden by default) -->
+        <div id="section-reports" class="hidden space-y-4">
+            <div class="bg-slate-900/80 p-5 rounded-3xl border border-slate-800 space-y-4 text-center">
+                <h3 class="font-bold text-sm text-white">التقارير المالية والطباعة</h3>
+                <p class="text-xs text-slate-400">يمكنك طباعة كشف حساب شامل ومفصل لجميع التحصينات والمصروفات الخاصة بالعقار.</p>
+                <button onclick="window.print()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-xs font-bold transition shadow-lg shadow-indigo-600/20 active:scale-95">
+                    🖨️ طباعة التقرير الشامل (PDF / مباشر)
+                </button>
             </div>
         </div>
 
     </main>
 
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
-            <h3 class="text-lg font-bold text-gray-800">إعدادات المزامنة السحابية (GitHub Gist)</h3>
-            <p class="text-xs text-gray-500">لربط التطبيق بحسابك ومزامنة البيانات عبر أجهزتك:</p>
-            
+    <!-- Bottom Thumb-Friendly Navigation Bar (Mobile-First Shell) -->
+    <nav class="glass fixed bottom-0 inset-x-0 border-t border-slate-800/80 px-4 py-2 z-40 max-w-md mx-auto flex justify-around items-center">
+        <button onclick="switchTab('tenants')" id="nav-tenants" class="flex flex-col items-center gap-1 text-indigo-400 transition py-1 px-3 rounded-2xl">
+            <span class="text-lg">🏢</span>
+            <span class="text-[10px] font-bold">الشقق</span>
+        </button>
+        <button onclick="switchTab('expenses')" id="nav-expenses" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition py-1 px-3 rounded-2xl">
+            <span class="text-lg">💸</span>
+            <span class="text-[10px] font-medium">المصروفات</span>
+        </button>
+        <button onclick="switchTab('reports')" id="nav-reports" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition py-1 px-3 rounded-2xl">
+            <span class="text-lg">📊</span>
+            <span class="text-[10px] font-medium">التقارير</span>
+        </button>
+    </nav>
+
+    <!-- Bottom Sheet Modal: Add Tenant -->
+    <div id="tenantModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-slate-900 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 border border-slate-800 slide-up space-y-4 shadow-2xl">
+            <div class="w-12 h-1.5 bg-slate-800 rounded-full mx-auto sm:hidden"></div>
+            <h3 class="text-base font-bold text-white">إضافة شقة أو ساكن جديد</h3>
             <div class="space-y-3">
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Personal Access Token (PAT)</label>
-                    <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxx" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">اسم الساكن ورقم الشقة</label>
+                    <input type="text" id="tenantNameInput" placeholder="مثال: شقة 101 - أ/ محمد" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Gist ID (اتركه فارغاً عند أول استخدام ليتم إنشاؤه تلقائياً)</label>
-                    <input type="text" id="gistId" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxx" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">رقم الهاتف (اختياري)</label>
+                    <input type="text" id="tenantPhoneInput" placeholder="010xxxxxxxx" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">قيمة الاشتراك الشهري (ج.م)</label>
+                    <input type="number" id="tenantAmountInput" value="200" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500">
                 </div>
             </div>
-
-            <div class="flex justify-end space-x-2 space-x-reverse pt-2">
-                <button onclick="closeSettings()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">إلغاء</button>
-                <button onclick="saveSettings()" class="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">حفظ ومزامنة</button>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeTenantModal()" class="flex-1 py-3 rounded-2xl bg-slate-800 text-slate-300 text-xs font-bold active:scale-95 transition">إلغاء</button>
+                <button onclick="saveTenant()" class="flex-1 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/25 active:scale-95 transition">حفظ الساكن</button>
             </div>
         </div>
     </div>
 
-    <!-- Add Tenant Modal -->
-    <div id="tenantModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
-            <h3 id="tenantModalTitle" class="text-lg font-bold text-gray-800">إضافة شقة جديدة</h3>
-            <input type="hidden" id="tenantIndex" value="-1">
-            <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">رقم الشقة أو اسم الساكن</label>
-                <input type="text" id="tenantNameInput" placeholder="مثال: شقة 3 - أ/ محمد" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+    <!-- Bottom Sheet Modal: Add Expense -->
+    <div id="expenseModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-slate-900 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 border border-slate-800 slide-up space-y-4 shadow-2xl">
+            <div class="w-12 h-1.5 bg-slate-800 rounded-full mx-auto sm:hidden"></div>
+            <h3 class="text-base font-bold text-white">تسجيل مصروف أو بند صيانة</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">بند المصروف</label>
+                    <input type="text" id="expenseTitleInput" placeholder="مثال: صيانة موتور المياه" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-rose-500">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">التصنيف</label>
+                    <select id="expenseCategoryInput" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-rose-500">
+                        <option value="صيانة عامة">🔧 صيانة عامة</option>
+                        <option value="كهرباء وإنارة">⚡ كهرباء وإنارة</option>
+                        <option value="مياه وسباكة">💧 مياه وسباكة</option>
+                        <option value="نظافة ومدخل">🧹 نظافة ومدخل</option>
+                        <option value="طوارئ">📌 طوارئ أخرى</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">المبلغ (ج.م)</label>
+                    <input type="number" id="expenseAmountInput" placeholder="500" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-rose-500">
+                </div>
             </div>
-            <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">الاشتراك الشهري (ج.م)</label>
-                <input type="number" id="tenantAmountInput" placeholder="200" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-            </div>
-            <div class="flex justify-end space-x-2 space-x-reverse pt-2">
-                <button onclick="closeTenantModal()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">إلغاء</button>
-                <button onclick="saveTenant()" class="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">حفظ</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Expense Modal -->
-    <div id="expenseModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
-            <h3 class="text-lg font-bold text-gray-800">تسجيل مصروف جديد</h3>
-            <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">بند المصروف</label>
-                <input type="text" id="expenseTitleInput" placeholder="مثال: صيانة موتور المياه" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">المبلغ (ج.م)</label>
-                <input type="number" id="expenseAmountInput" placeholder="500" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-            </div>
-            <div class="flex justify-end space-x-2 space-x-reverse pt-2">
-                <button onclick="closeExpenseModal()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">إلغاء</button>
-                <button onclick="saveExpense()" class="px-4 py-2 text-sm bg-rose-600 hover:bg-rose-700 text-white rounded-lg">حفظ</button>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeExpenseModal()" class="flex-1 py-3 rounded-2xl bg-slate-800 text-slate-300 text-xs font-bold active:scale-95 transition">إلغاء</button>
+                <button onclick="saveExpense()" class="flex-1 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg shadow-rose-600/25 active:scale-95 transition">حفظ المصروف</button>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="text-center py-4 text-xs text-gray-400 border-t mt-auto">
-        Manzil 🏡 - نظام إدارة العقارات والسكن الذكي
-    </footer>
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-slate-900 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 border border-slate-800 slide-up space-y-4 shadow-2xl">
+            <div class="w-12 h-1.5 bg-slate-800 rounded-full mx-auto sm:hidden"></div>
+            <h3 class="text-base font-bold text-white">إعدادات المزامنة السحابية</h3>
+            <p class="text-[11px] text-slate-400 leading-relaxed">اربط التطبيق بـ GitHub Gist لمزامنة بياناتك لحظياً عبر هاتفك وحاسوبك:</p>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">GitHub Personal Access Token (PAT)</label>
+                    <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxx" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Gist ID (يترك فارغاً عند أول ربط)</label>
+                    <input type="text" id="gistId" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxx" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeSettingsModal()" class="flex-1 py-3 rounded-2xl bg-slate-800 text-slate-300 text-xs font-bold active:scale-95 transition">إلغاء</button>
+                <button onclick="saveSettings()" class="flex-1 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/25 active:scale-95 transition">حفظ ومزامنة</button>
+            </div>
+        </div>
+    </div>
 
-    <!-- App Logic Script -->
+    <!-- PWA Service Worker Registration -->
     <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('data:text/javascript,self.addEventListener("fetch",e=>{});').catch(()=>{});
+        }
+
         let appData = {
-            tenants: JSON.parse(localStorage.getItem('manzil_tenants')) || [
-                { name: 'شقة 101 - الدور الأول', amount: 200, paid: true },
-                { name: 'شقة 102 - الدور الأول', amount: 200, paid: false }
+            tenants: JSON.parse(localStorage.getItem('manzil_pro_tenants')) || [
+                { name: 'شقة 101 - الدور الأول', phone: '01012345678', amount: 200, paid: true },
+                { name: 'شقة 102 - الدور الأول', phone: '01098765432', amount: 200, paid: false }
             ],
-            expenses: JSON.parse(localStorage.getItem('manzil_expenses')) || [
-                { title: 'صيانة إنارة المدخل', amount: 150, date: '2026-10-25' }
+            expenses: JSON.parse(localStorage.getItem('manzil_pro_expenses')) || [
+                { title: 'صيانة إنارة المدخل والسلالم', category: 'كهرباء وإنارة', amount: 150, date: '2026-10-25' }
             ],
             settings: {
-                token: localStorage.getItem('manzil_token') || '',
-                gistId: localStorage.getItem('manzil_gistId') || ''
+                token: localStorage.getItem('manzil_pro_token') || '',
+                gistId: localStorage.getItem('manzil_pro_gistId') || ''
             }
         };
 
         function saveDataLocally() {
-            localStorage.setItem('manzil_tenants', JSON.stringify(appData.tenants));
-            localStorage.setItem('manzil_expenses', JSON.stringify(appData.expenses));
+            localStorage.setItem('manzil_pro_tenants', JSON.stringify(appData.tenants));
+            localStorage.setItem('manzil_pro_expenses', JSON.stringify(appData.expenses));
+            render();
+        }
+
+        let currentFilter = '';
+
+        function filterData() {
+            currentFilter = document.getElementById('searchInput').value.toLowerCase();
             render();
         }
 
@@ -175,19 +248,29 @@
             tenantsList.innerHTML = '';
             let totalCollected = 0;
 
-            appData.tenants.forEach((t, index) => {
+            let filteredTenants = appData.tenants.filter(t => t.name.toLowerCase().includes(currentFilter) || (t.phone && t.phone.includes(currentFilter)));
+
+            if(filteredTenants.length === 0) {
+                tenantsList.innerHTML = `<div class="bg-slate-900/40 p-6 rounded-2xl text-center text-slate-500 text-xs border border-slate-800">لا توجد نتائج مطابقة للبحث</div>`;
+            }
+
+            filteredTenants.forEach((t) => {
+                let realIndex = appData.tenants.indexOf(t);
                 if(t.paid) totalCollected += Number(t.amount);
                 tenantsList.innerHTML += `
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
-                        <div>
-                            <h4 class="font-bold text-gray-800 text-sm">${t.name}</h4>
-                            <p class="text-xs text-gray-500 mt-0.5">الاشتراك: ${t.amount} ج.م</p>
+                    <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800/80 flex justify-between items-center transition hover:border-slate-700">
+                        <div class="space-y-1">
+                            <h4 class="font-bold text-slate-200 text-xs">${t.name}</h4>
+                            <div class="flex items-center gap-3 text-[11px] text-slate-400">
+                                <span>الاشتراك: <strong class="text-slate-200">${t.amount} ج.م</strong></span>
+                                ${t.phone ? `<span>📞 <a href="tel:${t.phone}" class="text-indigo-400 hover:underline">${t.phone}</a></span>` : ''}
+                            </div>
                         </div>
                         <div class="flex items-center space-x-2 space-x-reverse">
-                            <button onclick="togglePaid(${index})" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition ${t.paid ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}">
-                                ${t.paid ? '✓ تم السداد' : 'غير مسدد'}
+                            <button onclick="togglePaid(${realIndex})" class="px-3 py-1.5 rounded-xl text-[11px] font-bold transition active:scale-95 ${t.paid ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}">
+                                ${t.paid ? '✓ مسدد' : 'غير مسدد'}
                             </button>
-                            <button onclick="deleteTenant(${index})" class="text-gray-400 hover:text-rose-600 text-xs px-1">🗑️</button>
+                            <button onclick="deleteTenant(${realIndex})" class="text-slate-600 hover:text-rose-400 text-xs p-1">🗑️</button>
                         </div>
                     </div>
                 `;
@@ -197,17 +280,27 @@
             expensesList.innerHTML = '';
             let totalExp = 0;
 
-            appData.expenses.forEach((e, index) => {
+            let filteredExpenses = appData.expenses.filter(e => e.title.toLowerCase().includes(currentFilter) || e.category.toLowerCase().includes(currentFilter));
+
+            if(filteredExpenses.length === 0) {
+                expensesList.innerHTML = `<div class="bg-slate-900/40 p-6 rounded-2xl text-center text-slate-500 text-xs border border-slate-800">لا توجد مصروفات مطابقة للبحث</div>`;
+            }
+
+            filteredExpenses.forEach((e) => {
+                let realIndex = appData.expenses.indexOf(e);
                 totalExp += Number(e.amount);
                 expensesList.innerHTML += `
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
-                        <div>
-                            <h4 class="font-bold text-gray-800 text-sm">${e.title}</h4>
-                            <p class="text-xs text-gray-400 mt-0.5">${e.date}</p>
+                    <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800/80 flex justify-between items-center transition hover:border-slate-700">
+                        <div class="space-y-1">
+                            <h4 class="font-bold text-slate-200 text-xs">${e.title}</h4>
+                            <div class="flex items-center gap-2 text-[10px] text-slate-400">
+                                <span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md">${e.category || 'صيانة'}</span>
+                                <span>📅 ${e.date}</span>
+                            </div>
                         </div>
-                        <div class="flex items-center space-x-2 space-x-reverse">
-                            <span class="font-bold text-rose-600 text-sm">${e.amount} ج.م</span>
-                            <button onclick="deleteExpense(${index})" class="text-gray-400 hover:text-rose-600 text-xs px-1">🗑️</button>
+                        <div class="flex items-center space-x-3 space-x-reverse">
+                            <span class="font-black text-rose-400 text-xs">${e.amount} ج.م</span>
+                            <button onclick="deleteExpense(${realIndex})" class="text-slate-600 hover:text-rose-400 text-xs p-1">🗑️</button>
                         </div>
                     </div>
                 `;
@@ -237,91 +330,95 @@
             }
         }
 
-        function openSettings() {
+        // Modals Toggle
+        function openTenantModal() { document.getElementById('tenantModal').classList.remove('hidden'); }
+        function closeTenantModal() { document.getElementById('tenantModal').classList.add('hidden'); }
+        
+        function openExpenseModal() { document.getElementById('expenseModal').classList.remove('hidden'); }
+        function closeExpenseModal() { document.getElementById('expenseModal').classList.add('hidden'); }
+        
+        function openSettingsModal() {
             document.getElementById('githubToken').value = appData.settings.token;
             document.getElementById('gistId').value = appData.settings.gistId;
             document.getElementById('settingsModal').classList.remove('hidden');
         }
-        function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
+        function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
+
         function saveSettings() {
             appData.settings.token = document.getElementById('githubToken').value.trim();
             appData.settings.gistId = document.getElementById('gistId').value.trim();
-            localStorage.setItem('manzil_token', appData.settings.token);
-            localStorage.setItem('manzil_gistId', appData.settings.gistId);
-            closeSettings();
+            localStorage.setItem('manzil_pro_token', appData.settings.token);
+            localStorage.setItem('manzil_pro_gistId', appData.settings.gistId);
+            closeSettingsModal();
             alert('تم حفظ الإعدادات بنجاح!');
         }
 
-        function openAddTenantModal() {
-            document.getElementById('tenantModalTitle').innerText = 'إضافة شقة جديدة';
-            document.getElementById('tenantNameInput').value = '';
-            document.getElementById('tenantAmountInput').value = '200';
-            document.getElementById('tenantModal').classList.remove('hidden');
-        }
-        function closeTenantModal() { document.getElementById('tenantModal').classList.add('hidden'); }
         function saveTenant() {
             const name = document.getElementById('tenantNameInput').value.trim();
+            const phone = document.getElementById('tenantPhoneInput').value.trim();
             const amount = document.getElementById('tenantAmountInput').value;
-            if(!name) return alert('الرجاء إدخال اسم الشقة أو الساكن');
-            appData.tenants.push({ name, amount: Number(amount), paid: false });
+            if(!name) return alert('الرجاء إدخال اسم الساكن');
+            appData.tenants.push({ name, phone, amount: Number(amount), paid: false });
             saveDataLocally();
             closeTenantModal();
         }
 
-        function openAddExpenseModal() {
-            document.getElementById('expenseTitleInput').value = '';
-            document.getElementById('expenseAmountInput').value = '';
-            document.getElementById('expenseModal').classList.remove('hidden');
-        }
-        function closeExpenseModal() { document.getElementById('expenseModal').classList.add('hidden'); }
         function saveExpense() {
             const title = document.getElementById('expenseTitleInput').value.trim();
+            const category = document.getElementById('expenseCategoryInput').value;
             const amount = document.getElementById('expenseAmountInput').value;
             if(!title || !amount) return alert('الرجاء إدخال كافة التفاصيل');
             const date = new Date().toISOString().split('T')[0];
-            appData.expenses.push({ title, amount: Number(amount), date });
+            appData.expenses.push({ title, category, amount: Number(amount), date });
             saveDataLocally();
             closeExpenseModal();
         }
 
         function switchTab(tab) {
+            const tSec = document.getElementById('section-tenants');
+            const eSec = document.getElementById('section-expenses');
+            const rSec = document.getElementById('section-reports');
+            
+            const tNav = document.getElementById('nav-tenants');
+            const eNav = document.getElementById('nav-expenses');
+            const rNav = document.getElementById('nav-reports');
+
+            tSec.classList.add('hidden');
+            eSec.classList.add('hidden');
+            rSec.classList.add('hidden');
+
+            tNav.className = 'flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition py-1 px-3 rounded-2xl';
+            eNav.className = 'flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition py-1 px-3 rounded-2xl';
+            rNav.className = 'flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition py-1 px-3 rounded-2xl';
+
             if(tab === 'tenants') {
-                document.getElementById('section-tenants').classList.remove('hidden');
-                document.getElementById('section-expenses').classList.add('hidden');
-                document.getElementById('tab-tenants').className = 'flex-1 py-3 text-center border-b-2 border-indigo-600 text-indigo-600 transition';
-                document.getElementById('tab-expenses').className = 'flex-1 py-3 text-center text-gray-500 border-b-2 border-transparent transition';
-            } else {
-                document.getElementById('section-tenants').classList.add('hidden');
-                document.getElementById('section-expenses').classList.remove('hidden');
-                document.getElementById('tab-expenses').className = 'flex-1 py-3 text-center border-b-2 border-indigo-600 text-indigo-600 transition';
-                document.getElementById('tab-tenants').className = 'flex-1 py-3 text-center text-gray-500 border-b-2 border-transparent transition';
+                tSec.classList.remove('hidden');
+                tNav.className = 'flex flex-col items-center gap-1 text-indigo-400 transition py-1 px-3 rounded-2xl';
+            } else if(tab === 'expenses') {
+                eSec.classList.remove('hidden');
+                eNav.className = 'flex flex-col items-center gap-1 text-rose-400 transition py-1 px-3 rounded-2xl';
+            } else if(tab === 'reports') {
+                rSec.classList.remove('hidden');
+                rNav.className = 'flex flex-col items-center gap-1 text-emerald-400 transition py-1 px-3 rounded-2xl';
             }
         }
 
         async function syncWithGist() {
             const token = appData.settings.token;
             if(!token) {
-                alert('الرجاء إدخال رمز الأمان (PAT) من الإعدادات أولاً.');
-                openSettings();
+                alert('الرجاء إدخال رمز الأمان في الإعدادات أولاً.');
+                openSettingsModal();
                 return;
             }
 
             const syncBtn = document.getElementById('syncBtn');
-            syncBtn.innerText = 'جاري المزامنة...';
+            syncBtn.innerText = '...';
 
-            const payloadData = {
-                tenants: appData.tenants,
-                expenses: appData.expenses
-            };
-
+            const payloadData = { tenants: appData.tenants, expenses: appData.expenses };
             const gistBody = {
-                description: "Manzil App Database",
+                description: "Manzil Pro Database",
                 public: false,
-                files: {
-                    "manzil-data.json": {
-                        content: JSON.stringify(payloadData, null, 2)
-                    }
-                }
+                files: { "manzil-pro-data.json": { content: JSON.stringify(payloadData, null, 2) } }
             };
 
             try {
@@ -329,51 +426,38 @@
                 if(!gistId) {
                     let res = await fetch('https://api.github.com/gists', {
                         method: 'POST',
-                        headers: {
-                            'Authorization': `token ${token}`,
-                            'Accept': 'application/vnd.github.v3+json',
-                            'Content-Type': 'application/json'
-                        },
+                        headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
                         body: JSON.stringify(gistBody)
                     });
                     let data = await res.json();
                     if(data.id) {
                         appData.settings.gistId = data.id;
-                        localStorage.setItem('manzil_gistId', data.id);
-                        alert('تم إنشاء Gist سحابي جديد وربطه بنجاح!');
-                    } else {
-                        throw new Error('فشل إنشاء الـ Gist تأكد من صحة الـ Token.');
+                        localStorage.setItem('manzil_pro_gistId', data.id);
+                        alert('تم ربط وإنشاء سحابة Gist بنجاح!');
                     }
                 } else {
                     let res = await fetch(`https://api.github.com/gists/${gistId}`, {
-                        headers: {
-                            'Authorization': `token ${token}`,
-                            'Accept': 'application/vnd.github.v3+json'
-                        }
+                        headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
                     });
                     let gist = await res.json();
-                    if(gist.files && gist.files["manzil-data.json"]) {
-                        let remoteContent = JSON.parse(gist.files["manzil-data.json"].content);
+                    if(gist.files && gist.files["manzil-pro-data.json"]) {
+                        let remoteContent = JSON.parse(gist.files["manzil-pro-data.json"].content);
                         appData.tenants = remoteContent.tenants || appData.tenants;
                         appData.expenses = remoteContent.expenses || appData.expenses;
                         saveDataLocally();
                     } else {
                         await fetch(`https://api.github.com/gists/${gistId}`, {
                             method: 'PATCH',
-                            headers: {
-                                'Authorization': `token ${token}`,
-                                'Accept': 'application/vnd.github.v3+json',
-                                'Content-Type': 'application/json'
-                            },
+                            headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
                             body: JSON.stringify(gistBody)
                         });
                     }
-                    alert('تمت المزامنة السحابية بنجاح وتحديث البيانات عبر الأجهزة!');
+                    alert('تمت المزامنة بنجاح!');
                 }
             } catch (err) {
-                alert('حدث خطأ أثناء المزامنة: ' + err.message);
+                alert('خطأ في المزامنة: ' + err.message);
             } finally {
-                syncBtn.innerText = '🔄 مزامنة السحابة';
+                syncBtn.innerText = '🔄 مزامنة';
                 render();
             }
         }
@@ -382,4 +466,3 @@
     </script>
 </body>
 </html>
-
