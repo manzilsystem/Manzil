@@ -161,14 +161,13 @@
                         <h3 class="font-bold text-xs">لوحة إعلانات العمارة والتنبيهات الذكية</h3>
                     </div>
                     <div class="flex gap-1.5 no-print">
-                        <button onclick="openNoticeModal()" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-xl text-[11px] font-bold transition">إعلان يدوي</button>
+                        <button onclick="openNoticeModal()" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-xl text-[11px] font-bold transition">قوالب وإعلان</button>
                         <button onclick="shareNoticeToWhatsApp()" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-[11px] font-bold transition flex items-center gap-1"><i class="fa-brands fa-whatsapp"></i> نشر للجروب</button>
+                        <button onclick="copyNoticeToClipboard()" class="bg-slate-700/30 hover:bg-slate-700/50 text-slate-300 border border-slate-600/30 px-3 py-1.5 rounded-xl text-[11px] font-bold transition" title="نسخ نص الإعلان"><i class="fa-solid fa-copy"></i></button>
                     </div>
                 </div>
                 <!-- Dynamic Notices Container -->
-                <div id="noticeBoardContent" class="space-y-2">
-                    <!-- Populated by JS -->
-                </div>
+                <div id="noticeBoardContent" class="space-y-2"></div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -200,6 +199,18 @@
                 </div>
                 <div class="w-12 h-12 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center text-2xl text-amber-300">
                     <i class="fa-solid fa-wallet"></i>
+                </div>
+            </div>
+
+            <!-- Interactive SVG Cash Flow Visualizer -->
+            <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
+                <h3 class="font-bold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line text-indigo-400"></i> التدفق النقدي البصري (SVG Chart)
+                </h3>
+                <div id="cashFlowChartContainer" class="w-full h-32 flex items-end justify-between gap-2 pt-4 px-2 border-b border-slate-700/50 pb-2"></div>
+                <div class="flex justify-center gap-4 text-[10px] text-slate-400 pt-1">
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> التحصيلات الشهرية</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> المصروفات الشهرية</span>
                 </div>
             </div>
 
@@ -278,7 +289,7 @@
                     <i class="fa-solid fa-plus text-sm"></i> مصروف جديد
                 </button>
             </div>
-            <div class="app-card p-3 rounded-3xl border flex gap-2 no-print">
+            <div class="app-card p-3 rounded-3xl border flex flex-wrap gap-2 no-print">
                 <input type="text" id="searchExpenseInput" oninput="renderExpenseTable()" placeholder="بحث في عنوان المصروف..." class="flex-grow app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
                 <select id="filterExpenseCategory" onchange="renderExpenseTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold">
                     <option value="">كل الفئات</option>
@@ -287,6 +298,9 @@
                     <option value="نظافة">نظافة</option>
                     <option value="أعمال سباكة وصنايعي">أعمال سباكة وصنايعي</option>
                     <option value="أخرى">أخرى</option>
+                </select>
+                <select id="filterExpenseMonth" onchange="renderExpenseTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold">
+                    <option value="">كل الشهور</option>
                 </select>
             </div>
             <div id="expenseCardsList" class="space-y-3"></div>
@@ -339,6 +353,17 @@
                     </button>
                 </div>
             </div>
+
+            <!-- Audit Trail Log Section -->
+            <div class="app-card p-5 rounded-3xl border space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-xs flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> سجل نشاطات التدقيق (Audit Trail)
+                    </h3>
+                    <button onclick="clearAuditLog()" class="text-[10px] text-slate-400 hover:text-rose-400 underline">مسح السجل</button>
+                </div>
+                <div id="auditLogContainer" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
+            </div>
         </section>
 
     </main>
@@ -369,19 +394,44 @@
 
     <!-- MODALS -->
 
-    <!-- Notice Board Edit Modal -->
+    <!-- Notice Board Edit & Templates Modal -->
     <div id="noticeModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
-        <div class="app-card border w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn max-h-[90vh] overflow-y-auto">
             <div class="bg-indigo-700 text-white px-5 py-4 flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fa-solid fa-bullhorn ml-2"></i> لوحة إعلانات العمارة اليدوية</h3>
+                <h3 class="font-bold text-sm"><i class="fa-solid fa-bullhorn ml-2"></i> لوحة الإعلانات والقوالب الجاهزة</h3>
                 <button onclick="closeModal('noticeModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <div class="p-5 space-y-3">
-                <p class="text-xs text-slate-400">اكتب إعلاناً يدوياً طارئاً يظهر بجوار التنبيهات التلقائية للسكان:</p>
-                <textarea id="noticeInput" rows="3" placeholder="مثال: يرجى العلم أنه سيتم قطع المياه غداً لصيانة الصاعد من 9 صباحاً." class="w-full app-input border rounded-2xl p-3 text-xs focus:outline-none"></textarea>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-indigo-400 mb-1.5"><i class="fa-solid fa-wand-magic-sparkles ml-1"></i> قوالب المناسبات المتكررة الجاهزة:</label>
+                    <div class="grid grid-cols-1 gap-2">
+                        <button type="button" onclick="applyNoticeTemplate('monthly_sub')" class="text-right app-input hover:bg-indigo-600/10 p-2.5 rounded-xl border text-xs transition flex justify-between items-center">
+                            <span>📅 تذكير بدء سداد الاشتراك الشهري (أول الشهر)</span>
+                            <i class="fa-solid fa-arrow-left text-indigo-400"></i>
+                        </button>
+                        <button type="button" onclick="applyNoticeTemplate('cleaning')" class="text-right app-input hover:bg-indigo-600/10 p-2.5 rounded-xl border text-xs transition flex justify-between items-center">
+                            <span>🧹 تنبيه موعد حملة النظافة الدورية</span>
+                            <i class="fa-solid fa-arrow-left text-indigo-400"></i>
+                        </button>
+                        <button type="button" onclick="applyNoticeTemplate('elevator')" class="text-right app-input hover:bg-indigo-600/10 p-2.5 rounded-xl border text-xs transition flex justify-between items-center">
+                            <span>🛗 إعلان صيانة الأسانسير</span>
+                            <i class="fa-solid fa-arrow-left text-indigo-400"></i>
+                        </button>
+                        <button type="button" onclick="applyNoticeTemplate('eid')" class="text-right app-input hover:bg-indigo-600/10 p-2.5 rounded-xl border text-xs transition flex justify-between items-center">
+                            <span>🌙 تهنئة بحلول المناسبات والأعياد</span>
+                            <i class="fa-solid fa-arrow-left text-indigo-400"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">صيغة الإعلان المخصص (يمكنك التعديل بحرية):</label>
+                    <textarea id="noticeInput" rows="4" placeholder="اكتب أو اختر قوالب جاهزة من الأعلى..." class="w-full app-input border rounded-2xl p-3 text-xs focus:outline-none"></textarea>
+                </div>
+
                 <div class="flex gap-2 pt-2">
                     <button type="button" onclick="closeModal('noticeModal')" class="flex-1 bg-slate-800 text-slate-300 py-3 rounded-2xl text-xs font-bold">إلغاء</button>
-                    <button type="button" onclick="saveNotice()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl text-xs font-bold shadow">حفظ الإعلان اليدوي</button>
+                    <button type="button" onclick="saveNotice()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl text-xs font-bold shadow">حفظ ونشر الإعلان</button>
                 </div>
             </div>
         </div>
@@ -436,11 +486,11 @@
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block text-xs font-semibold text-slate-400 mb-1">رصيد الخزنة السابق</label>
-                            <input type="number" id="startingBalanceInput" placeholder="0" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs focus:outline-none">
+                            <input type="number" min="0" id="startingBalanceInput" placeholder="0" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs focus:outline-none">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-400 mb-1">الاشتراك الافتراضي</label>
-                            <input type="number" id="settingDefaultSub" placeholder="200" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs focus:outline-none">
+                            <input type="number" min="0" id="settingDefaultSub" placeholder="200" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs focus:outline-none">
                         </div>
                     </div>
                     <div>
@@ -515,7 +565,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">المبلغ (ج.م) *</label>
-                    <input type="number" id="incomeAmount" required placeholder="مثال: 300" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs focus:outline-none font-bold text-emerald-400">
+                    <input type="number" min="0" step="any" id="incomeAmount" required placeholder="مثال: 300" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs focus:outline-none font-bold text-emerald-400">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">عن شهر / الفترة *</label>
@@ -561,7 +611,11 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">المبلغ (ج.م) *</label>
-                    <input type="number" id="expenseAmount" required placeholder="مثال: 450" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs focus:outline-none font-bold text-rose-400">
+                    <input type="number" min="0" step="any" id="expenseAmount" required placeholder="مثال: 450" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs focus:outline-none font-bold text-rose-400">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">عن شهر / الفترة *</label>
+                    <input type="text" id="expenseMonth" required placeholder="مثال: يونيو 2026" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs focus:outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">التاريخ *</label>
@@ -601,7 +655,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">قيمة الاشتراك الشهري المخصص (ج.م) *</label>
-                    <input type="number" id="residentMonthlyAmount" required placeholder="مثال: 200" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs focus:outline-none font-bold text-indigo-400">
+                    <input type="number" min="0" step="any" id="residentMonthlyAmount" required placeholder="مثال: 200" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs focus:outline-none font-bold text-indigo-400">
                 </div>
                 <div class="flex gap-2 pt-2">
                     <button type="button" onclick="closeModal('residentModal')" class="flex-1 bg-slate-800 text-slate-300 py-3 rounded-2xl text-xs font-bold">إلغاء</button>
@@ -644,7 +698,7 @@
         }
     </script>
 
-    <!-- Core App Logic & Theme Manager -->
+    <!-- Core App Logic & Advanced Enhancements -->
     <script>
         let state = {
             buildingName: 'Manzil',
@@ -656,9 +710,11 @@
             residents: [],
             income: [],
             expenses: [],
+            auditLogs: [],
             pinCode: '',
             startingBalance: 0,
-            lastActiveMonth: ''
+            lastActiveMonth: '',
+            lastUpdated: Date.now()
         };
 
         let snapshots = [];
@@ -680,6 +736,7 @@
                 ];
                 state.buildingName = 'برج الهدى';
                 state.startingBalance = 0;
+                logActivity('تم تهيئة النظام لأول مرة');
                 saveLocalOnly();
             }
 
@@ -704,6 +761,23 @@
             updateUI();
         }
 
+        function logActivity(actionDesc) {
+            if (!state.auditLogs) state.auditLogs = [];
+            state.auditLogs.unshift({
+                id: Date.now().toString(),
+                time: new Date().toLocaleString('ar-EG'),
+                desc: actionDesc
+            });
+            if (state.auditLogs.length > 50) state.auditLogs.pop();
+        }
+
+        window.clearAuditLog = function() {
+            state.auditLogs = [];
+            saveData();
+            updateUI();
+            showCustomModal('نجاح', 'تم مسح سجل النشاطات', 'success');
+        }
+
         function applyTheme(themeName) {
             state.theme = themeName;
             document.body.setAttribute('data-theme', themeName);
@@ -722,7 +796,8 @@
 
         window.setAppTheme = function(themeName) {
             applyTheme(themeName);
-            saveLocalOnly();
+            logActivity(`تم تغيير المظهر إلى (${themeName})`);
+            saveData();
         }
 
         function checkAutoMonthRollover() {
@@ -732,11 +807,13 @@
 
             if (!state.lastActiveMonth || state.lastActiveMonth !== currentMonthStr) {
                 state.lastActiveMonth = currentMonthStr;
+                logActivity(`بدء شهر جديد تلقائياً: ${currentMonthStr}`);
                 saveLocalOnly();
             }
         }
 
         function saveLocalOnly() {
+            state.lastUpdated = Date.now();
             localStorage.setItem('manzil_app_state', JSON.stringify(state));
         }
 
@@ -769,12 +846,20 @@
                 if (data.files && data.files['manzil_data.json']) {
                     const remoteData = JSON.parse(data.files['manzil_data.json'].content);
                     if (remoteData && remoteData.residents) {
-                        state = remoteData;
-                        saveLocalOnly();
-                        applyTheme(state.theme || 'dark');
+                        const remoteTime = remoteData.lastUpdated || 0;
+                        const localTime = state.lastUpdated || 0;
+
+                        if (remoteTime > localTime || state.residents.length === 0) {
+                            state = remoteData;
+                            saveLocalOnly();
+                            applyTheme(state.theme || 'dark');
+                        } else if (localTime > remoteTime) {
+                            await pushToGitHubGist();
+                        }
+                        
                         updateUI();
                         document.getElementById('syncStatus').innerText = "متزامن مع GitHub Gist ☁️";
-                        if (!silent) showCustomModal('نجاح المزامنة', 'تم سحب أحدث البيانات وتحديث التطبيق بنجاح', 'success');
+                        if (!silent) showCustomModal('نجاح المزامنة', 'تم تحديث البيانات ومزامنتها بنجاح', 'success');
                     }
                 }
             } catch (err) {
@@ -855,6 +940,7 @@
             }
 
             localStorage.setItem('manzil_github_config', JSON.stringify(githubConfig));
+            logActivity('تم ربط حساب GitHub Gist بنجاح');
             await syncWithGitHubGist(false);
             closeModal('settingsModal');
         }
@@ -866,7 +952,7 @@
             const monthsNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
             const currentMonthStr = `${monthsNames[now.getMonth()]} ${now.getFullYear()}`;
             
-            const existingMonths = [...new Set([...state.income.map(i => i.month), currentMonthStr])];
+            const existingMonths = [...new Set([...state.income.map(i => i.month), ...state.expenses.map(e => e.month || currentMonthStr), currentMonthStr])];
             
             if (select) {
                 select.innerHTML = '';
@@ -878,6 +964,14 @@
                 reportSelect.innerHTML = '';
                 existingMonths.forEach(m => reportSelect.innerHTML += `<option value="${m}">${m}</option>`);
                 reportSelect.value = currentMonthStr;
+            }
+
+            const expMonthFilter = document.getElementById('filterExpenseMonth');
+            if (expMonthFilter) {
+                const currentExpVal = expMonthFilter.value;
+                expMonthFilter.innerHTML = '<option value="">كل الشهور</option>';
+                existingMonths.forEach(m => expMonthFilter.innerHTML += `<option value="${m}">${m}</option>`);
+                expMonthFilter.value = currentExpVal;
             }
         }
 
@@ -946,12 +1040,42 @@
             openModal('noticeModal');
         }
 
+        window.applyNoticeTemplate = function(type) {
+            const now = new Date();
+            const monthsNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+            const curMonth = `${monthsNames[now.getMonth()]} ${now.getFullYear()}`;
+            const bName = state.buildingName || 'العقارات';
+
+            let text = '';
+            if (type === 'monthly_sub') {
+                text = `📢 تذكير هام من إدارة (${bName})\nسادة السكان الأفاضل، نلفت انتباهكم إلى بدء تحصيل اشتراك شهر (${curMonth}). يرجى التكرم بالمبادرة بالسداد لاستمرار أعمال الصيانة والنظافة بانتظام. شكراً لتعاونكم الدائم 🏢`;
+            } else if (type === 'cleaning') {
+                text = `🧹 إعلان نظافة دورية (${bName})\nنسترعي انتباه السادة السكان بأن موعد حملة النظافة الشاملة للمدخل والسلالم سيكون غداً. نرجو الاهتمام بوضع القمامة في الأماكن المخصصة. شكراً لحرصكم على نظافة عقارنا ✨`;
+            } else if (type === 'elevator') {
+                text = `🛗 تنبيه صيانة الأسانسير (${bName})\nيرجى العلم أنه سيتم إجراء أعمال الصيانة الدورية للأسانسير اليوم. نرجو توخي الحذر والتعاون أثناء وقت الصيانة. مع اعتذارنا عن أي إزعاج مؤقت ⚙️`;
+            } else if (type === 'eid') {
+                text = `🌙 تهنئة مباركة من إدارة (${bName})\nتتقدم إليكم إدارة العقار بأخلص التهاني بمناسبة حلول المناسبة المباركة، أعادها الله علينا وعليكم بالخير واليمن والبركات. وكل عام وأنتم بخير وسعادة 🎉`;
+            }
+
+            document.getElementById('noticeInput').value = text;
+        }
+
         window.saveNotice = function() {
             state.noticeText = document.getElementById('noticeInput').value.trim();
+            logActivity('تم تحديث لوحة الإعلانات');
             saveData();
             updateUI();
             closeModal('noticeModal');
-            showCustomModal('نجاح', 'تم تحديث لوحة الإعلانات اليدوية بنجاح', 'success');
+            showCustomModal('نجاح', 'تم تحديث ونشر الإعلان بنجاح', 'success');
+        }
+
+        window.copyNoticeToClipboard = function() {
+            const textToCopy = state.noticeText ? state.noticeText : "لا يوجد إعلان مخصص حالياً، الإعلانات التلقائية نشطة.";
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                showCustomModal('تم الحفظ', 'تم نسخ نص الإعلان إلى الحافظة بنجاح', 'success');
+            }).catch(() => {
+                showCustomModal('خطأ', 'فشل النسخ', 'error');
+            });
         }
 
         window.closeModal = function(modalId) {
@@ -963,8 +1087,8 @@
             state.buildingName = document.getElementById('settingBuildingName').value.trim() || 'Manzil';
             state.managerName = document.getElementById('settingManagerName').value.trim() || '';
             state.managerPhone = document.getElementById('settingManagerPhone').value.trim() || '';
-            state.startingBalance = parseFloat(document.getElementById('startingBalanceInput').value) || 0;
-            state.defaultSubscription = parseFloat(document.getElementById('settingDefaultSub').value) || 200;
+            state.startingBalance = Math.max(0, parseFloat(document.getElementById('startingBalanceInput').value) || 0);
+            state.defaultSubscription = Math.max(0, parseFloat(document.getElementById('settingDefaultSub').value) || 200);
 
             const pinVal = document.getElementById('newPinInput').value;
             if (pinVal) {
@@ -981,6 +1105,7 @@
             githubConfig.gistId = gistId;
             localStorage.setItem('manzil_github_config', JSON.stringify(githubConfig));
 
+            logActivity('تم تحديث إعدادات النظام والعقار');
             saveData();
             updateUI();
             closeModal('settingsModal');
@@ -997,6 +1122,7 @@
             if (snapshots.length > 10) snapshots.pop();
             localStorage.setItem('manzil_snapshots', JSON.stringify(snapshots));
             renderSnapshotsList();
+            logActivity('تم أخذ لقطة احتياطية يدوية');
             showCustomModal('نجاح', 'تم أخذ اللقطة الاحتياطية', 'success');
         }
 
@@ -1023,6 +1149,7 @@
             if (!target) return;
             try {
                 state = JSON.parse(target.data);
+                logActivity(`تم استعادة النسخة الاحتياطية المؤرخة في (${target.date})`);
                 saveData();
                 applyTheme(state.theme || 'dark');
                 updateUI();
@@ -1096,6 +1223,7 @@
             document.getElementById('printBuildingMeta').innerText = `المسؤول: ${state.managerName || 'الإدارة'} | تاريخ التقرير: ${new Date().toLocaleDateString('ar-EG')}`;
 
             renderNoticeBoard();
+            renderAuditLog();
 
             const totalIncome = state.income.reduce((s, i) => s + Number(i.amount), 0);
             const totalExpense = state.expenses.reduce((s, e) => s + Number(e.amount), 0);
@@ -1105,6 +1233,7 @@
             document.getElementById('totalExpenseDisplay').innerText = `${totalExpense.toLocaleString()} ج.م`;
             document.getElementById('netBalanceDisplay').innerText = `${netBalance.toLocaleString()} ج.م`;
 
+            renderCashFlowChart();
             renderUnpaidResidents();
 
             const breakdownEl = document.getElementById('expenseCategoriesBreakdown');
@@ -1130,7 +1259,7 @@
                 });
             }
 
-            populateMonthFilterOptions();
+            setupMonthSelector();
 
             const residentsGrid = document.getElementById('residentsGrid');
             residentsGrid.innerHTML = '';
@@ -1163,13 +1292,67 @@
             renderRecentLists();
         }
 
+        function renderAuditLog() {
+            const container = document.getElementById('auditLogContainer');
+            if (!container) return;
+            container.innerHTML = '';
+            if (!state.auditLogs || state.auditLogs.length === 0) {
+                container.innerHTML = '<p class="text-[11px] text-slate-400 text-center py-2">لا توجد سجلات نشاط مسجلة بعد.</p>';
+                return;
+            }
+            state.auditLogs.slice(0, 10).forEach(log => {
+                container.innerHTML += `
+                    <div class="app-input p-2 rounded-xl border text-[11px] flex justify-between items-center">
+                        <span class="text-slate-300 font-medium">${log.desc}</span>
+                        <span class="text-[9px] text-slate-500">${log.time}</span>
+                    </div>
+                `;
+            });
+        }
+
+        function renderCashFlowChart() {
+            const container = document.getElementById('cashFlowChartContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const months = getActiveBuildingMonths().slice(-4);
+            if (months.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-400 m-auto">لا توجد بيانات كافية للرسم البياني</p>';
+                return;
+            }
+
+            let maxVal = 100;
+            months.forEach(m => {
+                const inc = state.income.filter(i => i.month === m).reduce((s, i) => s + Number(i.amount), 0);
+                const exp = state.expenses.filter(e => e.month === m).reduce((s, e) => s + Number(e.amount), 0);
+                if (inc > maxVal) maxVal = inc;
+                if (exp > maxVal) maxVal = exp;
+            });
+
+            months.forEach(m => {
+                const inc = state.income.filter(i => i.month === m).reduce((s, i) => s + Number(i.amount), 0);
+                const exp = state.expenses.filter(e => e.month === m).reduce((s, e) => s + Number(e.amount), 0);
+                const incHeight = Math.max(10, Math.round((inc / maxVal) * 90));
+                const expHeight = Math.max(10, Math.round((exp / maxVal) * 90));
+
+                container.innerHTML += `
+                    <div class="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+                        <div class="w-full flex items-end justify-center gap-1 h-24 px-1">
+                            <div class="w-1/2 bg-emerald-500 rounded-t-lg transition-all" style="height: ${incHeight}%" title="تحصيلات: ${inc} ج.م"></div>
+                            <div class="w-1/2 bg-rose-500 rounded-t-lg transition-all" style="height: ${expHeight}%" title="مصروفات: ${exp} ج.م"></div>
+                        </div>
+                        <span class="text-[9px] text-slate-400 truncate max-w-full">${m.split(' ')[0]}</span>
+                    </div>
+                `;
+            });
+        }
+
         function renderNoticeBoard() {
             const container = document.getElementById('noticeBoardContent');
             if (!container) return;
             container.innerHTML = '';
 
             let notices = [];
-
             if (state.noticeText) {
                 notices.push({ type: 'manual', text: `📌 إعلان إداري هام: ${state.noticeText}` });
             }
@@ -1186,16 +1369,11 @@
                 notices.push({ type: 'auto', text: `✨ حالة الصندوق ممتازة: جميع الشقق منتظمة في سداد الاشتراكات الشهرية.` });
             }
 
-            if (state.expenses.length > 0) {
-                const lastExp = [...state.expenses].sort((a,b) => b.createdAt - a.createdAt)[0];
-                notices.push({ type: 'auto', text: `🔧 آخر مصروف مسجل بالعقار: (${lastExp.title}) بقيمة ${lastExp.amount} ج.م بتاريخ ${lastExp.date}.` });
-            }
-
             notices.forEach(n => {
                 container.innerHTML += `
                     <div class="app-input p-3 rounded-2xl border text-xs flex items-center justify-between gap-2">
                         <span class="font-semibold leading-relaxed">${n.text}</span>
-                        <span class="text-[10px] px-2 py-0.5 rounded-full ${n.type === 'manual' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-800 text-slate-400'}">${n.type === 'manual' ? 'يدوي' : 'تلقائي'}</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full ${n.type === 'manual' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-800 text-slate-400'}">${n.type === 'manual' ? 'مخصص' : 'تلقائي'}</span>
                     </div>
                 `;
             });
@@ -1207,23 +1385,12 @@
             
             let msg = `📢 *لوحة إعلانات وتحصيلات ${bName}*\n\n`;
             if (state.noticeText) {
-                msg += `📌 *إعلان هام:* ${state.noticeText}\n\n`;
-            }
-
-            let totalUnpaidCount = 0;
-            state.residents.forEach(r => {
-                const debt = calculateCumulativeDebt(r.id);
-                if (debt.totalDebt > 0) totalUnpaidCount++;
-            });
-
-            if (totalUnpaidCount > 0) {
-                msg += `⚠️ تنبيه: يوجد (${totalUnpaidCount}) شقق عليها متأخرات. يرجى سرعة السداد لصالح صيانة العمارة.\n`;
+                msg += `${state.noticeText}\n\n`;
             } else {
-                msg += `✨ نشكر جميع السكان على الالتزام بسداد الاشتراكات في مواعيدها.\n`;
+                msg += `✨ نشكر جميع السكان على الالتزام بسداد الاشتراكات في مواعيدها.\n\n`;
             }
 
-            msg += `\nمع تحيات إدارة العقار: ${mName}`;
-
+            msg += `مع تحيات إدارة العقار: ${mName}`;
             window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
@@ -1275,18 +1442,6 @@
             window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
         }
 
-        function populateMonthFilterOptions() {
-            const select = document.getElementById('filterIncomeMonth');
-            if(!select) return;
-            const currentVal = select.value;
-            const months = [...new Set(state.income.map(i => i.month))];
-            select.innerHTML = '<option value="">كل الشهور</option>';
-            months.forEach(m => {
-                select.innerHTML += `<option value="${m}">${m}</option>`;
-            });
-            select.value = currentVal;
-        }
-
         window.renderIncomeTable = function() {
             const container = document.getElementById('incomeCardsList');
             if(!container) return;
@@ -1336,11 +1491,13 @@
             container.innerHTML = '';
             const search = document.getElementById('searchExpenseInput').value.toLowerCase();
             const filterCat = document.getElementById('filterExpenseCategory').value;
+            const filterMonth = document.getElementById('filterExpenseMonth').value;
 
             const filtered = state.expenses.filter(item => {
                 const matchSearch = item.title.toLowerCase().includes(search) || (item.notes && item.notes.toLowerCase().includes(search));
                 const matchCat = !filterCat || item.category === filterCat;
-                return matchSearch && matchCat;
+                const matchMonth = !filterMonth || item.month === filterMonth;
+                return matchSearch && matchCat && matchMonth;
             });
 
             if (filtered.length === 0) {
@@ -1354,6 +1511,7 @@
                         <div>
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[10px] px-2.5 py-0.5 rounded-full font-bold">${item.category}</span>
+                                <span class="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 text-[10px] px-2.5 py-0.5 rounded-full font-bold">${item.month || 'عام'}</span>
                                 <span class="text-xs text-slate-400">${item.date}</span>
                             </div>
                             <h4 class="font-bold text-sm">${item.title}</h4>
@@ -1511,14 +1669,20 @@
 
         window.handleResidentSubmit = function(e) {
             e.preventDefault();
+            const monthlyAmt = Math.max(0, parseFloat(document.getElementById('residentMonthlyAmount').value) || state.defaultSubscription);
+            const apt = document.getElementById('residentApartment').value;
+            const name = document.getElementById('residentName').value;
+
             state.residents.push({
                 id: Date.now().toString(),
-                apartment: document.getElementById('residentApartment').value,
-                name: document.getElementById('residentName').value,
+                apartment: apt,
+                name: name,
                 phone: document.getElementById('residentPhone').value,
-                monthlyAmount: parseFloat(document.getElementById('residentMonthlyAmount').value) || state.defaultSubscription,
+                monthlyAmount: monthlyAmt,
                 createdAt: Date.now()
             });
+
+            logActivity(`تمت إضافة شقة جديدة (${apt} - ${name})`);
             saveData();
             updateUI();
             document.getElementById('residentForm').reset();
@@ -1530,16 +1694,21 @@
             e.preventDefault();
             const residentId = document.getElementById('incomeResidentSelect').value;
             const resident = state.residents.find(r => r.id === residentId);
+            const amount = Math.max(0, parseFloat(document.getElementById('incomeAmount').value));
+            const month = document.getElementById('incomeMonth').value;
+
             state.income.push({
                 id: Date.now().toString(),
                 residentId,
                 residentName: resident ? `${resident.apartment} - ${resident.name}` : 'غير معروف',
-                amount: parseFloat(document.getElementById('incomeAmount').value),
-                month: document.getElementById('incomeMonth').value,
+                amount: amount,
+                month: month,
                 date: document.getElementById('incomeDate').value,
                 notes: document.getElementById('incomeNotes').value,
                 createdAt: Date.now()
             });
+
+            logActivity(`تحصيل مبلغ ${amount} ج.م من (${resident ? resident.name : 'شقة'}) عن شهر ${month}`);
             saveData();
             updateUI();
             document.getElementById('incomeForm').reset();
@@ -1550,15 +1719,22 @@
 
         window.handleExpenseSubmit = function(e) {
             e.preventDefault();
+            const title = document.getElementById('expenseTitle').value;
+            const amount = Math.max(0, parseFloat(document.getElementById('expenseAmount').value));
+            const cat = document.getElementById('expenseCategory').value;
+
             state.expenses.push({
                 id: Date.now().toString(),
-                title: document.getElementById('expenseTitle').value,
-                category: document.getElementById('expenseCategory').value,
-                amount: parseFloat(document.getElementById('expenseAmount').value),
+                title: title,
+                category: cat,
+                amount: amount,
+                month: document.getElementById('expenseMonth').value,
                 date: document.getElementById('expenseDate').value,
                 notes: document.getElementById('expenseNotes').value,
                 createdAt: Date.now()
             });
+
+            logActivity(`تسجيل مصروف (${title}) بمبلغ ${amount} ج.م لفئة (${cat})`);
             saveData();
             updateUI();
             document.getElementById('expenseForm').reset();
@@ -1569,6 +1745,7 @@
 
         window.deleteItem = function(type, id) {
             state[type] = state[type].filter(item => item.id !== id);
+            logActivity(`تم حذف عنصر من سجل (${type})`);
             saveData();
             updateUI();
             showCustomModal('تم الحذف', 'تم الحذف وحفظ التغييرات بنجاح', 'success');
@@ -1587,8 +1764,8 @@
         window.exportToCSV = function() {
             let csv = "\uFEFF=== تقرير حسابات العقار ===\n\nرصيد أول المدة," + (state.startingBalance || 0) + "\n\n--- التحصيلات ---\nالشقة,المبلغ,الشهر,التاريخ\n";
             state.income.forEach(i => csv += `"${i.residentName}",${i.amount},"${i.month}","${i.date}"\n`);
-            csv += "\n--- المصروفات ---\nالعنوان,الفئة,المبلغ,التاريخ\n";
-            state.expenses.forEach(e => csv += `"${e.title}","${e.category}",${e.amount},"${e.date}"\n`);
+            csv += "\n--- المصروفات ---\nالعنوان,الفئة,الشهر,المبلغ,التاريخ\n";
+            state.expenses.forEach(e => csv += `"${e.title}","${e.category}","${e.month || 'عام'}",${e.amount},"${e.date}"\n`);
             
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
@@ -1609,6 +1786,7 @@
                         const parsed = JSON.parse(e.target.result);
                         if (parsed.residents && parsed.income) {
                             state = parsed;
+                            logActivity('تم استيراد نسخة احتياطية بنجاح');
                             saveData();
                             applyTheme(state.theme || 'dark');
                             updateUI();
