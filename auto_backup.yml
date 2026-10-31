@@ -1,1 +1,32 @@
 
+name: Automated Manzil Backup
+
+on:
+  schedule:
+    # يعمل تلقائياً كل يوم منتصف الليل (00:00 UTC)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # يتيح التشغيل اليدوي من زر Actions في جيثب متى شئت
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Create Daily Backup Timestamp
+        run: |
+          mkdir -p backups
+          DATE=$(date +'%Y-%m-%d_%H-%M-%S')
+          if [ -f manzil_data.json ]; then
+            cp manzil_data.json "backups/backup_$DATE.json"
+            git config --global user.name "Manzil Auto Backup Bot"
+            git config --global user.email "bot@manzil.app"
+            git add backups/
+            git commit -m "Auto backup generated at $DATE" || exit 0
+            git push
+          else
+            echo "No data file found yet."
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
