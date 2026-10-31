@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="appWindowTitle">Manzil - إدارة العقارات السحابية</title>
+    <title id="appWindowTitle">Manzil - نظام إدارة العقارات السحابي</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Cairo Font -->
@@ -20,7 +20,7 @@
             body { background: white !important; color: black !important; }
             body * { visibility: hidden; }
             #printableArea, #printableArea * { visibility: visible; }
-            #printableArea { position: absolute; left: 0; top: 0; width: 100%; background: white; color: black; padding: 20px; }
+            #printableArea { position: absolute; left: 0; top: 0; width: 100%; background: white; color: black; padding: 25px; }
             .no-print { display: none !important; }
         }
     </style>
@@ -56,14 +56,18 @@
                 </div>
                 <div>
                     <h1 id="headerBuildingTitle" class="text-base font-bold leading-tight text-white">Manzil</h1>
-                    <p class="text-[10px] text-slate-400" id="syncStatus">جاهز (محلي/جيست)...</p>
+                    <p class="text-[10px] text-slate-400" id="syncStatus">جاري التحقق من المزامنة... 🔄</p>
                 </div>
             </div>
             <div class="flex items-center gap-1.5">
-                <button onclick="openModal('settingsModal')" class="bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700/60 p-2.5 rounded-xl text-xs transition" title="الإعدادات الشاملة">
+                <button onclick="syncWithGitHubGist(false)" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 p-2.5 rounded-xl text-xs transition flex items-center gap-1" title="مزامنة فورية">
+                    <i class="fa-solid fa-rotate text-sm"></i>
+                    <span class="hidden sm:inline">مزامنة</span>
+                </button>
+                <button onclick="openModal('settingsModal')" class="bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700/60 p-2.5 rounded-xl text-xs transition" title="الإعدادات والمزامنة">
                     <i class="fa-solid fa-gear text-sm"></i>
                 </button>
-                <button onclick="openModal('backupModal')" class="bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700/60 p-2.5 rounded-xl text-xs transition" title="النسخ الاحتياطي واللقطات">
+                <button onclick="openModal('backupModal')" class="bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700/60 p-2.5 rounded-xl text-xs transition" title="النسخ الاحتياطي">
                     <i class="fa-solid fa-cloud-arrow-down text-sm"></i>
                 </button>
                 <button onclick="window.print()" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 p-2.5 rounded-xl text-xs transition hidden sm:flex" title="طباعة تقرير رسمي">
@@ -75,6 +79,12 @@
 
     <!-- Main Container -->
     <main id="printableArea" class="container mx-auto px-3 sm:px-4 py-4 flex-grow max-w-4xl space-y-5">
+
+        <!-- Print Header -->
+        <div class="hidden print:block text-center border-b pb-4 mb-4">
+            <h2 id="printBuildingTitle" class="text-2xl font-black">كشف حساب مالي - Manzil</h2>
+            <p id="printBuildingMeta" class="text-sm text-gray-600 mt-1">تقرير رسمي معتمد من الإدارة</p>
+        </div>
 
         <!-- DASHBOARD TAB -->
         <section id="tab-dashboard" class="space-y-4">
@@ -237,11 +247,11 @@
 
     <!-- MODALS -->
 
-    <!-- Rich Settings Modal -->
+    <!-- Rich Settings & Sync Modal -->
     <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn max-h-[90vh] overflow-y-auto">
             <div class="bg-indigo-700 text-white px-5 py-4 flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fa-solid fa-gear ml-2"></i> إعدادات التطبيق والعقار والشؤون المالية</h3>
+                <h3 class="font-bold text-sm"><i class="fa-solid fa-gear ml-2"></i> إعدادات التطبيق ومزامنة GitHub Gist</h3>
                 <button onclick="closeModal('settingsModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div class="p-5 space-y-4">
@@ -266,14 +276,14 @@
 
                 <!-- Financial Defaults -->
                 <div class="space-y-3 pb-3 border-b border-slate-800">
-                    <h4 class="font-bold text-xs text-indigo-400"><i class="fa-solid fa-wallet ml-1"></i> الإعدادات المالية والافتراضية</h4>
+                    <h4 class="font-bold text-xs text-indigo-400"><i class="fa-solid fa-wallet ml-1"></i> الإعدادات المالية والأمان</h4>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-400 mb-1">رصيد الخزنة السابق (أول المدة)</label>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">رصيد الخزنة السابق</label>
                             <input type="number" id="startingBalanceInput" placeholder="0" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-3.5 py-3 text-xs text-white focus:outline-none focus:border-indigo-500">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-400 mb-1">الاشتراك الافتراضي للشقق</label>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">الاشتراك الافتراضي</label>
                             <input type="number" id="settingDefaultSub" placeholder="200" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-3.5 py-3 text-xs text-white focus:outline-none focus:border-indigo-500">
                         </div>
                     </div>
@@ -283,23 +293,28 @@
                     </div>
                 </div>
 
-                <!-- GitHub Gist Sync -->
-                <div class="space-y-2">
-                    <h4 class="font-bold text-xs text-indigo-400"><i class="fa-brands fa-github ml-1"></i> مزامنة GitHub Gist السحابية</h4>
+                <!-- GitHub Gist Sync Integration -->
+                <div class="space-y-2 bg-indigo-950/30 p-3.5 rounded-2xl border border-indigo-500/20">
+                    <h4 class="font-bold text-xs text-indigo-400 flex items-center gap-1.5">
+                        <i class="fa-brands fa-github text-sm"></i> إعدادات المزامنة عبر GitHub Gist
+                    </h4>
+                    <p class="text-[11px] text-slate-400 leading-relaxed">
+                        لكي تتزامن بياناتك لحظياً بين هاتفك والكمبيوتر، أدخل رمز الأمان الخاص بك (GitHub PAT). اترك Gist ID فارغاً عند أول ربط ليتم إنشاؤه تلقائياً.
+                    </p>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">GitHub Personal Access Token</label>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">GitHub Personal Access Token (PAT)</label>
                         <input type="password" id="githubTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-3.5 py-3 text-xs text-white focus:outline-none focus:border-indigo-500">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">GitHub Gist ID (يترك فارغاً للإنشاء التلقائي)</label>
-                        <input type="text" id="githubGistIdInput" placeholder="ترك فارغاً للإنشاء أول مرة" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-3.5 py-3 text-xs text-white focus:outline-none focus:border-indigo-500">
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">GitHub Gist ID (اختياري)</label>
+                        <input type="text" id="githubGistIdInput" placeholder="اتركه فارغاً للإنشاء التلقائي أول مرة" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-3.5 py-3 text-xs text-white focus:outline-none focus:border-indigo-500">
                     </div>
-                    <button type="button" onclick="syncWithGitHubGist()" class="w-full bg-slate-800 hover:bg-slate-700 text-indigo-300 font-bold py-2.5 rounded-2xl text-xs transition border border-slate-700">مزامنة سحابية فورية</button>
+                    <button type="button" onclick="testAndSaveGistSync()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-2xl text-xs transition shadow-lg shadow-indigo-600/20 mt-1">حفظ وفحص المزامنة السحابية ☁️</button>
                 </div>
 
-                <div class="flex gap-2 pt-3">
-                    <button type="button" onclick="closeModal('settingsModal')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-3 rounded-2xl text-xs font-bold">إلغاء</button>
-                    <button type="button" onclick="saveSettings()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl text-xs font-bold shadow-lg shadow-indigo-600/20">حفظ الإعدادات</button>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeModal('settingsModal')" class="flex-1 bg-slate-800 text-slate-300 py-3 rounded-2xl text-xs font-bold">إلغاء</button>
+                    <button type="button" onclick="saveSettings()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-2xl text-xs font-bold shadow">حفظ الإعدادات</button>
                 </div>
             </div>
         </div>
@@ -467,7 +482,7 @@
         </div>
     </div>
 
-    <!-- Core JavaScript with Custom Individual Subscriptions -->
+    <!-- Core App Logic & GitHub Gist Sync -->
     <script>
         let state = {
             buildingName: 'Manzil',
@@ -478,7 +493,8 @@
             income: [],
             expenses: [],
             pinCode: '',
-            startingBalance: 0
+            startingBalance: 0,
+            lastActiveMonth: ''
         };
 
         let snapshots = [];
@@ -503,8 +519,10 @@
                 saveLocalOnly();
             }
 
+            checkAutoMonthRollover();
+
             if (githubConfig.token && githubConfig.gistId) {
-                await fetchFromGitHubGist(true);
+                await syncWithGitHubGist(true);
             } else {
                 document.getElementById('syncStatus').innerText = "وضع محلي آمن 🔒";
             }
@@ -521,6 +539,20 @@
             updateUI();
         }
 
+        function checkAutoMonthRollover() {
+            const now = new Date();
+            const monthsNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+            const currentMonthStr = `${monthsNames[now.getMonth()]} ${now.getFullYear()}`;
+
+            if (!state.lastActiveMonth) {
+                state.lastActiveMonth = currentMonthStr;
+                saveLocalOnly();
+            } else if (state.lastActiveMonth !== currentMonthStr) {
+                state.lastActiveMonth = currentMonthStr;
+                saveLocalOnly();
+            }
+        }
+
         function saveLocalOnly() {
             localStorage.setItem('manzil_app_state', JSON.stringify(state));
         }
@@ -534,8 +566,16 @@
             }
         }
 
-        async function fetchFromGitHubGist(silent = false) {
-            if (!githubConfig.token || !githubConfig.gistId) return;
+        async function syncWithGitHubGist(silent = false) {
+            if (!githubConfig.token || !githubConfig.gistId) {
+                if (!silent) {
+                    document.getElementById('syncStatus').innerText = "غير مربوط بـ Gist ⚠️";
+                    showCustomModal('تنبيه المزامنة', 'لم تقم بربط التطبيق بـ GitHub Gist بعد. افتح الإعدادات لإدخال الـ Token.', 'error');
+                    openModal('settingsModal');
+                }
+                return;
+            }
+
             try {
                 document.getElementById('syncStatus').innerText = "جاري المزامنة مع Gist... 🔄";
                 const res = await fetch(`https://api.github.com/gists/${githubConfig.gistId}`, {
@@ -550,20 +590,20 @@
                         saveLocalOnly();
                         updateUI();
                         document.getElementById('syncStatus').innerText = "متزامن مع GitHub Gist ☁️";
-                        if (!silent) showCustomModal('نجاح', 'تم سحب وتحديث البيانات من جيت هاب بنجاح', 'success');
+                        if (!silent) showCustomModal('نجاح المزامنة', 'تم سحب أحدث البيانات وتحديث التطبيق بنجاح', 'success');
                     }
                 }
             } catch (err) {
                 console.error("Gist fetch error:", err);
-                document.getElementById('syncStatus').innerText = "خطأ في مزامنة Gist (محلي مفعل) ⚠️";
-                if (!silent) showCustomModal('تنبيه', 'تعذر جلب البيانات من Gist، تأكد من صحة الـ Token و Gist ID', 'error');
+                document.getElementById('syncStatus').innerText = "خطأ في المزامنة (محلي مفعل) ⚠️";
+                if (!silent) showCustomModal('خطأ المزامنة', 'تعذر جلب البيانات من Gist، تأكد من صحة الـ Token', 'error');
             }
         }
 
         async function pushToGitHubGist() {
             if (!githubConfig.token || !githubConfig.gistId) return;
             try {
-                document.getElementById('syncStatus').innerText = "جاري الحفظ في Gist... 🔄";
+                document.getElementById('syncStatus').innerText = "جاري الرفع للسحابة... 🔄";
                 const res = await fetch(`https://api.github.com/gists/${githubConfig.gistId}`, {
                     method: 'PATCH',
                     headers: {
@@ -587,12 +627,12 @@
             }
         }
 
-        window.syncWithGitHubGist = async function() {
+        window.testAndSaveGistSync = async function() {
             const token = document.getElementById('githubTokenInput').value.trim();
             let gistId = document.getElementById('githubGistIdInput').value.trim();
 
             if (!token) {
-                showCustomModal('تنبيه', 'يرجى إدخال GitHub Token أولاً', 'error');
+                showCustomModal('تنبيه', 'يرجى إدخال GitHub Personal Access Token أولاً', 'error');
                 return;
             }
 
@@ -600,7 +640,7 @@
 
             if (!gistId) {
                 try {
-                    document.getElementById('syncStatus').innerText = "جاري إنشاء Gist جديد... 🚀";
+                    document.getElementById('syncStatus').innerText = "جاري إنشاء Gist سحابي جديد... 🚀";
                     const res = await fetch('https://api.github.com/gists', {
                         method: 'POST',
                         headers: {
@@ -623,7 +663,7 @@
                     githubConfig.gistId = gistId;
                     document.getElementById('githubGistIdInput').value = gistId;
                 } catch(err) {
-                    showCustomModal('خطأ', 'فشل إنشاء Gist، تأكد من صحة الصلاحيات', 'error');
+                    showCustomModal('خطأ', 'فشل إنشاء Gist، تأكد من صحة الصلاحيات (repo/gist)', 'error');
                     return;
                 }
             } else {
@@ -631,7 +671,7 @@
             }
 
             localStorage.setItem('manzil_github_config', JSON.stringify(githubConfig));
-            await fetchFromGitHubGist(false);
+            await syncWithGitHubGist(false);
             closeModal('settingsModal');
         }
 
@@ -701,7 +741,7 @@
                 document.getElementById('settingBuildingName').value = state.buildingName || 'Manzil';
                 document.getElementById('settingManagerName').value = state.managerName || '';
                 document.getElementById('settingManagerPhone').value = state.managerPhone || '';
-                document.getElementById('startingBalanceInput').value = state.startingBalance || 0;
+                document.getElementById('startingBalanceInput').value = state.startingBalance !== undefined ? state.startingBalance : 0;
                 document.getElementById('settingDefaultSub').value = state.defaultSubscription || 200;
                 document.getElementById('newPinInput').value = '';
                 document.getElementById('githubTokenInput').value = githubConfig.token || '';
@@ -816,6 +856,8 @@
         function updateUI() {
             document.getElementById('headerBuildingTitle').innerText = state.buildingName || 'Manzil';
             document.getElementById('appWindowTitle').innerText = `${state.buildingName || 'Manzil'} - إدارة العقارات`;
+            document.getElementById('printBuildingTitle').innerText = `كشف حساب مالي - ${state.buildingName || 'Manzil'}`;
+            document.getElementById('printBuildingMeta').innerText = `المسؤول: ${state.managerName || 'الإدارة'} | تاريخ التقرير: ${new Date().toLocaleDateString('ar-EG')}`;
 
             const totalIncome = state.income.reduce((s, i) => s + Number(i.amount), 0);
             const totalExpense = state.expenses.reduce((s, e) => s + Number(e.amount), 0);
@@ -827,7 +869,6 @@
 
             renderUnpaidResidents();
 
-            // Breakdown
             const breakdownEl = document.getElementById('expenseCategoriesBreakdown');
             breakdownEl.innerHTML = '';
             const categories = ['كهرباء', 'صيانة أسانسير', 'نظافة', 'أعمال سباكة وصنايعي', 'أخرى'];
@@ -853,7 +894,6 @@
 
             populateMonthFilterOptions();
 
-            // Residents Cards Grid
             const residentsGrid = document.getElementById('residentsGrid');
             residentsGrid.innerHTML = '';
             state.residents.forEach(r => {
@@ -914,7 +954,7 @@
                             <span class="font-bold text-white">${r.apartment} - ${r.name}</span>
                             <span class="text-amber-400 font-semibold block mt-0.5">مطلوب: ${subAmt} ج.م</span>
                         </div>
-                        ${phone ? `<button onclick="sendWhatsAppReminder('${r.name}', '${subAmt}', '${selectedMonth}', '${phone}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-xl font-bold transition flex items-center gap-1 shadow"><i class="fa-brands fa-whatsapp"></i> تذكير</button>` : '<span class="text-slate-500 text-[10px]">بدون هاتف</span>'}
+                        ${phone ? `<button onclick="sendWhatsAppReminder('${r.name}', '${subAmt}', '${selectedMonth}', '${phone}')" class="no-print bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-xl font-bold transition flex items-center gap-1 shadow"><i class="fa-brands fa-whatsapp"></i> تذكير</button>` : '<span class="text-slate-500 text-[10px]">بدون هاتف</span>'}
                     </div>
                 `;
             });
@@ -971,8 +1011,8 @@
                         <div class="flex items-center gap-3">
                             <span class="font-black text-emerald-400 text-sm">+${Number(item.amount).toLocaleString()} ج.م</span>
                             <div class="flex items-center gap-1">
-                                ${phone ? `<button onclick="sendWhatsAppReceipt('${item.residentName}', '${item.amount}', '${item.month}', '${phone}')" class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 p-2 rounded-xl text-xs"><i class="fa-brands fa-whatsapp text-sm"></i></button>` : ''}
-                                <button onclick="deleteItem('income', '${item.id}')" class="text-slate-600 hover:text-rose-400 p-2 text-xs"><i class="fa-solid fa-trash-can"></i></button>
+                                ${phone ? `<button onclick="sendWhatsAppReceipt('${item.residentName}', '${item.amount}', '${item.month}', '${phone}')" class="no-print bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 p-2 rounded-xl text-xs"><i class="fa-brands fa-whatsapp text-sm"></i></button>` : ''}
+                                <button onclick="deleteItem('income', '${item.id}')" class="no-print text-slate-600 hover:text-rose-400 p-2 text-xs"><i class="fa-solid fa-trash-can"></i></button>
                             </div>
                         </div>
                     </div>
@@ -1010,7 +1050,7 @@
                         </div>
                         <div class="flex items-center gap-3">
                             <span class="font-black text-rose-400 text-sm">-${Number(item.amount).toLocaleString()} ج.م</span>
-                            <button onclick="deleteItem('expenses', '${item.id}')" class="text-slate-600 hover:text-rose-400 p-2 text-xs"><i class="fa-solid fa-trash-can"></i></button>
+                            <button onclick="deleteItem('expenses', '${item.id}')" class="no-print text-slate-600 hover:text-rose-400 p-2 text-xs"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     </div>
                 `;
