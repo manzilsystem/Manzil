@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Manzil - إدارة العقارات والاشتراكات الذكية</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Cairo Font -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -17,7 +14,12 @@
             --text-main: #f8fafc;
             --border-color: #334155;
         }
-        body { font-family: 'Cairo', sans-serif; -webkit-tap-highlight-color: transparent; background-color: var(--bg-color); color: var(--text-main); }
+        body {
+            font-family: 'Cairo', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+        }
         .tab-btn.active {
             color: #6366f1;
             font-weight: 800;
@@ -26,34 +28,55 @@
             transform: scale(1.15);
             transition: transform 0.2s ease;
         }
-        .app-card { background-color: var(--card-bg); border-color: var(--border-color); }
-        .app-input { background-color: #0f172a; border-color: var(--border-color); color: #f8fafc; }
-        .app-input:focus { border-color: #6366f1; outline: none; }
+        .app-card {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+        }
+        .app-input {
+            background-color: #0f172a;
+            border-color: var(--border-color);
+            color: #f8fafc;
+        }
+        .app-input:focus {
+            border-color: #6366f1;
+            outline: none;
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.2s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
         @media print {
             body * { visibility: hidden; }
             #printableArea, #printableArea * { visibility: visible; }
             #printableArea { position: absolute; left: 0; top: 0; width: 100%; }
             .no-print { display: none !important; }
         }
+        /* Better scrollbar for dark theme */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6">
 
-    <!-- PIN Lock / Manager Login Modal (Overlay) -->
+    <!-- PIN Lock / Manager Login Modal -->
     <div id="pinLockModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-        <div class="app-card border w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center space-y-6">
+        <div class="app-card border w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center space-y-6 animate-fadeIn">
             <div class="w-16 h-16 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-inner">
                 <i class="fa-solid fa-shield-halved"></i>
             </div>
             <div>
                 <h3 class="text-xl font-black text-slate-100">بوابة الدخول والإدارة</h3>
-                <p class="text-xs text-slate-400 mt-1">أدخل الرمز السري للإدارة، أو تابع كـ "ساكن (للاطلاع فقط)"</p>
+                <p class="text-xs text-slate-400 mt-1" id="pinModalHint">أدخل الرمز السري للإدارة، أو تابع كـ "ساكن (للاطلاع فقط)"</p>
             </div>
-            <div class="flex justify-center gap-3">
-                <input type="password" maxlength="1" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl" oninput="handlePinInput(this, 1)">
-                <input type="password" maxlength="1" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl" oninput="handlePinInput(this, 2)">
-                <input type="password" maxlength="1" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl" oninput="handlePinInput(this, 3)">
-                <input type="password" maxlength="1" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl" oninput="handlePinInput(this, 4)">
+            <div class="flex justify-center gap-3" id="pinDigitsContainer">
+                <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl" data-index="0" oninput="handlePinInput(this)" onkeydown="handlePinKeydown(event, this)">
+                <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl" data-index="1" oninput="handlePinInput(this)" onkeydown="handlePinKeydown(event, this)">
+                <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl" data-index="2" oninput="handlePinInput(this)" onkeydown="handlePinKeydown(event, this)">
+                <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl" data-index="3" oninput="handlePinInput(this)" onkeydown="handlePinKeydown(event, this)">
             </div>
             <div class="space-y-2">
                 <button onclick="verifyPinCode()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-2xl shadow-lg transition">تسجيل دخول المدير</button>
@@ -81,7 +104,7 @@
                 <button id="managerBackupBtn" onclick="openModal('backupModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-xl text-xs transition border border-slate-700 hidden" title="النسخ الاحتياطي والمزامنة">
                     <i class="fa-solid fa-cloud-arrow-down text-sm"></i>
                 </button>
-                <button onclick="exportToCSV()" class="bg-amber-600 hover:bg-amber-500 text-white p-2.5 rounded-xl text-xs transition hidden sm:flex" title="تصدير إكسل">
+                <button onclick="exportToCSV()" class="bg-amber-600 hover:bg-amber-500 text-white p-2.5 rounded-xl text-xs transition hidden sm:flex" title="تصدير CSV">
                     <i class="fa-solid fa-file-excel text-sm"></i>
                 </button>
                 <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-500 text-white p-2.5 rounded-xl text-xs transition hidden sm:flex" title="طباعة">
@@ -125,33 +148,37 @@
                             <i class="fa-solid fa-wallet"></i>
                         </div>
                     </div>
-                    <div class="flex justify-between items-baseline">
+                    <div class="flex justify-between items-baseline flex-wrap gap-2">
                         <h3 class="text-2xl sm:text-3xl font-black text-indigo-300" id="netBalanceDisplay">0 ج.م</h3>
                         <span class="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/20" id="collectionEfficiencyDisplay">كفاءة التحصيل: 0%</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Annual Cash Flow SVG Chart -->
+            <!-- Annual Cash Flow Chart -->
             <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
-                <div class="flex justify-between items-center">
+                <div class="flex justify-between items-center flex-wrap gap-2">
                     <h3 class="font-bold text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-chart-line text-indigo-400"></i> التدفق النقدي السنوي (التحصيلات مقابل المصروفات)
+                        <i class="fa-solid fa-chart-line text-indigo-400"></i> التدفق النقدي السنوي
                     </h3>
-                    <span class="text-xs text-slate-400">عام 2026</span>
+                    <div class="flex items-center gap-3 text-[10px]">
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-emerald-500"></span> تحصيلات</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-rose-500"></span> مصروفات</span>
+                        <span class="text-slate-400" id="chartYearLabel">عام 2026</span>
+                    </div>
                 </div>
-                <div class="h-36 w-full flex items-end gap-2 pt-4 px-2 overflow-x-auto" id="annualChartContainer"></div>
+                <div class="h-36 w-full flex items-end gap-1.5 sm:gap-2 pt-4 px-1 overflow-x-auto" id="annualChartContainer"></div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3 lg:col-span-2">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                         <h3 class="font-bold text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-triangle-exclamation text-amber-400"></i> متأخرات السكان للشهر الحالي
+                            <i class="fa-solid fa-triangle-exclamation text-amber-400"></i> متأخرات السكان للشهر المحدد
                         </h3>
                         <select id="targetCurrentMonthSelect" onchange="updateUI()" class="app-input border rounded-xl px-2.5 py-1.5 text-xs font-semibold"></select>
                     </div>
-                    <div id="unpaidResidentsContainer" class="space-y-2 max-h-60 overflow-y-auto"></div>
+                    <div id="unpaidResidentsContainer" class="space-y-2 max-h-64 overflow-y-auto"></div>
                 </div>
 
                 <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
@@ -196,7 +223,7 @@
                 </button>
             </div>
 
-            <div class="app-card p-3 rounded-3xl border flex gap-2 no-print">
+            <div class="app-card p-3 rounded-3xl border flex flex-col sm:flex-row gap-2 no-print">
                 <input type="text" id="searchIncomeInput" oninput="renderIncomeTable()" placeholder="بحث بالاسم أو الشقة..." class="flex-grow app-input border rounded-2xl px-3 py-2 text-xs">
                 <select id="filterIncomeMonth" onchange="renderIncomeTable()" class="app-input border rounded-2xl px-3 py-2 text-xs font-semibold">
                     <option value="">كل الشهور</option>
@@ -218,7 +245,7 @@
                 </button>
             </div>
 
-            <div class="app-card p-3 rounded-3xl border flex gap-2 no-print">
+            <div class="app-card p-3 rounded-3xl border flex flex-col sm:flex-row gap-2 no-print">
                 <input type="text" id="searchExpenseInput" oninput="renderExpenseTable()" placeholder="بحث في عنوان المصروف..." class="flex-grow app-input border rounded-2xl px-3 py-2 text-xs">
                 <select id="filterExpenseCategory" onchange="renderExpenseTable()" class="app-input border rounded-2xl px-3 py-2 text-xs font-semibold">
                     <option value="">كل الفئات</option>
@@ -227,6 +254,9 @@
                     <option value="نظافة">نظافة</option>
                     <option value="أعمال سباكة وصنايعي">أعمال سباكة وصنايعي</option>
                     <option value="أخرى">أخرى</option>
+                </select>
+                <select id="filterExpenseMonth" onchange="renderExpenseTable()" class="app-input border rounded-2xl px-3 py-2 text-xs font-semibold">
+                    <option value="">كل الشهور</option>
                 </select>
             </div>
 
@@ -247,10 +277,9 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="residentsGrid"></div>
         </section>
-
     </main>
 
-    <!-- Mobile Bottom Navigation Bar -->
+    <!-- Mobile Bottom Navigation -->
     <nav class="fixed bottom-0 left-0 right-0 app-card border-t z-40 flex justify-around py-3 px-2 shadow-2xl no-print">
         <button onclick="switchTab('dashboard')" id="btn-dashboard" class="tab-btn active flex flex-col items-center gap-1 text-slate-400 transition">
             <i class="fa-solid fa-chart-pie text-lg"></i>
@@ -270,7 +299,7 @@
         </button>
     </nav>
 
-    <!-- MODALS (Manager Only) -->
+    <!-- SETTINGS MODAL -->
     <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
         <div class="app-card border w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
             <div class="bg-indigo-600 text-white px-5 py-4 flex justify-between items-center">
@@ -287,8 +316,9 @@
                     <input type="number" min="0" step="any" id="defaultSubscriptionInput" placeholder="مثال: 250" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs font-bold text-indigo-400">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">رمز الحماية (4 أرقام للمدير)</label>
-                    <input type="password" id="newPinInput" maxlength="4" placeholder="أدخل 4 أرقام" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs">
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">رمز الحماية الجديد (4 أرقام)</label>
+                    <input type="password" inputmode="numeric" id="newPinInput" maxlength="4" placeholder="اتركه فارغاً إذا لم ترد التغيير" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs">
+                    <p class="text-[10px] text-slate-500 mt-1">يُفضل تغيير الرمز من وقت لآخر. يجب أن يكون 4 أرقام.</p>
                 </div>
                 <div class="flex gap-2 pt-2">
                     <button type="button" onclick="closeModal('settingsModal')" class="flex-1 bg-slate-800 text-slate-300 py-3 rounded-2xl text-xs font-bold">إلغاء</button>
@@ -298,6 +328,7 @@
         </div>
     </div>
 
+    <!-- BACKUP MODAL -->
     <div id="backupModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
         <div class="app-card border w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
             <div class="bg-slate-800 text-white px-5 py-4 flex justify-between items-center">
@@ -323,13 +354,14 @@
                     </label>
                 </div>
                 <div class="border-t border-slate-700/50 pt-2">
-                    <p class="text-xs font-bold text-slate-400 mb-1">اللقطات الاحتياطية:</p>
+                    <p class="text-xs font-bold text-slate-400 mb-1">اللقطات الاحتياطية المحلية:</p>
                     <div id="snapshotsList" class="space-y-1.5 max-h-28 overflow-y-auto"></div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- INCOME MODAL -->
     <div id="incomeModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
         <div class="app-card border w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
             <div class="bg-emerald-600 text-white px-5 py-4 flex justify-between items-center">
@@ -347,7 +379,8 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">عن شهر / الفترة *</label>
-                    <input type="text" id="incomeMonth" required placeholder="مثال: يونيو 2026" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs">
+                    <input type="text" id="incomeMonth" required placeholder="مثال: نوفمبر 2026" list="monthSuggestions" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs">
+                    <datalist id="monthSuggestions"></datalist>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">التاريخ *</label>
@@ -365,6 +398,7 @@
         </div>
     </div>
 
+    <!-- EXPENSE MODAL -->
     <div id="expenseModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
         <div class="app-card border w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
             <div class="bg-rose-600 text-white px-5 py-4 flex justify-between items-center">
@@ -406,10 +440,11 @@
         </div>
     </div>
 
+    <!-- RESIDENT MODAL -->
     <div id="residentModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
         <div class="app-card border w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
             <div class="bg-indigo-600 text-white px-5 py-4 flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fa-solid fa-user-plus ml-2"></i> إضافة شقة أو تعديل مقيم</h3>
+                <h3 class="font-bold text-sm" id="residentModalTitle"><i class="fa-solid fa-user-plus ml-2"></i> إضافة شقة أو تعديل مقيم</h3>
                 <button onclick="closeModal('residentModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <form id="residentForm" onsubmit="handleResidentSubmit(event)" class="p-5 space-y-3">
@@ -424,7 +459,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">رقم الهاتف (للرسائل والواتساب)</label>
-                    <input type="text" id="residentPhone" placeholder="مثال: 01012345678" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs">
+                    <input type="tel" id="residentPhone" placeholder="مثال: 01012345678" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">قيمة الاشتراك الشهري المخصص (ج.م) *</label>
@@ -455,9 +490,24 @@
         </div>
     </div>
 
-    <!-- Custom Modal -->
-    <div id="customModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
-        <div class="app-card border w-full max-w-xs rounded-3xl shadow-2xl p-6 text-center space-y-4">
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-[60] p-4">
+        <div class="app-card border w-full max-w-xs rounded-3xl shadow-2xl p-6 text-center space-y-4 animate-fadeIn">
+            <div class="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center text-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 id="confirmModalTitle" class="font-bold text-base text-slate-100">تأكيد</h3>
+            <p id="confirmModalDesc" class="text-xs text-slate-400">هل أنت متأكد؟</p>
+            <div class="flex gap-2">
+                <button onclick="closeConfirmModal(false)" class="flex-1 bg-slate-800 text-slate-300 py-3 rounded-2xl text-xs font-bold">إلغاء</button>
+                <button onclick="closeConfirmModal(true)" class="flex-1 bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-2xl text-xs font-bold">تأكيد</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal (alerts) -->
+    <div id="customModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-[60] p-4">
+        <div class="app-card border w-full max-w-xs rounded-3xl shadow-2xl p-6 text-center space-y-4 animate-fadeIn">
             <div id="customModalIcon" class="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center text-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 <i class="fa-solid fa-check"></i>
             </div>
@@ -467,8 +517,8 @@
         </div>
     </div>
 
-    <!-- Application Script -->
     <script>
+        // ========== STATE ==========
         let state = {
             residents: [],
             income: [],
@@ -484,38 +534,50 @@
         let snapshots = [];
         let currentViewingResidentId = null;
         let isManagerLoggedIn = false;
+        let confirmCallback = null;
 
-        window.onload = function() {
+        const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+        // ========== INIT ==========
+        window.onload = function () {
             loadLocalStorageData();
-            document.getElementById('incomeDate').valueAsDate = new Date();
-            document.getElementById('expenseDate').valueAsDate = new Date();
+            const today = new Date();
+            document.getElementById('incomeDate').valueAsDate = today;
+            document.getElementById('expenseDate').valueAsDate = today;
             setupMonthSelectors();
             updateUI();
-            if (state.gistToken) {
+            if (state.gistToken && state.gistId) {
                 syncWithGist(true);
             }
-        }
+            // Focus first PIN digit
+            setTimeout(() => {
+                const first = document.querySelector('.pin-digit');
+                if (first) first.focus();
+            }, 300);
+        };
 
         function loadLocalStorageData() {
-            const saved = localStorage.getItem('manzil_app_data_v4');
-            if (saved) {
-                try { state = { ...state, ...JSON.parse(saved) }; } catch (e) {}
-            } else {
-                state.residents = [];
-                saveLocalStorageOnly();
+            try {
+                const saved = localStorage.getItem('manzil_app_data_v5');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    state = { ...state, ...parsed };
+                }
+            } catch (e) {
+                console.warn('Failed to load data', e);
             }
-            const savedSnapshots = localStorage.getItem('manzil_app_snapshots_v4');
-            if (savedSnapshots) {
-                try { snapshots = JSON.parse(savedSnapshots); } catch (e) {}
-            }
+            try {
+                const savedSnapshots = localStorage.getItem('manzil_app_snapshots_v5');
+                if (savedSnapshots) snapshots = JSON.parse(savedSnapshots);
+            } catch (e) {}
         }
 
         function saveLocalStorageOnly() {
             state.lastTimestamp = Date.now();
-            localStorage.setItem('manzil_app_data_v4', JSON.stringify(state));
+            localStorage.setItem('manzil_app_data_v5', JSON.stringify(state));
         }
 
-        window.saveData = function() {
+        window.saveData = function () {
             if (!isManagerLoggedIn) return;
             saveLocalStorageOnly();
             if (state.gistToken) {
@@ -523,10 +585,11 @@
             } else {
                 document.getElementById('syncStatus').innerText = "محفوظ محلياً (أدخل Gist للسحابة) 🔒";
             }
-        }
+        };
 
+        // ========== GIST SYNC ==========
         async function pushToGist() {
-            if (!isManagerLoggedIn) return;
+            if (!isManagerLoggedIn || !state.gistToken) return;
             document.getElementById('syncStatus').innerText = "جاري المزامنة مع Gist... ☁️";
             try {
                 const dataStr = JSON.stringify(state, null, 2);
@@ -536,27 +599,24 @@
                     url = `https://api.github.com/gists/${state.gistId}`;
                     method = 'PATCH';
                 }
-
                 const res = await fetch(url, {
-                    method: method,
+                    method,
                     headers: {
                         'Authorization': `token ${state.gistToken}`,
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/vnd.github+json'
                     },
                     body: JSON.stringify({
                         description: "Manzil App Cloud Backup",
                         public: false,
-                        files: {
-                            "manzil_data.json": { content: dataStr }
-                        }
+                        files: { "manzil_data.json": { content: dataStr } }
                     })
                 });
-
                 if (res.ok) {
                     const resJson = await res.json();
                     if (!state.gistId && resJson.id) {
                         state.gistId = resJson.id;
-                        localStorage.setItem('manzil_app_data_v4', JSON.stringify(state));
+                        saveLocalStorageOnly();
                     }
                     document.getElementById('syncStatus').innerText = "متزامن سحابياً مع Gist (مدير) ☁️✓";
                 } else {
@@ -571,15 +631,18 @@
             if (!state.gistToken || !state.gistId) return;
             try {
                 const res = await fetch(`https://api.github.com/gists/${state.gistId}`, {
-                    headers: { 'Authorization': `token ${state.gistToken}` }
+                    headers: {
+                        'Authorization': `token ${state.gistToken}`,
+                        'Accept': 'application/vnd.github+json'
+                    }
                 });
                 if (res.ok) {
                     const json = await res.json();
-                    const file = json.files["manzil_data.json"];
+                    const file = json.files && json.files["manzil_data.json"];
                     if (file && file.content) {
                         const cloudData = JSON.parse(file.content);
                         if ((cloudData.lastTimestamp || 0) > (state.lastTimestamp || 0)) {
-                            state = cloudData;
+                            state = { ...state, ...cloudData };
                             saveLocalStorageOnly();
                             updateUI();
                             if (!silent) showCustomModal('نجاح', 'تمت مزامنة أحدث البيانات من سحابة Gist بنجاح', 'success');
@@ -589,7 +652,7 @@
             } catch (e) {}
         }
 
-        window.connectAndSyncGist = function() {
+        window.connectAndSyncGist = function () {
             if (!isManagerLoggedIn) return;
             const token = document.getElementById('gistTokenInput').value.trim();
             const id = document.getElementById('gistIdInput').value.trim();
@@ -602,44 +665,157 @@
             saveLocalStorageOnly();
             closeModal('backupModal');
             pushToGist();
-        }
+        };
 
-        function setupMonthSelectors() {
+        // ========== HELPERS ==========
+        function getCurrentMonthStr() {
             const now = new Date();
-            const monthsNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-            const currentMonthStr = `${monthsNames[now.getMonth()]} ${now.getFullYear()}`;
-            
-            const existingMonths = [...new Set([...state.income.map(i => i.month), currentMonthStr])];
-            
-            ['targetCurrentMonthSelect', 'filterIncomeMonth', 'filterExpenseMonth'].forEach(id => {
-                const select = document.getElementById(id);
-                if (!select) return;
-                const curVal = select.value;
-                select.innerHTML = id === 'filterIncomeMonth' || id === 'filterExpenseMonth' ? '<option value="">كل الشهور</option>' : '';
-                existingMonths.forEach(m => {
-                    select.innerHTML += `<option value="${m}">${m}</option>`;
-                });
-                if (curVal) select.value = curVal;
-                else if (id === 'targetCurrentMonthSelect') select.value = currentMonthStr;
-            });
+            return `${MONTHS_AR[now.getMonth()]} ${now.getFullYear()}`;
         }
 
-        function handlePinInput(el, index) {
-            if (el.value.length === 1 && index < 4) {
-                const inputs = document.querySelectorAll('.pin-digit');
-                inputs[index].focus();
+        function dateToMonthStr(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr + 'T12:00:00'); // avoid timezone shift
+            if (isNaN(d.getTime())) return '';
+            return `${MONTHS_AR[d.getMonth()]} ${d.getFullYear()}`;
+        }
+
+        function formatMoney(n) {
+            return Number(n || 0).toLocaleString('ar-EG');
+        }
+
+        function normalizePhone(phone) {
+            if (!phone) return '';
+            let p = phone.replace(/[^0-9]/g, '');
+            // Egyptian numbers: if starts with 0 and length 11 → keep, or convert 01... to 20...
+            if (p.startsWith('0') && p.length === 11) {
+                p = '20' + p.slice(1);
+            } else if (p.startsWith('1') && p.length === 10) {
+                p = '20' + p;
+            }
+            return p;
+        }
+
+        // ========== MONTH SELECTORS ==========
+        function setupMonthSelectors() {
+            const currentMonthStr = getCurrentMonthStr();
+            const existingMonths = new Set([currentMonthStr]);
+
+            state.income.forEach(i => { if (i.month) existingMonths.add(i.month); });
+            state.expenses.forEach(e => {
+                const m = dateToMonthStr(e.date);
+                if (m) existingMonths.add(m);
+            });
+
+            // Sort roughly by year then month
+            const sortedMonths = Array.from(existingMonths).sort((a, b) => {
+                const [ma, ya] = a.split(' ');
+                const [mb, yb] = b.split(' ');
+                if (ya !== yb) return Number(yb) - Number(ya);
+                return MONTHS_AR.indexOf(mb) - MONTHS_AR.indexOf(ma);
+            });
+
+            // Target month (dashboard)
+            const targetSelect = document.getElementById('targetCurrentMonthSelect');
+            if (targetSelect) {
+                const prev = targetSelect.value;
+                targetSelect.innerHTML = '';
+                sortedMonths.forEach(m => {
+                    targetSelect.innerHTML += `<option value="${m}">${m}</option>`;
+                });
+                if (prev && sortedMonths.includes(prev)) targetSelect.value = prev;
+                else targetSelect.value = currentMonthStr;
+            }
+
+            // Income filter
+            const incomeFilter = document.getElementById('filterIncomeMonth');
+            if (incomeFilter) {
+                const prev = incomeFilter.value;
+                incomeFilter.innerHTML = '<option value="">كل الشهور</option>';
+                sortedMonths.forEach(m => {
+                    incomeFilter.innerHTML += `<option value="${m}">${m}</option>`;
+                });
+                if (prev) incomeFilter.value = prev;
+            }
+
+            // Expense filter (new)
+            const expenseFilter = document.getElementById('filterExpenseMonth');
+            if (expenseFilter) {
+                const prev = expenseFilter.value;
+                expenseFilter.innerHTML = '<option value="">كل الشهور</option>';
+                sortedMonths.forEach(m => {
+                    expenseFilter.innerHTML += `<option value="${m}">${m}</option>`;
+                });
+                if (prev) expenseFilter.value = prev;
+            }
+
+            // Suggestions for income month input
+            const list = document.getElementById('monthSuggestions');
+            if (list) {
+                list.innerHTML = '';
+                sortedMonths.forEach(m => {
+                    list.innerHTML += `<option value="${m}">`;
+                });
+                // Also suggest a few future/past
+                const now = new Date();
+                for (let i = -2; i <= 2; i++) {
+                    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+                    const s = `${MONTHS_AR[d.getMonth()]} ${d.getFullYear()}`;
+                    if (!existingMonths.has(s)) list.innerHTML += `<option value="${s}">`;
+                }
             }
         }
 
-        window.verifyPinCode = function() {
+        // ========== PIN HANDLING ==========
+        function handlePinInput(el) {
+            const val = el.value.replace(/[^0-9]/g, '');
+            el.value = val.slice(0, 1);
+            if (val && el.dataset.index < 3) {
+                const next = document.querySelector(`.pin-digit[data-index="${Number(el.dataset.index) + 1}"]`);
+                if (next) next.focus();
+            }
+            // Auto-submit when last digit filled
+            if (el.dataset.index === '3' && val) {
+                setTimeout(verifyPinCode, 150);
+            }
+        }
+
+        function handlePinKeydown(e, el) {
+            if (e.key === 'Backspace' && !el.value && el.dataset.index > 0) {
+                const prev = document.querySelector(`.pin-digit[data-index="${Number(el.dataset.index) - 1}"]`);
+                if (prev) {
+                    prev.focus();
+                    prev.value = '';
+                }
+            }
+        }
+
+        window.verifyPinCode = function () {
             const inputs = document.querySelectorAll('.pin-digit');
             let entered = '';
             inputs.forEach(i => entered += i.value);
 
-            if (!state.pinCode || entered === state.pinCode) {
+            // First-time: no PIN set → require setting one
+            if (!state.pinCode) {
+                if (entered.length !== 4 || !/^\d{4}$/.test(entered)) {
+                    showCustomModal('تنبيه', 'أول استخدام: يرجى إدخال رمز سري مكون من 4 أرقام لتعيينه كرمز المدير', 'error');
+                    inputs.forEach(i => i.value = '');
+                    inputs[0].focus();
+                    return;
+                }
+                state.pinCode = entered;
+                saveLocalStorageOnly();
                 isManagerLoggedIn = true;
-                document.getElementById('pinLockModal').classList.remove('flex');
-                document.getElementById('pinLockModal').classList.add('hidden');
+                hidePinModal();
+                document.getElementById('syncStatus').innerText = "وضع المدير النشط 🛡️ (تم تعيين الرمز)";
+                applyRoleUI();
+                showCustomModal('تم التعيين', 'تم تعيين الرمز السري بنجاح. احفظه في مكان آمن.', 'success');
+                return;
+            }
+
+            if (entered === state.pinCode) {
+                isManagerLoggedIn = true;
+                hidePinModal();
                 document.getElementById('syncStatus').innerText = "وضع المدير النشط 🛡️";
                 applyRoleUI();
                 showCustomModal('أهلاً بك', 'تم تسجيل دخول المدير بنجاح', 'success');
@@ -648,64 +824,74 @@
                 inputs.forEach(i => i.value = '');
                 inputs[0].focus();
             }
-        }
+        };
 
-        window.enterAsResidentView = function() {
-            isManagerLoggedIn = false;
+        function hidePinModal() {
             document.getElementById('pinLockModal').classList.remove('flex');
             document.getElementById('pinLockModal').classList.add('hidden');
-            document.getElementById('syncStatus').innerText = "وضع الساكن (للاطلاع فقط) 👀";
-            applyRoleUI();
         }
 
-        window.lockAppToResidentMode = function() {
+        window.enterAsResidentView = function () {
+            isManagerLoggedIn = false;
+            hidePinModal();
+            document.getElementById('syncStatus').innerText = "وضع الساكن (للاطلاع فقط) 👀";
+            applyRoleUI();
+        };
+
+        window.lockAppToResidentMode = function () {
             isManagerLoggedIn = false;
             document.getElementById('pinLockModal').classList.remove('hidden');
             document.getElementById('pinLockModal').classList.add('flex');
             document.querySelectorAll('.pin-digit').forEach(i => i.value = '');
+            const hint = document.getElementById('pinModalHint');
+            if (hint) {
+                hint.textContent = state.pinCode
+                    ? 'أدخل الرمز السري للإدارة، أو تابع كـ "ساكن (للاطلاع فقط)"'
+                    : 'أول استخدام: أدخل 4 أرقام لتعيين رمز المدير، أو ادخل كساكن';
+            }
             applyRoleUI();
-        }
+            setTimeout(() => {
+                const first = document.querySelector('.pin-digit');
+                if (first) first.focus();
+            }, 100);
+        };
 
         function applyRoleUI() {
-            const managerSettingsBtn = document.getElementById('managerSettingsBtn');
-            const managerBackupBtn = document.getElementById('managerBackupBtn');
-            const addIncomeBtn = document.getElementById('addIncomeBtn');
-            const addExpenseBtn = document.getElementById('addExpenseBtn');
-            const addResidentBtn = document.getElementById('addResidentBtn');
-
-            if (isManagerLoggedIn) {
-                managerSettingsBtn.classList.remove('hidden');
-                managerBackupBtn.classList.remove('hidden');
-                addIncomeBtn.classList.remove('hidden');
-                addExpenseBtn.classList.remove('hidden');
-                addResidentBtn.classList.remove('hidden');
-            } else {
-                managerSettingsBtn.classList.add('hidden');
-                managerBackupBtn.classList.add('hidden');
-                addIncomeBtn.classList.add('hidden');
-                addExpenseBtn.classList.add('hidden');
-                addResidentBtn.classList.add('hidden');
-            }
+            const ids = ['managerSettingsBtn', 'managerBackupBtn', 'addIncomeBtn', 'addExpenseBtn', 'addResidentBtn'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (isManagerLoggedIn) el.classList.remove('hidden');
+                else el.classList.add('hidden');
+            });
             updateUI();
         }
 
-        window.switchTab = function(tabId) {
+        // ========== TABS & MODALS ==========
+        window.switchTab = function (tabId) {
             document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.remove('hidden');
             document.getElementById('btn-' + tabId).classList.add('active');
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        };
 
-        window.openModal = function(modalId) {
-            if (!isManagerLoggedIn && (modalId === 'settingsModal' || modalId === 'backupModal' || modalId === 'incomeModal' || modalId === 'expenseModal' || modalId === 'residentModal')) {
-                showCustomModal('صلاحيات مقيدة', 'هذه المتاحة للمدير فقط. يرجى تسجيل الدخول برمز PIN.', 'error');
+        window.openModal = function (modalId) {
+            if (!isManagerLoggedIn && ['settingsModal', 'backupModal', 'incomeModal', 'expenseModal', 'residentModal'].includes(modalId)) {
+                showCustomModal('صلاحيات مقيدة', 'هذه الخاصية متاحة للمدير فقط. يرجى تسجيل الدخول برمز PIN.', 'error');
                 return;
             }
-            document.getElementById(modalId).classList.remove('hidden');
-            document.getElementById(modalId).classList.add('flex');
-            if (modalId === 'incomeModal') populateResidentSelect();
-            else if (modalId === 'backupModal') {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            if (modalId === 'incomeModal') {
+                populateResidentSelect();
+                document.getElementById('incomeMonth').value = getCurrentMonthStr();
+                document.getElementById('incomeDate').valueAsDate = new Date();
+            } else if (modalId === 'expenseModal') {
+                document.getElementById('expenseDate').valueAsDate = new Date();
+            } else if (modalId === 'backupModal') {
                 document.getElementById('gistTokenInput').value = state.gistToken || '';
                 document.getElementById('gistIdInput').value = state.gistId || '';
                 renderSnapshotsList();
@@ -713,22 +899,35 @@
                 document.getElementById('startingBalanceInput').value = state.startingBalance || 0;
                 document.getElementById('defaultSubscriptionInput').value = state.defaultSubscription || 250;
                 document.getElementById('newPinInput').value = '';
+            } else if (modalId === 'residentModal') {
+                if (!document.getElementById('editResidentId').value) {
+                    document.getElementById('residentMonthlyAmount').value = state.defaultSubscription || 250;
+                    document.getElementById('residentModalTitle').innerHTML = '<i class="fa-solid fa-user-plus ml-2"></i> إضافة شقة جديدة';
+                }
             }
-        }
+        };
 
-        window.closeModal = function(modalId) {
-            document.getElementById(modalId).classList.remove('flex');
-            document.getElementById(modalId).classList.add('hidden');
-        }
+        window.closeModal = function (modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+            if (modalId === 'residentModal') {
+                document.getElementById('residentForm').reset();
+                document.getElementById('editResidentId').value = '';
+            }
+            if (modalId === 'incomeModal') document.getElementById('incomeForm').reset();
+            if (modalId === 'expenseModal') document.getElementById('expenseForm').reset();
+        };
 
-        window.saveSettings = function() {
+        // ========== SETTINGS ==========
+        window.saveSettings = function () {
             if (!isManagerLoggedIn) return;
             state.startingBalance = Math.max(0, parseFloat(document.getElementById('startingBalanceInput').value) || 0);
             state.defaultSubscription = Math.max(0, parseFloat(document.getElementById('defaultSubscriptionInput').value) || 250);
-            const pinVal = document.getElementById('newPinInput').value;
+            const pinVal = document.getElementById('newPinInput').value.trim();
             if (pinVal) {
-                if (pinVal.length !== 4 || isNaN(pinVal)) {
-                    showCustomModal('خطأ', 'يجب أن يكون الرمز السري مكوناً من 4 أرقام', 'error');
+                if (pinVal.length !== 4 || !/^\d{4}$/.test(pinVal)) {
+                    showCustomModal('خطأ', 'يجب أن يكون الرمز السري مكوناً من 4 أرقام فقط', 'error');
                     return;
                 }
                 state.pinCode = pinVal;
@@ -737,20 +936,21 @@
             updateUI();
             closeModal('settingsModal');
             showCustomModal('نجاح', 'تم حفظ الإعدادات بنجاح', 'success');
-        }
+        };
 
-        window.createManualSnapshot = function() {
+        // ========== SNAPSHOTS ==========
+        window.createManualSnapshot = function () {
             if (!isManagerLoggedIn) return;
             snapshots.unshift({
                 id: Date.now().toString(),
                 date: new Date().toLocaleString('ar-EG'),
                 data: JSON.stringify(state)
             });
-            if (snapshots.length > 10) snapshots.pop();
-            localStorage.setItem('manzil_app_snapshots_v4', JSON.stringify(snapshots));
+            if (snapshots.length > 12) snapshots.pop();
+            localStorage.setItem('manzil_app_snapshots_v5', JSON.stringify(snapshots));
             renderSnapshotsList();
             showCustomModal('نجاح', 'تم أخذ اللقطة الاحتياطية محلياً', 'success');
-        }
+        };
 
         function renderSnapshotsList() {
             const list = document.getElementById('snapshotsList');
@@ -763,28 +963,30 @@
             snapshots.forEach(s => {
                 list.innerHTML += `
                     <div class="flex items-center justify-between p-2 bg-slate-900 rounded-xl border border-slate-800 text-xs">
-                        <span class="text-slate-300">${s.date}</span>
-                        <button onclick="restoreSnapshot('${s.id}')" class="bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 px-2.5 py-1 rounded-lg font-bold transition">استعادة</button>
-                    </div>
-                `;
+                        <span class="text-slate-300 truncate">${s.date}</span>
+                        <button onclick="restoreSnapshot('${s.id}')" class="bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 px-2.5 py-1 rounded-lg font-bold transition shrink-0">استعادة</button>
+                    </div>`;
             });
         }
 
-        window.restoreSnapshot = function(id) {
+        window.restoreSnapshot = function (id) {
             if (!isManagerLoggedIn) return;
-            const target = snapshots.find(s => s.id === id);
-            if (!target) return;
-            try {
-                state = JSON.parse(target.data);
-                saveData();
-                updateUI();
-                closeModal('backupModal');
-                showCustomModal('نجاح', 'تم استعادة النسخة بنجاح', 'success');
-            } catch(e) {
-                showCustomModal('خطأ', 'فشل استعادة اللقطة', 'error');
-            }
-        }
+            showConfirm('استعادة لقطة', 'سيتم استبدال البيانات الحالية بهذه اللقطة. هل تريد المتابعة؟', () => {
+                const target = snapshots.find(s => s.id === id);
+                if (!target) return;
+                try {
+                    state = JSON.parse(target.data);
+                    saveData();
+                    updateUI();
+                    closeModal('backupModal');
+                    showCustomModal('نجاح', 'تم استعادة النسخة بنجاح', 'success');
+                } catch (e) {
+                    showCustomModal('خطأ', 'فشل استعادة اللقطة', 'error');
+                }
+            });
+        };
 
+        // ========== RESIDENTS ==========
         function populateResidentSelect() {
             const select = document.getElementById('incomeResidentSelect');
             select.innerHTML = '';
@@ -793,163 +995,138 @@
                 return;
             }
             state.residents.forEach(r => {
+                const monthly = r.monthlyAmount !== undefined ? r.monthlyAmount : state.defaultSubscription;
                 const opt = document.createElement('option');
                 opt.value = r.id;
-                opt.textContent = `${r.apartment} - ${r.name} (${r.monthlyAmount || state.defaultSubscription} ج.م)`;
-                opt.dataset.monthly = r.monthlyAmount || state.defaultSubscription;
+                opt.textContent = `${r.apartment} - ${r.name} (${formatMoney(monthly)} ج.م)`;
+                opt.dataset.monthly = monthly;
                 select.appendChild(opt);
             });
             onResidentSelectChange();
         }
 
-        window.onResidentSelectChange = function() {
+        window.onResidentSelectChange = function () {
             const select = document.getElementById('incomeResidentSelect');
             const selectedOpt = select.options[select.selectedIndex];
             if (selectedOpt && selectedOpt.dataset.monthly) {
                 document.getElementById('incomeAmount').value = selectedOpt.dataset.monthly;
             }
-        }
+        };
 
-        function calculateCumulativeDebt(residentId) {
+        // Improved debt: count missing months from resident creation (or last 12 months max)
+        function calculateDebt(residentId, upToMonthStr) {
             const resident = state.residents.find(r => r.id === residentId);
-            if (!resident) return { count: 0, totalDebt: 0 };
+            if (!resident) return { unpaidMonths: [], totalDebt: 0, count: 0 };
+
             const monthlyAmt = resident.monthlyAmount !== undefined ? resident.monthlyAmount : state.defaultSubscription;
-            
+            const paidSet = new Set(
+                state.income
+                    .filter(i => i.residentId === residentId)
+                    .map(i => i.month)
+            );
+
+            // Build list of expected months from createdAt (or 12 months back) to the target month
             const now = new Date();
-            const monthsNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-            const currentMonthStr = `${monthsNames[now.getMonth()]} ${now.getFullYear()}`;
-            
-            const paidMonths = state.income.filter(i => i.residentId === residentId).map(i => i.month);
-            
-            let unpaidCount = 0;
-            if (!paidMonths.includes(currentMonthStr)) {
-                unpaidCount = 1; 
+            let start = resident.createdAt ? new Date(resident.createdAt) : new Date(now.getFullYear(), now.getMonth() - 11, 1);
+            // Cap at 18 months back to keep it reasonable
+            const minStart = new Date(now.getFullYear(), now.getMonth() - 17, 1);
+            if (start < minStart) start = minStart;
+
+            const targetParts = (upToMonthStr || getCurrentMonthStr()).split(' ');
+            const targetMonthIdx = MONTHS_AR.indexOf(targetParts[0]);
+            const targetYear = Number(targetParts[1]) || now.getFullYear();
+            const end = new Date(targetYear, targetMonthIdx, 1);
+
+            const unpaid = [];
+            let cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+            while (cursor <= end) {
+                const mStr = `${MONTHS_AR[cursor.getMonth()]} ${cursor.getFullYear()}`;
+                if (!paidSet.has(mStr)) unpaid.push(mStr);
+                cursor.setMonth(cursor.getMonth() + 1);
             }
-            return { count: unpaidCount, totalDebt: unpaidCount * monthlyAmt };
+
+            return {
+                unpaidMonths: unpaid,
+                count: unpaid.length,
+                totalDebt: unpaid.length * monthlyAmt
+            };
         }
 
+        // ========== UI UPDATE ==========
         function updateUI() {
             setupMonthSelectors();
-            const totalIncome = state.income.reduce((s, i) => s + Number(i.amount), 0);
-            const totalExpense = state.expenses.reduce((s, e) => s + Number(e.amount), 0);
+
+            const totalIncome = state.income.reduce((s, i) => s + Number(i.amount || 0), 0);
+            const totalExpense = state.expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
             const netBalance = (Number(state.startingBalance) || 0) + totalIncome - totalExpense;
 
-            document.getElementById('totalIncomeDisplay').innerText = `${totalIncome.toLocaleString()} ج.م`;
-            document.getElementById('totalExpenseDisplay').innerText = `${totalExpense.toLocaleString()} ج.م`;
-            document.getElementById('netBalanceDisplay').innerText = `${netBalance.toLocaleString()} ج.م`;
+            document.getElementById('totalIncomeDisplay').innerText = `${formatMoney(totalIncome)} ج.م`;
+            document.getElementById('totalExpenseDisplay').innerText = `${formatMoney(totalExpense)} ج.م`;
+            document.getElementById('netBalanceDisplay').innerText = `${formatMoney(netBalance)} ج.م`;
 
+            // Efficiency for selected month
             const monthSelect = document.getElementById('targetCurrentMonthSelect');
-            const selectedMonth = monthSelect ? monthSelect.value : '';
-            const totalExpected = state.residents.reduce((sum, r) => sum + (r.monthlyAmount !== undefined ? r.monthlyAmount : state.defaultSubscription), 0);
-            const totalCollectedThisMonth = state.income.filter(i => i.month === selectedMonth).reduce((sum, i) => sum + Number(i.amount), 0);
-            const efficiency = totalExpected > 0 ? Math.min(100, Math.round((totalCollectedThisMonth / totalExpected) * 100)) : 0;
+            const selectedMonth = monthSelect ? monthSelect.value : getCurrentMonthStr();
+            const totalExpected = state.residents.reduce((sum, r) => {
+                return sum + (r.monthlyAmount !== undefined ? Number(r.monthlyAmount) : Number(state.defaultSubscription));
+            }, 0);
+            const totalCollectedThisMonth = state.income
+                .filter(i => i.month === selectedMonth)
+                .reduce((sum, i) => sum + Number(i.amount || 0), 0);
+            const efficiency = totalExpected > 0
+                ? Math.min(100, Math.round((totalCollectedThisMonth / totalExpected) * 100))
+                : 0;
             document.getElementById('collectionEfficiencyDisplay').innerText = `كفاءة التحصيل: ${efficiency}%`;
 
-            renderAnnualChart();
-            renderUnpaidResidents();
+            // Year label for chart
+            const year = new Date().getFullYear();
+            document.getElementById('chartYearLabel').textContent = `عام ${year}`;
 
-            const breakdownEl = document.getElementById('expenseCategoriesBreakdown');
-            breakdownEl.innerHTML = '';
-            const categories = ['كهرباء', 'صيانة أسانسير', 'نظافة', 'أعمال سباكة وصنايعي', 'أخرى'];
-            if (totalExpense === 0) {
-                breakdownEl.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">لا توجد مصروفات مسجلة.</p>';
-            } else {
-                categories.forEach(cat => {
-                    const catTotal = state.expenses.filter(e => e.category === cat).reduce((s, e) => s + Number(e.amount), 0);
-                    const pct = totalExpense > 0 ? Math.round((catTotal / totalExpense) * 100) : 0;
-                    breakdownEl.innerHTML += `
-                        <div>
-                            <div class="flex justify-between text-xs font-bold text-slate-300 mb-1">
-                                <span>${cat}</span>
-                                <span class="text-slate-400">${catTotal.toLocaleString()} ج.م (${pct}%)</span>
-                            </div>
-                            <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
-                                <div class="bg-indigo-500 h-2 rounded-full transition-all" style="width: ${pct}%"></div>
-                            </div>
-                        </div>
-                    `;
-                });
-            }
-
-            const residentsGrid = document.getElementById('residentsGrid');
-            residentsGrid.innerHTML = '';
-            if (state.residents.length === 0) {
-                residentsGrid.innerHTML = '<div class="app-card p-6 rounded-3xl border text-center text-xs text-slate-500 col-span-full">لا توجد شقق مسجلة. اضغط على (شقة جديدة) للإضافة.</div>';
-            } else {
-                state.residents.forEach(r => {
-                    const monthlyAmt = r.monthlyAmount !== undefined ? r.monthlyAmount : state.defaultSubscription;
-                    const debtInfo = calculateCumulativeDebt(r.id);
-                    residentsGrid.innerHTML += `
-                        <div class="app-card p-4 rounded-3xl border flex flex-col justify-between space-y-2">
-                            <div>
-                                <div class="flex justify-between items-start mb-2">
-                                    <span class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[11px] px-2.5 py-1 rounded-xl font-bold">${r.apartment}</span>
-                                    <div class="flex items-center gap-2">
-                                        <button onclick="openResidentStatement('${r.id}')" class="text-indigo-400 hover:text-indigo-300 p-1" title="كشف حساب"><i class="fa-solid fa-file-lines text-sm"></i></button>
-                                        ${isManagerLoggedIn ? `
-                                            <button onclick="editResident('${r.id}')" class="text-indigo-400 hover:text-indigo-300 p-1" title="تعديل الساكن"><i class="fa-solid fa-pen-to-square text-sm"></i></button>
-                                            <button onclick="archiveResident('${r.id}')" class="text-amber-400 hover:text-amber-300 p-1" title="مغادرة ونقل الساكن"><i class="fa-solid fa-box-archive text-sm"></i></button>
-                                            <button onclick="deleteItem('residents', '${r.id}')" class="text-slate-500 hover:text-rose-400 p-1" title="حذف نهائي"><i class="fa-solid fa-trash-can text-sm"></i></button>
-                                        ` : ''}
-                                    </div>
-                                </div>
-                                <h4 class="font-bold text-sm">${r.name}</h4>
-                                <p class="text-[11px] text-slate-400 mt-0.5"><i class="fa-solid fa-phone ml-1"></i> ${r.phone || 'بدون هاتف'}</p>
-                                <div class="flex flex-wrap gap-1.5 mt-2">
-                                    <span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">اشتراك: ${Number(monthlyAmt).toLocaleString()} ج.م</span>
-                                    ${debtInfo.totalDebt > 0 ? `<span class="text-[10px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-lg">متأخرات: ${debtInfo.totalDebt.toLocaleString()} ج.م</span>` : `<span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">مسدد ✓</span>`}
-                                </div>
-                                ${r.tenantHistory && r.tenantHistory.length > 0 ? `<p class="text-[10px] text-indigo-300 mt-2"><i class="fa-solid fa-history ml-1"></i> ${r.tenantHistory.length} ساكن سابق بالأرشيف</p>` : ''}
-                            </div>
-                        </div>
-                    `;
-                });
-            }
-
+            renderAnnualChart(year);
+            renderUnpaidResidents(selectedMonth);
+            renderExpenseBreakdown(totalExpense);
+            renderResidentsGrid();
             renderIncomeTable();
             renderExpenseTable();
             renderRecentLists();
         }
 
-        function renderAnnualChart() {
+        function renderAnnualChart(year) {
             const container = document.getElementById('annualChartContainer');
             if (!container) return;
             container.innerHTML = '';
-            
-            const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
             let maxVal = 1000;
-            
-            months.forEach(m => {
-                const inc = state.income.filter(i => i.month && i.month.includes(m)).reduce((s, i) => s + Number(i.amount), 0);
-                const exp = state.expenses.filter(e => e.date && e.date.includes(m)).reduce((s, e) => s + Number(e.amount), 0);
+            const data = MONTHS_AR.map((mName, idx) => {
+                const monthKey = `${mName} ${year}`;
+                const inc = state.income
+                    .filter(i => i.month === monthKey)
+                    .reduce((s, i) => s + Number(i.amount || 0), 0);
+                const exp = state.expenses
+                    .filter(e => dateToMonthStr(e.date) === monthKey)
+                    .reduce((s, e) => s + Number(e.amount || 0), 0);
                 if (inc > maxVal) maxVal = inc;
                 if (exp > maxVal) maxVal = exp;
+                return { mName, inc, exp };
             });
 
-            months.forEach((m, idx) => {
-                const inc = state.income.filter(i => i.month && i.month.includes(m)).reduce((s, i) => s + Number(i.amount), 0);
-                const exp = state.expenses.filter(e => e.date && e.date.includes(m)).reduce((s, e) => s + Number(e.amount), 0);
-                
-                const incHeight = Math.max(8, Math.round((inc / maxVal) * 110));
-                const expHeight = Math.max(8, Math.round((exp / maxVal) * 110));
-
+            data.forEach(({ mName, inc, exp }) => {
+                const incH = Math.max(6, Math.round((inc / maxVal) * 110));
+                const expH = Math.max(6, Math.round((exp / maxVal) * 110));
                 container.innerHTML += `
-                    <div class="flex flex-col items-center flex-grow h-full justify-end gap-1 group relative">
-                        <div class="flex items-end gap-1 w-full justify-center h-28">
-                            <div class="w-2.5 bg-emerald-500 rounded-t transition-all" style="height: ${incHeight}px" title="تحصيلات: ${inc} ج.م"></div>
-                            <div class="w-2.5 bg-rose-500 rounded-t transition-all" style="height: ${expHeight}px" title="مصروفات: ${exp} ج.م"></div>
+                    <div class="flex flex-col items-center flex-1 min-w-[28px] h-full justify-end gap-1">
+                        <div class="flex items-end gap-0.5 w-full justify-center h-28">
+                            <div class="w-2.5 sm:w-3 bg-emerald-500 rounded-t transition-all" style="height:${incH}px" title="تحصيلات ${mName}: ${formatMoney(inc)} ج.م"></div>
+                            <div class="w-2.5 sm:w-3 bg-rose-500 rounded-t transition-all" style="height:${expH}px" title="مصروفات ${mName}: ${formatMoney(exp)} ج.م"></div>
                         </div>
-                        <span class="text-[9px] text-slate-400 font-bold">${m.slice(0, 3)}</span>
-                    </div>
-                `;
+                        <span class="text-[9px] text-slate-400 font-bold">${mName.slice(0, 3)}</span>
+                    </div>`;
             });
         }
 
-        function renderUnpaidResidents() {
+        function renderUnpaidResidents(selectedMonth) {
             const container = document.getElementById('unpaidResidentsContainer');
-            const monthSelect = document.getElementById('targetCurrentMonthSelect');
             if (!container) return;
-            const selectedMonth = monthSelect ? monthSelect.value : '';
             container.innerHTML = '';
 
             if (state.residents.length === 0) {
@@ -957,46 +1134,120 @@
                 return;
             }
 
-            const paidIds = state.income.filter(i => i.month === selectedMonth).map(i => i.residentId);
-            const unpaid = state.residents.filter(r => !paidIds.includes(r.id));
+            const paidIds = new Set(
+                state.income.filter(i => i.month === selectedMonth).map(i => i.residentId)
+            );
+            const unpaid = state.residents.filter(r => !paidIds.has(r.id));
 
             if (unpaid.length === 0) {
                 container.innerHTML = `
                     <div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-2xl text-center text-xs font-bold">
                         <i class="fa-solid fa-circle-check text-sm mb-0.5"></i> كل الشقق سددت اشتراك شهر (${selectedMonth})!
-                    </div>
-                `;
+                    </div>`;
                 return;
             }
 
             unpaid.forEach(r => {
-                const phone = r.phone || '';
                 const monthlyAmt = r.monthlyAmount !== undefined ? r.monthlyAmount : state.defaultSubscription;
+                const debt = calculateDebt(r.id, selectedMonth);
+                const phone = r.phone || '';
                 container.innerHTML += `
-                    <div class="bg-amber-500/10 border border-amber-500/20 p-3 rounded-2xl flex items-center justify-between text-xs">
-                        <div>
-                            <span class="font-bold text-slate-100">${r.apartment} - ${r.name}</span>
-                            <span class="text-amber-400 font-semibold block mt-0.5">مطلوب: ${monthlyAmt} ج.م</span>
+                    <div class="bg-amber-500/10 border border-amber-500/20 p-3 rounded-2xl flex items-center justify-between gap-2 text-xs">
+                        <div class="min-w-0">
+                            <span class="font-bold text-slate-100 block truncate">${r.apartment} - ${r.name}</span>
+                            <span class="text-amber-400 font-semibold block mt-0.5">مطلوب هذا الشهر: ${formatMoney(monthlyAmt)} ج.م</span>
+                            ${debt.count > 1 ? `<span class="text-[10px] text-rose-400">إجمالي متأخرات تقريبية: ${formatMoney(debt.totalDebt)} ج.م (${debt.count} شهر)</span>` : ''}
                         </div>
-                        ${phone ? `<button onclick="sendWhatsAppReminder('${r.name}', '${monthlyAmt}', '${selectedMonth}', '${phone}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1"><i class="fa-brands fa-whatsapp"></i> تذكير</button>` : '<span class="text-slate-500 text-[10px]">بدون هاتف</span>'}
-                    </div>
-                `;
+                        ${phone
+                            ? `<button onclick="sendWhatsAppReminder('${escapeAttr(r.name)}', '${monthlyAmt}', '${escapeAttr(selectedMonth)}', '${escapeAttr(phone)}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1 shrink-0"><i class="fa-brands fa-whatsapp"></i> تذكير</button>`
+                            : '<span class="text-slate-500 text-[10px] shrink-0">بدون هاتف</span>'}
+                    </div>`;
             });
         }
 
-        window.sendWhatsAppReminder = function(name, amount, month, phone) {
-            const text = `تذكير بسداد اشتراك عمارة عن شهر (${month})\nالسيد/ة (${name})\nالمبلغ المستحق: ${amount} ج.م\nيرجى التكرم بالسداد في أقرب وقت. شكراً لتعاونكم 🏢`;
-            window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+        function renderExpenseBreakdown(totalExpense) {
+            const breakdownEl = document.getElementById('expenseCategoriesBreakdown');
+            breakdownEl.innerHTML = '';
+            const categories = ['كهرباء', 'صيانة أسانسير', 'نظافة', 'أعمال سباكة وصنايعي', 'أخرى'];
+            if (totalExpense === 0) {
+                breakdownEl.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">لا توجد مصروفات مسجلة.</p>';
+                return;
+            }
+            categories.forEach(cat => {
+                const catTotal = state.expenses
+                    .filter(e => e.category === cat)
+                    .reduce((s, e) => s + Number(e.amount || 0), 0);
+                const pct = totalExpense > 0 ? Math.round((catTotal / totalExpense) * 100) : 0;
+                breakdownEl.innerHTML += `
+                    <div>
+                        <div class="flex justify-between text-xs font-bold text-slate-300 mb-1">
+                            <span>${cat}</span>
+                            <span class="text-slate-400">${formatMoney(catTotal)} ج.م (${pct}%)</span>
+                        </div>
+                        <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
+                            <div class="bg-indigo-500 h-2 rounded-full transition-all" style="width:${pct}%"></div>
+                        </div>
+                    </div>`;
+            });
         }
 
-        window.renderIncomeTable = function() {
+        function renderResidentsGrid() {
+            const residentsGrid = document.getElementById('residentsGrid');
+            residentsGrid.innerHTML = '';
+            if (state.residents.length === 0) {
+                residentsGrid.innerHTML = '<div class="app-card p-6 rounded-3xl border text-center text-xs text-slate-500 col-span-full">لا توجد شقق مسجلة. اضغط على (شقة جديدة) للإضافة.</div>';
+                return;
+            }
+
+            const currentMonth = getCurrentMonthStr();
+            state.residents.forEach(r => {
+                const monthlyAmt = r.monthlyAmount !== undefined ? r.monthlyAmount : state.defaultSubscription;
+                const debt = calculateDebt(r.id, currentMonth);
+                const isPaidThisMonth = state.income.some(i => i.residentId === r.id && i.month === currentMonth);
+
+                residentsGrid.innerHTML += `
+                    <div class="app-card p-4 rounded-3xl border flex flex-col justify-between space-y-2">
+                        <div>
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[11px] px-2.5 py-1 rounded-xl font-bold">${escapeHtml(r.apartment)}</span>
+                                <div class="flex items-center gap-1">
+                                    <button onclick="openResidentStatement('${r.id}')" class="text-indigo-400 hover:text-indigo-300 p-1.5" title="كشف حساب"><i class="fa-solid fa-file-lines text-sm"></i></button>
+                                    ${isManagerLoggedIn ? `
+                                        <button onclick="editResident('${r.id}')" class="text-indigo-400 hover:text-indigo-300 p-1.5" title="تعديل"><i class="fa-solid fa-pen-to-square text-sm"></i></button>
+                                        <button onclick="archiveResident('${r.id}')" class="text-amber-400 hover:text-amber-300 p-1.5" title="مغادرة ونقل الساكن"><i class="fa-solid fa-box-archive text-sm"></i></button>
+                                        <button onclick="deleteItem('residents', '${r.id}')" class="text-slate-500 hover:text-rose-400 p-1.5" title="حذف نهائي"><i class="fa-solid fa-trash-can text-sm"></i></button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            <h4 class="font-bold text-sm">${escapeHtml(r.name)}</h4>
+                            <p class="text-[11px] text-slate-400 mt-0.5"><i class="fa-solid fa-phone ml-1"></i> ${escapeHtml(r.phone || 'بدون هاتف')}</p>
+                            <div class="flex flex-wrap gap-1.5 mt-2">
+                                <span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">اشتراك: ${formatMoney(monthlyAmt)} ج.م</span>
+                                ${isPaidThisMonth
+                                    ? `<span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">مسدد هذا الشهر ✓</span>`
+                                    : `<span class="text-[10px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-lg">غير مسدد</span>`}
+                                ${debt.count > 0
+                                    ? `<span class="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg">متأخرات: ${formatMoney(debt.totalDebt)} ج.م</span>`
+                                    : ''}
+                            </div>
+                            ${r.tenantHistory && r.tenantHistory.length > 0
+                                ? `<p class="text-[10px] text-indigo-300 mt-2"><i class="fa-solid fa-history ml-1"></i> ${r.tenantHistory.length} ساكن سابق بالأرشيف</p>`
+                                : ''}
+                        </div>
+                    </div>`;
+            });
+        }
+
+        // ========== INCOME / EXPENSE TABLES ==========
+        window.renderIncomeTable = function () {
             const container = document.getElementById('incomeCardsList');
             container.innerHTML = '';
-            const search = document.getElementById('searchIncomeInput').value.toLowerCase();
+            const search = (document.getElementById('searchIncomeInput').value || '').toLowerCase();
             const filterMonth = document.getElementById('filterIncomeMonth').value;
 
             const filtered = state.income.filter(item => {
-                const matchSearch = item.residentName.toLowerCase().includes(search) || (item.notes && item.notes.toLowerCase().includes(search));
+                const matchSearch = (item.residentName || '').toLowerCase().includes(search) ||
+                    (item.notes || '').toLowerCase().includes(search);
                 const matchMonth = !filterMonth || item.month === filterMonth;
                 return matchSearch && matchMonth;
             });
@@ -1006,41 +1257,44 @@
                 return;
             }
 
-            filtered.sort((a, b) => b.createdAt - a.createdAt).forEach(item => {
-                const resident = state.residents.find(r => r.id === item.residentId);
-                const phone = resident ? resident.phone : '';
-                container.innerHTML += `
-                    <div class="app-card p-4 rounded-3xl border flex items-center justify-between">
-                        <div>
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] px-2.5 py-0.5 rounded-full font-bold">${item.month}</span>
-                                <span class="text-xs text-slate-500">${item.date}</span>
+            filtered
+                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+                .forEach(item => {
+                    const resident = state.residents.find(r => r.id === item.residentId);
+                    const phone = resident ? resident.phone : '';
+                    container.innerHTML += `
+                        <div class="app-card p-4 rounded-3xl border flex items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                    <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] px-2.5 py-0.5 rounded-full font-bold">${escapeHtml(item.month)}</span>
+                                    <span class="text-xs text-slate-500">${escapeHtml(item.date)}</span>
+                                </div>
+                                <h4 class="font-bold text-sm truncate">${escapeHtml(item.residentName)}</h4>
+                                <p class="text-[11px] text-slate-400 mt-0.5 truncate">${escapeHtml(item.notes || 'بدون ملاحظات')}</p>
                             </div>
-                            <h4 class="font-bold text-sm">${item.residentName}</h4>
-                            <p class="text-[11px] text-slate-400 mt-0.5">${item.notes || 'بدون ملاحظات'}</p>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="font-black text-emerald-400 text-sm">+${Number(item.amount).toLocaleString()} ج.م</span>
-                            <div class="flex items-center gap-1">
-                                <button onclick="shareIncomeReceipt('${item.residentName}', '${item.amount}', '${item.month}', '${item.date}', '${phone}')" class="bg-indigo-500/20 text-indigo-400 p-2 rounded-xl text-xs" title="مشاركة الإيصال الأصلي"><i class="fa-solid fa-share-nodes"></i></button>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <span class="font-black text-emerald-400 text-sm">+${formatMoney(item.amount)} ج.م</span>
+                                <button onclick="shareIncomeReceipt('${escapeAttr(item.residentName)}', '${item.amount}', '${escapeAttr(item.month)}', '${escapeAttr(item.date)}', '${escapeAttr(phone)}')" class="bg-indigo-500/20 text-indigo-400 p-2 rounded-xl text-xs" title="مشاركة الإيصال"><i class="fa-solid fa-share-nodes"></i></button>
                                 ${isManagerLoggedIn ? `<button onclick="deleteItem('income', '${item.id}')" class="text-slate-500 hover:text-rose-400 p-2 text-xs"><i class="fa-solid fa-trash-can"></i></button>` : ''}
                             </div>
-                        </div>
-                    </div>
-                `;
-            });
-        }
+                        </div>`;
+                });
+        };
 
-        window.renderExpenseTable = function() {
+        window.renderExpenseTable = function () {
             const container = document.getElementById('expenseCardsList');
             container.innerHTML = '';
-            const search = document.getElementById('searchExpenseInput').value.toLowerCase();
+            const search = (document.getElementById('searchExpenseInput').value || '').toLowerCase();
             const filterCat = document.getElementById('filterExpenseCategory').value;
+            const filterMonth = document.getElementById('filterExpenseMonth').value;
 
             const filtered = state.expenses.filter(item => {
-                const matchSearch = item.title.toLowerCase().includes(search) || (item.notes && item.notes.toLowerCase().includes(search));
+                const matchSearch = (item.title || '').toLowerCase().includes(search) ||
+                    (item.notes || '').toLowerCase().includes(search);
                 const matchCat = !filterCat || item.category === filterCat;
-                return matchSearch && matchCat;
+                const itemMonth = dateToMonthStr(item.date);
+                const matchMonth = !filterMonth || itemMonth === filterMonth;
+                return matchSearch && matchCat && matchMonth;
             });
 
             if (filtered.length === 0) {
@@ -1048,25 +1302,26 @@
                 return;
             }
 
-            filtered.sort((a, b) => b.createdAt - a.createdAt).forEach(item => {
-                container.innerHTML += `
-                    <div class="app-card p-4 rounded-3xl border flex items-center justify-between">
-                        <div>
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[10px] px-2.5 py-0.5 rounded-full font-bold">${item.category}</span>
-                                <span class="text-xs text-slate-500">${item.date}</span>
+            filtered
+                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+                .forEach(item => {
+                    container.innerHTML += `
+                        <div class="app-card p-4 rounded-3xl border flex items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                    <span class="bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[10px] px-2.5 py-0.5 rounded-full font-bold">${escapeHtml(item.category)}</span>
+                                    <span class="text-xs text-slate-500">${escapeHtml(item.date)}</span>
+                                </div>
+                                <h4 class="font-bold text-sm truncate">${escapeHtml(item.title)}</h4>
+                                <p class="text-[11px] text-slate-400 mt-0.5 truncate">${escapeHtml(item.notes || 'بدون ملاحظات')}</p>
                             </div>
-                            <h4 class="font-bold text-sm">${item.title}</h4>
-                            <p class="text-[11px] text-slate-400 mt-0.5">${item.notes || 'بدون ملاحظات'}</p>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="font-black text-rose-400 text-sm">-${Number(item.amount).toLocaleString()} ج.م</span>
-                            ${isManagerLoggedIn ? `<button onclick="deleteItem('expenses', '${item.id}')" class="text-slate-500 hover:text-rose-400 p-2 text-xs"><i class="fa-solid fa-trash-can"></i></button>` : ''}
-                        </div>
-                    </div>
-                `;
-            });
-        }
+                            <div class="flex items-center gap-2 shrink-0">
+                                <span class="font-black text-rose-400 text-sm">-${formatMoney(item.amount)} ج.م</span>
+                                ${isManagerLoggedIn ? `<button onclick="deleteItem('expenses', '${item.id}')" class="text-slate-500 hover:text-rose-400 p-2 text-xs"><i class="fa-solid fa-trash-can"></i></button>` : ''}
+                            </div>
+                        </div>`;
+                });
+        };
 
         function renderRecentLists() {
             const recentIncomeList = document.getElementById('recentIncomeList');
@@ -1074,17 +1329,19 @@
             if (state.income.length === 0) {
                 recentIncomeList.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">لا توجد تحصيلات حديثة.</p>';
             } else {
-                [...state.income].sort((a, b) => b.createdAt - a.createdAt).slice(0, 3).forEach(item => {
-                    recentIncomeList.innerHTML += `
-                        <div class="flex items-center justify-between p-2.5 app-card border rounded-2xl text-xs">
-                            <div>
-                                <span class="font-bold block">${item.residentName}</span>
-                                <span class="text-[10px] text-slate-400">${item.month}</span>
-                            </div>
-                            <span class="font-bold text-emerald-400">+${Number(item.amount).toLocaleString()}</span>
-                        </div>
-                    `;
-                });
+                [...state.income]
+                    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+                    .slice(0, 3)
+                    .forEach(item => {
+                        recentIncomeList.innerHTML += `
+                            <div class="flex items-center justify-between p-2.5 app-card border rounded-2xl text-xs">
+                                <div class="min-w-0">
+                                    <span class="font-bold block truncate">${escapeHtml(item.residentName)}</span>
+                                    <span class="text-[10px] text-slate-400">${escapeHtml(item.month)}</span>
+                                </div>
+                                <span class="font-bold text-emerald-400 shrink-0">+${formatMoney(item.amount)}</span>
+                            </div>`;
+                    });
             }
 
             const recentExpenseList = document.getElementById('recentExpenseList');
@@ -1092,132 +1349,152 @@
             if (state.expenses.length === 0) {
                 recentExpenseList.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">لا توجد مصروفات حديثة.</p>';
             } else {
-                [...state.expenses].sort((a, b) => b.createdAt - a.createdAt).slice(0, 3).forEach(item => {
-                    recentExpenseList.innerHTML += `
-                        <div class="flex items-center justify-between p-2.5 app-card border rounded-2xl text-xs">
-                            <div>
-                                <span class="font-bold block">${item.title}</span>
-                                <span class="text-[10px] text-slate-400">${item.category}</span>
-                            </div>
-                            <span class="font-bold text-rose-400">-${Number(item.amount).toLocaleString()}</span>
-                        </div>
-                    `;
-                });
+                [...state.expenses]
+                    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+                    .slice(0, 3)
+                    .forEach(item => {
+                        recentExpenseList.innerHTML += `
+                            <div class="flex items-center justify-between p-2.5 app-card border rounded-2xl text-xs">
+                                <div class="min-w-0">
+                                    <span class="font-bold block truncate">${escapeHtml(item.title)}</span>
+                                    <span class="text-[10px] text-slate-400">${escapeHtml(item.category)}</span>
+                                </div>
+                                <span class="font-bold text-rose-400 shrink-0">-${formatMoney(item.amount)}</span>
+                            </div>`;
+                    });
             }
         }
 
-        window.shareIncomeReceipt = async function(name, amount, month, date, phone) {
+        // ========== SHARING ==========
+        window.sendWhatsAppReminder = function (name, amount, month, phone) {
+            const text = `تذكير بسداد اشتراك عمارة عن شهر (${month})\nالسيد/ة (${name})\nالمبلغ المستحق: ${amount} ج.م\nيرجى التكرم بالسداد في أقرب وقت. شكراً لتعاونكم 🏢`;
+            const normalized = normalizePhone(phone);
+            window.open(`https://wa.me/${normalized}?text=${encodeURIComponent(text)}`, '_blank');
+        };
+
+        window.shareIncomeReceipt = async function (name, amount, month, date, phone) {
             const text = `إيصال استلام اشتراك عمارة (رسمي)\n--------------------\nالسيد/ة: ${name}\nالمبلغ المحصل: ${amount} ج.م\nعن شهر: ${month}\nتاريخ التحصيل: ${date}\n--------------------\nشكراً لانتظامكم في سداد اشتراكات العمارة 🏢`;
-            
             if (navigator.share) {
                 try {
-                    await navigator.share({
-                        title: 'إيصال استلام عمارة',
-                        text: text
-                    });
+                    await navigator.share({ title: 'إيصال استلام عمارة', text });
                     return;
                 } catch (e) {}
             }
             if (phone) {
-                window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+                window.open(`https://wa.me/${normalizePhone(phone)}?text=${encodeURIComponent(text)}`, '_blank');
             } else {
-                navigator.clipboard.writeText(text);
-                showCustomModal('تم النسخ', 'تم نسخ تفاصيل الإيصال للحافظة بنجاح', 'success');
+                try {
+                    await navigator.clipboard.writeText(text);
+                    showCustomModal('تم النسخ', 'تم نسخ تفاصيل الإيصال للحافظة بنجاح', 'success');
+                } catch (e) {
+                    showCustomModal('تنبيه', 'تعذر النسخ، يرجى نسخه يدوياً', 'error');
+                }
             }
-        }
+        };
 
-        window.openResidentStatement = function(residentId) {
+        // ========== STATEMENT ==========
+        window.openResidentStatement = function (residentId) {
             currentViewingResidentId = residentId;
             const resident = state.residents.find(r => r.id === residentId);
             if (!resident) return;
+
             const resIncome = state.income.filter(i => i.residentId === residentId);
-            const totalPaid = resIncome.reduce((sum, i) => sum + Number(i.amount), 0);
+            const totalPaid = resIncome.reduce((sum, i) => sum + Number(i.amount || 0), 0);
             const monthlyAmt = resident.monthlyAmount !== undefined ? resident.monthlyAmount : state.defaultSubscription;
-            const debtInfo = calculateCumulativeDebt(residentId);
+            const debt = calculateDebt(residentId, getCurrentMonthStr());
 
             let content = `
                 <div class="border-b pb-3 space-y-2 border-slate-700">
-                    <h4 class="font-bold text-sm">${resident.apartment} - ${resident.name}</h4>
-                    <p class="text-[11px] text-slate-400">الهاتف: ${resident.phone || 'غير متوفر'} | الاشتراك: <span class="font-bold text-emerald-400">${monthlyAmt} ج.م</span></p>
+                    <h4 class="font-bold text-sm">${escapeHtml(resident.apartment)} - ${escapeHtml(resident.name)}</h4>
+                    <p class="text-[11px] text-slate-400">الهاتف: ${escapeHtml(resident.phone || 'غير متوفر')} | الاشتراك: <span class="font-bold text-emerald-400">${formatMoney(monthlyAmt)} ج.م</span></p>
                     <div class="grid grid-cols-2 gap-2">
                         <div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 p-2.5 rounded-2xl text-xs font-bold">
                             <span class="block text-[10px] text-slate-400">إجمالي المدفوعات</span>
-                            <span>${totalPaid.toLocaleString()} ج.م</span>
+                            <span>${formatMoney(totalPaid)} ج.م</span>
                         </div>
                         <div class="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-2.5 rounded-2xl text-xs font-bold">
-                            <span class="block text-[10px] text-slate-400">المتأخرات الحالية</span>
-                            <span>${debtInfo.totalDebt.toLocaleString()} ج.م</span>
+                            <span class="block text-[10px] text-slate-400">المتأخرات التقريبية</span>
+                            <span>${formatMoney(debt.totalDebt)} ج.م</span>
                         </div>
                     </div>
-                </div>
-            `;
+                </div>`;
 
             if (resident.tenantHistory && resident.tenantHistory.length > 0) {
                 content += `
                     <div class="space-y-1 pt-2 border-t border-slate-700">
-                        <h5 class="font-bold text-xs text-amber-400"><i class="fa-solid fa-box-archive ml-1"></i> أرشيف السكان السابقين:</h5>
-                `;
+                        <h5 class="font-bold text-xs text-amber-400"><i class="fa-solid fa-box-archive ml-1"></i> أرشيف السكان السابقين:</h5>`;
                 resident.tenantHistory.forEach(th => {
                     content += `
-                        <div class="bg-amber-500/10 p-2 rounded-xl text-[11px] border border-amber-500/20 flex justify-between">
-                            <span>${th.name} (${th.phone || 'بدون'})</span>
-                            <span class="text-slate-400 text-[10px]">غادر: ${th.leftDate}</span>
-                        </div>
-                    `;
+                        <div class="bg-amber-500/10 p-2 rounded-xl text-[11px] border border-amber-500/20 flex justify-between gap-2">
+                            <span class="truncate">${escapeHtml(th.name)} (${escapeHtml(th.phone || 'بدون')})</span>
+                            <span class="text-slate-400 text-[10px] shrink-0">غادر: ${escapeHtml(th.leftDate)}</span>
+                        </div>`;
                 });
                 content += `</div>`;
             }
 
-            content += `
-                <div class="space-y-2 pt-2">
-                    <h5 class="font-bold text-xs text-slate-400">سجل المدفوعات:</h5>
-            `;
+            content += `<div class="space-y-2 pt-2"><h5 class="font-bold text-xs text-slate-400">سجل المدفوعات:</h5>`;
             if (resIncome.length === 0) {
                 content += `<p class="text-xs text-slate-500 text-center py-2">لا توجد تحصيلات مسجلة.</p>`;
             } else {
-                resIncome.sort((a, b) => b.createdAt - a.createdAt).forEach(inc => {
-                    content += `
-                        <div class="flex justify-between items-center app-card p-2.5 rounded-2xl text-xs border">
-                            <div>
-                                <span class="font-bold">${inc.month}</span>
-                                <span class="text-[10px] text-slate-400 block">${inc.date}</span>
-                            </div>
-                            <span class="font-bold text-emerald-400">+${Number(inc.amount).toLocaleString()} ج.م</span>
-                        </div>
-                    `;
-                });
+                resIncome
+                    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+                    .forEach(inc => {
+                        content += `
+                            <div class="flex justify-between items-center app-card p-2.5 rounded-2xl text-xs border">
+                                <div>
+                                    <span class="font-bold">${escapeHtml(inc.month)}</span>
+                                    <span class="text-[10px] text-slate-400 block">${escapeHtml(inc.date)}</span>
+                                </div>
+                                <span class="font-bold text-emerald-400">+${formatMoney(inc.amount)} ج.م</span>
+                            </div>`;
+                    });
             }
             content += `</div>`;
+
+            if (debt.unpaidMonths.length > 0) {
+                content += `
+                    <div class="pt-2 border-t border-slate-700">
+                        <h5 class="font-bold text-xs text-rose-400 mb-1">الشهور غير المسددة (تقريبي):</h5>
+                        <p class="text-[11px] text-slate-400 leading-relaxed">${debt.unpaidMonths.map(m => escapeHtml(m)).join(' • ')}</p>
+                    </div>`;
+            }
+
             document.getElementById('residentStatementContent').innerHTML = content;
             openModal('residentStatementModal');
-        }
+        };
 
-        window.shareStatementNative = async function() {
+        window.shareStatementNative = async function () {
             if (!currentViewingResidentId) return;
             const resident = state.residents.find(r => r.id === currentViewingResidentId);
             if (!resident) return;
             const resIncome = state.income.filter(i => i.residentId === currentViewingResidentId);
-            const totalPaid = resIncome.reduce((sum, i) => sum + Number(i.amount), 0);
+            const totalPaid = resIncome.reduce((sum, i) => sum + Number(i.amount || 0), 0);
+            const debt = calculateDebt(resident.id, getCurrentMonthStr());
 
-            let text = `كشف حساب الشقة: ${resident.apartment} - ${resident.name}\nإجمالي المدفوعات: ${totalPaid} ج.م\n--------------------\n`;
-            resIncome.forEach(i => {
-                text += `- شهر ${i.month}: ${i.amount} ج.م (${i.date})\n`;
-            });
+            let text = `كشف حساب الشقة: ${resident.apartment} - ${resident.name}\nإجمالي المدفوعات: ${totalPaid} ج.م\nالمتأخرات التقريبية: ${debt.totalDebt} ج.م\n--------------------\n`;
+            resIncome
+                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+                .forEach(i => {
+                    text += `- شهر ${i.month}: ${i.amount} ج.م (${i.date})\n`;
+                });
 
             if (navigator.share) {
                 try {
-                    await navigator.share({
-                        title: `كشف حساب ${resident.apartment}`,
-                        text: text
-                    });
+                    await navigator.share({ title: `كشف حساب ${resident.apartment}`, text });
                     return;
                 } catch (e) {}
             }
-            navigator.clipboard.writeText(text);
-            showCustomModal('تم النسخ', 'تم نسخ كشف الحساب للحافظة بنجاح', 'success');
-        }
+            try {
+                await navigator.clipboard.writeText(text);
+                showCustomModal('تم النسخ', 'تم نسخ كشف الحساب للحافظة بنجاح', 'success');
+            } catch (e) {
+                showCustomModal('تنبيه', 'تعذر النسخ', 'error');
+            }
+        };
 
-        window.editResident = function(residentId) {
+        // ========== CRUD ==========
+        window.editResident = function (residentId) {
             if (!isManagerLoggedIn) return;
             const resident = state.residents.find(r => r.id === residentId);
             if (!resident) return;
@@ -1226,14 +1503,16 @@
             document.getElementById('residentName').value = resident.name;
             document.getElementById('residentPhone').value = resident.phone || '';
             document.getElementById('residentMonthlyAmount').value = resident.monthlyAmount !== undefined ? resident.monthlyAmount : state.defaultSubscription;
+            document.getElementById('residentModalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square ml-2"></i> تعديل بيانات المقيم';
             openModal('residentModal');
-        }
+        };
 
-        window.archiveResident = function(residentId) {
+        window.archiveResident = function (residentId) {
             if (!isManagerLoggedIn) return;
             const resident = state.residents.find(r => r.id === residentId);
             if (!resident) return;
-            const newTenantName = prompt(`شقة (${resident.apartment}): الساكن الحالي هو (${resident.name}). أدخل اسم المستأجر/المالك الجديد:`, '');
+
+            const newTenantName = prompt(`شقة (${resident.apartment}): الساكن الحالي هو (${resident.name}).\nأدخل اسم المستأجر/المالك الجديد:`, '');
             if (newTenantName === null || !newTenantName.trim()) return;
             const newPhone = prompt('أدخل رقم هاتف الساكن الجديد (اختياري):', '') || '';
 
@@ -1243,23 +1522,29 @@
                 phone: resident.phone,
                 leftDate: new Date().toLocaleDateString('ar-EG')
             });
-
             resident.name = newTenantName.trim();
             resident.phone = newPhone.trim();
+            // Reset createdAt so debt calculation starts fresh for new tenant
+            resident.createdAt = Date.now();
 
             saveData();
             updateUI();
             showCustomModal('نجاح', 'تم أرشفة الساكن القديم وتسجيل الجديد بنجاح', 'success');
-        }
+        };
 
-        window.handleResidentSubmit = function(e) {
+        window.handleResidentSubmit = function (e) {
             e.preventDefault();
             if (!isManagerLoggedIn) return;
             const editId = document.getElementById('editResidentId').value;
             const monthlyAmt = Math.max(0, parseFloat(document.getElementById('residentMonthlyAmount').value) || state.defaultSubscription);
-            const apt = document.getElementById('residentApartment').value;
-            const name = document.getElementById('residentName').value;
-            const phone = document.getElementById('residentPhone').value;
+            const apt = document.getElementById('residentApartment').value.trim();
+            const name = document.getElementById('residentName').value.trim();
+            const phone = document.getElementById('residentPhone').value.trim();
+
+            if (!apt || !name) {
+                showCustomModal('تنبيه', 'يرجى ملء الحقول المطلوبة', 'error');
+                return;
+            }
 
             if (editId) {
                 const resident = state.residents.find(r => r.id === editId);
@@ -1271,10 +1556,10 @@
                 }
             } else {
                 state.residents.push({
-                    id: Date.now().toString(),
+                    id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
                     apartment: apt,
-                    name: name,
-                    phone: phone,
+                    name,
+                    phone,
                     monthlyAmount: monthlyAmt,
                     tenantHistory: [],
                     createdAt: Date.now()
@@ -1283,113 +1568,149 @@
 
             saveData();
             updateUI();
-            document.getElementById('residentForm').reset();
-            document.getElementById('editResidentId').value = '';
             closeModal('residentModal');
             showCustomModal('نجاح', 'تم حفظ بيانات المقيم بنجاح', 'success');
-        }
+        };
 
-        window.handleIncomeSubmit = function(e) {
+        window.handleIncomeSubmit = function (e) {
             e.preventDefault();
             if (!isManagerLoggedIn) return;
             const residentId = document.getElementById('incomeResidentSelect').value;
             const resident = state.residents.find(r => r.id === residentId);
+            if (!resident) {
+                showCustomModal('خطأ', 'يرجى اختيار شقة صحيحة', 'error');
+                return;
+            }
             const amount = Math.max(0, parseFloat(document.getElementById('incomeAmount').value));
+            const month = document.getElementById('incomeMonth').value.trim();
+            if (!month) {
+                showCustomModal('تنبيه', 'يرجى تحديد الشهر', 'error');
+                return;
+            }
+
+            // Warn if already paid this month
+            const already = state.income.some(i => i.residentId === residentId && i.month === month);
+            if (already) {
+                const ok = confirm(`تنبيه: يوجد تحصيل مسجل مسبقاً لـ (${resident.apartment}) عن شهر (${month}). هل تريد إضافة تحصيل إضافي؟`);
+                if (!ok) return;
+            }
+
             state.income.push({
-                id: Date.now().toString(),
+                id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
                 residentId,
-                residentName: resident ? `${resident.apartment} - ${resident.name}` : 'غير معروف',
-                amount: amount,
-                month: document.getElementById('incomeMonth').value,
+                residentName: `${resident.apartment} - ${resident.name}`,
+                amount,
+                month,
                 date: document.getElementById('incomeDate').value,
-                notes: document.getElementById('incomeNotes').value,
+                notes: document.getElementById('incomeNotes').value.trim(),
                 createdAt: Date.now()
             });
             saveData();
             updateUI();
-            document.getElementById('incomeForm').reset();
-            document.getElementById('incomeDate').valueAsDate = new Date();
             closeModal('incomeModal');
             showCustomModal('نجاح', 'تم تسجيل التحصيل المالي', 'success');
-        }
+        };
 
-        window.handleExpenseSubmit = function(e) {
+        window.handleExpenseSubmit = function (e) {
             e.preventDefault();
             if (!isManagerLoggedIn) return;
             const amount = Math.max(0, parseFloat(document.getElementById('expenseAmount').value));
+            const title = document.getElementById('expenseTitle').value.trim();
+            if (!title) {
+                showCustomModal('تنبيه', 'يرجى إدخال عنوان المصروف', 'error');
+                return;
+            }
+
             state.expenses.push({
-                id: Date.now().toString(),
-                title: document.getElementById('expenseTitle').value,
+                id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+                title,
                 category: document.getElementById('expenseCategory').value,
-                amount: amount,
+                amount,
                 date: document.getElementById('expenseDate').value,
-                notes: document.getElementById('expenseNotes').value,
+                notes: document.getElementById('expenseNotes').value.trim(),
                 createdAt: Date.now()
             });
             saveData();
             updateUI();
-            document.getElementById('expenseForm').reset();
-            document.getElementById('expenseDate').valueAsDate = new Date();
             closeModal('expenseModal');
             showCustomModal('نجاح', 'تم تسجيل المصروف بنجاح', 'success');
-        }
+        };
 
-        window.deleteItem = function(type, id) {
+        window.deleteItem = function (type, id) {
             if (!isManagerLoggedIn) return;
-            state[type] = state[type].filter(item => item.id !== id);
-            saveData();
-            updateUI();
-            showCustomModal('تم الحذف', 'تم حذف العنصر وحفظ التغييرات بنجاح', 'success');
-        }
+            const labels = { residents: 'الشقة', income: 'التحصيل', expenses: 'المصروف' };
+            showConfirm('تأكيد الحذف', `هل أنت متأكد من حذف هذا ${labels[type] || 'العنصر'}؟ لا يمكن التراجع.`, () => {
+                state[type] = state[type].filter(item => item.id !== id);
+                saveData();
+                updateUI();
+                showCustomModal('تم الحذف', 'تم حذف العنصر وحفظ التغييرات بنجاح', 'success');
+            });
+        };
 
-        window.exportJSONBackup = function() {
+        // ========== EXPORT / IMPORT ==========
+        window.exportJSONBackup = function () {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
             const dl = document.createElement('a');
             dl.setAttribute("href", dataStr);
-            dl.setAttribute("download", `manzil_backup_${new Date().toISOString().slice(0,10)}.json`);
+            dl.setAttribute("download", `manzil_backup_${new Date().toISOString().slice(0, 10)}.json`);
             document.body.appendChild(dl);
             dl.click();
             dl.remove();
-        }
+        };
 
-        window.exportToCSV = function() {
-            let csv = "\uFEFF=== تقرير حسابات العمارة الشامل ===\n\nرصيد أول المدة," + (state.startingBalance || 0) + "\n\n--- التحصيلات ---\nالشقة,المبلغ,الشهر,التاريخ\n";
-            state.income.forEach(i => csv += `"${i.residentName}",${i.amount},"${i.month}","${i.date}"\n`);
-            csv += "\n--- المصروفات ---\nالعنوان,الفئة,المبلغ,التاريخ\n";
-            state.expenses.forEach(e => csv += `"${e.title}","${e.category}",${e.amount},"${e.date}"\n`);
-            
+        window.exportToCSV = function () {
+            let csv = "\uFEFF=== تقرير حسابات العمارة الشامل ===\n\nرصيد أول المدة," + (state.startingBalance || 0) + "\n\n--- التحصيلات ---\nالشقة,المبلغ,الشهر,التاريخ,ملاحظات\n";
+            state.income.forEach(i => {
+                csv += `"${(i.residentName || '').replace(/"/g, '""')}",${i.amount},"${i.month || ''}","${i.date || ''}","${(i.notes || '').replace(/"/g, '""')}"\n`;
+            });
+            csv += "\n--- المصروفات ---\nالعنوان,الفئة,المبلغ,التاريخ,ملاحظات\n";
+            state.expenses.forEach(e => {
+                csv += `"${(e.title || '').replace(/"/g, '""')}","${e.category || ''}",${e.amount},"${e.date || ''}","${(e.notes || '').replace(/"/g, '""')}"\n`;
+            });
+            csv += "\n--- الشقق ---\nالشقة,الاسم,الهاتف,الاشتراك\n";
+            state.residents.forEach(r => {
+                const m = r.monthlyAmount !== undefined ? r.monthlyAmount : state.defaultSubscription;
+                csv += `"${(r.apartment || '').replace(/"/g, '""')}","${(r.name || '').replace(/"/g, '""')}","${r.phone || ''}",${m}\n`;
+            });
+
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const dl = document.createElement('a');
             dl.setAttribute("href", url);
-            dl.setAttribute("download", `manzil_report_${new Date().toISOString().slice(0,10)}.csv`);
+            dl.setAttribute("download", `manzil_report_${new Date().toISOString().slice(0, 10)}.csv`);
             document.body.appendChild(dl);
             dl.click();
             dl.remove();
-        }
+        };
 
-        window.importJSONBackup = function(event) {
+        window.importJSONBackup = function (event) {
             if (!isManagerLoggedIn) return;
+            const file = event.target.files[0];
+            if (!file) return;
             const fr = new FileReader();
-            if (event.target.files[0]) {
-                fr.readAsText(event.target.files[0], "UTF-8");
-                fr.onload = function(e) {
-                    try {
-                        const parsed = JSON.parse(e.target.result);
-                        if (parsed.residents && parsed.income) {
-                            state = parsed;
+            fr.onload = function (e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed.residents && Array.isArray(parsed.income) && Array.isArray(parsed.expenses)) {
+                        showConfirm('استيراد بيانات', 'سيتم استبدال كل البيانات الحالية. هل أنت متأكد؟', () => {
+                            state = { ...state, ...parsed };
                             saveData();
                             updateUI();
                             closeModal('backupModal');
                             showCustomModal('نجاح', 'تم استيراد البيانات بنجاح', 'success');
-                        }
-                    } catch (err) {
-                        showCustomModal('خطأ', 'فشل قراءة ملف النسخة الاحتياطية', 'error');
+                        });
+                    } else {
+                        showCustomModal('خطأ', 'ملف النسخة الاحتياطية غير صالح', 'error');
                     }
+                } catch (err) {
+                    showCustomModal('خطأ', 'فشل قراءة ملف النسخة الاحتياطية', 'error');
                 }
-            }
-        }
+            };
+            fr.readAsText(file, "UTF-8");
+            event.target.value = '';
+        };
 
+        // ========== MODALS HELPERS ==========
         function showCustomModal(title, desc, type) {
             document.getElementById('customModalTitle').innerText = title;
             document.getElementById('customModalDesc').innerText = desc;
@@ -1401,13 +1722,52 @@
                 icon.className = 'w-12 h-12 rounded-2xl mx-auto flex items-center justify-center text-xl bg-rose-500/10 text-rose-400 border border-rose-500/20';
                 icon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
             }
-            document.getElementById('customModal').classList.remove('hidden');
-            document.getElementById('customModal').classList.add('flex');
+            const m = document.getElementById('customModal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
         }
 
-        window.closeCustomModal = function() {
-            document.getElementById('customModal').classList.remove('flex');
-            document.getElementById('customModal').classList.add('hidden');
+        window.closeCustomModal = function () {
+            const m = document.getElementById('customModal');
+            m.classList.remove('flex');
+            m.classList.add('hidden');
+        };
+
+        function showConfirm(title, desc, onConfirm) {
+            document.getElementById('confirmModalTitle').innerText = title;
+            document.getElementById('confirmModalDesc').innerText = desc;
+            confirmCallback = onConfirm;
+            const m = document.getElementById('confirmModal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        window.closeConfirmModal = function (confirmed) {
+            const m = document.getElementById('confirmModal');
+            m.classList.remove('flex');
+            m.classList.add('hidden');
+            if (confirmed && typeof confirmCallback === 'function') {
+                confirmCallback();
+            }
+            confirmCallback = null;
+        };
+
+        // Simple escaping to reduce XSS risk when building HTML strings
+        function escapeHtml(str) {
+            if (str == null) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+        function escapeAttr(str) {
+            if (str == null) return '';
+            return String(str)
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'")
+                .replace(/"/g, '&quot;')
+                .replace(/\n/g, ' ');
         }
     </script>
 </body>
