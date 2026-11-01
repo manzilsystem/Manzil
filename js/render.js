@@ -71,6 +71,26 @@ function renderDashboard() {
     const netEl = document.getElementById('netBalanceDisplay');
     netEl.textContent = fmtNum(net)+' ج.م';
     netEl.className = `text-2xl sm:text-3xl font-black mt-0.5 ${net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+    const currentMonth = getCurrentMonth();
+    const currentMonthDue = state.residents.reduce((sum, resident) => sum + (Number(resident.monthlyAmount ?? state.defaultSubscription) || 0), 0);
+    const currentMonthPaid = state.residents.reduce((sum, resident) => sum + getPaidAmountForMonth(resident.id, currentMonth), 0);
+    const partialPayments = state.residents.filter(resident => {
+        const paid = getPaidAmountForMonth(resident.id, currentMonth);
+        return paid > 0 && paid < (Number(resident.monthlyAmount ?? state.defaultSubscription) || 0);
+    }).length;
+    const collectionRate = currentMonthDue > 0 ? Math.min(100, Math.round((currentMonthPaid / currentMonthDue) * 100)) : 0;
+    const rateEl = document.getElementById('collectionRateDisplay');
+    const paidEl = document.getElementById('currentMonthPaidDisplay');
+    const partialEl = document.getElementById('partialPaymentsDisplay');
+    const monthLabel = document.getElementById('currentMonthSummaryLabel');
+    const rateBar = document.getElementById('collectionRateBar');
+    const progress = rateBar?.parentElement;
+    if (rateEl) rateEl.textContent = `${collectionRate}%`;
+    if (paidEl) paidEl.textContent = `${fmtNum(currentMonthPaid)} ج.م`;
+    if (partialEl) partialEl.textContent = fmtNum(partialPayments);
+    if (monthLabel) monthLabel.textContent = currentMonth;
+    if (rateBar) rateBar.style.width = `${collectionRate}%`;
+    if (progress) { progress.setAttribute('aria-valuenow', String(collectionRate)); progress.setAttribute('aria-valuetext', `${collectionRate}%`); }
     renderCashFlowChart(); renderUnpaidResidents(); renderExpenseBreakdown(); renderRecent();
 }
 
