@@ -120,13 +120,7 @@ Deno.serve(async (request: Request) => {
   let createdNewUser = false
 
   if (ownerUserId) {
-    const { error } = await admin.auth.admin.updateUserById(ownerUserId, {
-      email: loginEmail,
-      email_confirm: true,
-      password: temporaryPin,
-      user_metadata: { full_name: resident.name, phone },
-    })
-    if (error) return json(400, { error: 'auth_update_failed' })
+    // Keep the existing credentials unchanged until all database links succeed.
   } else {
     const { data, error } = await admin.auth.admin.createUser({
       email: loginEmail,
@@ -167,6 +161,16 @@ Deno.serve(async (request: Request) => {
   if (residentUpdateError) {
     if (createdNewUser && ownerUserId) await admin.auth.admin.deleteUser(ownerUserId)
     return json(500, { error: 'resident_link_failed' })
+  }
+
+  if (!createdNewUser && ownerUserId) {
+    const { error } = await admin.auth.admin.updateUserById(ownerUserId, {
+      email: loginEmail,
+      email_confirm: true,
+      password: temporaryPin,
+      user_metadata: { full_name: resident.name, phone },
+    })
+    if (error) return json(400, { error: 'auth_update_failed' })
   }
 
   await admin.from('audit_logs').insert({

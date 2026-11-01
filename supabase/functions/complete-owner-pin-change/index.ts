@@ -98,11 +98,6 @@ Deno.serve(async (request: Request) => {
     return json(400, { error: 'invalid_current_pin' })
   }
 
-  const { error: passwordError } = await admin.auth.admin.updateUserById(callerData.user.id, {
-    password: newPin,
-  })
-  if (passwordError) return json(400, { error: 'pin_update_failed' })
-
   const { data: updatedProfile, error: updateError } = await admin
     .from('profiles')
     .update({ must_change_pin: false })
@@ -114,6 +109,19 @@ Deno.serve(async (request: Request) => {
     // Keep the first-login gate closed if profile state could not be committed.
     // The owner can retry with the newly chosen PIN as the current PIN.
     return json(500, { error: 'pin_updated_retry_required' })
+  }
+
+  const { error: passwordError } = await admin.auth.admin.updateUserById(callerData.user.id, {
+    password: newPin,
+  })
+  if (passwordError) {
+    // Restore the first-login gate when Auth rejects the new password.
+    await admin
+      .from('profiles')
+      .update({ must_change_pin: true })
+      .eq('id', callerData.user.id)
+      .eq('must_change_pin', false)
+    return json(400, { error: 'pin_update_failed' })
   }
 
   return json(200, { ok: true })
