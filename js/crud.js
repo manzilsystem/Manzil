@@ -33,6 +33,7 @@ function saveResidentAndProvisionOwner() {
 async function handleResidentSubmit(e) {
     if (!requireManager()) return;
     e.preventDefault();
+    const previousState = cloneStateSnapshot();
     const shouldProvisionOwner = ownerProvisionRequested;
     ownerProvisionRequested = false;
     const name = document.getElementById('residentName').value.trim();
@@ -54,18 +55,17 @@ async function handleResidentSubmit(e) {
         if (r) {
             Object.assign(r, { name, apartmentNumber, phone, monthlyAmount, notes });
             targetResidentId = r.id;
-            logAction('تعديل شقة', `${name} - شقة ${apartmentNumber}`); toast('تم التعديل','success');
+            logAction('تعديل شقة', `${name} - شقة ${apartmentNumber}`);
         }
     } else {
         const resident = { id: generateId(), name, apartmentNumber, phone, monthlyAmount, notes, createdAt: Date.now() };
         state.residents.push(resident);
         targetResidentId = resident.id;
         logAction('إضافة شقة', `${name} - شقة ${apartmentNumber}`);
-        toast('تمت الإضافة','success');
     }
-    const saved = await saveState();
-    if (!saved) return;
+    if (!await saveWithRollback(previousState)) return;
     closeModal('residentModal'); renderAll();
+    toast(editingResidentId ? 'تم التعديل' : 'تمت الإضافة', 'success');
     if (shouldProvisionOwner && targetResidentId) await provisionOwnerAccess(targetResidentId);
 }
 
@@ -111,28 +111,32 @@ function closeOwnerTempPinModal() {
     modal.classList.remove('flex');
 }
 
-function deleteResident(id) {
+async function deleteResident(id) {
     if (!requireManager()) return;
     const r = state.residents.find(x => x.id === id); if (!r) return;
     if (!confirm(`حذف شقة ${r.name}؟ سيتم حذف تحصيلاتها أيضاً.`)) return;
+    const previousState = cloneStateSnapshot();
     state.residents = state.residents.filter(x => x.id !== id);
     state.income = state.income.filter(i => i.residentId !== id);
     logAction('حذف شقة', `${r.name} - شقة ${r.apartmentNumber}`);
-    saveState(); renderAll(); toast('تم الحذف','info');;
+    if (!await saveWithRollback(previousState)) return;
+    toast('تم الحذف','info');
 }
 
-function quickPayResident(residentId) {
+async function quickPayResident(residentId) {
     if (!requireManager()) return;
     const r = state.residents.find(x => x.id === residentId); if (!r) return;
     const month = getCurrentMonth();
     const amount = getMonthOutstanding(r, month);
     if (amount <= 0) { toast('تم سداد اشتراك الشهر بالكامل','info'); return; }
+    const previousState = cloneStateSnapshot();
     state.income.push({ id: generateId(), residentId, amount, month, date: new Date().toISOString(), notes: 'دفع سريع' });
     logAction('تحصيل', `${r.name} - ${month} - ${fmtNum(amount)}`);
-    saveState(); renderAll(); toast(`تم تسجيل باقي اشتراك ${month}`,'success');;
+    if (!await saveWithRollback(previousState)) return;
+    toast(`تم تسجيل باقي اشتراك ${month}`,'success');
 }
 
-function handleIncomeSubmit(e) {
+async function handleIncomeSubmit(e) {
     if (!requireManager()) return;
     e.preventDefault();
     const residentId = document.getElementById('incomeResident').value;
@@ -141,20 +145,25 @@ function handleIncomeSubmit(e) {
     const notes = document.getElementById('incomeNotes').value.trim();
     if (!residentId || !Number.isFinite(amount) || amount <= 0 || !month) { toast('اختر الشقة والشهر وأدخل مبلغاً أكبر من صفر','error'); return; }
     const r = state.residents.find(x => x.id === residentId);
+    const previousState = cloneStateSnapshot();
     state.income.push({ id: generateId(), residentId, amount, month, date: new Date().toISOString(), notes });
     logAction('تحصيل', `${r?.name} - ${month} - ${fmtNum(amount)}`);
-    saveState(); closeModal('incomeModal'); document.getElementById('incomeForm').reset(); renderAll();
+    if (!await saveWithRollback(previousState)) return;
+    closeModal('incomeModal'); document.getElementById('incomeForm').reset(); renderAll();
     toast('تم تسجيل التحصيل','success');;
 }
 
-function deleteIncome(id) {
+async function deleteIncome(id) {
     if (!requireManager()) return;
     if (!confirm('حذف هذا التحصيل؟')) return;
+    const previousState = cloneStateSnapshot();
     state.income = state.income.filter(i => i.id !== id);
-    logAction('حذف تحصيل', id); saveState(); renderAll(); toast('تم الحذف','info');;
+    logAction('حذف تحصيل', id);
+    if (!await saveWithRollback(previousState)) return;
+    toast('تم الحذف','info');
 }
 
-function handleExpenseSubmit(e) {
+async function handleExpenseSubmit(e) {
     if (!requireManager()) return;
     e.preventDefault();
     const title = document.getElementById('expenseTitle').value.trim();
@@ -163,17 +172,22 @@ function handleExpenseSubmit(e) {
     const month = document.getElementById('expenseMonth').value;
     const notes = document.getElementById('expenseNotes').value.trim();
     if (!title || !Number.isFinite(amount) || amount <= 0 || !month) { toast('أدخل وصفاً ومبلغاً أكبر من صفر واختر الشهر','error'); return; }
+    const previousState = cloneStateSnapshot();
     state.expenses.push({ id: generateId(), title, amount, category, month, notes, date: new Date().toISOString() });
     logAction('مصروف', `${title} - ${fmtNum(amount)}`);
-    saveState(); closeModal('expenseModal'); document.getElementById('expenseForm').reset(); renderAll();
+    if (!await saveWithRollback(previousState)) return;
+    closeModal('expenseModal'); document.getElementById('expenseForm').reset(); renderAll();
     toast('تم تسجيل المصروف','success');;
 }
 
-function deleteExpense(id) {
+async function deleteExpense(id) {
     if (!requireManager()) return;
     if (!confirm('حذف هذا المصروف؟')) return;
+    const previousState = cloneStateSnapshot();
     state.expenses = state.expenses.filter(e => e.id !== id);
-    logAction('حذف مصروف', id); saveState(); renderAll(); toast('تم الحذف','info');;
+    logAction('حذف مصروف', id);
+    if (!await saveWithRollback(previousState)) return;
+    toast('تم الحذف','info');
 }
 
 function openNoticeModal() { if (!requireManager()) return; document.getElementById('noticeInput').value = ''; openModal('noticeModal'); }
@@ -189,19 +203,24 @@ function applyNoticeTemplate(type) {
     document.getElementById('noticeInput').value = t[type] || '';
 }
 
-function handleNoticeSubmit() {
+async function handleNoticeSubmit() {
     if (!requireManager()) return;
     const text = document.getElementById('noticeInput').value.trim();
     if (!text) { toast('اكتب نص الإعلان','error'); return; }
+    const previousState = cloneStateSnapshot();
     state.notices.push({ id: generateId(), text, date: new Date().toISOString() });
     logAction('إعلان جديد', text.substring(0, 40));
-    saveState(); closeModal('noticeModal'); renderNotices(); toast('تم النشر','success');;
+    if (!await saveWithRollback(previousState)) return;
+    closeModal('noticeModal'); renderNotices(); toast('تم النشر','success');
 }
 
-function deleteNotice(id) {
+async function deleteNotice(id) {
     if (!requireManager()) return;
     if (!confirm('حذف هذا الإعلان؟')) return;
-    state.notices = state.notices.filter(n => n.id !== id); saveState(); renderNotices();
+    const previousState = cloneStateSnapshot();
+    state.notices = state.notices.filter(n => n.id !== id);
+    if (!await saveWithRollback(previousState)) return;
+    renderNotices();
 }
 
 function shareNoticeToWhatsApp() {
@@ -343,15 +362,18 @@ function importJSON(ev) {
     const f = ev.target.files[0]; if (!f) return;
     if (f.size > 10 * 1024 * 1024) { toast('حجم النسخة أكبر من الحد المسموح (10 ميجابايت)','error'); ev.target.value = ''; return; }
     const r = new FileReader();
-    r.onload = () => {
+    r.onload = async () => {
         try {
             const data = JSON.parse(r.result);
             if (!isValidBackup(data)) throw new Error('ملف غير صالح');
             if (!confirm('استيراد البيانات؟ سيتم استبدال الحالية.')) return;
-            const previousState = state;
+            const previousState = cloneStateSnapshot();
             state = { ...state, ...data, auditLogs: Array.isArray(data.auditLogs) ? data.auditLogs : [] };
-            if (!saveState()) { state = previousState; throw new Error('تعذر حفظ النسخة'); }
-            renderAll(); setTheme(state.currentTheme || 'dark');
+            if (!await saveWithRollback(previousState)) throw new Error('تعذر حفظ النسخة');
+            const importedTheme = state.currentTheme || 'dark';
+            document.body.setAttribute('data-theme', importedTheme);
+            document.querySelector('meta[name="theme-color"]').setAttribute('content', importedTheme === 'light' ? '#f1f5f9' : importedTheme === 'emerald' ? '#021a13' : '#090d16');
+            renderAll();
             toast('تم الاستيراد','success'); closeModal('backupModal');
         } catch (e) { console.error('تعذر استيراد النسخة:', e); toast('النسخة غير صالحة أو تعذر حفظها؛ لم يتم استبدال البيانات','error'); }
         finally { ev.target.value = ''; }
@@ -370,17 +392,19 @@ function openSettingsModal() {
     openModal('settingsModal');
 }
 
-function saveSettings() {
+async function saveSettings() {
     if (!requireManager()) return;
     const defaultSubscription = Number(document.getElementById('settingsDefaultSub').value || 0);
     const startingBalance = Number(document.getElementById('settingsStartingBalance').value || 0);
     if (!Number.isFinite(defaultSubscription) || defaultSubscription < 0 || !Number.isFinite(startingBalance)) {
         toast('تحقق من قيم الاشتراك والرصيد الافتتاحي','error'); return;
     }
+    const previousState = cloneStateSnapshot();
     state.buildingName = document.getElementById('settingsBuildingName').value.trim();
     state.managerName = document.getElementById('settingsManagerName').value.trim();
     state.managerPhone = document.getElementById('settingsManagerPhone').value.trim();
     state.defaultSubscription = defaultSubscription;
     state.startingBalance = startingBalance;
-    saveState(); renderAll(); updateAccessSwitchButton(); closeModal('settingsModal'); toast('تم الحفظ','success');
+    if (!await saveWithRollback(previousState)) return;
+    renderAll(); updateAccessSwitchButton(); closeModal('settingsModal'); toast('تم الحفظ','success');
 }
