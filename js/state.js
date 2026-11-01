@@ -7,7 +7,7 @@ function esc(s) {
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-function generateId() { return Date.now().toString(36) + Math.random().toString(36).substring(2, 7); }
+function generateId() { return crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substring(2, 7); }
 
 function toast(msg, type = 'success') {
     const colors = { success: 'bg-emerald-600 text-white border-emerald-500', error: 'bg-rose-600 text-white border-rose-500', info: 'bg-indigo-600 text-white border-indigo-500' };
@@ -21,52 +21,14 @@ function toast(msg, type = 'success') {
 function formatDate(iso) { if (!iso) return ''; try { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('ar-EG',{year:'numeric',month:'short',day:'numeric'}); } catch(e){ return ''; } }
 function getCurrentMonth() { const d = new Date(); return `${monthsNames[d.getMonth()]} ${d.getFullYear()}`; }
 
-const STORAGE_KEY = 'manzil_data_v2';
 let state = {
     buildingName:'', managerName:'', managerPhone:'', defaultSubscription:0, startingBalance:0,
-    pinCode:'0000', pinEnabled:false, currentTheme:'dark',
+    currentTheme:'dark',
     residents:[], income:[], expenses:[], notices:[], auditLogs:[], lastUpdated:0
 };
-let githubConfig = { token: localStorage.getItem('manzil_gh_token')||'', gistId: localStorage.getItem('manzil_gh_gist')||'' };
 let editingResidentId = null;
-let syncing = false;
-let storageWarningShown = false;
-var currentUserRole = 'manager';
+var currentUserRole = null;
 var currentResidentId = null;
-
-function saveState() {
-    if (currentUserRole === 'owner') { toast('حساب المالك للعرض فقط','error'); return false; }
-    state.lastUpdated = Date.now();
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); return true; }
-    catch(e) {
-        console.error('تعذر حفظ بيانات Manzil محلياً:', e);
-        if (!storageWarningShown) { toast('تعذر حفظ التغييرات على هذا الجهاز. صدّر نسخة احتياطية أو أفرغ مساحة.','error'); storageWarningShown = true; }
-        return false;
-    }
-}
-
-function loadState() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        const saved = JSON.parse(raw);
-        if (!saved || typeof saved !== 'object' || Array.isArray(saved)) throw new Error('بيانات الحالة ليست كائناً');
-        state = { ...state, ...saved };
-        ['residents','income','expenses','notices','auditLogs'].forEach(key => {
-            if (!Array.isArray(state[key])) state[key] = [];
-        });
-        ['defaultSubscription','startingBalance'].forEach(key => {
-            const value = Number(state[key]);
-            state[key] = Number.isFinite(value) ? value : 0;
-        });
-        if (!['dark','light','emerald'].includes(state.currentTheme)) state.currentTheme = 'dark';
-        if (!/^\d{4}$/.test(String(state.pinCode || ''))) state.pinCode = '0000';
-        state.pinEnabled = Boolean(state.pinEnabled);
-    } catch(e) {
-        console.error('تعذر قراءة بيانات Manzil المحفوظة:', e);
-        toast('تعذر قراءة البيانات المحفوظة؛ لم تُحذف من الجهاز.','error');
-    }
-}
 
 function logAction(action, details) {
     state.auditLogs.unshift({ id: generateId(), action, details, date: new Date().toISOString() });
@@ -161,66 +123,4 @@ function setTheme(theme) {
     document.body.setAttribute('data-theme', theme);
     document.querySelector('meta[name="theme-color"]').setAttribute('content', theme==='light'?'#f1f5f9':theme==='emerald'?'#021a13':'#090d16');
     saveState();
-}
-
-let pinAttempts = 0, pinLockedUntil = 0;
-
-function checkPinLockOnStart() {
-    const hasOwnerAccounts = state.residents.some(resident => /^\d{4}$/.test(String(resident.ownerPin || '')));
-    if (!state.pinEnabled && !hasOwnerAccounts) return;
-    currentUserRole = null;
-    currentResidentId = null;
-    document.body.classList.add('session-locked');
-    const m = document.getElementById('pinLockModal');
-    document.getElementById('pinLockTitle').textContent = hasOwnerAccounts ? 'دخول المدير أو المالك' : 'قفل التطبيق';
-    document.getElementById('pinLockHint').textContent = hasOwnerAccounts ? 'أدخل رمز المدير أو رمز المالك الخاص بك' : 'أدخل رمز المدير (4 أرقام)';
-    document.getElementById('pinErrorMsg').classList.add('hidden');
-    m.classList.remove('hidden'); m.classList.add('flex'); m.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('modal-open');
-    setTimeout(() => document.querySelectorAll('.pin-digit')[0]?.focus(), 150);
-}
-
-function handlePinInput(el, index) {
-    if (el.value.length === 1 && index < 3) document.querySelectorAll('.pin-digit')[index+1]?.focus();
-    const inputs = document.querySelectorAll('.pin-digit');
-    if (Array.from(inputs).every(i => i.value.length === 1)) setTimeout(verifyPinCode, 100);
-}
-
-function verifyPinCode() {
-    const err = document.getElementById('pinErrorMsg');
-    if (Date.now() < pinLockedUntil) {
-        err.textContent = `مقفول، حاول بعد ${Math.ceil((pinLockedUntil-Date.now())/1000)} ثانية`;
-        err.classList.remove('hidden'); return;
-    }
-    const inputs = document.querySelectorAll('.pin-digit');
-    const entered = Array.from(inputs).map(i => i.value).join('');
-    const owner = state.residents.find(resident => /^\d{4}$/.test(String(resident.ownerPin || '')) && String(resident.ownerPin) === entered);
-    if ((state.pinEnabled || hasOwnerAccounts()) && entered === String(state.pinCode) && (state.pinCode !== '0000' || !hasOwnerAccounts())) {
-        currentUserRole = 'manager';
-        currentResidentId = null;
-        clearOwnerPortal();
-        pinAttempts = 0;
-        const m = document.getElementById('pinLockModal'); m.classList.add('hidden'); m.classList.remove('flex'); m.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('session-locked', 'owner-mode');
-        document.body.classList.remove('modal-open');
-        renderAll();
-        updateAccessSwitchButton();
-        toast('تم الدخول بصلاحيات المدير','success');
-    } else if (owner) {
-        currentUserRole = 'owner';
-        currentResidentId = owner.id;
-        pinAttempts = 0;
-        const m = document.getElementById('pinLockModal'); m.classList.add('hidden'); m.classList.remove('flex'); m.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('session-locked');
-        document.body.classList.add('owner-mode');
-        document.body.classList.remove('modal-open');
-        renderOwnerPortal();
-        toast('تم الدخول إلى حساب المالك للعرض فقط','success');
-    } else {
-        pinAttempts++;
-        inputs.forEach(i => i.value = ''); inputs[0]?.focus();
-        if (pinAttempts >= 3) { pinLockedUntil = Date.now()+30000; pinAttempts = 0; err.textContent = 'محاولات خاطئة كثيرة — مقفول 30 ثانية'; }
-        else err.textContent = `رمز خاطئ، باقي ${3-pinAttempts} محاولات`;
-        err.classList.remove('hidden');
-    }
 }
