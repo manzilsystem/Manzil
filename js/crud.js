@@ -10,14 +10,14 @@ function openResidentModal(mode, id) {
             document.getElementById('residentPhone').value = r.phone||'';
             document.getElementById('residentAmount').value = r.monthlyAmount ?? '';
             document.getElementById('residentNotes').value = r.notes||'';
-            document.getElementById('residentOwnerPin').value = '';
-            document.getElementById('residentOwnerPin').placeholder = r.ownerPin ? 'يوجد رمز حالي؛ اتركه كما هو أو أدخل رمزاً جديداً' : 'عيّن رمزاً من 4 أرقام';
-            document.getElementById('removeResidentOwnerPin').checked = false;
+            document.getElementById('residentOwnerUserId').value = r.userId || '';
+            document.getElementById('removeResidentOwnerUser').checked = false;
         }
     } else {
         document.getElementById('residentForm').reset();
         document.getElementById('residentAmount').value = state.defaultSubscription || '';
-        document.getElementById('residentOwnerPin').placeholder = 'عيّن رمزاً من 4 أرقام';
+        document.getElementById('residentOwnerUserId').value = '';
+        document.getElementById('removeResidentOwnerUser').checked = false;
     }
     openModal('residentModal');
 }
@@ -33,18 +33,13 @@ function handleResidentSubmit(e) {
     const amountInput = document.getElementById('residentAmount').value.trim();
     const monthlyAmount = amountInput === '' ? Number(state.defaultSubscription) || 0 : Number(amountInput);
     const notes = document.getElementById('residentNotes').value.trim();
-    const ownerPin = document.getElementById('residentOwnerPin').value.trim();
-    const removeOwnerPin = document.getElementById('removeResidentOwnerPin').checked;
+    const ownerUserId = document.getElementById('residentOwnerUserId').value.trim();
+    const removeOwnerUser = document.getElementById('removeResidentOwnerUser').checked;
     if (!name || !apartmentNumber) { toast('الاسم ورقم الشقة مطلوبان','error'); return; }
     if (!Number.isFinite(monthlyAmount) || monthlyAmount < 0) { toast('قيمة الاشتراك يجب أن تكون صفراً أو أكثر','error'); return; }
-    if (ownerPin && !/^\d{4}$/.test(ownerPin)) { toast('رمز دخول المالك يجب أن يتكون من 4 أرقام','error'); return; }
+    if (ownerUserId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(ownerUserId)) { toast('معرف حساب المالك يجب أن يكون UUID صحيحاً','error'); return; }
     const editedResident = state.residents.find(r => r.id === editingResidentId);
-    const effectiveOwnerPin = removeOwnerPin ? '' : (ownerPin || editedResident?.ownerPin || '');
-    if (effectiveOwnerPin) {
-        if (!state.pinEnabled || state.pinCode === '0000') { toast('فعّل أولاً رمزاً خاصاً للمدير من الإعدادات','error'); return; }
-        if (effectiveOwnerPin === state.pinCode) { toast('يجب أن يختلف رمز المالك عن رمز المدير','error'); return; }
-        if (state.residents.some(r => r.id !== editingResidentId && String(r.ownerPin || '') === effectiveOwnerPin)) { toast('هذا الرمز مستخدم بالفعل لمالك آخر','error'); return; }
-    }
+    const effectiveOwnerUserId = removeOwnerUser ? null : (ownerUserId || editedResident?.userId || null);
     const normalizedApartment = apartmentNumber.toLocaleLowerCase('ar-EG');
     if (state.residents.some(r => r.id !== editingResidentId && String(r.apartmentNumber||'').trim().toLocaleLowerCase('ar-EG') === normalizedApartment)) {
         toast('رقم الشقة مسجل بالفعل','error'); return;
@@ -53,17 +48,17 @@ function handleResidentSubmit(e) {
         const r = state.residents.find(x => x.id === editingResidentId);
         if (r) {
             Object.assign(r, { name, apartmentNumber, phone, monthlyAmount, notes });
-            if (effectiveOwnerPin) r.ownerPin = effectiveOwnerPin; else delete r.ownerPin;
+            r.userId = effectiveOwnerUserId;
             logAction('تعديل شقة', `${name} - شقة ${apartmentNumber}`); toast('تم التعديل','success');
         }
     } else {
         const resident = { id: generateId(), name, apartmentNumber, phone, monthlyAmount, notes, createdAt: Date.now() };
-        if (effectiveOwnerPin) resident.ownerPin = effectiveOwnerPin;
+        resident.userId = effectiveOwnerUserId;
         state.residents.push(resident);
         logAction('إضافة شقة', `${name} - شقة ${apartmentNumber}`);
         toast('تمت الإضافة','success');
     }
-    saveState(); closeModal('residentModal'); renderAll(); syncWithGitHubGist(true);
+    saveState(); closeModal('residentModal'); renderAll();;
 }
 
 function deleteResident(id) {
@@ -73,7 +68,7 @@ function deleteResident(id) {
     state.residents = state.residents.filter(x => x.id !== id);
     state.income = state.income.filter(i => i.residentId !== id);
     logAction('حذف شقة', `${r.name} - شقة ${r.apartmentNumber}`);
-    saveState(); renderAll(); toast('تم الحذف','info'); syncWithGitHubGist(true);
+    saveState(); renderAll(); toast('تم الحذف','info');;
 }
 
 function quickPayResident(residentId) {
@@ -84,7 +79,7 @@ function quickPayResident(residentId) {
     if (amount <= 0) { toast('تم سداد اشتراك الشهر بالكامل','info'); return; }
     state.income.push({ id: generateId(), residentId, amount, month, date: new Date().toISOString(), notes: 'دفع سريع' });
     logAction('تحصيل', `${r.name} - ${month} - ${fmtNum(amount)}`);
-    saveState(); renderAll(); toast(`تم تسجيل باقي اشتراك ${month}`,'success'); syncWithGitHubGist(true);
+    saveState(); renderAll(); toast(`تم تسجيل باقي اشتراك ${month}`,'success');;
 }
 
 function handleIncomeSubmit(e) {
@@ -99,14 +94,14 @@ function handleIncomeSubmit(e) {
     state.income.push({ id: generateId(), residentId, amount, month, date: new Date().toISOString(), notes });
     logAction('تحصيل', `${r?.name} - ${month} - ${fmtNum(amount)}`);
     saveState(); closeModal('incomeModal'); document.getElementById('incomeForm').reset(); renderAll();
-    toast('تم تسجيل التحصيل','success'); syncWithGitHubGist(true);
+    toast('تم تسجيل التحصيل','success');;
 }
 
 function deleteIncome(id) {
     if (!requireManager()) return;
     if (!confirm('حذف هذا التحصيل؟')) return;
     state.income = state.income.filter(i => i.id !== id);
-    logAction('حذف تحصيل', id); saveState(); renderAll(); toast('تم الحذف','info'); syncWithGitHubGist(true);
+    logAction('حذف تحصيل', id); saveState(); renderAll(); toast('تم الحذف','info');;
 }
 
 function handleExpenseSubmit(e) {
@@ -121,14 +116,14 @@ function handleExpenseSubmit(e) {
     state.expenses.push({ id: generateId(), title, amount, category, month, notes, date: new Date().toISOString() });
     logAction('مصروف', `${title} - ${fmtNum(amount)}`);
     saveState(); closeModal('expenseModal'); document.getElementById('expenseForm').reset(); renderAll();
-    toast('تم تسجيل المصروف','success'); syncWithGitHubGist(true);
+    toast('تم تسجيل المصروف','success');;
 }
 
 function deleteExpense(id) {
     if (!requireManager()) return;
     if (!confirm('حذف هذا المصروف؟')) return;
     state.expenses = state.expenses.filter(e => e.id !== id);
-    logAction('حذف مصروف', id); saveState(); renderAll(); toast('تم الحذف','info'); syncWithGitHubGist(true);
+    logAction('حذف مصروف', id); saveState(); renderAll(); toast('تم الحذف','info');;
 }
 
 function openNoticeModal() { if (!requireManager()) return; document.getElementById('noticeInput').value = ''; openModal('noticeModal'); }
@@ -150,7 +145,7 @@ function handleNoticeSubmit() {
     if (!text) { toast('اكتب نص الإعلان','error'); return; }
     state.notices.push({ id: generateId(), text, date: new Date().toISOString() });
     logAction('إعلان جديد', text.substring(0, 40));
-    saveState(); closeModal('noticeModal'); renderNotices(); toast('تم النشر','success'); syncWithGitHubGist(true);
+    saveState(); closeModal('noticeModal'); renderNotices(); toast('تم النشر','success');;
 }
 
 function deleteNotice(id) {
@@ -282,16 +277,12 @@ function isValidBackup(data) {
     const validId = value => typeof value === 'string' && /^[\w-]{1,100}$/.test(value);
     const validAmount = value => Number.isFinite(Number(value)) && Number(value) >= 0;
     if (!data.residents.every(r => r && typeof r === 'object' && validId(r.id) && typeof r.name === 'string' && typeof r.apartmentNumber === 'string' && (r.phone === undefined || typeof r.phone === 'string') && (r.notes === undefined || typeof r.notes === 'string') && validAmount(r.monthlyAmount ?? 0))) return false;
-    const ownerPins = data.residents.map(r => r.ownerPin).filter(pin => pin !== undefined && pin !== '').map(String);
-    if (!ownerPins.every(pin => /^\d{4}$/.test(pin)) || new Set(ownerPins).size !== ownerPins.length) return false;
+    if (!data.residents.every(r => r.userId === undefined || r.userId === null || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(r.userId)))) return false;
     const residentIds = new Set(data.residents.map(r => r.id));
     if (!data.income.every(i => i && typeof i === 'object' && validId(i.id) && validId(i.residentId) && residentIds.has(i.residentId) && typeof i.month === 'string' && validAmount(i.amount) && (i.notes === undefined || typeof i.notes === 'string'))) return false;
     if (!data.expenses.every(e => e && typeof e === 'object' && validId(e.id) && typeof e.title === 'string' && typeof e.month === 'string' && validAmount(e.amount) && (e.category === undefined || typeof e.category === 'string') && (e.notes === undefined || typeof e.notes === 'string'))) return false;
     if (!data.notices.every(n => n && typeof n === 'object' && validId(n.id) && typeof n.text === 'string')) return false;
     if (data.auditLogs !== undefined && !Array.isArray(data.auditLogs)) return false;
-    if (data.pinCode !== undefined && !/^\d{4}$/.test(String(data.pinCode))) return false;
-    if (data.pinEnabled !== undefined && typeof data.pinEnabled !== 'boolean') return false;
-    if (ownerPins.length && (!data.pinEnabled || !/^\d{4}$/.test(String(data.pinCode || '')) || data.pinCode === '0000' || ownerPins.includes(String(data.pinCode)))) return false;
     if (data.currentTheme !== undefined && !['dark','light','emerald'].includes(data.currentTheme)) return false;
     if (data.defaultSubscription !== undefined && !validAmount(data.defaultSubscription)) return false;
     return true;
@@ -326,10 +317,6 @@ function openSettingsModal() {
     document.getElementById('settingsManagerPhone').value = state.managerPhone||'';
     document.getElementById('settingsDefaultSub').value = state.defaultSubscription||'';
     document.getElementById('settingsStartingBalance').value = state.startingBalance||'';
-    document.getElementById('settingsPinEnabled').checked = state.pinEnabled;
-    document.getElementById('settingsPinCode').value = '';
-    document.getElementById('settingsGhToken').value = githubConfig.token||'';
-    document.getElementById('settingsGhGistId').value = githubConfig.gistId||'';
     openModal('settingsModal');
 }
 
@@ -337,72 +324,13 @@ function saveSettings() {
     if (!requireManager()) return;
     const defaultSubscription = Number(document.getElementById('settingsDefaultSub').value || 0);
     const startingBalance = Number(document.getElementById('settingsStartingBalance').value || 0);
-    const pinEnabled = document.getElementById('settingsPinEnabled').checked;
-    const pin = document.getElementById('settingsPinCode').value.trim();
     if (!Number.isFinite(defaultSubscription) || defaultSubscription < 0 || !Number.isFinite(startingBalance)) {
         toast('تحقق من قيم الاشتراك والرصيد الافتتاحي','error'); return;
     }
-    if (pin && !/^\d{4}$/.test(pin)) { toast('رمز PIN يجب أن يتكون من أربعة أرقام','error'); return; }
-    if (pinEnabled && !state.pinEnabled && !pin && state.pinCode === '0000') {
-        toast('اختر رمز PIN جديداً قبل تفعيل القفل','error'); return;
-    }
-    const ownerPins = state.residents.map(resident => String(resident.ownerPin || '')).filter(Boolean);
-    const effectivePin = pin || String(state.pinCode);
-    if (ownerPins.length && (!pinEnabled || effectivePin === '0000')) {
-        toast('لا يمكن إلغاء رمز المدير ما دامت هناك حسابات ملاك مفعّلة','error'); return;
-    }
-    if (ownerPins.includes(effectivePin)) { toast('رمز المدير يجب أن يختلف عن رموز الملاك','error'); return; }
     state.buildingName = document.getElementById('settingsBuildingName').value.trim();
     state.managerName = document.getElementById('settingsManagerName').value.trim();
     state.managerPhone = document.getElementById('settingsManagerPhone').value.trim();
     state.defaultSubscription = defaultSubscription;
     state.startingBalance = startingBalance;
-    state.pinEnabled = pinEnabled;
-    if (pin) state.pinCode = pin;
-    const tok = document.getElementById('settingsGhToken').value.trim();
-    const gid = document.getElementById('settingsGhGistId').value.trim();
-    if (tok) { githubConfig.token = tok; localStorage.setItem('manzil_gh_token', tok); }
-    if (gid) { githubConfig.gistId = gid; localStorage.setItem('manzil_gh_gist', gid); }
     saveState(); renderAll(); updateAccessSwitchButton(); closeModal('settingsModal'); toast('تم الحفظ','success');
-}
-
-async function syncWithGitHubGist(silent) {
-    if (!requireManager()) return;
-    if (syncing) return;
-    if (!githubConfig.token || !githubConfig.gistId) {
-        if (!silent) {
-            const s = document.getElementById('syncStatus');
-            if (s) s.textContent = 'المزامنة غير مفعّلة';
-            toast('للمزامنة، أضف رمز GitHub ومعرّف Gist في الإعدادات','info');
-        }
-        return;
-    }
-    syncing = true;
-    const status = document.getElementById('syncStatus');
-    if (status) status.textContent = 'جاري المزامنة...';
-    try {
-        const headers = { 'Authorization': `Bearer ${githubConfig.token}`, 'Accept': 'application/vnd.github+json' };
-        const getRes = await fetch(`https://api.github.com/gists/${githubConfig.gistId}`, { headers });
-        let remote = null;
-        if (getRes.ok) {
-            const g = await getRes.json();
-            const f = g.files['manzil.json'];
-            if (f) { try { remote = JSON.parse(f.content); } catch(e){} }
-        }
-        let merged = state;
-        if (remote && remote.lastUpdated && remote.lastUpdated > state.lastUpdated) merged = remote;
-        state = { ...state, ...merged };
-        saveState();
-        const body = JSON.stringify(state, null, 2);
-        const pushRes = await fetch(`https://api.github.com/gists/${githubConfig.gistId}`, {
-            method: 'PATCH', headers,
-            body: JSON.stringify({ files: { 'manzil.json': { content: body } } })
-        });
-        if (!pushRes.ok) throw new Error('Push failed');
-        if (status) status.textContent = `تم ${new Date().toLocaleTimeString('ar-EG')}`;
-        if (!silent) { toast('تمت المزامنة','success'); renderAll(); }
-    } catch (e) {
-        if (status) status.textContent = 'فشل المزامنة';
-        if (!silent) toast('فشل المزامنة','error');
-    } finally { syncing = false; }
 }
