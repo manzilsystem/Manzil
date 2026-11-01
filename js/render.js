@@ -62,12 +62,52 @@ function populateSelects() {
     }
 }
 
+function getDashboardPeriod() {
+    const value = document.getElementById('dashboardPeriodFilter')?.value || 'all';
+    return ['current', 'last6'].includes(value) ? value : 'all';
+}
+function getDashboardPeriodMonths(period = getDashboardPeriod()) {
+    const cursor = new Date();
+    cursor.setDate(1);
+    const count = period === 'current' ? 1 : 6;
+    const months = [];
+    for (let offset = 0; offset < count; offset += 1) {
+        months.push(`${monthsNames[cursor.getMonth()]} ${cursor.getFullYear()}`);
+        cursor.setMonth(cursor.getMonth() - 1);
+    }
+    return months.reverse();
+}
+function getDashboardPeriodLabel(period = getDashboardPeriod()) {
+    if (period === 'all') return 'كل السجل';
+    if (period === 'current') return getCurrentMonth();
+    const months = getDashboardPeriodMonths(period);
+    return `${months[0]} – ${months[months.length - 1]}`;
+}
+function matchesDashboardPeriod(record, period = getDashboardPeriod(), periodMonths = null) {
+    if (period === 'all') return true;
+    const monthSet = periodMonths || new Set(getDashboardPeriodMonths(period));
+    return monthSet.has(record.month);
+}
+
 function renderDashboard() {
-    const totalIncome = state.income.reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
-    const totalExpense = state.expenses.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
-    const net = (state.startingBalance||0) + totalIncome - totalExpense;
+    const period = getDashboardPeriod();
+    const periodLabel = getDashboardPeriodLabel(period);
+    const periodMonths = new Set(getDashboardPeriodMonths(period));
+    const income = state.income.filter(item => matchesDashboardPeriod(item, period, periodMonths));
+    const expenses = state.expenses.filter(item => matchesDashboardPeriod(item, period, periodMonths));
+    const totalIncome = income.reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
+    const totalExpense = expenses.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
+    const lifetimeIncome = state.income.reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
+    const lifetimeExpense = state.expenses.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
+    const net = (state.startingBalance||0) + lifetimeIncome - lifetimeExpense;
     document.getElementById('totalIncomeDisplay').textContent = fmtNum(totalIncome)+' ج.م';
     document.getElementById('totalExpenseDisplay').textContent = fmtNum(totalExpense)+' ج.م';
+    const incomeLabel = document.getElementById('incomePeriodLabel');
+    const expenseLabel = document.getElementById('expensePeriodLabel');
+    if (incomeLabel) incomeLabel.textContent = period === 'all' ? 'إجمالي التحصيلات المسجلة منذ بدء التسجيل' : `إجمالي التحصيلات — ${periodLabel}`;
+    if (expenseLabel) expenseLabel.textContent = period === 'all' ? 'إجمالي المصروفات المسجلة منذ بدء التسجيل' : `إجمالي المصروفات — ${periodLabel}`;
+    const breakdownPeriodLabel = document.getElementById('expenseBreakdownPeriodLabel');
+    if (breakdownPeriodLabel) breakdownPeriodLabel.textContent = periodLabel;
     const netEl = document.getElementById('netBalanceDisplay');
     netEl.textContent = fmtNum(net)+' ج.م';
     netEl.className = `text-2xl sm:text-3xl font-black mt-0.5 ${net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
@@ -91,14 +131,16 @@ function renderDashboard() {
     if (monthLabel) monthLabel.textContent = currentMonth;
     if (rateBar) rateBar.style.width = `${collectionRate}%`;
     if (progress) { progress.setAttribute('aria-valuenow', String(collectionRate)); progress.setAttribute('aria-valuetext', `${collectionRate}%`); }
-    renderCashFlowChart(); renderUnpaidResidents(); renderExpenseBreakdown(); renderRecent();
+    renderCashFlowChart(period); renderUnpaidResidents(); renderExpenseBreakdown(period, periodMonths); renderRecent();
 }
 
-function renderCashFlowChart() {
+function renderCashFlowChart(period = getDashboardPeriod()) {
     const c = document.getElementById('cashFlowChartContainer');
-    const months = getActiveBuildingMonths().slice(-6);
+    const months = period === 'all' ? getActiveBuildingMonths().slice(-6) : getDashboardPeriodMonths(period);
+    const periodLabel = document.getElementById('cashFlowPeriodLabel');
+    if (periodLabel) periodLabel.textContent = period === 'all' ? 'عرض آخر 6 أشهر' : getDashboardPeriodLabel(period);
     c.setAttribute('role', 'img');
-    c.setAttribute('aria-label', 'مخطط مقارنة التحصيلات والمصروفات خلال آخر ستة أشهر');
+    c.setAttribute('aria-label', `مخطط مقارنة التحصيلات والمصروفات — ${periodLabel?.textContent || 'آخر ستة أشهر'}`);
     if (!months.length) { c.innerHTML = '<p class="text-slate-500 text-xs text-center w-full py-6">لا توجد بيانات</p>'; return; }
     const inc = {}, exp = {};
     months.forEach(m => { inc[m]=0; exp[m]=0; });
@@ -135,10 +177,11 @@ function renderUnpaidResidents() {
         </div>`).join('');
 }
 
-function renderExpenseBreakdown() {
+function renderExpenseBreakdown(period = getDashboardPeriod(), periodMonths = null) {
     const c = document.getElementById('expenseCategoriesBreakdown');
     const by = {};
-    state.expenses.forEach(e => { const k = e.category||'أخرى'; by[k] = (by[k]||0) + (parseFloat(e.amount)||0); });
+    state.expenses.filter(expense => matchesDashboardPeriod(expense, period, periodMonths))
+        .forEach(e => { const k = e.category||'أخرى'; by[k] = (by[k]||0) + (parseFloat(e.amount)||0); });
     const entries = Object.entries(by).sort((a,b) => b[1]-a[1]);
     if (!entries.length) { c.innerHTML = '<p class="text-slate-500 text-xs text-center py-2">لا توجد مصروفات</p>'; return; }
     const total = entries.reduce((s,[,v]) => s+v, 0);

@@ -165,6 +165,15 @@
                 </div>
             </section>
 
+            <div class="app-card p-3 rounded-2xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <label for="dashboardPeriodFilter" class="text-xs font-bold text-slate-400">نطاق مؤشرات التحصيل والمصروفات</label>
+                <select id="dashboardPeriodFilter" onchange="renderDashboard()" class="app-input border rounded-xl px-3 py-2 text-xs font-semibold sm:min-w-44" aria-label="تصفية مؤشرات لوحة التحكم حسب الفترة">
+                    <option value="all">كل السجل</option>
+                    <option value="current">الشهر الحالي</option>
+                    <option value="last6">آخر 6 أشهر</option>
+                </select>
+            </div>
+
             <div class="grid grid-cols-2 gap-3">
                 <div class="app-card p-4 rounded-3xl border flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-2">
@@ -172,7 +181,7 @@
                         <div class="w-8 h-8 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center text-xs border border-emerald-500/20"><i class="fa-solid fa-arrow-trend-up"></i></div>
                     </div>
                     <h3 class="text-xl sm:text-2xl font-black text-emerald-400" id="totalIncomeDisplay">0 ج.م</h3>
-                    <p class="text-[10px] text-slate-500 mt-1">إجمالي التحصيلات المسجلة منذ بدء التسجيل</p>
+                    <p id="incomePeriodLabel" class="text-[10px] text-slate-500 mt-1">إجمالي التحصيلات المسجلة منذ بدء التسجيل</p>
                 </div>
                 <div class="app-card p-4 rounded-3xl border flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-2">
@@ -180,7 +189,7 @@
                         <div class="w-8 h-8 bg-rose-500/10 text-rose-400 rounded-xl flex items-center justify-center text-xs border border-rose-500/20"><i class="fa-solid fa-arrow-trend-down"></i></div>
                     </div>
                     <h3 class="text-xl sm:text-2xl font-black text-rose-400" id="totalExpenseDisplay">0 ج.م</h3>
-                    <p class="text-[10px] text-slate-500 mt-1">إجمالي المصروفات المسجلة منذ بدء التسجيل</p>
+                    <p id="expensePeriodLabel" class="text-[10px] text-slate-500 mt-1">إجمالي المصروفات المسجلة منذ بدء التسجيل</p>
                 </div>
             </div>
 
@@ -209,7 +218,7 @@
             </section>
 
             <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
-                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-chart-line text-indigo-400"></i> التدفق النقدي البصري</h3>
+                <div class="flex flex-wrap items-baseline justify-between gap-2"><h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-chart-line text-indigo-400"></i> التدفق النقدي البصري</h3><span id="cashFlowPeriodLabel" class="text-[10px] text-slate-500"></span></div>
                 <div id="cashFlowChartContainer" class="w-full h-32 flex items-end justify-between gap-2 pt-4 px-2 border-b border-slate-700/50 pb-2"></div>
                 <div class="flex justify-center gap-4 text-[10px] text-slate-400 pt-1">
                     <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> التحصيلات</span>
@@ -223,7 +232,7 @@
             </div>
 
             <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
-                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-chart-pie text-indigo-400"></i> توزيع المصروفات</h3>
+                <div class="flex flex-wrap items-baseline justify-between gap-2"><h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-chart-pie text-indigo-400"></i> توزيع المصروفات</h3><span id="expenseBreakdownPeriodLabel" class="text-[10px] text-slate-500"></span></div>
                 <div id="expenseCategoriesBreakdown" class="space-y-3"></div>
             </div>
 
