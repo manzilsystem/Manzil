@@ -1,0 +1,65 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const test = require('node:test');
+
+const root = path.join(__dirname, '..');
+const migration = fs.readFileSync(
+    path.join(root, 'supabase/migrations/20261101173543_restrict_profile_updates.sql'),
+    'utf8'
+);
+const client = fs.readFileSync(path.join(root, 'js/supabase.js'), 'utf8');
+const edgeFunction = fs.readFileSync(
+    path.join(root, 'supabase/functions/complete-owner-pin-change/index.ts'),
+    'utf8'
+);
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+
+test('authenticated clients cannot update profile rows or the first-login flag directly', () => {
+    assert.match(migration, /drop policy if exists profiles_update_self on public\.profiles/i);
+    assert.match(migration, /revoke update on table public\.profiles from public, anon, authenticated/i);
+    assert.doesNotMatch(
+        client,
+        /from\(['"]profiles['"]\)\s*\.update\s*\(\s*\{\s*must_change_pin\s*:/i
+    );
+});
+
+test('owner data stays behind the PIN gate in RLS and the client does not preload it', () => {
+    assert.match(migration, /create or replace function private\.owner_pin_change_complete\(\)/i);
+    assert.match(migration, /profile\.must_change_pin is true/i);
+    for (const policy of [
+        'buildings_select_members',
+        'residents_manager_or_owner_select',
+        'income_manager_or_owner_select',
+        'notices_members_select',
+    ]) {
+        const policyStart = migration.indexOf(`alter policy ${policy}`);
+        assert.notEqual(policyStart, -1, `migration must update ${policy}`);
+        const nextPolicyStart = migration.indexOf('\nalter policy ', policyStart + 1);
+        const policySql = migration.slice(policyStart, nextPolicyStart === -1 ? undefined : nextPolicyStart);
+        assert.match(policySql, /owner_pin_change_complete\(\)/);
+    }
+    const loadState = client.match(/async function loadState\(\) \{[\s\S]*?\n\}/)?.[0];
+    assert.ok(loadState, 'loadState must exist');
+    assert.ok(
+        loadState.indexOf('if (ownerMustChangePin)') < loadState.indexOf(".from('buildings')"),
+        'the client must stop before loading building data when PIN change is required'
+    );
+});
+
+test('first PIN change requires the current PIN and goes through the protected server function', () => {
+    assert.match(html, /id="currentOwnerPin"/);
+    assert.match(client, /functions\.invoke\(['"]complete-owner-pin-change['"]/);
+    assert.match(client, /current_pin:\s*currentPin/);
+    assert.match(edgeFunction, /profile\.must_change_pin !== true/);
+    assert.match(edgeFunction, /\.eq\(['"]role['"],\s*['"]owner['"]\)/);
+    assert.match(edgeFunction, /currentPin === newPin/);
+    assert.match(edgeFunction, /signInWithPassword\(/);
+    assert.match(edgeFunction, /admin\.auth\.admin\.updateUserById/);
+    assert.match(edgeFunction, /must_change_pin:\s*false/);
+    assert.ok(
+        edgeFunction.indexOf('admin.auth.admin.updateUserById') <
+            edgeFunction.indexOf('must_change_pin: false'),
+        'the server must update the password before clearing the first-login gate'
+    );
+});

@@ -42,7 +42,8 @@
         <form onsubmit="submitFirstOwnerPinChange(event)" class="app-card w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center space-y-4 border">
             <div class="w-14 h-14 bg-amber-500/20 text-amber-400 rounded-2xl mx-auto flex items-center justify-center text-xl"><i class="fa-solid fa-key"></i></div>
             <h3 id="ownerPinChangeTitle" class="text-lg font-black">غيّر الرمز المؤقت</h3>
-            <p class="text-xs text-slate-400">هذا الرمز مؤقت. اختر PIN جديدًا من 6 أرقام ولا تشاركه مع أحد.</p>
+            <p class="text-xs text-slate-400">أدخل PIN الحالي الذي دخلت به، ثم اختر PIN جديدًا من 6 أرقام ولا تشاركه مع أحد.</p>
+            <input type="password" id="currentOwnerPin" inputmode="numeric" minlength="6" maxlength="6" autocomplete="current-password" required placeholder="PIN الحالي — 6 أرقام" aria-label="PIN الحالي من 6 أرقام" class="w-full app-input border rounded-2xl px-3 py-3 text-center text-lg tracking-[0.5em] focus:outline-none focus:border-indigo-500" dir="ltr">
             <input type="password" id="newOwnerPin" inputmode="numeric" minlength="6" maxlength="6" autocomplete="new-password" required placeholder="PIN جديد — 6 أرقام" aria-label="PIN جديد من 6 أرقام" class="w-full app-input border rounded-2xl px-3 py-3 text-center text-lg tracking-[0.5em] focus:outline-none focus:border-indigo-500" dir="ltr">
             <input type="password" id="confirmOwnerPin" inputmode="numeric" minlength="6" maxlength="6" autocomplete="new-password" required placeholder="أعد كتابة PIN" aria-label="تأكيد PIN الجديد" class="w-full app-input border rounded-2xl px-3 py-3 text-center text-lg tracking-[0.5em] focus:outline-none focus:border-indigo-500" dir="ltr">
             <p id="ownerPinChangeError" class="text-xs text-rose-400 hidden" role="alert"></p>
