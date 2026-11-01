@@ -94,6 +94,15 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .quick-action-expense { color: #fb7185; }
 .quick-action-resident { color: #818cf8; }
 .quick-action-report { color: #fbbf24; }
+.quick-actions-grid, .section-toolbar, .list-filters, .resident-filters-grid { min-width: 0; }
+.quick-action { width: 100%; min-width: 0; }
+.section-toolbar > div:first-child { min-width: 0; }
+.section-toolbar h2 { overflow-wrap: anywhere; }
+.section-toolbar > button { flex-shrink: 0; white-space: nowrap; }
+.list-filters { align-items: stretch; flex-wrap: wrap; }
+.list-filters input { min-width: 10rem; flex: 1 1 12rem; }
+.list-filters select { min-width: 0; flex: 1 1 9rem; }
+.resident-filters-grid select { min-width: 0; width: 100%; }
 .guide-step { border: 1px solid var(--border-color); border-radius: 1rem; padding: .75rem; background: color-mix(in srgb, var(--bg-input) 72%, transparent); }
 .guide-step h4 { display: flex; align-items: center; gap: .5rem; font-weight: 800; margin-bottom: .35rem; }
 .guide-step p { color: var(--text-muted); font-size: .7rem; }
@@ -145,6 +154,9 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
     [role="dialog"] > form.app-card { max-height: calc(100dvh - 1.5rem); border-radius: 1.25rem; }
     [role="dialog"] .grid.grid-cols-2 { grid-template-columns: minmax(0, 1fr); }
     [role="dialog"] .flex.gap-2 > button { min-width: 0; }
+    .section-toolbar { align-items: stretch; gap: .75rem; }
+    .section-toolbar > button { padding-inline: .75rem; }
+    .list-filters input, .list-filters select { min-height: 44px; }
 }
 
 @media (max-width: 360px) {
@@ -156,6 +168,11 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
     nav[aria-label="التنقل الرئيسي"] .tab-btn { min-width: 44px; }
     nav[aria-label="التنقل الرئيسي"] .tab-btn span { font-size: 9px; }
     #tab-dashboard > .grid.grid-cols-2 { gap: .5rem; }
+    .section-toolbar { flex-direction: column; }
+    .section-toolbar > button { width: 100%; }
+    .list-filters { flex-direction: column; }
+    .list-filters input, .list-filters select { width: 100%; min-width: 0; flex-basis: auto; }
+    .resident-filters-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (prefers-reduced-motion: reduce) {
