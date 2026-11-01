@@ -1,3 +1,5 @@
+let ownerProvisionRequested = false;
+
 function openResidentModal(mode, id) {
     if (!requireManager()) return;
     editingResidentId = mode === 'edit' ? id : null;
@@ -10,55 +12,103 @@ function openResidentModal(mode, id) {
             document.getElementById('residentPhone').value = r.phone||'';
             document.getElementById('residentAmount').value = r.monthlyAmount ?? '';
             document.getElementById('residentNotes').value = r.notes||'';
-            document.getElementById('residentOwnerUserId').value = r.userId || '';
-            document.getElementById('removeResidentOwnerUser').checked = false;
         }
     } else {
         document.getElementById('residentForm').reset();
         document.getElementById('residentAmount').value = state.defaultSubscription || '';
-        document.getElementById('residentOwnerUserId').value = '';
-        document.getElementById('removeResidentOwnerUser').checked = false;
     }
     openModal('residentModal');
 }
 
 function editResident(id) { openResidentModal('edit', id); }
 
-function handleResidentSubmit(e) {
+function saveResidentAndProvisionOwner() {
+    if (!requireManager()) return;
+    const form = document.getElementById('residentForm');
+    if (!form.reportValidity()) return;
+    ownerProvisionRequested = true;
+    form.requestSubmit();
+}
+
+async function handleResidentSubmit(e) {
     if (!requireManager()) return;
     e.preventDefault();
+    const shouldProvisionOwner = ownerProvisionRequested;
+    ownerProvisionRequested = false;
     const name = document.getElementById('residentName').value.trim();
     const apartmentNumber = document.getElementById('residentApartment').value.trim();
     const phone = document.getElementById('residentPhone').value.trim();
     const amountInput = document.getElementById('residentAmount').value.trim();
     const monthlyAmount = amountInput === '' ? Number(state.defaultSubscription) || 0 : Number(amountInput);
     const notes = document.getElementById('residentNotes').value.trim();
-    const ownerUserId = document.getElementById('residentOwnerUserId').value.trim();
-    const removeOwnerUser = document.getElementById('removeResidentOwnerUser').checked;
     if (!name || !apartmentNumber) { toast('الاسم ورقم الشقة مطلوبان','error'); return; }
     if (!Number.isFinite(monthlyAmount) || monthlyAmount < 0) { toast('قيمة الاشتراك يجب أن تكون صفراً أو أكثر','error'); return; }
-    if (ownerUserId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(ownerUserId)) { toast('معرف حساب المالك يجب أن يكون UUID صحيحاً','error'); return; }
-    const editedResident = state.residents.find(r => r.id === editingResidentId);
-    const effectiveOwnerUserId = removeOwnerUser ? null : (ownerUserId || editedResident?.userId || null);
+    if (shouldProvisionOwner && !normalizeOwnerPhone(phone)) { toast('أدخل رقم جوال صحيحًا أولاً؛ مثال مصري: 01012345678','error'); return; }
     const normalizedApartment = apartmentNumber.toLocaleLowerCase('ar-EG');
     if (state.residents.some(r => r.id !== editingResidentId && String(r.apartmentNumber||'').trim().toLocaleLowerCase('ar-EG') === normalizedApartment)) {
         toast('رقم الشقة مسجل بالفعل','error'); return;
     }
+    let targetResidentId;
     if (editingResidentId) {
         const r = state.residents.find(x => x.id === editingResidentId);
         if (r) {
             Object.assign(r, { name, apartmentNumber, phone, monthlyAmount, notes });
-            r.userId = effectiveOwnerUserId;
+            targetResidentId = r.id;
             logAction('تعديل شقة', `${name} - شقة ${apartmentNumber}`); toast('تم التعديل','success');
         }
     } else {
         const resident = { id: generateId(), name, apartmentNumber, phone, monthlyAmount, notes, createdAt: Date.now() };
-        resident.userId = effectiveOwnerUserId;
         state.residents.push(resident);
+        targetResidentId = resident.id;
         logAction('إضافة شقة', `${name} - شقة ${apartmentNumber}`);
         toast('تمت الإضافة','success');
     }
-    saveState(); closeModal('residentModal'); renderAll();;
+    const saved = await saveState();
+    if (!saved) return;
+    closeModal('residentModal'); renderAll();
+    if (shouldProvisionOwner && targetResidentId) await provisionOwnerAccess(targetResidentId);
+}
+
+async function provisionOwnerAccess(residentId) {
+    if (!requireManager()) return;
+    const { data, error } = await supabaseClient.functions.invoke('manage-owner-access', { body: { resident_id: residentId } });
+    if (error || !data?.temporary_pin) {
+        console.error('Owner provisioning failed:', error?.message || data?.error || 'unknown error');
+        const messages = {
+            invalid_phone: 'رقم الجوال غير صحيح. استخدم رقمًا مصريًا مثل 01012345678.',
+            phone_already_linked: 'رقم الجوال مربوط بحساب مالك آخر.',
+            phone_account_create_failed: 'تعذر إنشاء حساب لهذا الرقم؛ ربما له حساب سابق. راجع المدير.',
+            manager_only: 'إنشاء حساب المالك متاح للمدير فقط.'
+        };
+        toast(messages[data?.error] || 'تعذر إنشاء PIN. تحقق من اتصال Supabase ثم أعد المحاولة.', 'error');
+        return;
+    }
+    await loadState();
+    renderAll();
+    document.getElementById('ownerTempPinPhone').textContent = data.phone;
+    document.getElementById('ownerTempPinValue').value = data.temporary_pin;
+    const modal = document.getElementById('ownerTempPinModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+async function copyOwnerTempPin() {
+    const input = document.getElementById('ownerTempPinValue');
+    input.select();
+    try {
+        await navigator.clipboard.writeText(input.value);
+    } catch {
+        document.execCommand('copy');
+    }
+    toast('تم نسخ الرمز. شاركه مع المالك مباشرةً.', 'success');
+}
+
+function closeOwnerTempPinModal() {
+    const input = document.getElementById('ownerTempPinValue');
+    input.value = '';
+    const modal = document.getElementById('ownerTempPinModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
 }
 
 function deleteResident(id) {
