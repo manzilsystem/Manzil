@@ -8,6 +8,14 @@ function requireManager(message = 'هذه الصلاحية متاحة للمدي
     return false;
 }
 
+function clearOwnerPortal() {
+    const portal = document.getElementById('ownerPortal');
+    if (!portal) return;
+    portal.innerHTML = '';
+    portal.classList.add('hidden');
+    portal.setAttribute('aria-hidden', 'true');
+}
+
 const SESSION_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
 let sessionIdleTimer = null;
 let sessionIdleVersion = 0;
@@ -79,6 +87,7 @@ function lockCurrentSession(automatic = false) {
     stopSessionIdleTimer();
     currentUserRole = null;
     currentResidentId = null;
+    clearOwnerPortal();
     document.body.classList.remove('owner-mode');
     document.body.classList.add('session-locked');
     document.getElementById('pinLockTitle').textContent = hasOwnerAccounts() ? 'دخول المدير أو المالك' : 'قفل التطبيق';
@@ -154,6 +163,7 @@ function renderOwnerPortal() {
         </section>
         <p class="text-center text-[10px] text-slate-500">هذه الصفحة تعرض بيانات حساب شقتك فقط. للاعتراض أو الاستفسار، تواصل مع المدير.</p>`;
     portal.classList.remove('hidden');
+    portal.setAttribute('aria-hidden', 'false');
     document.getElementById('headerBuildingTitle').textContent = state.buildingName || 'Manzil';
     document.getElementById('syncStatus').textContent = 'وضع المالك — قراءة فقط';
     updateAccessSwitchButton();

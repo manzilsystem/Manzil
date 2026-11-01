@@ -198,6 +198,7 @@ function verifyPinCode() {
     if ((state.pinEnabled || hasOwnerAccounts()) && entered === String(state.pinCode) && (state.pinCode !== '0000' || !hasOwnerAccounts())) {
         currentUserRole = 'manager';
         currentResidentId = null;
+        clearOwnerPortal();
         pinAttempts = 0;
         const m = document.getElementById('pinLockModal'); m.classList.add('hidden'); m.classList.remove('flex'); m.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('session-locked', 'owner-mode');
