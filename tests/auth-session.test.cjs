@@ -73,6 +73,7 @@ function makeHarness() {
         `${supabaseSource}\n({\n` +
         'submitSupabaseLogin, lockCurrentSession, initSupabaseApp, ' +
         'setLoadState(fn) { loadState = fn; }, ' +
+        'setOpenAuthenticatedApp(fn) { openAuthenticatedApp = fn; }, ' +
         'getSnapshot() { return { activeSession, activeBuildingId, supabaseStateLoaded, authLoading, ownerMustChangePin, state, currentUserRole, currentResidentId }; }, ' +
         'setSnapshot(values) { ' +
         'if ("activeSession" in values) activeSession = values.activeSession; ' +
@@ -187,6 +188,46 @@ test('a Supabase SIGNED_OUT event clears account data and returns to the login m
     assert.equal(snapshot.state.buildingName, '');
     assert.equal(h.elements.get('pinLockModal').classList.contains('hidden'), false);
     assert.equal(h.sandbox.document.body.classList.contains('session-locked'), true);
+});
+
+test('a sign-out during loadState prevents stale data from reopening the authenticated app', async () => {
+    const h = makeHarness();
+    let finishLoad;
+    let markLoadStarted;
+    const loadStarted = new Promise(resolve => { markLoadStarted = resolve; });
+    const pendingLoad = new Promise(resolve => { finishLoad = resolve; });
+    let openCount = 0;
+    h.client.auth.getSession = async () => ({
+        data: { session: { user: { id: 'user-1' } } }, error: null,
+    });
+    h.app.setLoadState(async () => {
+        markLoadStarted();
+        await pendingLoad;
+        h.app.setSnapshot({
+            state: {
+                buildingName: 'بيانات الجلسة القديمة', managerName: 'مدير سابق', managerPhone: '',
+                defaultSubscription: 100, startingBalance: 0, currentTheme: 'dark',
+                residents: [{ id: 'stale-resident' }], income: [], expenses: [], notices: [], auditLogs: [], lastUpdated: 1,
+            },
+        });
+        return true;
+    });
+    h.app.setOpenAuthenticatedApp(async () => { openCount += 1; });
+
+    const initialization = h.app.initSupabaseApp();
+    await loadStarted;
+    h.getAuthListener()('SIGNED_OUT', null);
+    finishLoad();
+    await initialization;
+    await h.flushTimers();
+
+    const snapshot = h.app.getSnapshot();
+    assert.equal(snapshot.activeSession, null);
+    assert.equal(snapshot.supabaseStateLoaded, false);
+    assert.equal(snapshot.state.buildingName, '');
+    assert.deepEqual(Array.from(snapshot.state.residents), []);
+    assert.equal(openCount, 0);
+    assert.equal(h.elements.get('pinLockModal').classList.contains('hidden'), false);
 });
 
 test('a temporary getSession failure still leaves the auth listener available for later sign-out events', async () => {
