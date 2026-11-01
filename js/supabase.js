@@ -46,6 +46,13 @@ function normalizePinDigits(input) {
         .replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776));
 }
 
+function toSupabaseTimestamp(value) {
+    const source = value === null || value === undefined || value === '' ? Date.now() : value;
+    const date = new Date(source);
+    if (Number.isNaN(date.getTime())) throw new TypeError('Invalid timestamp for Supabase');
+    return date.toISOString();
+}
+
 function mapResident(row) {
     return {
         id: row.id,
@@ -150,7 +157,7 @@ async function saveState() {
             current_theme: state.currentTheme || 'dark'
         }).eq('id', activeBuildingId);
         if (buildingError) throw buildingError;
-        const residentRows = state.residents.map(r => ({ id: r.id, building_id: activeBuildingId, user_id: r.userId || null, name: r.name, apartment_number: r.apartmentNumber, phone: r.phone || null, monthly_amount: Number(r.monthlyAmount) || 0, notes: r.notes || null, created_at: r.createdAt || new Date().toISOString() }));
+        const residentRows = state.residents.map(r => ({ id: r.id, building_id: activeBuildingId, user_id: r.userId || null, name: r.name, apartment_number: r.apartmentNumber, phone: r.phone || null, monthly_amount: Number(r.monthlyAmount) || 0, notes: r.notes || null, created_at: toSupabaseTimestamp(r.createdAt) }));
         const incomeRows = state.income.map(i => ({ id: i.id, building_id: activeBuildingId, resident_id: i.residentId, amount: Number(i.amount) || 0, month: i.month, notes: i.notes || null, paid_at: i.date || new Date().toISOString(), created_by: activeSession.user.id }));
         const expenseRows = state.expenses.map(e => ({ id: e.id, building_id: activeBuildingId, title: e.title, amount: Number(e.amount) || 0, category: e.category || 'أخرى', month: e.month, notes: e.notes || null, spent_at: e.date || new Date().toISOString(), created_by: activeSession.user.id }));
         const noticeRows = state.notices.map(n => ({ id: n.id, building_id: activeBuildingId, text: n.text, created_by: activeSession.user.id, created_at: n.date || new Date().toISOString() }));

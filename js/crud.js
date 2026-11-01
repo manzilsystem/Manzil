@@ -58,7 +58,7 @@ async function handleResidentSubmit(e) {
             logAction('تعديل شقة', `${name} - شقة ${apartmentNumber}`);
         }
     } else {
-        const resident = { id: generateId(), name, apartmentNumber, phone, monthlyAmount, notes, createdAt: Date.now() };
+        const resident = { id: generateId(), name, apartmentNumber, phone, monthlyAmount, notes, createdAt: new Date().toISOString() };
         state.residents.push(resident);
         targetResidentId = resident.id;
         logAction('إضافة شقة', `${name} - شقة ${apartmentNumber}`);
