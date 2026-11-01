@@ -1,1 +1,21 @@
-
+{
+  "name": "Manzil - نظام إدارة العقارات",
+  "short_name": "Manzil",
+  "description": "نظام إدارة تحصيلات ومصروفات العمارة",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#090d16",
+  "theme_color": "#090d16",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
