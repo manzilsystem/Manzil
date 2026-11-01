@@ -1,4 +1,5 @@
 function switchTab(tab) {
+    if (!requireManager()) return;
     const tabs = ['dashboard','income','expenses','residents','reports'];
     if (!tabs.includes(tab)) return;
     tabs.forEach(t => {
@@ -16,6 +17,7 @@ function switchTab(tab) {
 let modalReturnFocus = null;
 
 function openModal(id) {
+    if (id !== 'pinLockModal' && !requireManager()) return;
     const modal = document.getElementById(id);
     if (!modal) return;
     modalReturnFocus = document.activeElement;
@@ -64,6 +66,7 @@ function initApp() {
     setTheme(state.currentTheme || 'dark');
     renderAll();
     checkPinLockOnStart();
+    updateAccessSwitchButton();
     const ss = document.getElementById('syncStatus');
     const syncConfigured = Boolean(githubConfig.token && githubConfig.gistId);
     if (ss) ss.textContent = syncConfigured ? 'جاهز للمزامنة' : 'محفوظ على هذا الجهاز';
