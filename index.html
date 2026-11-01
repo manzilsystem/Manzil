@@ -3,1772 +3,394 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Manzil - إدارة العقارات والاشتراكات الذكية</title>
+    <title>Manzil - نظام إدارة العقارات</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#090d16">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+    <link rel="apple-touch-icon" href="icons/icon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-main: #f8fafc;
-            --border-color: #334155;
-        }
-        body {
-            font-family: 'Cairo', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-        }
-        .tab-btn.active {
-            color: #6366f1;
-            font-weight: 800;
-        }
-        .tab-btn.active i {
-            transform: scale(1.15);
-            transition: transform 0.2s ease;
-        }
-        .app-card {
-            background-color: var(--card-bg);
-            border-color: var(--border-color);
-        }
-        .app-input {
-            background-color: #0f172a;
-            border-color: var(--border-color);
-            color: #f8fafc;
-        }
-        .app-input:focus {
-            border-color: #6366f1;
-            outline: none;
-        }
-        .animate-fadeIn {
-            animation: fadeIn 0.2s ease-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @media print {
-            body * { visibility: hidden; }
-            #printableArea, #printableArea * { visibility: visible; }
-            #printableArea { position: absolute; left: 0; top: 0; width: 100%; }
-            .no-print { display: none !important; }
-        }
-        /* Better scrollbar for dark theme */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
-    </style>
+    <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6">
+<body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6" data-theme="dark">
 
-    <!-- PIN Lock / Manager Login Modal -->
-    <div id="pinLockModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-        <div class="app-card border w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center space-y-6 animate-fadeIn">
-            <div class="w-16 h-16 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-inner">
-                <i class="fa-solid fa-shield-halved"></i>
+    <div id="toastContainer" class="fixed top-20 left-1/2 -translate-x-1/2 z-[100] space-y-2 pointer-events-none" style="max-width:90vw;"></div>
+
+    <!-- PIN Lock -->
+    <div id="pinLockModal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="app-card w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center space-y-6 border">
+            <div class="w-16 h-16 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-inner">
+                <i class="fa-solid fa-lock"></i>
             </div>
             <div>
-                <h3 class="text-xl font-black text-slate-100">بوابة الدخول والإدارة</h3>
-                <p class="text-xs text-slate-400 mt-1" id="pinModalHint">أدخل الرمز السري للإدارة، أو تابع كـ "ساكن (للاطلاع فقط)"</p>
+                <h3 class="text-xl font-black">قفل الحماية المالية</h3>
+                <p class="text-xs text-slate-400 mt-1">أدخل الرمز السري (4 أرقام)</p>
+                <p id="pinErrorMsg" class="text-xs text-rose-400 mt-1 hidden font-bold"></p>
             </div>
-            <div class="flex justify-center gap-3" id="pinDigitsContainer">
-                <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl" data-index="0" oninput="handlePinInput(this)" onkeydown="handlePinKeydown(event, this)">
-                <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl" data-index="1" oninput="handlePinInput(this)" onkeydown="handlePinKeydown(event, this)">
-                <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl" data-index="2" oninput="handlePinInput(this)" onkeydown="handlePinKeydown(event, this)">
-                <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl" data-index="3" oninput="handlePinInput(this)" onkeydown="handlePinKeydown(event, this)">
+            <div class="flex justify-center gap-3">
+                <input type="password" inputmode="numeric" maxlength="1" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl focus:outline-none focus:border-indigo-500" oninput="handlePinInput(this,0)">
+                <input type="password" inputmode="numeric" maxlength="1" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl focus:outline-none focus:border-indigo-500" oninput="handlePinInput(this,1)">
+                <input type="password" inputmode="numeric" maxlength="1" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl focus:outline-none focus:border-indigo-500" oninput="handlePinInput(this,2)">
+                <input type="password" inputmode="numeric" maxlength="1" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl focus:outline-none focus:border-indigo-500" oninput="handlePinInput(this,3)">
             </div>
-            <div class="space-y-2">
-                <button onclick="verifyPinCode()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-2xl shadow-lg transition">تسجيل دخول المدير</button>
-                <button onclick="enterAsResidentView()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-2xl text-xs transition border border-slate-700">دخول كساكن (للاطلاع فقط)</button>
-            </div>
+            <button onclick="verifyPinCode()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-2xl shadow-lg transition">فتح النظام</button>
         </div>
     </div>
 
-    <!-- Mobile Top App Bar -->
-    <header class="app-card border-b shadow-md sticky top-0 z-30 no-print">
-        <div class="container mx-auto px-4 py-3.5 flex justify-between items-center max-w-6xl">
+    <!-- Header -->
+    <header class="app-card sticky top-0 z-30 border-b no-print">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center max-w-4xl">
             <div class="flex items-center gap-3">
-                <div class="bg-indigo-500/10 p-2.5 rounded-xl border border-indigo-500/20">
-                    <i class="fa-solid fa-building text-xl text-amber-400"></i>
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-400 p-0.5 shadow-lg shadow-indigo-500/20 flex items-center justify-center">
+                    <div class="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-indigo-400">
+                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 12h3v8h14v-8h3L12 2zm0 3.8l5 5V18h-3v-5H10v5H7v-7.2l5-5z"/></svg>
+                    </div>
                 </div>
                 <div>
-                    <h1 class="text-base font-bold leading-tight">Manzil - إدارة العقارات</h1>
-                    <p class="text-[10px] text-indigo-400" id="syncStatus">وضع الساكن (للاطلاع فقط) 👀</p>
+                    <h1 id="headerBuildingTitle" class="text-base font-extrabold leading-tight tracking-wide">Manzil</h1>
+                    <p class="text-[10px] text-slate-400 flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                        <span id="syncStatus">جاري التحقق...</span>
+                    </p>
                 </div>
             </div>
             <div class="flex items-center gap-1.5">
-                <button id="managerSettingsBtn" onclick="openModal('settingsModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-xl text-xs transition border border-slate-700 hidden" title="الإعدادات والأمان">
-                    <i class="fa-solid fa-gear text-sm"></i>
-                </button>
-                <button id="managerBackupBtn" onclick="openModal('backupModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-xl text-xs transition border border-slate-700 hidden" title="النسخ الاحتياطي والمزامنة">
-                    <i class="fa-solid fa-cloud-arrow-down text-sm"></i>
-                </button>
-                <button onclick="exportToCSV()" class="bg-amber-600 hover:bg-amber-500 text-white p-2.5 rounded-xl text-xs transition hidden sm:flex" title="تصدير CSV">
-                    <i class="fa-solid fa-file-excel text-sm"></i>
-                </button>
-                <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-500 text-white p-2.5 rounded-xl text-xs transition hidden sm:flex" title="طباعة">
-                    <i class="fa-solid fa-print text-sm"></i>
-                </button>
-                <button onclick="lockAppToResidentMode()" class="bg-rose-600/20 text-rose-400 border border-rose-500/30 px-3 py-2 rounded-xl text-xs font-bold transition" title="قفل العرض">
-                    <i class="fa-solid fa-lock"></i>
-                </button>
+                <button onclick="syncWithGitHubGist(false)" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 p-2.5 rounded-xl text-xs transition" title="مزامنة"><i class="fa-solid fa-rotate text-sm"></i></button>
+                <button onclick="openSettingsModal()" class="app-card border p-2.5 rounded-xl text-xs transition" title="الإعدادات"><i class="fa-solid fa-gear text-sm"></i></button>
+                <button onclick="openModal('backupModal')" class="app-card border p-2.5 rounded-xl text-xs transition" title="النسخ الاحتياطي"><i class="fa-solid fa-cloud-arrow-down text-sm"></i></button>
+                <button onclick="window.print()" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 p-2.5 rounded-xl text-xs transition hidden sm:flex" title="طباعة"><i class="fa-solid fa-print text-sm"></i></button>
             </div>
         </div>
     </header>
 
-    <!-- Main Container -->
-    <main id="printableArea" class="container mx-auto px-3 sm:px-4 py-4 flex-grow max-w-6xl space-y-5">
+    <main id="printableArea" class="container mx-auto px-3 sm:px-4 py-4 flex-grow max-w-4xl space-y-5">
+        <div class="hidden print:block text-center border-b pb-4 mb-4" style="border-color:#cbd5e1;">
+            <h2 id="printBuildingTitle" class="text-2xl font-black text-slate-900">كشف حساب مالي - Manzil</h2>
+            <p id="printBuildingMeta" class="text-sm text-slate-600 mt-1">تقرير رسمي معتمد للإدارة والملاك</p>
+        </div>
 
-        <!-- DASHBOARD TAB -->
+        <!-- DASHBOARD -->
         <section id="tab-dashboard" class="space-y-4">
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="app-card p-4 rounded-3xl border space-y-3 bg-gradient-to-r from-indigo-950/20 via-slate-900/20 to-indigo-950/20">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">📢</span>
+                        <h3 class="font-bold text-xs">لوحة إعلانات العمارة</h3>
+                    </div>
+                    <div class="flex gap-1.5 no-print">
+                        <button onclick="openNoticeModal()" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-xl text-[11px] font-bold transition">إعلان</button>
+                        <button onclick="shareNoticeToWhatsApp()" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-[11px] font-bold transition flex items-center gap-1"><i class="fa-brands fa-whatsapp"></i> نشر</button>
+                        <button onclick="copyNoticeToClipboard()" class="bg-slate-700/30 hover:bg-slate-700/50 text-slate-300 border border-slate-600/30 px-3 py-1.5 rounded-xl text-[11px] font-bold transition" title="نسخ"><i class="fa-solid fa-copy"></i></button>
+                    </div>
+                </div>
+                <div id="noticeBoardContent" class="space-y-2"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
                 <div class="app-card p-4 rounded-3xl border flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-2">
                         <span class="text-xs text-slate-400 font-bold">التحصيلات</span>
-                        <div class="w-8 h-8 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center text-xs border border-emerald-500/20">
-                            <i class="fa-solid fa-arrow-trend-up"></i>
-                        </div>
+                        <div class="w-8 h-8 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center text-xs border border-emerald-500/20"><i class="fa-solid fa-arrow-trend-up"></i></div>
                     </div>
                     <h3 class="text-xl sm:text-2xl font-black text-emerald-400" id="totalIncomeDisplay">0 ج.م</h3>
                 </div>
                 <div class="app-card p-4 rounded-3xl border flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-2">
                         <span class="text-xs text-slate-400 font-bold">المصروفات</span>
-                        <div class="w-8 h-8 bg-rose-500/10 text-rose-400 rounded-xl flex items-center justify-center text-xs border border-rose-500/20">
-                            <i class="fa-solid fa-arrow-trend-down"></i>
-                        </div>
+                        <div class="w-8 h-8 bg-rose-500/10 text-rose-400 rounded-xl flex items-center justify-center text-xs border border-rose-500/20"><i class="fa-solid fa-arrow-trend-down"></i></div>
                     </div>
                     <h3 class="text-xl sm:text-2xl font-black text-rose-400" id="totalExpenseDisplay">0 ج.م</h3>
                 </div>
-                <div class="app-card p-4 rounded-3xl border flex flex-col justify-between col-span-2 lg:col-span-2">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs text-slate-400 font-bold">الصافي المتبقي بالخزنة (مع رصيد البداية)</span>
-                        <div class="w-8 h-8 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center text-xs border border-indigo-500/20">
-                            <i class="fa-solid fa-wallet"></i>
-                        </div>
-                    </div>
-                    <div class="flex justify-between items-baseline flex-wrap gap-2">
-                        <h3 class="text-2xl sm:text-3xl font-black text-indigo-300" id="netBalanceDisplay">0 ج.م</h3>
-                        <span class="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/20" id="collectionEfficiencyDisplay">كفاءة التحصيل: 0%</span>
-                    </div>
-                </div>
             </div>
 
-            <!-- Annual Cash Flow Chart -->
+            <div class="app-card p-5 rounded-3xl border shadow-xl flex items-center justify-between bg-gradient-to-r from-indigo-950/40 via-slate-900/40 to-slate-950/40">
+                <div>
+                    <p class="text-xs text-slate-400 font-medium">الصافي المتبقي بالخزنة</p>
+                    <h3 class="text-2xl sm:text-3xl font-black mt-0.5" id="netBalanceDisplay">0 ج.م</h3>
+                </div>
+                <div class="w-12 h-12 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center text-2xl text-amber-300"><i class="fa-solid fa-wallet"></i></div>
+            </div>
+
             <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
-                <div class="flex justify-between items-center flex-wrap gap-2">
-                    <h3 class="font-bold text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-chart-line text-indigo-400"></i> التدفق النقدي السنوي
-                    </h3>
-                    <div class="flex items-center gap-3 text-[10px]">
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-emerald-500"></span> تحصيلات</span>
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-rose-500"></span> مصروفات</span>
-                        <span class="text-slate-400" id="chartYearLabel">عام 2026</span>
-                    </div>
+                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-chart-line text-indigo-400"></i> التدفق النقدي البصري</h3>
+                <div id="cashFlowChartContainer" class="w-full h-32 flex items-end justify-between gap-2 pt-4 px-2 border-b border-slate-700/50 pb-2"></div>
+                <div class="flex justify-center gap-4 text-[10px] text-slate-400 pt-1">
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> التحصيلات</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> المصروفات</span>
                 </div>
-                <div class="h-36 w-full flex items-end gap-1.5 sm:gap-2 pt-4 px-1 overflow-x-auto" id="annualChartContainer"></div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3 lg:col-span-2">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                        <h3 class="font-bold text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-triangle-exclamation text-amber-400"></i> متأخرات السكان للشهر المحدد
-                        </h3>
-                        <select id="targetCurrentMonthSelect" onchange="updateUI()" class="app-input border rounded-xl px-2.5 py-1.5 text-xs font-semibold"></select>
-                    </div>
-                    <div id="unpaidResidentsContainer" class="space-y-2 max-h-64 overflow-y-auto"></div>
-                </div>
+            <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
+                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-amber-400"></i> متأخرات السكان</h3>
+                <div id="unpaidResidentsContainer" class="space-y-2"></div>
+            </div>
 
-                <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
-                    <h3 class="font-bold text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-chart-pie text-indigo-400"></i> توزيع المصروفات
-                    </h3>
-                    <div id="expenseCategoriesBreakdown" class="space-y-3"></div>
-                </div>
+            <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
+                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-chart-pie text-indigo-400"></i> توزيع المصروفات</h3>
+                <div id="expenseCategoriesBreakdown" class="space-y-3"></div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="app-card p-4 rounded-3xl border space-y-3">
                     <div class="flex justify-between items-center">
-                        <h4 class="font-bold text-xs flex items-center gap-1.5 text-emerald-400">
-                            <i class="fa-solid fa-money-bill-transfer"></i> آخر التحصيلات
-                        </h4>
-                        <button onclick="switchTab('income')" class="text-xs text-indigo-400 font-bold">الكل</button>
+                        <h4 class="font-bold text-xs flex items-center gap-1.5"><i class="fa-solid fa-money-bill-transfer text-emerald-400"></i> آخر التحصيلات</h4>
+                        <button onclick="switchTab('income')" class="text-xs text-indigo-400 font-bold hover:underline">الكل</button>
                     </div>
                     <div id="recentIncomeList" class="space-y-2"></div>
                 </div>
                 <div class="app-card p-4 rounded-3xl border space-y-3">
                     <div class="flex justify-between items-center">
-                        <h4 class="font-bold text-xs flex items-center gap-1.5 text-rose-400">
-                            <i class="fa-solid fa-file-invoice-dollar"></i> آخر المصروفات
-                        </h4>
-                        <button onclick="switchTab('expenses')" class="text-xs text-indigo-400 font-bold">الكل</button>
+                        <h4 class="font-bold text-xs flex items-center gap-1.5"><i class="fa-solid fa-file-invoice-dollar text-rose-400"></i> آخر المصروفات</h4>
+                        <button onclick="switchTab('expenses')" class="text-xs text-indigo-400 font-bold hover:underline">الكل</button>
                     </div>
                     <div id="recentExpenseList" class="space-y-2"></div>
                 </div>
             </div>
         </section>
 
-        <!-- INCOME TAB -->
+        <!-- INCOME -->
         <section id="tab-income" class="hidden space-y-4">
             <div class="flex justify-between items-center app-card p-4 rounded-3xl border no-print">
-                <div>
-                    <h2 class="font-bold text-base">سجل التحصيلات</h2>
-                    <p class="text-[11px] text-slate-400">اشتراكات السكان والأموال المحصلة</p>
-                </div>
-                <button id="addIncomeBtn" onclick="openModal('incomeModal')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-md transition flex items-center gap-2 hidden">
-                    <i class="fa-solid fa-plus text-sm"></i> تحصيل جديد
-                </button>
+                <div><h2 class="font-bold text-base">سجل التحصيلات</h2><p class="text-[11px] text-slate-400">اشتراكات السكان</p></div>
+                <button onclick="openModal('incomeModal')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-emerald-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> تحصيل جديد</button>
             </div>
-
-            <div class="app-card p-3 rounded-3xl border flex flex-col sm:flex-row gap-2 no-print">
-                <input type="text" id="searchIncomeInput" oninput="renderIncomeTable()" placeholder="بحث بالاسم أو الشقة..." class="flex-grow app-input border rounded-2xl px-3 py-2 text-xs">
-                <select id="filterIncomeMonth" onchange="renderIncomeTable()" class="app-input border rounded-2xl px-3 py-2 text-xs font-semibold">
-                    <option value="">كل الشهور</option>
-                </select>
+            <div class="app-card p-3 rounded-3xl border flex gap-2 no-print">
+                <input type="text" id="searchIncomeInput" oninput="renderIncomeTable()" placeholder="بحث..." class="flex-grow app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
+                <select id="filterIncomeMonth" onchange="renderIncomeTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold"><option value="">كل الشهور</option></select>
             </div>
-
             <div id="incomeCardsList" class="space-y-3"></div>
         </section>
 
-        <!-- EXPENSES TAB -->
+        <!-- EXPENSES -->
         <section id="tab-expenses" class="hidden space-y-4">
             <div class="flex justify-between items-center app-card p-4 rounded-3xl border no-print">
-                <div>
-                    <h2 class="font-bold text-base">مصروفات العمارة</h2>
-                    <p class="text-[11px] text-slate-400">فواتير، صيانة، وإصلاحات</p>
-                </div>
-                <button id="addExpenseBtn" onclick="openModal('expenseModal')" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-md transition flex items-center gap-2 hidden">
-                    <i class="fa-solid fa-plus text-sm"></i> مصروف جديد
-                </button>
+                <div><h2 class="font-bold text-base">مصروفات العمارة</h2><p class="text-[11px] text-slate-400">فواتير وصيانة</p></div>
+                <button onclick="openModal('expenseModal')" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-rose-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> مصروف جديد</button>
             </div>
+            <div class="app-card p-3 rounded-3xl border flex flex-wrap gap-2 no-print">
+                <input type="text" id="searchExpenseInput" oninput="renderExpenseTable()" placeholder="بحث..." class="flex-grow app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
+                <select id="filterExpenseCategory" onchange="renderExpenseTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold">
+                    <option value="">كل الفئات</option><option value="كهرباء">كهرباء</option><option value="صيانة أسانسير">صيانة أسانسير</option><option value="نظافة">نظافة</option><option value="أعمال سباكة وصنايعي">أعمال سباكة وصنايعي</option><option value="أخرى">أخرى</option>
+                </select>
+                <select id="filterExpenseMonth" onchange="renderExpenseTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold"><option value="">كل الشهور</option></select>
+            </div>
+            <div id="expenseCardsList" class="space-y-3"></div>
+        </section>
 
-            <div class="app-card p-3 rounded-3xl border flex flex-col sm:flex-row gap-2 no-print">
-                <input type="text" id="searchExpenseInput" oninput="renderExpenseTable()" placeholder="بحث في عنوان المصروف..." class="flex-grow app-input border rounded-2xl px-3 py-2 text-xs">
-                <select id="filterExpenseCategory" onchange="renderExpenseTable()" class="app-input border rounded-2xl px-3 py-2 text-xs font-semibold">
-                    <option value="">كل الفئات</option>
+        <!-- RESIDENTS -->
+        <section id="tab-residents" class="hidden space-y-4">
+            <div class="flex justify-between items-center app-card p-4 rounded-3xl border no-print">
+                <div><h2 class="font-bold text-base">قائمة الشقق</h2><p class="text-[11px] text-slate-400">الاشتراكات الشهرية</p></div>
+                <button onclick="openResidentModal('add')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-indigo-600/20 transition flex items-center gap-2"><i class="fa-solid fa-user-plus text-sm"></i> شقة جديدة</button>
+            </div>
+            <div class="app-card p-3 rounded-3xl border no-print">
+                <input type="text" id="searchResidentsInput" oninput="renderResidentsGrid()" placeholder="بحث بالاسم أو رقم الشقة..." class="w-full app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="residentsGrid"></div>
+        </section>
+
+        <!-- REPORTS -->
+        <section id="tab-reports" class="hidden space-y-4">
+            <div class="app-card p-5 rounded-3xl border space-y-4">
+                <div>
+                    <h2 class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-file-invoice-dollar text-indigo-400"></i> تقارير الملاك</h2>
+                    <p class="text-xs text-slate-400 mt-0.5">تقارير شهرية جاهزة للمشاركة</p>
+                </div>
+                <div class="app-input p-4 rounded-2xl border space-y-3">
+                    <label class="block text-xs font-bold text-indigo-400">اختر شهر التقرير:</label>
+                    <div class="flex gap-2">
+                        <select id="reportMonthSelect" class="flex-grow app-input border rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"></select>
+                        <button onclick="generateLandlordReport()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow">معاينة</button>
+                    </div>
+                </div>
+                <div id="landlordReportPreview" class="app-input p-4 rounded-2xl border text-xs leading-relaxed space-y-3">
+                    <p class="text-slate-400 text-center py-4">اضغط (معاينة) لعرض التقرير</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                    <button onclick="window.print()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 shadow"><i class="fa-solid fa-print"></i> طباعة PDF</button>
+                    <button onclick="exportToCSV()" class="w-full bg-amber-600 hover:bg-amber-500 text-white py-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 shadow"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button>
+                </div>
+            </div>
+            <div class="app-card p-5 rounded-3xl border space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-xs flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> سجل التدقيق</h3>
+                    <button onclick="clearAuditLog()" class="text-[10px] text-slate-400 hover:text-rose-400 underline">مسح السجل</button>
+                </div>
+                <div id="auditLogContainer" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="app-card fixed bottom-0 left-0 right-0 border-t z-40 flex justify-around py-3 px-1 shadow-2xl no-print max-w-4xl mx-auto">
+        <button onclick="switchTab('dashboard')" id="btn-dashboard" class="tab-btn active flex flex-col items-center gap-1 text-slate-400 transition"><i class="fa-solid fa-chart-pie text-lg"></i><span class="text-[10px] font-semibold">الرئيسية</span></button>
+        <button onclick="switchTab('income')" id="btn-income" class="tab-btn flex flex-col items-center gap-1 text-slate-400 transition"><i class="fa-solid fa-hand-holding-dollar text-lg"></i><span class="text-[10px] font-semibold">التحصيلات</span></button>
+        <button onclick="switchTab('expenses')" id="btn-expenses" class="tab-btn flex flex-col items-center gap-1 text-slate-400 transition"><i class="fa-solid fa-receipt text-lg"></i><span class="text-[10px] font-semibold">المصروفات</span></button>
+        <button onclick="switchTab('residents')" id="btn-residents" class="tab-btn flex flex-col items-center gap-1 text-slate-400 transition"><i class="fa-solid fa-users text-lg"></i><span class="text-[10px] font-semibold">الشقق</span></button>
+        <button onclick="switchTab('reports')" id="btn-reports" class="tab-btn flex flex-col items-center gap-1 text-slate-400 transition"><i class="fa-solid fa-file-invoice text-lg"></i><span class="text-[10px] font-semibold">التقارير</span></button>
+    </nav>
+
+    <!-- Notice Modal -->
+    <div id="noticeModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn max-h-[90vh] overflow-y-auto">
+            <div class="bg-indigo-700 text-white px-5 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-sm"><i class="fa-solid fa-bullhorn ml-2"></i> لوحة الإعلانات</h3>
+                <button onclick="closeModal('noticeModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-indigo-400 mb-1.5"><i class="fa-solid fa-wand-magic-sparkles ml-1"></i> قوالب جاهزة:</label>
+                    <div class="grid grid-cols-1 gap-2">
+                        <button type="button" onclick="applyNoticeTemplate('monthly_sub')" class="text-right app-input hover:bg-indigo-600/10 p-2.5 rounded-xl border text-xs transition flex justify-between items-center"><span>📅 تذكير اشتراك شهري</span><i class="fa-solid fa-arrow-left text-indigo-400"></i></button>
+                        <button type="button" onclick="applyNoticeTemplate('cleaning')" class="text-right app-input hover:bg-indigo-600/10 p-2.5 rounded-xl border text-xs transition flex justify-between items-center"><span>🧹 حملة نظافة</span><i class="fa-solid fa-arrow-left text-indigo-400"></i></button>
+                        <button type="button" onclick="applyNoticeTemplate('elevator')" class="text-right app-input hover:bg-indigo-600/10 p-2.5 rounded-xl border text-xs transition flex justify-between items-center"><span>🛗 صيانة أسانسير</span><i class="fa-solid fa-arrow-left text-indigo-400"></i></button>
+                        <button type="button" onclick="applyNoticeTemplate('eid')" class="text-right app-input hover:bg-indigo-600/10 p-2.5 rounded-xl border text-xs transition flex justify-between items-center"><span>🌙 تهنئة مناسبة</span><i class="fa-solid fa-arrow-left text-indigo-400"></i></button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">صيغة الإعلان:</label>
+                    <textarea id="noticeInput" rows="4" placeholder="اكتب الإعلان..." class="w-full app-input border rounded-2xl p-3 text-xs focus:outline-none"></textarea>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeModal('noticeModal')" class="flex-1 bg-slate-800 text-slate-300 py-3 rounded-2xl font-bold transition">إلغاء</button>
+                    <button type="button" onclick="handleNoticeSubmit()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">نشر</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn max-h-[90vh] overflow-y-auto">
+            <div class="bg-indigo-700 text-white px-5 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-sm"><i class="fa-solid fa-gear ml-2"></i> الإعدادات</h3>
+                <button onclick="closeModal('settingsModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">اسم العمارة</label>
+                    <input type="text" id="settingsBuildingName" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-bold text-slate-300 mb-1">اسم المدير</label>
+                        <input type="text" id="settingsManagerName" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></div>
+                    <div><label class="block text-xs font-bold text-slate-300 mb-1">هاتف المدير</label>
+                        <input type="tel" id="settingsManagerPhone" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-bold text-slate-300 mb-1">اشتراك شهري</label>
+                        <input type="number" id="settingsDefaultSub" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></div>
+                    <div><label class="block text-xs font-bold text-slate-300 mb-1">رصيد افتتاحي</label>
+                        <input type="number" id="settingsStartingBalance" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></div>
+                </div>
+                <div class="app-input border rounded-2xl p-3 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs font-bold">قفل PIN</label>
+                        <input type="checkbox" id="settingsPinEnabled" class="w-4 h-4 accent-indigo-500">
+                    </div>
+                    <input type="text" id="settingsPinCode" maxlength="4" inputmode="numeric" placeholder="4 أرقام (اتركه فارغاً للإبقاء على القديم)" class="w-full app-input border rounded-xl px-3 py-2 text-sm focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">الثيم</label>
+                    <div class="flex gap-2">
+                        <button onclick="setTheme('dark')" class="flex-1 app-card border py-2 rounded-xl text-xs font-bold">داكن</button>
+                        <button onclick="setTheme('light')" class="flex-1 app-card border py-2 rounded-xl text-xs font-bold">فاتح</button>
+                        <button onclick="setTheme('emerald')" class="flex-1 app-card border py-2 rounded-xl text-xs font-bold">زمردي</button>
+                    </div>
+                </div>
+                <div class="border-t border-slate-700/50 pt-4 space-y-2">
+                    <label class="block text-xs font-bold text-slate-300">GitHub Sync (اختياري)</label>
+                    <input type="password" id="settingsGhToken" placeholder="GitHub Token" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                    <input type="text" id="settingsGhGistId" placeholder="Gist ID" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                </div>
+                <button onclick="saveSettings()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">حفظ الإعدادات</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backup Modal -->
+    <div id="backupModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+            <div class="bg-emerald-700 text-white px-5 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-sm"><i class="fa-solid fa-cloud-arrow-down ml-2"></i> النسخ الاحتياطي</h3>
+                <button onclick="closeModal('backupModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-5 space-y-3">
+                <button onclick="exportJSON()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-2xl font-bold transition"><i class="fa-solid fa-download ml-2"></i> تصدير JSON</button>
+                <label class="block w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition text-center cursor-pointer"><i class="fa-solid fa-upload ml-2"></i> استيراد JSON<input type="file" accept=".json" onchange="importJSON(event)" class="hidden"></label>
+                <div id="backupStatus" class="text-xs text-slate-400 text-center pt-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resident Modal -->
+    <div id="residentModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+            <div class="bg-indigo-700 text-white px-5 py-4 flex justify-between items-center">
+                <h3 id="residentModalTitle" class="font-bold text-sm">شقة جديدة</h3>
+                <button onclick="closeModal('residentModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="residentForm" onsubmit="handleResidentSubmit(event)" class="p-5 space-y-3">
+                <input type="text" id="residentName" placeholder="اسم المستأجر" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" id="residentApartment" placeholder="رقم الشقة" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                    <input type="tel" id="residentPhone" placeholder="الهاتف" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                </div>
+                <input type="number" id="residentAmount" placeholder="الاشتراك الشهري" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                <textarea id="residentNotes" rows="2" placeholder="ملاحظات" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">حفظ</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Income Modal -->
+    <div id="incomeModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+            <div class="bg-emerald-700 text-white px-5 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-sm"><i class="fa-solid fa-hand-holding-dollar ml-2"></i> تحصيل جديد</h3>
+                <button onclick="closeModal('incomeModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="incomeForm" onsubmit="handleIncomeSubmit(event)" class="p-5 space-y-3">
+                <select id="incomeResident" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر الشقة</option></select>
+                <input type="number" id="incomeAmount" placeholder="المبلغ" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                <select id="incomeMonth" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
+                <textarea id="incomeNotes" rows="2" placeholder="ملاحظات" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-2xl font-bold transition">حفظ</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Expense Modal -->
+    <div id="expenseModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+            <div class="bg-rose-700 text-white px-5 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-sm"><i class="fa-solid fa-receipt ml-2"></i> مصروف جديد</h3>
+                <button onclick="closeModal('expenseModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="expenseForm" onsubmit="handleExpenseSubmit(event)" class="p-5 space-y-3">
+                <input type="text" id="expenseTitle" placeholder="عنوان المصروف" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                <input type="number" id="expenseAmount" placeholder="المبلغ" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                <select id="expenseCategory" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                     <option value="كهرباء">كهرباء</option>
                     <option value="صيانة أسانسير">صيانة أسانسير</option>
                     <option value="نظافة">نظافة</option>
                     <option value="أعمال سباكة وصنايعي">أعمال سباكة وصنايعي</option>
                     <option value="أخرى">أخرى</option>
                 </select>
-                <select id="filterExpenseMonth" onchange="renderExpenseTable()" class="app-input border rounded-2xl px-3 py-2 text-xs font-semibold">
-                    <option value="">كل الشهور</option>
-                </select>
-            </div>
-
-            <div id="expenseCardsList" class="space-y-3"></div>
-        </section>
-
-        <!-- RESIDENTS TAB -->
-        <section id="tab-residents" class="hidden space-y-4">
-            <div class="flex justify-between items-center app-card p-4 rounded-3xl border no-print">
-                <div>
-                    <h2 class="font-bold text-base">قائمة الشقق والسكان</h2>
-                    <p class="text-[11px] text-slate-400">إدارة المقيمين، الاشتراكات، والأرشيف</p>
-                </div>
-                <button id="addResidentBtn" onclick="openModal('residentModal')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-md transition flex items-center gap-2 hidden">
-                    <i class="fa-solid fa-user-plus text-sm"></i> شقة جديدة
-                </button>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="residentsGrid"></div>
-        </section>
-    </main>
-
-    <!-- Mobile Bottom Navigation -->
-    <nav class="fixed bottom-0 left-0 right-0 app-card border-t z-40 flex justify-around py-3 px-2 shadow-2xl no-print">
-        <button onclick="switchTab('dashboard')" id="btn-dashboard" class="tab-btn active flex flex-col items-center gap-1 text-slate-400 transition">
-            <i class="fa-solid fa-chart-pie text-lg"></i>
-            <span class="text-[10px] font-semibold">الرئيسية</span>
-        </button>
-        <button onclick="switchTab('income')" id="btn-income" class="tab-btn flex flex-col items-center gap-1 text-slate-400 transition">
-            <i class="fa-solid fa-hand-holding-dollar text-lg"></i>
-            <span class="text-[10px] font-semibold">التحصيلات</span>
-        </button>
-        <button onclick="switchTab('expenses')" id="btn-expenses" class="tab-btn flex flex-col items-center gap-1 text-slate-400 transition">
-            <i class="fa-solid fa-receipt text-lg"></i>
-            <span class="text-[10px] font-semibold">المصروفات</span>
-        </button>
-        <button onclick="switchTab('residents')" id="btn-residents" class="tab-btn flex flex-col items-center gap-1 text-slate-400 transition">
-            <i class="fa-solid fa-users text-lg"></i>
-            <span class="text-[10px] font-semibold">الشقق</span>
-        </button>
-    </nav>
-
-    <!-- SETTINGS MODAL -->
-    <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
-        <div class="app-card border w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
-            <div class="bg-indigo-600 text-white px-5 py-4 flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fa-solid fa-shield-halved ml-2"></i> إعدادات الأمان والخزنة</h3>
-                <button onclick="closeModal('settingsModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="p-5 space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">رصيد الخزنة السابق (أول المدة)</label>
-                    <input type="number" min="0" step="any" id="startingBalanceInput" placeholder="مثال: 0" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">قيمة الاشتراك الافتراضي الموحد (ج.م)</label>
-                    <input type="number" min="0" step="any" id="defaultSubscriptionInput" placeholder="مثال: 250" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs font-bold text-indigo-400">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">رمز الحماية الجديد (4 أرقام)</label>
-                    <input type="password" inputmode="numeric" id="newPinInput" maxlength="4" placeholder="اتركه فارغاً إذا لم ترد التغيير" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs">
-                    <p class="text-[10px] text-slate-500 mt-1">يُفضل تغيير الرمز من وقت لآخر. يجب أن يكون 4 أرقام.</p>
-                </div>
-                <div class="flex gap-2 pt-2">
-                    <button type="button" onclick="closeModal('settingsModal')" class="flex-1 bg-slate-800 text-slate-300 py-3 rounded-2xl text-xs font-bold">إلغاء</button>
-                    <button type="button" onclick="saveSettings()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl text-xs font-bold shadow">حفظ</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- BACKUP MODAL -->
-    <div id="backupModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
-        <div class="app-card border w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
-            <div class="bg-slate-800 text-white px-5 py-4 flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fa-solid fa-cloud-arrow-down ml-2"></i> مزامنة Gist والنسخ الاحتياطي</h3>
-                <button onclick="closeModal('backupModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="p-5 space-y-3">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">GitHub Personal Access Token (Gist)</label>
-                    <input type="password" id="gistTokenInput" placeholder="ghp_xxxxxxxxxxxx" class="w-full app-input border rounded-2xl px-3 py-2.5 text-xs">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">GitHub Gist ID (اختياري)</label>
-                    <input type="text" id="gistIdInput" placeholder="اتركه فارغاً للإنشاء التلقائي" class="w-full app-input border rounded-2xl px-3 py-2.5 text-xs">
-                </div>
-                <button onclick="connectAndSyncGist()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-2xl text-xs transition">حفظ ومزامنة سحابية</button>
-                <button onclick="createManualSnapshot()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-2xl text-xs transition border border-slate-700">أخذ لقطة محلية فورية</button>
-                <div class="flex gap-2">
-                    <button onclick="exportJSONBackup()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-2xl text-xs">تصدير JSON</button>
-                    <label class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-2xl text-xs text-center cursor-pointer">
-                        استيراد
-                        <input type="file" accept=".json" onchange="importJSONBackup(event)" class="hidden">
-                    </label>
-                </div>
-                <div class="border-t border-slate-700/50 pt-2">
-                    <p class="text-xs font-bold text-slate-400 mb-1">اللقطات الاحتياطية المحلية:</p>
-                    <div id="snapshotsList" class="space-y-1.5 max-h-28 overflow-y-auto"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- INCOME MODAL -->
-    <div id="incomeModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
-        <div class="app-card border w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
-            <div class="bg-emerald-600 text-white px-5 py-4 flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fa-solid fa-hand-holding-dollar ml-2"></i> تسجيل تحصيل جديد</h3>
-                <button onclick="closeModal('incomeModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <form id="incomeForm" onsubmit="handleIncomeSubmit(event)" class="p-5 space-y-3">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">اختر الشقة *</label>
-                    <select id="incomeResidentSelect" onchange="onResidentSelectChange()" required class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs font-semibold"></select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">المبلغ (ج.م) *</label>
-                    <input type="number" min="0" step="any" id="incomeAmount" required placeholder="مثال: 250" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs font-bold text-emerald-400">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">عن شهر / الفترة *</label>
-                    <input type="text" id="incomeMonth" required placeholder="مثال: نوفمبر 2026" list="monthSuggestions" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs">
-                    <datalist id="monthSuggestions"></datalist>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">التاريخ *</label>
-                    <input type="date" id="incomeDate" required class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">ملاحظات</label>
-                    <input type="text" id="incomeNotes" placeholder="مثال: تم الدفع نقداً" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs">
-                </div>
-                <div class="flex gap-2 pt-2">
-                    <button type="button" onclick="closeModal('incomeModal')" class="flex-1 bg-slate-800 text-slate-300 py-3 rounded-2xl text-xs font-bold">إلغاء</button>
-                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-2xl text-xs font-bold shadow">حفظ التحصيل</button>
-                </div>
+                <select id="expenseMonth" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
+                <textarea id="expenseNotes" rows="2" placeholder="ملاحظات" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
+                <button type="submit" class="w-full bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-2xl font-bold transition">حفظ</button>
             </form>
         </div>
     </div>
 
-    <!-- EXPENSE MODAL -->
-    <div id="expenseModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
-        <div class="app-card border w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
-            <div class="bg-rose-600 text-white px-5 py-4 flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fa-solid fa-receipt ml-2"></i> تسجيل مصروف جديد</h3>
-                <button onclick="closeModal('expenseModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <form id="expenseForm" onsubmit="handleExpenseSubmit(event)" class="p-5 space-y-3">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">عنوان المصروف / الوصف *</label>
-                    <input type="text" id="expenseTitle" required placeholder="مثال: صيانة أسانسير" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">الفئة *</label>
-                    <select id="expenseCategory" required class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs font-semibold">
-                        <option value="كهرباء">كهرباء</option>
-                        <option value="صيانة أسانسير">صيانة أسانسير</option>
-                        <option value="نظافة">نظافة</option>
-                        <option value="أعمال سباكة وصنايعي">أعمال سباكة وصنايعي</option>
-                        <option value="أخرى">أخرى</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">المبلغ (ج.م) *</label>
-                    <input type="number" min="0" step="any" id="expenseAmount" required placeholder="مثال: 400" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs font-bold text-rose-400">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">التاريخ *</label>
-                    <input type="date" id="expenseDate" required class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">ملاحظات / المستفيد</label>
-                    <input type="text" id="expenseNotes" placeholder="مثال: تم بواسطة فني الشركة" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs">
-                </div>
-                <div class="flex gap-2 pt-2">
-                    <button type="button" onclick="closeModal('expenseModal')" class="flex-1 bg-slate-800 text-slate-300 py-3 rounded-2xl text-xs font-bold">إلغاء</button>
-                    <button type="submit" class="flex-1 bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-2xl text-xs font-bold shadow">حفظ المصروف</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- RESIDENT MODAL -->
-    <div id="residentModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
-        <div class="app-card border w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
-            <div class="bg-indigo-600 text-white px-5 py-4 flex justify-between items-center">
-                <h3 class="font-bold text-sm" id="residentModalTitle"><i class="fa-solid fa-user-plus ml-2"></i> إضافة شقة أو تعديل مقيم</h3>
-                <button onclick="closeModal('residentModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <form id="residentForm" onsubmit="handleResidentSubmit(event)" class="p-5 space-y-3">
-                <input type="hidden" id="editResidentId">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">رقم الشقة / الدور *</label>
-                    <input type="text" id="residentApartment" required placeholder="مثال: شقة 1" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">اسم المالك أو المستأجر الحالي *</label>
-                    <input type="text" id="residentName" required placeholder="مثال: أ. محمد أحمد" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">رقم الهاتف (للرسائل والواتساب)</label>
-                    <input type="tel" id="residentPhone" placeholder="مثال: 01012345678" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">قيمة الاشتراك الشهري المخصص (ج.م) *</label>
-                    <input type="number" min="0" step="any" id="residentMonthlyAmount" required placeholder="مثال: 250" class="w-full app-input border rounded-2xl px-3.5 py-3 text-xs font-bold text-indigo-400">
-                </div>
-                <div class="flex gap-2 pt-2">
-                    <button type="button" onclick="closeModal('residentModal')" class="flex-1 bg-slate-800 text-slate-300 py-3 rounded-2xl text-xs font-bold">إلغاء</button>
-                    <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl text-xs font-bold shadow">حفظ المقيم</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Resident Statement Modal -->
-    <div id="residentStatementModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
-        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
-            <div class="bg-indigo-600 text-white px-5 py-4 flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fa-solid fa-file-invoice ml-2"></i> كشف حساب الشقة</h3>
-                <button onclick="closeModal('residentStatementModal')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="p-5 space-y-3 max-h-[70vh] overflow-y-auto" id="residentStatementContent"></div>
-            <div class="app-card border-t px-5 py-3 flex justify-between items-center">
-                <button type="button" onclick="shareStatementNative()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-1.5">
-                    <i class="fa-solid fa-share-nodes"></i> مشاركة الكشف
-                </button>
-                <button type="button" onclick="closeModal('residentStatementModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-2xl text-xs font-bold">إغلاق</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Confirm Modal -->
-    <div id="confirmModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-[60] p-4">
-        <div class="app-card border w-full max-w-xs rounded-3xl shadow-2xl p-6 text-center space-y-4 animate-fadeIn">
-            <div class="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center text-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-            </div>
-            <h3 id="confirmModalTitle" class="font-bold text-base text-slate-100">تأكيد</h3>
-            <p id="confirmModalDesc" class="text-xs text-slate-400">هل أنت متأكد؟</p>
-            <div class="flex gap-2">
-                <button onclick="closeConfirmModal(false)" class="flex-1 bg-slate-800 text-slate-300 py-3 rounded-2xl text-xs font-bold">إلغاء</button>
-                <button onclick="closeConfirmModal(true)" class="flex-1 bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-2xl text-xs font-bold">تأكيد</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Custom Modal (alerts) -->
-    <div id="customModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-[60] p-4">
-        <div class="app-card border w-full max-w-xs rounded-3xl shadow-2xl p-6 text-center space-y-4 animate-fadeIn">
-            <div id="customModalIcon" class="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center text-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <i class="fa-solid fa-check"></i>
-            </div>
-            <h3 id="customModalTitle" class="font-bold text-base text-slate-100">عنوان</h3>
-            <p id="customModalDesc" class="text-xs text-slate-400">وصف</p>
-            <button onclick="closeCustomModal()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-2xl text-xs transition">حسناً</button>
-        </div>
-    </div>
-
-    <script>
-        // ========== STATE ==========
-        let state = {
-            residents: [],
-            income: [],
-            expenses: [],
-            pinCode: '',
-            startingBalance: 0,
-            defaultSubscription: 250,
-            gistToken: '',
-            gistId: '',
-            lastTimestamp: Date.now()
-        };
-
-        let snapshots = [];
-        let currentViewingResidentId = null;
-        let isManagerLoggedIn = false;
-        let confirmCallback = null;
-
-        const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-
-        // ========== INIT ==========
-        window.onload = function () {
-            loadLocalStorageData();
-            const today = new Date();
-            document.getElementById('incomeDate').valueAsDate = today;
-            document.getElementById('expenseDate').valueAsDate = today;
-            setupMonthSelectors();
-            updateUI();
-            if (state.gistToken && state.gistId) {
-                syncWithGist(true);
-            }
-            // Focus first PIN digit
-            setTimeout(() => {
-                const first = document.querySelector('.pin-digit');
-                if (first) first.focus();
-            }, 300);
-        };
-
-        function loadLocalStorageData() {
-            try {
-                const saved = localStorage.getItem('manzil_app_data_v5');
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    state = { ...state, ...parsed };
-                }
-            } catch (e) {
-                console.warn('Failed to load data', e);
-            }
-            try {
-                const savedSnapshots = localStorage.getItem('manzil_app_snapshots_v5');
-                if (savedSnapshots) snapshots = JSON.parse(savedSnapshots);
-            } catch (e) {}
-        }
-
-        function saveLocalStorageOnly() {
-            state.lastTimestamp = Date.now();
-            localStorage.setItem('manzil_app_data_v5', JSON.stringify(state));
-        }
-
-        window.saveData = function () {
-            if (!isManagerLoggedIn) return;
-            saveLocalStorageOnly();
-            if (state.gistToken) {
-                pushToGist();
-            } else {
-                document.getElementById('syncStatus').innerText = "محفوظ محلياً (أدخل Gist للسحابة) 🔒";
-            }
-        };
-
-        // ========== GIST SYNC ==========
-        async function pushToGist() {
-            if (!isManagerLoggedIn || !state.gistToken) return;
-            document.getElementById('syncStatus').innerText = "جاري المزامنة مع Gist... ☁️";
-            try {
-                const dataStr = JSON.stringify(state, null, 2);
-                let url = 'https://api.github.com/gists';
-                let method = 'POST';
-                if (state.gistId) {
-                    url = `https://api.github.com/gists/${state.gistId}`;
-                    method = 'PATCH';
-                }
-                const res = await fetch(url, {
-                    method,
-                    headers: {
-                        'Authorization': `token ${state.gistToken}`,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/vnd.github+json'
-                    },
-                    body: JSON.stringify({
-                        description: "Manzil App Cloud Backup",
-                        public: false,
-                        files: { "manzil_data.json": { content: dataStr } }
-                    })
-                });
-                if (res.ok) {
-                    const resJson = await res.json();
-                    if (!state.gistId && resJson.id) {
-                        state.gistId = resJson.id;
-                        saveLocalStorageOnly();
-                    }
-                    document.getElementById('syncStatus').innerText = "متزامن سحابياً مع Gist (مدير) ☁️✓";
-                } else {
-                    document.getElementById('syncStatus').innerText = "خطأ في الاتصال بـ Gist ⚠️";
-                }
-            } catch (err) {
-                document.getElementById('syncStatus').innerText = "وضع محلي (خطأ شبكة) 🔒";
-            }
-        }
-
-        async function syncWithGist(silent = false) {
-            if (!state.gistToken || !state.gistId) return;
-            try {
-                const res = await fetch(`https://api.github.com/gists/${state.gistId}`, {
-                    headers: {
-                        'Authorization': `token ${state.gistToken}`,
-                        'Accept': 'application/vnd.github+json'
-                    }
-                });
-                if (res.ok) {
-                    const json = await res.json();
-                    const file = json.files && json.files["manzil_data.json"];
-                    if (file && file.content) {
-                        const cloudData = JSON.parse(file.content);
-                        if ((cloudData.lastTimestamp || 0) > (state.lastTimestamp || 0)) {
-                            state = { ...state, ...cloudData };
-                            saveLocalStorageOnly();
-                            updateUI();
-                            if (!silent) showCustomModal('نجاح', 'تمت مزامنة أحدث البيانات من سحابة Gist بنجاح', 'success');
-                        }
-                    }
-                }
-            } catch (e) {}
-        }
-
-        window.connectAndSyncGist = function () {
-            if (!isManagerLoggedIn) return;
-            const token = document.getElementById('gistTokenInput').value.trim();
-            const id = document.getElementById('gistIdInput').value.trim();
-            if (!token) {
-                showCustomModal('تنبيه', 'يرجى إدخال رمز Gist Token صالح', 'error');
-                return;
-            }
-            state.gistToken = token;
-            if (id) state.gistId = id;
-            saveLocalStorageOnly();
-            closeModal('backupModal');
-            pushToGist();
-        };
-
-        // ========== HELPERS ==========
-        function getCurrentMonthStr() {
-            const now = new Date();
-            return `${MONTHS_AR[now.getMonth()]} ${now.getFullYear()}`;
-        }
-
-        function dateToMonthStr(dateStr) {
-            if (!dateStr) return '';
-            const d = new Date(dateStr + 'T12:00:00'); // avoid timezone shift
-            if (isNaN(d.getTime())) return '';
-            return `${MONTHS_AR[d.getMonth()]} ${d.getFullYear()}`;
-        }
-
-        function formatMoney(n) {
-            return Number(n || 0).toLocaleString('ar-EG');
-        }
-
-        function normalizePhone(phone) {
-            if (!phone) return '';
-            let p = phone.replace(/[^0-9]/g, '');
-            // Egyptian numbers: if starts with 0 and length 11 → keep, or convert 01... to 20...
-            if (p.startsWith('0') && p.length === 11) {
-                p = '20' + p.slice(1);
-            } else if (p.startsWith('1') && p.length === 10) {
-                p = '20' + p;
-            }
-            return p;
-        }
-
-        // ========== MONTH SELECTORS ==========
-        function setupMonthSelectors() {
-            const currentMonthStr = getCurrentMonthStr();
-            const existingMonths = new Set([currentMonthStr]);
-
-            state.income.forEach(i => { if (i.month) existingMonths.add(i.month); });
-            state.expenses.forEach(e => {
-                const m = dateToMonthStr(e.date);
-                if (m) existingMonths.add(m);
-            });
-
-            // Sort roughly by year then month
-            const sortedMonths = Array.from(existingMonths).sort((a, b) => {
-                const [ma, ya] = a.split(' ');
-                const [mb, yb] = b.split(' ');
-                if (ya !== yb) return Number(yb) - Number(ya);
-                return MONTHS_AR.indexOf(mb) - MONTHS_AR.indexOf(ma);
-            });
-
-            // Target month (dashboard)
-            const targetSelect = document.getElementById('targetCurrentMonthSelect');
-            if (targetSelect) {
-                const prev = targetSelect.value;
-                targetSelect.innerHTML = '';
-                sortedMonths.forEach(m => {
-                    targetSelect.innerHTML += `<option value="${m}">${m}</option>`;
-                });
-                if (prev && sortedMonths.includes(prev)) targetSelect.value = prev;
-                else targetSelect.value = currentMonthStr;
-            }
-
-            // Income filter
-            const incomeFilter = document.getElementById('filterIncomeMonth');
-            if (incomeFilter) {
-                const prev = incomeFilter.value;
-                incomeFilter.innerHTML = '<option value="">كل الشهور</option>';
-                sortedMonths.forEach(m => {
-                    incomeFilter.innerHTML += `<option value="${m}">${m}</option>`;
-                });
-                if (prev) incomeFilter.value = prev;
-            }
-
-            // Expense filter (new)
-            const expenseFilter = document.getElementById('filterExpenseMonth');
-            if (expenseFilter) {
-                const prev = expenseFilter.value;
-                expenseFilter.innerHTML = '<option value="">كل الشهور</option>';
-                sortedMonths.forEach(m => {
-                    expenseFilter.innerHTML += `<option value="${m}">${m}</option>`;
-                });
-                if (prev) expenseFilter.value = prev;
-            }
-
-            // Suggestions for income month input
-            const list = document.getElementById('monthSuggestions');
-            if (list) {
-                list.innerHTML = '';
-                sortedMonths.forEach(m => {
-                    list.innerHTML += `<option value="${m}">`;
-                });
-                // Also suggest a few future/past
-                const now = new Date();
-                for (let i = -2; i <= 2; i++) {
-                    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-                    const s = `${MONTHS_AR[d.getMonth()]} ${d.getFullYear()}`;
-                    if (!existingMonths.has(s)) list.innerHTML += `<option value="${s}">`;
-                }
-            }
-        }
-
-        // ========== PIN HANDLING ==========
-        function handlePinInput(el) {
-            const val = el.value.replace(/[^0-9]/g, '');
-            el.value = val.slice(0, 1);
-            if (val && el.dataset.index < 3) {
-                const next = document.querySelector(`.pin-digit[data-index="${Number(el.dataset.index) + 1}"]`);
-                if (next) next.focus();
-            }
-            // Auto-submit when last digit filled
-            if (el.dataset.index === '3' && val) {
-                setTimeout(verifyPinCode, 150);
-            }
-        }
-
-        function handlePinKeydown(e, el) {
-            if (e.key === 'Backspace' && !el.value && el.dataset.index > 0) {
-                const prev = document.querySelector(`.pin-digit[data-index="${Number(el.dataset.index) - 1}"]`);
-                if (prev) {
-                    prev.focus();
-                    prev.value = '';
-                }
-            }
-        }
-
-        window.verifyPinCode = function () {
-            const inputs = document.querySelectorAll('.pin-digit');
-            let entered = '';
-            inputs.forEach(i => entered += i.value);
-
-            // First-time: no PIN set → require setting one
-            if (!state.pinCode) {
-                if (entered.length !== 4 || !/^\d{4}$/.test(entered)) {
-                    showCustomModal('تنبيه', 'أول استخدام: يرجى إدخال رمز سري مكون من 4 أرقام لتعيينه كرمز المدير', 'error');
-                    inputs.forEach(i => i.value = '');
-                    inputs[0].focus();
-                    return;
-                }
-                state.pinCode = entered;
-                saveLocalStorageOnly();
-                isManagerLoggedIn = true;
-                hidePinModal();
-                document.getElementById('syncStatus').innerText = "وضع المدير النشط 🛡️ (تم تعيين الرمز)";
-                applyRoleUI();
-                showCustomModal('تم التعيين', 'تم تعيين الرمز السري بنجاح. احفظه في مكان آمن.', 'success');
-                return;
-            }
-
-            if (entered === state.pinCode) {
-                isManagerLoggedIn = true;
-                hidePinModal();
-                document.getElementById('syncStatus').innerText = "وضع المدير النشط 🛡️";
-                applyRoleUI();
-                showCustomModal('أهلاً بك', 'تم تسجيل دخول المدير بنجاح', 'success');
-            } else {
-                showCustomModal('خطأ', 'الرمز السري غير صحيح', 'error');
-                inputs.forEach(i => i.value = '');
-                inputs[0].focus();
-            }
-        };
-
-        function hidePinModal() {
-            document.getElementById('pinLockModal').classList.remove('flex');
-            document.getElementById('pinLockModal').classList.add('hidden');
-        }
-
-        window.enterAsResidentView = function () {
-            isManagerLoggedIn = false;
-            hidePinModal();
-            document.getElementById('syncStatus').innerText = "وضع الساكن (للاطلاع فقط) 👀";
-            applyRoleUI();
-        };
-
-        window.lockAppToResidentMode = function () {
-            isManagerLoggedIn = false;
-            document.getElementById('pinLockModal').classList.remove('hidden');
-            document.getElementById('pinLockModal').classList.add('flex');
-            document.querySelectorAll('.pin-digit').forEach(i => i.value = '');
-            const hint = document.getElementById('pinModalHint');
-            if (hint) {
-                hint.textContent = state.pinCode
-                    ? 'أدخل الرمز السري للإدارة، أو تابع كـ "ساكن (للاطلاع فقط)"'
-                    : 'أول استخدام: أدخل 4 أرقام لتعيين رمز المدير، أو ادخل كساكن';
-            }
-            applyRoleUI();
-            setTimeout(() => {
-                const first = document.querySelector('.pin-digit');
-                if (first) first.focus();
-            }, 100);
-        };
-
-        function applyRoleUI() {
-            const ids = ['managerSettingsBtn', 'managerBackupBtn', 'addIncomeBtn', 'addExpenseBtn', 'addResidentBtn'];
-            ids.forEach(id => {
-                const el = document.getElementById(id);
-                if (!el) return;
-                if (isManagerLoggedIn) el.classList.remove('hidden');
-                else el.classList.add('hidden');
-            });
-            updateUI();
-        }
-
-        // ========== TABS & MODALS ==========
-        window.switchTab = function (tabId) {
-            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('tab-' + tabId).classList.remove('hidden');
-            document.getElementById('btn-' + tabId).classList.add('active');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        };
-
-        window.openModal = function (modalId) {
-            if (!isManagerLoggedIn && ['settingsModal', 'backupModal', 'incomeModal', 'expenseModal', 'residentModal'].includes(modalId)) {
-                showCustomModal('صلاحيات مقيدة', 'هذه الخاصية متاحة للمدير فقط. يرجى تسجيل الدخول برمز PIN.', 'error');
-                return;
-            }
-            const modal = document.getElementById(modalId);
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-
-            if (modalId === 'incomeModal') {
-                populateResidentSelect();
-                document.getElementById('incomeMonth').value = getCurrentMonthStr();
-                document.getElementById('incomeDate').valueAsDate = new Date();
-            } else if (modalId === 'expenseModal') {
-                document.getElementById('expenseDate').valueAsDate = new Date();
-            } else if (modalId === 'backupModal') {
-                document.getElementById('gistTokenInput').value = state.gistToken || '';
-                document.getElementById('gistIdInput').value = state.gistId || '';
-                renderSnapshotsList();
-            } else if (modalId === 'settingsModal') {
-                document.getElementById('startingBalanceInput').value = state.startingBalance || 0;
-                document.getElementById('defaultSubscriptionInput').value = state.defaultSubscription || 250;
-                document.getElementById('newPinInput').value = '';
-            } else if (modalId === 'residentModal') {
-                if (!document.getElementById('editResidentId').value) {
-                    document.getElementById('residentMonthlyAmount').value = state.defaultSubscription || 250;
-                    document.getElementById('residentModalTitle').innerHTML = '<i class="fa-solid fa-user-plus ml-2"></i> إضافة شقة جديدة';
-                }
-            }
-        };
-
-        window.closeModal = function (modalId) {
-            const modal = document.getElementById(modalId);
-            modal.classList.remove('flex');
-            modal.classList.add('hidden');
-            if (modalId === 'residentModal') {
-                document.getElementById('residentForm').reset();
-                document.getElementById('editResidentId').value = '';
-            }
-            if (modalId === 'incomeModal') document.getElementById('incomeForm').reset();
-            if (modalId === 'expenseModal') document.getElementById('expenseForm').reset();
-        };
-
-        // ========== SETTINGS ==========
-        window.saveSettings = function () {
-            if (!isManagerLoggedIn) return;
-            state.startingBalance = Math.max(0, parseFloat(document.getElementById('startingBalanceInput').value) || 0);
-            state.defaultSubscription = Math.max(0, parseFloat(document.getElementById('defaultSubscriptionInput').value) || 250);
-            const pinVal = document.getElementById('newPinInput').value.trim();
-            if (pinVal) {
-                if (pinVal.length !== 4 || !/^\d{4}$/.test(pinVal)) {
-                    showCustomModal('خطأ', 'يجب أن يكون الرمز السري مكوناً من 4 أرقام فقط', 'error');
-                    return;
-                }
-                state.pinCode = pinVal;
-            }
-            saveData();
-            updateUI();
-            closeModal('settingsModal');
-            showCustomModal('نجاح', 'تم حفظ الإعدادات بنجاح', 'success');
-        };
-
-        // ========== SNAPSHOTS ==========
-        window.createManualSnapshot = function () {
-            if (!isManagerLoggedIn) return;
-            snapshots.unshift({
-                id: Date.now().toString(),
-                date: new Date().toLocaleString('ar-EG'),
-                data: JSON.stringify(state)
-            });
-            if (snapshots.length > 12) snapshots.pop();
-            localStorage.setItem('manzil_app_snapshots_v5', JSON.stringify(snapshots));
-            renderSnapshotsList();
-            showCustomModal('نجاح', 'تم أخذ اللقطة الاحتياطية محلياً', 'success');
-        };
-
-        function renderSnapshotsList() {
-            const list = document.getElementById('snapshotsList');
-            if (!list) return;
-            list.innerHTML = '';
-            if (snapshots.length === 0) {
-                list.innerHTML = '<p class="text-[11px] text-slate-500 text-center py-1">لا توجد لقطات محفوظة</p>';
-                return;
-            }
-            snapshots.forEach(s => {
-                list.innerHTML += `
-                    <div class="flex items-center justify-between p-2 bg-slate-900 rounded-xl border border-slate-800 text-xs">
-                        <span class="text-slate-300 truncate">${s.date}</span>
-                        <button onclick="restoreSnapshot('${s.id}')" class="bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 px-2.5 py-1 rounded-lg font-bold transition shrink-0">استعادة</button>
-                    </div>`;
-            });
-        }
-
-        window.restoreSnapshot = function (id) {
-            if (!isManagerLoggedIn) return;
-            showConfirm('استعادة لقطة', 'سيتم استبدال البيانات الحالية بهذه اللقطة. هل تريد المتابعة؟', () => {
-                const target = snapshots.find(s => s.id === id);
-                if (!target) return;
-                try {
-                    state = JSON.parse(target.data);
-                    saveData();
-                    updateUI();
-                    closeModal('backupModal');
-                    showCustomModal('نجاح', 'تم استعادة النسخة بنجاح', 'success');
-                } catch (e) {
-                    showCustomModal('خطأ', 'فشل استعادة اللقطة', 'error');
-                }
-            });
-        };
-
-        // ========== RESIDENTS ==========
-        function populateResidentSelect() {
-            const select = document.getElementById('incomeResidentSelect');
-            select.innerHTML = '';
-            if (state.residents.length === 0) {
-                select.innerHTML = '<option value="">لا توجد شقق مسجلة</option>';
-                return;
-            }
-            state.residents.forEach(r => {
-                const monthly = r.monthlyAmount !== undefined ? r.monthlyAmount : state.defaultSubscription;
-                const opt = document.createElement('option');
-                opt.value = r.id;
-                opt.textContent = `${r.apartment} - ${r.name} (${formatMoney(monthly)} ج.م)`;
-                opt.dataset.monthly = monthly;
-                select.appendChild(opt);
-            });
-            onResidentSelectChange();
-        }
-
-        window.onResidentSelectChange = function () {
-            const select = document.getElementById('incomeResidentSelect');
-            const selectedOpt = select.options[select.selectedIndex];
-            if (selectedOpt && selectedOpt.dataset.monthly) {
-                document.getElementById('incomeAmount').value = selectedOpt.dataset.monthly;
-            }
-        };
-
-        // Improved debt: count missing months from resident creation (or last 12 months max)
-        function calculateDebt(residentId, upToMonthStr) {
-            const resident = state.residents.find(r => r.id === residentId);
-            if (!resident) return { unpaidMonths: [], totalDebt: 0, count: 0 };
-
-            const monthlyAmt = resident.monthlyAmount !== undefined ? resident.monthlyAmount : state.defaultSubscription;
-            const paidSet = new Set(
-                state.income
-                    .filter(i => i.residentId === residentId)
-                    .map(i => i.month)
-            );
-
-            // Build list of expected months from createdAt (or 12 months back) to the target month
-            const now = new Date();
-            let start = resident.createdAt ? new Date(resident.createdAt) : new Date(now.getFullYear(), now.getMonth() - 11, 1);
-            // Cap at 18 months back to keep it reasonable
-            const minStart = new Date(now.getFullYear(), now.getMonth() - 17, 1);
-            if (start < minStart) start = minStart;
-
-            const targetParts = (upToMonthStr || getCurrentMonthStr()).split(' ');
-            const targetMonthIdx = MONTHS_AR.indexOf(targetParts[0]);
-            const targetYear = Number(targetParts[1]) || now.getFullYear();
-            const end = new Date(targetYear, targetMonthIdx, 1);
-
-            const unpaid = [];
-            let cursor = new Date(start.getFullYear(), start.getMonth(), 1);
-            while (cursor <= end) {
-                const mStr = `${MONTHS_AR[cursor.getMonth()]} ${cursor.getFullYear()}`;
-                if (!paidSet.has(mStr)) unpaid.push(mStr);
-                cursor.setMonth(cursor.getMonth() + 1);
-            }
-
-            return {
-                unpaidMonths: unpaid,
-                count: unpaid.length,
-                totalDebt: unpaid.length * monthlyAmt
-            };
-        }
-
-        // ========== UI UPDATE ==========
-        function updateUI() {
-            setupMonthSelectors();
-
-            const totalIncome = state.income.reduce((s, i) => s + Number(i.amount || 0), 0);
-            const totalExpense = state.expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-            const netBalance = (Number(state.startingBalance) || 0) + totalIncome - totalExpense;
-
-            document.getElementById('totalIncomeDisplay').innerText = `${formatMoney(totalIncome)} ج.م`;
-            document.getElementById('totalExpenseDisplay').innerText = `${formatMoney(totalExpense)} ج.م`;
-            document.getElementById('netBalanceDisplay').innerText = `${formatMoney(netBalance)} ج.م`;
-
-            // Efficiency for selected month
-            const monthSelect = document.getElementById('targetCurrentMonthSelect');
-            const selectedMonth = monthSelect ? monthSelect.value : getCurrentMonthStr();
-            const totalExpected = state.residents.reduce((sum, r) => {
-                return sum + (r.monthlyAmount !== undefined ? Number(r.monthlyAmount) : Number(state.defaultSubscription));
-            }, 0);
-            const totalCollectedThisMonth = state.income
-                .filter(i => i.month === selectedMonth)
-                .reduce((sum, i) => sum + Number(i.amount || 0), 0);
-            const efficiency = totalExpected > 0
-                ? Math.min(100, Math.round((totalCollectedThisMonth / totalExpected) * 100))
-                : 0;
-            document.getElementById('collectionEfficiencyDisplay').innerText = `كفاءة التحصيل: ${efficiency}%`;
-
-            // Year label for chart
-            const year = new Date().getFullYear();
-            document.getElementById('chartYearLabel').textContent = `عام ${year}`;
-
-            renderAnnualChart(year);
-            renderUnpaidResidents(selectedMonth);
-            renderExpenseBreakdown(totalExpense);
-            renderResidentsGrid();
-            renderIncomeTable();
-            renderExpenseTable();
-            renderRecentLists();
-        }
-
-        function renderAnnualChart(year) {
-            const container = document.getElementById('annualChartContainer');
-            if (!container) return;
-            container.innerHTML = '';
-
-            let maxVal = 1000;
-            const data = MONTHS_AR.map((mName, idx) => {
-                const monthKey = `${mName} ${year}`;
-                const inc = state.income
-                    .filter(i => i.month === monthKey)
-                    .reduce((s, i) => s + Number(i.amount || 0), 0);
-                const exp = state.expenses
-                    .filter(e => dateToMonthStr(e.date) === monthKey)
-                    .reduce((s, e) => s + Number(e.amount || 0), 0);
-                if (inc > maxVal) maxVal = inc;
-                if (exp > maxVal) maxVal = exp;
-                return { mName, inc, exp };
-            });
-
-            data.forEach(({ mName, inc, exp }) => {
-                const incH = Math.max(6, Math.round((inc / maxVal) * 110));
-                const expH = Math.max(6, Math.round((exp / maxVal) * 110));
-                container.innerHTML += `
-                    <div class="flex flex-col items-center flex-1 min-w-[28px] h-full justify-end gap-1">
-                        <div class="flex items-end gap-0.5 w-full justify-center h-28">
-                            <div class="w-2.5 sm:w-3 bg-emerald-500 rounded-t transition-all" style="height:${incH}px" title="تحصيلات ${mName}: ${formatMoney(inc)} ج.م"></div>
-                            <div class="w-2.5 sm:w-3 bg-rose-500 rounded-t transition-all" style="height:${expH}px" title="مصروفات ${mName}: ${formatMoney(exp)} ج.م"></div>
-                        </div>
-                        <span class="text-[9px] text-slate-400 font-bold">${mName.slice(0, 3)}</span>
-                    </div>`;
-            });
-        }
-
-        function renderUnpaidResidents(selectedMonth) {
-            const container = document.getElementById('unpaidResidentsContainer');
-            if (!container) return;
-            container.innerHTML = '';
-
-            if (state.residents.length === 0) {
-                container.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">لا توجد شقق مسجلة.</p>';
-                return;
-            }
-
-            const paidIds = new Set(
-                state.income.filter(i => i.month === selectedMonth).map(i => i.residentId)
-            );
-            const unpaid = state.residents.filter(r => !paidIds.has(r.id));
-
-            if (unpaid.length === 0) {
-                container.innerHTML = `
-                    <div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-2xl text-center text-xs font-bold">
-                        <i class="fa-solid fa-circle-check text-sm mb-0.5"></i> كل الشقق سددت اشتراك شهر (${selectedMonth})!
-                    </div>`;
-                return;
-            }
-
-            unpaid.forEach(r => {
-                const monthlyAmt = r.monthlyAmount !== undefined ? r.monthlyAmount : state.defaultSubscription;
-                const debt = calculateDebt(r.id, selectedMonth);
-                const phone = r.phone || '';
-                container.innerHTML += `
-                    <div class="bg-amber-500/10 border border-amber-500/20 p-3 rounded-2xl flex items-center justify-between gap-2 text-xs">
-                        <div class="min-w-0">
-                            <span class="font-bold text-slate-100 block truncate">${r.apartment} - ${r.name}</span>
-                            <span class="text-amber-400 font-semibold block mt-0.5">مطلوب هذا الشهر: ${formatMoney(monthlyAmt)} ج.م</span>
-                            ${debt.count > 1 ? `<span class="text-[10px] text-rose-400">إجمالي متأخرات تقريبية: ${formatMoney(debt.totalDebt)} ج.م (${debt.count} شهر)</span>` : ''}
-                        </div>
-                        ${phone
-                            ? `<button onclick="sendWhatsAppReminder('${escapeAttr(r.name)}', '${monthlyAmt}', '${escapeAttr(selectedMonth)}', '${escapeAttr(phone)}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1 shrink-0"><i class="fa-brands fa-whatsapp"></i> تذكير</button>`
-                            : '<span class="text-slate-500 text-[10px] shrink-0">بدون هاتف</span>'}
-                    </div>`;
-            });
-        }
-
-        function renderExpenseBreakdown(totalExpense) {
-            const breakdownEl = document.getElementById('expenseCategoriesBreakdown');
-            breakdownEl.innerHTML = '';
-            const categories = ['كهرباء', 'صيانة أسانسير', 'نظافة', 'أعمال سباكة وصنايعي', 'أخرى'];
-            if (totalExpense === 0) {
-                breakdownEl.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">لا توجد مصروفات مسجلة.</p>';
-                return;
-            }
-            categories.forEach(cat => {
-                const catTotal = state.expenses
-                    .filter(e => e.category === cat)
-                    .reduce((s, e) => s + Number(e.amount || 0), 0);
-                const pct = totalExpense > 0 ? Math.round((catTotal / totalExpense) * 100) : 0;
-                breakdownEl.innerHTML += `
-                    <div>
-                        <div class="flex justify-between text-xs font-bold text-slate-300 mb-1">
-                            <span>${cat}</span>
-                            <span class="text-slate-400">${formatMoney(catTotal)} ج.م (${pct}%)</span>
-                        </div>
-                        <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
-                            <div class="bg-indigo-500 h-2 rounded-full transition-all" style="width:${pct}%"></div>
-                        </div>
-                    </div>`;
-            });
-        }
-
-        function renderResidentsGrid() {
-            const residentsGrid = document.getElementById('residentsGrid');
-            residentsGrid.innerHTML = '';
-            if (state.residents.length === 0) {
-                residentsGrid.innerHTML = '<div class="app-card p-6 rounded-3xl border text-center text-xs text-slate-500 col-span-full">لا توجد شقق مسجلة. اضغط على (شقة جديدة) للإضافة.</div>';
-                return;
-            }
-
-            const currentMonth = getCurrentMonthStr();
-            state.residents.forEach(r => {
-                const monthlyAmt = r.monthlyAmount !== undefined ? r.monthlyAmount : state.defaultSubscription;
-                const debt = calculateDebt(r.id, currentMonth);
-                const isPaidThisMonth = state.income.some(i => i.residentId === r.id && i.month === currentMonth);
-
-                residentsGrid.innerHTML += `
-                    <div class="app-card p-4 rounded-3xl border flex flex-col justify-between space-y-2">
-                        <div>
-                            <div class="flex justify-between items-start mb-2">
-                                <span class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[11px] px-2.5 py-1 rounded-xl font-bold">${escapeHtml(r.apartment)}</span>
-                                <div class="flex items-center gap-1">
-                                    <button onclick="openResidentStatement('${r.id}')" class="text-indigo-400 hover:text-indigo-300 p-1.5" title="كشف حساب"><i class="fa-solid fa-file-lines text-sm"></i></button>
-                                    ${isManagerLoggedIn ? `
-                                        <button onclick="editResident('${r.id}')" class="text-indigo-400 hover:text-indigo-300 p-1.5" title="تعديل"><i class="fa-solid fa-pen-to-square text-sm"></i></button>
-                                        <button onclick="archiveResident('${r.id}')" class="text-amber-400 hover:text-amber-300 p-1.5" title="مغادرة ونقل الساكن"><i class="fa-solid fa-box-archive text-sm"></i></button>
-                                        <button onclick="deleteItem('residents', '${r.id}')" class="text-slate-500 hover:text-rose-400 p-1.5" title="حذف نهائي"><i class="fa-solid fa-trash-can text-sm"></i></button>
-                                    ` : ''}
-                                </div>
-                            </div>
-                            <h4 class="font-bold text-sm">${escapeHtml(r.name)}</h4>
-                            <p class="text-[11px] text-slate-400 mt-0.5"><i class="fa-solid fa-phone ml-1"></i> ${escapeHtml(r.phone || 'بدون هاتف')}</p>
-                            <div class="flex flex-wrap gap-1.5 mt-2">
-                                <span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">اشتراك: ${formatMoney(monthlyAmt)} ج.م</span>
-                                ${isPaidThisMonth
-                                    ? `<span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">مسدد هذا الشهر ✓</span>`
-                                    : `<span class="text-[10px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-lg">غير مسدد</span>`}
-                                ${debt.count > 0
-                                    ? `<span class="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg">متأخرات: ${formatMoney(debt.totalDebt)} ج.م</span>`
-                                    : ''}
-                            </div>
-                            ${r.tenantHistory && r.tenantHistory.length > 0
-                                ? `<p class="text-[10px] text-indigo-300 mt-2"><i class="fa-solid fa-history ml-1"></i> ${r.tenantHistory.length} ساكن سابق بالأرشيف</p>`
-                                : ''}
-                        </div>
-                    </div>`;
-            });
-        }
-
-        // ========== INCOME / EXPENSE TABLES ==========
-        window.renderIncomeTable = function () {
-            const container = document.getElementById('incomeCardsList');
-            container.innerHTML = '';
-            const search = (document.getElementById('searchIncomeInput').value || '').toLowerCase();
-            const filterMonth = document.getElementById('filterIncomeMonth').value;
-
-            const filtered = state.income.filter(item => {
-                const matchSearch = (item.residentName || '').toLowerCase().includes(search) ||
-                    (item.notes || '').toLowerCase().includes(search);
-                const matchMonth = !filterMonth || item.month === filterMonth;
-                return matchSearch && matchMonth;
-            });
-
-            if (filtered.length === 0) {
-                container.innerHTML = '<div class="app-card p-6 rounded-3xl border text-center text-xs text-slate-500">لا توجد تحصيلات مطابقة</div>';
-                return;
-            }
-
-            filtered
-                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-                .forEach(item => {
-                    const resident = state.residents.find(r => r.id === item.residentId);
-                    const phone = resident ? resident.phone : '';
-                    container.innerHTML += `
-                        <div class="app-card p-4 rounded-3xl border flex items-center justify-between gap-3">
-                            <div class="min-w-0">
-                                <div class="flex items-center gap-2 mb-1 flex-wrap">
-                                    <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] px-2.5 py-0.5 rounded-full font-bold">${escapeHtml(item.month)}</span>
-                                    <span class="text-xs text-slate-500">${escapeHtml(item.date)}</span>
-                                </div>
-                                <h4 class="font-bold text-sm truncate">${escapeHtml(item.residentName)}</h4>
-                                <p class="text-[11px] text-slate-400 mt-0.5 truncate">${escapeHtml(item.notes || 'بدون ملاحظات')}</p>
-                            </div>
-                            <div class="flex items-center gap-2 shrink-0">
-                                <span class="font-black text-emerald-400 text-sm">+${formatMoney(item.amount)} ج.م</span>
-                                <button onclick="shareIncomeReceipt('${escapeAttr(item.residentName)}', '${item.amount}', '${escapeAttr(item.month)}', '${escapeAttr(item.date)}', '${escapeAttr(phone)}')" class="bg-indigo-500/20 text-indigo-400 p-2 rounded-xl text-xs" title="مشاركة الإيصال"><i class="fa-solid fa-share-nodes"></i></button>
-                                ${isManagerLoggedIn ? `<button onclick="deleteItem('income', '${item.id}')" class="text-slate-500 hover:text-rose-400 p-2 text-xs"><i class="fa-solid fa-trash-can"></i></button>` : ''}
-                            </div>
-                        </div>`;
-                });
-        };
-
-        window.renderExpenseTable = function () {
-            const container = document.getElementById('expenseCardsList');
-            container.innerHTML = '';
-            const search = (document.getElementById('searchExpenseInput').value || '').toLowerCase();
-            const filterCat = document.getElementById('filterExpenseCategory').value;
-            const filterMonth = document.getElementById('filterExpenseMonth').value;
-
-            const filtered = state.expenses.filter(item => {
-                const matchSearch = (item.title || '').toLowerCase().includes(search) ||
-                    (item.notes || '').toLowerCase().includes(search);
-                const matchCat = !filterCat || item.category === filterCat;
-                const itemMonth = dateToMonthStr(item.date);
-                const matchMonth = !filterMonth || itemMonth === filterMonth;
-                return matchSearch && matchCat && matchMonth;
-            });
-
-            if (filtered.length === 0) {
-                container.innerHTML = '<div class="app-card p-6 rounded-3xl border text-center text-xs text-slate-500">لا توجد مصروفات مطابقة</div>';
-                return;
-            }
-
-            filtered
-                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-                .forEach(item => {
-                    container.innerHTML += `
-                        <div class="app-card p-4 rounded-3xl border flex items-center justify-between gap-3">
-                            <div class="min-w-0">
-                                <div class="flex items-center gap-2 mb-1 flex-wrap">
-                                    <span class="bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[10px] px-2.5 py-0.5 rounded-full font-bold">${escapeHtml(item.category)}</span>
-                                    <span class="text-xs text-slate-500">${escapeHtml(item.date)}</span>
-                                </div>
-                                <h4 class="font-bold text-sm truncate">${escapeHtml(item.title)}</h4>
-                                <p class="text-[11px] text-slate-400 mt-0.5 truncate">${escapeHtml(item.notes || 'بدون ملاحظات')}</p>
-                            </div>
-                            <div class="flex items-center gap-2 shrink-0">
-                                <span class="font-black text-rose-400 text-sm">-${formatMoney(item.amount)} ج.م</span>
-                                ${isManagerLoggedIn ? `<button onclick="deleteItem('expenses', '${item.id}')" class="text-slate-500 hover:text-rose-400 p-2 text-xs"><i class="fa-solid fa-trash-can"></i></button>` : ''}
-                            </div>
-                        </div>`;
-                });
-        };
-
-        function renderRecentLists() {
-            const recentIncomeList = document.getElementById('recentIncomeList');
-            recentIncomeList.innerHTML = '';
-            if (state.income.length === 0) {
-                recentIncomeList.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">لا توجد تحصيلات حديثة.</p>';
-            } else {
-                [...state.income]
-                    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-                    .slice(0, 3)
-                    .forEach(item => {
-                        recentIncomeList.innerHTML += `
-                            <div class="flex items-center justify-between p-2.5 app-card border rounded-2xl text-xs">
-                                <div class="min-w-0">
-                                    <span class="font-bold block truncate">${escapeHtml(item.residentName)}</span>
-                                    <span class="text-[10px] text-slate-400">${escapeHtml(item.month)}</span>
-                                </div>
-                                <span class="font-bold text-emerald-400 shrink-0">+${formatMoney(item.amount)}</span>
-                            </div>`;
-                    });
-            }
-
-            const recentExpenseList = document.getElementById('recentExpenseList');
-            recentExpenseList.innerHTML = '';
-            if (state.expenses.length === 0) {
-                recentExpenseList.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">لا توجد مصروفات حديثة.</p>';
-            } else {
-                [...state.expenses]
-                    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-                    .slice(0, 3)
-                    .forEach(item => {
-                        recentExpenseList.innerHTML += `
-                            <div class="flex items-center justify-between p-2.5 app-card border rounded-2xl text-xs">
-                                <div class="min-w-0">
-                                    <span class="font-bold block truncate">${escapeHtml(item.title)}</span>
-                                    <span class="text-[10px] text-slate-400">${escapeHtml(item.category)}</span>
-                                </div>
-                                <span class="font-bold text-rose-400 shrink-0">-${formatMoney(item.amount)}</span>
-                            </div>`;
-                    });
-            }
-        }
-
-        // ========== SHARING ==========
-        window.sendWhatsAppReminder = function (name, amount, month, phone) {
-            const text = `تذكير بسداد اشتراك عمارة عن شهر (${month})\nالسيد/ة (${name})\nالمبلغ المستحق: ${amount} ج.م\nيرجى التكرم بالسداد في أقرب وقت. شكراً لتعاونكم 🏢`;
-            const normalized = normalizePhone(phone);
-            window.open(`https://wa.me/${normalized}?text=${encodeURIComponent(text)}`, '_blank');
-        };
-
-        window.shareIncomeReceipt = async function (name, amount, month, date, phone) {
-            const text = `إيصال استلام اشتراك عمارة (رسمي)\n--------------------\nالسيد/ة: ${name}\nالمبلغ المحصل: ${amount} ج.م\nعن شهر: ${month}\nتاريخ التحصيل: ${date}\n--------------------\nشكراً لانتظامكم في سداد اشتراكات العمارة 🏢`;
-            if (navigator.share) {
-                try {
-                    await navigator.share({ title: 'إيصال استلام عمارة', text });
-                    return;
-                } catch (e) {}
-            }
-            if (phone) {
-                window.open(`https://wa.me/${normalizePhone(phone)}?text=${encodeURIComponent(text)}`, '_blank');
-            } else {
-                try {
-                    await navigator.clipboard.writeText(text);
-                    showCustomModal('تم النسخ', 'تم نسخ تفاصيل الإيصال للحافظة بنجاح', 'success');
-                } catch (e) {
-                    showCustomModal('تنبيه', 'تعذر النسخ، يرجى نسخه يدوياً', 'error');
-                }
-            }
-        };
-
-        // ========== STATEMENT ==========
-        window.openResidentStatement = function (residentId) {
-            currentViewingResidentId = residentId;
-            const resident = state.residents.find(r => r.id === residentId);
-            if (!resident) return;
-
-            const resIncome = state.income.filter(i => i.residentId === residentId);
-            const totalPaid = resIncome.reduce((sum, i) => sum + Number(i.amount || 0), 0);
-            const monthlyAmt = resident.monthlyAmount !== undefined ? resident.monthlyAmount : state.defaultSubscription;
-            const debt = calculateDebt(residentId, getCurrentMonthStr());
-
-            let content = `
-                <div class="border-b pb-3 space-y-2 border-slate-700">
-                    <h4 class="font-bold text-sm">${escapeHtml(resident.apartment)} - ${escapeHtml(resident.name)}</h4>
-                    <p class="text-[11px] text-slate-400">الهاتف: ${escapeHtml(resident.phone || 'غير متوفر')} | الاشتراك: <span class="font-bold text-emerald-400">${formatMoney(monthlyAmt)} ج.م</span></p>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 p-2.5 rounded-2xl text-xs font-bold">
-                            <span class="block text-[10px] text-slate-400">إجمالي المدفوعات</span>
-                            <span>${formatMoney(totalPaid)} ج.م</span>
-                        </div>
-                        <div class="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-2.5 rounded-2xl text-xs font-bold">
-                            <span class="block text-[10px] text-slate-400">المتأخرات التقريبية</span>
-                            <span>${formatMoney(debt.totalDebt)} ج.م</span>
-                        </div>
-                    </div>
-                </div>`;
-
-            if (resident.tenantHistory && resident.tenantHistory.length > 0) {
-                content += `
-                    <div class="space-y-1 pt-2 border-t border-slate-700">
-                        <h5 class="font-bold text-xs text-amber-400"><i class="fa-solid fa-box-archive ml-1"></i> أرشيف السكان السابقين:</h5>`;
-                resident.tenantHistory.forEach(th => {
-                    content += `
-                        <div class="bg-amber-500/10 p-2 rounded-xl text-[11px] border border-amber-500/20 flex justify-between gap-2">
-                            <span class="truncate">${escapeHtml(th.name)} (${escapeHtml(th.phone || 'بدون')})</span>
-                            <span class="text-slate-400 text-[10px] shrink-0">غادر: ${escapeHtml(th.leftDate)}</span>
-                        </div>`;
-                });
-                content += `</div>`;
-            }
-
-            content += `<div class="space-y-2 pt-2"><h5 class="font-bold text-xs text-slate-400">سجل المدفوعات:</h5>`;
-            if (resIncome.length === 0) {
-                content += `<p class="text-xs text-slate-500 text-center py-2">لا توجد تحصيلات مسجلة.</p>`;
-            } else {
-                resIncome
-                    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-                    .forEach(inc => {
-                        content += `
-                            <div class="flex justify-between items-center app-card p-2.5 rounded-2xl text-xs border">
-                                <div>
-                                    <span class="font-bold">${escapeHtml(inc.month)}</span>
-                                    <span class="text-[10px] text-slate-400 block">${escapeHtml(inc.date)}</span>
-                                </div>
-                                <span class="font-bold text-emerald-400">+${formatMoney(inc.amount)} ج.م</span>
-                            </div>`;
-                    });
-            }
-            content += `</div>`;
-
-            if (debt.unpaidMonths.length > 0) {
-                content += `
-                    <div class="pt-2 border-t border-slate-700">
-                        <h5 class="font-bold text-xs text-rose-400 mb-1">الشهور غير المسددة (تقريبي):</h5>
-                        <p class="text-[11px] text-slate-400 leading-relaxed">${debt.unpaidMonths.map(m => escapeHtml(m)).join(' • ')}</p>
-                    </div>`;
-            }
-
-            document.getElementById('residentStatementContent').innerHTML = content;
-            openModal('residentStatementModal');
-        };
-
-        window.shareStatementNative = async function () {
-            if (!currentViewingResidentId) return;
-            const resident = state.residents.find(r => r.id === currentViewingResidentId);
-            if (!resident) return;
-            const resIncome = state.income.filter(i => i.residentId === currentViewingResidentId);
-            const totalPaid = resIncome.reduce((sum, i) => sum + Number(i.amount || 0), 0);
-            const debt = calculateDebt(resident.id, getCurrentMonthStr());
-
-            let text = `كشف حساب الشقة: ${resident.apartment} - ${resident.name}\nإجمالي المدفوعات: ${totalPaid} ج.م\nالمتأخرات التقريبية: ${debt.totalDebt} ج.م\n--------------------\n`;
-            resIncome
-                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-                .forEach(i => {
-                    text += `- شهر ${i.month}: ${i.amount} ج.م (${i.date})\n`;
-                });
-
-            if (navigator.share) {
-                try {
-                    await navigator.share({ title: `كشف حساب ${resident.apartment}`, text });
-                    return;
-                } catch (e) {}
-            }
-            try {
-                await navigator.clipboard.writeText(text);
-                showCustomModal('تم النسخ', 'تم نسخ كشف الحساب للحافظة بنجاح', 'success');
-            } catch (e) {
-                showCustomModal('تنبيه', 'تعذر النسخ', 'error');
-            }
-        };
-
-        // ========== CRUD ==========
-        window.editResident = function (residentId) {
-            if (!isManagerLoggedIn) return;
-            const resident = state.residents.find(r => r.id === residentId);
-            if (!resident) return;
-            document.getElementById('editResidentId').value = resident.id;
-            document.getElementById('residentApartment').value = resident.apartment;
-            document.getElementById('residentName').value = resident.name;
-            document.getElementById('residentPhone').value = resident.phone || '';
-            document.getElementById('residentMonthlyAmount').value = resident.monthlyAmount !== undefined ? resident.monthlyAmount : state.defaultSubscription;
-            document.getElementById('residentModalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square ml-2"></i> تعديل بيانات المقيم';
-            openModal('residentModal');
-        };
-
-        window.archiveResident = function (residentId) {
-            if (!isManagerLoggedIn) return;
-            const resident = state.residents.find(r => r.id === residentId);
-            if (!resident) return;
-
-            const newTenantName = prompt(`شقة (${resident.apartment}): الساكن الحالي هو (${resident.name}).\nأدخل اسم المستأجر/المالك الجديد:`, '');
-            if (newTenantName === null || !newTenantName.trim()) return;
-            const newPhone = prompt('أدخل رقم هاتف الساكن الجديد (اختياري):', '') || '';
-
-            if (!resident.tenantHistory) resident.tenantHistory = [];
-            resident.tenantHistory.push({
-                name: resident.name,
-                phone: resident.phone,
-                leftDate: new Date().toLocaleDateString('ar-EG')
-            });
-            resident.name = newTenantName.trim();
-            resident.phone = newPhone.trim();
-            // Reset createdAt so debt calculation starts fresh for new tenant
-            resident.createdAt = Date.now();
-
-            saveData();
-            updateUI();
-            showCustomModal('نجاح', 'تم أرشفة الساكن القديم وتسجيل الجديد بنجاح', 'success');
-        };
-
-        window.handleResidentSubmit = function (e) {
-            e.preventDefault();
-            if (!isManagerLoggedIn) return;
-            const editId = document.getElementById('editResidentId').value;
-            const monthlyAmt = Math.max(0, parseFloat(document.getElementById('residentMonthlyAmount').value) || state.defaultSubscription);
-            const apt = document.getElementById('residentApartment').value.trim();
-            const name = document.getElementById('residentName').value.trim();
-            const phone = document.getElementById('residentPhone').value.trim();
-
-            if (!apt || !name) {
-                showCustomModal('تنبيه', 'يرجى ملء الحقول المطلوبة', 'error');
-                return;
-            }
-
-            if (editId) {
-                const resident = state.residents.find(r => r.id === editId);
-                if (resident) {
-                    resident.apartment = apt;
-                    resident.name = name;
-                    resident.phone = phone;
-                    resident.monthlyAmount = monthlyAmt;
-                }
-            } else {
-                state.residents.push({
-                    id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
-                    apartment: apt,
-                    name,
-                    phone,
-                    monthlyAmount: monthlyAmt,
-                    tenantHistory: [],
-                    createdAt: Date.now()
-                });
-            }
-
-            saveData();
-            updateUI();
-            closeModal('residentModal');
-            showCustomModal('نجاح', 'تم حفظ بيانات المقيم بنجاح', 'success');
-        };
-
-        window.handleIncomeSubmit = function (e) {
-            e.preventDefault();
-            if (!isManagerLoggedIn) return;
-            const residentId = document.getElementById('incomeResidentSelect').value;
-            const resident = state.residents.find(r => r.id === residentId);
-            if (!resident) {
-                showCustomModal('خطأ', 'يرجى اختيار شقة صحيحة', 'error');
-                return;
-            }
-            const amount = Math.max(0, parseFloat(document.getElementById('incomeAmount').value));
-            const month = document.getElementById('incomeMonth').value.trim();
-            if (!month) {
-                showCustomModal('تنبيه', 'يرجى تحديد الشهر', 'error');
-                return;
-            }
-
-            // Warn if already paid this month
-            const already = state.income.some(i => i.residentId === residentId && i.month === month);
-            if (already) {
-                const ok = confirm(`تنبيه: يوجد تحصيل مسجل مسبقاً لـ (${resident.apartment}) عن شهر (${month}). هل تريد إضافة تحصيل إضافي؟`);
-                if (!ok) return;
-            }
-
-            state.income.push({
-                id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
-                residentId,
-                residentName: `${resident.apartment} - ${resident.name}`,
-                amount,
-                month,
-                date: document.getElementById('incomeDate').value,
-                notes: document.getElementById('incomeNotes').value.trim(),
-                createdAt: Date.now()
-            });
-            saveData();
-            updateUI();
-            closeModal('incomeModal');
-            showCustomModal('نجاح', 'تم تسجيل التحصيل المالي', 'success');
-        };
-
-        window.handleExpenseSubmit = function (e) {
-            e.preventDefault();
-            if (!isManagerLoggedIn) return;
-            const amount = Math.max(0, parseFloat(document.getElementById('expenseAmount').value));
-            const title = document.getElementById('expenseTitle').value.trim();
-            if (!title) {
-                showCustomModal('تنبيه', 'يرجى إدخال عنوان المصروف', 'error');
-                return;
-            }
-
-            state.expenses.push({
-                id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
-                title,
-                category: document.getElementById('expenseCategory').value,
-                amount,
-                date: document.getElementById('expenseDate').value,
-                notes: document.getElementById('expenseNotes').value.trim(),
-                createdAt: Date.now()
-            });
-            saveData();
-            updateUI();
-            closeModal('expenseModal');
-            showCustomModal('نجاح', 'تم تسجيل المصروف بنجاح', 'success');
-        };
-
-        window.deleteItem = function (type, id) {
-            if (!isManagerLoggedIn) return;
-            const labels = { residents: 'الشقة', income: 'التحصيل', expenses: 'المصروف' };
-            showConfirm('تأكيد الحذف', `هل أنت متأكد من حذف هذا ${labels[type] || 'العنصر'}؟ لا يمكن التراجع.`, () => {
-                state[type] = state[type].filter(item => item.id !== id);
-                saveData();
-                updateUI();
-                showCustomModal('تم الحذف', 'تم حذف العنصر وحفظ التغييرات بنجاح', 'success');
-            });
-        };
-
-        // ========== EXPORT / IMPORT ==========
-        window.exportJSONBackup = function () {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
-            const dl = document.createElement('a');
-            dl.setAttribute("href", dataStr);
-            dl.setAttribute("download", `manzil_backup_${new Date().toISOString().slice(0, 10)}.json`);
-            document.body.appendChild(dl);
-            dl.click();
-            dl.remove();
-        };
-
-        window.exportToCSV = function () {
-            let csv = "\uFEFF=== تقرير حسابات العمارة الشامل ===\n\nرصيد أول المدة," + (state.startingBalance || 0) + "\n\n--- التحصيلات ---\nالشقة,المبلغ,الشهر,التاريخ,ملاحظات\n";
-            state.income.forEach(i => {
-                csv += `"${(i.residentName || '').replace(/"/g, '""')}",${i.amount},"${i.month || ''}","${i.date || ''}","${(i.notes || '').replace(/"/g, '""')}"\n`;
-            });
-            csv += "\n--- المصروفات ---\nالعنوان,الفئة,المبلغ,التاريخ,ملاحظات\n";
-            state.expenses.forEach(e => {
-                csv += `"${(e.title || '').replace(/"/g, '""')}","${e.category || ''}",${e.amount},"${e.date || ''}","${(e.notes || '').replace(/"/g, '""')}"\n`;
-            });
-            csv += "\n--- الشقق ---\nالشقة,الاسم,الهاتف,الاشتراك\n";
-            state.residents.forEach(r => {
-                const m = r.monthlyAmount !== undefined ? r.monthlyAmount : state.defaultSubscription;
-                csv += `"${(r.apartment || '').replace(/"/g, '""')}","${(r.name || '').replace(/"/g, '""')}","${r.phone || ''}",${m}\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const dl = document.createElement('a');
-            dl.setAttribute("href", url);
-            dl.setAttribute("download", `manzil_report_${new Date().toISOString().slice(0, 10)}.csv`);
-            document.body.appendChild(dl);
-            dl.click();
-            dl.remove();
-        };
-
-        window.importJSONBackup = function (event) {
-            if (!isManagerLoggedIn) return;
-            const file = event.target.files[0];
-            if (!file) return;
-            const fr = new FileReader();
-            fr.onload = function (e) {
-                try {
-                    const parsed = JSON.parse(e.target.result);
-                    if (parsed.residents && Array.isArray(parsed.income) && Array.isArray(parsed.expenses)) {
-                        showConfirm('استيراد بيانات', 'سيتم استبدال كل البيانات الحالية. هل أنت متأكد؟', () => {
-                            state = { ...state, ...parsed };
-                            saveData();
-                            updateUI();
-                            closeModal('backupModal');
-                            showCustomModal('نجاح', 'تم استيراد البيانات بنجاح', 'success');
-                        });
-                    } else {
-                        showCustomModal('خطأ', 'ملف النسخة الاحتياطية غير صالح', 'error');
-                    }
-                } catch (err) {
-                    showCustomModal('خطأ', 'فشل قراءة ملف النسخة الاحتياطية', 'error');
-                }
-            };
-            fr.readAsText(file, "UTF-8");
-            event.target.value = '';
-        };
-
-        // ========== MODALS HELPERS ==========
-        function showCustomModal(title, desc, type) {
-            document.getElementById('customModalTitle').innerText = title;
-            document.getElementById('customModalDesc').innerText = desc;
-            const icon = document.getElementById('customModalIcon');
-            if (type === 'success') {
-                icon.className = 'w-12 h-12 rounded-2xl mx-auto flex items-center justify-center text-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-                icon.innerHTML = '<i class="fa-solid fa-check"></i>';
-            } else {
-                icon.className = 'w-12 h-12 rounded-2xl mx-auto flex items-center justify-center text-xl bg-rose-500/10 text-rose-400 border border-rose-500/20';
-                icon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
-            }
-            const m = document.getElementById('customModal');
-            m.classList.remove('hidden');
-            m.classList.add('flex');
-        }
-
-        window.closeCustomModal = function () {
-            const m = document.getElementById('customModal');
-            m.classList.remove('flex');
-            m.classList.add('hidden');
-        };
-
-        function showConfirm(title, desc, onConfirm) {
-            document.getElementById('confirmModalTitle').innerText = title;
-            document.getElementById('confirmModalDesc').innerText = desc;
-            confirmCallback = onConfirm;
-            const m = document.getElementById('confirmModal');
-            m.classList.remove('hidden');
-            m.classList.add('flex');
-        }
-
-        window.closeConfirmModal = function (confirmed) {
-            const m = document.getElementById('confirmModal');
-            m.classList.remove('flex');
-            m.classList.add('hidden');
-            if (confirmed && typeof confirmCallback === 'function') {
-                confirmCallback();
-            }
-            confirmCallback = null;
-        };
-
-        // Simple escaping to reduce XSS risk when building HTML strings
-        function escapeHtml(str) {
-            if (str == null) return '';
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
-        }
-        function escapeAttr(str) {
-            if (str == null) return '';
-            return String(str)
-                .replace(/\\/g, '\\\\')
-                .replace(/'/g, "\\'")
-                .replace(/"/g, '&quot;')
-                .replace(/\n/g, ' ');
-        }
-    </script>
+    <!-- Scripts -->
+    <script src="js/state.js"></script>
+    <script src="js/render.js"></script>
+    <script src="js/crud.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
