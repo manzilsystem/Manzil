@@ -184,34 +184,82 @@ async function saveState() {
     }
 }
 
+function clearAuthenticatedState() {
+    activeSession = null;
+    activeBuildingId = null;
+    supabaseStateLoaded = false;
+    authLoading = false;
+    ownerMustChangePin = false;
+    currentUserRole = null;
+    currentResidentId = null;
+    state = {
+        ...state,
+        buildingName: '', managerName: '', managerPhone: '', defaultSubscription: 0,
+        startingBalance: 0, residents: [], income: [], expenses: [], notices: [], auditLogs: [],
+        currentTheme: 'dark', lastUpdated: 0
+    };
+    document.body.classList.remove('owner-mode');
+    clearOwnerPortal();
+    const pinChangeModal = document.getElementById('ownerPinChangeModal');
+    if (pinChangeModal) {
+        pinChangeModal.classList.add('hidden');
+        pinChangeModal.classList.remove('flex');
+    }
+    const tempPinModal = document.getElementById('ownerTempPinModal');
+    if (tempPinModal) {
+        tempPinModal.classList.add('hidden');
+        tempPinModal.classList.remove('flex');
+    }
+    for (const id of ['authPassword', 'currentOwnerPin', 'newOwnerPin', 'confirmOwnerPin', 'ownerTempPinValue']) {
+        const input = document.getElementById(id);
+        if (input) input.value = '';
+    }
+    try { renderAll(); } catch (error) { console.error('Could not clear rendered session data:', error); }
+    const status = document.getElementById('syncStatus');
+    if (status) status.textContent = 'الجلسة مقفلة';
+    updateAccessSwitchButton();
+}
+
+async function signOutLocally() {
+    try {
+        const { error } = await supabaseClient.auth.signOut({ scope: 'local' });
+        return error || null;
+    } catch (error) {
+        return error;
+    }
+}
+
 async function submitSupabaseLogin(event) {
     event.preventDefault();
     if (authLoading) return;
     authLoading = true;
-    const identifier = document.getElementById('authIdentifier').value.trim();
-    let password = document.getElementById('authPassword').value;
     const button = event.submitter || event.target.querySelector('button[type="submit"]');
     if (button) button.disabled = true;
     setAuthModal(true, 'جاري التحقق...');
-    const isManagerEmail = identifier.includes('@');
-    const phone = isManagerEmail ? null : normalizeOwnerPhone(identifier);
-    if (!isManagerEmail) password = normalizePinDigits(password);
-    if (!isManagerEmail && !phone) {
-        authLoading = false;
-        if (button) button.disabled = false;
-        showSupabaseError('اكتب رقم جوال مصري صحيحًا أو بريد المدير.');
-        return;
-    }
-    const credentials = isManagerEmail ? { email: identifier, password } : { email: ownerAuthEmail(phone), password };
-    const { data, error } = await supabaseClient.auth.signInWithPassword(credentials);
-    if (error) {
-        authLoading = false;
-        if (button) button.disabled = false;
-        showSupabaseError('بيانات الدخول غير صحيحة أو الحساب غير مرتبط بمبنى.');
-        return;
-    }
-    activeSession = data.session;
+    let authRequestFailed = false;
     try {
+        const identifier = document.getElementById('authIdentifier').value.trim();
+        let password = document.getElementById('authPassword').value;
+        const isManagerEmail = identifier.includes('@');
+        const phone = isManagerEmail ? null : normalizeOwnerPhone(identifier);
+        if (!isManagerEmail) password = normalizePinDigits(password);
+        if (!isManagerEmail && !phone) {
+            showSupabaseError('اكتب رقم جوال مصري صحيحًا أو بريد المدير.');
+            return;
+        }
+        const credentials = isManagerEmail ? { email: identifier, password } : { email: ownerAuthEmail(phone), password };
+        authRequestFailed = true;
+        const { data, error } = await supabaseClient.auth.signInWithPassword(credentials);
+        authRequestFailed = false;
+        if (error) {
+            showSupabaseError('بيانات الدخول غير صحيحة أو الحساب غير مرتبط بمبنى.');
+            return;
+        }
+        activeSession = data?.session || null;
+        if (!activeSession) {
+            showSupabaseError('لم تُنشأ جلسة دخول. تحقق من بيانات الحساب وحاول مجددًا.');
+            return;
+        }
         await loadState();
         if (ownerMustChangePin) {
             setAuthModal(false);
@@ -220,9 +268,12 @@ async function submitSupabaseLogin(event) {
         }
         await openAuthenticatedApp();
     } catch (loadError) {
-        await supabaseClient.auth.signOut();
-        activeSession = null;
-        showSupabaseError(loadError.message || 'تعذر تحميل بيانات المبنى.');
+        await signOutLocally();
+        clearAuthenticatedState();
+        const message = authRequestFailed
+            ? 'تعذر الاتصال بخدمة المصادقة. تحقق من الاتصال وحاول مجددًا.'
+            : loadError?.message || 'تعذر تحميل بيانات المبنى. تحقق من الاتصال وحاول مجددًا.';
+        showSupabaseError(message);
     } finally {
         authLoading = false;
         if (button) button.disabled = false;
@@ -320,11 +371,10 @@ async function openAuthenticatedApp() {
 }
 
 async function lockCurrentSession() {
-    await supabaseClient.auth.signOut();
-    activeSession = null; activeBuildingId = null; supabaseStateLoaded = false;
-    currentUserRole = null; currentResidentId = null;
-    clearOwnerPortal();
-    setAuthModal(true);
+    clearAuthenticatedState();
+    setAuthModal(true, 'جاري قفل الجلسة...');
+    const error = await signOutLocally();
+    setAuthModal(true, error ? 'تم قفل الواجهة، لكن تعذر إنهاء جلسة Supabase المحلية. أعد الاتصال ثم سجّل الخروج مرة أخرى.' : '');
 }
 
 function updateAccessSwitchButton() {
@@ -338,8 +388,30 @@ function handlePinInput() {}
 
 async function initSupabaseApp() {
     document.body.classList.add('session-locked');
-    const { data, error } = await supabaseClient.auth.getSession();
-    if (error) { showSupabaseError('تعذر الاتصال بخدمة المصادقة.'); return; }
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+        setTimeout(async () => {
+            if (!session) {
+                clearAuthenticatedState();
+                setAuthModal(true);
+                return;
+            }
+            activeSession = session;
+        }, 0);
+    });
+    let data;
+    let error;
+    try {
+        ({ data, error } = await supabaseClient.auth.getSession());
+    } catch {
+        clearAuthenticatedState();
+        showSupabaseError('تعذر الاتصال بخدمة المصادقة. تحقق من الاتصال ثم أعد المحاولة.');
+        return;
+    }
+    if (error) {
+        clearAuthenticatedState();
+        showSupabaseError('تعذر الاتصال بخدمة المصادقة. تحقق من الاتصال ثم أعد المحاولة.');
+        return;
+    }
     activeSession = data.session;
     if (activeSession) {
         try {
@@ -347,14 +419,13 @@ async function initSupabaseApp() {
             if (ownerMustChangePin) { setAuthModal(false); showFirstOwnerPinChange(); }
             else await openAuthenticatedApp();
         }
-        catch (loadError) { await supabaseClient.auth.signOut(); activeSession = null; showSupabaseError(loadError.message || 'تعذر تحميل بيانات المبنى.'); }
+        catch (loadError) {
+            await signOutLocally();
+            clearAuthenticatedState();
+            showSupabaseError(loadError?.message || 'تعذر تحميل بيانات المبنى.');
+        }
     } else {
+        clearAuthenticatedState();
         setAuthModal(true);
     }
-    supabaseClient.auth.onAuthStateChange((_event, session) => {
-        setTimeout(async () => {
-            activeSession = session;
-            if (!session) setAuthModal(true);
-        }, 0);
-    });
 }
