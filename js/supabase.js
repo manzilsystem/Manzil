@@ -176,7 +176,6 @@ async function saveState() {
         await deleteMissing('income', 'id', incomeRows.map(r => r.id));
         await deleteMissing('expenses', 'id', expenseRows.map(r => r.id));
         await deleteMissing('notices', 'id', noticeRows.map(r => r.id));
-        toast('تم الحفظ في Supabase', 'success');
         return true;
     } catch (error) {
         console.error('Supabase save failed:', error);
