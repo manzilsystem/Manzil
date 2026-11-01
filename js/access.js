@@ -1,7 +1,3 @@
-function hasOwnerAccounts() {
-    return state.residents.some(resident => /^\d{4}$/.test(String(resident.ownerPin || '')));
-}
-
 function requireManager(message = 'هذه الصلاحية متاحة للمدير فقط') {
     if (currentUserRole === 'manager') return true;
     toast(message, 'error');
@@ -14,99 +10,6 @@ function clearOwnerPortal() {
     portal.innerHTML = '';
     portal.classList.add('hidden');
     portal.setAttribute('aria-hidden', 'true');
-}
-
-const SESSION_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
-let sessionIdleTimer = null;
-let sessionIdleVersion = 0;
-let lastSessionActivityAt = 0;
-let sessionHiddenAt = null;
-
-function stopSessionIdleTimer() {
-    if (sessionIdleTimer !== null) clearTimeout(sessionIdleTimer);
-    sessionIdleTimer = null;
-    sessionIdleVersion++;
-}
-
-function scheduleSessionIdleLock(version) {
-    if (version !== sessionIdleVersion) return;
-    if (sessionIdleTimer !== null) clearTimeout(sessionIdleTimer);
-    const remaining = SESSION_IDLE_TIMEOUT_MS - (Date.now() - lastSessionActivityAt);
-    if (remaining <= 0) {
-        lockCurrentSession(true);
-        return;
-    }
-    sessionIdleTimer = setTimeout(() => scheduleSessionIdleLock(version), remaining);
-}
-
-function startSessionIdleTimer() {
-    stopSessionIdleTimer();
-    if (!(state.pinEnabled || hasOwnerAccounts()) || !['manager', 'owner'].includes(currentUserRole)) return;
-    lastSessionActivityAt = Date.now();
-    sessionHiddenAt = document.visibilityState === 'hidden' ? Date.now() : null;
-    scheduleSessionIdleLock(sessionIdleVersion);
-}
-
-function noteSessionActivity() {
-    if (!['manager', 'owner'].includes(currentUserRole) || !(state.pinEnabled || hasOwnerAccounts())) return;
-    lastSessionActivityAt = Date.now();
-    scheduleSessionIdleLock(sessionIdleVersion);
-}
-
-function handleSessionVisibilityChange() {
-    if (!['manager', 'owner'].includes(currentUserRole)) {
-        sessionHiddenAt = null;
-        return;
-    }
-    if (document.visibilityState === 'hidden') {
-        if (sessionHiddenAt === null) sessionHiddenAt = Date.now();
-        return;
-    }
-    if (sessionHiddenAt === null) return;
-    const wasHiddenTooLong = Date.now() - sessionHiddenAt >= SESSION_IDLE_TIMEOUT_MS;
-    sessionHiddenAt = null;
-    if (wasHiddenTooLong || Date.now() - lastSessionActivityAt >= SESSION_IDLE_TIMEOUT_MS) {
-        lockCurrentSession(true);
-    } else if (sessionIdleTimer !== null) {
-        scheduleSessionIdleLock(sessionIdleVersion);
-    }
-}
-
-function updateAccessSwitchButton() {
-    const button = document.getElementById('accessSwitchBtn');
-    if (button) button.classList.toggle('hidden', !(state.pinEnabled || hasOwnerAccounts()) || currentUserRole === null);
-    if ((state.pinEnabled || hasOwnerAccounts()) && ['manager', 'owner'].includes(currentUserRole)) {
-        if (sessionIdleTimer === null) startSessionIdleTimer();
-    } else {
-        stopSessionIdleTimer();
-    }
-}
-
-function lockCurrentSession(automatic = false) {
-    if (!(state.pinEnabled || hasOwnerAccounts())) return;
-    stopSessionIdleTimer();
-    currentUserRole = null;
-    currentResidentId = null;
-    clearOwnerPortal();
-    document.body.classList.remove('owner-mode');
-    document.body.classList.add('session-locked');
-    document.getElementById('pinLockTitle').textContent = hasOwnerAccounts() ? 'دخول المدير أو المالك' : 'قفل التطبيق';
-    document.getElementById('pinLockHint').textContent = hasOwnerAccounts() ? 'أدخل رمز المدير أو رمز المالك الخاص بك' : 'أدخل رمز المدير (4 أرقام)';
-    document.getElementById('pinErrorMsg').classList.add('hidden');
-    document.querySelectorAll('.pin-digit').forEach(input => { input.value = ''; });
-    const modal = document.getElementById('pinLockModal');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    modal.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('modal-open');
-    updateAccessSwitchButton();
-    if (automatic) toast('تم قفل الجلسة تلقائياً بعد 5 دقائق من عدم النشاط','info');
-    setTimeout(() => document.querySelector('.pin-digit')?.focus(), 100);
-}
-
-function clearResidentOwnerPin() {
-    document.getElementById('residentOwnerPin').value = '';
-    document.getElementById('removeResidentOwnerPin').checked = true;
 }
 
 function renderOwnerPortal() {

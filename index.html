@@ -16,29 +16,26 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6" data-theme="dark">
+<body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
     <div id="toastContainer" role="status" aria-live="polite" aria-atomic="true" class="fixed top-20 left-1/2 -translate-x-1/2 z-[100] space-y-2 pointer-events-none" style="max-width:90vw;"></div>
 
-    <!-- PIN Lock -->
+    <!-- Supabase Auth -->
     <div id="pinLockModal" role="dialog" aria-modal="true" aria-labelledby="pinLockTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div class="app-card w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center space-y-6 border">
+        <form onsubmit="submitSupabaseLogin(event)" class="app-card w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center space-y-5 border">
             <div class="w-16 h-16 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-inner">
-                <i class="fa-solid fa-lock"></i>
+                <i class="fa-solid fa-shield-halved"></i>
             </div>
             <div>
-                <h3 id="pinLockTitle" class="text-xl font-black">قفل التطبيق</h3>
-                <p id="pinLockHint" class="text-xs text-slate-400 mt-1">أدخل رمز المدير (4 أرقام)</p>
-                <p id="pinErrorMsg" class="text-xs text-rose-400 mt-1 hidden font-bold"></p>
+                <h3 id="pinLockTitle" class="text-xl font-black">تسجيل الدخول الآمن</h3>
+                <p id="pinLockHint" class="text-xs text-slate-400 mt-1">استخدم حساب المدير أو حساب المالك</p>
+                <p id="pinErrorMsg" class="text-xs text-rose-400 mt-2 hidden font-bold"></p>
             </div>
-            <div class="flex justify-center gap-3">
-                <input type="password" inputmode="numeric" maxlength="1" aria-label="الرقم الأول من رمز PIN" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl focus:outline-none focus:border-indigo-500" oninput="handlePinInput(this,0)">
-                <input type="password" inputmode="numeric" maxlength="1" aria-label="الرقم الثاني من رمز PIN" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl focus:outline-none focus:border-indigo-500" oninput="handlePinInput(this,1)">
-                <input type="password" inputmode="numeric" maxlength="1" aria-label="الرقم الثالث من رمز PIN" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl focus:outline-none focus:border-indigo-500" oninput="handlePinInput(this,2)">
-                <input type="password" inputmode="numeric" maxlength="1" aria-label="الرقم الرابع من رمز PIN" class="pin-digit w-12 h-14 text-center text-2xl font-bold app-input border rounded-2xl focus:outline-none focus:border-indigo-500" oninput="handlePinInput(this,3)">
-            </div>
-            <button onclick="verifyPinCode()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-2xl shadow-lg transition">فتح النظام</button>
-        </div>
+            <input type="email" id="authEmail" autocomplete="username" required placeholder="البريد الإلكتروني" aria-label="البريد الإلكتروني" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left focus:outline-none focus:border-indigo-500" dir="ltr">
+            <input type="password" id="authPassword" autocomplete="current-password" required placeholder="كلمة المرور" aria-label="كلمة المرور" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left focus:outline-none focus:border-indigo-500" dir="ltr">
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-2xl shadow-lg transition">دخول</button>
+            <p class="text-[10px] text-slate-500">تتم المصادقة وإدارة الخصوصية عبر Supabase Auth وRLS.</p>
+        </form>
     </div>
 
     <!-- Header -->
@@ -59,7 +56,6 @@
                 </div>
             </div>
             <div class="flex items-center gap-1.5">
-                <button onclick="syncWithGitHubGist(false)" aria-label="مزامنة البيانات" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 p-2.5 rounded-xl text-xs transition" title="مزامنة"><i class="fa-solid fa-rotate text-sm"></i></button>
                 <button onclick="openSettingsModal()" aria-label="فتح الإعدادات" class="app-card border p-2.5 rounded-xl text-xs transition" title="الإعدادات"><i class="fa-solid fa-gear text-sm"></i></button>
                 <button onclick="openModal('backupModal')" aria-label="فتح النسخ الاحتياطي" class="app-card border p-2.5 rounded-xl text-xs transition" title="النسخ الاحتياطي"><i class="fa-solid fa-cloud-arrow-down text-sm"></i></button>
                 <button onclick="openModal('guideModal')" aria-label="فتح دليل الاستخدام" class="app-card border p-2.5 rounded-xl text-xs transition" title="دليل الاستخدام"><i class="fa-solid fa-book-open text-sm"></i></button>
@@ -351,17 +347,6 @@
                     <div><label class="block text-xs font-bold text-slate-300 mb-1">رصيد افتتاحي</label>
                         <input type="number" id="settingsStartingBalance" step="0.01" aria-label="الرصيد الافتتاحي" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></div>
                 </div>
-                <div class="app-input border rounded-2xl p-3 space-y-2">
-                    <div class="flex justify-between items-center">
-                        <label class="text-xs font-bold">قفل PIN</label>
-                        <input type="checkbox" id="settingsPinEnabled" class="w-4 h-4 accent-indigo-500">
-                    </div>
-                    <input type="password" id="settingsPinCode" maxlength="4" inputmode="numeric" autocomplete="new-password" aria-label="رمز PIN من أربعة أرقام" placeholder="4 أرقام (اتركه فارغاً للإبقاء على القديم)" class="w-full app-input border rounded-xl px-3 py-2 text-sm focus:outline-none">
-                    <p class="text-[10px] text-slate-400">رمز المدير مطلوب قبل تفعيل دخول الملاك. هذا قفل للواجهة على هذا الجهاز، وليس تشفيراً للبيانات.</p>
-                </div>
-                <div class="app-input border rounded-2xl p-3 text-[10px] leading-relaxed text-amber-300">
-                    <i class="fa-solid fa-shield-halved ml-1"></i> لإضافة دخول مالك: فعّل قفل PIN واختر رمزاً خاصاً بالمدير أولاً، ثم عيّن رمزاً مختلفاً لكل شقة.
-                </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-300 mb-1">الثيم</label>
                     <div class="flex gap-2">
@@ -369,11 +354,6 @@
                         <button onclick="setTheme('light')" class="flex-1 app-card border py-2 rounded-xl text-xs font-bold">فاتح</button>
                         <button onclick="setTheme('emerald')" class="flex-1 app-card border py-2 rounded-xl text-xs font-bold">زمردي</button>
                     </div>
-                </div>
-                <div class="border-t border-slate-700/50 pt-4 space-y-2">
-                    <label class="block text-xs font-bold text-slate-300">GitHub Sync (اختياري)</label>
-                    <input type="password" id="settingsGhToken" placeholder="GitHub Token" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
-                    <input type="text" id="settingsGhGistId" placeholder="Gist ID" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 </div>
                 <button onclick="saveSettings()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">حفظ الإعدادات</button>
             </div>
@@ -421,7 +401,7 @@
                     <p>استخدم تقرير المتأخرات لمعرفة المبالغ والشهور غير المسددة، واستخدم التقرير الشهري لمراجعة التحصيلات والمصروفات والتدفق النقدي.</p>
                 </section>
                 <div class="app-input border rounded-2xl p-3 text-[11px] text-amber-300">
-                    <i class="fa-solid fa-shield-halved ml-1"></i> البيانات محفوظة محليًا على هذا الجهاز. استخدم النسخ الاحتياطي بانتظام، ولا تعتمد على المتصفح وحده لحفظ سجلاتك.
+                    <i class="fa-solid fa-shield-halved ml-1"></i> المصادقة والبيانات محفوظة في Supabase ومحمية بسياسات RLS. لا تضع مفاتيح إدارية أو كلمات مرور في ملفات الواجهة.
                 </div>
                 <button onclick="closeModal('guideModal')" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">فهمت</button>
             </div>
@@ -444,10 +424,10 @@
                 <input type="number" id="residentAmount" min="0" step="0.01" inputmode="decimal" aria-label="الاشتراك الشهري للشقة" placeholder="الاشتراك الشهري" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 <textarea id="residentNotes" rows="2" placeholder="ملاحظات" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
                 <div class="app-input border rounded-2xl p-3 space-y-2">
-                    <label for="residentOwnerPin" class="block text-xs font-bold">رمز دخول المالك (اختياري)</label>
-                    <input type="password" id="residentOwnerPin" maxlength="4" inputmode="numeric" autocomplete="new-password" aria-label="رمز دخول المالك من أربعة أرقام" placeholder="عيّن رمزاً من 4 أرقام" class="w-full app-input border rounded-xl px-3 py-2 text-sm focus:outline-none">
-                    <label class="flex items-center gap-2 text-[10px] text-slate-400"><input type="checkbox" id="removeResidentOwnerPin" class="accent-rose-500"> إلغاء دخول هذا المالك</label>
-                    <p class="text-[10px] text-slate-500">اترك الرمز فارغاً للإبقاء على الرمز الحالي. يجب أن يختلف عن رمز المدير وبقية الملاك.</p>
+                    <label for="residentOwnerUserId" class="block text-xs font-bold">معرّف حساب المالك في Supabase (اختياري)</label>
+                    <input type="text" id="residentOwnerUserId" dir="ltr" aria-label="معرف حساب المالك في Supabase" placeholder="UUID من Authentication → Users" class="w-full app-input border rounded-xl px-3 py-2 text-sm focus:outline-none">
+                    <label class="flex items-center gap-2 text-[10px] text-slate-400"><input type="checkbox" id="removeResidentOwnerUser" class="accent-rose-500"> إلغاء ربط حساب هذا المالك</label>
+                    <p class="text-[10px] text-slate-500">أنشئ حساب المالك أولاً في Supabase Auth ثم الصق UUID هنا. لا تُخزّن كلمات المرور أو PIN داخل التطبيق.</p>
                 </div>
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">حفظ</button>
             </form>
@@ -500,6 +480,8 @@
     <script src="js/access.js"></script>
     <script src="js/render.js"></script>
     <script src="js/crud.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
