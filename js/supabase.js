@@ -6,6 +6,11 @@ let activeBuildingId = null;
 let supabaseStateLoaded = false;
 let authLoading = false;
 let ownerMustChangePin = false;
+let authGeneration = 0;
+
+function isCurrentAuthSession(session, generation) {
+    return Boolean(session && activeSession && session.user?.id === activeSession.user?.id && generation === authGeneration);
+}
 
 function setAuthModal(visible, message = '') {
     const modal = document.getElementById('pinLockModal');
@@ -89,16 +94,20 @@ async function supabaseQuery(table, columns = '*') {
 }
 
 async function loadState() {
-    if (!activeSession) return false;
+    const session = activeSession;
+    const generation = authGeneration;
+    if (!session) return false;
     const { data: membership, error: membershipError } = await supabaseClient
-        .from('building_members').select('building_id, role').eq('user_id', activeSession.user.id).limit(1).maybeSingle();
+        .from('building_members').select('building_id, role').eq('user_id', session.user.id).limit(1).maybeSingle();
+    if (!isCurrentAuthSession(session, generation)) return false;
     if (membershipError) throw membershipError;
     if (!membership) throw new Error('لا يوجد مبنى مرتبط بهذا الحساب. اطلب من المدير ربط الحساب أولاً.');
+    const { data: profile, error: profileError } = await supabaseClient.from('profiles')
+        .select('must_change_pin').eq('id', session.user.id).maybeSingle();
+    if (!isCurrentAuthSession(session, generation)) return false;
+    if (profileError) throw profileError;
     activeBuildingId = membership.building_id;
     currentUserRole = membership.role;
-    const { data: profile, error: profileError } = await supabaseClient.from('profiles')
-        .select('must_change_pin').eq('id', activeSession.user.id).maybeSingle();
-    if (profileError) throw profileError;
     ownerMustChangePin = currentUserRole === 'owner' && profile?.must_change_pin === true;
     if (ownerMustChangePin) {
         state = {
@@ -113,10 +122,12 @@ async function loadState() {
         return true;
     }
     const { data: building, error: buildingError } = await supabaseClient.from('buildings').select('*').eq('id', activeBuildingId).single();
+    if (!isCurrentAuthSession(session, generation)) return false;
     if (buildingError) throw buildingError;
     const [residents, income, expenses, notices, auditLogs] = await Promise.all([
         supabaseQuery('residents'), supabaseQuery('income'), supabaseQuery('expenses'), supabaseQuery('notices'), supabaseQuery('audit_logs')
     ]);
+    if (!isCurrentAuthSession(session, generation)) return false;
     state = {
         ...state,
         buildingName: building.name || 'Manzil',
@@ -192,6 +203,7 @@ async function saveState() {
 }
 
 function clearAuthenticatedState() {
+    authGeneration += 1;
     activeSession = null;
     activeBuildingId = null;
     supabaseStateLoaded = false;
@@ -267,7 +279,14 @@ async function submitSupabaseLogin(event) {
             showSupabaseError('لم تُنشأ جلسة دخول. تحقق من بيانات الحساب وحاول مجددًا.');
             return;
         }
-        await loadState();
+        const session = activeSession;
+        const generation = authGeneration;
+        const loaded = await loadState();
+        if (!loaded || !isCurrentAuthSession(session, generation)) {
+            clearAuthenticatedState();
+            setAuthModal(true);
+            return;
+        }
         if (ownerMustChangePin) {
             setAuthModal(false);
             showFirstOwnerPinChange();
@@ -339,19 +358,23 @@ async function submitFirstOwnerPinChange(event) {
         showFirstOwnerPinChange('تعذر التحقق من PIN الحالي أو إكمال التغيير. راجع الرمز وحاول مجددًا.');
         return;
     }
+    const session = activeSession;
+    const generation = authGeneration;
+    let loaded;
     try {
-        await loadState();
+        loaded = await loadState();
     } catch {
         try { await supabaseClient.auth.signOut(); } catch {}
-        activeSession = null;
-        activeBuildingId = null;
-        supabaseStateLoaded = false;
-        currentUserRole = null;
-        currentResidentId = null;
+        clearAuthenticatedState();
         document.getElementById('ownerPinChangeModal').classList.add('hidden');
         document.getElementById('ownerPinChangeModal').classList.remove('flex');
         event.target.reset();
         setAuthModal(true, 'تم تغيير PIN. سجّل الدخول بالرمز الجديد لإكمال فتح الحساب.');
+        return;
+    }
+    if (!loaded || !isCurrentAuthSession(session, generation)) {
+        clearAuthenticatedState();
+        setAuthModal(true);
         return;
     }
     ownerMustChangePin = false;
@@ -362,6 +385,10 @@ async function submitFirstOwnerPinChange(event) {
 }
 
 async function openAuthenticatedApp() {
+    if (!activeSession) {
+        setAuthModal(true);
+        return;
+    }
     setAuthModal(false);
     document.body.classList.remove('owner-mode');
     const theme = ['dark', 'light', 'emerald'].includes(state.currentTheme) ? state.currentTheme : 'dark';
@@ -396,6 +423,7 @@ function handlePinInput() {}
 async function initSupabaseApp() {
     document.body.classList.add('session-locked');
     supabaseClient.auth.onAuthStateChange((_event, session) => {
+        if (!session || (activeSession?.user?.id && session.user?.id !== activeSession.user.id)) authGeneration += 1;
         setTimeout(async () => {
             if (!session) {
                 clearAuthenticatedState();
@@ -421,8 +449,15 @@ async function initSupabaseApp() {
     }
     activeSession = data.session;
     if (activeSession) {
+        const session = activeSession;
+        const generation = authGeneration;
         try {
-            await loadState();
+            const loaded = await loadState();
+            if (!loaded || !isCurrentAuthSession(session, generation)) {
+                clearAuthenticatedState();
+                setAuthModal(true);
+                return;
+            }
             if (ownerMustChangePin) { setAuthModal(false); showFirstOwnerPinChange(); }
             else await openAuthenticatedApp();
         }
