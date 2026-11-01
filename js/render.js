@@ -71,6 +71,26 @@ function renderDashboard() {
     const netEl = document.getElementById('netBalanceDisplay');
     netEl.textContent = fmtNum(net)+' ج.م';
     netEl.className = `text-2xl sm:text-3xl font-black mt-0.5 ${net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+    const currentMonth = getCurrentMonth();
+    const currentMonthDue = state.residents.reduce((sum, resident) => sum + (Number(resident.monthlyAmount ?? state.defaultSubscription) || 0), 0);
+    const currentMonthPaid = state.residents.reduce((sum, resident) => sum + getPaidAmountForMonth(resident.id, currentMonth), 0);
+    const partialPayments = state.residents.filter(resident => {
+        const paid = getPaidAmountForMonth(resident.id, currentMonth);
+        return paid > 0 && paid < (Number(resident.monthlyAmount ?? state.defaultSubscription) || 0);
+    }).length;
+    const collectionRate = currentMonthDue > 0 ? Math.min(100, Math.round((currentMonthPaid / currentMonthDue) * 100)) : 0;
+    const rateEl = document.getElementById('collectionRateDisplay');
+    const paidEl = document.getElementById('currentMonthPaidDisplay');
+    const partialEl = document.getElementById('partialPaymentsDisplay');
+    const monthLabel = document.getElementById('currentMonthSummaryLabel');
+    const rateBar = document.getElementById('collectionRateBar');
+    const progress = rateBar?.parentElement;
+    if (rateEl) rateEl.textContent = `${collectionRate}%`;
+    if (paidEl) paidEl.textContent = `${fmtNum(currentMonthPaid)} ج.م`;
+    if (partialEl) partialEl.textContent = fmtNum(partialPayments);
+    if (monthLabel) monthLabel.textContent = currentMonth;
+    if (rateBar) rateBar.style.width = `${collectionRate}%`;
+    if (progress) { progress.setAttribute('aria-valuenow', String(collectionRate)); progress.setAttribute('aria-valuetext', `${collectionRate}%`); }
     renderCashFlowChart(); renderUnpaidResidents(); renderExpenseBreakdown(); renderRecent();
 }
 
@@ -171,7 +191,10 @@ function renderIncomeTable() {
         const r = state.residents.find(x => x.id === i.residentId);
         return [r?.name, r?.apartmentNumber, i.month, i.notes, i.amount].some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(s));
     });
-    if (!items.length) { c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center"><p class="text-slate-500 text-sm">لا توجد تحصيلات</p></div>'; return; }
+    if (!items.length) {
+        c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center space-y-3"><div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto"><i class="fa-solid fa-hand-holding-dollar"></i></div><div><p class="text-sm font-bold">لا توجد تحصيلات مطابقة</p><p class="text-xs text-slate-500 mt-1">سجّل أول تحصيل أو غيّر الفلتر الحالي.</p></div><button onclick="openModal(\'incomeModal\')" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition"><i class="fa-solid fa-plus"></i> تسجيل تحصيل</button></div>';
+        return;
+    }
     c.innerHTML = items.map(i => { const r = state.residents.find(x => x.id === i.residentId); return `
         <div class="app-card p-3 rounded-2xl border flex justify-between items-center gap-2">
             <div class="flex items-center gap-2 min-w-0">
@@ -196,7 +219,10 @@ function renderExpenseTable() {
     if (fc) items = items.filter(e => e.category === fc);
     if (fm) items = items.filter(e => e.month === fm);
     if (s) items = items.filter(e => [e.title, e.category, e.month, e.notes, e.amount].some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(s)));
-    if (!items.length) { c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center"><p class="text-slate-500 text-sm">لا توجد مصروفات</p></div>'; return; }
+    if (!items.length) {
+        c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center space-y-3"><div class="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center mx-auto"><i class="fa-solid fa-receipt"></i></div><div><p class="text-sm font-bold">لا توجد مصروفات مطابقة</p><p class="text-xs text-slate-500 mt-1">سجّل أول مصروف أو غيّر الفلاتر الحالية.</p></div><button onclick="openModal(\'expenseModal\')" class="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition"><i class="fa-solid fa-plus"></i> تسجيل مصروف</button></div>';
+        return;
+    }
     c.innerHTML = items.map(e => `
         <div class="app-card p-3 rounded-2xl border flex justify-between items-center gap-2">
             <div class="flex items-center gap-2 min-w-0">
@@ -213,12 +239,38 @@ function renderExpenseTable() {
 function renderResidentsGrid() {
     const c = document.getElementById('residentsGrid');
     const s = (document.getElementById('searchResidentsInput')?.value||'').toLowerCase();
-    let list = [...state.residents].sort((a,b) => (a.apartmentNumber||'').localeCompare(b.apartmentNumber||'', 'ar', { numeric: true }));
-    if (s) list = list.filter(r => (r.name||'').toLowerCase().includes(s) || (r.apartmentNumber||'').toLowerCase().includes(s));
-    if (!list.length) { c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center col-span-full"><p class="text-slate-500 text-sm">لا توجد شقق</p></div>'; return; }
+    const statusFilter = document.getElementById('residentStatusFilter')?.value || 'all';
+    const sortBy = document.getElementById('residentSort')?.value || 'apartment';
+    const getStatus = resident => {
+        const outstanding = getMonthOutstanding(resident, getCurrentMonth());
+        const paid = getPaidAmountForMonth(resident.id, getCurrentMonth());
+        if (outstanding <= 0) return { key: 'paid', label: 'مسدد بالكامل', className: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' };
+        if (paid > 0) return { key: 'partial', label: 'دفع جزئي', className: 'text-amber-400 bg-amber-500/10 border-amber-500/20' };
+        return { key: 'overdue', label: 'غير مسدد', className: 'text-rose-400 bg-rose-500/10 border-rose-500/20' };
+    };
+    let list = state.residents.map(r => ({ r, status: getStatus(r), debt: calculateCumulativeDebt(r.id) }));
+    if (s) list = list.filter(item => String(item.r.name||'').toLocaleLowerCase('ar-EG').includes(s) || String(item.r.apartmentNumber||'').toLocaleLowerCase('ar-EG').includes(s));
+    if (statusFilter !== 'all') list = list.filter(item => item.status.key === statusFilter);
+    list.sort((a, b) => {
+        if (sortBy === 'debt') return b.debt.totalDebt - a.debt.totalDebt;
+        if (sortBy === 'name') return String(a.r.name||'').localeCompare(String(b.r.name||''), 'ar');
+        return String(a.r.apartmentNumber||'').localeCompare(String(b.r.apartmentNumber||''), 'ar', { numeric: true });
+    });
+    if (!list.length) {
+        const hasFilters = Boolean(s || statusFilter !== 'all');
+        const emptyAction = hasFilters ? 'clearResidentFilters()' : "openResidentModal('add')";
+        const emptyActionLabel = hasFilters ? '<i class="fa-solid fa-rotate-left"></i> مسح الفلاتر' : '<i class="fa-solid fa-user-plus"></i> إضافة شقة';
+        c.innerHTML = `<div class="app-card p-8 rounded-3xl border text-center col-span-full space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center mx-auto"><i class="fa-solid ${hasFilters ? 'fa-filter-circle-xmark' : 'fa-building-circle-exclamation'}"></i></div>
+            <div><p class="text-sm font-bold">${hasFilters ? 'لا توجد نتائج مطابقة' : 'لا توجد شقق بعد'}</p><p class="text-xs text-slate-500 mt-1">${hasFilters ? 'جرّب تغيير البحث أو الفلاتر الحالية.' : 'ابدأ بإضافة أول شقة لإدارة الاشتراكات والتحصيلات.'}</p></div>
+            <button onclick="${emptyAction}" class="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition">${emptyActionLabel}</button>
+        </div>`;
+        return;
+    }
     const cur = getCurrentMonth();
-    c.innerHTML = list.map(r => {
-        const d = calculateCumulativeDebt(r.id);
+    c.innerHTML = list.map(item => {
+        const r = item.r;
+        const d = item.debt;
         const outstanding = getMonthOutstanding(r, cur);
         const paid = outstanding <= 0;
         const partiallyPaid = !paid && getPaidAmountForMonth(r.id, cur) > 0;
@@ -226,7 +278,7 @@ function renderResidentsGrid() {
             <div class="flex justify-between items-start">
                 <div class="flex items-center gap-2">
                     <div class="w-11 h-11 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-sm font-black shrink-0">${esc(r.apartmentNumber||'?')}</div>
-                    <div><p class="text-sm font-bold">${esc(r.name)}</p><p class="text-[10px] text-slate-500">${esc(r.phone||'')}</p></div>
+                    <div class="min-w-0"><p class="text-sm font-bold truncate">${esc(r.name)}</p><p class="text-[10px] text-slate-500 truncate">${esc(r.phone||'')}</p></div>
                 </div>
                 <div class="flex gap-1">
                     <button onclick="editResident('${r.id}')" aria-label="تعديل بيانات ${esc(r.name)}" class="text-indigo-400 hover:text-indigo-300 p-1.5"><i class="fa-solid fa-pen text-xs"></i></button>
@@ -237,6 +289,10 @@ function renderResidentsGrid() {
                 <div class="app-input p-2 rounded-xl border"><p class="text-[10px] text-slate-500">الاشتراك</p><p class="text-xs font-bold">${fmtNum(r.monthlyAmount ?? state.defaultSubscription)}</p></div>
                 <div class="app-input p-2 rounded-xl border"><p class="text-[10px] text-slate-500">المتأخرات</p><p class="text-xs font-bold ${d.count>0?'text-rose-400':'text-emerald-400'}">${d.count>0?fmtNum(d.totalDebt):'0'}</p></div>
             </div>
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-[10px] font-bold border rounded-full px-2.5 py-1 ${item.status.className}">${item.status.label}</span>
+                ${r.phone ? `<a href="tel:${esc(r.phone)}" class="text-[10px] text-indigo-400 hover:underline" aria-label="الاتصال بـ ${esc(r.name)}"><i class="fa-solid fa-phone ml-1"></i> اتصال</a>` : '<span></span>'}
+            </div>
             <div class="flex gap-2">
                 ${paid ? '<div class="flex-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 py-2 rounded-xl text-xs font-bold text-center"><i class="fa-solid fa-check ml-1"></i> مدفوع بالكامل</div>'
                     : `<button onclick="quickPayResident('${r.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-xl text-xs font-bold transition"><i class="fa-solid fa-check ml-1"></i> ${partiallyPaid ? `استكمال ${fmtNum(outstanding)}` : 'تسجيل دفع'}</button>`}
@@ -244,4 +300,12 @@ function renderResidentsGrid() {
             </div>
         </div>`;
     }).join('');
-                                   }
+}
+
+function clearResidentFilters() {
+    const search = document.getElementById('searchResidentsInput');
+    const status = document.getElementById('residentStatusFilter');
+    if (search) search.value = '';
+    if (status) status.value = 'all';
+    renderResidentsGrid();
+}
