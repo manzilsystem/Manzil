@@ -19,6 +19,7 @@ function renderOwnerPortal() {
     if (!resident) {
         portal.innerHTML = '<div class="app-card border rounded-3xl p-6 text-center"><h2 class="font-black">تعذر العثور على حساب الشقة</h2><p class="text-xs text-slate-400 mt-2">اطلب من المدير مراجعة الحساب.</p></div>';
         portal.classList.remove('hidden');
+        portal.setAttribute('aria-hidden', 'false');
         updateAccessSwitchButton();
         return;
     }

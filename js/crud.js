@@ -365,6 +365,7 @@ function isValidBackup(data) {
     if (data.auditLogs !== undefined && !Array.isArray(data.auditLogs)) return false;
     if (data.currentTheme !== undefined && !['dark','light','emerald'].includes(data.currentTheme)) return false;
     if (data.defaultSubscription !== undefined && !validAmount(data.defaultSubscription)) return false;
+    if (data.startingBalance !== undefined && !Number.isFinite(Number(data.startingBalance))) return false;
     return true;
 }
 
