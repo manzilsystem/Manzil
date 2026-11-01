@@ -35,10 +35,26 @@ function logAction(action, details) {
     if (state.auditLogs.length > 200) state.auditLogs = state.auditLogs.slice(0, 200);
 }
 
-function clearAuditLog() {
+function cloneStateSnapshot() {
+    return JSON.parse(JSON.stringify(state));
+}
+
+async function saveWithRollback(previousState) {
+    const saved = await saveState();
+    if (saved) return true;
+    state = previousState;
+    if (typeof renderAll === 'function') renderAll();
+    return false;
+}
+
+async function clearAuditLog() {
     if (!requireManager()) return;
     if (!confirm('مسح سجل التدقيق بالكامل؟')) return;
-    state.auditLogs = []; saveState(); renderAuditLog(); toast('تم مسح السجل','info');
+    const previousState = cloneStateSnapshot();
+    state.auditLogs = [];
+    if (!await saveWithRollback(previousState)) return;
+    renderAuditLog();
+    toast('تم مسح السجل','info');
 }
 
 function getPaidAmountForMonth(residentId, month) {
@@ -116,11 +132,15 @@ function getActiveBuildingMonths() {
     });
 }
 
-function setTheme(theme) {
+async function setTheme(theme) {
     if (currentUserRole !== 'manager') { toast('تغيير الإعدادات متاح للمدير فقط','error'); return; }
     if (!['dark','light','emerald'].includes(theme)) theme = 'dark';
+    const previousState = cloneStateSnapshot();
     state.currentTheme = theme;
     document.body.setAttribute('data-theme', theme);
     document.querySelector('meta[name="theme-color"]').setAttribute('content', theme==='light'?'#f1f5f9':theme==='emerald'?'#021a13':'#090d16');
-    saveState();
+    if (!await saveWithRollback(previousState)) {
+        document.body.setAttribute('data-theme', state.currentTheme);
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', state.currentTheme==='light'?'#f1f5f9':state.currentTheme==='emerald'?'#021a13':'#090d16');
+    }
 }
