@@ -102,6 +102,36 @@ function calculateCumulativeDebt(residentId) {
     return { count: unpaidMonths.length, totalDebt: unpaidMonths.reduce((sum, item) => sum + item.amount, 0), unpaidMonths: unpaidMonths.map(item => item.month) };
 }
 
+function getArrearsBucket(monthCount) {
+    if (monthCount <= 1) return 'شهر واحد';
+    if (monthCount <= 3) return '2–3 أشهر';
+    return '4 أشهر فأكثر';
+}
+
+function buildArrearsReport() {
+    const residents = state.residents.map(resident => {
+        const debt = calculateCumulativeDebt(resident.id);
+        const unpaidMonths = debt.unpaidMonths.map(month => ({ month, amount: getMonthOutstanding(resident, month) }));
+        return {
+            resident,
+            count: debt.count,
+            totalDebt: debt.totalDebt,
+            bucket: getArrearsBucket(debt.count),
+            unpaidMonths
+        };
+    }).filter(item => item.count > 0).sort((a, b) => b.totalDebt - a.totalDebt || String(a.resident.apartmentNumber || '').localeCompare(String(b.resident.apartmentNumber || ''), 'ar', { numeric: true }));
+
+    const buckets = { 'شهر واحد': 0, '2–3 أشهر': 0, '4 أشهر فأكثر': 0 };
+    residents.forEach(item => { buckets[item.bucket] += 1; });
+    return {
+        residents,
+        totalDebt: residents.reduce((sum, item) => sum + item.totalDebt, 0),
+        overdueResidents: residents.length,
+        overdueMonths: residents.reduce((sum, item) => sum + item.count, 0),
+        buckets
+    };
+}
+
 function getActiveBuildingMonths() {
     const set = new Set();
     state.income.forEach(i => { if (i.month) set.add(i.month); });

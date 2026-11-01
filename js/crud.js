@@ -206,6 +206,28 @@ function exportToCSV() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function exportArrearsCSV() {
+    const report = buildArrearsReport();
+    const rows = [['الشقة','اسم الساكن','التصنيف','الشهر غير المسدد','المبلغ المستحق']];
+    report.residents.forEach(item => item.unpaidMonths.forEach(month => {
+        rows.push([item.resident.apartmentNumber, item.resident.name, item.bucket, month.month, month.amount]);
+    }));
+    const csvCell = value => {
+        let text = String(value ?? '');
+        if (/^[\u0000-\u0020]*[=+\-@]/.test(text)) text = `'${text}`;
+        return `"${text.replace(/"/g, '""')}"`;
+    };
+    const csv = '\uFEFF' + rows.map(row => row.map(csvCell).join(',')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    a.href = url;
+    a.download = `manzil_arrears_${Date.now()}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('تم تصدير تقرير المتأخرات','success');
+}
+
 function exportJSON() {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
