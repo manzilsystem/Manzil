@@ -119,7 +119,7 @@
                     <h2 id="quickActionsTitle" class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-bolt text-amber-400"></i> إجراءات سريعة</h2>
                     <span class="text-[10px] text-slate-500">اختصارات الإدارة اليومية</span>
                 </div>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div class="quick-actions-grid grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <button onclick="openModal('incomeModal')" class="quick-action quick-action-income" aria-label="تسجيل تحصيل جديد">
                         <i class="fa-solid fa-hand-holding-dollar"></i><span>تحصيل جديد</span>
                     </button>
@@ -214,11 +214,11 @@
 
         <!-- INCOME -->
         <section id="tab-income" class="hidden space-y-4">
-            <div class="flex justify-between items-center app-card p-4 rounded-3xl border no-print">
+            <div class="section-toolbar flex justify-between items-center app-card p-4 rounded-3xl border no-print">
                 <div><h2 class="font-bold text-base">سجل التحصيلات</h2><p class="text-[11px] text-slate-400">اشتراكات السكان</p></div>
                 <button onclick="openModal('incomeModal')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-emerald-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> تحصيل جديد</button>
             </div>
-            <div class="app-card p-3 rounded-3xl border flex gap-2 no-print">
+            <div class="list-filters app-card p-3 rounded-3xl border flex gap-2 no-print">
                 <input type="search" id="searchIncomeInput" aria-label="البحث في التحصيلات" oninput="renderIncomeTable()" placeholder="ابحث في التحصيلات..." class="flex-grow app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
                 <select id="filterIncomeMonth" onchange="renderIncomeTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold"><option value="">كل الشهور</option></select>
             </div>
@@ -227,11 +227,11 @@
 
         <!-- EXPENSES -->
         <section id="tab-expenses" class="hidden space-y-4">
-            <div class="flex justify-between items-center app-card p-4 rounded-3xl border no-print">
+            <div class="section-toolbar flex justify-between items-center app-card p-4 rounded-3xl border no-print">
                 <div><h2 class="font-bold text-base">مصروفات العمارة</h2><p class="text-[11px] text-slate-400">فواتير وصيانة</p></div>
                 <button onclick="openModal('expenseModal')" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-rose-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> مصروف جديد</button>
             </div>
-            <div class="app-card p-3 rounded-3xl border flex flex-wrap gap-2 no-print">
+            <div class="list-filters app-card p-3 rounded-3xl border flex flex-wrap gap-2 no-print">
                 <input type="search" id="searchExpenseInput" aria-label="البحث في المصروفات" oninput="renderExpenseTable()" placeholder="ابحث في المصروفات..." class="flex-grow app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
                 <select id="filterExpenseCategory" onchange="renderExpenseTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold">
                     <option value="">كل الفئات</option><option value="كهرباء">كهرباء</option><option value="صيانة أسانسير">صيانة أسانسير</option><option value="نظافة">نظافة</option><option value="أعمال سباكة وصنايعي">أعمال سباكة وصنايعي</option><option value="أخرى">أخرى</option>
@@ -243,13 +243,13 @@
 
         <!-- RESIDENTS -->
         <section id="tab-residents" class="hidden space-y-4">
-            <div class="flex justify-between items-center app-card p-4 rounded-3xl border no-print">
+            <div class="section-toolbar flex justify-between items-center app-card p-4 rounded-3xl border no-print">
                 <div><h2 class="font-bold text-base">قائمة الشقق</h2><p class="text-[11px] text-slate-400">الاشتراكات الشهرية</p></div>
                 <button onclick="openResidentModal('add')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-indigo-600/20 transition flex items-center gap-2"><i class="fa-solid fa-user-plus text-sm"></i> شقة جديدة</button>
             </div>
             <div class="app-card p-3 rounded-3xl border space-y-2 no-print">
                 <input type="search" id="searchResidentsInput" aria-label="البحث باسم الساكن أو رقم الشقة" oninput="renderResidentsGrid()" placeholder="ابحث بالاسم أو رقم الشقة..." class="w-full app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
-                <div class="grid grid-cols-2 gap-2">
+                <div class="resident-filters-grid grid grid-cols-2 gap-2">
                     <select id="residentStatusFilter" aria-label="تصفية الشقق حسب حالة السداد" onchange="renderResidentsGrid()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold">
                         <option value="all">كل الحالات</option>
                         <option value="paid">مسدد بالكامل</option>
