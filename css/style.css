@@ -99,6 +99,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .guide-step p { color: var(--text-muted); font-size: .7rem; }
 .guide-step-number { width: 1.5rem; height: 1.5rem; display: inline-flex; align-items: center; justify-content: center; border-radius: .6rem; color: #c7d2fe; background: rgba(99, 102, 241, .22); border: 1px solid rgba(129, 140, 248, .32); font-size: .7rem; flex-shrink: 0; }
 
+body.session-locked > header,
+body.session-locked > main,
+body.session-locked > nav { display: none !important; }
+body.owner-mode #printableArea > :not(#ownerPortal) { display: none !important; }
+body.owner-mode #ownerPortal { display: block !important; }
+body.owner-mode header .container > div:last-child > button:not(#accessSwitchBtn) { display: none !important; }
+body.owner-mode #accessSwitchBtn { display: block !important; }
+
 @keyframes toastIn {
     from { opacity: 0; transform: translate(-50%, -20px); }
     to { opacity: 1; transform: translate(-50%, 0); }

@@ -1,4 +1,5 @@
 function openResidentModal(mode, id) {
+    if (!requireManager()) return;
     editingResidentId = mode === 'edit' ? id : null;
     document.getElementById('residentModalTitle').textContent = mode === 'edit' ? 'تعديل بيانات الشقة' : 'شقة جديدة';
     if (mode === 'edit') {
@@ -9,10 +10,14 @@ function openResidentModal(mode, id) {
             document.getElementById('residentPhone').value = r.phone||'';
             document.getElementById('residentAmount').value = r.monthlyAmount ?? '';
             document.getElementById('residentNotes').value = r.notes||'';
+            document.getElementById('residentOwnerPin').value = '';
+            document.getElementById('residentOwnerPin').placeholder = r.ownerPin ? 'يوجد رمز حالي؛ اتركه كما هو أو أدخل رمزاً جديداً' : 'عيّن رمزاً من 4 أرقام';
+            document.getElementById('removeResidentOwnerPin').checked = false;
         }
     } else {
         document.getElementById('residentForm').reset();
         document.getElementById('residentAmount').value = state.defaultSubscription || '';
+        document.getElementById('residentOwnerPin').placeholder = 'عيّن رمزاً من 4 أرقام';
     }
     openModal('residentModal');
 }
@@ -20,6 +25,7 @@ function openResidentModal(mode, id) {
 function editResident(id) { openResidentModal('edit', id); }
 
 function handleResidentSubmit(e) {
+    if (!requireManager()) return;
     e.preventDefault();
     const name = document.getElementById('residentName').value.trim();
     const apartmentNumber = document.getElementById('residentApartment').value.trim();
@@ -27,17 +33,33 @@ function handleResidentSubmit(e) {
     const amountInput = document.getElementById('residentAmount').value.trim();
     const monthlyAmount = amountInput === '' ? Number(state.defaultSubscription) || 0 : Number(amountInput);
     const notes = document.getElementById('residentNotes').value.trim();
+    const ownerPin = document.getElementById('residentOwnerPin').value.trim();
+    const removeOwnerPin = document.getElementById('removeResidentOwnerPin').checked;
     if (!name || !apartmentNumber) { toast('الاسم ورقم الشقة مطلوبان','error'); return; }
     if (!Number.isFinite(monthlyAmount) || monthlyAmount < 0) { toast('قيمة الاشتراك يجب أن تكون صفراً أو أكثر','error'); return; }
+    if (ownerPin && !/^\d{4}$/.test(ownerPin)) { toast('رمز دخول المالك يجب أن يتكون من 4 أرقام','error'); return; }
+    const editedResident = state.residents.find(r => r.id === editingResidentId);
+    const effectiveOwnerPin = removeOwnerPin ? '' : (ownerPin || editedResident?.ownerPin || '');
+    if (effectiveOwnerPin) {
+        if (!state.pinEnabled || state.pinCode === '0000') { toast('فعّل أولاً رمزاً خاصاً للمدير من الإعدادات','error'); return; }
+        if (effectiveOwnerPin === state.pinCode) { toast('يجب أن يختلف رمز المالك عن رمز المدير','error'); return; }
+        if (state.residents.some(r => r.id !== editingResidentId && String(r.ownerPin || '') === effectiveOwnerPin)) { toast('هذا الرمز مستخدم بالفعل لمالك آخر','error'); return; }
+    }
     const normalizedApartment = apartmentNumber.toLocaleLowerCase('ar-EG');
     if (state.residents.some(r => r.id !== editingResidentId && String(r.apartmentNumber||'').trim().toLocaleLowerCase('ar-EG') === normalizedApartment)) {
         toast('رقم الشقة مسجل بالفعل','error'); return;
     }
     if (editingResidentId) {
         const r = state.residents.find(x => x.id === editingResidentId);
-        if (r) { Object.assign(r, { name, apartmentNumber, phone, monthlyAmount, notes }); logAction('تعديل شقة', `${name} - شقة ${apartmentNumber}`); toast('تم التعديل','success'); }
+        if (r) {
+            Object.assign(r, { name, apartmentNumber, phone, monthlyAmount, notes });
+            if (effectiveOwnerPin) r.ownerPin = effectiveOwnerPin; else delete r.ownerPin;
+            logAction('تعديل شقة', `${name} - شقة ${apartmentNumber}`); toast('تم التعديل','success');
+        }
     } else {
-        state.residents.push({ id: generateId(), name, apartmentNumber, phone, monthlyAmount, notes, createdAt: Date.now() });
+        const resident = { id: generateId(), name, apartmentNumber, phone, monthlyAmount, notes, createdAt: Date.now() };
+        if (effectiveOwnerPin) resident.ownerPin = effectiveOwnerPin;
+        state.residents.push(resident);
         logAction('إضافة شقة', `${name} - شقة ${apartmentNumber}`);
         toast('تمت الإضافة','success');
     }
@@ -45,6 +67,7 @@ function handleResidentSubmit(e) {
 }
 
 function deleteResident(id) {
+    if (!requireManager()) return;
     const r = state.residents.find(x => x.id === id); if (!r) return;
     if (!confirm(`حذف شقة ${r.name}؟ سيتم حذف تحصيلاتها أيضاً.`)) return;
     state.residents = state.residents.filter(x => x.id !== id);
@@ -54,6 +77,7 @@ function deleteResident(id) {
 }
 
 function quickPayResident(residentId) {
+    if (!requireManager()) return;
     const r = state.residents.find(x => x.id === residentId); if (!r) return;
     const month = getCurrentMonth();
     const amount = getMonthOutstanding(r, month);
@@ -64,6 +88,7 @@ function quickPayResident(residentId) {
 }
 
 function handleIncomeSubmit(e) {
+    if (!requireManager()) return;
     e.preventDefault();
     const residentId = document.getElementById('incomeResident').value;
     const amount = Number(document.getElementById('incomeAmount').value);
@@ -78,12 +103,14 @@ function handleIncomeSubmit(e) {
 }
 
 function deleteIncome(id) {
+    if (!requireManager()) return;
     if (!confirm('حذف هذا التحصيل؟')) return;
     state.income = state.income.filter(i => i.id !== id);
     logAction('حذف تحصيل', id); saveState(); renderAll(); toast('تم الحذف','info'); syncWithGitHubGist(true);
 }
 
 function handleExpenseSubmit(e) {
+    if (!requireManager()) return;
     e.preventDefault();
     const title = document.getElementById('expenseTitle').value.trim();
     const amount = Number(document.getElementById('expenseAmount').value);
@@ -98,14 +125,16 @@ function handleExpenseSubmit(e) {
 }
 
 function deleteExpense(id) {
+    if (!requireManager()) return;
     if (!confirm('حذف هذا المصروف؟')) return;
     state.expenses = state.expenses.filter(e => e.id !== id);
     logAction('حذف مصروف', id); saveState(); renderAll(); toast('تم الحذف','info'); syncWithGitHubGist(true);
 }
 
-function openNoticeModal() { document.getElementById('noticeInput').value = ''; openModal('noticeModal'); }
+function openNoticeModal() { if (!requireManager()) return; document.getElementById('noticeInput').value = ''; openModal('noticeModal'); }
 
 function applyNoticeTemplate(type) {
+    if (!requireManager()) return;
     const t = {
         monthly_sub: `السادة سكان العمارة،\nنذكركم بضرورة سداد اشتراك شهر ${getCurrentMonth()} وقدره ${fmtNum(state.defaultSubscription)} جنيه.\nشاكرين تعاونكم.`,
         cleaning: `إعلان هام:\nسيتم عمل حملة نظافة للعمارة يوم ____ القادم.\nنرجو التعاون وإزالة أي عوائق من أمام الأبواب.`,
@@ -116,6 +145,7 @@ function applyNoticeTemplate(type) {
 }
 
 function handleNoticeSubmit() {
+    if (!requireManager()) return;
     const text = document.getElementById('noticeInput').value.trim();
     if (!text) { toast('اكتب نص الإعلان','error'); return; }
     state.notices.push({ id: generateId(), text, date: new Date().toISOString() });
@@ -124,11 +154,13 @@ function handleNoticeSubmit() {
 }
 
 function deleteNotice(id) {
+    if (!requireManager()) return;
     if (!confirm('حذف هذا الإعلان؟')) return;
     state.notices = state.notices.filter(n => n.id !== id); saveState(); renderNotices();
 }
 
 function shareNoticeToWhatsApp() {
+    if (!requireManager()) return;
     if (!state.notices.length) { toast('لا يوجد إعلان','error'); return; }
     const n = state.notices[state.notices.length - 1];
     const text = `📢 ${state.buildingName || 'العمارة'}\n\n${n.text}`;
@@ -136,6 +168,7 @@ function shareNoticeToWhatsApp() {
 }
 
 function copyNoticeToClipboard() {
+    if (!requireManager()) return;
     if (!state.notices.length) { toast('لا يوجد إعلان','error'); return; }
     const n = state.notices[state.notices.length - 1];
     navigator.clipboard.writeText(n.text).then(() => toast('تم النسخ','success')).catch(() => toast('فشل النسخ','error'));
@@ -150,6 +183,7 @@ function cleanPhone(p) {
 }
 
 function sendWhatsAppReminder(residentId) {
+    if (!requireManager()) return;
     const r = state.residents.find(x => x.id === residentId); if (!r) return;
     const d = calculateCumulativeDebt(residentId);
     const phone = cleanPhone(r.phone);
@@ -159,6 +193,7 @@ function sendWhatsAppReminder(residentId) {
 }
 
 function generateLandlordReport() {
+    if (!requireManager()) return;
     const m = document.getElementById('reportMonthSelect').value;
     if (!m) { toast('اختر شهر','error'); return; }
     const inc = state.income.filter(i => i.month === m);
@@ -185,6 +220,7 @@ function generateLandlordReport() {
 }
 
 function exportToCSV() {
+    if (!requireManager()) return;
     const rows = [['النوع','الوصف','الشقة','الشهر','المبلغ','ملاحظات']];
     state.income.forEach(i => {
         const r = state.residents.find(x => x.id === i.residentId);
@@ -207,6 +243,7 @@ function exportToCSV() {
 }
 
 function exportArrearsCSV() {
+    if (!requireManager()) return;
     const report = buildArrearsReport();
     const rows = [['الشقة','اسم الساكن','التصنيف','الشهر غير المسدد','المبلغ المستحق']];
     report.residents.forEach(item => item.unpaidMonths.forEach(month => {
@@ -229,6 +266,7 @@ function exportArrearsCSV() {
 }
 
 function exportJSON() {
+    if (!requireManager()) return;
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -244,6 +282,8 @@ function isValidBackup(data) {
     const validId = value => typeof value === 'string' && /^[\w-]{1,100}$/.test(value);
     const validAmount = value => Number.isFinite(Number(value)) && Number(value) >= 0;
     if (!data.residents.every(r => r && typeof r === 'object' && validId(r.id) && typeof r.name === 'string' && typeof r.apartmentNumber === 'string' && (r.phone === undefined || typeof r.phone === 'string') && (r.notes === undefined || typeof r.notes === 'string') && validAmount(r.monthlyAmount ?? 0))) return false;
+    const ownerPins = data.residents.map(r => r.ownerPin).filter(pin => pin !== undefined && pin !== '').map(String);
+    if (!ownerPins.every(pin => /^\d{4}$/.test(pin)) || new Set(ownerPins).size !== ownerPins.length) return false;
     const residentIds = new Set(data.residents.map(r => r.id));
     if (!data.income.every(i => i && typeof i === 'object' && validId(i.id) && validId(i.residentId) && residentIds.has(i.residentId) && typeof i.month === 'string' && validAmount(i.amount) && (i.notes === undefined || typeof i.notes === 'string'))) return false;
     if (!data.expenses.every(e => e && typeof e === 'object' && validId(e.id) && typeof e.title === 'string' && typeof e.month === 'string' && validAmount(e.amount) && (e.category === undefined || typeof e.category === 'string') && (e.notes === undefined || typeof e.notes === 'string'))) return false;
@@ -251,12 +291,14 @@ function isValidBackup(data) {
     if (data.auditLogs !== undefined && !Array.isArray(data.auditLogs)) return false;
     if (data.pinCode !== undefined && !/^\d{4}$/.test(String(data.pinCode))) return false;
     if (data.pinEnabled !== undefined && typeof data.pinEnabled !== 'boolean') return false;
+    if (ownerPins.length && (!data.pinEnabled || !/^\d{4}$/.test(String(data.pinCode || '')) || data.pinCode === '0000' || ownerPins.includes(String(data.pinCode)))) return false;
     if (data.currentTheme !== undefined && !['dark','light','emerald'].includes(data.currentTheme)) return false;
     if (data.defaultSubscription !== undefined && !validAmount(data.defaultSubscription)) return false;
     return true;
 }
 
 function importJSON(ev) {
+    if (!requireManager()) return;
     const f = ev.target.files[0]; if (!f) return;
     if (f.size > 10 * 1024 * 1024) { toast('حجم النسخة أكبر من الحد المسموح (10 ميجابايت)','error'); ev.target.value = ''; return; }
     const r = new FileReader();
@@ -278,6 +320,7 @@ function importJSON(ev) {
 }
 
 function openSettingsModal() {
+    if (!requireManager()) return;
     document.getElementById('settingsBuildingName').value = state.buildingName||'';
     document.getElementById('settingsManagerName').value = state.managerName||'';
     document.getElementById('settingsManagerPhone').value = state.managerPhone||'';
@@ -291,6 +334,7 @@ function openSettingsModal() {
 }
 
 function saveSettings() {
+    if (!requireManager()) return;
     const defaultSubscription = Number(document.getElementById('settingsDefaultSub').value || 0);
     const startingBalance = Number(document.getElementById('settingsStartingBalance').value || 0);
     const pinEnabled = document.getElementById('settingsPinEnabled').checked;
@@ -302,6 +346,12 @@ function saveSettings() {
     if (pinEnabled && !state.pinEnabled && !pin && state.pinCode === '0000') {
         toast('اختر رمز PIN جديداً قبل تفعيل القفل','error'); return;
     }
+    const ownerPins = state.residents.map(resident => String(resident.ownerPin || '')).filter(Boolean);
+    const effectivePin = pin || String(state.pinCode);
+    if (ownerPins.length && (!pinEnabled || effectivePin === '0000')) {
+        toast('لا يمكن إلغاء رمز المدير ما دامت هناك حسابات ملاك مفعّلة','error'); return;
+    }
+    if (ownerPins.includes(effectivePin)) { toast('رمز المدير يجب أن يختلف عن رموز الملاك','error'); return; }
     state.buildingName = document.getElementById('settingsBuildingName').value.trim();
     state.managerName = document.getElementById('settingsManagerName').value.trim();
     state.managerPhone = document.getElementById('settingsManagerPhone').value.trim();
@@ -313,10 +363,11 @@ function saveSettings() {
     const gid = document.getElementById('settingsGhGistId').value.trim();
     if (tok) { githubConfig.token = tok; localStorage.setItem('manzil_gh_token', tok); }
     if (gid) { githubConfig.gistId = gid; localStorage.setItem('manzil_gh_gist', gid); }
-    saveState(); renderAll(); closeModal('settingsModal'); toast('تم الحفظ','success');
+    saveState(); renderAll(); updateAccessSwitchButton(); closeModal('settingsModal'); toast('تم الحفظ','success');
 }
 
 async function syncWithGitHubGist(silent) {
+    if (!requireManager()) return;
     if (syncing) return;
     if (!githubConfig.token || !githubConfig.gistId) {
         if (!silent) {
