@@ -62,6 +62,7 @@
                 <button onclick="syncWithGitHubGist(false)" aria-label="مزامنة البيانات" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 p-2.5 rounded-xl text-xs transition" title="مزامنة"><i class="fa-solid fa-rotate text-sm"></i></button>
                 <button onclick="openSettingsModal()" aria-label="فتح الإعدادات" class="app-card border p-2.5 rounded-xl text-xs transition" title="الإعدادات"><i class="fa-solid fa-gear text-sm"></i></button>
                 <button onclick="openModal('backupModal')" aria-label="فتح النسخ الاحتياطي" class="app-card border p-2.5 rounded-xl text-xs transition" title="النسخ الاحتياطي"><i class="fa-solid fa-cloud-arrow-down text-sm"></i></button>
+                <button onclick="openModal('guideModal')" aria-label="فتح دليل الاستخدام" class="app-card border p-2.5 rounded-xl text-xs transition" title="دليل الاستخدام"><i class="fa-solid fa-book-open text-sm"></i></button>
                 <button onclick="window.print()" aria-label="طباعة التقرير" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 p-2.5 rounded-xl text-xs transition hidden sm:flex" title="طباعة"><i class="fa-solid fa-print text-sm"></i></button>
             </div>
         </div>
@@ -385,6 +386,38 @@
                 <label for="backupImportInput" class="block w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition text-center cursor-pointer"><i class="fa-solid fa-upload ml-2"></i> استيراد JSON</label>
                 <input id="backupImportInput" type="file" accept=".json,application/json" aria-label="اختيار ملف نسخة احتياطية للاستيراد" onchange="importJSON(event)" class="sr-only">
                 <div id="backupStatus" class="text-xs text-slate-400 text-center pt-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Usage Guide Modal -->
+    <div id="guideModal" role="dialog" aria-modal="true" aria-labelledby="guideModalTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn max-h-[90vh] overflow-y-auto">
+            <div class="bg-indigo-700 text-white px-5 py-4 flex justify-between items-center">
+                <h3 id="guideModalTitle" class="font-bold text-sm"><i class="fa-solid fa-book-open ml-2"></i> دليل الاستخدام</h3>
+                <button onclick="closeModal('guideModal')" aria-label="إغلاق دليل الاستخدام" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-5 space-y-4 text-xs leading-relaxed">
+                <section class="guide-step">
+                    <h4><span class="guide-step-number">1</span> ابدأ بإعداد العمارة</h4>
+                    <p>افتح الإعدادات وأدخل اسم العمارة واسم المدير وقيمة الاشتراك الافتراضية. يمكنك تعديل هذه البيانات لاحقًا دون حذف السجلات.</p>
+                </section>
+                <section class="guide-step">
+                    <h4><span class="guide-step-number">2</span> أضف الشقق</h4>
+                    <p>سجّل اسم الساكن ورقم الشقة ورقم الهاتف. قيمة الاشتراك الخاصة بالشقة تغلب القيمة الافتراضية عند إدخالها.</p>
+                </section>
+                <section class="guide-step">
+                    <h4><span class="guide-step-number">3</span> سجّل التحصيلات والمصروفات</h4>
+                    <p>اختر الشقة والشهر عند تسجيل التحصيل. تسمح الدفعات الجزئية بمتابعة الرصيد المتبقي، بينما تُسجّل المصروفات مع فئتها وشهرها.</p>
+                </section>
+                <section class="guide-step">
+                    <h4><span class="guide-step-number">4</span> راجع التقارير</h4>
+                    <p>استخدم تقرير المتأخرات لمعرفة المبالغ والشهور غير المسددة، واستخدم التقرير الشهري لمراجعة التحصيلات والمصروفات والتدفق النقدي.</p>
+                </section>
+                <div class="app-input border rounded-2xl p-3 text-[11px] text-amber-300">
+                    <i class="fa-solid fa-shield-halved ml-1"></i> البيانات محفوظة محليًا على هذا الجهاز. استخدم النسخ الاحتياطي بانتظام، ولا تعتمد على المتصفح وحده لحفظ سجلاتك.
+                </div>
+                <button onclick="closeModal('guideModal')" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">فهمت</button>
             </div>
         </div>
     </div>
