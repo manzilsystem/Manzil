@@ -94,6 +94,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .quick-action-expense { color: #fb7185; }
 .quick-action-resident { color: #818cf8; }
 .quick-action-report { color: #fbbf24; }
+.guide-step { border: 1px solid var(--border-color); border-radius: 1rem; padding: .75rem; background: color-mix(in srgb, var(--bg-input) 72%, transparent); }
+.guide-step h4 { display: flex; align-items: center; gap: .5rem; font-weight: 800; margin-bottom: .35rem; }
+.guide-step p { color: var(--text-muted); font-size: .7rem; }
+.guide-step-number { width: 1.5rem; height: 1.5rem; display: inline-flex; align-items: center; justify-content: center; border-radius: .6rem; color: #c7d2fe; background: rgba(99, 102, 241, .22); border: 1px solid rgba(129, 140, 248, .32); font-size: .7rem; flex-shrink: 0; }
 
 @keyframes toastIn {
     from { opacity: 0; transform: translate(-50%, -20px); }
