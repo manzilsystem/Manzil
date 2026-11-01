@@ -106,7 +106,13 @@ function getActiveBuildingMonths() {
     const set = new Set();
     state.income.forEach(i => { if (i.month) set.add(i.month); });
     state.expenses.forEach(e => { if (e.month) set.add(e.month); });
-    set.add(getCurrentMonth());
+    // Keep five years selectable so late payments and historical adjustments can be recorded.
+    const cursor = new Date();
+    cursor.setDate(1);
+    for (let offset = 0; offset < 60; offset++) {
+        set.add(`${monthsNames[cursor.getMonth()]} ${cursor.getFullYear()}`);
+        cursor.setMonth(cursor.getMonth() - 1);
+    }
     return Array.from(set).sort((a,b) => {
         const [ma,ya] = a.split(' '); const [mb,yb] = b.split(' ');
         if (ya !== yb) return parseInt(ya) - parseInt(yb);
