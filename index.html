@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manzil - نظام إدارة العقارات</title>
     <meta name="description" content="إدارة تحصيلات ومصروفات العمارة ومتابعة الشقق والمتأخرات والتقارير من مكان واحد.">
+    <meta name="author" content="شركة سنا للبرمجيات — محمد عادل">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#090d16">
@@ -20,22 +21,51 @@
 
     <div id="toastContainer" role="status" aria-live="polite" aria-atomic="true" class="fixed top-20 left-1/2 -translate-x-1/2 z-[100] space-y-2 pointer-events-none" style="max-width:90vw;"></div>
 
-    <!-- Supabase Auth -->
+    <!-- Secure sign-in and owner PIN onboarding -->
     <div id="pinLockModal" role="dialog" aria-modal="true" aria-labelledby="pinLockTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <form onsubmit="submitSupabaseLogin(event)" class="app-card w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center space-y-5 border">
-            <div class="w-16 h-16 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-inner">
-                <i class="fa-solid fa-shield-halved"></i>
-            </div>
-            <div>
-                <h3 id="pinLockTitle" class="text-xl font-black">تسجيل الدخول الآمن</h3>
-                <p id="pinLockHint" class="text-xs text-slate-400 mt-1">استخدم حساب المدير أو حساب المالك</p>
-                <p id="pinErrorMsg" class="text-xs text-rose-400 mt-2 hidden font-bold"></p>
-            </div>
-            <input type="text" id="authIdentifier" autocomplete="username" required placeholder="رقم جوال المالك أو بريد المدير" aria-label="رقم جوال المالك أو بريد المدير" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left focus:outline-none focus:border-indigo-500" dir="ltr">
-            <input type="password" id="authPassword" autocomplete="current-password" required placeholder="رمز PIN أو كلمة مرور المدير" aria-label="رمز PIN أو كلمة مرور المدير" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left focus:outline-none focus:border-indigo-500" dir="ltr">
-            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-2xl shadow-lg transition">دخول</button>
-            <p class="text-[10px] text-slate-500">تتم المصادقة وإدارة الخصوصية عبر Supabase Auth وRLS.</p>
-        </form>
+        <div class="auth-shell app-card rounded-3xl shadow-2xl border">
+            <aside class="auth-brand-panel flex flex-col justify-between gap-7 p-5 sm:p-8" aria-label="عن نظام Manzil">
+                <div>
+                    <div class="auth-brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 12h3v8h14v-8h3L12 2zm0 3.8l5 5V18h-3v-5H10v5H7v-7.2l5-5z"/></svg></div>
+                    <p class="text-xs font-bold tracking-wide text-indigo-200 mt-5">منظومة إدارة العقارات</p>
+                    <h1 class="text-3xl sm:text-4xl font-black mt-1">Manzil</h1>
+                    <h2 class="text-lg sm:text-xl font-extrabold leading-relaxed mt-4">إدارة مبناك… بصورة أوضح</h2>
+                    <p class="text-sm text-slate-300 leading-7 mt-2">تابع الشقق والتحصيلات والمصروفات والمتأخرات من مكان واحد، مع بوابة خاصة لكل مالك.</p>
+                </div>
+                <div class="space-y-2 text-xs">
+                    <div class="auth-feature"><i class="fa-solid fa-chart-line text-emerald-300" aria-hidden="true"></i><span>متابعة مالية وتقارير شهرية واضحة</span></div>
+                    <div class="auth-feature"><i class="fa-solid fa-building-user text-indigo-200" aria-hidden="true"></i><span>بيانات منظمة لكل شقة ومالك</span></div>
+                    <div class="auth-feature"><i class="fa-solid fa-shield-halved text-amber-200" aria-hidden="true"></i><span>دخول آمن وصلاحيات حسب نوع الحساب</span></div>
+                </div>
+                <div class="auth-rights text-[10px] leading-6">
+                    <p>حقوق الملكية الفكرية © 2026 شركة سنا للبرمجيات. جميع الحقوق محفوظة.</p>
+                    <p>محمد عادل · <a href="tel:+201027767039" dir="ltr">01027767039</a></p>
+                </div>
+            </aside>
+            <section class="auth-login-panel p-5 sm:p-8">
+                <p class="text-xs font-bold text-indigo-300">بوابة المدير والمالك</p>
+                <h2 id="pinLockTitle" class="text-2xl font-black mt-2">أهلًا بك في Manzil</h2>
+                <p id="pinLockHint" class="text-sm text-slate-400 mt-2">سجّل الدخول ببيانات الحساب الذي أنشأه لك مدير المبنى.</p>
+                <p id="pinErrorMsg" class="text-sm text-rose-400 mt-3 hidden font-bold" role="alert"></p>
+                <form onsubmit="submitSupabaseLogin(event)" class="space-y-4 mt-6">
+                    <div class="space-y-2">
+                        <label for="authIdentifier" class="block text-xs font-bold">جوال المالك أو بريد المدير</label>
+                        <input type="text" id="authIdentifier" autocomplete="username" required placeholder="جوال المالك أو البريد الإلكتروني" aria-label="رقم جوال المالك أو بريد المدير" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left focus:outline-none focus:border-indigo-500" dir="ltr">
+                    </div>
+                    <div class="space-y-2">
+                        <label for="authPassword" class="block text-xs font-bold">PIN المالك أو كلمة مرور المدير</label>
+                        <input type="password" id="authPassword" autocomplete="current-password" required placeholder="أدخل PIN أو كلمة المرور" aria-label="رمز PIN أو كلمة مرور المدير" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left focus:outline-none focus:border-indigo-500" dir="ltr">
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-2xl shadow-lg transition">تسجيل الدخول</button>
+                </form>
+                <aside class="auth-owner-help mt-5 p-4 rounded-2xl border" aria-labelledby="ownerPinHelpTitle">
+                    <h3 id="ownerPinHelpTitle" class="text-sm font-black"><i class="fa-solid fa-key ml-1 text-amber-300" aria-hidden="true"></i> مالك الشقة ولا تملك PIN؟</h3>
+                    <p class="text-xs text-slate-300 leading-6 mt-2">حساب المالك لا يُنشأ من شاشة الدخول؛ يجب أن يرتبط بالشقة الصحيحة. اطلب من مدير المبنى تسجيل رقم جوالك في بيانات الشقة ثم اختيار «حفظ الشقة وإنشاء / إعادة ضبط PIN المالك».</p>
+                    <p class="text-xs text-slate-400 leading-6 mt-2">سيعطيك المدير رمزًا مؤقتًا. أدخل رقم الجوال المسجل والرمز هنا، ثم اختر PIN جديدًا عند أول دخول. إذا لم يصلك الرمز، تواصل مع مدير المبنى.</p>
+                </aside>
+                <p class="text-[10px] text-slate-500 leading-5 mt-4">تُعرض بيانات المبنى بعد التحقق من الحساب، وتُحدد الصلاحيات بحسب دور المستخدم.</p>
+            </section>
+        </div>
     </div>
 
     <div id="ownerPinChangeModal" role="dialog" aria-modal="true" aria-labelledby="ownerPinChangeTitle" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[60] hidden items-center justify-center p-4">
@@ -307,6 +337,10 @@
                 <div id="auditLogContainer" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
             </div>
         </section>
+        <footer id="appCopyright" class="text-center text-[10px] text-slate-500 leading-5 pt-2 no-print">
+            <p>حقوق الملكية الفكرية © 2026 شركة سنا للبرمجيات. جميع الحقوق محفوظة.</p>
+            <p>محمد عادل · <a href="tel:+201027767039" dir="ltr" class="text-indigo-300 hover:text-indigo-200">01027767039</a></p>
+        </footer>
     </main>
 
     <!-- Bottom Nav -->
