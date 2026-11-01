@@ -5,6 +5,7 @@ let activeSession = null;
 let activeBuildingId = null;
 let supabaseStateLoaded = false;
 let authLoading = false;
+let ownerMustChangePin = false;
 
 function setAuthModal(visible, message = '') {
     const modal = document.getElementById('pinLockModal');
@@ -19,11 +20,30 @@ function setAuthModal(visible, message = '') {
         error.textContent = message;
         error.classList.toggle('hidden', !message);
     }
-    if (visible) setTimeout(() => document.getElementById('authEmail')?.focus(), 100);
+    if (visible) setTimeout(() => document.getElementById('authIdentifier')?.focus(), 100);
 }
 
 function showSupabaseError(message) {
     setAuthModal(true, message);
+}
+
+function normalizeOwnerPhone(input) {
+    let value = normalizePinDigits(String(input || '').trim()).replace(/[\s().-]/g, '');
+    if (value.startsWith('00')) value = `+${value.slice(2)}`;
+    if (value.startsWith('0') && /^01\d{9}$/.test(value)) value = `+20${value.slice(1)}`;
+    else if (/^1\d{9}$/.test(value)) value = `+20${value}`;
+    else if (/^20\d{10}$/.test(value)) value = `+${value}`;
+    else if (!value.startsWith('+')) return null;
+    return /^\+[1-9]\d{7,14}$/.test(value) ? value : null;
+}
+
+function ownerAuthEmail(phone) {
+    return `${phone.slice(1)}@phone-login.manzil.invalid`;
+}
+
+function normalizePinDigits(input) {
+    return String(input || '').replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632))
+        .replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776));
 }
 
 function mapResident(row) {
@@ -69,6 +89,10 @@ async function loadState() {
     if (!membership) throw new Error('لا يوجد مبنى مرتبط بهذا الحساب. اطلب من المدير ربط الحساب أولاً.');
     activeBuildingId = membership.building_id;
     currentUserRole = membership.role;
+    const { data: profile, error: profileError } = await supabaseClient.from('profiles')
+        .select('must_change_pin').eq('id', activeSession.user.id).maybeSingle();
+    if (profileError) throw profileError;
+    ownerMustChangePin = currentUserRole === 'owner' && profile?.must_change_pin === true;
     const { data: building, error: buildingError } = await supabaseClient.from('buildings').select('*').eq('id', activeBuildingId).single();
     if (buildingError) throw buildingError;
     const [residents, income, expenses, notices, auditLogs] = await Promise.all([
@@ -153,12 +177,22 @@ async function submitSupabaseLogin(event) {
     event.preventDefault();
     if (authLoading) return;
     authLoading = true;
-    const email = document.getElementById('authEmail').value.trim();
-    const password = document.getElementById('authPassword').value;
+    const identifier = document.getElementById('authIdentifier').value.trim();
+    let password = document.getElementById('authPassword').value;
     const button = event.submitter || event.target.querySelector('button[type="submit"]');
     if (button) button.disabled = true;
     setAuthModal(true, 'جاري التحقق...');
-    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    const isManagerEmail = identifier.includes('@');
+    const phone = isManagerEmail ? null : normalizeOwnerPhone(identifier);
+    if (!isManagerEmail) password = normalizePinDigits(password);
+    if (!isManagerEmail && !phone) {
+        authLoading = false;
+        if (button) button.disabled = false;
+        showSupabaseError('اكتب رقم جوال مصري صحيحًا أو بريد المدير.');
+        return;
+    }
+    const credentials = isManagerEmail ? { email: identifier, password } : { email: ownerAuthEmail(phone), password };
+    const { data, error } = await supabaseClient.auth.signInWithPassword(credentials);
     if (error) {
         authLoading = false;
         if (button) button.disabled = false;
@@ -168,6 +202,11 @@ async function submitSupabaseLogin(event) {
     activeSession = data.session;
     try {
         await loadState();
+        if (ownerMustChangePin) {
+            setAuthModal(false);
+            showFirstOwnerPinChange();
+            return;
+        }
         await openAuthenticatedApp();
     } catch (loadError) {
         await supabaseClient.auth.signOut();
@@ -177,6 +216,49 @@ async function submitSupabaseLogin(event) {
         authLoading = false;
         if (button) button.disabled = false;
     }
+}
+
+function showFirstOwnerPinChange(message = '') {
+    const modal = document.getElementById('ownerPinChangeModal');
+    const error = document.getElementById('ownerPinChangeError');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    if (error) {
+        error.textContent = message;
+        error.classList.toggle('hidden', !message);
+    }
+    setTimeout(() => document.getElementById('newOwnerPin')?.focus(), 100);
+}
+
+async function submitFirstOwnerPinChange(event) {
+    event.preventDefault();
+    const pin = normalizePinDigits(document.getElementById('newOwnerPin').value);
+    const confirmPin = normalizePinDigits(document.getElementById('confirmOwnerPin').value);
+    if (!/^\d{6}$/.test(pin)) return showFirstOwnerPinChange('PIN يجب أن يتكون من 6 أرقام.');
+    if (pin !== confirmPin) return showFirstOwnerPinChange('الرمزان غير متطابقين.');
+
+    const button = event.submitter || event.target.querySelector('button[type="submit"]');
+    if (button) button.disabled = true;
+    const { data, error: passwordError } = await supabaseClient.auth.updateUser({ password: pin });
+    if (passwordError) {
+        if (button) button.disabled = false;
+        showFirstOwnerPinChange('تعذر تغيير الرمز. تحقق من الاتصال ثم أعد المحاولة.');
+        return;
+    }
+    const { error: profileError } = await supabaseClient.from('profiles')
+        .update({ must_change_pin: false }).eq('id', activeSession.user.id);
+    if (profileError) {
+        if (button) button.disabled = false;
+        showFirstOwnerPinChange('تعذر حفظ حالة الحساب. أعد المحاولة قبل المتابعة.');
+        return;
+    }
+    activeSession = data.session || activeSession;
+    ownerMustChangePin = false;
+    document.getElementById('ownerPinChangeModal').classList.add('hidden');
+    document.getElementById('ownerPinChangeModal').classList.remove('flex');
+    event.target.reset();
+    await openAuthenticatedApp();
 }
 
 async function openAuthenticatedApp() {
@@ -218,7 +300,11 @@ async function initSupabaseApp() {
     if (error) { showSupabaseError('تعذر الاتصال بخدمة المصادقة.'); return; }
     activeSession = data.session;
     if (activeSession) {
-        try { await loadState(); await openAuthenticatedApp(); }
+        try {
+            await loadState();
+            if (ownerMustChangePin) { setAuthModal(false); showFirstOwnerPinChange(); }
+            else await openAuthenticatedApp();
+        }
         catch (loadError) { await supabaseClient.auth.signOut(); activeSession = null; showSupabaseError(loadError.message || 'تعذر تحميل بيانات المبنى.'); }
     } else {
         setAuthModal(true);
