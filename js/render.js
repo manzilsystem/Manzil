@@ -191,7 +191,10 @@ function renderIncomeTable() {
         const r = state.residents.find(x => x.id === i.residentId);
         return [r?.name, r?.apartmentNumber, i.month, i.notes, i.amount].some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(s));
     });
-    if (!items.length) { c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center"><p class="text-slate-500 text-sm">لا توجد تحصيلات</p></div>'; return; }
+    if (!items.length) {
+        c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center space-y-3"><div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto"><i class="fa-solid fa-hand-holding-dollar"></i></div><div><p class="text-sm font-bold">لا توجد تحصيلات مطابقة</p><p class="text-xs text-slate-500 mt-1">سجّل أول تحصيل أو غيّر الفلتر الحالي.</p></div><button onclick="openModal(\'incomeModal\')" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition"><i class="fa-solid fa-plus"></i> تسجيل تحصيل</button></div>';
+        return;
+    }
     c.innerHTML = items.map(i => { const r = state.residents.find(x => x.id === i.residentId); return `
         <div class="app-card p-3 rounded-2xl border flex justify-between items-center gap-2">
             <div class="flex items-center gap-2 min-w-0">
@@ -216,7 +219,10 @@ function renderExpenseTable() {
     if (fc) items = items.filter(e => e.category === fc);
     if (fm) items = items.filter(e => e.month === fm);
     if (s) items = items.filter(e => [e.title, e.category, e.month, e.notes, e.amount].some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(s)));
-    if (!items.length) { c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center"><p class="text-slate-500 text-sm">لا توجد مصروفات</p></div>'; return; }
+    if (!items.length) {
+        c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center space-y-3"><div class="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center mx-auto"><i class="fa-solid fa-receipt"></i></div><div><p class="text-sm font-bold">لا توجد مصروفات مطابقة</p><p class="text-xs text-slate-500 mt-1">سجّل أول مصروف أو غيّر الفلاتر الحالية.</p></div><button onclick="openModal(\'expenseModal\')" class="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition"><i class="fa-solid fa-plus"></i> تسجيل مصروف</button></div>';
+        return;
+    }
     c.innerHTML = items.map(e => `
         <div class="app-card p-3 rounded-2xl border flex justify-between items-center gap-2">
             <div class="flex items-center gap-2 min-w-0">
@@ -250,7 +256,17 @@ function renderResidentsGrid() {
         if (sortBy === 'name') return String(a.r.name||'').localeCompare(String(b.r.name||''), 'ar');
         return String(a.r.apartmentNumber||'').localeCompare(String(b.r.apartmentNumber||''), 'ar', { numeric: true });
     });
-    if (!list.length) { c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center col-span-full"><p class="text-slate-500 text-sm">لا توجد شقق</p></div>'; return; }
+    if (!list.length) {
+        const hasFilters = Boolean(s || statusFilter !== 'all');
+        const emptyAction = hasFilters ? 'clearResidentFilters()' : "openResidentModal('add')";
+        const emptyActionLabel = hasFilters ? '<i class="fa-solid fa-rotate-left"></i> مسح الفلاتر' : '<i class="fa-solid fa-user-plus"></i> إضافة شقة';
+        c.innerHTML = `<div class="app-card p-8 rounded-3xl border text-center col-span-full space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center mx-auto"><i class="fa-solid ${hasFilters ? 'fa-filter-circle-xmark' : 'fa-building-circle-exclamation'}"></i></div>
+            <div><p class="text-sm font-bold">${hasFilters ? 'لا توجد نتائج مطابقة' : 'لا توجد شقق بعد'}</p><p class="text-xs text-slate-500 mt-1">${hasFilters ? 'جرّب تغيير البحث أو الفلاتر الحالية.' : 'ابدأ بإضافة أول شقة لإدارة الاشتراكات والتحصيلات.'}</p></div>
+            <button onclick="${emptyAction}" class="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition">${emptyActionLabel}</button>
+        </div>`;
+        return;
+    }
     const cur = getCurrentMonth();
     c.innerHTML = list.map(item => {
         const r = item.r;
@@ -284,4 +300,12 @@ function renderResidentsGrid() {
             </div>
         </div>`;
     }).join('');
-                                   }
+}
+
+function clearResidentFilters() {
+    const search = document.getElementById('searchResidentsInput');
+    const status = document.getElementById('residentStatusFilter');
+    if (search) search.value = '';
+    if (status) status.value = 'all';
+    renderResidentsGrid();
+}
