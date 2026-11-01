@@ -60,6 +60,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     border-color: var(--border-color);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
 }
 .app-input { background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-color); }
 .tab-btn { min-width: 52px; min-height: 44px; justify-content: center; }
@@ -67,6 +68,29 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .tab-btn.active i { transform: scale(1.15); transition: transform .2s; }
 #headerBuildingTitle { max-width: 42vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #cashFlowChartContainer > div { min-width: 0; }
+.quick-action {
+    min-height: 72px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    padding: .75rem .5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    color: var(--text-main);
+    background: color-mix(in srgb, var(--bg-input) 82%, transparent);
+    font-size: .7rem;
+    font-weight: 800;
+    transition: transform .2s ease, border-color .2s ease, background-color .2s ease;
+}
+.quick-action i { font-size: 1rem; }
+.quick-action:hover { transform: translateY(-2px); background: var(--bg-card); }
+.quick-action:active { transform: translateY(0); }
+.quick-action-income { color: #34d399; }
+.quick-action-expense { color: #fb7185; }
+.quick-action-resident { color: #818cf8; }
+.quick-action-report { color: #fbbf24; }
 
 @keyframes toastIn {
     from { opacity: 0; transform: translate(-50%, -20px); }
@@ -90,6 +114,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     input, select, textarea { font-size: 16px !important; }
     .app-card { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
     #landlordReportPreview { overflow-wrap: anywhere; }
+    .quick-action { min-height: 68px; padding-inline: .35rem; }
 }
 
 @media (max-width: 360px) {

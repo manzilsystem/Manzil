@@ -90,6 +90,27 @@
                 <div id="noticeBoardContent" class="space-y-2"></div>
             </div>
 
+            <section class="app-card p-4 rounded-3xl border space-y-3" aria-labelledby="quickActionsTitle">
+                <div class="flex items-center justify-between">
+                    <h2 id="quickActionsTitle" class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-bolt text-amber-400"></i> إجراءات سريعة</h2>
+                    <span class="text-[10px] text-slate-500">اختصارات الإدارة اليومية</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button onclick="openModal('incomeModal')" class="quick-action quick-action-income" aria-label="تسجيل تحصيل جديد">
+                        <i class="fa-solid fa-hand-holding-dollar"></i><span>تحصيل جديد</span>
+                    </button>
+                    <button onclick="openModal('expenseModal')" class="quick-action quick-action-expense" aria-label="تسجيل مصروف جديد">
+                        <i class="fa-solid fa-receipt"></i><span>مصروف جديد</span>
+                    </button>
+                    <button onclick="openResidentModal('add')" class="quick-action quick-action-resident" aria-label="إضافة شقة جديدة">
+                        <i class="fa-solid fa-user-plus"></i><span>إضافة شقة</span>
+                    </button>
+                    <button onclick="switchTab('reports')" class="quick-action quick-action-report" aria-label="فتح التقارير">
+                        <i class="fa-solid fa-chart-column"></i><span>عرض التقارير</span>
+                    </button>
+                </div>
+            </section>
+
             <div class="grid grid-cols-2 gap-3">
                 <div class="app-card p-4 rounded-3xl border flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-2">
