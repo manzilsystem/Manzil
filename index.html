@@ -136,6 +136,21 @@
                 <div class="w-12 h-12 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center text-2xl text-amber-300"><i class="fa-solid fa-wallet"></i></div>
             </div>
 
+            <section class="app-card p-4 sm:p-5 rounded-3xl border space-y-3" aria-labelledby="monthSummaryTitle">
+                <div class="flex items-center justify-between gap-2">
+                    <h2 id="monthSummaryTitle" class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-calendar-check text-emerald-400"></i> ملخص الشهر الحالي</h2>
+                    <span id="currentMonthSummaryLabel" class="text-[10px] text-slate-500"></span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="app-input border rounded-2xl p-2"><p class="text-[10px] text-slate-500">نسبة التحصيل</p><p id="collectionRateDisplay" class="text-base font-black text-emerald-400">0%</p></div>
+                    <div class="app-input border rounded-2xl p-2"><p class="text-[10px] text-slate-500">المدفوع</p><p id="currentMonthPaidDisplay" class="text-xs font-black">0 ج.م</p></div>
+                    <div class="app-input border rounded-2xl p-2"><p class="text-[10px] text-slate-500">دفع جزئي</p><p id="partialPaymentsDisplay" class="text-xs font-black text-amber-400">0</p></div>
+                </div>
+                <div class="h-2 rounded-full bg-slate-800 overflow-hidden" role="progressbar" aria-label="نسبة تحصيل الشهر الحالي" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <div id="collectionRateBar" class="h-full rounded-full bg-gradient-to-l from-emerald-400 to-indigo-500 transition-all" style="width:0%"></div>
+                </div>
+            </section>
+
             <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
                 <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-chart-line text-indigo-400"></i> التدفق النقدي البصري</h3>
                 <div id="cashFlowChartContainer" class="w-full h-32 flex items-end justify-between gap-2 pt-4 px-2 border-b border-slate-700/50 pb-2"></div>
