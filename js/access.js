@@ -73,7 +73,3 @@ function renderOwnerPortal() {
 }
 
 document.addEventListener('DOMContentLoaded', updateAccessSwitchButton);
-['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach(eventName => {
-    document.addEventListener(eventName, noteSessionActivity, { passive: true });
-});
-document.addEventListener('visibilitychange', handleSessionVisibilityChange);
