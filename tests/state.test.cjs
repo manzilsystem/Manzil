@@ -21,11 +21,27 @@ class FixedDate extends Date {
 function loadCalculators() {
     const sandbox = { Date: FixedDate };
     return vm.runInNewContext(
-        `${source}\n({ state, getPaidAmountForMonth, getMonthOutstanding, calculateCumulativeDebt, getArrearsBucket })`,
+        `${source}\n({ state, getPaidAmountForMonth, getMonthOutstanding, calculateCumulativeDebt, buildArrearsReport, getArrearsBucket })`,
         sandbox,
         { filename: 'js/state.js' }
     );
 }
+
+test('generateId returns a valid UUID v4 when randomUUID is unavailable', () => {
+    const cryptoMock = {
+        getRandomValues(bytes) {
+            bytes.fill(0);
+            return bytes;
+        },
+    };
+    const generateId = vm.runInNewContext(
+        `${source}\ngenerateId`,
+        { crypto: cryptoMock, Uint8Array, Math },
+        { filename: 'js/state.js' }
+    );
+
+    assert.match(generateId(), /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+});
 
 test('getPaidAmountForMonth totals only matching positive finite payments', () => {
     const app = loadCalculators();
@@ -52,6 +68,23 @@ test('getMonthOutstanding supports partial payments and never returns negative d
     assert.equal(app.getMonthOutstanding({ id: 'a' }, 'يناير 2024'), 60);
     assert.equal(app.getMonthOutstanding({ id: 'a', monthlyAmount: 100 }, 'فبراير 2024'), 0);
     assert.equal(app.getMonthOutstanding(null, 'يناير 2024'), 0);
+});
+
+test('arrears calculations preserve two-decimal currency precision', () => {
+    const app = loadCalculators();
+    app.state.residents = [
+        { id: 'a', createdAt: '2024-05-01T00:00:00.000Z', monthlyAmount: 0.3 },
+        { id: 'b', createdAt: '2024-05-01T00:00:00.000Z', monthlyAmount: 0.2 },
+    ];
+    app.state.income = [
+        { residentId: 'a', month: 'مايو 2024', amount: 0.1 },
+        { residentId: 'a', month: 'مايو 2024', amount: 0.1 },
+    ];
+
+    assert.equal(app.getPaidAmountForMonth('a', 'مايو 2024'), 0.2);
+    assert.equal(app.getMonthOutstanding(app.state.residents[0], 'مايو 2024'), 0.1);
+    assert.equal(app.calculateCumulativeDebt('a').totalDebt, 0.1);
+    assert.equal(app.buildArrearsReport().totalDebt, 0.3);
 });
 
 test('calculateCumulativeDebt lists only unpaid months and sums partial balances', () => {

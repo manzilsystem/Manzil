@@ -7,7 +7,20 @@ function esc(s) {
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-function generateId() { return crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substring(2, 7); }
+function generateId() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+
+    const bytes = new Uint8Array(16);
+    if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+        crypto.getRandomValues(bytes);
+    } else {
+        for (let i = 0; i < bytes.length; i += 1) bytes[i] = Math.floor(Math.random() * 256);
+    }
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 
 function toast(msg, type = 'success') {
     const colors = { success: 'bg-emerald-600 text-white border-emerald-500', error: 'bg-rose-600 text-white border-rose-500', info: 'bg-indigo-600 text-white border-indigo-500' };
@@ -58,17 +71,19 @@ async function clearAuditLog() {
 }
 
 function getPaidAmountForMonth(residentId, month) {
-    return state.income.reduce((sum, payment) => {
+    const paidCents = state.income.reduce((sum, payment) => {
         if (payment.residentId !== residentId || payment.month !== month) return sum;
         const amount = Number(payment.amount);
-        return sum + (Number.isFinite(amount) && amount > 0 ? amount : 0);
+        return sum + (Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0);
     }, 0);
+    return paidCents / 100;
 }
-
 function getMonthOutstanding(resident, month) {
     if (!resident) return 0;
     const due = Number(resident.monthlyAmount ?? state.defaultSubscription);
-    return Math.max(0, (Number.isFinite(due) ? due : 0) - getPaidAmountForMonth(resident.id, month));
+    const dueCents = Number.isFinite(due) ? Math.round(due * 100) : 0;
+    const paidCents = Math.round(getPaidAmountForMonth(resident.id, month) * 100);
+    return Math.max(0, dueCents - paidCents) / 100;
 }
 
 function calculateCumulativeDebt(residentId) {
@@ -81,7 +96,8 @@ function calculateCumulativeDebt(residentId) {
     const allMonths = [];
     while (cursor <= now) { allMonths.push(`${monthsNames[cursor.getMonth()]} ${cursor.getFullYear()}`); cursor.setMonth(cursor.getMonth()+1); }
     const unpaidMonths = allMonths.map(month => ({ month, amount: getMonthOutstanding(resident, month) })).filter(item => item.amount > 0);
-    return { count: unpaidMonths.length, totalDebt: unpaidMonths.reduce((sum, item) => sum + item.amount, 0), unpaidMonths: unpaidMonths.map(item => item.month) };
+    const totalDebtCents = unpaidMonths.reduce((sum, item) => sum + Math.round(item.amount * 100), 0);
+    return { count: unpaidMonths.length, totalDebt: totalDebtCents / 100, unpaidMonths: unpaidMonths.map(item => item.month) };
 }
 
 function getArrearsBucket(monthCount) {
@@ -107,7 +123,7 @@ function buildArrearsReport() {
     residents.forEach(item => { buckets[item.bucket] += 1; });
     return {
         residents,
-        totalDebt: residents.reduce((sum, item) => sum + item.totalDebt, 0),
+        totalDebt: residents.reduce((sum, item) => sum + Math.round(item.totalDebt * 100), 0) / 100,
         overdueResidents: residents.length,
         overdueMonths: residents.reduce((sum, item) => sum + item.count, 0),
         buckets
