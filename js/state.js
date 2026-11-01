@@ -31,8 +31,11 @@ let githubConfig = { token: localStorage.getItem('manzil_gh_token')||'', gistId:
 let editingResidentId = null;
 let syncing = false;
 let storageWarningShown = false;
+var currentUserRole = 'manager';
+var currentResidentId = null;
 
 function saveState() {
+    if (currentUserRole === 'owner') { toast('حساب المالك للعرض فقط','error'); return false; }
     state.lastUpdated = Date.now();
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); return true; }
     catch(e) {
@@ -71,6 +74,7 @@ function logAction(action, details) {
 }
 
 function clearAuditLog() {
+    if (!requireManager()) return;
     if (!confirm('مسح سجل التدقيق بالكامل؟')) return;
     state.auditLogs = []; saveState(); renderAuditLog(); toast('تم مسح السجل','info');
 }
@@ -151,6 +155,7 @@ function getActiveBuildingMonths() {
 }
 
 function setTheme(theme) {
+    if (currentUserRole !== 'manager') { toast('تغيير الإعدادات متاح للمدير فقط','error'); return; }
     if (!['dark','light','emerald'].includes(theme)) theme = 'dark';
     state.currentTheme = theme;
     document.body.setAttribute('data-theme', theme);
@@ -161,8 +166,15 @@ function setTheme(theme) {
 let pinAttempts = 0, pinLockedUntil = 0;
 
 function checkPinLockOnStart() {
-    if (!state.pinEnabled) return;
+    const hasOwnerAccounts = state.residents.some(resident => /^\d{4}$/.test(String(resident.ownerPin || '')));
+    if (!state.pinEnabled && !hasOwnerAccounts) return;
+    currentUserRole = null;
+    currentResidentId = null;
+    document.body.classList.add('session-locked');
     const m = document.getElementById('pinLockModal');
+    document.getElementById('pinLockTitle').textContent = hasOwnerAccounts ? 'دخول المدير أو المالك' : 'قفل التطبيق';
+    document.getElementById('pinLockHint').textContent = hasOwnerAccounts ? 'أدخل رمز المدير أو رمز المالك الخاص بك' : 'أدخل رمز المدير (4 أرقام)';
+    document.getElementById('pinErrorMsg').classList.add('hidden');
     m.classList.remove('hidden'); m.classList.add('flex'); m.setAttribute('aria-hidden', 'false');
     document.body.classList.add('modal-open');
     setTimeout(() => document.querySelectorAll('.pin-digit')[0]?.focus(), 150);
@@ -182,11 +194,27 @@ function verifyPinCode() {
     }
     const inputs = document.querySelectorAll('.pin-digit');
     const entered = Array.from(inputs).map(i => i.value).join('');
-    if (entered === state.pinCode) {
+    const owner = state.residents.find(resident => /^\d{4}$/.test(String(resident.ownerPin || '')) && String(resident.ownerPin) === entered);
+    if ((state.pinEnabled || hasOwnerAccounts()) && entered === String(state.pinCode) && (state.pinCode !== '0000' || !hasOwnerAccounts())) {
+        currentUserRole = 'manager';
+        currentResidentId = null;
         pinAttempts = 0;
         const m = document.getElementById('pinLockModal'); m.classList.add('hidden'); m.classList.remove('flex'); m.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('session-locked', 'owner-mode');
         document.body.classList.remove('modal-open');
-        toast('تم فتح النظام','success');
+        renderAll();
+        updateAccessSwitchButton();
+        toast('تم الدخول بصلاحيات المدير','success');
+    } else if (owner) {
+        currentUserRole = 'owner';
+        currentResidentId = owner.id;
+        pinAttempts = 0;
+        const m = document.getElementById('pinLockModal'); m.classList.add('hidden'); m.classList.remove('flex'); m.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('session-locked');
+        document.body.classList.add('owner-mode');
+        document.body.classList.remove('modal-open');
+        renderOwnerPortal();
+        toast('تم الدخول إلى حساب المالك للعرض فقط','success');
     } else {
         pinAttempts++;
         inputs.forEach(i => i.value = ''); inputs[0]?.focus();
