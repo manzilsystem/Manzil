@@ -110,4 +110,4 @@ function verifyPinCode() {
         else err.textContent = `رمز خاطئ، باقي ${3-pinAttempts} محاولات`;
         err.classList.remove('hidden');
     }
-  }
+}
