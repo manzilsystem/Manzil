@@ -135,6 +135,7 @@ test('a failed local sign-out does not prevent locking the interface or clearing
             income: [{ id: 'income-1', amount: 100 }], expenses: [], notices: [], auditLogs: [], lastUpdated: Date.now(),
         },
     });
+    h.elements.get('authIdentifier').value = 'owner@example.test';
     h.elements.get('authPassword').value = 'secret';
     h.elements.get('currentOwnerPin').value = '123456';
     h.elements.get('newOwnerPin').value = '654321';
@@ -156,6 +157,7 @@ test('a failed local sign-out does not prevent locking the interface or clearing
     assert.equal(snapshot.state.buildingName, '');
     assert.equal(h.sandbox.document.body.classList.contains('session-locked'), true);
     assert.match(h.elements.get('pinErrorMsg').textContent, /تم قفل الواجهة/);
+    assert.equal(h.elements.get('authIdentifier').value, '');
     assert.equal(h.elements.get('ownerTempPinValue').value, '');
     assert.equal(h.elements.get('authPassword').value, '');
     assert.equal(h.elements.get('currentOwnerPin').value, '');

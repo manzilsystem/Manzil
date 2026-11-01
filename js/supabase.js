@@ -229,7 +229,7 @@ function clearAuthenticatedState() {
         tempPinModal.classList.add('hidden');
         tempPinModal.classList.remove('flex');
     }
-    for (const id of ['authPassword', 'currentOwnerPin', 'newOwnerPin', 'confirmOwnerPin', 'ownerTempPinValue']) {
+    for (const id of ['authIdentifier', 'authPassword', 'currentOwnerPin', 'newOwnerPin', 'confirmOwnerPin', 'ownerTempPinValue']) {
         const input = document.getElementById(id);
         if (input) input.value = '';
     }
