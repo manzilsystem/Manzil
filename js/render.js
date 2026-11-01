@@ -48,6 +48,8 @@ function renderDashboard() {
 function renderCashFlowChart() {
     const c = document.getElementById('cashFlowChartContainer');
     const months = getActiveBuildingMonths().slice(-6);
+    c.setAttribute('role', 'img');
+    c.setAttribute('aria-label', 'مخطط مقارنة التحصيلات والمصروفات خلال آخر ستة أشهر');
     if (!months.length) { c.innerHTML = '<p class="text-slate-500 text-xs text-center w-full py-6">لا توجد بيانات</p>'; return; }
     const inc = {}, exp = {};
     months.forEach(m => { inc[m]=0; exp[m]=0; });
@@ -75,11 +77,11 @@ function renderUnpaidResidents() {
         <div class="flex items-center justify-between app-input rounded-2xl p-2.5 border">
             <div class="flex items-center gap-2 min-w-0">
                 <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-xs font-bold shrink-0">${esc(x.r.apartmentNumber||'?')}</div>
-                <div class="min-w-0"><p class="text-xs font-bold truncate">${esc(x.r.name)}</p><p class="text-[10px] text-slate-500">${x.d.count} شهر متأخر</p></div>
+                <div class="min-w-0"><p class="text-xs font-bold truncate">${esc(x.r.name)}</p><p class="text-[10px] text-slate-500">${x.d.count} شهر عليه رصيد</p></div>
             </div>
             <div class="text-right shrink-0">
                 <p class="text-xs font-black text-rose-400">${fmtNum(x.d.totalDebt)} ج.م</p>
-                <button onclick="sendWhatsAppReminder('${x.r.id}')" class="text-[10px] text-emerald-400 hover:underline"><i class="fa-brands fa-whatsapp"></i> تذكير</button>
+                    <button onclick="sendWhatsAppReminder('${x.r.id}')" aria-label="إرسال تذكير واتساب إلى ${esc(x.r.name)}" class="text-[10px] text-emerald-400 hover:underline"><i class="fa-brands fa-whatsapp"></i> تذكير</button>
             </div>
         </div>`).join('');
 }
@@ -136,7 +138,10 @@ function renderIncomeTable() {
     if (filterSel) { const v = filterSel.value; filterSel.innerHTML = '<option value="">كل الشهور</option>' + getActiveBuildingMonths().map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join(''); filterSel.value = v; }
     let items = [...state.income].sort((a,b) => new Date(b.date)-new Date(a.date));
     if (fm) items = items.filter(i => i.month === fm);
-    if (s) items = items.filter(i => { const r = state.residents.find(x => x.id === i.residentId); return (r?.name||'').toLowerCase().includes(s) || (i.month||'').toLowerCase().includes(s); });
+    if (s) items = items.filter(i => {
+        const r = state.residents.find(x => x.id === i.residentId);
+        return [r?.name, r?.apartmentNumber, i.month, i.notes, i.amount].some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(s));
+    });
     if (!items.length) { c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center"><p class="text-slate-500 text-sm">لا توجد تحصيلات</p></div>'; return; }
     c.innerHTML = items.map(i => { const r = state.residents.find(x => x.id === i.residentId); return `
         <div class="app-card p-3 rounded-2xl border flex justify-between items-center gap-2">
@@ -161,7 +166,7 @@ function renderExpenseTable() {
     let items = [...state.expenses].sort((a,b) => new Date(b.date)-new Date(a.date));
     if (fc) items = items.filter(e => e.category === fc);
     if (fm) items = items.filter(e => e.month === fm);
-    if (s) items = items.filter(e => (e.title||'').toLowerCase().includes(s) || (e.notes||'').toLowerCase().includes(s));
+    if (s) items = items.filter(e => [e.title, e.category, e.month, e.notes, e.amount].some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(s)));
     if (!items.length) { c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center"><p class="text-slate-500 text-sm">لا توجد مصروفات</p></div>'; return; }
     c.innerHTML = items.map(e => `
         <div class="app-card p-3 rounded-2xl border flex justify-between items-center gap-2">
@@ -185,7 +190,9 @@ function renderResidentsGrid() {
     const cur = getCurrentMonth();
     c.innerHTML = list.map(r => {
         const d = calculateCumulativeDebt(r.id);
-        const paid = state.income.some(i => i.residentId === r.id && i.month === cur);
+        const outstanding = getMonthOutstanding(r, cur);
+        const paid = outstanding <= 0;
+        const partiallyPaid = !paid && getPaidAmountForMonth(r.id, cur) > 0;
         return `<div class="app-card p-4 rounded-3xl border space-y-3">
             <div class="flex justify-between items-start">
                 <div class="flex items-center gap-2">
@@ -193,8 +200,8 @@ function renderResidentsGrid() {
                     <div><p class="text-sm font-bold">${esc(r.name)}</p><p class="text-[10px] text-slate-500">${esc(r.phone||'')}</p></div>
                 </div>
                 <div class="flex gap-1">
-                    <button onclick="editResident('${r.id}')" class="text-indigo-400 hover:text-indigo-300 p-1.5"><i class="fa-solid fa-pen text-xs"></i></button>
-                    <button onclick="deleteResident('${r.id}')" class="text-rose-400 hover:text-rose-300 p-1.5"><i class="fa-solid fa-trash text-xs"></i></button>
+                    <button onclick="editResident('${r.id}')" aria-label="تعديل بيانات ${esc(r.name)}" class="text-indigo-400 hover:text-indigo-300 p-1.5"><i class="fa-solid fa-pen text-xs"></i></button>
+                    <button onclick="deleteResident('${r.id}')" aria-label="حذف الشقة ${esc(r.apartmentNumber)}" class="text-rose-400 hover:text-rose-300 p-1.5"><i class="fa-solid fa-trash text-xs"></i></button>
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-2 text-center">
@@ -202,9 +209,9 @@ function renderResidentsGrid() {
                 <div class="app-input p-2 rounded-xl border"><p class="text-[10px] text-slate-500">المتأخرات</p><p class="text-xs font-bold ${d.count>0?'text-rose-400':'text-emerald-400'}">${d.count>0?fmtNum(d.totalDebt):'0'}</p></div>
             </div>
             <div class="flex gap-2">
-                ${paid ? '<div class="flex-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 py-2 rounded-xl text-xs font-bold text-center"><i class="fa-solid fa-check ml-1"></i> مدفوع</div>'
-                    : `<button onclick="quickPayResident('${r.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-xl text-xs font-bold transition"><i class="fa-solid fa-check ml-1"></i> تسجيل دفع</button>`}
-                <button onclick="sendWhatsAppReminder('${r.id}')" class="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-xl text-xs font-bold"><i class="fa-brands fa-whatsapp"></i></button>
+                ${paid ? '<div class="flex-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 py-2 rounded-xl text-xs font-bold text-center"><i class="fa-solid fa-check ml-1"></i> مدفوع بالكامل</div>'
+                    : `<button onclick="quickPayResident('${r.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-xl text-xs font-bold transition"><i class="fa-solid fa-check ml-1"></i> ${partiallyPaid ? `استكمال ${fmtNum(outstanding)}` : 'تسجيل دفع'}</button>`}
+                <button onclick="sendWhatsAppReminder('${r.id}')" aria-label="إرسال تذكير واتساب إلى ${esc(r.name)}" class="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-xl text-xs font-bold"><i class="fa-brands fa-whatsapp"></i></button>
             </div>
         </div>`;
     }).join('');
