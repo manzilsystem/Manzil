@@ -155,6 +155,7 @@ async function handleIncomeSubmit(e) {
     const notes = document.getElementById('incomeNotes').value.trim();
     if (!residentId || !Number.isFinite(amount) || amount <= 0 || !month) { toast('اختر الشقة والشهر وأدخل مبلغاً أكبر من صفر','error'); return; }
     const r = state.residents.find(x => x.id === residentId);
+    if (!r) { toast('الشقة المحددة غير موجودة؛ حدّث القائمة ثم حاول مجدداً','error'); return; }
     const previousState = cloneStateSnapshot();
     state.income.push({ id: generateId(), residentId, amount, month, date: new Date().toISOString(), notes });
     logAction('تحصيل', `${r?.name} - ${month} - ${fmtNum(amount)}`);
@@ -226,9 +227,11 @@ async function handleNoticeSubmit() {
 
 async function deleteNotice(id) {
     if (!requireManager()) return;
+    const notice = state.notices.find(n => n.id === id); if (!notice) return;
     if (!confirm('حذف هذا الإعلان؟')) return;
     const previousState = cloneStateSnapshot();
     state.notices = state.notices.filter(n => n.id !== id);
+    logAction('حذف إعلان', notice?.text || id);
     if (!await saveWithRollback(previousState)) return;
     renderNotices();
     toast('تم حذف الإعلان', 'info');
@@ -301,7 +304,7 @@ function exportToCSV() {
         const r = state.residents.find(x => x.id === i.residentId);
         rows.push(['تحصيل', r?.name||'', r?.apartmentNumber||'', i.month, i.amount, i.notes||'']);
     });
-    state.expenses.forEach(e => rows.push(['مصروف', e.title, '', e.month, e.amount, e.category+' '+e.notes]));
+    state.expenses.forEach(e => rows.push(['مصروف', e.title, '', e.month, e.amount, [e.category, e.notes].filter(Boolean).join(' ')]));
     const csvCell = value => {
         let text = String(value ?? '');
         if (typeof value === 'string' && /^[\u0000-\u0020]*[=+\-@]/.test(text)) text = `'${text}`;
@@ -355,7 +358,9 @@ function isValidBackup(data) {
     const requiredArrays = ['residents','income','expenses','notices'];
     if (!requiredArrays.every(key => Array.isArray(data[key]))) return false;
     const validId = value => typeof value === 'string' && /^[\w-]{1,100}$/.test(value);
-    const validAmount = value => Number.isFinite(Number(value)) && Number(value) >= 0;
+    const validNumber = value => (typeof value === 'number' && Number.isFinite(value)) ||
+        (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value)));
+    const validAmount = value => validNumber(value) && Number(value) >= 0;
     if (!data.residents.every(r => r && typeof r === 'object' && validId(r.id) && typeof r.name === 'string' && typeof r.apartmentNumber === 'string' && (r.phone === undefined || typeof r.phone === 'string') && (r.notes === undefined || typeof r.notes === 'string') && validAmount(r.monthlyAmount ?? 0))) return false;
     if (!data.residents.every(r => r.userId === undefined || r.userId === null || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(r.userId)))) return false;
     const residentIds = new Set(data.residents.map(r => r.id));
@@ -365,7 +370,7 @@ function isValidBackup(data) {
     if (data.auditLogs !== undefined && !Array.isArray(data.auditLogs)) return false;
     if (data.currentTheme !== undefined && !['dark','light','emerald'].includes(data.currentTheme)) return false;
     if (data.defaultSubscription !== undefined && !validAmount(data.defaultSubscription)) return false;
-    if (data.startingBalance !== undefined && !Number.isFinite(Number(data.startingBalance))) return false;
+    if (data.startingBalance !== undefined && !validNumber(data.startingBalance)) return false;
     return true;
 }
 

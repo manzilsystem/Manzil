@@ -24,3 +24,10 @@ test('backup validation rejects a nonnumeric opening balance without rejecting v
     assert.equal(isValidBackup(validBackup({ startingBalance: -125.5 })), true);
     assert.equal(isValidBackup(validBackup()), true);
 });
+
+test('backup validation rejects empty or null financial values instead of coercing them to zero', () => {
+    const resident = { id: 'resident-1', name: 'ساكن', apartmentNumber: '1', monthlyAmount: 100 };
+    assert.equal(isValidBackup(validBackup({ residents: [resident], income: [{ id: 'income-1', residentId: 'resident-1', month: 'يناير 2024', amount: null }] })), false);
+    assert.equal(isValidBackup(validBackup({ expenses: [{ id: 'expense-1', title: 'مصروف', month: 'يناير 2024', amount: '' }] })), false);
+    assert.equal(isValidBackup(validBackup({ defaultSubscription: '' })), false);
+});
