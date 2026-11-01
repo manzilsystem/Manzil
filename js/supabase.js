@@ -93,6 +93,18 @@ async function loadState() {
         .select('must_change_pin').eq('id', activeSession.user.id).maybeSingle();
     if (profileError) throw profileError;
     ownerMustChangePin = currentUserRole === 'owner' && profile?.must_change_pin === true;
+    if (ownerMustChangePin) {
+        state = {
+            ...state, buildingName: '', managerName: '', managerPhone: '', defaultSubscription: 0,
+            startingBalance: 0, residents: [], income: [], expenses: [], notices: [], auditLogs: [],
+            currentTheme: 'dark', lastUpdated: Date.now()
+        };
+        currentResidentId = null;
+        supabaseStateLoaded = false;
+        clearOwnerPortal();
+        renderAll();
+        return true;
+    }
     const { data: building, error: buildingError } = await supabaseClient.from('buildings').select('*').eq('id', activeBuildingId).single();
     if (buildingError) throw buildingError;
     const [residents, income, expenses, notices, auditLogs] = await Promise.all([
@@ -228,32 +240,63 @@ function showFirstOwnerPinChange(message = '') {
         error.textContent = message;
         error.classList.toggle('hidden', !message);
     }
-    setTimeout(() => document.getElementById('newOwnerPin')?.focus(), 100);
+    setTimeout(() => document.getElementById('currentOwnerPin')?.focus(), 100);
 }
 
 async function submitFirstOwnerPinChange(event) {
     event.preventDefault();
+    const currentPin = normalizePinDigits(document.getElementById('currentOwnerPin').value);
     const pin = normalizePinDigits(document.getElementById('newOwnerPin').value);
     const confirmPin = normalizePinDigits(document.getElementById('confirmOwnerPin').value);
+    if (!/^\d{6}$/.test(currentPin)) return showFirstOwnerPinChange('أدخل PIN الحالي المكوّن من 6 أرقام.');
     if (!/^\d{6}$/.test(pin)) return showFirstOwnerPinChange('PIN يجب أن يتكون من 6 أرقام.');
     if (pin !== confirmPin) return showFirstOwnerPinChange('الرمزان غير متطابقين.');
+    if (pin === currentPin) return showFirstOwnerPinChange('اختر PIN جديدًا يختلف عن الرمز الحالي.');
 
     const button = event.submitter || event.target.querySelector('button[type="submit"]');
     if (button) button.disabled = true;
-    const { data, error: passwordError } = await supabaseClient.auth.updateUser({ password: pin });
-    if (passwordError) {
+    let data;
+    let error;
+    try {
+        ({ data, error } = await supabaseClient.functions.invoke('complete-owner-pin-change', {
+            body: { current_pin: currentPin, new_pin: pin }
+        }));
+    } catch {
         if (button) button.disabled = false;
-        showFirstOwnerPinChange('تعذر تغيير الرمز. تحقق من الاتصال ثم أعد المحاولة.');
+        showFirstOwnerPinChange('تعذر الاتصال بخدمة تغيير PIN. تحقق من الاتصال وحاول مجددًا.');
         return;
     }
-    const { error: profileError } = await supabaseClient.from('profiles')
-        .update({ must_change_pin: false }).eq('id', activeSession.user.id);
-    if (profileError) {
+    if (error || !data?.ok) {
         if (button) button.disabled = false;
-        showFirstOwnerPinChange('تعذر حفظ حالة الحساب. أعد المحاولة قبل المتابعة.');
+        let errorCode = data?.error;
+        if (error?.context && typeof error.context.clone === 'function') {
+            try { errorCode = (await error.context.clone().json())?.error || errorCode; } catch {}
+        }
+        if (errorCode === 'pin_updated_retry_required') {
+            document.getElementById('currentOwnerPin').value = pin;
+            document.getElementById('newOwnerPin').value = '';
+            document.getElementById('confirmOwnerPin').value = '';
+            showFirstOwnerPinChange('تم تغيير PIN لكن تعذر إنهاء الحساب. اختر PIN جديدًا آخر باستخدام الرمز الجديد كرمز حالي.');
+            return;
+        }
+        showFirstOwnerPinChange('تعذر التحقق من PIN الحالي أو إكمال التغيير. راجع الرمز وحاول مجددًا.');
         return;
     }
-    activeSession = data.session || activeSession;
+    try {
+        await loadState();
+    } catch {
+        try { await supabaseClient.auth.signOut(); } catch {}
+        activeSession = null;
+        activeBuildingId = null;
+        supabaseStateLoaded = false;
+        currentUserRole = null;
+        currentResidentId = null;
+        document.getElementById('ownerPinChangeModal').classList.add('hidden');
+        document.getElementById('ownerPinChangeModal').classList.remove('flex');
+        event.target.reset();
+        setAuthModal(true, 'تم تغيير PIN. سجّل الدخول بالرمز الجديد لإكمال فتح الحساب.');
+        return;
+    }
     ownerMustChangePin = false;
     document.getElementById('ownerPinChangeModal').classList.add('hidden');
     document.getElementById('ownerPinChangeModal').classList.remove('flex');
