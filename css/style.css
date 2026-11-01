@@ -63,6 +63,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
 }
 .app-input { background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-color); }
+.app-input:user-invalid:not(:focus) { border-color: #fb7185; box-shadow: 0 0 0 1px rgba(251, 113, 133, .18); }
 .tab-btn { min-width: 52px; min-height: 44px; justify-content: center; }
 .tab-btn.active { color: var(--accent-color); font-weight: 800; }
 .tab-btn.active i { transform: scale(1.15); transition: transform .2s; }

@@ -18,7 +18,7 @@
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6" data-theme="dark">
 
-    <div id="toastContainer" class="fixed top-20 left-1/2 -translate-x-1/2 z-[100] space-y-2 pointer-events-none" style="max-width:90vw;"></div>
+    <div id="toastContainer" role="status" aria-live="polite" aria-atomic="true" class="fixed top-20 left-1/2 -translate-x-1/2 z-[100] space-y-2 pointer-events-none" style="max-width:90vw;"></div>
 
     <!-- PIN Lock -->
     <div id="pinLockModal" role="dialog" aria-modal="true" aria-labelledby="pinLockTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
@@ -54,7 +54,7 @@
                     <h1 id="headerBuildingTitle" class="text-base font-extrabold leading-tight tracking-wide">Manzil</h1>
                     <p class="text-[10px] text-slate-400 flex items-center gap-1">
                         <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-                        <span id="syncStatus">جاري التحقق...</span>
+                        <span id="syncStatus" role="status" aria-live="polite">جاري التحقق...</span>
                     </p>
                 </div>
             </div>
@@ -402,7 +402,7 @@
                     <input type="text" id="residentApartment" aria-label="رقم الشقة" placeholder="رقم الشقة" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                     <input type="tel" id="residentPhone" aria-label="هاتف الساكن" placeholder="الهاتف" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 </div>
-                <input type="number" id="residentAmount" min="0" step="0.01" aria-label="الاشتراك الشهري للشقة" placeholder="الاشتراك الشهري" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                <input type="number" id="residentAmount" min="0" step="0.01" inputmode="decimal" aria-label="الاشتراك الشهري للشقة" placeholder="الاشتراك الشهري" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 <textarea id="residentNotes" rows="2" placeholder="ملاحظات" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">حفظ</button>
             </form>
@@ -417,9 +417,9 @@
                 <button onclick="closeModal('incomeModal')" aria-label="إغلاق نافذة التحصيل" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <form id="incomeForm" onsubmit="handleIncomeSubmit(event)" class="p-5 space-y-3">
-                <select id="incomeResident" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر الشقة</option></select>
-                <input type="number" id="incomeAmount" min="0.01" step="0.01" aria-label="مبلغ التحصيل" placeholder="مبلغ التحصيل" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
-                <select id="incomeMonth" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
+                <select id="incomeResident" aria-label="الشقة" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر الشقة</option></select>
+                <input type="number" id="incomeAmount" min="0.01" step="0.01" inputmode="decimal" aria-label="مبلغ التحصيل" placeholder="مبلغ التحصيل" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                <select id="incomeMonth" aria-label="شهر التحصيل" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
                 <textarea id="incomeNotes" rows="2" placeholder="ملاحظات" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
                 <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-2xl font-bold transition">حفظ</button>
             </form>
