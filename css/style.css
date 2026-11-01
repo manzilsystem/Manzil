@@ -98,6 +98,15 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .guide-step h4 { display: flex; align-items: center; gap: .5rem; font-weight: 800; margin-bottom: .35rem; }
 .guide-step p { color: var(--text-muted); font-size: .7rem; }
 .guide-step-number { width: 1.5rem; height: 1.5rem; display: inline-flex; align-items: center; justify-content: center; border-radius: .6rem; color: #c7d2fe; background: rgba(99, 102, 241, .22); border: 1px solid rgba(129, 140, 248, .32); font-size: .7rem; flex-shrink: 0; }
+[role="dialog"] > .app-card,
+[role="dialog"] > form.app-card {
+    width: 100%;
+    max-width: 28rem;
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+[role="dialog"] button { min-height: 44px; }
 
 body.session-locked > header,
 body.session-locked > main,
@@ -131,6 +140,11 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
     .app-card { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
     #landlordReportPreview { overflow-wrap: anywhere; }
     .quick-action { min-height: 68px; padding-inline: .35rem; }
+    [role="dialog"] { padding: .75rem; }
+    [role="dialog"] > .app-card,
+    [role="dialog"] > form.app-card { max-height: calc(100dvh - 1.5rem); border-radius: 1.25rem; }
+    [role="dialog"] .grid.grid-cols-2 { grid-template-columns: minmax(0, 1fr); }
+    [role="dialog"] .flex.gap-2 > button { min-width: 0; }
 }
 
 @media (max-width: 360px) {
