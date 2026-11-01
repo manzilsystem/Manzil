@@ -71,19 +71,27 @@ async function handleResidentSubmit(e) {
 
 async function provisionOwnerAccess(residentId) {
     if (!requireManager()) return;
-    const { data, error } = await supabaseClient.functions.invoke('manage-owner-access', { body: { resident_id: residentId } });
-    if (error || !data?.temporary_pin) {
-        console.error('Owner provisioning failed:', error?.message || data?.error || 'unknown error');
-        const messages = {
-            invalid_phone: 'رقم الجوال غير صحيح. استخدم رقمًا مصريًا مثل 01012345678.',
-            phone_already_linked: 'رقم الجوال مربوط بحساب مالك آخر.',
-            phone_account_create_failed: 'تعذر إنشاء حساب لهذا الرقم؛ ربما له حساب سابق. راجع المدير.',
-            manager_only: 'إنشاء حساب المالك متاح للمدير فقط.'
-        };
-        toast(messages[data?.error] || 'تعذر إنشاء PIN. تحقق من اتصال Supabase ثم أعد المحاولة.', 'error');
+    const messages = {
+        invalid_phone: 'رقم الجوال غير صحيح. استخدم رقمًا مصريًا مثل 01012345678.',
+        phone_already_linked: 'رقم الجوال مربوط بحساب مالك آخر.',
+        phone_account_create_failed: 'تعذر إنشاء حساب لهذا الرقم؛ ربما له حساب سابق. راجع المدير.',
+        manager_only: 'إنشاء حساب المالك متاح للمدير فقط.'
+    };
+    let data;
+    try {
+        const result = await supabaseClient.functions.invoke('manage-owner-access', { body: { resident_id: residentId } });
+        data = result.data;
+        if (result.error || !data?.temporary_pin) {
+            console.error('Owner provisioning failed:', result.error?.message || data?.error || 'unknown error');
+            toast(messages[data?.error] || 'تعذر إنشاء PIN. تحقق من اتصال Supabase ثم أعد المحاولة.', 'error');
+            return;
+        }
+        await loadState();
+    } catch (error) {
+        console.error('Owner provisioning refresh failed:', error);
+        toast('تم إنشاء الحساب لكن تعذر تحديث البيانات. أعد تحميل الصفحة قبل متابعة العمل.', 'error');
         return;
     }
-    await loadState();
     renderAll();
     document.getElementById('ownerTempPinPhone').textContent = data.phone;
     document.getElementById('ownerTempPinValue').value = data.temporary_pin;
@@ -95,12 +103,14 @@ async function provisionOwnerAccess(residentId) {
 async function copyOwnerTempPin() {
     const input = document.getElementById('ownerTempPinValue');
     input.select();
+    let copied = false;
     try {
         await navigator.clipboard.writeText(input.value);
+        copied = true;
     } catch {
-        document.execCommand('copy');
+        try { copied = document.execCommand('copy'); } catch {}
     }
-    toast('تم نسخ الرمز. شاركه مع المالك مباشرةً.', 'success');
+    toast(copied ? 'تم نسخ الرمز. شاركه مع المالك مباشرةً.' : 'تعذر نسخ الرمز؛ حدده وانسخه يدويًا.', copied ? 'success' : 'error');
 }
 
 function closeOwnerTempPinModal() {
@@ -221,6 +231,7 @@ async function deleteNotice(id) {
     state.notices = state.notices.filter(n => n.id !== id);
     if (!await saveWithRollback(previousState)) return;
     renderNotices();
+    toast('تم حذف الإعلان', 'info');
 }
 
 function shareNoticeToWhatsApp() {
