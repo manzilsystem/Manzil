@@ -7,6 +7,7 @@ let supabaseStateLoaded = false;
 let authLoading = false;
 let ownerMustChangePin = false;
 let authGeneration = 0;
+let persistedAuditLogIds = new Set();
 
 function isCurrentAuthSession(session, generation) {
     return Boolean(session && activeSession && session.user?.id === activeSession.user?.id && generation === authGeneration);
@@ -115,6 +116,7 @@ async function loadState() {
             startingBalance: 0, residents: [], income: [], expenses: [], notices: [], auditLogs: [],
             currentTheme: 'dark', lastUpdated: Date.now()
         };
+        persistedAuditLogIds = new Set();
         currentResidentId = null;
         supabaseStateLoaded = false;
         clearOwnerPortal();
@@ -139,6 +141,7 @@ async function loadState() {
         residents: residents.map(mapResident), income: income.map(mapIncome), expenses: expenses.map(mapExpense),
         notices: notices.map(mapNotice), auditLogs: auditLogs.map(mapAudit), lastUpdated: Date.now()
     };
+    persistedAuditLogIds = new Set(auditLogs.map(row => row.id));
     currentResidentId = currentUserRole === 'owner' ? state.residents[0]?.id || null : null;
     supabaseStateLoaded = true;
     return true;
@@ -172,7 +175,8 @@ async function saveState() {
         const incomeRows = state.income.map(i => ({ id: i.id, building_id: activeBuildingId, resident_id: i.residentId, amount: Number(i.amount) || 0, month: i.month, notes: i.notes || null, paid_at: i.date || new Date().toISOString(), created_by: activeSession.user.id }));
         const expenseRows = state.expenses.map(e => ({ id: e.id, building_id: activeBuildingId, title: e.title, amount: Number(e.amount) || 0, category: e.category || 'أخرى', month: e.month, notes: e.notes || null, spent_at: e.date || new Date().toISOString(), created_by: activeSession.user.id }));
         const noticeRows = state.notices.map(n => ({ id: n.id, building_id: activeBuildingId, text: n.text, created_by: activeSession.user.id, created_at: n.date || new Date().toISOString() }));
-        const auditRows = state.auditLogs.map(l => ({ id: l.id, building_id: activeBuildingId, action: l.action, details: l.details || null, actor_id: activeSession.user.id, created_at: l.date || new Date().toISOString() }));
+        const auditRows = state.auditLogs.filter(l => !persistedAuditLogIds.has(l.id))
+            .map(l => ({ id: l.id, building_id: activeBuildingId, action: l.action, details: l.details || null, actor_id: activeSession.user.id, created_at: l.date || new Date().toISOString() }));
         const ownerUserIds = residentRows.map(r => r.user_id).filter(Boolean);
         if (ownerUserIds.length) {
             const { error: memberError } = await supabaseClient.from('building_members').upsert(ownerUserIds.map(user_id => ({ building_id: activeBuildingId, user_id, role: 'owner' })));
@@ -185,10 +189,15 @@ async function saveState() {
             const { error: removeMembersError } = await supabaseClient.from('building_members').delete().eq('building_id', activeBuildingId).eq('role', 'owner').in('user_id', staleOwners);
             if (removeMembersError) throw removeMembersError;
         }
-        for (const [table, rows] of [['residents', residentRows], ['income', incomeRows], ['expenses', expenseRows], ['notices', noticeRows], ['audit_logs', auditRows]]) {
+        for (const [table, rows] of [['residents', residentRows], ['income', incomeRows], ['expenses', expenseRows], ['notices', noticeRows]]) {
             if (!rows.length) continue;
             const { error } = await supabaseClient.from(table).upsert(rows);
             if (error) throw error;
+        }
+        if (auditRows.length) {
+            const { error } = await supabaseClient.from('audit_logs').insert(auditRows);
+            if (error) throw error;
+            auditRows.forEach(row => persistedAuditLogIds.add(row.id));
         }
         await deleteMissing('residents', 'id', residentRows.map(r => r.id));
         await deleteMissing('income', 'id', incomeRows.map(r => r.id));
@@ -211,6 +220,7 @@ function clearAuthenticatedState() {
     ownerMustChangePin = false;
     currentUserRole = null;
     currentResidentId = null;
+    persistedAuditLogIds = new Set();
     state = {
         ...state,
         buildingName: '', managerName: '', managerPhone: '', defaultSubscription: 0,
