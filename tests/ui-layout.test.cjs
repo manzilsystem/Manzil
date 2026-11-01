@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
 const css = fs.readFileSync('css/style.css', 'utf8');
+const html = fs.readFileSync('index.html', 'utf8');
 
 test('narrow mobile header keeps its content inside the available width', () => {
     assert.match(css, /@media \(max-width: 360px\)/);
@@ -18,4 +19,14 @@ test('modal cards and controls stay usable on small screens', () => {
     assert.match(css, /\[role="dialog"\] button \{ min-height: 44px; \}/);
     assert.match(css, /\[role="dialog"\] \.grid\.grid-cols-2 \{ grid-template-columns: minmax\(0, 1fr\); \}/);
     assert.match(css, /\[role="dialog"\] \.flex\.gap-2 > button \{ min-width: 0; \}/);
+});
+
+test('mobile action bars and filters can wrap without horizontal overflow', () => {
+    assert.match(html, /class="quick-actions-grid grid grid-cols-2 sm:grid-cols-4 gap-2"/);
+    assert.ok((html.match(/class="section-toolbar /g) || []).length >= 3);
+    assert.ok((html.match(/class="list-filters /g) || []).length >= 2);
+    assert.match(css, /\.section-toolbar > button \{ flex-shrink: 0; white-space: nowrap; \}/);
+    assert.match(css, /\.list-filters input \{ min-width: 10rem; flex: 1 1 12rem; \}/);
+    assert.match(css, /\.list-filters input, \.list-filters select \{ width: 100%; min-width: 0; flex-basis: auto; \}/);
+    assert.match(css, /\.resident-filters-grid \{ grid-template-columns: minmax\(0, 1fr\); \}/);
 });
