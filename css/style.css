@@ -134,7 +134,11 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 }
 
 @media (max-width: 360px) {
-    #headerBuildingTitle { max-width: 34vw; }
+    header .container > div:first-child { min-width: 0; flex: 1 1 auto; gap: .5rem; }
+    header .container > div:first-child > div:first-child { flex-shrink: 0; }
+    header .container > div:last-child { flex-shrink: 0; gap: .125rem; }
+    header .container > div:last-child button { min-width: 40px; min-height: 40px; padding: .5rem; }
+    #headerBuildingTitle { max-width: 28vw; }
     nav[aria-label="التنقل الرئيسي"] .tab-btn { min-width: 44px; }
     nav[aria-label="التنقل الرئيسي"] .tab-btn span { font-size: 9px; }
     #tab-dashboard > .grid.grid-cols-2 { gap: .5rem; }
