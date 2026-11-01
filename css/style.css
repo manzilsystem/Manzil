@@ -1,23 +1,123 @@
-:root { --bg-main:#090d16; --bg-card:rgba(15,23,42,.85); --bg-input:#020617; --text-main:#f8fafc; --text-muted:#94a3b8; --border-color:rgba(51,65,85,.8); --accent-color:#6366f1; }
-[data-theme="dark"] { --bg-main:#090d16; --bg-card:rgba(15,23,42,.85); --bg-input:#020617; --text-main:#f8fafc; --text-muted:#94a3b8; --border-color:rgba(51,65,85,.8); --accent-color:#6366f1; }
-[data-theme="light"] { --bg-main:#f1f5f9; --bg-card:#fff; --bg-input:#f8fafc; --text-main:#0f172a; --text-muted:#64748b; --border-color:#e2e8f0; --accent-color:#4f46e5; }
-[data-theme="emerald"] { --bg-main:#021a13; --bg-card:rgba(6,78,59,.3); --bg-input:#01110c; --text-main:#ecfdf5; --text-muted:#6ee7b7; --border-color:rgba(5,150,105,.3); --accent-color:#10b981; }
+:root {
+    --bg-main: #090d16;
+    --bg-card: rgba(15, 23, 42, .85);
+    --bg-input: #020617;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-color: rgba(51, 65, 85, .8);
+    --accent-color: #6366f1;
+}
 
-body { font-family:'Cairo',sans-serif; -webkit-tap-highlight-color:transparent; background-color:var(--bg-main); color:var(--text-main); transition:background-color .3s,color .3s; }
-.app-card { background-color:var(--bg-card); border-color:var(--border-color); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
-.app-input { background-color:var(--bg-input); color:var(--text-main); border-color:var(--border-color); }
-.tab-btn.active { color:var(--accent-color); font-weight:800; }
-.tab-btn.active i { transform:scale(1.15); transition:transform .2s; }
+[data-theme="dark"] {
+    --bg-main: #090d16;
+    --bg-card: rgba(15, 23, 42, .85);
+    --bg-input: #020617;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-color: rgba(51, 65, 85, .8);
+    --accent-color: #6366f1;
+}
 
-@keyframes toastIn { from { opacity:0; transform:translate(-50%,-20px); } to { opacity:1; transform:translate(-50%,0); } }
+[data-theme="light"] {
+    --bg-main: #f1f5f9;
+    --bg-card: #fff;
+    --bg-input: #f8fafc;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+    --accent-color: #4f46e5;
+}
+
+[data-theme="emerald"] {
+    --bg-main: #021a13;
+    --bg-card: rgba(6, 78, 59, .3);
+    --bg-input: #01110c;
+    --text-main: #ecfdf5;
+    --text-muted: #6ee7b7;
+    --border-color: rgba(5, 150, 105, .3);
+    --accent-color: #10b981;
+}
+
+* { box-sizing: border-box; }
+html { min-width: 320px; scroll-behavior: smooth; }
+body {
+    min-height: 100vh;
+    overflow-x: hidden;
+    font-family: 'Cairo', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    transition: background-color .3s, color .3s;
+}
+button, input, select, textarea { font: inherit; }
+button { touch-action: manipulation; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--accent-color) 75%, white);
+    outline-offset: 2px;
+}
+.app-card {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+.app-input { background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-color); }
+.tab-btn { min-width: 52px; min-height: 44px; justify-content: center; }
+.tab-btn.active { color: var(--accent-color); font-weight: 800; }
+.tab-btn.active i { transform: scale(1.15); transition: transform .2s; }
+#headerBuildingTitle { max-width: 42vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#cashFlowChartContainer > div { min-width: 0; }
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translate(-50%, -20px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
 .toast { animation: toastIn .3s ease; }
-@keyframes fadeIn { from { opacity:0; transform:scale(.95); } to { opacity:1; transform:scale(1); } }
+@keyframes fadeIn { from { opacity: 0; transform: scale(.95); } to { opacity: 1; transform: scale(1); } }
 .animate-fadeIn { animation: fadeIn .2s ease; }
 
+@media (max-width: 640px) {
+    body { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+    button:not(.tab-btn) { min-height: 44px; }
+    header .container { gap: .5rem; }
+    header .container > div:last-child { gap: .25rem; }
+    header .container > div:last-child button { min-width: 44px; min-height: 44px; }
+    nav[aria-label="التنقل الرئيسي"] {
+        padding-bottom: calc(.75rem + env(safe-area-inset-bottom));
+        padding-left: max(.25rem, env(safe-area-inset-left));
+        padding-right: max(.25rem, env(safe-area-inset-right));
+    }
+    input, select, textarea { font-size: 16px !important; }
+    .app-card { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    #landlordReportPreview { overflow-wrap: anywhere; }
+}
+
+@media (max-width: 360px) {
+    #headerBuildingTitle { max-width: 34vw; }
+    nav[aria-label="التنقل الرئيسي"] .tab-btn { min-width: 44px; }
+    nav[aria-label="التنقل الرئيسي"] .tab-btn span { font-size: 9px; }
+    #tab-dashboard > .grid.grid-cols-2 { gap: .5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+@page { size: A4 portrait; margin: 14mm; }
 @media print {
-    body { background:white!important; color:black!important; }
-    body * { visibility:hidden; }
-    #printableArea, #printableArea * { visibility:visible; }
-    #printableArea { position:absolute; left:0; top:0; width:100%; background:white; color:black; padding:25px; }
-    .no-print { display:none!important; }
+    body { min-height: auto !important; padding: 0 !important; background: #fff !important; color: #111827 !important; }
+    body * { visibility: hidden; }
+    #printableArea, #printableArea * { visibility: visible; }
+    #printableArea { position: absolute; inset: 0 auto auto 0; width: 100%; max-width: none; padding: 0; background: #fff; color: #111827; }
+    #printableArea .app-card, #printableArea .app-input { background: #fff !important; color: #111827 !important; border-color: #cbd5e1 !important; box-shadow: none !important; backdrop-filter: none !important; }
+    #printableArea .text-slate-400, #printableArea .text-slate-500, #printableArea .text-slate-600 { color: #475569 !important; }
+    #printableArea .text-emerald-400 { color: #047857 !important; }
+    #printableArea .text-rose-400 { color: #be123c !important; }
+    #printableArea .text-indigo-400 { color: #4338ca !important; }
+    #printableArea .border-slate-700, #printableArea .border-slate-800 { border-color: #cbd5e1 !important; }
+    .no-print, nav, header, #toastContainer { display: none !important; }
+    #printableArea > .print\:block { display: block !important; }
+    #printableArea > section.hidden { display: none !important; }
+    #landlordReportPreview { break-inside: avoid; }
+    button { display: none !important; }
 }

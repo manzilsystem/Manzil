@@ -24,9 +24,15 @@ function handleResidentSubmit(e) {
     const name = document.getElementById('residentName').value.trim();
     const apartmentNumber = document.getElementById('residentApartment').value.trim();
     const phone = document.getElementById('residentPhone').value.trim();
-    const monthlyAmount = parseFloat(document.getElementById('residentAmount').value) || 0;
+    const amountInput = document.getElementById('residentAmount').value.trim();
+    const monthlyAmount = amountInput === '' ? Number(state.defaultSubscription) || 0 : Number(amountInput);
     const notes = document.getElementById('residentNotes').value.trim();
     if (!name || !apartmentNumber) { toast('الاسم ورقم الشقة مطلوبان','error'); return; }
+    if (!Number.isFinite(monthlyAmount) || monthlyAmount < 0) { toast('قيمة الاشتراك يجب أن تكون صفراً أو أكثر','error'); return; }
+    const normalizedApartment = apartmentNumber.toLocaleLowerCase('ar-EG');
+    if (state.residents.some(r => r.id !== editingResidentId && String(r.apartmentNumber||'').trim().toLocaleLowerCase('ar-EG') === normalizedApartment)) {
+        toast('رقم الشقة مسجل بالفعل','error'); return;
+    }
     if (editingResidentId) {
         const r = state.residents.find(x => x.id === editingResidentId);
         if (r) { Object.assign(r, { name, apartmentNumber, phone, monthlyAmount, notes }); logAction('تعديل شقة', `${name} - شقة ${apartmentNumber}`); toast('تم التعديل','success'); }
@@ -50,19 +56,20 @@ function deleteResident(id) {
 function quickPayResident(residentId) {
     const r = state.residents.find(x => x.id === residentId); if (!r) return;
     const month = getCurrentMonth();
-    if (state.income.some(i => i.residentId === residentId && i.month === month)) { toast('مدفوع بالفعل','info'); return; }
-    state.income.push({ id: generateId(), residentId, amount: r.monthlyAmount ?? state.defaultSubscription, month, date: new Date().toISOString(), notes: 'دفع سريع' });
-    logAction('تحصيل', `${r.name} - ${month}`);
-    saveState(); renderAll(); toast(`تم تسجيل ${month}`,'success'); syncWithGitHubGist(true);
+    const amount = getMonthOutstanding(r, month);
+    if (amount <= 0) { toast('تم سداد اشتراك الشهر بالكامل','info'); return; }
+    state.income.push({ id: generateId(), residentId, amount, month, date: new Date().toISOString(), notes: 'دفع سريع' });
+    logAction('تحصيل', `${r.name} - ${month} - ${fmtNum(amount)}`);
+    saveState(); renderAll(); toast(`تم تسجيل باقي اشتراك ${month}`,'success'); syncWithGitHubGist(true);
 }
 
 function handleIncomeSubmit(e) {
     e.preventDefault();
     const residentId = document.getElementById('incomeResident').value;
-    const amount = parseFloat(document.getElementById('incomeAmount').value) || 0;
+    const amount = Number(document.getElementById('incomeAmount').value);
     const month = document.getElementById('incomeMonth').value;
     const notes = document.getElementById('incomeNotes').value.trim();
-    if (!residentId || !amount || !month) { toast('أكمل البيانات','error'); return; }
+    if (!residentId || !Number.isFinite(amount) || amount <= 0 || !month) { toast('اختر الشقة والشهر وأدخل مبلغاً أكبر من صفر','error'); return; }
     const r = state.residents.find(x => x.id === residentId);
     state.income.push({ id: generateId(), residentId, amount, month, date: new Date().toISOString(), notes });
     logAction('تحصيل', `${r?.name} - ${month} - ${fmtNum(amount)}`);
@@ -79,11 +86,11 @@ function deleteIncome(id) {
 function handleExpenseSubmit(e) {
     e.preventDefault();
     const title = document.getElementById('expenseTitle').value.trim();
-    const amount = parseFloat(document.getElementById('expenseAmount').value) || 0;
+    const amount = Number(document.getElementById('expenseAmount').value);
     const category = document.getElementById('expenseCategory').value;
     const month = document.getElementById('expenseMonth').value;
     const notes = document.getElementById('expenseNotes').value.trim();
-    if (!title || !amount) { toast('أكمل البيانات','error'); return; }
+    if (!title || !Number.isFinite(amount) || amount <= 0 || !month) { toast('أدخل وصفاً ومبلغاً أكبر من صفر واختر الشهر','error'); return; }
     state.expenses.push({ id: generateId(), title, amount, category, month, notes, date: new Date().toISOString() });
     logAction('مصروف', `${title} - ${fmtNum(amount)}`);
     saveState(); closeModal('expenseModal'); document.getElementById('expenseForm').reset(); renderAll();
@@ -146,6 +153,7 @@ function sendWhatsAppReminder(residentId) {
     const r = state.residents.find(x => x.id === residentId); if (!r) return;
     const d = calculateCumulativeDebt(residentId);
     const phone = cleanPhone(r.phone);
+    if (!phone) { toast('أضف رقم هاتف الساكن أولاً لإرسال التذكير','error'); return; }
     const msg = `مرحباً ${r.name}،\nنذكركم بسداد اشتراك شهر ${getCurrentMonth()} للعمارة.\n${d.count>0?`إجمالي المتأخرات: ${fmtNum(d.totalDebt)} ج.م (${d.count} شهر)\n`:''}شكراً لتعاونكم.`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
 }
@@ -183,12 +191,19 @@ function exportToCSV() {
         rows.push(['تحصيل', r?.name||'', r?.apartmentNumber||'', i.month, i.amount, i.notes||'']);
     });
     state.expenses.forEach(e => rows.push(['مصروف', e.title, '', e.month, e.amount, e.category+' '+e.notes]));
-    const csv = '\uFEFF' + rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const csvCell = value => {
+        let text = String(value ?? '');
+        if (typeof value === 'string' && /^[\u0000-\u0020]*[=+\-@]/.test(text)) text = `'${text}`;
+        return `"${text.replace(/"/g,'""')}"`;
+    };
+    const csv = '\uFEFF' + rows.map(r => r.map(csvCell).join(',')).join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
+    a.href = url;
     a.download = `manzil_${Date.now()}.csv`;
     a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function exportJSON() {
@@ -200,19 +215,43 @@ function exportJSON() {
     toast('تم التصدير','success');
 }
 
+function isValidBackup(data) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+    const requiredArrays = ['residents','income','expenses','notices'];
+    if (!requiredArrays.every(key => Array.isArray(data[key]))) return false;
+    const validId = value => typeof value === 'string' && /^[\w-]{1,100}$/.test(value);
+    const validAmount = value => Number.isFinite(Number(value)) && Number(value) >= 0;
+    if (!data.residents.every(r => r && typeof r === 'object' && validId(r.id) && typeof r.name === 'string' && typeof r.apartmentNumber === 'string' && (r.phone === undefined || typeof r.phone === 'string') && (r.notes === undefined || typeof r.notes === 'string') && validAmount(r.monthlyAmount ?? 0))) return false;
+    const residentIds = new Set(data.residents.map(r => r.id));
+    if (!data.income.every(i => i && typeof i === 'object' && validId(i.id) && validId(i.residentId) && residentIds.has(i.residentId) && typeof i.month === 'string' && validAmount(i.amount) && (i.notes === undefined || typeof i.notes === 'string'))) return false;
+    if (!data.expenses.every(e => e && typeof e === 'object' && validId(e.id) && typeof e.title === 'string' && typeof e.month === 'string' && validAmount(e.amount) && (e.category === undefined || typeof e.category === 'string') && (e.notes === undefined || typeof e.notes === 'string'))) return false;
+    if (!data.notices.every(n => n && typeof n === 'object' && validId(n.id) && typeof n.text === 'string')) return false;
+    if (data.auditLogs !== undefined && !Array.isArray(data.auditLogs)) return false;
+    if (data.pinCode !== undefined && !/^\d{4}$/.test(String(data.pinCode))) return false;
+    if (data.pinEnabled !== undefined && typeof data.pinEnabled !== 'boolean') return false;
+    if (data.currentTheme !== undefined && !['dark','light','emerald'].includes(data.currentTheme)) return false;
+    if (data.defaultSubscription !== undefined && !validAmount(data.defaultSubscription)) return false;
+    return true;
+}
+
 function importJSON(ev) {
     const f = ev.target.files[0]; if (!f) return;
+    if (f.size > 10 * 1024 * 1024) { toast('حجم النسخة أكبر من الحد المسموح (10 ميجابايت)','error'); ev.target.value = ''; return; }
     const r = new FileReader();
     r.onload = () => {
         try {
             const data = JSON.parse(r.result);
-            if (!data.residents) throw new Error('ملف غير صالح');
+            if (!isValidBackup(data)) throw new Error('ملف غير صالح');
             if (!confirm('استيراد البيانات؟ سيتم استبدال الحالية.')) return;
-            state = { ...state, ...data };
-            saveState(); renderAll(); setTheme(state.currentTheme || 'dark');
+            const previousState = state;
+            state = { ...state, ...data, auditLogs: Array.isArray(data.auditLogs) ? data.auditLogs : [] };
+            if (!saveState()) { state = previousState; throw new Error('تعذر حفظ النسخة'); }
+            renderAll(); setTheme(state.currentTheme || 'dark');
             toast('تم الاستيراد','success'); closeModal('backupModal');
-        } catch (e) { toast('ملف غير صالح','error'); }
+        } catch (e) { console.error('تعذر استيراد النسخة:', e); toast('النسخة غير صالحة أو تعذر حفظها؛ لم يتم استبدال البيانات','error'); }
+        finally { ev.target.value = ''; }
     };
+    r.onerror = () => { toast('تعذر قراءة الملف','error'); ev.target.value = ''; };
     r.readAsText(f);
 }
 
@@ -230,14 +269,24 @@ function openSettingsModal() {
 }
 
 function saveSettings() {
+    const defaultSubscription = Number(document.getElementById('settingsDefaultSub').value || 0);
+    const startingBalance = Number(document.getElementById('settingsStartingBalance').value || 0);
+    const pinEnabled = document.getElementById('settingsPinEnabled').checked;
+    const pin = document.getElementById('settingsPinCode').value.trim();
+    if (!Number.isFinite(defaultSubscription) || defaultSubscription < 0 || !Number.isFinite(startingBalance)) {
+        toast('تحقق من قيم الاشتراك والرصيد الافتتاحي','error'); return;
+    }
+    if (pin && !/^\d{4}$/.test(pin)) { toast('رمز PIN يجب أن يتكون من أربعة أرقام','error'); return; }
+    if (pinEnabled && !state.pinEnabled && !pin && state.pinCode === '0000') {
+        toast('اختر رمز PIN جديداً قبل تفعيل القفل','error'); return;
+    }
     state.buildingName = document.getElementById('settingsBuildingName').value.trim();
     state.managerName = document.getElementById('settingsManagerName').value.trim();
     state.managerPhone = document.getElementById('settingsManagerPhone').value.trim();
-    state.defaultSubscription = parseFloat(document.getElementById('settingsDefaultSub').value) || 0;
-    state.startingBalance = parseFloat(document.getElementById('settingsStartingBalance').value) || 0;
-    state.pinEnabled = document.getElementById('settingsPinEnabled').checked;
-    const pin = document.getElementById('settingsPinCode').value.trim();
-    if (pin && /^\d{4}$/.test(pin)) state.pinCode = pin;
+    state.defaultSubscription = defaultSubscription;
+    state.startingBalance = startingBalance;
+    state.pinEnabled = pinEnabled;
+    if (pin) state.pinCode = pin;
     const tok = document.getElementById('settingsGhToken').value.trim();
     const gid = document.getElementById('settingsGhGistId').value.trim();
     if (tok) { githubConfig.token = tok; localStorage.setItem('manzil_gh_token', tok); }
@@ -246,8 +295,13 @@ function saveSettings() {
 }
 
 async function syncWithGitHubGist(silent) {
-    if (syncing || !githubConfig.token || !githubConfig.gistId) {
-        if (!silent) { const s = document.getElementById('syncStatus'); if (s) s.textContent = 'غير مفعل'; }
+    if (syncing) return;
+    if (!githubConfig.token || !githubConfig.gistId) {
+        if (!silent) {
+            const s = document.getElementById('syncStatus');
+            if (s) s.textContent = 'المزامنة غير مفعّلة';
+            toast('للمزامنة، أضف رمز GitHub ومعرّف Gist في الإعدادات','info');
+        }
         return;
     }
     syncing = true;
