@@ -13,7 +13,36 @@ function renderAll() {
     document.getElementById('printBuildingTitle').textContent = `كشف حساب مالي - ${state.buildingName || 'Manzil'}`;
     document.getElementById('printBuildingMeta').textContent = `المدير: ${state.managerName || '—'} • ${getCurrentMonth()}`;
     renderDashboard(); renderIncomeTable(); renderExpenseTable(); renderResidentsGrid();
-    renderNotices(); renderAuditLog(); populateSelects();
+    renderNotices(); renderAuditLog(); renderArrearsReport(); populateSelects();
+}
+
+function renderArrearsReport() {
+    const c = document.getElementById('arrearsReportContainer');
+    if (!c) return;
+    const report = buildArrearsReport();
+    if (!report.residents.length) {
+        c.innerHTML = '<p class="text-emerald-400 text-xs text-center py-4">✅ لا توجد متأخرات مستحقة حالياً</p>';
+        return;
+    }
+    const cards = report.residents.map(item => `
+        <details class="app-input border rounded-2xl p-3" open>
+            <summary class="cursor-pointer list-none flex items-center justify-between gap-3">
+                <span class="min-w-0"><strong class="text-xs">شقة ${esc(item.resident.apartmentNumber)}</strong><span class="text-[11px] text-slate-400 mr-2">${esc(item.resident.name)}</span></span>
+                <span class="text-xs font-black text-rose-400 shrink-0">${fmtNum(item.totalDebt)} ج.م</span>
+            </summary>
+            <div class="mt-3 pt-2 border-t border-slate-700/50 space-y-1">
+                <p class="text-[10px] text-amber-400">${esc(item.bucket)} • ${item.count} شهر غير مسدد</p>
+                ${item.unpaidMonths.map(month => `<div class="flex justify-between text-[11px]"><span>${esc(month.month)}</span><span class="text-rose-400">${fmtNum(month.amount)} ج.م</span></div>`).join('')}
+            </div>
+        </details>`).join('');
+    c.innerHTML = `
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+            <div class="app-input border rounded-xl p-2 text-center"><p class="text-[10px] text-slate-500">إجمالي المديونية</p><p class="text-xs font-black text-rose-400">${fmtNum(report.totalDebt)} ج.م</p></div>
+            <div class="app-input border rounded-xl p-2 text-center"><p class="text-[10px] text-slate-500">الشقق المتأخرة</p><p class="text-xs font-black">${fmtNum(report.overdueResidents)}</p></div>
+            <div class="app-input border rounded-xl p-2 text-center"><p class="text-[10px] text-slate-500">الأشهر</p><p class="text-xs font-black">${fmtNum(report.overdueMonths)}</p></div>
+            <div class="app-input border rounded-xl p-2 text-center"><p class="text-[10px] text-slate-500">4+ أشهر</p><p class="text-xs font-black text-amber-400">${fmtNum(report.buckets['4 أشهر فأكثر'])}</p></div>
+        </div>
+        <div class="space-y-2">${cards}</div>`;
 }
 
 function populateSelects() {

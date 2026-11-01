@@ -215,6 +215,17 @@
                     <button onclick="exportToCSV()" class="w-full bg-amber-600 hover:bg-amber-500 text-white py-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 shadow"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button>
                 </div>
             </div>
+            <div class="app-card p-5 rounded-3xl border space-y-4">
+                <div class="flex justify-between items-start gap-3">
+                    <div>
+                        <h2 class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-amber-400"></i> كشف المتأخرات</h2>
+                        <p class="text-xs text-slate-400 mt-0.5">إجمالي المديونية وتصنيف الفترات غير المسددة لكل شقة</p>
+                    </div>
+                    <button onclick="exportArrearsCSV()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-2 rounded-xl text-[11px] font-bold transition shrink-0"><i class="fa-solid fa-file-csv ml-1"></i> CSV</button>
+                </div>
+                <div id="arrearsReportContainer" class="space-y-2"></div>
+                <p class="text-[10px] text-slate-500 border-t border-slate-700/50 pt-3">ملاحظة: تُحسب الأشهر السابقة بسعر الاشتراك الحالي للشقة لأن التطبيق لا يحتفظ بتاريخ تغيّر قيمة الاشتراك.</p>
+            </div>
             <div class="app-card p-5 rounded-3xl border space-y-3">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-xs flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> سجل التدقيق</h3>
