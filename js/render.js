@@ -213,12 +213,28 @@ function renderExpenseTable() {
 function renderResidentsGrid() {
     const c = document.getElementById('residentsGrid');
     const s = (document.getElementById('searchResidentsInput')?.value||'').toLowerCase();
-    let list = [...state.residents].sort((a,b) => (a.apartmentNumber||'').localeCompare(b.apartmentNumber||'', 'ar', { numeric: true }));
-    if (s) list = list.filter(r => (r.name||'').toLowerCase().includes(s) || (r.apartmentNumber||'').toLowerCase().includes(s));
+    const statusFilter = document.getElementById('residentStatusFilter')?.value || 'all';
+    const sortBy = document.getElementById('residentSort')?.value || 'apartment';
+    const getStatus = resident => {
+        const outstanding = getMonthOutstanding(resident, getCurrentMonth());
+        const paid = getPaidAmountForMonth(resident.id, getCurrentMonth());
+        if (outstanding <= 0) return { key: 'paid', label: 'مسدد بالكامل', className: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' };
+        if (paid > 0) return { key: 'partial', label: 'دفع جزئي', className: 'text-amber-400 bg-amber-500/10 border-amber-500/20' };
+        return { key: 'overdue', label: 'غير مسدد', className: 'text-rose-400 bg-rose-500/10 border-rose-500/20' };
+    };
+    let list = state.residents.map(r => ({ r, status: getStatus(r), debt: calculateCumulativeDebt(r.id) }));
+    if (s) list = list.filter(item => String(item.r.name||'').toLocaleLowerCase('ar-EG').includes(s) || String(item.r.apartmentNumber||'').toLocaleLowerCase('ar-EG').includes(s));
+    if (statusFilter !== 'all') list = list.filter(item => item.status.key === statusFilter);
+    list.sort((a, b) => {
+        if (sortBy === 'debt') return b.debt.totalDebt - a.debt.totalDebt;
+        if (sortBy === 'name') return String(a.r.name||'').localeCompare(String(b.r.name||''), 'ar');
+        return String(a.r.apartmentNumber||'').localeCompare(String(b.r.apartmentNumber||''), 'ar', { numeric: true });
+    });
     if (!list.length) { c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center col-span-full"><p class="text-slate-500 text-sm">لا توجد شقق</p></div>'; return; }
     const cur = getCurrentMonth();
-    c.innerHTML = list.map(r => {
-        const d = calculateCumulativeDebt(r.id);
+    c.innerHTML = list.map(item => {
+        const r = item.r;
+        const d = item.debt;
         const outstanding = getMonthOutstanding(r, cur);
         const paid = outstanding <= 0;
         const partiallyPaid = !paid && getPaidAmountForMonth(r.id, cur) > 0;
@@ -226,7 +242,7 @@ function renderResidentsGrid() {
             <div class="flex justify-between items-start">
                 <div class="flex items-center gap-2">
                     <div class="w-11 h-11 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-sm font-black shrink-0">${esc(r.apartmentNumber||'?')}</div>
-                    <div><p class="text-sm font-bold">${esc(r.name)}</p><p class="text-[10px] text-slate-500">${esc(r.phone||'')}</p></div>
+                    <div class="min-w-0"><p class="text-sm font-bold truncate">${esc(r.name)}</p><p class="text-[10px] text-slate-500 truncate">${esc(r.phone||'')}</p></div>
                 </div>
                 <div class="flex gap-1">
                     <button onclick="editResident('${r.id}')" aria-label="تعديل بيانات ${esc(r.name)}" class="text-indigo-400 hover:text-indigo-300 p-1.5"><i class="fa-solid fa-pen text-xs"></i></button>
@@ -236,6 +252,10 @@ function renderResidentsGrid() {
             <div class="grid grid-cols-2 gap-2 text-center">
                 <div class="app-input p-2 rounded-xl border"><p class="text-[10px] text-slate-500">الاشتراك</p><p class="text-xs font-bold">${fmtNum(r.monthlyAmount ?? state.defaultSubscription)}</p></div>
                 <div class="app-input p-2 rounded-xl border"><p class="text-[10px] text-slate-500">المتأخرات</p><p class="text-xs font-bold ${d.count>0?'text-rose-400':'text-emerald-400'}">${d.count>0?fmtNum(d.totalDebt):'0'}</p></div>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-[10px] font-bold border rounded-full px-2.5 py-1 ${item.status.className}">${item.status.label}</span>
+                ${r.phone ? `<a href="tel:${esc(r.phone)}" class="text-[10px] text-indigo-400 hover:underline" aria-label="الاتصال بـ ${esc(r.name)}"><i class="fa-solid fa-phone ml-1"></i> اتصال</a>` : '<span></span>'}
             </div>
             <div class="flex gap-2">
                 ${paid ? '<div class="flex-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 py-2 rounded-xl text-xs font-bold text-center"><i class="fa-solid fa-check ml-1"></i> مدفوع بالكامل</div>'

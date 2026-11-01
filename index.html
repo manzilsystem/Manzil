@@ -208,8 +208,21 @@
                 <div><h2 class="font-bold text-base">قائمة الشقق</h2><p class="text-[11px] text-slate-400">الاشتراكات الشهرية</p></div>
                 <button onclick="openResidentModal('add')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-indigo-600/20 transition flex items-center gap-2"><i class="fa-solid fa-user-plus text-sm"></i> شقة جديدة</button>
             </div>
-            <div class="app-card p-3 rounded-3xl border no-print">
+            <div class="app-card p-3 rounded-3xl border space-y-2 no-print">
                 <input type="search" id="searchResidentsInput" aria-label="البحث باسم الساكن أو رقم الشقة" oninput="renderResidentsGrid()" placeholder="ابحث بالاسم أو رقم الشقة..." class="w-full app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
+                <div class="grid grid-cols-2 gap-2">
+                    <select id="residentStatusFilter" aria-label="تصفية الشقق حسب حالة السداد" onchange="renderResidentsGrid()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold">
+                        <option value="all">كل الحالات</option>
+                        <option value="paid">مسدد بالكامل</option>
+                        <option value="partial">دفع جزئي</option>
+                        <option value="overdue">غير مسدد</option>
+                    </select>
+                    <select id="residentSort" aria-label="ترتيب قائمة الشقق" onchange="renderResidentsGrid()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold">
+                        <option value="apartment">ترتيب حسب الشقة</option>
+                        <option value="debt">الأعلى متأخرات</option>
+                        <option value="name">الاسم أبجديًا</option>
+                    </select>
+                </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="residentsGrid"></div>
         </section>
