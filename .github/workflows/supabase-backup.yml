@@ -127,8 +127,6 @@ jobs:
 
       - name: Register backup in Manzil catalog
         env:
-          BACKUP_SIZE: ${{ env.BACKUP_SIZE }}
-          BACKUP_SHA: ${{ env.BACKUP_SHA }}
           BACKUP_TAG: ${{ env.BACKUP_TAG }}
           BACKUP_FILE: ${{ env.BACKUP_FILE }}
           PGHOST: ${{ env.PGHOST }}
