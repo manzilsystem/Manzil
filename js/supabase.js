@@ -240,7 +240,9 @@ async function saveState() {
 
     state.lastUpdated = Date.now();
     const requestId = generateId();
-    const payload = {
+    let payload;
+    try {
+        payload = {
         building: {
             name: state.buildingName || 'Manzil',
             manager_name: state.managerName || '',
@@ -271,7 +273,12 @@ async function saveState() {
             id: l.id, action: l.action, details: l.details || null,
             created_at: toSupabaseTimestamp(l.date)
         }))
-    };
+        };
+    } catch (error) {
+        console.error('Could not prepare Supabase snapshot:', error);
+        toast('تعذر تجهيز البيانات للحفظ. راجع التواريخ والحقول ثم حاول مجددًا.', 'error');
+        return false;
+    }
 
     let lastError = null;
     for (let attempt = 0; attempt < 2; attempt += 1) {
