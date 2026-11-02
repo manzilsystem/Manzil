@@ -1,4 +1,51 @@
 -- Keep SECURITY DEFINER helpers used by notification RLS outside the exposed public API schema.
+-- Fix the search_path on all private SECURITY DEFINER membership helpers.
+create or replace function private.is_building_manager(target_building uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog, public
+as $function$
+    select exists (
+        select 1
+        from public.building_members
+        where building_id = target_building
+          and user_id = (select auth.uid())
+          and role = 'manager'
+    );
+$function$;
+
+create or replace function private.is_building_member(target_building uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog, public
+as $function$
+    select exists (
+        select 1
+        from public.building_members
+        where building_id = target_building
+          and user_id = (select auth.uid())
+    );
+$function$;
+
+create or replace function private.owns_resident(target_resident uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog, public
+as $function$
+    select exists (
+        select 1
+        from public.residents
+        where id = target_resident
+          and user_id = (select auth.uid())
+    );
+$function$;
+
 create or replace function private.can_read_notification(
     p_building_id uuid,
     p_target_user_id uuid,
