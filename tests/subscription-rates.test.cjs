@@ -13,7 +13,7 @@ class FixedDate extends Date {
 }
 function load() {
     return vm.runInNewContext(
-        `${source}\\n({ state, getSubscriptionAmountForMonth, getMonthOutstanding, calculateCumulativeDebt })`,
+        `${source}\n({ state, getSubscriptionAmountForMonth, getMonthOutstanding, calculateCumulativeDebt })`,
         { Date: FixedDate },
         { filename: 'js/state.js' }
     );
