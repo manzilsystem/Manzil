@@ -7,5 +7,5 @@ const cacheName = serviceWorker.match(/const CACHE_NAME = 'manzil-v(\d+)';/);
 
 test('service worker uses a new shell cache for the current app release', () => {
     assert.ok(cacheName, 'service worker cache version is present');
-    assert.equal(Number(cacheName[1]), 17, 'increase this expected version for future app-shell releases');
+    assert.equal(Number(cacheName[1]), 18, 'increase this expected version for future app-shell releases');
 });
