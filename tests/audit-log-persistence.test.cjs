@@ -33,7 +33,7 @@ function makeHarness(auditLogs, persistedIds, rpcHandler = async () => ({ data: 
         },
     };
     const app = vm.runInNewContext(
-        `${supabaseSource}\\nactiveSession = { user: { id: 'manager-user-id' } }; activeBuildingId = 'building-id'; supabaseStateLoaded = true; activeBuildingVersion = 1; persistedAuditLogIds = new Set(${JSON.stringify(persistedIds)});\\n({ saveState, isAuditPersisted: id => persistedAuditLogIds.has(id), getVersion: () => activeBuildingVersion })`,
+        `${supabaseSource}\nactiveSession = { user: { id: 'manager-user-id' } }; activeBuildingId = 'building-id'; supabaseStateLoaded = true; activeBuildingVersion = 1; persistedAuditLogIds = new Set(${JSON.stringify(persistedIds)});\n({ saveState, isAuditPersisted: id => persistedAuditLogIds.has(id), getVersion: () => activeBuildingVersion })`,
         sandbox,
         { filename: 'js/supabase.js' }
     );
