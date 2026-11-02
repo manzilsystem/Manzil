@@ -2,7 +2,6 @@ alter table public.notifications
   add constraint notifications_dedupe_scope_unique unique (building_id, target_scope, dedupe_key);
 
 create index if not exists notifications_created_by_idx on public.notifications(created_by);
-create index if not exists notifications_dedupe_scope_idx on public.notifications(building_id, target_scope, dedupe_key);
 create index if not exists notifications_target_resident_id_idx on public.notifications(target_resident_id);
 create index if not exists notifications_target_user_id_idx on public.notifications(target_user_id);
 create index if not exists notifications_recipient_idx on public.notifications(building_id, target_user_id, read_at, created_at desc);
