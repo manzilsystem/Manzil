@@ -20,6 +20,10 @@ test('snapshot writes are atomic and guarded by a per-building optimistic versio
     assert.match(migration, /REVOKE ALL ON FUNCTION private\.persist_building_snapshot/);
     assert.match(migration, /AS \$fn\$[\s\S]*?\$fn\$;/);
     assert.match(migration, /SET search_path = pg_catalog, public/);
+    assert.match(migration, /INSERT INTO public\\.residents AS current_resident/);
+    assert.match(migration, /INSERT INTO public\\.income AS current_income/);
+    assert.match(migration, /INSERT INTO public\\.expenses AS current_expense/);
+    assert.ok(migration.indexOf('DELETE FROM public.residents r') < migration.indexOf('DELETE FROM public.building_members bm'));
     assert.doesNotMatch(migration, /CREATE OR REPLACE FUNCTION public\.persist_building_snapshot[\s\S]*?SECURITY DEFINER/);
 });
 
@@ -36,4 +40,11 @@ test('audit history cannot be cleared from the UI and paid apartments cannot be 
     const crudSource = fs.readFileSync(path.join(root, 'js', 'crud.js'), 'utf8');
     assert.match(crudSource, /لا يمكن حذف شقة لها تحصيلات مسجلة/);
     assert.match(crudSource, /state\.income\.some\(payment => payment\.residentId === id\)/);
+});
+
+
+test('snapshot payload preparation failures are handled before any RPC call', () => {
+    assert.match(supabaseSource, /let payload;\\s*try \\{\\s*payload = \\{/);
+    assert.match(supabaseSource, /Could not prepare Supabase snapshot/);
+    assert.match(supabaseSource, /تعذر تجهيز البيانات للحفظ/);
 });
