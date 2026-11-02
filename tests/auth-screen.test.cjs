@@ -13,7 +13,9 @@ test('sign-in screen preserves authentication hooks and explains owner PIN provi
     assert.match(html, /aria-labelledby="ownerPinHelpTitle"/);
     assert.match(html, /حساب المالك لا يُنشأ من شاشة الدخول/);
     assert.match(html, /حفظ الشقة وإنشاء \/ إعادة ضبط PIN المالك/);
-    assert.match(html, /PIN جديدًا عند أول دخول/);
+    assert.match(html, /PIN دائمًا من 6 أرقام/);
+    assert.match(html, /<details id="ownerLoginHelp"/);
+    assert.match(html, /يفتح الزر رسالة جاهزة إلى الإدارة فقط/);
 });
 
 test('sign-in screen separates manager and owner credentials and instructions', () => {
@@ -24,8 +26,11 @@ test('sign-in screen separates manager and owner credentials and instructions', 
     assert.match(html, /id="authIdentifierLabel"[^>]*>البريد الإلكتروني للمدير/);
     assert.match(html, /id="authPasswordLabel"[^>]*>كلمة مرور المدير/);
     assert.match(html, /id="ownerLoginHelp" class="auth-owner-help hidden/);
+    assert.match(html, /id="managerRecoveryBtn"[^>]*onclick="requestManagerPasswordReset\(\)"/);
+    assert.match(html, /نسيت كلمة مرور المدير/);
     assert.match(supabase, /function setLoginMode\(mode\)/);
     assert.match(supabase, /PIN المالك يجب أن يتكون من 6 أرقام أو 8 أرقام للرمز المؤقت/);
+    assert.match(supabase, /function requestManagerPasswordReset\(\)/);
 });
 
 test('company ownership and contact details appear on sign-in and in the app', () => {
