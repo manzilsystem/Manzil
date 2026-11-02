@@ -27,6 +27,8 @@ Deno.serve(async (req: Request) => {
     return json(200, { backups: backups || [], restoreRequests: restoreRequests || [], backupRequests: backupRequests || [] })
   }
   if (body.action === 'request_backup') {
+    const { data: pendingRestore } = await admin.from('restore_requests').select('id').in('status', ['queued','running']).limit(1).maybeSingle()
+    if (pendingRestore) return json(409, { error: 'restore_already_pending' })
     const { data: request, error } = await admin.from('backup_requests')
       .insert({ building_id: membership.building_id, requested_by: auth.user.id })
       .select('id,status,created_at').single()
@@ -40,7 +42,8 @@ Deno.serve(async (req: Request) => {
     const { data: backup } = await admin.from('backup_catalog').select('tag').eq('tag', tag).maybeSingle()
     if (!backup) return json(404, { error: 'backup_not_found' })
     const { data: pending } = await admin.from('restore_requests').select('id').in('status', ['queued','running']).limit(1).maybeSingle()
-    if (pending) return json(409, { error: 'restore_already_pending' })
+    const { data: pendingBackup } = await admin.from('backup_requests').select('id').in('status', ['queued','dispatched']).limit(1).maybeSingle()
+    if (pending || pendingBackup) return json(409, { error: 'restore_already_pending' })
     const { data: request, error } = await admin.from('restore_requests').insert({ building_id: membership.building_id, requested_by: auth.user.id, backup_tag: tag }).select('id,backup_tag,status,created_at').single()
     if (error?.code === '23505') return json(409, { error: 'restore_already_pending' })
     if (error) return json(500, { error: 'request_failed' })
