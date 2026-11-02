@@ -15,6 +15,17 @@ test('notification SECURITY DEFINER helpers live in private schema, not exposed 
     assert.match(migration, /drop function public\.is_building_manager\(uuid\)/i);
 });
 
+test('private SECURITY DEFINER membership helpers use a hardened search_path', () => {
+    for (const signature of [
+        'private.is_building_manager(target_building uuid)',
+        'private.is_building_member(target_building uuid)',
+        'private.owns_resident(target_resident uuid)',
+    ]) {
+        assert.ok(migration.includes(signature));
+    }
+    assert.equal((migration.match(/set search_path = pg_catalog, public/gi) || []).length >= 4, true);
+});
+
 test('notification policies call only private helpers and retain owner PIN gate', () => {
     assert.match(migration, /notifications_manager_delete[\s\S]*private\.is_building_manager/i);
     assert.match(migration, /notifications_manager_insert[\s\S]*private\.is_building_manager/i);
