@@ -35,7 +35,7 @@ function makeSaveHarness(resident) {
         },
     };
     const app = vm.runInNewContext(
-        `${supabaseSource}\\nactiveSession = { user: { id: 'manager-user-id' } }; activeBuildingId = 'building-id'; supabaseStateLoaded = true; activeBuildingVersion = 1;\\n({ saveState, toSupabaseTimestamp, getGuardState: () => ({ currentUserRole, activeSession, activeBuildingId, supabaseStateLoaded }) })`,
+        `${supabaseSource}\nactiveSession = { user: { id: 'manager-user-id' } }; activeBuildingId = 'building-id'; supabaseStateLoaded = true; activeBuildingVersion = 1;\n({ saveState, toSupabaseTimestamp, getGuardState: () => ({ currentUserRole, activeSession, activeBuildingId, supabaseStateLoaded }) })`,
         sandbox,
         { filename: 'js/supabase.js' }
     );
@@ -62,11 +62,11 @@ test('atomic save converts a legacy millisecond createdAt into a timestamptz ISO
 });
 
 test('new apartments use an ISO creation timestamp and invalid saved dates are rejected', () => {
-    assert.match(crudSource, /createdAt:\\s*new Date\\(\\)\\.toISOString\\(\\)/);
+    assert.match(crudSource, /createdAt:\s*new Date\(\)\.toISOString\(\)/);
     assert.throws(() => makeSaveHarness({}).app.toSupabaseTimestamp('not-a-date'), /Invalid timestamp/);
 });
 
 test('apartments with collection history cannot be deleted from the UI', () => {
-    assert.match(crudSource, /state\\.income\\.some\\(payment => payment\\.residentId === id\\)/);
+    assert.match(crudSource, /state\.income\.some\(payment => payment\.residentId === id\)/);
     assert.match(crudSource, /لا يمكن حذف شقة لها تحصيلات مسجلة/);
 });
