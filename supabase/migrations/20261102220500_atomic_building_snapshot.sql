@@ -208,9 +208,9 @@ RETURNS jsonb
 LANGUAGE sql
 SECURITY INVOKER
 SET search_path = pg_catalog, public
-AS $
+AS $fn$
     SELECT private.persist_building_snapshot(p_building_id, p_expected_version, p_request_id, p_payload);
-$;
+$fn$;
 
 REVOKE ALL ON FUNCTION public.persist_building_snapshot(uuid, bigint, uuid, jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.persist_building_snapshot(uuid, bigint, uuid, jsonb) TO authenticated;
