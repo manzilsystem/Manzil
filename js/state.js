@@ -65,12 +65,7 @@ async function saveWithRollback(previousState) {
 
 async function clearAuditLog() {
     if (!requireManager()) return;
-    if (!confirm('مسح سجل التدقيق بالكامل؟')) return;
-    const previousState = cloneStateSnapshot();
-    state.auditLogs = [];
-    if (!await saveWithRollback(previousState)) return;
-    renderAuditLog();
-    toast('تم مسح السجل','info');
+    toast('سجل التدقيق محفوظ للمراجعة ولا يمكن مسحه من التطبيق.', 'info');
 }
 
 function getPaidAmountForMonth(residentId, month) {
