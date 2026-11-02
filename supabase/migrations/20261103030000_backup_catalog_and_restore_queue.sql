@@ -7,8 +7,8 @@ create table if not exists public.backup_catalog (
 );
 create table if not exists public.restore_requests (
   id uuid primary key default gen_random_uuid(),
-  building_id uuid not null references public.buildings(id) on delete cascade,
-  requested_by uuid not null references auth.users(id),
+  building_id uuid not null,
+  requested_by uuid not null,
   backup_tag text not null references public.backup_catalog(tag),
   status text not null default 'queued' check (status in ('queued','running','succeeded','failed')),
   result_message text,
