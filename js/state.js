@@ -166,5 +166,3 @@ async function setTheme(theme) {
         updateThemeSelection();
     }
 }
-    updateThemeSelection();
-
