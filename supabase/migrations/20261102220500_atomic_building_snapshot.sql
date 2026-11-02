@@ -108,7 +108,7 @@ BEGIN
     WHERE id = p_building_id
     RETURNING state_version INTO v_next_version;
 
-    INSERT INTO public.residents
+    INSERT INTO public.residents AS current_resident
         (id, building_id, user_id, name, apartment_number, phone, monthly_amount, notes, created_at)
     SELECT x.id, p_building_id, x.user_id, x.name, x.apartment_number, x.phone,
            COALESCE(x.monthly_amount, 0), x.notes, COALESCE(x.created_at, now())
@@ -122,7 +122,7 @@ BEGIN
         monthly_amount = EXCLUDED.monthly_amount, notes = EXCLUDED.notes
     WHERE current_resident.building_id = p_building_id;
 
-    INSERT INTO public.income
+    INSERT INTO public.income AS current_income
         (id, building_id, resident_id, amount, month, notes, paid_at, created_by)
     SELECT x.id, p_building_id, x.resident_id, x.amount, x.month, x.notes,
            COALESCE(x.paid_at, now()), v_actor
@@ -134,7 +134,7 @@ BEGIN
         month = EXCLUDED.month, notes = EXCLUDED.notes, paid_at = EXCLUDED.paid_at
     WHERE current_income.building_id = p_building_id;
 
-    INSERT INTO public.expenses
+    INSERT INTO public.expenses AS current_expense
         (id, building_id, title, amount, category, month, notes, spent_at, created_by)
     SELECT x.id, p_building_id, x.title, x.amount, COALESCE(x.category, 'أخرى'),
            x.month, x.notes, COALESCE(x.spent_at, now()), v_actor
@@ -165,13 +165,6 @@ BEGIN
     WHERE r.building_id = p_building_id AND r.user_id IS NOT NULL
     ON CONFLICT (building_id, user_id) DO NOTHING;
 
-    DELETE FROM public.building_members bm
-    WHERE bm.building_id = p_building_id AND bm.role = 'owner'
-      AND NOT EXISTS (
-          SELECT 1 FROM public.residents r
-          WHERE r.building_id = p_building_id AND r.user_id = bm.user_id
-      );
-
     DELETE FROM public.income i
     WHERE i.building_id = p_building_id
       AND NOT EXISTS (SELECT 1 FROM unnest(v_income_ids) AS keep(id) WHERE keep.id = i.id);
@@ -187,6 +180,13 @@ BEGIN
     DELETE FROM public.residents r
     WHERE r.building_id = p_building_id
       AND NOT EXISTS (SELECT 1 FROM unnest(v_resident_ids) AS keep(id) WHERE keep.id = r.id);
+
+    DELETE FROM public.building_members bm
+    WHERE bm.building_id = p_building_id AND bm.role = 'owner'
+      AND NOT EXISTS (
+          SELECT 1 FROM public.residents r
+          WHERE r.building_id = p_building_id AND r.user_id = bm.user_id
+      );
 
     INSERT INTO public.building_mutations (building_id, request_id, resulting_version)
     VALUES (p_building_id, p_request_id, v_next_version);
