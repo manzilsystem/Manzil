@@ -96,6 +96,33 @@ BEGIN
         RAISE EXCEPTION 'cross_building_record_reference' USING ERRCODE = '42501';
     END IF;
 
+    -- SECURITY DEFINER bypasses RLS; every payment must reference a resident
+    -- included in this building snapshot.
+    IF EXISTS (
+        SELECT 1
+        FROM jsonb_to_recordset(p_payload->'income') AS payment(resident_id uuid)
+        LEFT JOIN jsonb_to_recordset(p_payload->'residents') AS resident(id uuid)
+            ON resident.id = payment.resident_id
+        WHERE payment.resident_id IS NULL OR resident.id IS NULL
+    ) THEN
+        RAISE EXCEPTION 'income_resident_not_in_snapshot' USING ERRCODE = '42501';
+    END IF;
+
+    -- Preserve financial history when a resident is removed from the snapshot.
+    -- Explicit deletion of a payment remains a separate manager action.
+    IF EXISTS (
+        SELECT 1
+        FROM public.residents r
+        WHERE r.building_id = p_building_id
+          AND NOT (r.id = ANY(v_resident_ids))
+          AND EXISTS (
+              SELECT 1 FROM public.income i
+              WHERE i.building_id = p_building_id AND i.resident_id = r.id
+          )
+    ) THEN
+        RAISE EXCEPTION 'cannot_delete_resident_with_income_history' USING ERRCODE = '23503';
+    END IF;
+
     UPDATE public.buildings
     SET name = COALESCE(NULLIF(p_payload#>>'{building,name}', ''), 'Manzil'),
         manager_name = COALESCE(p_payload#>>'{building,manager_name}', ''),
