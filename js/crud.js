@@ -118,11 +118,39 @@ async function provisionOwnerAccess(residentId) {
         return;
     }
     renderAll();
-    document.getElementById('ownerTempPinPhone').textContent = data.phone;
+    const phoneDisplay = document.getElementById('ownerTempPinPhone');
+    const resident = state.residents.find(item => item.id === residentId);
+    phoneDisplay.textContent = data.phone;
+    phoneDisplay.dataset.phone = data.phone;
+    phoneDisplay.dataset.apartmentNumber = resident?.apartmentNumber || '';
     document.getElementById('ownerTempPinValue').value = data.temporary_pin;
     const modal = document.getElementById('ownerTempPinModal');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+}
+
+function sendOwnerTempPinOnWhatsApp() {
+    const phoneDisplay = document.getElementById('ownerTempPinPhone');
+    const pin = document.getElementById('ownerTempPinValue')?.value.trim() || '';
+    const phoneDigits = String(phoneDisplay?.dataset.phone || '').replace(/\D/g, '');
+    const apartmentNumber = String(phoneDisplay?.dataset.apartmentNumber || '').trim();
+    if (!/^[1-9]\d{7,14}$/.test(phoneDigits)) {
+        toast('رقم المالك المسجل غير صالح؛ انسخ الرمز وأرسله يدويًا.', 'error');
+        return;
+    }
+    if (!/^\d{6}$/.test(pin)) {
+        toast('لا يوجد PIN مؤقت صالح لإرساله.', 'error');
+        return;
+    }
+    const apartmentLabel = apartmentNumber ? ` للشقة ${apartmentNumber}` : '';
+    const message = [
+        'مرحبًا،',
+        `رمز الدخول المؤقت لتطبيق Manzil${apartmentLabel}: ${pin}`,
+        'سيُطلب منك تغييره عند أول دخول. لا تشارك الرمز مع أي شخص آخر.'
+    ].join('\n');
+    const url = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+    toast('فتحنا واتساب على رقم المالك المسجل. راجع الرسالة واضغط «إرسال».', 'success');
 }
 
 async function copyOwnerTempPin() {

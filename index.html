@@ -90,7 +90,8 @@
             <h3 id="ownerTempPinTitle" class="text-lg font-black">رمز الدخول المؤقت</h3>
             <p id="ownerTempPinPhone" class="text-xs text-slate-400"></p>
             <input id="ownerTempPinValue" readonly aria-label="PIN مؤقت للمالك" class="w-full app-input border rounded-2xl px-3 py-4 text-center text-3xl tracking-[0.6em] font-black" dir="ltr">
-            <p class="text-xs text-amber-300">اعرضه للمالك مباشرة ولا ترسله في مجموعة. سيُطلب منه تغييره عند أول دخول. لن يظهر مرة أخرى بعد إغلاق هذه النافذة.</p>
+            <p class="text-xs text-amber-300">سيفتح واتساب على رقم المالك المسجل برسالة خاصة. راجع الرقم والرسالة ثم اضغط «إرسال». لا ترسله في مجموعة؛ سيُطلب من المالك تغييره عند أول دخول.</p>
+            <button type="button" onclick="sendOwnerTempPinOnWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-2xl"><i class="fa-brands fa-whatsapp ml-1" aria-hidden="true"></i> إرسال للمالك عبر واتساب</button>
             <button type="button" onclick="copyOwnerTempPin()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-2xl">نسخ الرمز</button>
             <button type="button" onclick="closeOwnerTempPinModal()" class="w-full app-input border font-bold py-3 rounded-2xl">إغلاق</button>
         </div>
