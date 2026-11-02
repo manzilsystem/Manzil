@@ -43,22 +43,27 @@
                 </div>
             </aside>
             <section class="auth-login-panel p-5 sm:p-8">
-                <p class="text-xs font-bold text-indigo-300">بوابة المدير والمالك</p>
-                <h2 id="pinLockTitle" class="text-2xl font-black mt-2">أهلًا بك في Manzil</h2>
-                <p id="pinLockHint" class="text-sm text-slate-400 mt-2">سجّل الدخول ببيانات الحساب الذي أنشأه لك مدير المبنى.</p>
+                <p class="text-xs font-bold text-indigo-300">دخول Manzil</p>
+                <p class="text-xs font-bold text-slate-300 mt-4">اختر نوع حسابك</p>
+                <div role="group" aria-label="نوع الحساب" class="grid grid-cols-2 gap-2 mt-2">
+                    <button id="loginModeManager" type="button" aria-pressed="true" onclick="setLoginMode('manager')" class="w-full border rounded-xl px-3 py-3 text-sm font-bold transition flex items-center justify-center gap-2 bg-indigo-600 text-white border-indigo-400 shadow-lg"><i class="fa-solid fa-building-user" aria-hidden="true"></i> مدير المبنى</button>
+                    <button id="loginModeOwner" type="button" aria-pressed="false" onclick="setLoginMode('owner')" class="w-full app-input border border-slate-700 rounded-xl px-3 py-3 text-sm font-bold text-slate-300 transition flex items-center justify-center gap-2 hover:border-indigo-400"><i class="fa-solid fa-house-user" aria-hidden="true"></i> مالك الشقة</button>
+                </div>
+                <h2 id="pinLockTitle" class="text-2xl font-black mt-4">دخول مدير المبنى</h2>
+                <p id="pinLockHint" class="text-sm text-slate-400 mt-2">استخدم البريد الإلكتروني وكلمة مرور الحساب الإداري.</p>
                 <p id="pinErrorMsg" class="text-sm text-rose-400 mt-3 hidden font-bold" role="alert"></p>
                 <form onsubmit="submitSupabaseLogin(event)" class="space-y-4 mt-6">
                     <div class="space-y-2">
-                        <label for="authIdentifier" class="block text-xs font-bold">جوال المالك أو بريد المدير</label>
-                        <input type="text" id="authIdentifier" autocomplete="username" required placeholder="جوال المالك أو البريد الإلكتروني" aria-label="رقم جوال المالك أو بريد المدير" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left focus:outline-none focus:border-indigo-500" dir="ltr">
+                        <label id="authIdentifierLabel" for="authIdentifier" class="block text-xs font-bold">البريد الإلكتروني للمدير</label>
+                        <input type="text" id="authIdentifier" autocomplete="username" required placeholder="name@example.com" aria-label="البريد الإلكتروني للمدير" inputmode="email" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left focus:outline-none focus:border-indigo-500" dir="ltr">
                     </div>
                     <div class="space-y-2">
-                        <label for="authPassword" class="block text-xs font-bold">PIN المالك أو كلمة مرور المدير</label>
-                        <input type="password" id="authPassword" autocomplete="current-password" required placeholder="أدخل PIN أو كلمة المرور" aria-label="رمز PIN أو كلمة مرور المدير" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left focus:outline-none focus:border-indigo-500" dir="ltr">
+                        <label id="authPasswordLabel" for="authPassword" class="block text-xs font-bold">كلمة مرور المدير</label>
+                        <input type="password" id="authPassword" autocomplete="current-password" required placeholder="أدخل كلمة مرور المدير" aria-label="كلمة مرور المدير" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left focus:outline-none focus:border-indigo-500" dir="ltr">
                     </div>
                     <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-2xl shadow-lg transition">تسجيل الدخول</button>
                 </form>
-                <aside class="auth-owner-help mt-5 p-4 rounded-2xl border" aria-labelledby="ownerPinHelpTitle">
+                <aside id="ownerLoginHelp" class="auth-owner-help hidden mt-5 p-4 rounded-2xl border" aria-labelledby="ownerPinHelpTitle">
                     <h3 id="ownerPinHelpTitle" class="text-sm font-black"><i class="fa-solid fa-key ml-1 text-amber-300" aria-hidden="true"></i> مالك الشقة ولا تملك PIN؟</h3>
                     <p class="text-xs text-slate-300 leading-6 mt-2">حساب المالك لا يُنشأ من شاشة الدخول؛ يجب أن يرتبط بالشقة الصحيحة. اطلب من مدير المبنى تسجيل رقم جوالك في بيانات الشقة ثم اختيار «حفظ الشقة وإنشاء / إعادة ضبط PIN المالك».</p>
                     <p class="text-xs text-slate-400 leading-6 mt-2">سيعطيك المدير رمزًا مؤقتًا. أدخل رقم الجوال المسجل والرمز هنا، ثم اختر PIN جديدًا عند أول دخول. إذا لم يصلك الرمز، تواصل مع مدير المبنى.</p>

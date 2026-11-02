@@ -54,7 +54,10 @@ function cloneStateSnapshot() {
 
 async function saveWithRollback(previousState) {
     const saved = await saveState();
-    if (saved) return true;
+    if (saved) {
+        if (typeof renderAll === 'function') renderAll();
+        return true;
+    }
     state = previousState;
     if (typeof renderAll === 'function') renderAll();
     return false;

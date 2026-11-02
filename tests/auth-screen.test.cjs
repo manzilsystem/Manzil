@@ -4,6 +4,7 @@ const test = require('node:test');
 
 const html = fs.readFileSync('index.html', 'utf8');
 const css = fs.readFileSync('css/style.css', 'utf8');
+const supabase = fs.readFileSync('js/supabase.js', 'utf8');
 
 test('sign-in screen preserves authentication hooks and explains owner PIN provisioning', () => {
     assert.match(html, /onsubmit="submitSupabaseLogin\(event\)"/);
@@ -13,6 +14,18 @@ test('sign-in screen preserves authentication hooks and explains owner PIN provi
     assert.match(html, /حساب المالك لا يُنشأ من شاشة الدخول/);
     assert.match(html, /حفظ الشقة وإنشاء \/ إعادة ضبط PIN المالك/);
     assert.match(html, /PIN جديدًا عند أول دخول/);
+});
+
+test('sign-in screen separates manager and owner credentials and instructions', () => {
+    assert.match(html, /id="loginModeManager"[^>]*onclick="setLoginMode\('manager'\)"/);
+    assert.match(html, /id="loginModeOwner"[^>]*onclick="setLoginMode\('owner'\)"/);
+    assert.match(html, /<i class="fa-solid fa-building-user"[^>]*><\/i> مدير المبنى/);
+    assert.match(html, /<i class="fa-solid fa-house-user"[^>]*><\/i> مالك الشقة/);
+    assert.match(html, /id="authIdentifierLabel"[^>]*>البريد الإلكتروني للمدير/);
+    assert.match(html, /id="authPasswordLabel"[^>]*>كلمة مرور المدير/);
+    assert.match(html, /id="ownerLoginHelp" class="auth-owner-help hidden/);
+    assert.match(supabase, /function setLoginMode\(mode\)/);
+    assert.match(supabase, /PIN المالك يجب أن يتكون من 6 أرقام/);
 });
 
 test('company ownership and contact details appear on sign-in and in the app', () => {

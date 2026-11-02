@@ -71,7 +71,7 @@ function makeHarness() {
     };
     const app = vm.runInNewContext(
         `${supabaseSource}\n({\n` +
-        'submitSupabaseLogin, lockCurrentSession, initSupabaseApp, ' +
+        'submitSupabaseLogin, setLoginMode, lockCurrentSession, initSupabaseApp, ' +
         'setLoadState(fn) { loadState = fn; }, ' +
         'setOpenAuthenticatedApp(fn) { openAuthenticatedApp = fn; }, ' +
         'getSnapshot() { return { activeSession, activeBuildingId, supabaseStateLoaded, authLoading, ownerMustChangePin, state, currentUserRole, currentResidentId }; }, ' +
@@ -119,6 +119,47 @@ test('a rejected login request restores the button and displays a recoverable co
     assert.equal(h.app.getSnapshot().authLoading, false);
     assert.match(h.elements.get('pinErrorMsg').textContent, /تعذر الاتصال بخدمة المصادقة/);
     assert.equal(h.app.getSnapshot().activeSession, null);
+});
+
+test('manager mode rejects a phone number before contacting Supabase', async () => {
+    const h = makeHarness();
+    h.elements.get('authIdentifier').value = '01012345678';
+    h.elements.get('authPassword').value = '123456';
+    let called = false;
+    h.client.auth.signInWithPassword = async () => { called = true; return { data: {}, error: null }; };
+
+    await h.app.submitSupabaseLogin(h.makeSubmitEvent());
+
+    assert.equal(called, false);
+    assert.match(h.elements.get('pinErrorMsg').textContent, /دخول المدير يحتاج البريد الإلكتروني/);
+});
+
+test('owner mode rejects an email before contacting Supabase', async () => {
+    const h = makeHarness();
+    h.app.setLoginMode('owner');
+    h.elements.get('authIdentifier').value = 'owner@example.com';
+    h.elements.get('authPassword').value = '123';
+    let called = false;
+    h.client.auth.signInWithPassword = async () => { called = true; return { data: {}, error: null }; };
+
+    await h.app.submitSupabaseLogin(h.makeSubmitEvent());
+
+    assert.equal(called, false);
+    assert.match(h.elements.get('pinErrorMsg').textContent, /رقم الجوال المسجل/);
+});
+
+test('owner mode rejects a PIN shorter than six digits before contacting Supabase', async () => {
+    const h = makeHarness();
+    h.app.setLoginMode('owner');
+    h.elements.get('authIdentifier').value = '01012345678';
+    h.elements.get('authPassword').value = '123';
+    let called = false;
+    h.client.auth.signInWithPassword = async () => { called = true; return { data: {}, error: null }; };
+
+    await h.app.submitSupabaseLogin(h.makeSubmitEvent());
+
+    assert.equal(called, false);
+    assert.match(h.elements.get('pinErrorMsg').textContent, /PIN المالك يجب أن يتكون من 6 أرقام/);
 });
 
 test('a failed local sign-out does not prevent locking the interface or clearing prior account data', async () => {

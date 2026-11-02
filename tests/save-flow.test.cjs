@@ -7,10 +7,10 @@ const vm = require('node:vm');
 const stateSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'state.js'), 'utf8');
 const crudSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'crud.js'), 'utf8');
 
-function loadSaveHelper() {
+function loadSaveHelper(saveResult = false) {
     const sandbox = {
         renderCount: 0,
-        saveState: async () => false,
+        saveState: async () => saveResult,
         renderAll: () => { sandbox.renderCount += 1; },
     };
     const app = vm.runInNewContext(
@@ -29,6 +29,16 @@ test('saveWithRollback restores the previous state when persistence fails', asyn
 
     assert.equal(await app.saveWithRollback(previousState), false);
     assert.equal(JSON.stringify(app.getState()), JSON.stringify(previousState));
+    assert.equal(app.getRenderCount(), 1);
+});
+
+test('saveWithRollback rerenders the interface after a successful save', async () => {
+    const app = loadSaveHelper(true);
+    app.getState().buildingName = 'التعديل المحفوظ';
+    const previousState = app.cloneStateSnapshot();
+
+    assert.equal(await app.saveWithRollback(previousState), true);
+    assert.equal(app.getState().buildingName, 'التعديل المحفوظ');
     assert.equal(app.getRenderCount(), 1);
 });
 
