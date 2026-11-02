@@ -4,7 +4,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const migration = fs.readFileSync(
-    path.join(__dirname, '..', 'supabase/migrations/20261102203000_move_notification_helpers_private.sql'),
+    path.join(__dirname, '..', 'supabase/migrations/20261102195339_move_notification_helpers_private.sql'),
     'utf8'
 );
 
