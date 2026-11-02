@@ -1,3 +1,28 @@
+
+const SETTINGS_TABS = ['building','appearance','backup','account'];
+const SETTINGS_THEME_NAMES = { dark:'ليلي', light:'نهاري', emerald:'زمردي', ocean:'محيطي', sand:'رملي' };
+function switchSettingsTab(tab) {
+    if (!SETTINGS_TABS.includes(tab)) return;
+    SETTINGS_TABS.forEach(name => {
+        const active = name === tab;
+        const button = document.getElementById('settings-tab-' + name);
+        const panel = document.getElementById('settings-panel-' + name);
+        button?.classList.toggle('active', active);
+        button?.setAttribute('aria-selected', String(active));
+        button?.setAttribute('tabindex', active ? '0' : '-1');
+        panel?.classList.toggle('hidden', !active);
+    });
+}
+function updateThemeSelection() {
+    const theme = SETTINGS_THEME_NAMES[state.currentTheme] ? state.currentTheme : 'dark';
+    document.querySelectorAll('[data-theme-option]').forEach(button => {
+        const active = button.dataset.themeOption === theme;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+    });
+    const label = document.getElementById('settingsCurrentTheme');
+    if (label) label.textContent = SETTINGS_THEME_NAMES[theme];
+}
 let ownerProvisionRequested = false;
 
 function openResidentModal(mode, id) {
@@ -466,6 +491,8 @@ function openSettingsModal() {
     const role = document.getElementById('settingsAccountRole');
     if (role) role.textContent = currentUserRole === 'manager' ? 'مدير المبنى' : 'مالك الشقة';
     document.getElementById('settingsPasswordResetBtn')?.classList.toggle('hidden', currentUserRole !== 'manager');
+    switchSettingsTab('building');
+    updateThemeSelection();
     openModal('settingsModal');
 }
 
