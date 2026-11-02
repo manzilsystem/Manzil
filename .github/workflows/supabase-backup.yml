@@ -38,6 +38,8 @@ jobs:
 
           const encodedPassword = url.password.replace(/%(?![0-9a-fA-F]{2})/g, '%25');
           const password = decodeURIComponent(encodedPassword);
+          process.stdout.write(`::add-mask::${password}\n`);
+          process.stdout.write(`::add-mask::${encodedPassword}\n`);
           const delimiter = `GH_ENV_${crypto.randomUUID()}`;
           fs.appendFileSync(process.env.GITHUB_ENV,
             `PGPASSWORD<<${delimiter}\n${password}\n${delimiter}\n` +
@@ -97,6 +99,10 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$GH_TOKEN"
+          gh api repos/manzilsystem/manzil_backups >/dev/null || {
+            echo "::error::BACKUP_REPO_TOKEN cannot access manzilsystem/manzil_backups. Check repository selection and Contents: Read and write permission."
+            exit 1
+          }
           gh release create "$BACKUP_TAG" \
             "$RUNNER_TEMP/$BACKUP_FILE" \
             "$RUNNER_TEMP/$BACKUP_FILE.sha256" \
