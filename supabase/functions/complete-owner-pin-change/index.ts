@@ -14,12 +14,12 @@ function json(status: number, body: Record<string, unknown>) {
   })
 }
 
-function normalizePin(input: unknown): string | null {
+function normalizePin(input: unknown, allowTemporary = false): string | null {
   if (typeof input !== 'string') return null
   const pin = input.trim()
     .replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632))
     .replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776))
-  return /^\d{6}$/.test(pin) ? pin : null
+  return (allowTemporary ? /^(?:\d{6}|\d{8})$/ : /^\d{6}$/).test(pin) ? pin : null
 }
 
 function isE164Phone(phone: unknown): phone is string {
@@ -59,7 +59,7 @@ Deno.serve(async (request: Request) => {
     return json(400, { error: 'invalid_request' })
   }
 
-  const currentPin = normalizePin(payload.current_pin)
+  const currentPin = normalizePin(payload.current_pin, true)
   const newPin = normalizePin(payload.new_pin)
   if (!currentPin || !newPin) return json(400, { error: 'invalid_pin_format' })
   if (currentPin === newPin) return json(400, { error: 'pin_must_change' })

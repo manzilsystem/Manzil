@@ -159,7 +159,41 @@ test('owner mode rejects a PIN shorter than six digits before contacting Supabas
     await h.app.submitSupabaseLogin(h.makeSubmitEvent());
 
     assert.equal(called, false);
-    assert.match(h.elements.get('pinErrorMsg').textContent, /PIN المالك يجب أن يتكون من 6 أرقام/);
+    assert.match(h.elements.get('pinErrorMsg').textContent, /PIN المالك يجب أن يتكون من 6 أرقام أو 8 أرقام للرمز المؤقت/);
+});
+
+test('owner mode accepts an eight-digit temporary PIN and passes it to Supabase Auth', async () => {
+    const h = makeHarness();
+    h.app.setLoginMode('owner');
+    h.elements.get('authIdentifier').value = '01012345678';
+    h.elements.get('authPassword').value = '12345678';
+    let credentials;
+    h.client.auth.signInWithPassword = async value => {
+        credentials = value;
+        return { data: {}, error: null };
+    };
+
+    await h.app.submitSupabaseLogin(h.makeSubmitEvent());
+
+    assert.equal(credentials?.password, '12345678');
+    assert.match(h.elements.get('pinErrorMsg').textContent, /لم تُنشأ جلسة دخول/);
+});
+
+test('owner mode continues to accept existing six-digit permanent PINs', async () => {
+    const h = makeHarness();
+    h.app.setLoginMode('owner');
+    h.elements.get('authIdentifier').value = '01012345678';
+    h.elements.get('authPassword').value = '123456';
+    let credentials;
+    h.client.auth.signInWithPassword = async value => {
+        credentials = value;
+        return { data: {}, error: null };
+    };
+
+    await h.app.submitSupabaseLogin(h.makeSubmitEvent());
+
+    assert.equal(credentials?.password, '123456');
+    assert.match(h.elements.get('pinErrorMsg').textContent, /لم تُنشأ جلسة دخول/);
 });
 
 test('a failed local sign-out does not prevent locking the interface or clearing prior account data', async () => {

@@ -14,6 +14,11 @@ function position(text) {
     return index;
 }
 
+test('temporary owner PIN uses WebCrypto and contains eight digits', () => {
+    assert.match(source, /crypto\.getRandomValues\(random\)/);
+    assert.match(source, /String\(10000000 \+ \(random\[0\] % 90000000\)\)/);
+});
+
 test('reissuing an existing owner PIN waits until profile, membership, and resident linking succeed', () => {
     assert.match(source, /let createdNewUser = false/);
     assert.match(source, /if \(ownerUserId\)/);
