@@ -458,7 +458,11 @@ function openSettingsModal() {
     document.getElementById('settingsManagerName').value = state.managerName||'';
     document.getElementById('settingsManagerPhone').value = state.managerPhone||'';
     document.getElementById('settingsDefaultSub').value = state.defaultSubscription||'';
-    document.getElementById('settingsStartingBalance').value = state.startingBalance||'';
+    document.getElementById('settingsStartingBalance').value = state.startingBalance ?? '';
+    const account = document.getElementById('settingsAccountEmail');
+    if (account) account.textContent = activeSession?.user?.email || 'حساب مالك الشقة';
+    const role = document.getElementById('settingsAccountRole');
+    if (role) role.textContent = currentUserRole === 'manager' ? 'مدير المبنى' : 'مالك الشقة';
     openModal('settingsModal');
 }
 
