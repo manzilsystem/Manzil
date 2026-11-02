@@ -90,6 +90,11 @@ jobs:
 
           test -s "$RUNNER_TEMP/$filename"
           sha256sum "$RUNNER_TEMP/$filename" > "$RUNNER_TEMP/$filename.sha256"
+          # Validate checksum and PostgreSQL custom archive before upload.
+          (cd "$RUNNER_TEMP" && sha256sum --check "$filename.sha256")
+          docker run --rm -v "$RUNNER_TEMP:/backup" postgres:17-alpine \
+            pg_restore --list "/backup/$filename" >/dev/null
+          echo "Backup archive and SHA-256 validation passed."
           echo "BACKUP_TAG=backup-$timestamp" >> "$GITHUB_ENV"
           echo "BACKUP_FILE=$filename" >> "$GITHUB_ENV"
 
