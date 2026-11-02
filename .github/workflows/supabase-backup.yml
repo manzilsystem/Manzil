@@ -42,7 +42,6 @@ jobs:
           const delimiter = `GH_ENV_${crypto.randomUUID()}`;
           fs.appendFileSync(process.env.GITHUB_ENV,
             `PGPASSWORD<<${delimiter}\n${password}\n${delimiter}\n` +
-            `PGHOST=aws-eu-north-1.pooler.supabase.com\n` +
             `PGPORT=5432\nPGUSER=postgres.${projectRef}\nPGDATABASE=postgres\nPGSSLMODE=require\n`
           );
           NODE
@@ -54,12 +53,30 @@ jobs:
           timestamp="$(date -u +'%Y%m%dT%H%M%SZ')"
           filename="manzil-db-$timestamp.dump"
 
-          docker run --rm \
-            -e PGPASSWORD -e PGHOST -e PGPORT -e PGUSER -e PGDATABASE -e PGSSLMODE \
-            -e BACKUP_FILENAME="$filename" \
-            -v "$RUNNER_TEMP:/backup" \
-            postgres:17-alpine \
-            sh -c 'pg_dump --host="$PGHOST" --port="$PGPORT" --username="$PGUSER" --dbname="$PGDATABASE" --no-password --format=custom --compress=9 --no-owner --no-acl --file="/backup/$BACKUP_FILENAME"'
+          backup_ok=false
+          for index in 0 1 2 3 4 5; do
+            candidate="aws-$index-eu-north-1.pooler.supabase.com"
+            if ! getent ahostsv4 "$candidate" >/dev/null 2>&1; then
+              continue
+            fi
+
+            echo "Trying Supabase pooler cluster index $index"
+            if docker run --rm \
+              -e PGPASSWORD -e PGPORT -e PGUSER -e PGDATABASE -e PGSSLMODE \
+              -e PGHOST="$candidate" -e BACKUP_FILENAME="$filename" \
+              -v "$RUNNER_TEMP:/backup" \
+              postgres:17-alpine \
+              sh -c 'pg_dump --host="$PGHOST" --port="$PGPORT" --username="$PGUSER" --dbname="$PGDATABASE" --no-password --format=custom --compress=9 --no-owner --no-acl --file="/backup/$BACKUP_FILENAME"'
+            then
+              backup_ok=true
+              break
+            fi
+          done
+
+          if [ "$backup_ok" != true ]; then
+            echo "Could not connect to the assigned Supabase session-pooler cluster."
+            exit 1
+          fi
 
           test -s "$RUNNER_TEMP/$filename"
           sha256sum "$RUNNER_TEMP/$filename" > "$RUNNER_TEMP/$filename.sha256"
