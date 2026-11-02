@@ -102,10 +102,10 @@ async function handleResidentSubmit(e) {
             logAction('تعديل شقة', `${name} - شقة ${apartmentNumber}`);
         }
     } else {
-        const createdAt = new Date().toISOString();
         const resident = {
-            id: generateId(), name, apartmentNumber, phone, monthlyAmount, notes, createdAt,
-            subscriptionRates: [{ effectiveMonth: createdAt.slice(0, 7) + '-01', monthlyAmount }]
+            id: generateId(), name, apartmentNumber, phone, monthlyAmount, notes,
+            createdAt: new Date().toISOString(),
+            subscriptionRates: [{ effectiveMonth: new Date().toISOString().slice(0, 7) + '-01', monthlyAmount }]
         };
         state.residents.push(resident);
         targetResidentId = resident.id;
