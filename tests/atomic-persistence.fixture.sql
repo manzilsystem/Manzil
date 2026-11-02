@@ -1,0 +1,86 @@
+-- Disposable PostgreSQL fixture for atomic snapshot RPC integration tests.
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE ROLE authenticated NOLOGIN;
+CREATE ROLE anon NOLOGIN;
+CREATE SCHEMA auth;
+CREATE SCHEMA private;
+CREATE TYPE public.app_role AS ENUM ('manager', 'owner');
+
+CREATE TABLE public.profiles (
+    id uuid PRIMARY KEY
+);
+CREATE TABLE public.buildings (
+    id uuid PRIMARY KEY,
+    name text NOT NULL DEFAULT 'Manzil',
+    manager_name text NOT NULL DEFAULT '',
+    manager_phone text,
+    default_subscription numeric(12,2) NOT NULL DEFAULT 0 CHECK (default_subscription >= 0),
+    starting_balance numeric(12,2) NOT NULL DEFAULT 0,
+    current_theme text NOT NULL DEFAULT 'dark' CHECK (current_theme IN ('dark', 'light', 'emerald', 'ocean', 'sand')),
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE public.building_members (
+    building_id uuid NOT NULL REFERENCES public.buildings(id) ON DELETE CASCADE,
+    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    role public.app_role NOT NULL,
+    PRIMARY KEY (building_id, user_id)
+);
+CREATE TABLE public.residents (
+    id uuid PRIMARY KEY,
+    building_id uuid NOT NULL REFERENCES public.buildings(id) ON DELETE CASCADE,
+    user_id uuid UNIQUE REFERENCES public.profiles(id) ON DELETE SET NULL,
+    name text NOT NULL,
+    apartment_number text NOT NULL,
+    phone text,
+    monthly_amount numeric(12,2) NOT NULL DEFAULT 0 CHECK (monthly_amount >= 0),
+    notes text,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (building_id, apartment_number)
+);
+CREATE TABLE public.income (
+    id uuid PRIMARY KEY,
+    building_id uuid NOT NULL REFERENCES public.buildings(id) ON DELETE CASCADE,
+    resident_id uuid NOT NULL REFERENCES public.residents(id) ON DELETE CASCADE,
+    amount numeric(12,2) NOT NULL CHECK (amount > 0),
+    month text NOT NULL,
+    notes text,
+    paid_at timestamptz NOT NULL DEFAULT now(),
+    created_by uuid NOT NULL REFERENCES public.profiles(id)
+);
+CREATE TABLE public.expenses (
+    id uuid PRIMARY KEY,
+    building_id uuid NOT NULL REFERENCES public.buildings(id) ON DELETE CASCADE,
+    title text NOT NULL,
+    amount numeric(12,2) NOT NULL CHECK (amount > 0),
+    category text NOT NULL DEFAULT 'أخرى',
+    month text NOT NULL,
+    notes text,
+    spent_at timestamptz NOT NULL DEFAULT now(),
+    created_by uuid NOT NULL REFERENCES public.profiles(id)
+);
+CREATE TABLE public.notices (
+    id uuid PRIMARY KEY,
+    building_id uuid NOT NULL REFERENCES public.buildings(id) ON DELETE CASCADE,
+    text text NOT NULL,
+    created_by uuid NOT NULL REFERENCES public.profiles(id),
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE public.audit_logs (
+    id uuid PRIMARY KEY,
+    building_id uuid NOT NULL REFERENCES public.buildings(id) ON DELETE CASCADE,
+    action text NOT NULL,
+    details text,
+    actor_id uuid NOT NULL REFERENCES public.profiles(id),
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE FUNCTION auth.uid() RETURNS uuid
+LANGUAGE sql STABLE
+AS $$
+    SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
+$$;
+
+GRANT USAGE ON SCHEMA private TO authenticated;
+GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated;
+GRANT SELECT ON public.buildings, public.building_members, public.residents, public.income,
+    public.expenses, public.notices, public.audit_logs TO authenticated;

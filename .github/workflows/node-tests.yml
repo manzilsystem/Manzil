@@ -1,4 +1,4 @@
-name: Node tests
+name: Node and PostgreSQL tests
 
 on:
   pull_request:
@@ -19,5 +19,35 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Run state calculation tests
+      - name: Run Node tests
         run: node --test tests/*.test.cjs
+
+  postgres-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: manzil_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d manzil_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Execute atomic persistence integration tests
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: manzil_test
+        run: psql -v ON_ERROR_STOP=1 -f tests/atomic-persistence.integration.sql
