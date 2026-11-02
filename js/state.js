@@ -77,9 +77,9 @@ function getPaidAmountForMonth(residentId, month) {
     return paidCents / 100;
 }
 function monthLabelToKey(month) {
-    const [name, year] = String(month || '').trim().split(/\\s+/);
+    const [name, year] = String(month || '').trim().split(/\s+/);
     const index = monthsNames.indexOf(name);
-    if (index < 0 || !/^\\d{4}$/.test(year || '')) return null;
+    if (index < 0 || !/^\d{4}$/.test(year || '')) return null;
     return `${year}-${String(index + 1).padStart(2, '0')}-01`;
 }
 
@@ -89,7 +89,7 @@ function getSubscriptionAmountForMonth(resident, month) {
     const rates = Array.isArray(resident.subscriptionRates) ? resident.subscriptionRates : [];
     if (!monthKey || !rates.length) return Number(resident.monthlyAmount ?? state.defaultSubscription) || 0;
     const applicable = rates
-        .filter(rate => /^\\d{4}-\\d{2}-01$/.test(rate.effectiveMonth) && rate.effectiveMonth <= monthKey)
+        .filter(rate => /^\d{4}-\d{2}-01$/.test(rate.effectiveMonth) && rate.effectiveMonth <= monthKey)
         .sort((a, b) => a.effectiveMonth.localeCompare(b.effectiveMonth));
     return applicable.length
         ? Math.max(0, Number(applicable[applicable.length - 1].monthlyAmount) || 0)
