@@ -61,8 +61,13 @@ test('first PIN change requires the current PIN and goes through the protected s
     assert.match(edgeFunction, /admin\.auth\.admin\.updateUserById/);
     assert.match(edgeFunction, /must_change_pin:\s*false/);
     assert.ok(
-        edgeFunction.indexOf('must_change_pin: false') <
-            edgeFunction.indexOf('admin.auth.admin.updateUserById'),
-        'the server must clear the first-login gate before changing the password'
+        edgeFunction.indexOf('admin.auth.admin.updateUserById') <
+            edgeFunction.indexOf('must_change_pin: false'),
+        'the server must change the Auth password before opening the first-login data gate'
     );
+    assert.match(
+        edgeFunction,
+        /if \(passwordError\) return json\(400, \{ error: 'pin_update_failed' \}\)/
+    );
+    assert.match(edgeFunction, /pin_updated_retry_required/);
 });
