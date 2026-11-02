@@ -163,7 +163,7 @@ BEGIN
     SELECT p_building_id, r.user_id, 'owner'::public.app_role
     FROM public.residents r
     WHERE r.building_id = p_building_id AND r.user_id IS NOT NULL
-    ON CONFLICT (building_id, user_id) DO UPDATE SET role = 'owner'::public.app_role;
+    ON CONFLICT (building_id, user_id) DO NOTHING;
 
     DELETE FROM public.building_members bm
     WHERE bm.building_id = p_building_id AND bm.role = 'owner'
