@@ -1,0 +1,72 @@
+name: Encrypted Supabase backup
+
+on:
+  schedule:
+    - cron: "23 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    if: github.repository == 'manzilsystem/Manzil' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Install age
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes age
+
+      - name: Dump and encrypt database
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          AGE_RECIPIENT: ${{ secrets.AGE_RECIPIENT }}
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_DB_URL"
+          test -n "$AGE_RECIPIENT"
+          timestamp="$(date -u +'%Y%m%dT%H%M%SZ')"
+          output="$RUNNER_TEMP/manzil-db-$timestamp.dump.age"
+
+          docker run --rm postgres:17-alpine \
+            pg_dump "$SUPABASE_DB_URL" --format=custom --compress=9 --no-owner --no-acl \
+            | age --recipient "$AGE_RECIPIENT" --output "$output"
+
+          test -s "$output"
+          sha256sum "$output" > "$output.sha256"
+          echo "BACKUP_TAG=backup-$timestamp" >> "$GITHUB_ENV"
+          echo "BACKUP_FILE=$output" >> "$GITHUB_ENV"
+
+      - name: Publish encrypted backup to private repository
+        env:
+          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+          BACKUP_REPO: manzilsystem/manzil_backups
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN"
+          gh release create "$BACKUP_TAG" "$BACKUP_FILE" "$BACKUP_FILE.sha256" \
+            --repo "$BACKUP_REPO" \
+            --title "Encrypted database backup $BACKUP_TAG" \
+            --notes "Automated encrypted PostgreSQL custom-format dump. Decrypt with the offline age identity."
+
+      - name: Retain latest 30 backups
+        env:
+          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+          BACKUP_REPO: manzilsystem/manzil_backups
+        run: |
+          set -euo pipefail
+          old_tags="$(gh release list --repo "$BACKUP_REPO" --limit 1000 \
+            --json tagName,createdAt \
+            --jq 'sort_by(.createdAt) | reverse | .[30:] | .[].tagName')"
+          if [ -n "$old_tags" ]; then
+            while IFS= read -r tag; do
+              [ -n "$tag" ] || continue
+              gh release delete "$tag" --repo "$BACKUP_REPO" --yes --cleanup-tag
+            done <<< "$old_tags"
+          fi
