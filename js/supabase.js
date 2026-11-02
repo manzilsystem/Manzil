@@ -6,6 +6,7 @@ let activeBuildingId = null;
 let supabaseStateLoaded = false;
 let authLoading = false;
 let ownerMustChangePin = false;
+let authLoginMode = 'manager';
 let authGeneration = 0;
 let persistedAuditLogIds = new Set();
 
@@ -31,6 +32,61 @@ function setAuthModal(visible, message = '') {
 
 function showSupabaseError(message) {
     setAuthModal(true, message);
+}
+
+function setLoginMode(mode) {
+    const nextMode = mode === 'owner' ? 'owner' : 'manager';
+    const changed = nextMode !== authLoginMode;
+    authLoginMode = nextMode;
+    const isOwner = authLoginMode === 'owner';
+    const identifierLabel = document.getElementById('authIdentifierLabel');
+    const passwordLabel = document.getElementById('authPasswordLabel');
+    const identifier = document.getElementById('authIdentifier');
+    const password = document.getElementById('authPassword');
+    const title = document.getElementById('pinLockTitle');
+    const hint = document.getElementById('pinLockHint');
+    const ownerHelp = document.getElementById('ownerLoginHelp');
+
+    if (identifierLabel) identifierLabel.textContent = isOwner ? 'رقم الجوال المسجل للشقة' : 'البريد الإلكتروني للمدير';
+    if (passwordLabel) passwordLabel.textContent = isOwner ? 'PIN المالك — 6 أرقام' : 'كلمة مرور المدير';
+    if (identifier) {
+        identifier.placeholder = isOwner ? 'مثال: 01012345678' : 'name@example.com';
+        identifier.setAttribute?.('aria-label', isOwner ? 'رقم الجوال المسجل للشقة' : 'البريد الإلكتروني للمدير');
+        identifier.setAttribute?.('inputmode', isOwner ? 'tel' : 'email');
+    }
+    if (password) {
+        password.placeholder = isOwner ? 'أدخل PIN المكوّن من 6 أرقام' : 'أدخل كلمة مرور المدير';
+        password.setAttribute?.('aria-label', isOwner ? 'PIN المالك المكوّن من 6 أرقام' : 'كلمة مرور المدير');
+        if (isOwner) password.setAttribute?.('inputmode', 'numeric');
+        else password.removeAttribute?.('inputmode');
+        if (isOwner) password.setAttribute?.('maxlength', '6');
+        else password.removeAttribute?.('maxlength');
+    }
+    if (title) title.textContent = isOwner ? 'دخول مالك الشقة' : 'دخول مدير المبنى';
+    if (hint) hint.textContent = isOwner
+        ? 'أدخل رقم الجوال المسجل لدى المدير والـ PIN الذي استلمته. أول دخول يتطلب تغييره.'
+        : 'استخدم البريد الإلكتروني وكلمة مرور الحساب الإداري.';
+    if (ownerHelp) ownerHelp.classList.toggle('hidden', !isOwner);
+
+    for (const [id, selected] of [['loginModeManager', !isOwner], ['loginModeOwner', isOwner]]) {
+        const button = document.getElementById(id);
+        if (!button) continue;
+        button.setAttribute('aria-pressed', String(selected));
+        button.className = selected
+            ? 'w-full border rounded-xl px-3 py-3 text-sm font-bold transition flex items-center justify-center gap-2 bg-indigo-600 text-white border-indigo-400 shadow-lg'
+            : 'w-full app-input border border-slate-700 rounded-xl px-3 py-3 text-sm font-bold text-slate-300 transition flex items-center justify-center gap-2 hover:border-indigo-400';
+    }
+
+    if (changed) {
+        if (identifier) identifier.value = '';
+        if (password) password.value = '';
+        const error = document.getElementById('pinErrorMsg');
+        if (error) {
+            error.textContent = '';
+            error.classList.add('hidden');
+        }
+    }
+    return authLoginMode;
 }
 
 function normalizeOwnerPhone(input) {
@@ -243,6 +299,7 @@ function clearAuthenticatedState() {
         const input = document.getElementById(id);
         if (input) input.value = '';
     }
+    setLoginMode('manager');
     try { renderAll(); } catch (error) { console.error('Could not clear rendered session data:', error); }
     const status = document.getElementById('syncStatus');
     if (status) status.textContent = 'الجلسة مقفلة';
@@ -270,10 +327,22 @@ async function submitSupabaseLogin(event) {
         const identifier = document.getElementById('authIdentifier').value.trim();
         let password = document.getElementById('authPassword').value;
         const isManagerEmail = identifier.includes('@');
+        if (authLoginMode === 'manager' && !isManagerEmail) {
+            showSupabaseError('دخول المدير يحتاج البريد الإلكتروني وكلمة المرور. اختر «مالك الشقة» إذا كان لديك رقم جوال وPIN.');
+            return;
+        }
+        if (authLoginMode === 'owner' && isManagerEmail) {
+            showSupabaseError('دخول مالك الشقة يستخدم رقم الجوال المسجل، وليس البريد الإلكتروني.');
+            return;
+        }
         const phone = isManagerEmail ? null : normalizeOwnerPhone(identifier);
         if (!isManagerEmail) password = normalizePinDigits(password);
         if (!isManagerEmail && !phone) {
             showSupabaseError('اكتب رقم جوال مصري صحيحًا أو بريد المدير.');
+            return;
+        }
+        if (authLoginMode === 'owner' && !/^\d{6}$/.test(password)) {
+            showSupabaseError('PIN المالك يجب أن يتكون من 6 أرقام.');
             return;
         }
         const credentials = isManagerEmail ? { email: identifier, password } : { email: ownerAuthEmail(phone), password };
