@@ -111,13 +111,37 @@ Deno.serve(async (request: Request) => {
     .limit(1)
     .maybeSingle()
   if (profileLookupError) return json(500, { error: 'profile_lookup_failed' })
+
+  let ownerUserId = resident.user_id as string | null
+  let createdNewUser = false
   if (existingProfile && existingProfile.id !== resident.user_id) {
-    return json(409, { error: 'phone_already_linked' })
+    // Never replace an account already linked to this apartment.
+    if (ownerUserId) return json(409, { error: 'phone_already_linked' })
+
+    // A prior failed attempt can leave an auth/profile account with no links.
+    // Reuse that account only if it is not attached to any resident or building.
+    const { data: linkedResident, error: residentLinkLookupError } = await admin
+      .from('residents')
+      .select('id')
+      .eq('user_id', existingProfile.id)
+      .limit(1)
+      .maybeSingle()
+    const { data: existingMembership, error: membershipLookupError } = await admin
+      .from('building_members')
+      .select('user_id')
+      .eq('user_id', existingProfile.id)
+      .limit(1)
+      .maybeSingle()
+    if (residentLinkLookupError || membershipLookupError) {
+      return json(500, { error: 'profile_link_lookup_failed' })
+    }
+    if (linkedResident || existingMembership) {
+      return json(409, { error: 'phone_already_linked' })
+    }
+    ownerUserId = existingProfile.id
   }
 
   const temporaryPin = generateTemporaryPin()
-  let ownerUserId = resident.user_id as string | null
-  let createdNewUser = false
 
   if (ownerUserId) {
     // Keep the existing credentials unchanged until all database links succeed.
