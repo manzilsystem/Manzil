@@ -40,33 +40,13 @@ jobs:
 
           test -s "$output"
           sha256sum "$output" > "$output.sha256"
-          echo "BACKUP_TAG=backup-$timestamp" >> "$GITHUB_ENV"
-          echo "BACKUP_FILE=$output" >> "$GITHUB_ENV"
 
-      - name: Publish encrypted backup to private repository
-        env:
-          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
-          BACKUP_REPO: manzilsystem/manzil_backups
-        run: |
-          set -euo pipefail
-          test -n "$GH_TOKEN"
-          gh release create "$BACKUP_TAG" "$BACKUP_FILE" "$BACKUP_FILE.sha256" \
-            --repo "$BACKUP_REPO" \
-            --title "Encrypted database backup $BACKUP_TAG" \
-            --notes "Automated encrypted PostgreSQL custom-format dump. Decrypt with the offline age identity."
-
-      - name: Retain latest 30 backups
-        env:
-          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
-          BACKUP_REPO: manzilsystem/manzil_backups
-        run: |
-          set -euo pipefail
-          old_tags="$(gh release list --repo "$BACKUP_REPO" --limit 1000 \
-            --json tagName,createdAt \
-            --jq 'sort_by(.createdAt) | reverse | .[30:] | .[].tagName')"
-          if [ -n "$old_tags" ]; then
-            while IFS= read -r tag; do
-              [ -n "$tag" ] || continue
-              gh release delete "$tag" --repo "$BACKUP_REPO" --yes --cleanup-tag
-            done <<< "$old_tags"
-          fi
+      - name: Store encrypted backup for 30 days
+        uses: actions/upload-artifact@v4
+        with:
+          name: manzil-encrypted-backup-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/manzil-db-*.dump.age
+            ${{ runner.temp }}/manzil-db-*.dump.age.sha256
+          if-no-files-found: error
+          retention-days: 30
