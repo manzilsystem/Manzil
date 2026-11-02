@@ -78,12 +78,35 @@ async function handleResidentSubmit(e) {
     if (editingResidentId) {
         const r = state.residents.find(x => x.id === editingResidentId);
         if (r) {
+            const previousAmount = Number(r.monthlyAmount ?? state.defaultSubscription) || 0;
+            if (Math.round(previousAmount * 100) !== Math.round(monthlyAmount * 100)) {
+                const currentMonth = new Date().toISOString().slice(0, 7);
+                const effectiveMonth = (prompt('تاريخ تطبيق قيمة الاشتراك الجديدة (YYYY-MM). لن تتغير الشهور السابقة.', currentMonth) || '').trim();
+                if (!/^\\d{4}-(0[1-9]|1[0-2])$/.test(effectiveMonth)) {
+                    toast('تم إلغاء التعديل: أدخل شهرًا صحيحًا بصيغة YYYY-MM.', 'error');
+                    return;
+                }
+                const createdMonth = String(r.createdAt || '').slice(0, 7);
+                if (createdMonth && effectiveMonth < createdMonth) {
+                    toast('لا يمكن تطبيق الاشتراك قبل تاريخ إنشاء الشقة.', 'error');
+                    return;
+                }
+                r.subscriptionRates = Array.isArray(r.subscriptionRates) ? r.subscriptionRates : [];
+                r.subscriptionRates = r.subscriptionRates.filter(rate => rate.effectiveMonth !== effectiveMonth + '-01');
+                r.subscriptionRates.push({ effectiveMonth: effectiveMonth + '-01', monthlyAmount });
+                r.subscriptionRates.sort((a, b) => a.effectiveMonth.localeCompare(b.effectiveMonth));
+                logAction('تغيير قيمة الاشتراك', `${name} - ${previousAmount} إلى ${monthlyAmount} بدءًا من ${effectiveMonth}`);
+            }
             Object.assign(r, { name, apartmentNumber, phone, monthlyAmount, notes });
             targetResidentId = r.id;
             logAction('تعديل شقة', `${name} - شقة ${apartmentNumber}`);
         }
     } else {
-        const resident = { id: generateId(), name, apartmentNumber, phone, monthlyAmount, notes, createdAt: new Date().toISOString() };
+        const createdAt = new Date().toISOString();
+        const resident = {
+            id: generateId(), name, apartmentNumber, phone, monthlyAmount, notes, createdAt,
+            subscriptionRates: [{ effectiveMonth: createdAt.slice(0, 7) + '-01', monthlyAmount }]
+        };
         state.residents.push(resident);
         targetResidentId = resident.id;
         logAction('إضافة شقة', `${name} - شقة ${apartmentNumber}`);
