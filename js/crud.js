@@ -460,7 +460,9 @@ function openSettingsModal() {
     document.getElementById('settingsDefaultSub').value = state.defaultSubscription||'';
     document.getElementById('settingsStartingBalance').value = state.startingBalance ?? '';
     const account = document.getElementById('settingsAccountEmail');
-    if (account) account.textContent = activeSession?.user?.email || 'حساب مالك الشقة';
+    if (account) account.textContent = currentUserRole === 'manager'
+        ? (activeSession?.user?.email || '—')
+        : 'تسجيل دخول برقم الهاتف';
     const role = document.getElementById('settingsAccountRole');
     if (role) role.textContent = currentUserRole === 'manager' ? 'مدير المبنى' : 'مالك الشقة';
     openModal('settingsModal');
