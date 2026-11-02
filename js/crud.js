@@ -202,10 +202,13 @@ function closeOwnerTempPinModal() {
 async function deleteResident(id) {
     if (!requireManager()) return;
     const r = state.residents.find(x => x.id === id); if (!r) return;
-    if (!confirm(`حذف شقة ${r.name}؟ سيتم حذف تحصيلاتها أيضاً.`)) return;
+    if (state.income.some(payment => payment.residentId === id)) {
+        toast('لا يمكن حذف شقة لها تحصيلات مسجلة؛ احتفظ بالسجل المالي ولا تحذف بياناتها.', 'error');
+        return;
+    }
+    if (!confirm(`حذف شقة ${r.name}؟`)) return;
     const previousState = cloneStateSnapshot();
     state.residents = state.residents.filter(x => x.id !== id);
-    state.income = state.income.filter(i => i.residentId !== id);
     logAction('حذف شقة', `${r.name} - شقة ${r.apartmentNumber}`);
     if (!await saveWithRollback(previousState)) return;
     toast('تم الحذف','info');
