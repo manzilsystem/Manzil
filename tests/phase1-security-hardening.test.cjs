@@ -1,0 +1,31 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const test = require('node:test');
+
+const migration = fs.readFileSync(
+    path.join(__dirname, '..', 'supabase/migrations/20261102200000_phase1_security_hardening.sql'),
+    'utf8'
+);
+
+test('notification RLS helpers are executable by authenticated users but not anon or PUBLIC', () => {
+    for (const signature of [
+        'public.can_read_notification(uuid, uuid, uuid)',
+        'public.is_building_manager(uuid)',
+    ]) {
+        assert.match(
+            migration,
+            new RegExp('revoke all on function ' + signature.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' from public, anon', 'i')
+        );
+        assert.match(
+            migration,
+            new RegExp('grant execute on function ' + signature.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' to authenticated', 'i')
+        );
+    }
+});
+
+test('income updates preserve the manager boundary and resident/building relationship', () => {
+    assert.match(migration, /drop policy if exists income_manager_update on public\.income/i);
+    assert.match(migration, /using \(private\.is_building_manager\(building_id\)\)/i);
+    assert.match(migration, /with check \([\s\S]*private\.is_building_manager\(building_id\)[\s\S]*r\.id = income\.resident_id[\s\S]*r\.building_id = income\.building_id/i);
+});
