@@ -1,0 +1,98 @@
+name: Restore Manzil database backup
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-restore
+  cancel-in-progress: false
+
+jobs:
+  restore:
+    if: github.repository == 'manzilsystem/Manzil' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Prepare secure database connection
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_DB_URL"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const url = new URL(process.env.SUPABASE_DB_URL);
+          if (!url.password) throw new Error('Missing database password');
+          const encoded = url.password.replace(/%(?![0-9a-fA-F]{2})/g, '%25');
+          const password = decodeURIComponent(encoded);
+          process.stdout.write(`::add-mask::${password}\n`);
+          process.stdout.write(`::add-mask::${encoded}\n`);
+          const delimiter = `GH_ENV_${crypto.randomUUID()}`;
+          fs.appendFileSync(process.env.GITHUB_ENV,
+            `PGPASSWORD<<${delimiter}\n${password}\n${delimiter}\nPGPASSWORD_ENCODED<<${delimiter}\n${encoded}\n${delimiter}\nPGPORT=5432\nPGDATABASE=postgres\nPGSSLMODE=require\n`);
+          NODE
+          for index in 0 1 2 3 4 5; do
+            candidate="aws-$index-eu-north-1.pooler.supabase.com"
+            if getent ahostsv4 "$candidate" >/dev/null 2>&1; then
+              echo "PGHOST=$candidate" >> "$GITHUB_ENV"
+              exit 0
+            fi
+          done
+          echo "::error::No reachable Supabase pooler host"
+          exit 1
+
+      - name: Process one approved restore request
+        env:
+          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+          PGPASSWORD: ${{ env.PGPASSWORD }}
+          PGHOST: ${{ env.PGHOST }}
+          PGPORT: "5432"
+          PGDATABASE: postgres
+          PGSSLMODE: require
+        run: |
+          set -euo pipefail
+          export GH_TOKEN
+          psql_db() {
+            docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \
+              postgres:17-alpine psql --no-password --host="$PGHOST" --port="$PGPORT" \
+              --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 "$@"
+          }
+
+          request="$(psql_db -At -F '|' -c "SELECT id::text || '|' || backup_tag FROM public.restore_requests WHERE status='queued' ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED")"
+          if [ -z "$request" ]; then
+            echo "No pending restore request."
+            exit 0
+          fi
+          IFS='|' read -r request_id tag <<< "$request"
+          [[ "$request_id" =~ ^[0-9a-f-]{36}$ ]]
+          [[ "$tag" =~ ^backup-[0-9]{8}T[0-9]{6}Z$ ]]
+          filename="manzil-db-${tag#backup-}.dump"
+          psql_db -c "UPDATE public.restore_requests SET status='running',started_at=now(),result_message='بدأ تنفيذ الاستعادة' WHERE id='$request_id' AND status='queued'"
+
+          restore_failed() {
+            psql_db -c "UPDATE public.restore_requests SET status='failed',finished_at=now(),result_message='فشلت الاستعادة؛ تم إلغاء معاملة PostgreSQL إن أمكن' WHERE id='$request_id' AND status='running'" || true
+          }
+          trap restore_failed ERR
+
+          gh release download "$tag" --repo manzilsystem/manzil_backups \
+            --pattern "$filename" --pattern "$filename.sha256" --dir "$RUNNER_TEMP"
+          (cd "$RUNNER_TEMP" && sha256sum --check "$filename.sha256")
+          docker run --rm -v "$RUNNER_TEMP:/backup" postgres:17-alpine \
+            pg_restore --list "/backup/$filename" >/dev/null
+
+          docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \
+            -v "$RUNNER_TEMP:/backup" postgres:17-alpine \
+            pg_restore --host="$PGHOST" --port="$PGPORT" \
+              --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" \
+              --no-password --clean --if-exists --single-transaction --exit-on-error \
+              --no-owner --no-acl "/backup/$filename"
+
+          trap - ERR
+          psql_db -c "UPDATE public.restore_requests SET status='succeeded',finished_at=now(),result_message='تمت استعادة النسخة بنجاح. قد تحتاج إلى تسجيل الدخول مرة أخرى.' WHERE id='$request_id' AND status='running'"
+          echo "Restore completed for request $request_id."
