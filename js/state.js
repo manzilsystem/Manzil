@@ -76,9 +76,29 @@ function getPaidAmountForMonth(residentId, month) {
     }, 0);
     return paidCents / 100;
 }
+function monthLabelToKey(month) {
+    const [name, year] = String(month || '').trim().split(/\\s+/);
+    const index = monthsNames.indexOf(name);
+    if (index < 0 || !/^\\d{4}$/.test(year || '')) return null;
+    return `${year}-${String(index + 1).padStart(2, '0')}-01`;
+}
+
+function getSubscriptionAmountForMonth(resident, month) {
+    if (!resident) return 0;
+    const monthKey = monthLabelToKey(month);
+    const rates = Array.isArray(resident.subscriptionRates) ? resident.subscriptionRates : [];
+    if (!monthKey || !rates.length) return Number(resident.monthlyAmount ?? state.defaultSubscription) || 0;
+    const applicable = rates
+        .filter(rate => /^\\d{4}-\\d{2}-01$/.test(rate.effectiveMonth) && rate.effectiveMonth <= monthKey)
+        .sort((a, b) => a.effectiveMonth.localeCompare(b.effectiveMonth));
+    return applicable.length
+        ? Math.max(0, Number(applicable[applicable.length - 1].monthlyAmount) || 0)
+        : 0;
+}
+
 function getMonthOutstanding(resident, month) {
     if (!resident) return 0;
-    const due = Number(resident.monthlyAmount ?? state.defaultSubscription);
+    const due = getSubscriptionAmountForMonth(resident, month);
     const dueCents = Number.isFinite(due) ? Math.round(due * 100) : 0;
     const paidCents = Math.round(getPaidAmountForMonth(resident.id, month) * 100);
     return Math.max(0, dueCents - paidCents) / 100;
