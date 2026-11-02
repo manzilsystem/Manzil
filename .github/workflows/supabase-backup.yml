@@ -34,19 +34,14 @@ jobs:
           const projectRef = 'musvcrkljccubwbcrtjs';
           const url = new URL(process.env.SUPABASE_DB_URL);
 
-          if (url.hostname === `db.${projectRef}.supabase.co`) {
-            url.hostname = 'aws-eu-north-1.pooler.supabase.com';
-            url.username = `postgres.${projectRef}`;
-            url.port = '5432';
-          } else if (url.hostname === 'aws-eu-north-1.pooler.supabase.com') {
-            url.username = `postgres.${projectRef}`;
-            url.port = '5432';
-          } else {
-            throw new Error('SUPABASE_DB_URL host is not a recognized Manzil database endpoint');
-          }
-
+          if (!url.password) throw new Error('SUPABASE_DB_URL has no database password');
+          url.hostname = 'aws-eu-north-1.pooler.supabase.com';
+          url.username = `postgres.${projectRef}`;
+          url.port = '5432';
+          url.pathname = '/postgres';
           url.searchParams.set('sslmode', 'require');
-          fs.appendFileSync(process.env.GITHUB_ENV, `PG_DUMP_URL=${url.toString()}\\n`);
+
+          fs.appendFileSync(process.env.GITHUB_ENV, `PG_DUMP_URL=${url.toString()}\n`);
           NODE
 
       - name: Dump database
