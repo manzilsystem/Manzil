@@ -310,7 +310,7 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 
 /* Theme-aware contrast for common utility classes */
 [data-theme="light"] .text-slate-300,[data-theme="light"] .text-slate-200 { color:#334155 !important; }
-[data-theme="light"] .text-slate-100,[data-theme="light"] .text-white { color:#172033 !important; }
+[data-theme="light"] .text-slate-100 { color:#172033 !important; }
 [data-theme="light"] .bg-slate-950\/95,[data-theme="light"] .bg-slate-950\/80 { background-color:rgba(226,232,240,.96) !important; }
 [data-theme="light"] .bg-slate-900\/50,[data-theme="light"] .bg-slate-900\/40,[data-theme="light"] .bg-slate-800\/50 { background-color:#f1f5f9 !important; }
 [data-theme="light"] .border-slate-700,[data-theme="light"] .border-slate-700\/70,[data-theme="light"] .border-slate-800 { border-color:#dbe3ef !important; }
