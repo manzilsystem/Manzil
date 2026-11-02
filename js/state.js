@@ -153,13 +153,16 @@ function getActiveBuildingMonths() {
 
 async function setTheme(theme) {
     if (currentUserRole !== 'manager') { toast('تغيير الإعدادات متاح للمدير فقط','error'); return; }
-    if (!['dark','light','emerald'].includes(theme)) theme = 'dark';
+    if (!['dark','light','emerald','ocean','sand'].includes(theme)) theme = 'dark';
     const previousState = cloneStateSnapshot();
     state.currentTheme = theme;
     document.body.setAttribute('data-theme', theme);
-    document.querySelector('meta[name="theme-color"]').setAttribute('content', theme==='light'?'#f1f5f9':theme==='emerald'?'#021a13':'#090d16');
+    const themeColors = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16' };
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[theme]);
     if (!await saveWithRollback(previousState)) {
         document.body.setAttribute('data-theme', state.currentTheme);
-        document.querySelector('meta[name="theme-color"]').setAttribute('content', state.currentTheme==='light'?'#f1f5f9':state.currentTheme==='emerald'?'#021a13':'#090d16');
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[state.currentTheme] || themeColors.dark);
     }
 }
+    updateThemeSelection();
+
