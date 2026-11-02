@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   backup:
-    if: github.repository == 'manzilsystem/Manzil' && github.ref == 'refs/heads/main' && github.repository_visibility == 'private'
+    if: github.repository == 'manzilsystem/Manzil' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -36,13 +36,30 @@ jobs:
 
           test -s "$RUNNER_TEMP/$filename"
           sha256sum "$RUNNER_TEMP/$filename" > "$RUNNER_TEMP/$filename.sha256"
+          echo "BACKUP_TAG=backup-$timestamp" >> "$GITHUB_ENV"
+          echo "BACKUP_FILE=$filename" >> "$GITHUB_ENV"
 
-      - name: Store backup for 30 days
-        uses: actions/upload-artifact@v4
-        with:
-          name: manzil-database-backup-${{ github.run_id }}
-          path: |
-            ${{ runner.temp }}/manzil-db-*.dump
-            ${{ runner.temp }}/manzil-db-*.dump.sha256
-          if-no-files-found: error
-          retention-days: 30
+      - name: Upload to private backup repository
+        env:
+          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN"
+          gh release create "$BACKUP_TAG" \
+            "$RUNNER_TEMP/$BACKUP_FILE" \
+            "$RUNNER_TEMP/$BACKUP_FILE.sha256" \
+            --repo manzilsystem/manzil_backups \
+            --title "Manzil database backup $BACKUP_TAG" \
+            --notes "Automated PostgreSQL custom-format backup. Verify with the accompanying SHA-256 file."
+
+      - name: Retain latest 30 backups
+        env:
+          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release list --repo manzilsystem/manzil_backups --limit 1000 --json tagName,createdAt \
+            | jq -r 'sort_by(.createdAt) | reverse | .[30:][] | .tagName' \
+            | while IFS= read -r tag; do
+                [ -n "$tag" ] || continue
+                gh release delete "$tag" --repo manzilsystem/manzil_backups --yes --cleanup-tag
+              done
