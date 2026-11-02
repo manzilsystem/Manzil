@@ -19,4 +19,5 @@ test('local migration history matches the applied Supabase order', () => {
     assert.ok(position('owner_phone_pin_bootstrap') < position('index_missing_foreign_keys'));
     assert.ok(position('index_missing_foreign_keys') < position('restrict_profile_updates'));
     assert.ok(position('restrict_profile_updates') < position('phase1_security_hardening'));
+    assert.ok(position('phase1_security_hardening') < position('move_notification_helpers_private'));
 });
