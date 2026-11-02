@@ -1,6 +1,7 @@
 \set ON_ERROR_STOP on
 \ir atomic-persistence.fixture.sql
 \ir ../supabase/migrations/20261102220500_atomic_building_snapshot.sql
+\ir ../supabase/migrations/20261103050000_allow_all_five_themes.sql
 
 INSERT INTO public.profiles (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),
