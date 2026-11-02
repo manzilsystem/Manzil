@@ -6,37 +6,25 @@ const vm = require('node:vm');
 
 const supabaseSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'supabase.js'), 'utf8');
 
-function makeHarness(auditLogs, persistedIds) {
-    const writes = [];
+function makeHarness(auditLogs, persistedIds, rpcHandler = async () => ({ data: { ok: true, version: 2 }, error: null })) {
+    const calls = [];
     const client = {
-        from(table) {
-            let operation = 'select';
-            const builder = {
-                update() { operation = 'update'; return this; },
-                upsert(rows) { operation = 'upsert'; writes.push({ table, operation, rows }); return this; },
-                insert(rows) { operation = 'insert'; writes.push({ table, operation, rows }); return this; },
-                select() { operation = 'select'; return this; },
-                delete() { operation = 'delete'; return this; },
-                eq() { return this; },
-                in() { return this; },
-                order() { return this; },
-                range() { return this; },
-                then(resolve, reject) {
-                    const data = operation === 'select' ? [] : null;
-                    return Promise.resolve({ data, error: null }).then(resolve, reject);
-                },
-            };
-            return builder;
+        rpc(name, args) {
+            calls.push({ name, args });
+            return rpcHandler(name, args, calls.length);
         },
+        from() { throw new Error('Snapshot persistence must use the atomic RPC'); },
     };
     const sandbox = {
         window: { supabase: { createClient: () => client } },
         document: { body: { classList: { remove() {} } }, getElementById: () => null },
         console: { error() {} },
         toast() {},
+        generateId: () => 'stable-request-id',
         currentUserRole: 'manager',
         activeSession: { user: { id: 'manager-user-id' } },
         activeBuildingId: 'building-id',
+        activeBuildingVersion: 1,
         supabaseStateLoaded: true,
         state: {
             buildingName: 'Manzil', managerName: '', managerPhone: '', defaultSubscription: 0,
@@ -45,32 +33,52 @@ function makeHarness(auditLogs, persistedIds) {
         },
     };
     const app = vm.runInNewContext(
-        `${supabaseSource}\nactiveSession = { user: { id: 'manager-user-id' } }; activeBuildingId = 'building-id'; supabaseStateLoaded = true; persistedAuditLogIds = new Set(${JSON.stringify(persistedIds)});\n({ saveState, isAuditPersisted: id => persistedAuditLogIds.has(id) })`,
+        `${supabaseSource}\\nactiveSession = { user: { id: 'manager-user-id' } }; activeBuildingId = 'building-id'; supabaseStateLoaded = true; activeBuildingVersion = 1; persistedAuditLogIds = new Set(${JSON.stringify(persistedIds)});\\n({ saveState, isAuditPersisted: id => persistedAuditLogIds.has(id), getVersion: () => activeBuildingVersion })`,
         sandbox,
         { filename: 'js/supabase.js' }
     );
-    return { app, writes };
+    return { app, calls };
 }
 
-test('saveState inserts new audit entries without upserting previously persisted immutable rows', async () => {
+test('saveState sends only new immutable audit entries through one atomic RPC', async () => {
     const existing = { id: 'existing-log', action: 'سجل سابق', details: '', date: '2026-10-31T10:00:00.000Z' };
     const added = { id: 'new-log', action: 'إضافة شقة', details: 'شقة جديدة', date: '2026-11-02T00:00:00.000Z' };
-    const { app, writes } = makeHarness([added, existing], ['existing-log']);
+    const { app, calls } = makeHarness([added, existing], ['existing-log']);
 
     assert.equal(await app.saveState(), true);
-    assert.deepEqual(writes.filter(write => write.table === 'audit_logs').map(write => ({
-        operation: write.operation,
-        ids: write.rows.map(row => row.id),
-    })), [{ operation: 'insert', ids: ['new-log'] }]);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].name, 'persist_building_snapshot');
+    assert.deepEqual(JSON.parse(JSON.stringify(calls[0].args.p_payload.audit_logs)).map(row => row.id), ['new-log']);
     assert.equal(app.isAuditPersisted('new-log'), true);
+    assert.equal(app.getVersion(), 2);
 });
 
-test('saving without a new audit entry does not write to audit_logs', async () => {
+test('saving without a new audit entry sends an empty append-only audit batch', async () => {
     const existing = { id: 'existing-log', action: 'سجل سابق', details: '', date: '2026-10-31T10:00:00.000Z' };
-    const { app, writes } = makeHarness([existing], ['existing-log']);
+    const { app, calls } = makeHarness([existing], ['existing-log']);
 
     assert.equal(await app.saveState(), true);
-    assert.equal(writes.some(write => write.table === 'audit_logs'), false);
+    assert.deepEqual(JSON.parse(JSON.stringify(calls[0].args.p_payload.audit_logs)), []);
+});
+
+test('atomic persistence retries the exact same idempotency key and payload after a transport failure', async () => {
+    const { app, calls } = makeHarness([], [], async (_name, _args, attempt) => {
+        if (attempt === 1) throw new Error('network timeout after uncertain commit');
+        return { data: { ok: true, duplicate: true, version: 2 }, error: null };
+    });
+
+    assert.equal(await app.saveState(), true);
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0].args.p_request_id, calls[1].args.p_request_id);
+    assert.deepEqual(JSON.parse(JSON.stringify(calls[0].args.p_payload)), JSON.parse(JSON.stringify(calls[1].args.p_payload)));
+});
+
+test('optimistic version conflict stops without retrying or claiming a save', async () => {
+    const { app, calls } = makeHarness([], [], async () => ({ data: { ok: false, conflict: true, current_version: 3 }, error: null }));
+
+    assert.equal(await app.saveState(), false);
+    assert.equal(calls.length, 1);
+    assert.equal(app.getVersion(), 1);
 });
 
 test('loaded audit identifiers are marked persisted before regular saves are enabled', () => {
