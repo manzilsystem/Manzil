@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.building_mutations (
 ALTER TABLE public.building_mutations ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.building_mutations FROM PUBLIC, anon, authenticated;
 
-CREATE OR REPLACE FUNCTION public.persist_building_snapshot(
+CREATE OR REPLACE FUNCTION private.persist_building_snapshot(
     p_building_id uuid,
     p_expected_version bigint,
     p_request_id uuid,
@@ -37,13 +37,13 @@ DECLARE
 BEGIN
     IF v_actor IS NULL OR p_building_id IS NULL OR p_request_id IS NULL
        OR p_expected_version IS NULL OR p_expected_version < 1
-       OR jsonb_typeof(p_payload) <> 'object'
-       OR jsonb_typeof(p_payload->'building') <> 'object'
-       OR jsonb_typeof(p_payload->'residents') <> 'array'
-       OR jsonb_typeof(p_payload->'income') <> 'array'
-       OR jsonb_typeof(p_payload->'expenses') <> 'array'
-       OR jsonb_typeof(p_payload->'notices') <> 'array'
-       OR jsonb_typeof(p_payload->'audit_logs') <> 'array' THEN
+       OR jsonb_typeof(p_payload) IS DISTINCT FROM 'object'
+       OR jsonb_typeof(p_payload->'building') IS DISTINCT FROM 'object'
+       OR jsonb_typeof(p_payload->'residents') IS DISTINCT FROM 'array'
+       OR jsonb_typeof(p_payload->'income') IS DISTINCT FROM 'array'
+       OR jsonb_typeof(p_payload->'expenses') IS DISTINCT FROM 'array'
+       OR jsonb_typeof(p_payload->'notices') IS DISTINCT FROM 'array'
+       OR jsonb_typeof(p_payload->'audit_logs') IS DISTINCT FROM 'array' THEN
         RAISE EXCEPTION 'invalid_snapshot_payload' USING ERRCODE = '22023';
     END IF;
 
@@ -191,6 +191,23 @@ BEGIN
     RETURN jsonb_build_object('ok', true, 'duplicate', false, 'version', v_next_version);
 END;
 $$;
+
+REVOKE ALL ON FUNCTION private.persist_building_snapshot(uuid, bigint, uuid, jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION private.persist_building_snapshot(uuid, bigint, uuid, jsonb) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.persist_building_snapshot(
+    p_building_id uuid,
+    p_expected_version bigint,
+    p_request_id uuid,
+    p_payload jsonb
+)
+RETURNS jsonb
+LANGUAGE sql
+SECURITY INVOKER
+SET search_path = pg_catalog, public, private, auth
+AS $
+    SELECT private.persist_building_snapshot(p_building_id, p_expected_version, p_request_id, p_payload);
+$;
 
 REVOKE ALL ON FUNCTION public.persist_building_snapshot(uuid, bigint, uuid, jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.persist_building_snapshot(uuid, bigint, uuid, jsonb) TO authenticated;
