@@ -68,6 +68,21 @@ jobs:
               --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 "$@"
           }
 
+          # Mark abandoned manual backup requests after 30 minutes.
+          psql_db -c "UPDATE public.backup_requests SET status='failed',finished_at=now(),result_message='انتهت مهلة تنفيذ النسخ الاحتياطي' WHERE status='dispatched' AND dispatched_at < now() - interval '30 minutes'"
+
+          # Dispatch one manual backup request. The backup workflow shares this concurrency group
+          # and starts after this worker exits.
+          backup_request_id="$(psql_db -At -c "SELECT id::text FROM public.backup_requests WHERE status='queued' ORDER BY created_at LIMIT 1")"
+          if [ -n "$backup_request_id" ]; then
+            [[ "$backup_request_id" =~ ^[0-9a-f-]{36}$ ]]
+            if gh workflow run supabase-backup.yml --repo manzilsystem/Manzil --ref main -f request_id="$backup_request_id"; then
+              psql_db -c "UPDATE public.backup_requests SET status='dispatched',dispatched_at=now(),result_message='تم إرسال مهمة النسخ إلى GitHub Actions' WHERE id='$backup_request_id' AND status='queued'"
+            else
+              psql_db -c "UPDATE public.backup_requests SET status='failed',finished_at=now(),result_message='تعذر بدء مهمة النسخ الاحتياطي' WHERE id='$backup_request_id' AND status='queued'"
+            fi
+          fi
+
           request="$(psql_db -At -F '|' -c "SELECT id::text || '|' || backup_tag FROM public.restore_requests WHERE status='queued' ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED")"
           if [ -z "$request" ]; then
             echo "No pending restore request."
