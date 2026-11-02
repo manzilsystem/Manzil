@@ -35,6 +35,8 @@ jobs:
           const url = new URL(process.env.SUPABASE_DB_URL);
 
           if (!url.password) throw new Error('SUPABASE_DB_URL has no database password');
+          const passwordToken = url.password.replace(/%(?![0-9a-fA-F]{2})/g, '%25');
+          url.password = decodeURIComponent(passwordToken);
           url.hostname = 'aws-eu-north-1.pooler.supabase.com';
           url.username = `postgres.${projectRef}`;
           url.port = '5432';
