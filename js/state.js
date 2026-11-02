@@ -159,9 +159,11 @@ async function setTheme(theme) {
     document.body.setAttribute('data-theme', theme);
     const themeColors = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16' };
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[theme]);
+    updateThemeSelection();
     if (!await saveWithRollback(previousState)) {
         document.body.setAttribute('data-theme', state.currentTheme);
         document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[state.currentTheme] || themeColors.dark);
+        updateThemeSelection();
     }
 }
     updateThemeSelection();
