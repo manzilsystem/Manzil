@@ -167,6 +167,9 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
     border-color: color-mix(in srgb, var(--accent-color) 40%, var(--border-color));
     background: color-mix(in srgb, var(--accent-color) 9%, var(--bg-input));
 }
+.auth-owner-help summary::-webkit-details-marker { display: none; }
+.auth-owner-help summary { user-select: none; }
+#managerRecoveryBtn:disabled { opacity: .65; cursor: wait; }
 
 @keyframes toastIn {
     from { opacity: 0; transform: translate(-50%, -20px); }

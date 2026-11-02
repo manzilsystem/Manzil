@@ -46,27 +46,32 @@ function setLoginMode(mode) {
     const title = document.getElementById('pinLockTitle');
     const hint = document.getElementById('pinLockHint');
     const ownerHelp = document.getElementById('ownerLoginHelp');
+    const managerRecovery = document.getElementById('managerRecoveryBtn');
 
     if (identifierLabel) identifierLabel.textContent = isOwner ? 'رقم الجوال المسجل للشقة' : 'البريد الإلكتروني للمدير';
-    if (passwordLabel) passwordLabel.textContent = isOwner ? 'PIN المالك — 6 أرقام أو 8 للمؤقت' : 'كلمة مرور المدير';
+    if (passwordLabel) passwordLabel.textContent = isOwner ? 'PIN المالك' : 'كلمة مرور المدير';
     if (identifier) {
         identifier.placeholder = isOwner ? 'مثال: 01012345678' : 'name@example.com';
         identifier.setAttribute?.('aria-label', isOwner ? 'رقم الجوال المسجل للشقة' : 'البريد الإلكتروني للمدير');
         identifier.setAttribute?.('inputmode', isOwner ? 'tel' : 'email');
+        identifier.setAttribute?.('autocomplete', isOwner ? 'tel' : 'username');
+        identifier.setAttribute?.('type', isOwner ? 'tel' : 'email');
     }
     if (password) {
-        password.placeholder = isOwner ? 'أدخل PIN من 6 أرقام أو 8 إذا كان مؤقتًا' : 'أدخل كلمة مرور المدير';
-        password.setAttribute?.('aria-label', isOwner ? 'PIN المالك من 6 أرقام أو 8 إذا كان مؤقتًا' : 'كلمة مرور المدير');
+        password.placeholder = isOwner ? '6 أرقام دائم أو 8 أرقام مؤقت' : 'أدخل كلمة مرور المدير';
+        password.setAttribute?.('aria-label', isOwner ? 'PIN المالك — 6 أرقام دائم أو 8 أرقام مؤقت' : 'كلمة مرور المدير');
         if (isOwner) password.setAttribute?.('inputmode', 'numeric');
         else password.removeAttribute?.('inputmode');
         if (isOwner) password.setAttribute?.('maxlength', '8');
         else password.removeAttribute?.('maxlength');
+        password.setAttribute?.('autocomplete', 'current-password');
     }
     if (title) title.textContent = isOwner ? 'دخول مالك الشقة' : 'دخول مدير المبنى';
     if (hint) hint.textContent = isOwner
-        ? 'أدخل رقم الجوال المسجل لدى المدير والـ PIN الذي استلمته. أول دخول يتطلب تغييره.'
+        ? 'استخدم الرمز المؤقت من 8 أرقام لأول دخول، ثم اختر PIN دائمًا من 6 أرقام.'
         : 'استخدم البريد الإلكتروني وكلمة مرور الحساب الإداري.';
     if (ownerHelp) ownerHelp.classList.toggle('hidden', !isOwner);
+    if (managerRecovery) managerRecovery.classList.toggle('hidden', isOwner);
 
     for (const [id, selected] of [['loginModeManager', !isOwner], ['loginModeOwner', isOwner]]) {
         const button = document.getElementById(id);
@@ -87,6 +92,27 @@ function setLoginMode(mode) {
         }
     }
     return authLoginMode;
+}
+
+async function requestManagerPasswordReset() {
+    const identifier = document.getElementById('authIdentifier');
+    const email = identifier?.value.trim() || '';
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+        showSupabaseError('اكتب بريد المدير أولًا ثم اختر «نسيت كلمة مرور المدير؟».');
+        identifier?.focus();
+        return;
+    }
+    const button = document.getElementById('managerRecoveryBtn');
+    if (button) { button.disabled = true; button.textContent = 'جاري إرسال رابط الاستعادة...'; }
+    try {
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+        if (error) throw error;
+        setAuthModal(true, 'تم إرسال رابط استعادة كلمة المرور إلى بريد المدير. افحص البريد الوارد والرسائل غير المرغوبة.');
+    } catch {
+        showSupabaseError('تعذر إرسال رابط الاستعادة. تحقق من البريد والاتصال ثم حاول مجددًا.');
+    } finally {
+        if (button) { button.disabled = false; button.textContent = 'نسيت كلمة مرور المدير؟ أرسل رابط استعادة إلى البريد'; }
+    }
 }
 
 function normalizeOwnerPhone(input) {

@@ -24,11 +24,11 @@ function makeClassList(initial = []) {
 function makeHarness() {
     const ids = [
         'authIdentifierLabel', 'authPasswordLabel', 'authIdentifier', 'authPassword',
-        'pinLockTitle', 'pinLockHint', 'ownerLoginHelp', 'loginModeManager', 'loginModeOwner', 'pinErrorMsg',
+        'pinLockTitle', 'pinLockHint', 'ownerLoginHelp', 'managerRecoveryBtn', 'loginModeManager', 'loginModeOwner', 'pinErrorMsg',
     ];
     const elements = new Map(ids.map(id => [id, {
         value: '', textContent: '', placeholder: '', className: '', attributes: {},
-        classList: makeClassList(id === 'ownerLoginHelp' ? ['hidden'] : []),
+        classList: makeClassList(['hidden']),
         setAttribute(name, value) { this.attributes[name] = String(value); },
         removeAttribute(name) { delete this.attributes[name]; },
     }]));
@@ -49,10 +49,13 @@ test('owner mode shows the registered phone and six/eight-digit PIN field and ow
     assert.equal(elements.get('pinLockTitle').textContent, 'دخول مالك الشقة');
     assert.equal(elements.get('authIdentifierLabel').textContent, 'رقم الجوال المسجل للشقة');
     assert.equal(elements.get('authIdentifier').attributes.inputmode, 'tel');
-    assert.equal(elements.get('authPasswordLabel').textContent, 'PIN المالك — 6 أرقام أو 8 للمؤقت');
+    assert.equal(elements.get('authPasswordLabel').textContent, 'PIN المالك');
     assert.equal(elements.get('authPassword').attributes.inputmode, 'numeric');
     assert.equal(elements.get('authPassword').attributes.maxlength, '8');
     assert.equal(elements.get('ownerLoginHelp').classList.contains('hidden'), false);
+    assert.equal(elements.get('managerRecoveryBtn').classList.contains('hidden'), true);
+    assert.equal(elements.get('authIdentifier').attributes.autocomplete, 'tel');
+    assert.equal(elements.get('authIdentifier').attributes.type, 'tel');
     assert.equal(elements.get('loginModeOwner').attributes['aria-pressed'], 'true');
     assert.equal(elements.get('loginModeManager').attributes['aria-pressed'], 'false');
     assert.equal(elements.get('authIdentifier').value, '');
@@ -73,6 +76,9 @@ test('manager mode restores email and password fields and hides owner help', () 
     assert.equal(elements.get('authPassword').attributes.inputmode, undefined);
     assert.equal(elements.get('authPassword').attributes.maxlength, undefined);
     assert.equal(elements.get('ownerLoginHelp').classList.contains('hidden'), true);
+    assert.equal(elements.get('managerRecoveryBtn').classList.contains('hidden'), false);
+    assert.equal(elements.get('authIdentifier').attributes.autocomplete, 'username');
+    assert.equal(elements.get('authIdentifier').attributes.type, 'email');
     assert.equal(elements.get('loginModeManager').attributes['aria-pressed'], 'true');
     assert.equal(elements.get('loginModeOwner').attributes['aria-pressed'], 'false');
     assert.equal(elements.get('authIdentifier').value, '');
