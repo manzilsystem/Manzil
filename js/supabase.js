@@ -496,9 +496,10 @@ async function openAuthenticatedApp() {
     }
     setAuthModal(false);
     document.body.classList.remove('owner-mode');
-    const theme = ['dark', 'light', 'emerald'].includes(state.currentTheme) ? state.currentTheme : 'dark';
+    const theme = ['dark', 'light', 'emerald', 'ocean', 'sand'].includes(state.currentTheme) ? state.currentTheme : 'dark';
+    const themeColors = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16' };
     document.body.setAttribute('data-theme', theme);
-    document.querySelector('meta[name="theme-color"]').setAttribute('content', theme === 'light' ? '#f1f5f9' : theme === 'emerald' ? '#021a13' : '#090d16');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[theme]);
     renderAll();
     if (currentUserRole === 'owner') {
         document.body.classList.add('owner-mode');
