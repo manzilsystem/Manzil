@@ -91,6 +91,7 @@ async function provisionOwnerAccess(residentId) {
         resident_not_found: 'تعذر العثور على الشقة في هذا المبنى. أعد تحميل الصفحة وحاول مرة أخرى.',
         server_configuration_error: 'إعدادات وظيفة Supabase غير مكتملة. راجع إعدادات الخادم.',
         profile_lookup_failed: 'تعذر التحقق من حساب المالك الحالي. حاول لاحقًا أو راجع المدير.',
+        profile_link_lookup_failed: 'تعذر التحقق من ارتباط الحساب الحالي. لم يتم تغيير الحساب؛ حاول لاحقًا.',
         profile_save_failed: 'تعذر حفظ ملف حساب المالك في Supabase. لم يُعرض أي كود.',
         membership_save_failed: 'تعذر ربط حساب المالك بالمبنى. لم يُعرض أي كود.',
         resident_link_failed: 'تعذر ربط الحساب بالشقة. لم يُعرض أي كود.',
