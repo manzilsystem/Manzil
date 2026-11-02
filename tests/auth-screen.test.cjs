@@ -25,7 +25,7 @@ test('sign-in screen separates manager and owner credentials and instructions', 
     assert.match(html, /id="authPasswordLabel"[^>]*>كلمة مرور المدير/);
     assert.match(html, /id="ownerLoginHelp" class="auth-owner-help hidden/);
     assert.match(supabase, /function setLoginMode\(mode\)/);
-    assert.match(supabase, /PIN المالك يجب أن يتكون من 6 أرقام/);
+    assert.match(supabase, /PIN المالك يجب أن يتكون من 6 أرقام أو 8 أرقام للرمز المؤقت/);
 });
 
 test('company ownership and contact details appear on sign-in and in the app', () => {

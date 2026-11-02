@@ -49,9 +49,12 @@ test('owner data stays behind the PIN gate in RLS and the client does not preloa
 
 test('first PIN change requires the current PIN and goes through the protected server function', () => {
     assert.match(html, /id="currentOwnerPin"/);
+    assert.match(html, /id="currentOwnerPin"[^>]*maxlength="8"/);
     assert.match(client, /functions\.invoke\(['"]complete-owner-pin-change['"]/);
     assert.match(client, /current_pin:\s*currentPin/);
     assert.match(edgeFunction, /profile\.must_change_pin !== true/);
+    assert.match(edgeFunction, /normalizePin\(payload\.current_pin, true\)/);
+    assert.match(edgeFunction, /normalizePin\(payload\.new_pin\)/);
     assert.match(edgeFunction, /\.eq\(['"]role['"],\s*['"]owner['"]\)/);
     assert.match(edgeFunction, /currentPin === newPin/);
     assert.match(edgeFunction, /signInWithPassword\(/);

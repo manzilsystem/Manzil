@@ -41,7 +41,7 @@ function authEmailForPhone(phone: string): string {
 function generateTemporaryPin(): string {
   const random = new Uint32Array(1)
   crypto.getRandomValues(random)
-  return String(100000 + (random[0] % 900000))
+  return String(10000000 + (random[0] % 90000000))
 }
 
 function isUuid(value: string): boolean {

@@ -138,8 +138,8 @@ function sendOwnerTempPinOnWhatsApp() {
         toast('رقم المالك المسجل غير صالح؛ انسخ الرمز وأرسله يدويًا.', 'error');
         return;
     }
-    if (!/^\d{6}$/.test(pin)) {
-        toast('لا يوجد PIN مؤقت صالح لإرساله.', 'error');
+    if (!/^\d{8}$/.test(pin)) {
+        toast('لا يوجد PIN مؤقت صالح من 8 أرقام لإرساله.', 'error');
         return;
     }
     const apartmentLabel = apartmentNumber ? ` للشقة ${apartmentNumber}` : '';

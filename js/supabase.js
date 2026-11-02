@@ -48,18 +48,18 @@ function setLoginMode(mode) {
     const ownerHelp = document.getElementById('ownerLoginHelp');
 
     if (identifierLabel) identifierLabel.textContent = isOwner ? 'رقم الجوال المسجل للشقة' : 'البريد الإلكتروني للمدير';
-    if (passwordLabel) passwordLabel.textContent = isOwner ? 'PIN المالك — 6 أرقام' : 'كلمة مرور المدير';
+    if (passwordLabel) passwordLabel.textContent = isOwner ? 'PIN المالك — 6 أرقام أو 8 للمؤقت' : 'كلمة مرور المدير';
     if (identifier) {
         identifier.placeholder = isOwner ? 'مثال: 01012345678' : 'name@example.com';
         identifier.setAttribute?.('aria-label', isOwner ? 'رقم الجوال المسجل للشقة' : 'البريد الإلكتروني للمدير');
         identifier.setAttribute?.('inputmode', isOwner ? 'tel' : 'email');
     }
     if (password) {
-        password.placeholder = isOwner ? 'أدخل PIN المكوّن من 6 أرقام' : 'أدخل كلمة مرور المدير';
-        password.setAttribute?.('aria-label', isOwner ? 'PIN المالك المكوّن من 6 أرقام' : 'كلمة مرور المدير');
+        password.placeholder = isOwner ? 'أدخل PIN من 6 أرقام أو 8 إذا كان مؤقتًا' : 'أدخل كلمة مرور المدير';
+        password.setAttribute?.('aria-label', isOwner ? 'PIN المالك من 6 أرقام أو 8 إذا كان مؤقتًا' : 'كلمة مرور المدير');
         if (isOwner) password.setAttribute?.('inputmode', 'numeric');
         else password.removeAttribute?.('inputmode');
-        if (isOwner) password.setAttribute?.('maxlength', '6');
+        if (isOwner) password.setAttribute?.('maxlength', '8');
         else password.removeAttribute?.('maxlength');
     }
     if (title) title.textContent = isOwner ? 'دخول مالك الشقة' : 'دخول مدير المبنى';
@@ -341,8 +341,8 @@ async function submitSupabaseLogin(event) {
             showSupabaseError('اكتب رقم جوال مصري صحيحًا أو بريد المدير.');
             return;
         }
-        if (authLoginMode === 'owner' && !/^\d{6}$/.test(password)) {
-            showSupabaseError('PIN المالك يجب أن يتكون من 6 أرقام.');
+        if (authLoginMode === 'owner' && !/^(?:\d{6}|\d{8})$/.test(password)) {
+            showSupabaseError('PIN المالك يجب أن يتكون من 6 أرقام أو 8 أرقام للرمز المؤقت.');
             return;
         }
         const credentials = isManagerEmail ? { email: identifier, password } : { email: ownerAuthEmail(phone), password };
@@ -403,7 +403,7 @@ async function submitFirstOwnerPinChange(event) {
     const currentPin = normalizePinDigits(document.getElementById('currentOwnerPin').value);
     const pin = normalizePinDigits(document.getElementById('newOwnerPin').value);
     const confirmPin = normalizePinDigits(document.getElementById('confirmOwnerPin').value);
-    if (!/^\d{6}$/.test(currentPin)) return showFirstOwnerPinChange('أدخل PIN الحالي المكوّن من 6 أرقام.');
+    if (!/^(?:\d{6}|\d{8})$/.test(currentPin)) return showFirstOwnerPinChange('أدخل PIN الحالي من 6 أرقام أو 8 أرقام إذا كان مؤقتًا.');
     if (!/^\d{6}$/.test(pin)) return showFirstOwnerPinChange('PIN يجب أن يتكون من 6 أرقام.');
     if (pin !== confirmPin) return showFirstOwnerPinChange('الرمزان غير متطابقين.');
     if (pin === currentPin) return showFirstOwnerPinChange('اختر PIN جديدًا يختلف عن الرمز الحالي.');

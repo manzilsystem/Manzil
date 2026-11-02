@@ -40,7 +40,7 @@ function makeHarness() {
     return { app, elements };
 }
 
-test('owner mode shows the registered phone and six-digit PIN fields and owner-only help', () => {
+test('owner mode shows the registered phone and six/eight-digit PIN field and owner-only help', () => {
     const { app, elements } = makeHarness();
     elements.get('authIdentifier').value = 'manager@example.com';
     elements.get('authPassword').value = 'manager-password';
@@ -49,9 +49,9 @@ test('owner mode shows the registered phone and six-digit PIN fields and owner-o
     assert.equal(elements.get('pinLockTitle').textContent, 'دخول مالك الشقة');
     assert.equal(elements.get('authIdentifierLabel').textContent, 'رقم الجوال المسجل للشقة');
     assert.equal(elements.get('authIdentifier').attributes.inputmode, 'tel');
-    assert.equal(elements.get('authPasswordLabel').textContent, 'PIN المالك — 6 أرقام');
+    assert.equal(elements.get('authPasswordLabel').textContent, 'PIN المالك — 6 أرقام أو 8 للمؤقت');
     assert.equal(elements.get('authPassword').attributes.inputmode, 'numeric');
-    assert.equal(elements.get('authPassword').attributes.maxlength, '6');
+    assert.equal(elements.get('authPassword').attributes.maxlength, '8');
     assert.equal(elements.get('ownerLoginHelp').classList.contains('hidden'), false);
     assert.equal(elements.get('loginModeOwner').attributes['aria-pressed'], 'true');
     assert.equal(elements.get('loginModeManager').attributes['aria-pressed'], 'false');

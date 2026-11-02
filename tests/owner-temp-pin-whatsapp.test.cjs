@@ -37,7 +37,7 @@ test('temporary PIN modal offers WhatsApp to the registered owner number and req
 test('WhatsApp opens to the registered number with the temporary PIN and apartment number', () => {
     const { opened, toasts } = runSend({
         phone: '+201068004792',
-        pin: '256379',
+        pin: '25637901',
         apartmentNumber: '12',
     });
 
@@ -50,13 +50,20 @@ test('WhatsApp opens to the registered number with the temporary PIN and apartme
     const message = url.searchParams.get('text');
     assert.match(message, /رمز الدخول المؤقت/);
     assert.match(message, /للشقة 12/);
-    assert.match(message, /256379/);
+    assert.match(message, /25637901/);
     assert.match(message, /تغييره عند أول دخول/);
     assert.equal(toasts[0].type, 'success');
 });
 
 test('invalid phone or PIN does not open a WhatsApp message', () => {
     const { opened, toasts } = runSend({ phone: '010123', pin: '123', apartmentNumber: '12' });
+
+    assert.equal(opened.length, 0);
+    assert.equal(toasts[0].type, 'error');
+});
+
+test('a six-digit PIN is not treated as a newly issued temporary PIN', () => {
+    const { opened, toasts } = runSend({ phone: '+201068004792', pin: '256379', apartmentNumber: '12' });
 
     assert.equal(opened.length, 0);
     assert.equal(toasts[0].type, 'error');
