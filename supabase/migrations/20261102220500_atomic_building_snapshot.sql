@@ -23,7 +23,7 @@ CREATE OR REPLACE FUNCTION private.persist_building_snapshot(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, private, auth
+SET search_path = pg_catalog, public
 AS $$
 DECLARE
     v_actor uuid := auth.uid();
@@ -207,7 +207,7 @@ CREATE OR REPLACE FUNCTION public.persist_building_snapshot(
 RETURNS jsonb
 LANGUAGE sql
 SECURITY INVOKER
-SET search_path = pg_catalog, public, private, auth
+SET search_path = pg_catalog, public
 AS $
     SELECT private.persist_building_snapshot(p_building_id, p_expected_version, p_request_id, p_payload);
 $;
