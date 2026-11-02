@@ -22,9 +22,9 @@ test('snapshot writes are atomic and guarded by a per-building optimistic versio
     assert.match(migration, /SET search_path = pg_catalog, public/);
     assert.match(migration, /income_resident_not_in_snapshot/);
     assert.match(migration, /cannot_delete_resident_with_income_history/);
-    assert.match(migration, /INSERT INTO public\\.residents AS current_resident/);
-    assert.match(migration, /INSERT INTO public\\.income AS current_income/);
-    assert.match(migration, /INSERT INTO public\\.expenses AS current_expense/);
+    assert.ok(migration.includes('INSERT INTO public.residents AS current_resident'));
+    assert.ok(migration.includes('INSERT INTO public.income AS current_income'));
+    assert.ok(migration.includes('INSERT INTO public.expenses AS current_expense'));
     assert.ok(migration.indexOf('DELETE FROM public.residents r') < migration.indexOf('DELETE FROM public.building_members bm'));
     assert.doesNotMatch(migration, /CREATE OR REPLACE FUNCTION public\.persist_building_snapshot[\s\S]*?SECURITY DEFINER/);
 });
