@@ -24,6 +24,12 @@ test('notification RLS helpers are executable by authenticated users but not ano
     }
 });
 
+test('owner notification access stays blocked until first PIN change is complete', () => {
+    assert.match(migration, /create or replace function public\.can_read_notification/i);
+    assert.match(migration, /p_target_user_id = auth\.uid\(\)[\s\S]*private\.owner_pin_change_complete\(\)/i);
+    assert.match(migration, /private\.owner_pin_change_complete\(\)[\s\S]*r\.id = p_target_resident_id[\s\S]*r\.user_id = auth\.uid\(\)/i);
+});
+
 test('authenticated browser sessions do not receive non-RLS table privileges or profile write access', () => {
     assert.match(migration, /revoke truncate, references, trigger on all tables in schema public from authenticated/i);
     assert.match(
