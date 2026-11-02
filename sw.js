@@ -1,10 +1,11 @@
-const CACHE_NAME = 'manzil-v6';
+const CACHE_NAME = 'manzil-v7';
 const APP_CACHE_PREFIX = 'manzil-';
 const APP_SHELL = [
     './',
     './index.html',
     './css/style.css',
     './js/state.js',
+    './js/supabase.js',
     './js/access.js',
     './js/render.js',
     './js/crud.js',
@@ -36,6 +37,10 @@ self.addEventListener('fetch', event => {
     if (request.method !== 'GET') return;
 
     const url = new URL(request.url);
+    if (url.origin === self.location.origin && url.pathname.endsWith('/js/supabase-config.js')) {
+        event.respondWith(fetch(request, { cache: 'no-store' }));
+        return;
+    }
     if (url.origin !== self.location.origin) {
         event.respondWith(fetch(request).catch(() => caches.match(request)));
         return;

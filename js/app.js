@@ -62,18 +62,28 @@ function handleModalKeyboard(event) {
 }
 
 function initApp() {
+    clearLegacyGitHubSecrets();
+    document.addEventListener('keydown', handleModalKeyboard);
+    if (isSupabaseConfigured()) {
+        initializeSupabaseApplication();
+        if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+            navigator.serviceWorker.register('./sw.js').catch(error => console.warn('تعذر تسجيل عامل الخدمة:', error));
+        }
+        return;
+    }
+
+    document.getElementById('authGate')?.classList.add('hidden');
+    document.getElementById('legacyPrivacyWarning')?.classList.remove('hidden');
+    document.body.classList.remove('session-locked');
     loadState();
     setTheme(state.currentTheme || 'dark');
     renderAll();
     checkPinLockOnStart();
     updateAccessSwitchButton();
     const ss = document.getElementById('syncStatus');
-    const syncConfigured = Boolean(githubConfig.token && githubConfig.gistId);
-    if (ss) ss.textContent = syncConfigured ? 'جاهز للمزامنة' : 'محفوظ على هذا الجهاز';
-    if (githubConfig.token && githubConfig.gistId) syncWithGitHubGist(true);
-    window.addEventListener('online', () => { const s = document.getElementById('syncStatus'); if (s) s.textContent = githubConfig.token && githubConfig.gistId ? 'متصل — المزامنة متاحة' : 'متصل — البيانات محلية'; });
-    window.addEventListener('offline', () => { const s = document.getElementById('syncStatus'); if (s) s.textContent = 'غير متصل — البيانات محفوظة محلياً'; });
-    document.addEventListener('keydown', handleModalKeyboard);
+    if (ss) ss.textContent = 'وضع محلي قديم — الخصوصية غير مضمونة';
+    window.addEventListener('online', () => { if (ss && !isSupabaseRuntimeActive()) ss.textContent = 'وضع محلي قديم — الخصوصية غير مضمونة'; });
+    window.addEventListener('offline', () => { if (ss) ss.textContent = 'غير متصل'; });
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
         navigator.serviceWorker.register('./sw.js').catch(error => console.warn('تعذر تسجيل عامل الخدمة:', error));
     }

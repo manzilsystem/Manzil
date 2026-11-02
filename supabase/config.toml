@@ -1,0 +1,2 @@
+[functions.provision-owner]
+verify_jwt = true

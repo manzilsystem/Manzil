@@ -27,7 +27,7 @@ let state = {
     pinCode:'0000', pinEnabled:false, currentTheme:'dark',
     residents:[], income:[], expenses:[], notices:[], auditLogs:[], lastUpdated:0
 };
-let githubConfig = { token: localStorage.getItem('manzil_gh_token')||'', gistId: localStorage.getItem('manzil_gh_gist')||'' };
+let githubConfig = { token: '', gistId: '' };
 let editingResidentId = null;
 let syncing = false;
 let storageWarningShown = false;
@@ -37,6 +37,20 @@ var currentResidentId = null;
 function saveState() {
     if (currentUserRole === 'owner') { toast('حساب المالك للعرض فقط','error'); return false; }
     state.lastUpdated = Date.now();
+    if (typeof isSupabaseRuntimeActive === 'function' && isSupabaseRuntimeActive()) {
+        if (currentUserRole !== 'manager') { toast('يجب تسجيل الدخول بصلاحيات المدير للحفظ','error'); return false; }
+        supabasePendingWrite = supabasePendingWrite.catch(() => {}).then(() => persistStateToSupabase());
+        supabasePendingWrite.then(() => {
+            const status = document.getElementById('syncStatus');
+            if (status && currentUserRole === 'manager') status.textContent = 'تم الحفظ في قاعدة البيانات';
+        }).catch(error => {
+            console.error('تعذر حفظ البيانات في Supabase:', error);
+            const status = document.getElementById('syncStatus');
+            if (status) status.textContent = 'فشل الحفظ — أعد المحاولة';
+            toast('تعذر حفظ التغيير في قاعدة البيانات. أعد المحاولة قبل إغلاق الصفحة.','error');
+        });
+        return true;
+    }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); return true; }
     catch(e) {
         console.error('تعذر حفظ بيانات Manzil محلياً:', e);
@@ -46,6 +60,7 @@ function saveState() {
 }
 
 function loadState() {
+    if (typeof isSupabaseConfigured === 'function' && isSupabaseConfigured()) return;
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return;
