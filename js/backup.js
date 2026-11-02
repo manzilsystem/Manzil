@@ -82,6 +82,7 @@ function scheduleBackupConsoleRefresh(shouldRefresh) {
 }
 
 async function loadBackupConsole(options = {}) {
+    if (document.getElementById('backupModal')?.classList.contains('hidden')) return;
     if (!requireManager()) return;
     const last = document.getElementById('backupLastStatus');
     if (!last) return;
