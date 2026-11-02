@@ -18,12 +18,21 @@ Deno.serve(async (req: Request) => {
   let body: { action?: string; backup_tag?: string; confirmation?: string; request_id?: string }
   try { body = await req.json() } catch { return json(400, { error: 'invalid_json' }) }
   if (body.action === 'list') {
-    const [{ data: backups, error: be }, { data: requests, error: re }] = await Promise.all([
-      admin.from('backup_catalog').select('tag,file_name,size_bytes,sha256,created_at').order('created_at', { ascending: false }).limit(30),
-      admin.from('restore_requests').select('id,backup_tag,status,result_message,created_at,started_at,finished_at').eq('building_id', membership.building_id).order('created_at', { ascending: false }).limit(10),
+    const [{ data: backups, error: be }, { data: restoreRequests, error: re }, { data: backupRequests, error: bre }] = await Promise.all([
+      admin.from('backup_catalog').select('tag,file_name,size_bytes,created_at').order('created_at', { ascending: false }).limit(30),
+      admin.from('restore_requests').select('id,backup_tag,status,result_message,created_at,started_at,finished_at').eq('building_id', membership.building_id).order('created_at', { ascending: false }).limit(8),
+      admin.from('backup_requests').select('id,status,result_message,created_at,dispatched_at,finished_at').eq('building_id', membership.building_id).order('created_at', { ascending: false }).limit(5)
     ])
-    if (be || re) return json(500, { error: 'query_failed' })
-    return json(200, { backups: backups || [], requests: requests || [] })
+    if (be || re || bre) return json(500, { error: 'query_failed' })
+    return json(200, { backups: backups || [], restoreRequests: restoreRequests || [], backupRequests: backupRequests || [] })
+  }
+  if (body.action === 'request_backup') {
+    const { data: request, error } = await admin.from('backup_requests')
+      .insert({ building_id: membership.building_id, requested_by: auth.user.id })
+      .select('id,status,created_at').single()
+    if (error?.code === '23505') return json(409, { error: 'backup_already_pending' })
+    if (error) return json(500, { error: 'request_failed' })
+    return json(202, { request })
   }
   if (body.action === 'request_restore') {
     const tag = typeof body.backup_tag === 'string' ? body.backup_tag : ''
