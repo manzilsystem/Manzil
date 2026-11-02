@@ -80,7 +80,7 @@ jobs:
                 -e PGHOST="$candidate" -e BACKUP_FILENAME="$filename" \
                 -v "$RUNNER_TEMP:/backup" \
                 postgres:17-alpine \
-                sh -c 'pg_dump --host="$PGHOST" --port="$PGPORT" --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" --no-password --format=custom --compress=9 --no-owner --no-acl --exclude-table=public.backup_catalog --exclude-table=public.restore_requests --file="/backup/$BACKUP_FILENAME"'
+                sh -c 'pg_dump --host="$PGHOST" --port="$PGPORT" --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" --no-password --format=custom --compress=9 --no-owner --no-acl --exclude-table=public.backup_catalog --exclude-table=public.restore_requests --exclude-table=public.backup_requests --file="/backup/$BACKUP_FILENAME"'
               then
                 backup_ok=true
                 echo "PGHOST=$candidate" >> "$GITHUB_ENV"
