@@ -232,17 +232,6 @@ async function loadState() {
     return true;
 }
 
-async function deleteMissing(table, column, ids) {
-    const { data, error } = await supabaseClient.from(table).select('id').eq('building_id', activeBuildingId);
-    if (error) throw error;
-    const keep = new Set(ids);
-    const stale = (data || []).map(row => row.id).filter(id => !keep.has(id));
-    if (stale.length) {
-        const { error: deleteError } = await supabaseClient.from(table).delete().in('id', stale);
-        if (deleteError) throw deleteError;
-    }
-}
-
 async function saveState() {
     if (currentUserRole !== 'manager' || !activeSession || !activeBuildingId || !supabaseStateLoaded) {
         if (currentUserRole === 'owner') toast('حساب المالك للعرض فقط', 'error');
