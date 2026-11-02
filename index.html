@@ -446,27 +446,34 @@
 
     <!-- Backup Modal -->
     <div id="backupModal" role="dialog" aria-modal="true" aria-labelledby="backupModalTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
-        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn max-h-[90vh] overflow-y-auto">
             <div class="bg-emerald-700 text-white px-5 py-4 flex justify-between items-center">
-                <h3 id="backupModalTitle" class="font-bold text-sm"><i class="fa-solid fa-cloud-arrow-down ml-2"></i> النسخ الاحتياطي</h3>
-                <button onclick="closeModal('backupModal')" aria-label="إغلاق نافذة النسخ الاحتياطي" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <h3 id="backupModalTitle" class="font-bold text-sm"><i class="fa-solid fa-cloud-arrow-down ml-2"></i> النسخ الاحتياطي والاستعادة</h3>
+                <button onclick="closeModal('backupModal')" aria-label="إغلاق" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div class="p-5 space-y-4">
                 <section class="rounded-2xl border border-emerald-500/30 p-4 space-y-2">
-                    <div class="flex items-center justify-between gap-2"><span class="font-bold text-sm">نسخ قاعدة البيانات تلقائيًا</span><span class="text-xs text-emerald-400"><i class="fa-solid fa-circle-check ml-1"></i>مفعّل</span></div>
-                    <p class="text-xs text-slate-400 leading-6">جدولة يومية 04:23 صباحًا بتوقيت مصر. تُفحص سلامة الملف وSHA-256 قبل رفعه.</p>
-                    <a href="https://github.com/manzilsystem/manzil_backups/releases" target="_blank" rel="noopener noreferrer" class="block text-center bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl text-xs font-bold"><i class="fa-brands fa-github ml-2"></i> عرض النسخ المحفوظة</a>
-                    <a href="https://github.com/manzilsystem/Manzil/actions/workflows/supabase-backup.yml" target="_blank" rel="noopener noreferrer" class="block text-center app-card border py-2.5 rounded-xl text-xs font-bold">سجل عمليات النسخ</a>
+                    <div class="font-bold text-sm">النسخ التلقائي</div>
+                    <p class="text-xs text-slate-400 leading-6">نسخة يومية 04:23 صباحًا بتوقيت مصر، مع فحص SHA-256 وصلاحية أرشيف PostgreSQL، والاحتفاظ بآخر 30 نسخة.</p>
+                    <div id="backupLastStatus" class="text-xs text-slate-400">جارٍ تحميل سجل النسخ...</div>
                 </section>
                 <section class="space-y-2">
-                    <div class="font-bold text-sm">نسخة التطبيق (JSON)</div>
-                    <p class="text-xs text-slate-400">تصدير أو استعادة بيانات التطبيق يدويًا. الاستيراد يستبدل البيانات الحالية بعد التأكيد.</p>
-                    <button onclick="exportJSON()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl font-bold transition"><i class="fa-solid fa-download ml-2"></i> تصدير JSON الآن</button>
-                    <label for="backupImportInput" class="block w-full app-card border py-3 rounded-xl font-bold transition text-center cursor-pointer"><i class="fa-solid fa-upload ml-2"></i> استعادة من ملف JSON</label>
-                    <input id="backupImportInput" type="file" accept=".json,application/json" aria-label="اختيار ملف نسخة احتياطية للاستيراد" onchange="importJSON(event)" class="sr-only">
+                    <div class="font-bold text-sm">استعادة قاعدة البيانات</div>
+                    <p class="text-xs text-rose-300 leading-5">الاستعادة تستبدل بيانات قاعدة الإنتاج بالكامل بحالة النسخة المختارة. لا يمكن التراجع عنها من الواجهة.</p>
+                    <select id="backupRestoreSelect" class="w-full app-input border rounded-xl px-3 py-3 text-sm" aria-label="اختر النسخة المراد استعادتها">
+                        <option value="">جارٍ تحميل النسخ...</option>
+                    </select>
+                    <button id="backupRestoreButton" onclick="requestDatabaseRestore()" class="w-full bg-rose-700 hover:bg-rose-600 disabled:opacity-50 text-white py-3 rounded-xl font-bold" disabled>استعادة النسخة المختارة</button>
+                    <div id="backupRestoreStatus" role="status" aria-live="polite" class="text-xs text-slate-400"></div>
+                    <div id="backupRestoreHistory" class="space-y-2 text-xs"></div>
                 </section>
-                <p class="text-[11px] text-amber-300 leading-5">استعادة نسخة قاعدة البيانات بصيغة PostgreSQL (.dump) غير متاحة من الواجهة حاليًا؛ لا تستخدم استيراد JSON لهذا الغرض.</p>
-                <div id="backupStatus" class="text-xs text-slate-400 text-center pt-2"></div>
+                <section class="border-t border-slate-700/60 pt-3 space-y-2">
+                    <div class="font-bold text-sm">نسخة التطبيق المحلية (JSON)</div>
+                    <button onclick="exportJSON()" class="w-full app-card border py-2.5 rounded-xl text-xs font-bold"><i class="fa-solid fa-download ml-2"></i> تصدير JSON</button>
+                    <label for="backupImportInput" class="block w-full app-card border py-2.5 rounded-xl text-xs font-bold text-center cursor-pointer"><i class="fa-solid fa-upload ml-2"></i> استعادة ملف JSON</label>
+                    <input id="backupImportInput" type="file" accept=".json,application/json" aria-label="اختيار ملف JSON" onchange="importJSON(event)" class="sr-only">
+                </section>
+                <div id="backupStatus" class="text-xs text-slate-400 text-center"></div>
             </div>
         </div>
     </div>
@@ -576,6 +583,7 @@
     <script src="js/crud.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase.js"></script>
+    <script src="js/backup.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
