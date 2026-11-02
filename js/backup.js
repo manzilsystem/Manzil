@@ -1,6 +1,6 @@
 let backupConsoleRefreshTimer = null;
 let activeRestoreRequestId = null;
-const BACKUP_CACHE_KEY = 'manzil.backup-console.v1';
+function backupCacheKey() { return 'manzil.backup-console.v1.' + (activeBuildingId || 'none'); }
 
 function formatBackupBytes(bytes) {
     const value = Number(bytes) || 0;
@@ -45,7 +45,7 @@ function renderBackupConsole(data, cached = false) {
 
     const restorePending = restoreRequests.some(item => ['queued', 'running'].includes(item.status));
     const backupPending = backupRequests.some(item => ['queued', 'dispatched'].includes(item.status));
-    restoreButton.disabled = !backups.length || restorePending;
+    restoreButton.disabled = !backups.length || restorePending || backupPending;
     createButton.disabled = backupPending || restorePending;
 
     last.textContent = backups.length
@@ -78,7 +78,7 @@ function renderBackupConsole(data, cached = false) {
 
 function scheduleBackupConsoleRefresh(shouldRefresh) {
     if (backupConsoleRefreshTimer) clearTimeout(backupConsoleRefreshTimer);
-    if (shouldRefresh) backupConsoleRefreshTimer = setTimeout(() => loadBackupConsole({ silent: true }), 9000);
+    if (shouldRefresh) backupConsoleRefreshTimer = setTimeout(() => loadBackupConsole({ silent: true }), 30000);
 }
 
 async function loadBackupConsole(options = {}) {
@@ -89,7 +89,7 @@ async function loadBackupConsole(options = {}) {
 
     let hasCache = false;
     try {
-        const cached = JSON.parse(localStorage.getItem(BACKUP_CACHE_KEY) || 'null');
+        const cached = JSON.parse(localStorage.getItem(backupCacheKey()) || 'null');
         if (cached && Array.isArray(cached.backups)) {
             hasCache = true;
             renderBackupConsole(cached, true);
@@ -99,7 +99,7 @@ async function loadBackupConsole(options = {}) {
     if (!hasCache && !options.silent) last.textContent = 'جارٍ تحميل النسخ من الخادم لأول مرة...';
     try {
         const data = await callBackupConsole({ action: 'list' });
-        localStorage.setItem(BACKUP_CACHE_KEY, JSON.stringify(data));
+        localStorage.setItem(backupCacheKey(), JSON.stringify(data));
         renderBackupConsole(data, false);
     } catch (error) {
         if (!hasCache) last.textContent = 'تعذر تحميل النسخ. تحقق من الاتصال ثم أعد فتح النافذة.';
@@ -120,8 +120,8 @@ async function requestDatabaseBackup() {
         await loadBackupConsole();
     } catch (error) {
         button.disabled = false;
-        status.textContent = error.message === 'backup_already_pending'
-            ? 'يوجد طلب نسخ احتياطي قيد التنفيذ بالفعل.'
+        status.textContent = ['backup_already_pending', 'restore_already_pending'].includes(error.message)
+            ? 'يوجد طلب نسخ أو استعادة قيد التنفيذ بالفعل.'
             : 'تعذر تسجيل طلب النسخ الاحتياطي. حاول مرة أخرى.';
         console.error('Backup request error:', error);
     }
