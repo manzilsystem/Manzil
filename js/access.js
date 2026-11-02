@@ -76,9 +76,11 @@ function renderOwnerPortal() {
 function requestOwnerPinOnWhatsApp() {
     const supportNumber = '201027767039';
     const phone = document.getElementById('authIdentifier')?.value.trim() || '';
+    const apartmentNumber = document.getElementById('ownerApartmentRequestNumber')?.value.trim() || '';
     const message = [
         'مرحبًا، أنا مالك شقة وأحتاج الرقم السري للدخول إلى تطبيق المبنى. من فضلك راجع طلبي وأرسل لي طريقة الدخول.',
-        phone ? `رقم الجوال الذي أحاول الدخول به: ${phone}` : ''
+        phone ? `رقم الجوال الذي أحاول الدخول به: ${phone}` : '',
+        `رقم الشقة: ${apartmentNumber || '(اكتب رقم الشقة هنا)'}`
     ].filter(Boolean).join('\n');
     const url = `https://wa.me/${supportNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
