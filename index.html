@@ -408,45 +408,51 @@
                 <h3 id="settingsModalTitle" class="font-bold text-sm"><i class="fa-solid fa-gear ml-2"></i> الإعدادات</h3>
                 <button onclick="closeModal('settingsModal')" aria-label="إغلاق نافذة الإعدادات" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <div class="p-5 space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1">اسم العمارة</label>
-                    <input type="text" id="settingsBuildingName" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+            <div class="settings-layout">
+                <div class="settings-tabs" role="tablist" aria-label="أقسام الإعدادات">
+                    <button type="button" class="settings-tab active" id="settings-tab-building" role="tab" aria-selected="true" aria-controls="settings-panel-building" onclick="switchSettingsTab('building')"><i class="fa-solid fa-building"></i><span>العمارة</span></button>
+                    <button type="button" class="settings-tab" id="settings-tab-appearance" role="tab" aria-selected="false" aria-controls="settings-panel-appearance" onclick="switchSettingsTab('appearance')"><i class="fa-solid fa-palette"></i><span>المظهر</span></button>
+                    <button type="button" class="settings-tab" id="settings-tab-backup" role="tab" aria-selected="false" aria-controls="settings-panel-backup" onclick="switchSettingsTab('backup')"><i class="fa-solid fa-cloud-arrow-up"></i><span>النسخ</span></button>
+                    <button type="button" class="settings-tab" id="settings-tab-account" role="tab" aria-selected="false" aria-controls="settings-panel-account" onclick="switchSettingsTab('account')"><i class="fa-solid fa-user-shield"></i><span>الحساب</span></button>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div><label class="block text-xs font-bold text-slate-300 mb-1">اسم المدير</label>
-                        <input type="text" id="settingsManagerName" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></div>
-                    <div><label class="block text-xs font-bold text-slate-300 mb-1">هاتف المدير</label>
-                        <input type="tel" id="settingsManagerPhone" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></div>
+                <div class="settings-content">
+                    <section id="settings-panel-building" class="settings-panel space-y-4" role="tabpanel" aria-labelledby="settings-tab-building">
+                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-building"></i></span><div><h4>بيانات العمارة</h4><p>المعلومات الأساسية والاشتراكات الافتراضية</p></div></div>
+                        <label class="settings-field"><span>اسم العمارة</span><input type="text" id="settingsBuildingName" class="app-input border rounded-xl px-3 py-2.5"></label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label class="settings-field"><span>اسم المدير</span><input type="text" id="settingsManagerName" class="app-input border rounded-xl px-3 py-2.5"></label>
+                            <label class="settings-field"><span>هاتف المدير</span><input type="tel" id="settingsManagerPhone" inputmode="tel" class="app-input border rounded-xl px-3 py-2.5"></label>
+                            <label class="settings-field"><span>الاشتراك الشهري الافتراضي</span><input type="number" id="settingsDefaultSub" min="0" step="0.01" class="app-input border rounded-xl px-3 py-2.5"></label>
+                            <label class="settings-field"><span>الرصيد الافتتاحي</span><input type="number" id="settingsStartingBalance" step="0.01" class="app-input border rounded-xl px-3 py-2.5"></label>
+                        </div>
+                        <p class="settings-help">تغيير الاشتراك الافتراضي يؤثر على الشقق التي لا تملك قيمة اشتراك مخصصة.</p>
+                    </section>
+                    <section id="settings-panel-appearance" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-appearance">
+                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-palette"></i></span><div><h4>المظهر والثيمات</h4><p>اختر ألوانًا مريحة وواضحة لكل أجزاء التطبيق</p></div></div>
+                        <div class="theme-grid" role="group" aria-label="اختيار ثيم التطبيق">
+                            <button type="button" class="theme-option" data-theme-option="dark" onclick="setTheme('dark')"><span class="theme-preview theme-preview-dark"><i></i><i></i><i></i></span><span>ليلي</span><small>داكن هادئ</small></button>
+                            <button type="button" class="theme-option" data-theme-option="light" onclick="setTheme('light')"><span class="theme-preview theme-preview-light"><i></i><i></i><i></i></span><span>نهاري</span><small>فاتح ونظيف</small></button>
+                            <button type="button" class="theme-option" data-theme-option="emerald" onclick="setTheme('emerald')"><span class="theme-preview theme-preview-emerald"><i></i><i></i><i></i></span><span>زمردي</span><small>أخضر متوازن</small></button>
+                            <button type="button" class="theme-option" data-theme-option="ocean" onclick="setTheme('ocean')"><span class="theme-preview theme-preview-ocean"><i></i><i></i><i></i></span><span>محيطي</span><small>أزرق هادئ</small></button>
+                            <button type="button" class="theme-option" data-theme-option="sand" onclick="setTheme('sand')"><span class="theme-preview theme-preview-sand"><i></i><i></i><i></i></span><span>رملي</span><small>دافئ ومريح</small></button>
+                        </div>
+                        <div class="settings-inline-row"><span>الثيم الحالي</span><strong id="settingsCurrentTheme">ليلي</strong></div>
+                        <p class="settings-help">يتم حفظ اختيار الثيم مع إعدادات العمارة ويُطبّق على الواجهة فورًا.</p>
+                    </section>
+                    <section id="settings-panel-backup" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-backup">
+                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span><div><h4>النسخ الاحتياطي</h4><p>حماية بيانات العمارة وإدارة الاستعادة</p></div></div>
+                        <div class="settings-info-card"><div class="flex items-center gap-2 font-bold text-sm"><i class="fa-solid fa-clock text-emerald-400"></i> النسخ التلقائي</div><p>نسخة يومية الساعة 04:23 صباحًا بتوقيت مصر، مع فحص سلامة الأرشيف والاحتفاظ بآخر 30 نسخة.</p><span class="settings-status"><i class="fa-solid fa-circle-check"></i> الجدولة مفعّلة</span></div>
+                        <button type="button" onclick="closeModal('settingsModal'); openModal('backupModal')" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold"><i class="fa-solid fa-arrow-up-right-from-square ml-2"></i> فتح إدارة النسخ والاستعادة</button>
+                        <p class="settings-help">الاستعادة تستبدل بيانات قاعدة الإنتاج بالكامل ولا يمكن التراجع عنها إلا باستعادة نسخة أخرى.</p>
+                    </section>
+                    <section id="settings-panel-account" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-account">
+                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-user-shield"></i></span><div><h4>الحساب والصلاحيات</h4><p>معلومات الجلسة وأمان الوصول</p></div></div>
+                        <div class="settings-account-card"><div><span>الحساب</span><b id="settingsAccountEmail" dir="ltr">—</b></div><div><span>نوع الصلاحية</span><b id="settingsAccountRole">—</b></div></div>
+                        <button id="settingsPasswordResetBtn" type="button" onclick="sendSettingsPasswordReset()" class="w-full app-input border py-3 rounded-xl text-sm font-bold">إرسال رابط تغيير كلمة مرور المدير</button>
+                        <button type="button" onclick="lockCurrentSession()" class="w-full app-input border py-3 rounded-xl text-sm font-bold"><i class="fa-solid fa-lock ml-2"></i> قفل الجلسة وتبديل المستخدم</button>
+                    </section>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div><label class="block text-xs font-bold text-slate-300 mb-1">اشتراك شهري</label>
-                        <input type="number" id="settingsDefaultSub" min="0" step="0.01" aria-label="الاشتراك الشهري الافتراضي" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></div>
-                    <div><label class="block text-xs font-bold text-slate-300 mb-1">رصيد افتتاحي</label>
-                        <input type="number" id="settingsStartingBalance" step="0.01" aria-label="الرصيد الافتتاحي" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1">الثيم</label>
-                    <div class="flex gap-2">
-                        <button onclick="setTheme('dark')" class="flex-1 app-card border py-2 rounded-xl text-xs font-bold">داكن</button>
-                        <button onclick="setTheme('light')" class="flex-1 app-card border py-2 rounded-xl text-xs font-bold">فاتح</button>
-                        <button onclick="setTheme('emerald')" class="flex-1 app-card border py-2 rounded-xl text-xs font-bold">زمردي</button>
-                    </div>
-                </div>
-                <section class="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-2">
-                    <div class="flex items-center gap-2 font-bold text-sm"><i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i> النسخ الاحتياطي والاستعادة</div>
-                    <p class="text-xs text-slate-400 leading-6">النسخ التلقائي لقاعدة البيانات يعمل يوميًا الساعة 04:23 صباحًا بتوقيت مصر، وتُحفظ آخر 30 نسخة في مستودع GitHub خاص.</p>
-                    <div class="flex items-center gap-2 text-xs text-emerald-400"><i class="fa-solid fa-circle-check"></i> النسخ التلقائي مفعّل</div>
-                    <button type="button" onclick="closeModal('settingsModal'); openModal('backupModal')" class="w-full app-card border py-2.5 rounded-xl text-xs font-bold">إدارة النسخ والاستعادة</button>
-                </section>
-                <section class="rounded-2xl border border-slate-700/70 p-4 space-y-2">
-                    <div class="font-bold text-sm">الحساب والصلاحيات</div>
-                    <div class="flex justify-between gap-3 text-xs"><span class="text-slate-400">الحساب</span><b id="settingsAccountEmail" dir="ltr" class="text-left break-all">—</b></div>
-                    <div class="flex justify-between gap-3 text-xs"><span class="text-slate-400">نوع الصلاحية</span><b id="settingsAccountRole">—</b></div>
-                    <button id="settingsPasswordResetBtn" type="button" onclick="sendSettingsPasswordReset()" class="w-full app-input border py-2.5 rounded-xl text-xs font-bold">إرسال رابط تغيير كلمة مرور المدير</button>
-                    <button type="button" onclick="lockCurrentSession()" class="w-full app-input border py-2.5 rounded-xl text-xs font-bold">قفل الجلسة وتبديل المستخدم</button>
-                </section>
-                <button onclick="saveSettings()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">حفظ الإعدادات</button>
+                <div class="settings-footer"><button type="button" onclick="closeModal('settingsModal')" class="app-input border py-3 rounded-xl font-bold">إغلاق</button><button type="button" onclick="saveSettings()" class="bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl font-bold">حفظ الإعدادات</button></div>
             </div>
         </div>
     </div>
