@@ -120,7 +120,7 @@ BEGIN
         user_id = EXCLUDED.user_id, name = EXCLUDED.name,
         apartment_number = EXCLUDED.apartment_number, phone = EXCLUDED.phone,
         monthly_amount = EXCLUDED.monthly_amount, notes = EXCLUDED.notes
-    WHERE public.residents.building_id = p_building_id;
+    WHERE current_resident.building_id = p_building_id;
 
     INSERT INTO public.income
         (id, building_id, resident_id, amount, month, notes, paid_at, created_by)
@@ -132,7 +132,7 @@ BEGIN
     ON CONFLICT (id) DO UPDATE SET
         resident_id = EXCLUDED.resident_id, amount = EXCLUDED.amount,
         month = EXCLUDED.month, notes = EXCLUDED.notes, paid_at = EXCLUDED.paid_at
-    WHERE public.income.building_id = p_building_id;
+    WHERE current_income.building_id = p_building_id;
 
     INSERT INTO public.expenses
         (id, building_id, title, amount, category, month, notes, spent_at, created_by)
@@ -144,13 +144,13 @@ BEGIN
     ON CONFLICT (id) DO UPDATE SET
         title = EXCLUDED.title, amount = EXCLUDED.amount, category = EXCLUDED.category,
         month = EXCLUDED.month, notes = EXCLUDED.notes, spent_at = EXCLUDED.spent_at
-    WHERE public.expenses.building_id = p_building_id;
+    WHERE current_expense.building_id = p_building_id;
 
-    INSERT INTO public.notices (id, building_id, text, created_by, created_at)
+    INSERT INTO public.notices AS current_notice (id, building_id, text, created_by, created_at)
     SELECT x.id, p_building_id, x.text, v_actor, COALESCE(x.created_at, now())
     FROM jsonb_to_recordset(p_payload->'notices') AS x(id uuid, text text, created_at timestamptz)
     ON CONFLICT (id) DO UPDATE SET text = EXCLUDED.text
-    WHERE public.notices.building_id = p_building_id;
+    WHERE current_notice.building_id = p_building_id;
 
     INSERT INTO public.audit_logs (id, building_id, action, details, actor_id, created_at)
     SELECT x.id, p_building_id, x.action, x.details, v_actor, COALESCE(x.created_at, now())
