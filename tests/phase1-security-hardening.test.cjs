@@ -24,6 +24,14 @@ test('notification RLS helpers are executable by authenticated users but not ano
     }
 });
 
+test('authenticated browser sessions do not receive non-RLS table privileges or profile write access', () => {
+    assert.match(migration, /revoke truncate, references, trigger on all tables in schema public from authenticated/i);
+    assert.match(
+        migration,
+        /revoke insert, update, delete, truncate, references, trigger[\s\S]*on table public\.profiles from authenticated/i
+    );
+});
+
 test('income updates preserve the manager boundary and resident/building relationship', () => {
     assert.match(migration, /drop policy if exists income_manager_update on public\.income/i);
     assert.match(migration, /using \(private\.is_building_manager\(building_id\)\)/i);
