@@ -33,7 +33,7 @@ test('all five themes are selectable, persisted and restored after authenticatio
 });
 
 test('settings redesign is included in the service worker cache version', () => {
-    assert.match(sw, /CACHE_NAME = 'manzil-v26'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v27'/);
     assert.match(sw, /\.\/css\/style\.css/);
     assert.match(sw, /\.\/js\/state\.js/);
 });
