@@ -69,21 +69,45 @@ async function handleResidentSubmit(e) {
     if (shouldProvisionOwner && targetResidentId) await provisionOwnerAccess(targetResidentId);
 }
 
+async function getOwnerProvisioningErrorCode(error, data) {
+    if (typeof data?.error === 'string') return data.error;
+    const response = error?.context;
+    if (!response || typeof response.clone !== 'function') return '';
+    try {
+        const body = await response.clone().json();
+        return typeof body?.error === 'string' ? body.error : '';
+    } catch {
+        return '';
+    }
+}
+
 async function provisionOwnerAccess(residentId) {
     if (!requireManager()) return;
     const messages = {
         invalid_phone: 'رقم الجوال غير صحيح. استخدم رقمًا مصريًا مثل 01012345678.',
         phone_already_linked: 'رقم الجوال مربوط بحساب مالك آخر.',
         phone_account_create_failed: 'تعذر إنشاء حساب لهذا الرقم؛ ربما له حساب سابق. راجع المدير.',
-        manager_only: 'إنشاء حساب المالك متاح للمدير فقط.'
+        manager_only: 'إنشاء حساب المالك متاح للمدير فقط.',
+        resident_not_found: 'تعذر العثور على الشقة في هذا المبنى. أعد تحميل الصفحة وحاول مرة أخرى.',
+        server_configuration_error: 'إعدادات وظيفة Supabase غير مكتملة. راجع إعدادات الخادم.',
+        profile_lookup_failed: 'تعذر التحقق من حساب المالك الحالي. حاول لاحقًا أو راجع المدير.',
+        profile_save_failed: 'تعذر حفظ ملف حساب المالك في Supabase. لم يُعرض أي كود.',
+        membership_save_failed: 'تعذر ربط حساب المالك بالمبنى. لم يُعرض أي كود.',
+        resident_link_failed: 'تعذر ربط الحساب بالشقة. لم يُعرض أي كود.',
+        auth_update_failed: 'تعذر تحديث بيانات دخول المالك. راجع المدير قبل إعادة المحاولة.'
     };
     let data;
     try {
         const result = await supabaseClient.functions.invoke('manage-owner-access', { body: { resident_id: residentId } });
         data = result.data;
         if (result.error || !data?.temporary_pin) {
-            console.error('Owner provisioning failed:', result.error?.message || data?.error || 'unknown error');
-            toast(messages[data?.error] || 'تعذر إنشاء PIN. تحقق من اتصال Supabase ثم أعد المحاولة.', 'error');
+            const errorCode = await getOwnerProvisioningErrorCode(result.error, data);
+            const status = result.error?.context?.status;
+            console.error('Owner provisioning failed:', errorCode || result.error?.message || 'unknown error');
+            const fallback = status
+                ? `وصل الطلب إلى Supabase لكنه رُفض (HTTP ${status}). راجع الخطأ أو أعد المحاولة لاحقًا.`
+                : 'تعذر الاتصال بـ Supabase. تحقق من الإنترنت ثم أعد المحاولة.';
+            toast(messages[errorCode] || fallback, 'error');
             return;
         }
         await loadState();
