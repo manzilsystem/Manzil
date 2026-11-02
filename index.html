@@ -375,7 +375,7 @@
     <!-- Notice Modal -->
     <div id="noticeModal" role="dialog" aria-modal="true" aria-labelledby="noticeModalTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
         <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn max-h-[90vh] overflow-y-auto">
-            <div class="bg-indigo-700 text-white px-5 py-4 flex justify-between items-center">
+            <div class="settings-modal-header px-5 py-4 flex justify-between items-center">
                 <h3 id="noticeModalTitle" class="font-bold text-sm"><i class="fa-solid fa-bullhorn ml-2"></i> لوحة الإعلانات</h3>
                 <button onclick="closeModal('noticeModal')" aria-label="إغلاق نافذة الإعلانات" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
@@ -452,7 +452,7 @@
                         <button type="button" onclick="lockCurrentSession()" class="w-full app-input border py-3 rounded-xl text-sm font-bold"><i class="fa-solid fa-lock ml-2"></i> قفل الجلسة وتبديل المستخدم</button>
                     </section>
                 </div>
-                <div class="settings-footer"><button type="button" onclick="closeModal('settingsModal')" class="app-input border py-3 rounded-xl font-bold">إغلاق</button><button type="button" onclick="saveSettings()" class="bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl font-bold">حفظ الإعدادات</button></div>
+                <div class="settings-footer"><button type="button" onclick="closeModal('settingsModal')" class="app-input border py-3 rounded-xl font-bold">إغلاق</button><button type="button" onclick="saveSettings()" class="settings-save-button py-3 rounded-xl font-bold">حفظ الإعدادات</button></div>
             </div>
         </div>
     </div>
