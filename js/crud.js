@@ -465,6 +465,7 @@ function openSettingsModal() {
         : 'تسجيل دخول برقم الهاتف';
     const role = document.getElementById('settingsAccountRole');
     if (role) role.textContent = currentUserRole === 'manager' ? 'مدير المبنى' : 'مالك الشقة';
+    document.getElementById('settingsPasswordResetBtn')?.classList.toggle('hidden', currentUserRole !== 'manager');
     openModal('settingsModal');
 }
 
@@ -483,4 +484,22 @@ async function saveSettings() {
     state.startingBalance = startingBalance;
     if (!await saveWithRollback(previousState)) return;
     renderAll(); updateAccessSwitchButton(); closeModal('settingsModal'); toast('تم الحفظ','success');
+}
+
+async function sendSettingsPasswordReset() {
+    if (!requireManager()) return;
+    const email = activeSession?.user?.email;
+    if (!email) { toast('لا يوجد بريد إلكتروني مرتبط بحساب المدير', 'error'); return; }
+    const button = document.getElementById('settingsPasswordResetBtn');
+    if (button) { button.disabled = true; button.textContent = 'جارٍ إرسال الرابط...'; }
+    try {
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+        if (error) throw error;
+        toast('تم إرسال رابط تغيير كلمة المرور إلى بريد المدير', 'success');
+    } catch (error) {
+        console.error('Settings password reset error:', error);
+        toast('تعذر إرسال رابط تغيير كلمة المرور', 'error');
+    } finally {
+        if (button) { button.disabled = false; button.textContent = 'إرسال رابط تغيير كلمة مرور المدير'; }
+    }
 }
