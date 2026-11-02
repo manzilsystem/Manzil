@@ -73,4 +73,17 @@ function renderOwnerPortal() {
     updateAccessSwitchButton();
 }
 
+function requestOwnerPinOnWhatsApp() {
+    const supportNumber = '201027767039';
+    const phone = document.getElementById('authIdentifier')?.value.trim() || '';
+    const message = [
+        'مرحبًا، أنا مالك شقة وأحتاج الرقم السري للدخول إلى تطبيق المبنى. من فضلك راجع طلبي وأرسل لي طريقة الدخول.',
+        phone ? `رقم الجوال الذي أحاول الدخول به: ${phone}` : ''
+    ].filter(Boolean).join('\n');
+    const url = `https://wa.me/${supportNumber}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+    const notice = document.getElementById('pinRequestNotice');
+    if (notice) notice.classList.remove('hidden');
+}
+
 document.addEventListener('DOMContentLoaded', updateAccessSwitchButton);
