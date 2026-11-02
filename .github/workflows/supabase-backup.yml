@@ -1,4 +1,4 @@
-name: Encrypted Supabase backup
+name: Supabase database backup
 
 on:
   schedule:
@@ -18,35 +18,31 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Install age
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes age
-
-      - name: Dump and encrypt database
+      - name: Dump database
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-          AGE_RECIPIENT: ${{ secrets.AGE_RECIPIENT }}
         run: |
           set -euo pipefail
           test -n "$SUPABASE_DB_URL"
-          test -n "$AGE_RECIPIENT"
           timestamp="$(date -u +'%Y%m%dT%H%M%SZ')"
-          output="$RUNNER_TEMP/manzil-db-$timestamp.dump.age"
+          filename="manzil-db-$timestamp.dump"
 
-          docker run --rm postgres:17-alpine \
-            pg_dump "$SUPABASE_DB_URL" --format=custom --compress=9 --no-owner --no-acl \
-            | age --recipient "$AGE_RECIPIENT" --output "$output"
+          docker run --rm \
+            -e SUPABASE_DB_URL \
+            -e BACKUP_FILENAME="$filename" \
+            -v "$RUNNER_TEMP:/backup" \
+            postgres:17-alpine \
+            sh -c 'pg_dump "$SUPABASE_DB_URL" --format=custom --compress=9 --no-owner --no-acl --file="/backup/$BACKUP_FILENAME"'
 
-          test -s "$output"
-          sha256sum "$output" > "$output.sha256"
+          test -s "$RUNNER_TEMP/$filename"
+          sha256sum "$RUNNER_TEMP/$filename" > "$RUNNER_TEMP/$filename.sha256"
 
-      - name: Store encrypted backup for 30 days
+      - name: Store backup for 30 days
         uses: actions/upload-artifact@v4
         with:
-          name: manzil-encrypted-backup-${{ github.run_id }}
+          name: manzil-database-backup-${{ github.run_id }}
           path: |
-            ${{ runner.temp }}/manzil-db-*.dump.age
-            ${{ runner.temp }}/manzil-db-*.dump.age.sha256
+            ${{ runner.temp }}/manzil-db-*.dump
+            ${{ runner.temp }}/manzil-db-*.dump.sha256
           if-no-files-found: error
           retention-days: 30
