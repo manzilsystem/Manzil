@@ -18,6 +18,9 @@ test('snapshot writes are atomic and guarded by a per-building optimistic versio
     assert.match(migration, /SECURITY INVOKER/);
     assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.persist_building_snapshot/);
     assert.match(migration, /REVOKE ALL ON FUNCTION private\.persist_building_snapshot/);
+    assert.match(migration, /AS \$fn\$[\s\S]*?\$fn\$;/);
+    assert.match(migration, /SET search_path = pg_catalog, public/);
+    assert.doesNotMatch(migration, /CREATE OR REPLACE FUNCTION public\.persist_building_snapshot[\s\S]*?SECURITY DEFINER/);
 });
 
 test('client uses one idempotent RPC instead of multi-request full-table reconciliation', () => {
