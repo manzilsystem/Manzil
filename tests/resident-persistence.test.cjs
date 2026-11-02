@@ -9,33 +9,24 @@ const supabaseSource = fs.readFileSync(path.join(root, 'js', 'supabase.js'), 'ut
 const crudSource = fs.readFileSync(path.join(root, 'js', 'crud.js'), 'utf8');
 
 function makeSaveHarness(resident) {
-    const persistedRows = new Map();
+    const calls = [];
     const loggedErrors = [];
     const client = {
-        from(table) {
-            let operation = 'read';
-            const builder = {
-                update() { operation = 'update'; return this; },
-                upsert(rows) { operation = 'upsert'; persistedRows.set(table, rows); return this; },
-                select() { operation = 'select'; return this; },
-                delete() { operation = 'delete'; return this; },
-                eq() { return this; },
-                in() { return this; },
-                then(resolve, reject) {
-                    const data = operation === 'select' ? persistedRows.get(table) || [] : null;
-                    return Promise.resolve({ data, error: null }).then(resolve, reject);
-                },
-            };
-            return builder;
+        rpc(name, args) {
+            calls.push({ name, args });
+            return Promise.resolve({ data: { ok: true, version: 2 }, error: null });
         },
+        from() { throw new Error('Expected atomic persistence RPC'); },
     };
     const sandbox = {
         window: { supabase: { createClient: () => client } },
         console: { error: (...args) => loggedErrors.push(args) },
         toast() {},
+        generateId: () => 'request-id',
         currentUserRole: 'manager',
         activeSession: { user: { id: 'manager-user-id' } },
         activeBuildingId: 'building-id',
+        activeBuildingVersion: 1,
         supabaseStateLoaded: true,
         state: {
             buildingName: 'Manzil', managerName: '', managerPhone: '', defaultSubscription: 0,
@@ -44,18 +35,16 @@ function makeSaveHarness(resident) {
         },
     };
     const app = vm.runInNewContext(
-        `${supabaseSource}\nactiveSession = { user: { id: 'manager-user-id' } };\n` +
-        `activeBuildingId = 'building-id';\nsupabaseStateLoaded = true;\n` +
-        `({ saveState, toSupabaseTimestamp, getGuardState: () => ({ currentUserRole, activeSession, activeBuildingId, supabaseStateLoaded }) })`,
+        `${supabaseSource}\\nactiveSession = { user: { id: 'manager-user-id' } }; activeBuildingId = 'building-id'; supabaseStateLoaded = true; activeBuildingVersion = 1;\\n({ saveState, toSupabaseTimestamp, getGuardState: () => ({ currentUserRole, activeSession, activeBuildingId, supabaseStateLoaded }) })`,
         sandbox,
         { filename: 'js/supabase.js' }
     );
-    return { app, persistedRows, loggedErrors };
+    return { app, calls, loggedErrors };
 }
 
-test('saveState converts a legacy millisecond createdAt into the timestamptz ISO format', async () => {
+test('atomic save converts a legacy millisecond createdAt into a timestamptz ISO value', async () => {
     const createdAt = Date.UTC(2026, 10, 1, 12, 30, 0);
-    const { app, persistedRows, loggedErrors } = makeSaveHarness({
+    const { app, calls, loggedErrors } = makeSaveHarness({
         id: 'resident-id', userId: null, name: 'Test resident', apartmentNumber: '101',
         phone: '', monthlyAmount: 100, notes: '', createdAt,
     });
@@ -64,13 +53,20 @@ test('saveState converts a legacy millisecond createdAt into the timestamptz ISO
         guard: app.getGuardState(),
         errors: loggedErrors.map(args => args.map(value => String(value))),
     }));
-    const rows = JSON.parse(JSON.stringify(persistedRows.get('residents')));
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].name, 'persist_building_snapshot');
+    const rows = JSON.parse(JSON.stringify(calls[0].args.p_payload.residents));
     assert.equal(rows.length, 1);
     assert.equal(rows[0].created_at, new Date(createdAt).toISOString());
     assert.equal(typeof rows[0].created_at, 'string');
 });
 
 test('new apartments use an ISO creation timestamp and invalid saved dates are rejected', () => {
-    assert.match(crudSource, /createdAt:\s*new Date\(\)\.toISOString\(\)/);
+    assert.match(crudSource, /createdAt:\\s*new Date\\(\\)\\.toISOString\\(\\)/);
     assert.throws(() => makeSaveHarness({}).app.toSupabaseTimestamp('not-a-date'), /Invalid timestamp/);
+});
+
+test('apartments with collection history cannot be deleted from the UI', () => {
+    assert.match(crudSource, /state\\.income\\.some\\(payment => payment\\.residentId === id\\)/);
+    assert.match(crudSource, /لا يمكن حذف شقة لها تحصيلات مسجلة/);
 });
