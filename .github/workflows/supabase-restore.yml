@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: supabase-restore
+  group: supabase-database-maintenance
   cancel-in-progress: false
 
 jobs:
