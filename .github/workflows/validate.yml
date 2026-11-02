@@ -1,0 +1,25 @@
+name: Validate Manzil
+
+on:
+  push:
+    branches: [main, 'feature/**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        run: for f in js/*.js sw.js; do node --check "$f"; done
+      - name: Build owner provisioning function
+        run: npx --yes esbuild supabase/functions/provision-owner/index.ts --bundle '--external:npm:*' --outfile=/tmp/provision-owner.js
+      - name: Check Supabase security contract
+        run: python3 scripts/check_security_contract.py

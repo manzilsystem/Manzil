@@ -2,6 +2,11 @@ function hasOwnerAccounts() {
     return state.residents.some(resident => /^\d{4}$/.test(String(resident.ownerPin || '')));
 }
 
+function accessControlEnabled() {
+    return (typeof isSupabaseRuntimeActive === 'function' && isSupabaseRuntimeActive())
+        || (!isSupabaseConfigured() && (state.pinEnabled || hasOwnerAccounts()));
+}
+
 function requireManager(message = 'هذه الصلاحية متاحة للمدير فقط') {
     if (currentUserRole === 'manager') return true;
     toast(message, 'error');
@@ -33,14 +38,14 @@ function scheduleSessionIdleLock(version) {
 
 function startSessionIdleTimer() {
     stopSessionIdleTimer();
-    if (!(state.pinEnabled || hasOwnerAccounts()) || !['manager', 'owner'].includes(currentUserRole)) return;
+    if (!accessControlEnabled() || !['manager', 'owner'].includes(currentUserRole)) return;
     lastSessionActivityAt = Date.now();
     sessionHiddenAt = document.visibilityState === 'hidden' ? Date.now() : null;
     scheduleSessionIdleLock(sessionIdleVersion);
 }
 
 function noteSessionActivity() {
-    if (!['manager', 'owner'].includes(currentUserRole) || !(state.pinEnabled || hasOwnerAccounts())) return;
+    if (!['manager', 'owner'].includes(currentUserRole) || !accessControlEnabled()) return;
     lastSessionActivityAt = Date.now();
     scheduleSessionIdleLock(sessionIdleVersion);
 }
@@ -66,8 +71,8 @@ function handleSessionVisibilityChange() {
 
 function updateAccessSwitchButton() {
     const button = document.getElementById('accessSwitchBtn');
-    if (button) button.classList.toggle('hidden', !(state.pinEnabled || hasOwnerAccounts()) || currentUserRole === null);
-    if ((state.pinEnabled || hasOwnerAccounts()) && ['manager', 'owner'].includes(currentUserRole)) {
+    if (button) button.classList.toggle('hidden', !accessControlEnabled() || currentUserRole === null);
+    if (accessControlEnabled() && ['manager', 'owner'].includes(currentUserRole)) {
         if (sessionIdleTimer === null) startSessionIdleTimer();
     } else {
         stopSessionIdleTimer();
@@ -75,7 +80,11 @@ function updateAccessSwitchButton() {
 }
 
 function lockCurrentSession(automatic = false) {
-    if (!(state.pinEnabled || hasOwnerAccounts())) return;
+    if (typeof isSupabaseRuntimeActive === 'function' && isSupabaseRuntimeActive()) {
+        signOutSupabaseSession(automatic);
+        return;
+    }
+    if (!accessControlEnabled()) return;
     stopSessionIdleTimer();
     currentUserRole = null;
     currentResidentId = null;

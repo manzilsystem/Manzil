@@ -102,6 +102,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 body.session-locked > header,
 body.session-locked > main,
 body.session-locked > nav { display: none !important; }
+body.supabase-mode #pinLockModal,
+body.supabase-mode .legacy-pin-settings,
+body.supabase-mode .legacy-owner-pin-help { display: none !important; }
 body.owner-mode #printableArea > :not(#ownerPortal) { display: none !important; }
 body.owner-mode #ownerPortal { display: block !important; }
 body.owner-mode header .container > div:last-child > button:not(#accessSwitchBtn) { display: none !important; }

@@ -267,7 +267,15 @@ function exportArrearsCSV() {
 
 function exportJSON() {
     if (!requireManager()) return;
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const backup = JSON.parse(JSON.stringify(state));
+    delete backup.pinCode;
+    delete backup.pinEnabled;
+    backup.residents = backup.residents.map(resident => {
+        const clean = { ...resident };
+        delete clean.ownerPin;
+        return clean;
+    });
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `manzil_backup_${Date.now()}.json`;
@@ -302,17 +310,30 @@ function importJSON(ev) {
     const f = ev.target.files[0]; if (!f) return;
     if (f.size > 10 * 1024 * 1024) { toast('حجم النسخة أكبر من الحد المسموح (10 ميجابايت)','error'); ev.target.value = ''; return; }
     const r = new FileReader();
-    r.onload = () => {
+    r.onload = async () => {
+        const previousState = state;
         try {
             const data = JSON.parse(r.result);
             if (!isValidBackup(data)) throw new Error('ملف غير صالح');
             if (!confirm('استيراد البيانات؟ سيتم استبدال الحالية.')) return;
-            const previousState = state;
             state = { ...state, ...data, auditLogs: Array.isArray(data.auditLogs) ? data.auditLogs : [] };
+            if (isSupabaseRuntimeActive()) {
+                state.residents = state.residents.map(resident => {
+                    const clean = { ...resident };
+                    delete clean.ownerPin;
+                    return clean;
+                });
+                delete state.pinCode;
+                delete state.pinEnabled;
+            }
             if (!saveState()) { state = previousState; throw new Error('تعذر حفظ النسخة'); }
+            await flushSupabaseWrites();
+            if (isSupabaseRuntimeActive()) {
+                try { localStorage.removeItem(STORAGE_KEY); } catch (storageError) { console.warn('تعذر تنظيف النسخة المحلية القديمة:', storageError); }
+            }
             renderAll(); setTheme(state.currentTheme || 'dark');
             toast('تم الاستيراد','success'); closeModal('backupModal');
-        } catch (e) { console.error('تعذر استيراد النسخة:', e); toast('النسخة غير صالحة أو تعذر حفظها؛ لم يتم استبدال البيانات','error'); }
+        } catch (e) { state = previousState; console.error('تعذر استيراد النسخة:', e); toast('النسخة غير صالحة أو تعذر حفظها؛ لم يتم استبدال البيانات','error'); }
         finally { ev.target.value = ''; }
     };
     r.onerror = () => { toast('تعذر قراءة الملف','error'); ev.target.value = ''; };
@@ -328,8 +349,6 @@ function openSettingsModal() {
     document.getElementById('settingsStartingBalance').value = state.startingBalance||'';
     document.getElementById('settingsPinEnabled').checked = state.pinEnabled;
     document.getElementById('settingsPinCode').value = '';
-    document.getElementById('settingsGhToken').value = githubConfig.token||'';
-    document.getElementById('settingsGhGistId').value = githubConfig.gistId||'';
     openModal('settingsModal');
 }
 
@@ -337,8 +356,9 @@ function saveSettings() {
     if (!requireManager()) return;
     const defaultSubscription = Number(document.getElementById('settingsDefaultSub').value || 0);
     const startingBalance = Number(document.getElementById('settingsStartingBalance').value || 0);
-    const pinEnabled = document.getElementById('settingsPinEnabled').checked;
-    const pin = document.getElementById('settingsPinCode').value.trim();
+    const secureCloud = isSupabaseRuntimeActive();
+    const pinEnabled = secureCloud ? false : document.getElementById('settingsPinEnabled').checked;
+    const pin = secureCloud ? '' : document.getElementById('settingsPinCode').value.trim();
     if (!Number.isFinite(defaultSubscription) || defaultSubscription < 0 || !Number.isFinite(startingBalance)) {
         toast('تحقق من قيم الاشتراك والرصيد الافتتاحي','error'); return;
     }
@@ -359,50 +379,9 @@ function saveSettings() {
     state.startingBalance = startingBalance;
     state.pinEnabled = pinEnabled;
     if (pin) state.pinCode = pin;
-    const tok = document.getElementById('settingsGhToken').value.trim();
-    const gid = document.getElementById('settingsGhGistId').value.trim();
-    if (tok) { githubConfig.token = tok; localStorage.setItem('manzil_gh_token', tok); }
-    if (gid) { githubConfig.gistId = gid; localStorage.setItem('manzil_gh_gist', gid); }
     saveState(); renderAll(); updateAccessSwitchButton(); closeModal('settingsModal'); toast('تم الحفظ','success');
 }
 
 async function syncWithGitHubGist(silent) {
-    if (!requireManager()) return;
-    if (syncing) return;
-    if (!githubConfig.token || !githubConfig.gistId) {
-        if (!silent) {
-            const s = document.getElementById('syncStatus');
-            if (s) s.textContent = 'المزامنة غير مفعّلة';
-            toast('للمزامنة، أضف رمز GitHub ومعرّف Gist في الإعدادات','info');
-        }
-        return;
-    }
-    syncing = true;
-    const status = document.getElementById('syncStatus');
-    if (status) status.textContent = 'جاري المزامنة...';
-    try {
-        const headers = { 'Authorization': `Bearer ${githubConfig.token}`, 'Accept': 'application/vnd.github+json' };
-        const getRes = await fetch(`https://api.github.com/gists/${githubConfig.gistId}`, { headers });
-        let remote = null;
-        if (getRes.ok) {
-            const g = await getRes.json();
-            const f = g.files['manzil.json'];
-            if (f) { try { remote = JSON.parse(f.content); } catch(e){} }
-        }
-        let merged = state;
-        if (remote && remote.lastUpdated && remote.lastUpdated > state.lastUpdated) merged = remote;
-        state = { ...state, ...merged };
-        saveState();
-        const body = JSON.stringify(state, null, 2);
-        const pushRes = await fetch(`https://api.github.com/gists/${githubConfig.gistId}`, {
-            method: 'PATCH', headers,
-            body: JSON.stringify({ files: { 'manzil.json': { content: body } } })
-        });
-        if (!pushRes.ok) throw new Error('Push failed');
-        if (status) status.textContent = `تم ${new Date().toLocaleTimeString('ar-EG')}`;
-        if (!silent) { toast('تمت المزامنة','success'); renderAll(); }
-    } catch (e) {
-        if (status) status.textContent = 'فشل المزامنة';
-        if (!silent) toast('فشل المزامنة','error');
-    } finally { syncing = false; }
+    if (!silent) toast('تم إيقاف مزامنة GitHub Gist؛ استخدم قاعدة Supabase المحمية.','info');
 }
