@@ -139,11 +139,10 @@ jobs:
           size="$(stat -c '%s' "$RUNNER_TEMP/$BACKUP_FILE")"
           digest="$(awk '{print $1}' "$RUNNER_TEMP/$BACKUP_FILE.sha256")"
           export BACKUP_SIZE="$size" BACKUP_SHA="$digest"
-          docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE -e BACKUP_TAG -e BACKUP_FILE -e BACKUP_SIZE -e BACKUP_SHA \
-            -v "$RUNNER_TEMP:/backup" postgres:17-alpine sh -c '
-              psql --no-password --host="$PGHOST" --port="$PGPORT" --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 \
-                -c "INSERT INTO public.backup_catalog(tag,file_name,size_bytes,sha256) VALUES ('$BACKUP_TAG','$BACKUP_FILE',$BACKUP_SIZE,'$BACKUP_SHA') ON CONFLICT(tag) DO UPDATE SET file_name=EXCLUDED.file_name,size_bytes=EXCLUDED.size_bytes,sha256=EXCLUDED.sha256,created_at=now()"
-            ' 
+          docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \
+            postgres:17-alpine psql --no-password --host="$PGHOST" --port="$PGPORT" \
+              --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 \
+              -c "INSERT INTO public.backup_catalog(tag,file_name,size_bytes,sha256) VALUES ('$BACKUP_TAG','$BACKUP_FILE',$size,'$digest') ON CONFLICT(tag) DO UPDATE SET file_name=EXCLUDED.file_name,size_bytes=EXCLUDED.size_bytes,sha256=EXCLUDED.sha256,created_at=now()"
 
       - name: Retain latest 30 backups
         env:
