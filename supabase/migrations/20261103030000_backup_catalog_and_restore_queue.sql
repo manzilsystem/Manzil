@@ -21,3 +21,7 @@ alter table public.backup_catalog enable row level security;
 alter table public.restore_requests enable row level security;
 revoke all on public.backup_catalog from anon, authenticated;
 revoke all on public.restore_requests from anon, authenticated;
+
+create unique index if not exists restore_requests_one_active_idx
+on public.restore_requests ((true))
+where status in ('queued','running');
