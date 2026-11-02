@@ -307,3 +307,13 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 .theme-preview-sand { background:#211b16; --preview-accent:#e6a85c; --preview-card:#594735; --preview-muted:#c8b8a5; }
 @media(max-width:420px) { .settings-tabs { padding:.65rem .55rem; gap:.25rem; } .settings-tab { flex-direction:column; gap:.2rem; font-size:.65rem; } .settings-content { padding:.9rem; } }
 @media(prefers-reduced-motion:reduce) { .settings-panel { animation:none; } .settings-tab,.theme-option { transition:none; } }
+
+/* Theme-aware contrast for common utility classes */
+[data-theme="light"] .text-slate-300,[data-theme="light"] .text-slate-200 { color:#334155 !important; }
+[data-theme="light"] .text-slate-100,[data-theme="light"] .text-white { color:#172033 !important; }
+[data-theme="light"] .bg-slate-950\/95,[data-theme="light"] .bg-slate-950\/80 { background-color:rgba(226,232,240,.96) !important; }
+[data-theme="light"] .bg-slate-900\/50,[data-theme="light"] .bg-slate-900\/40,[data-theme="light"] .bg-slate-800\/50 { background-color:#f1f5f9 !important; }
+[data-theme="light"] .border-slate-700,[data-theme="light"] .border-slate-700\/70,[data-theme="light"] .border-slate-800 { border-color:#dbe3ef !important; }
+[data-theme="light"] .bg-indigo-950\/20,[data-theme="light"] .via-slate-900\/20 { background-color:color-mix(in srgb,#4f46e5 5%,white) !important; }
+[data-theme="light"] .settings-section-heading p,[data-theme="light"] .settings-help { color:#64748b; }
+[data-theme="dark"] .settings-content,[data-theme="emerald"] .settings-content,[data-theme="ocean"] .settings-content,[data-theme="sand"] .settings-content { color:var(--text-main); }
