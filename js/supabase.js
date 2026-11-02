@@ -222,7 +222,7 @@ async function loadState() {
         managerPhone: building.manager_phone || '',
         defaultSubscription: Number(building.default_subscription) || 0,
         startingBalance: Number(building.starting_balance) || 0,
-        currentTheme: ['dark', 'light', 'emerald'].includes(building.current_theme) ? building.current_theme : 'dark',
+        currentTheme: ['dark', 'light', 'emerald', 'ocean', 'sand'].includes(building.current_theme) ? building.current_theme : 'dark',
         residents: residents.map(mapResident), income: income.map(mapIncome), expenses: expenses.map(mapExpense),
         notices: notices.map(mapNotice), auditLogs: auditLogs.map(mapAudit), lastUpdated: Date.now()
     };
@@ -515,7 +515,7 @@ async function openAuthenticatedApp() {
     }
     setAuthModal(false);
     document.body.classList.remove('owner-mode');
-    const theme = ['dark', 'light', 'emerald'].includes(state.currentTheme) ? state.currentTheme : 'dark';
+    const theme = ['dark', 'light', 'emerald', 'ocean', 'sand'].includes(state.currentTheme) ? state.currentTheme : 'dark';
     document.body.setAttribute('data-theme', theme);
     document.querySelector('meta[name="theme-color"]').setAttribute('content', theme === 'light' ? '#f1f5f9' : theme === 'emerald' ? '#021a13' : '#090d16');
     renderAll();
