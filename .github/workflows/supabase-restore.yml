@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 concurrency:
   group: supabase-database-maintenance
@@ -77,7 +78,7 @@ jobs:
           if [ -n "$backup_request_id" ]; then
             [[ "$backup_request_id" =~ ^[0-9a-f-]{36}$ ]]
             psql_db -c "UPDATE public.backup_requests SET status='dispatched',dispatched_at=now(),result_message='جارٍ بدء مهمة النسخ الاحتياطي' WHERE id='$backup_request_id' AND status='queued'"
-            if gh workflow run supabase-backup.yml --repo manzilsystem/Manzil --ref main -f request_id="$backup_request_id"; then
+            if GH_TOKEN="$GITHUB_TOKEN" gh workflow run supabase-backup.yml --repo manzilsystem/Manzil --ref main -f request_id="$backup_request_id"; then
               echo "Manual backup workflow dispatched."
             else
               psql_db -c "UPDATE public.backup_requests SET status='failed',finished_at=now(),result_message='تعذر بدء مهمة النسخ الاحتياطي' WHERE id='$backup_request_id' AND status='dispatched'"
