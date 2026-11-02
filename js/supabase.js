@@ -9,6 +9,7 @@ let ownerMustChangePin = false;
 let authLoginMode = 'manager';
 let authGeneration = 0;
 let persistedAuditLogIds = new Set();
+let activeBuildingVersion = 1;
 
 function isCurrentAuthSession(session, generation) {
     return Boolean(session && activeSession && session.user?.id === activeSession.user?.id && generation === authGeneration);
@@ -190,6 +191,7 @@ async function loadState() {
     if (!isCurrentAuthSession(session, generation)) return false;
     if (profileError) throw profileError;
     activeBuildingId = membership.building_id;
+    activeBuildingVersion = 1;
     currentUserRole = membership.role;
     ownerMustChangePin = currentUserRole === 'owner' && profile?.must_change_pin === true;
     if (ownerMustChangePin) {
@@ -208,6 +210,7 @@ async function loadState() {
     const { data: building, error: buildingError } = await supabaseClient.from('buildings').select('*').eq('id', activeBuildingId).single();
     if (!isCurrentAuthSession(session, generation)) return false;
     if (buildingError) throw buildingError;
+    activeBuildingVersion = Number(building.state_version) || 1;
     const [residents, income, expenses, notices, auditLogs] = await Promise.all([
         supabaseQuery('residents'), supabaseQuery('income'), supabaseQuery('expenses'), supabaseQuery('notices'), supabaseQuery('audit_logs')
     ]);
@@ -219,7 +222,7 @@ async function loadState() {
         managerPhone: building.manager_phone || '',
         defaultSubscription: Number(building.default_subscription) || 0,
         startingBalance: Number(building.starting_balance) || 0,
-        currentTheme: ['dark', 'light', 'emerald'].includes(building.current_theme) ? building.current_theme : 'dark',
+        currentTheme: ['dark', 'light', 'emerald', 'ocean', 'sand'].includes(building.current_theme) ? building.current_theme : 'dark',
         residents: residents.map(mapResident), income: income.map(mapIncome), expenses: expenses.map(mapExpense),
         notices: notices.map(mapNotice), auditLogs: auditLogs.map(mapAudit), lastUpdated: Date.now()
     };
@@ -245,58 +248,85 @@ async function saveState() {
         if (currentUserRole === 'owner') toast('حساب المالك للعرض فقط', 'error');
         return false;
     }
+
     state.lastUpdated = Date.now();
+    const requestId = generateId();
+    let payload;
     try {
-        const { error: buildingError } = await supabaseClient.from('buildings').update({
-            name: state.buildingName || 'Manzil', manager_name: state.managerName || '', manager_phone: state.managerPhone || null,
-            default_subscription: Number(state.defaultSubscription) || 0, starting_balance: Number(state.startingBalance) || 0,
+        payload = {
+        building: {
+            name: state.buildingName || 'Manzil',
+            manager_name: state.managerName || '',
+            manager_phone: state.managerPhone || null,
+            default_subscription: Number(state.defaultSubscription) || 0,
+            starting_balance: Number(state.startingBalance) || 0,
             current_theme: state.currentTheme || 'dark'
-        }).eq('id', activeBuildingId);
-        if (buildingError) throw buildingError;
-        const residentRows = state.residents.map(r => ({ id: r.id, building_id: activeBuildingId, user_id: r.userId || null, name: r.name, apartment_number: r.apartmentNumber, phone: r.phone || null, monthly_amount: Number(r.monthlyAmount) || 0, notes: r.notes || null, created_at: toSupabaseTimestamp(r.createdAt) }));
-        const incomeRows = state.income.map(i => ({ id: i.id, building_id: activeBuildingId, resident_id: i.residentId, amount: Number(i.amount) || 0, month: i.month, notes: i.notes || null, paid_at: i.date || new Date().toISOString(), created_by: activeSession.user.id }));
-        const expenseRows = state.expenses.map(e => ({ id: e.id, building_id: activeBuildingId, title: e.title, amount: Number(e.amount) || 0, category: e.category || 'أخرى', month: e.month, notes: e.notes || null, spent_at: e.date || new Date().toISOString(), created_by: activeSession.user.id }));
-        const noticeRows = state.notices.map(n => ({ id: n.id, building_id: activeBuildingId, text: n.text, created_by: activeSession.user.id, created_at: n.date || new Date().toISOString() }));
-        const auditRows = state.auditLogs.filter(l => !persistedAuditLogIds.has(l.id))
-            .map(l => ({ id: l.id, building_id: activeBuildingId, action: l.action, details: l.details || null, actor_id: activeSession.user.id, created_at: l.date || new Date().toISOString() }));
-        const ownerUserIds = residentRows.map(r => r.user_id).filter(Boolean);
-        if (ownerUserIds.length) {
-            const { error: memberError } = await supabaseClient.from('building_members').upsert(ownerUserIds.map(user_id => ({ building_id: activeBuildingId, user_id, role: 'owner' })));
-            if (memberError) throw memberError;
-        }
-        const { data: ownerMembers, error: ownerMembersError } = await supabaseClient.from('building_members').select('user_id').eq('building_id', activeBuildingId).eq('role', 'owner');
-        if (ownerMembersError) throw ownerMembersError;
-        const staleOwners = (ownerMembers || []).map(row => row.user_id).filter(user_id => !ownerUserIds.includes(user_id));
-        if (staleOwners.length) {
-            const { error: removeMembersError } = await supabaseClient.from('building_members').delete().eq('building_id', activeBuildingId).eq('role', 'owner').in('user_id', staleOwners);
-            if (removeMembersError) throw removeMembersError;
-        }
-        for (const [table, rows] of [['residents', residentRows], ['income', incomeRows], ['expenses', expenseRows], ['notices', noticeRows]]) {
-            if (!rows.length) continue;
-            const { error } = await supabaseClient.from(table).upsert(rows);
-            if (error) throw error;
-        }
-        if (auditRows.length) {
-            const { error } = await supabaseClient.from('audit_logs').insert(auditRows);
-            if (error) throw error;
-            auditRows.forEach(row => persistedAuditLogIds.add(row.id));
-        }
-        await deleteMissing('residents', 'id', residentRows.map(r => r.id));
-        await deleteMissing('income', 'id', incomeRows.map(r => r.id));
-        await deleteMissing('expenses', 'id', expenseRows.map(r => r.id));
-        await deleteMissing('notices', 'id', noticeRows.map(r => r.id));
-        return true;
+        },
+        residents: state.residents.map(r => ({
+            id: r.id, user_id: r.userId || null, name: r.name,
+            apartment_number: r.apartmentNumber, phone: r.phone || null,
+            monthly_amount: Number(r.monthlyAmount) || 0, notes: r.notes || null,
+            created_at: toSupabaseTimestamp(r.createdAt)
+        })),
+        income: state.income.map(i => ({
+            id: i.id, resident_id: i.residentId, amount: Number(i.amount) || 0,
+            month: i.month, notes: i.notes || null, paid_at: toSupabaseTimestamp(i.date)
+        })),
+        expenses: state.expenses.map(e => ({
+            id: e.id, title: e.title, amount: Number(e.amount) || 0,
+            category: e.category || 'أخرى', month: e.month, notes: e.notes || null,
+            spent_at: toSupabaseTimestamp(e.date)
+        })),
+        notices: state.notices.map(n => ({
+            id: n.id, text: n.text, created_at: toSupabaseTimestamp(n.date)
+        })),
+        audit_logs: state.auditLogs.filter(l => !persistedAuditLogIds.has(l.id)).map(l => ({
+            id: l.id, action: l.action, details: l.details || null,
+            created_at: toSupabaseTimestamp(l.date)
+        }))
+        };
     } catch (error) {
-        console.error('Supabase save failed:', error);
-        toast('تعذر حفظ البيانات في Supabase', 'error');
+        console.error('Could not prepare Supabase snapshot:', error);
+        toast('تعذر تجهيز البيانات للحفظ. راجع التواريخ والحقول ثم حاول مجددًا.', 'error');
         return false;
     }
+
+    let lastError = null;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+            const { data, error } = await supabaseClient.rpc('persist_building_snapshot', {
+                p_building_id: activeBuildingId,
+                p_expected_version: activeBuildingVersion,
+                p_request_id: requestId,
+                p_payload: payload
+            });
+            if (error) throw error;
+            if (data?.conflict) {
+                toast('تم اكتشاف تعديل أحدث من نافذة أخرى. أعد تحميل البيانات قبل الحفظ لتجنب استبدال تغييرات الآخرين.', 'error');
+                return false;
+            }
+            if (!data?.ok || !Number.isInteger(Number(data.version))) {
+                throw new Error('Invalid persistence response');
+            }
+            activeBuildingVersion = Number(data.version);
+            payload.audit_logs.forEach(row => persistedAuditLogIds.add(row.id));
+            return true;
+        } catch (error) {
+            lastError = error;
+            if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 350));
+        }
+    }
+
+    console.error('Atomic Supabase save failed:', lastError);
+    toast('تعذر تأكيد الحفظ. أعد تحميل البيانات للتحقق من آخر نسخة محفوظة قبل إعادة المحاولة.', 'error');
+    return false;
 }
 
 function clearAuthenticatedState() {
     authGeneration += 1;
     activeSession = null;
     activeBuildingId = null;
+    activeBuildingVersion = 1;
     supabaseStateLoaded = false;
     authLoading = false;
     ownerMustChangePin = false;
