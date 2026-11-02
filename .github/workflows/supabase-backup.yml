@@ -41,9 +41,9 @@ jobs:
           );
           const delimiter = `GH_ENV_${crypto.randomUUID()}`;
           fs.appendFileSync(process.env.GITHUB_ENV,
-            `PGPASSWORD<<${delimiter}\\n${password}\\n${delimiter}\\n` +
-            `PGHOST=aws-eu-north-1.pooler.supabase.com\\n` +
-            `PGPORT=5432\\nPGUSER=postgres.${projectRef}\\nPGDATABASE=postgres\\nPGSSLMODE=require\\n`
+            `PGPASSWORD<<${delimiter}\n${password}\n${delimiter}\n` +
+            `PGHOST=aws-eu-north-1.pooler.supabase.com\n` +
+            `PGPORT=5432\nPGUSER=postgres.${projectRef}\nPGDATABASE=postgres\nPGSSLMODE=require\n`
           );
           NODE
 
