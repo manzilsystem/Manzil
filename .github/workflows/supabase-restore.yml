@@ -83,6 +83,13 @@ jobs:
             fi
           fi
 
+          # Do not restore while a manual backup is queued or running.
+          backup_active="$(psql_db -At -c "SELECT count(*) FROM public.backup_requests WHERE status IN ('queued','dispatched')")"
+          if [ "$backup_active" -gt 0 ]; then
+            echo "A manual backup is pending or running; restore will wait."
+            exit 0
+          fi
+
           request="$(psql_db -At -F '|' -c "SELECT id::text || '|' || backup_tag FROM public.restore_requests WHERE status='queued' ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED")"
           if [ -z "$request" ]; then
             echo "No pending restore request."
