@@ -22,4 +22,8 @@ test('local migration history matches the applied Supabase order', () => {
     assert.ok(position('create_notifications') < position('harden_notifications_functions_and_indexes'));
     assert.ok(position('harden_notifications_functions_and_indexes') < position('phase1_security_hardening'));
     assert.ok(position('phase1_security_hardening') < position('move_notification_helpers_private'));
+    assert.ok(position('move_notification_helpers_private') < position('backup_catalog_and_restore_queue'));
+    assert.ok(position('backup_catalog_and_restore_queue') < position('manual_backup_requests'));
+    assert.ok(position('manual_backup_requests') < position('backup_requests_fk_indexes'));
+    assert.ok(position('backup_requests_fk_indexes') < position('drop_redundant_notification_index'));
 });
