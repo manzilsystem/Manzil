@@ -33,6 +33,7 @@ Deno.serve(async (req: Request) => {
     const { data: pending } = await admin.from('restore_requests').select('id').in('status', ['queued','running']).limit(1).maybeSingle()
     if (pending) return json(409, { error: 'restore_already_pending' })
     const { data: request, error } = await admin.from('restore_requests').insert({ building_id: membership.building_id, requested_by: auth.user.id, backup_tag: tag }).select('id,backup_tag,status,created_at').single()
+    if (error?.code === '23505') return json(409, { error: 'restore_already_pending' })
     if (error) return json(500, { error: 'request_failed' })
     return json(202, { request })
   }
