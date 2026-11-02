@@ -42,7 +42,7 @@ test('company ownership and contact details appear on sign-in and in the app', (
 });
 
 test('the redesigned sign-in shell collapses and prioritizes the form on mobile', () => {
-    assert.match(css, /#pinLockModal > \.auth-shell\s*\{[^}]*grid-template-columns: minmax\(0, \.95fr\)/s);
+    assert.match(css, /#pinLockModal > \.auth-shell\s*\{[^}]*grid-template-columns: minmax\(0, \.8fr\)/s);
     const mobileMediaIndex = css.indexOf('@media (max-width: 640px) {');
     const mobileAuthRuleIndex = css.indexOf('#pinLockModal > .auth-shell { grid-template-columns: minmax(0, 1fr);', mobileMediaIndex);
     const brandOrderIndex = css.indexOf('.auth-brand-panel { order: 2;', mobileMediaIndex);
