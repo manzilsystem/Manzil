@@ -23,6 +23,7 @@ function makeSaveHarness(resident) {
         console: { error: (...args) => loggedErrors.push(args) },
         toast() {},
         generateId: () => 'request-id',
+        setTimeout: callback => { callback(); return 0; },
         currentUserRole: 'manager',
         activeSession: { user: { id: 'manager-user-id' } },
         activeBuildingId: 'building-id',
