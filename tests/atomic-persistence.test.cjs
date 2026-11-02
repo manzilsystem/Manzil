@@ -20,6 +20,8 @@ test('snapshot writes are atomic and guarded by a per-building optimistic versio
     assert.match(migration, /REVOKE ALL ON FUNCTION private\.persist_building_snapshot/);
     assert.match(migration, /AS \$fn\$[\s\S]*?\$fn\$;/);
     assert.match(migration, /SET search_path = pg_catalog, public/);
+    assert.match(migration, /income_resident_not_in_snapshot/);
+    assert.match(migration, /cannot_delete_resident_with_income_history/);
     assert.match(migration, /INSERT INTO public\\.residents AS current_resident/);
     assert.match(migration, /INSERT INTO public\\.income AS current_income/);
     assert.match(migration, /INSERT INTO public\\.expenses AS current_expense/);
@@ -44,6 +46,12 @@ test('audit history cannot be cleared from the UI and paid apartments cannot be 
 
 
 test('snapshot payload preparation failures are handled before any RPC call', () => {
+    assert.match(supabaseSource, /let payload;\\s*try \\{\\s*payload = \\{/);
+    assert.match(supabaseSource, /Could not prepare Supabase snapshot/);
+    assert.match(supabaseSource, /تعذر تجهيز البيانات للحفظ/);
+});
+
+test('snapshot payload construction is guarded against invalid timestamps and fields', () => {
     assert.match(supabaseSource, /let payload;\\s*try \\{\\s*payload = \\{/);
     assert.match(supabaseSource, /Could not prepare Supabase snapshot/);
     assert.match(supabaseSource, /تعذر تجهيز البيانات للحفظ/);
