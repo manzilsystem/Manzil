@@ -70,6 +70,9 @@ BEGIN
     WHERE m.building_id = p_building_id AND m.request_id = p_request_id;
 
     IF FOUND THEN
+        IF v_version > v_existing_version THEN
+            RETURN jsonb_build_object('ok', false, 'conflict', true, 'duplicate', true, 'current_version', v_version);
+        END IF;
         RETURN jsonb_build_object('ok', true, 'duplicate', true, 'version', v_existing_version);
     END IF;
 
