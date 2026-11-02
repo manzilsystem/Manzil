@@ -62,7 +62,18 @@ function handleModalKeyboard(event) {
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
 }
 
+async function loadSubscriptionRateAdapter() {
+    await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'js/subscription-rates.js';
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('تعذر تحميل وحدة تاريخ الاشتراكات'));
+        document.head.appendChild(script);
+    });
+}
+
 async function initApp() {
+    await loadSubscriptionRateAdapter();
     await initSupabaseApp();
     document.addEventListener('keydown', handleModalKeyboard);
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
