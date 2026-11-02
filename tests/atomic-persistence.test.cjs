@@ -4,9 +4,11 @@ const path = require('node:path');
 const test = require('node:test');
 
 const root = path.join(__dirname, '..');
-const migration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261102220500_atomic_building_snapshot.sql'), 'utf8');
+const migration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103000000_atomic_building_snapshot.sql'), 'utf8');
 const supabaseSource = fs.readFileSync(path.join(root, 'js', 'supabase.js'), 'utf8');
 const stateSource = fs.readFileSync(path.join(root, 'js', 'state.js'), 'utf8');
+
+const themeMigration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103050000_allow_all_five_themes.sql'), 'utf8');
 
 test('snapshot writes are atomic and guarded by a per-building optimistic version', () => {
     assert.match(migration, /ADD COLUMN IF NOT EXISTS state_version bigint NOT NULL DEFAULT 1/);
@@ -49,4 +51,11 @@ test('snapshot payload construction is guarded against invalid timestamps and fi
     assert.ok(supabaseSource.includes('let payload;'));
     assert.ok(supabaseSource.includes("console.error('Could not prepare Supabase snapshot:'"));
     assert.ok(supabaseSource.includes('تعذر تجهيز البيانات للحفظ'));
+});
+
+test('database constraint accepts all five themes supported by the UI', () => {
+    for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand']) {
+        assert.ok(themeMigration.includes(`'${theme}'`));
+    }
+    assert.match(supabaseSource, /\['dark', 'light', 'emerald', 'ocean', 'sand'\]\.includes\(building\.current_theme\)/);
 });
