@@ -317,3 +317,8 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 [data-theme="light"] .bg-indigo-950\/20,[data-theme="light"] .via-slate-900\/20 { background-color:color-mix(in srgb,#4f46e5 5%,white) !important; }
 [data-theme="light"] .settings-section-heading p,[data-theme="light"] .settings-help { color:#64748b; }
 [data-theme="dark"] .settings-content,[data-theme="emerald"] .settings-content,[data-theme="ocean"] .settings-content,[data-theme="sand"] .settings-content { color:var(--text-main); }
+
+.settings-modal-header { background:var(--accent-color); color:#fff; }
+.settings-save-button { background:var(--accent-color); color:#fff; transition:filter .18s ease; }
+.settings-save-button:hover { filter:brightness(1.08); }
+[data-theme="sand"] .settings-modal-header,[data-theme="sand"] .settings-save-button { color:#211b16; }
