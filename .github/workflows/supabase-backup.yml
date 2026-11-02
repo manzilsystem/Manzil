@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "23 2 * * *"
   workflow_dispatch:
+    inputs:
+      request_id:
+        description: "Manzil backup request ID"
+        required: false
+        type: string
   push:
     branches: [main]
     paths:
@@ -143,6 +148,23 @@ jobs:
             postgres:17-alpine psql --no-password --host="$PGHOST" --port="$PGPORT" \
               --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 \
               -c "INSERT INTO public.backup_catalog(tag,file_name,size_bytes,sha256) VALUES ('$BACKUP_TAG','$BACKUP_FILE',$size,'$digest') ON CONFLICT(tag) DO UPDATE SET file_name=EXCLUDED.file_name,size_bytes=EXCLUDED.size_bytes,sha256=EXCLUDED.sha256,created_at=now()"
+
+      - name: Complete manual backup request
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.request_id != '' }}
+        env:
+          BACKUP_REQUEST_ID: ${{ inputs.request_id }}
+          PGPASSWORD: ${{ env.PGPASSWORD }}
+          PGHOST: ${{ env.PGHOST }}
+          PGPORT: ${{ env.PGPORT }}
+          PGDATABASE: ${{ env.PGDATABASE }}
+          PGSSLMODE: ${{ env.PGSSLMODE }}
+        run: |
+          set -euo pipefail
+          [[ "$BACKUP_REQUEST_ID" =~ ^[0-9a-f-]{36}$ ]]
+          docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \
+            postgres:17-alpine psql --no-password --host="$PGHOST" --port="$PGPORT" \
+              --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 \
+              -c "UPDATE public.backup_requests SET status='succeeded',finished_at=now(),result_message='تم إنشاء النسخة الاحتياطية وفحصها بنجاح' WHERE id='$BACKUP_REQUEST_ID' AND status='dispatched'"
 
       - name: Retain latest 30 backups
         env:
