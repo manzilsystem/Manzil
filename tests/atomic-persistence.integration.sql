@@ -121,3 +121,24 @@ $test$;
 
 RESET ROLE;
 SELECT 'atomic persistence integration tests passed' AS result;
+
+
+-- Every theme supported by the UI must satisfy the database constraint.
+DO $$
+DECLARE
+    v_theme text;
+BEGIN
+    FOREACH v_theme IN ARRAY ARRAY['dark', 'light', 'emerald', 'ocean', 'sand'] LOOP
+        UPDATE public.buildings
+        SET current_theme = v_theme
+        WHERE id = '20000000-0000-4000-8000-000000000001';
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'theme persistence test building missing';
+        END IF;
+        IF (SELECT current_theme FROM public.buildings
+            WHERE id = '20000000-0000-4000-8000-000000000001') <> v_theme THEN
+            RAISE EXCEPTION 'theme persistence failed for %', v_theme;
+        END IF;
+    END LOOP;
+END;
+$$;
