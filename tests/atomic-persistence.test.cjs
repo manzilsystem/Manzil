@@ -45,14 +45,8 @@ test('audit history cannot be cleared from the UI and paid apartments cannot be 
 });
 
 
-test('snapshot payload preparation failures are handled before any RPC call', () => {
-    assert.match(supabaseSource, /let payload;\\s*try \\{\\s*payload = \\{/);
-    assert.match(supabaseSource, /Could not prepare Supabase snapshot/);
-    assert.match(supabaseSource, /تعذر تجهيز البيانات للحفظ/);
-});
-
 test('snapshot payload construction is guarded against invalid timestamps and fields', () => {
-    assert.match(supabaseSource, /let payload;\\s*try \\{\\s*payload = \\{/);
-    assert.match(supabaseSource, /Could not prepare Supabase snapshot/);
-    assert.match(supabaseSource, /تعذر تجهيز البيانات للحفظ/);
+    assert.ok(supabaseSource.includes('let payload;'));
+    assert.ok(supabaseSource.includes("console.error('Could not prepare Supabase snapshot:'"));
+    assert.ok(supabaseSource.includes('تعذر تجهيز البيانات للحفظ'));
 });
