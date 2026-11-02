@@ -27,6 +27,7 @@ function openModal(id) {
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
     document.body.classList.add('modal-open');
+    if (id === 'backupModal') loadBackupConsole();
     requestAnimationFrame(() => {
         const focusable = modal.querySelector('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
         (focusable || modal).focus();
