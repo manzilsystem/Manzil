@@ -127,29 +127,34 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 
 #pinLockModal > .auth-shell {
     width: 100%;
-    max-width: 58rem;
+    max-width: 50rem;
     max-height: calc(100dvh - 2rem);
     display: grid;
-    grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr);
+    grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
     overflow-y: auto;
     overscroll-behavior: contain;
+    box-shadow: 0 24px 70px rgba(2, 6, 23, .42);
 }
 .auth-brand-panel {
-    min-height: 32rem;
-    background: radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, .38), transparent 48%), linear-gradient(145deg, #111a35 0%, #111827 58%, #0b1223 100%);
+    min-height: 0;
+    background: #111827;
+    border-inline-end: 1px solid rgba(148, 163, 184, .14);
 }
 .auth-brand-mark {
-    width: 3.25rem;
-    height: 3.25rem;
+    width: 2.75rem;
+    height: 2.75rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 1rem;
-    color: #c7d2fe;
-    background: rgba(99, 102, 241, .18);
-    border: 1px solid rgba(165, 180, 252, .28);
+    border-radius: .85rem;
+    color: #e0e7ff;
+    background: #273449;
+    border: 1px solid rgba(165, 180, 252, .2);
 }
-.auth-brand-mark svg { width: 1.75rem; height: 1.75rem; }
+.auth-brand-mark svg { width: 1.45rem; height: 1.45rem; }
+.auth-brand-panel h1 { font-size: 1.75rem; }
+.auth-brand-panel h2 { font-size: 1rem; }
+.auth-brand-panel > div:first-child > p { color: #cbd5e1; }
 .auth-feature {
     display: flex;
     align-items: center;
@@ -161,6 +166,8 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
     background: rgba(15, 23, 42, .38);
 }
 .auth-feature i { width: 1rem; text-align: center; }
+.auth-trust-note { display: flex; align-items: center; gap: .5rem; color: #cbd5e1; font-size: .72rem; line-height: 1.6; }
+.auth-trust-note i { color: #a5b4fc; }
 .auth-rights { color: #94a3b8; }
 .auth-rights a, #appCopyright a { color: #c7d2fe; text-decoration: underline; text-underline-offset: 2px; }
 .auth-owner-help {
