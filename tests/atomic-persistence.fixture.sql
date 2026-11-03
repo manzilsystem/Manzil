@@ -78,41 +78,41 @@ CREATE TABLE public.audit_logs (
 
 CREATE FUNCTION auth.uid() RETURNS uuid
 LANGUAGE sql STABLE
-AS $$
+AS $body$$
     SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
-$$;
+$body$$;
 
 
 CREATE FUNCTION private.is_building_manager(target_building uuid)
 RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = pg_catalog, public
-AS $
+AS $body$
     SELECT EXISTS (
         SELECT 1 FROM public.building_members
         WHERE building_id = target_building
           AND user_id = (SELECT auth.uid())
           AND role = 'manager'
     );
-$;
+$body$;
 
 CREATE FUNCTION private.owns_resident(target_resident uuid)
 RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = pg_catalog, public
-AS $
+AS $body$
     SELECT EXISTS (
         SELECT 1 FROM public.residents
         WHERE id = target_resident
           AND user_id = (SELECT auth.uid())
     );
-$;
+$body$;
 
 CREATE FUNCTION private.owner_pin_change_complete()
 RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = pg_catalog, public
-AS $
+AS $body$
     SELECT NOT EXISTS (
         SELECT 1
         FROM public.building_members member
@@ -121,7 +121,7 @@ AS $
           AND member.role = 'owner'
           AND profile.must_change_pin IS TRUE
     );
-$;
+$body$;
 
 GRANT EXECUTE ON FUNCTION private.is_building_manager(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION private.owns_resident(uuid) TO authenticated;
