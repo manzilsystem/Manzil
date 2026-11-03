@@ -62,3 +62,46 @@ BEGIN
 END;
 $$;
 ROLLBACK;
+
+DO $$
+DECLARE
+    v_phone_hash text := repeat('a', 64);
+    v_result jsonb;
+    v_failed_attempts integer;
+    v_locked_until timestamptz;
+    v_index integer;
+BEGIN
+    PERFORM public.owner_login_rate_limit(v_phone_hash, 'success');
+
+    FOR v_index IN 1..5 LOOP
+        v_result := public.owner_login_rate_limit(v_phone_hash, 'attempt');
+        IF COALESCE((v_result->>'allowed')::boolean, false) IS NOT TRUE THEN
+            RAISE EXCEPTION 'owner_login_rate_limit_blocked_before_fifth_attempt: %', v_result;
+        END IF;
+    END LOOP;
+
+    v_result := public.owner_login_rate_limit(v_phone_hash, 'attempt');
+    IF COALESCE((v_result->>'allowed')::boolean, true) IS NOT FALSE THEN
+        RAISE EXCEPTION 'owner_login_rate_limit_did_not_block_sixth_attempt: %', v_result;
+    END IF;
+
+    SELECT failed_attempts, locked_until
+    INTO v_failed_attempts, v_locked_until
+    FROM private.owner_login_attempts
+    WHERE phone_hash = v_phone_hash;
+    IF v_failed_attempts <> 5 OR v_locked_until IS NULL THEN
+        RAISE EXCEPTION 'owner_login_rate_limit_denied_attempt_was_counted: %, %', v_failed_attempts, v_locked_until;
+    END IF;
+
+    PERFORM public.owner_login_rate_limit(v_phone_hash, 'release');
+    SELECT failed_attempts, locked_until
+    INTO v_failed_attempts, v_locked_until
+    FROM private.owner_login_attempts
+    WHERE phone_hash = v_phone_hash;
+    IF v_failed_attempts <> 4 OR v_locked_until IS NOT NULL THEN
+        RAISE EXCEPTION 'owner_login_rate_limit_release_failed: %, %', v_failed_attempts, v_locked_until;
+    END IF;
+
+    PERFORM public.owner_login_rate_limit(v_phone_hash, 'success');
+END;
+$$;
