@@ -43,3 +43,14 @@ test('orphan cleanup shell command continuations use a single backslash', () => 
     assert.match(cleanup, /docker run --rm[^\n]*\\\n/);
     assert.match(cleanup, /gh release list[^\n]*\\\n/);
 });
+
+test('stale catalog rows are removed only after 24 hours and a confirmed GitHub 404', () => {
+    const cleanup = workflow.split('      - name: Clean up stale orphaned backup releases')[1]
+        .split('      - name: Complete manual backup request')[0];
+    assert.ok(cleanup.includes("created_at < now() - interval '24 hours'"));
+    assert.ok(cleanup.includes('gh api --include "repos/manzilsystem/manzil_backups/releases/tags/$tag"'));
+    assert.ok(cleanup.includes('if [[ "$http_status" == "404" ]]; then'));
+    assert.ok(cleanup.includes('elif [[ "$http_status" == "200" ]]; then'));
+    assert.ok(cleanup.includes('Unable to verify GitHub release status'));
+    assert.match(cleanup, /DELETE FROM public\.backup_catalog WHERE tag='\$tag' AND created_at < now\(\) - interval '24 hours'/);
+});

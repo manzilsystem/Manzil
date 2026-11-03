@@ -189,6 +189,34 @@ jobs:
             fi
           done < "$releases"
 
+          # Remove stale catalog entries only after GitHub confirms the release is truly missing.
+          # A transient API failure must never delete a potentially valid backup record.
+          stale_catalog="$RUNNER_TEMP/stale-catalog-tags.txt"
+          docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \
+            postgres:17-alpine psql --no-password --quiet --tuples-only --no-align \
+              --host="$PGHOST" --port="$PGPORT" --username="postgres.musvcrkljccubwbcrtjs" \
+              --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 \
+              -c "SELECT tag FROM public.backup_catalog WHERE created_at < now() - interval '24 hours'" > "$stale_catalog"
+
+          while IFS= read -r tag; do
+            [[ "$tag" =~ ^backup-[0-9]{8}T[0-9]{6}Z$ ]] || continue
+            response="$(gh api --include "repos/manzilsystem/manzil_backups/releases/tags/$tag" 2>&1 || true)"
+            http_status="$(sed -n '1s#^HTTP/[0-9.]* \([0-9][0-9][0-9]\).*#\1#p' <<< "$response")"
+
+            if [[ "$http_status" == "404" ]]; then
+              echo "Removing stale catalog entry for confirmed missing release: $tag"
+              docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \
+                postgres:17-alpine psql --no-password --quiet --host="$PGHOST" --port="$PGPORT" \
+                  --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 \
+                  -c "DELETE FROM public.backup_catalog WHERE tag='$tag' AND created_at < now() - interval '24 hours'"
+            elif [[ "$http_status" == "200" ]]; then
+              echo "Catalog entry still has a valid GitHub release: $tag"
+            else
+              echo "Unable to verify GitHub release status for catalog entry $tag (HTTP ${http_status:-unknown})"
+              exit 1
+            fi
+          done < "$stale_catalog"
+
       - name: Complete manual backup request
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.request_id != '' }}
         env:
