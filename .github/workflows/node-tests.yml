@@ -70,4 +70,4 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: postgres
           PGDATABASE: manzil_test
-        run: psql -v ON_ERROR_STOP=1 -f tests/notification-building-isolation.integration.sql
+        run: psql -v ON_ERROR_STOP=1 -f tests/table-grants.integration.sql
