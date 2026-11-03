@@ -64,3 +64,10 @@ test('backup and restore workers share one non-cancelling maintenance concurrenc
         assert.match(workflow, /cancel-in-progress: false/);
     }
 });
+
+
+test('stale restore requests are marked with an explicit uncertain-outcome signal', () => {
+    assert.match(restoreWorkflow, /status='failed'[\s\S]*?\[RESTORE_OUTCOME_UNCERTAIN\]/);
+    assert.match(restoreWorkflow, /started_at < now\(\) - interval '60 minutes'/);
+    assert.match(restoreWorkflow, /قد تكون قاعدة البيانات استُعيدت قبل انقطاع المهمة/);
+});
