@@ -71,3 +71,26 @@ test('stale restore requests are marked with an explicit uncertain-outcome signa
     assert.match(restoreWorkflow, /started_at < now\(\) - interval '60 minutes'/);
     assert.match(restoreWorkflow, /قد تكون قاعدة البيانات استُعيدت قبل انقطاع المهمة/);
 });
+
+
+const backupWorkflow = fs.readFileSync(
+    path.join(__dirname, '..', '.github/workflows/supabase-backup.yml'),
+    'utf8'
+);
+const restoreWorkflow = fs.readFileSync(
+    path.join(__dirname, '..', '.github/workflows/supabase-restore.yml'),
+    'utf8'
+);
+
+test('backup workflow preserves credentials and filenames exported through GITHUB_ENV', () => {
+    assert.match(backupWorkflow, /PGPASSWORD<<\\?\$\{delimiter\}/);
+    assert.match(backupWorkflow, /BACKUP_TAG=\$BACKUP_TAG/);
+    assert.match(backupWorkflow, /BACKUP_FILE=\$BACKUP_FILE/);
+    assert.doesNotMatch(backupWorkflow, /\$\{\{ env\.(?:PGPASSWORD|PGHOST|PGPORT|PGDATABASE|PGSSLMODE|BACKUP_TAG|BACKUP_FILE) \}\}/);
+});
+
+test('restore worker does not overwrite dynamically exported database credentials', () => {
+    assert.match(restoreWorkflow, /PGPASSWORD<<\\?\$\{delimiter\}/);
+    assert.doesNotMatch(restoreWorkflow, /\$\{\{ env\.(?:PGPASSWORD|PGHOST) \}\}/);
+    assert.match(restoreWorkflow, /psql_db\(\)/);
+});
