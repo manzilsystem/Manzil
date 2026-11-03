@@ -53,4 +53,10 @@ alter policy audit_logs_manager_insert on public.audit_logs with check (actor_id
 drop function if exists public.is_building_member(uuid);
 drop function if exists public.is_building_manager(uuid);
 drop function if exists public.owns_resident(uuid);
-revoke all on function public.rls_auto_enable() from anon, authenticated;
+DO $
+BEGIN
+  IF to_regprocedure('public.rls_auto_enable()') IS NOT NULL THEN
+    EXECUTE 'revoke all on function public.rls_auto_enable() from anon, authenticated';
+  END IF;
+END;
+$;
