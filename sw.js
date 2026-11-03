@@ -8,7 +8,6 @@ const APP_SHELL = [
     './js/access.js',
     './js/render.js',
     './js/crud.js',
-    './js/backup.js',
     './js/notices.js',
     './js/reports.js',
     './js/settings.js',
