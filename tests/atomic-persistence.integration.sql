@@ -475,8 +475,21 @@ BEGIN
     v_summary := public.get_cashbox_summary(v_building);
     IF (v_summary#>>'{balances,main}')::numeric <> 70
        OR (v_summary#>>'{balances,development}')::numeric <> 10
-       OR (v_summary#>>'{balances,emergency}')::numeric <> 0 THEN
-        RAISE EXCEPTION 'cashbox balances after allocation are incorrect: %', v_summary;
+       OR (v_summary#>>'{balances,emergency}')::numeric <> 0
+       OR (
+          (v_summary#>>'{balances,main}')::numeric
+          + (v_summary#>>'{balances,development}')::numeric
+          + (v_summary#>>'{balances,emergency}')::numeric
+       ) <> (
+          SELECT building.starting_balance
+              + COALESCE((SELECT SUM(payment.amount) FROM public.income payment
+                          WHERE payment.building_id = v_building), 0)
+              - COALESCE((SELECT SUM(expense.amount) FROM public.expenses expense
+                          WHERE expense.building_id = v_building), 0)
+          FROM public.buildings building
+          WHERE building.id = v_building
+       ) THEN
+        RAISE EXCEPTION 'cashbox balances do not reconcile to the total financial ledger: %', v_summary;
     END IF;
 
     BEGIN
