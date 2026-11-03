@@ -18,4 +18,6 @@ test('monthly close module is pre-cached with the application shell', () => {
     const shell = sw.match(/const APP_SHELL = \[([\s\S]*?)\];/);
     assert.ok(shell, 'APP_SHELL must exist');
     assert.match(shell[1], /'\.\/js\/monthly-close\.js'/);
+    assert.match(shell[1], /'\.\/js\/notices\.js'/);
+    assert.match(html, /js\/crud\.js[\s\S]*js\/notices\.js/);
 });
