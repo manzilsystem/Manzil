@@ -682,7 +682,7 @@
             <form id="residentForm" onsubmit="handleResidentSubmit(event)" class="p-5 space-y-3">
                 <input type="text" id="residentName" aria-label="اسم الساكن" placeholder="اسم الساكن" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 <div class="grid grid-cols-2 gap-2">
-                    <select id="residentFloor" aria-label="الدور" required onchange="updateResidentApartmentOptions()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر الدور</option></select>
+                    <select id="residentFloor" aria-label="الدور" onchange="updateResidentApartmentOptions()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر الدور</option></select>
                     <select id="residentApartment" aria-label="رقم الشقة" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر رقم الشقة</option></select>
                     <input type="tel" id="residentPhone" aria-label="هاتف الساكن" placeholder="الهاتف" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 </div>
