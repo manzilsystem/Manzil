@@ -63,6 +63,16 @@ test('atomic save converts a legacy millisecond createdAt into a timestamptz ISO
     assert.equal(typeof rows[0].created_at, 'string');
 });
 
+test('apartment floor is optional and supported by the atomic database snapshot', () => {
+    const migration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261104000000_add_resident_floor.sql'), 'utf8');
+    assert.match(migration, /ADD COLUMN IF NOT EXISTS floor text/);
+    assert.match(migration, /apartment_number, floor, phone/);
+    assert.match(migration, /floor text, phone text/);
+    assert.match(migration, /floor = EXCLUDED\.floor/);
+    assert.match(supabaseSource, /floor: row\.floor \|\| ''/);
+    assert.match(supabaseSource, /floor: r\.floor \|\| null/);
+});
+
 test('new apartments use an ISO creation timestamp and invalid saved dates are rejected', () => {
     assert.match(crudSource, /const createdAt = new Date\(\);[\s\S]*?createdAt: createdAt\.toISOString\(\),/);
     assert.throws(() => makeSaveHarness({}).app.toSupabaseTimestamp('not-a-date'), /Invalid timestamp/);
