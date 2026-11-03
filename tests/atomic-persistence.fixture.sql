@@ -78,9 +78,9 @@ CREATE TABLE public.audit_logs (
 
 CREATE FUNCTION auth.uid() RETURNS uuid
 LANGUAGE sql STABLE
-AS $body$$
+AS $
     SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
-$body$$;
+$;
 
 
 CREATE FUNCTION private.is_building_manager(target_building uuid)
