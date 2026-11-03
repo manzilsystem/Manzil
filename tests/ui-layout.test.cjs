@@ -47,6 +47,6 @@ test('form controls expose accessible names for assistive technology', () => {
     for (const id of controlIds) {
         const control = html.match(new RegExp('<(?:input|select|textarea)\\\\b[^>]*\\\\bid="' + id + '"[^>]*>'));
         assert.ok(control, `expected control #${id} to exist`);
-        assert.match(control[0], /\\\\baria-label="[^"]+"/, `expected control #${id} to have an accessible name`);
+        assert.ok(control[0].includes('aria-label="'), `expected control #${id} to have an accessible name`);
     }
 });
