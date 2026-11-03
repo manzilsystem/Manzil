@@ -57,8 +57,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
-          PGPASSWORD: ${{ env.PGPASSWORD }}
-          PGHOST: ${{ env.PGHOST }}
           PGPORT: "5432"
           PGDATABASE: postgres
           PGSSLMODE: require
