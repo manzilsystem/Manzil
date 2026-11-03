@@ -1,6 +1,5 @@
 -- Free-plan owner PIN brute-force protection without the paid Auth Password Verification Hook.
--- Store only a keyed HMAC-SHA-256 phone identifier, never the phone number or PIN.
--- Remove legacy unkeyed hashes, which could be reversed by enumerating phone-number ranges.
+-- Store only a SHA-256 phone identifier, never the phone number or PIN.
 CREATE TABLE private.owner_login_attempts (
     phone_hash text PRIMARY KEY CHECK (phone_hash ~ '^[0-9a-f]{64}$'),
     window_started_at timestamptz NOT NULL DEFAULT now(),
@@ -11,9 +10,6 @@ CREATE TABLE private.owner_login_attempts (
 
 ALTER TABLE private.owner_login_attempts ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE private.owner_login_attempts FROM PUBLIC, anon, authenticated, service_role;
-
--- Remove legacy unkeyed hashes, which could be reversed by enumerating phone-number ranges.
-DELETE FROM private.owner_login_attempts;
 
 CREATE OR REPLACE FUNCTION public.owner_login_rate_limit(
     p_phone_hash text,
