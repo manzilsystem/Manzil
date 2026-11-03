@@ -32,8 +32,15 @@ function authEmailForPhone(phone: string): string {
   return `${phone.slice(1)}@phone-login.manzil.invalid`
 }
 
-async function hashPhone(phone: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(phone))
+async function hashPhone(phone: string, secret: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  const digest = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(phone))
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
 }
 
@@ -94,7 +101,7 @@ Deno.serve(async (request: Request) => {
   if (membershipError) return json(500, { error: 'membership_lookup_failed' })
   if (!membership) return json(403, { error: 'owner_only' })
 
-  const phoneHash = await hashPhone(profile.phone)
+  const phoneHash = await hashPhone(profile.phone, serviceRoleKey)
   const { data: rateLimit, error: rateLimitError } = await admin.rpc('owner_login_rate_limit', {
     p_phone_hash: phoneHash,
     p_action: 'attempt',
