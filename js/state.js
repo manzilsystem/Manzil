@@ -53,15 +53,42 @@ function cloneStateSnapshot() {
     return JSON.parse(JSON.stringify(state));
 }
 
+let saveRollbackPendingCount = 0;
+let saveRollbackBaseline = null;
+let saveExecutionQueue = Promise.resolve();
+
+function enqueueStateSave() {
+    const queuedSave = saveExecutionQueue.then(() => saveState());
+    saveExecutionQueue = queuedSave.then(() => undefined, () => undefined);
+    return queuedSave;
+}
+
 async function saveWithRollback(previousState) {
-    const saved = await saveState();
-    if (saved) {
-        if (typeof renderAll === 'function') renderAll();
-        return true;
+    if (saveRollbackPendingCount === 0) saveRollbackBaseline = previousState;
+    saveRollbackPendingCount += 1;
+    const attemptedState = cloneStateSnapshot();
+
+    let saved = false;
+    try {
+        saved = await enqueueStateSave();
+    } catch (error) {
+        console.error('Save operation failed:', error);
     }
-    state = previousState;
+
+    if (saved) {
+        saveRollbackBaseline = attemptedState;
+    }
+    saveRollbackPendingCount -= 1;
+
+    if (!saved && saveRollbackPendingCount === 0) {
+        state = saveRollbackBaseline || previousState;
+    }
+    if (saveRollbackPendingCount === 0) {
+        saveRollbackBaseline = null;
+    }
+
     if (typeof renderAll === 'function') renderAll();
-    return false;
+    return saved;
 }
 
 async function clearAuditLog() {

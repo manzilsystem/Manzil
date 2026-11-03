@@ -83,3 +83,170 @@ test('all client-side JavaScript modules parse without syntax errors', () => {
         assert.doesNotThrow(() => new vm.Script(fs.readFileSync(path.join(jsDirectory, file), 'utf8'), { filename: file }), file);
     }
 });
+
+
+test('cashbox UI applies starting balance, collection and expense deltas in cents', () => {
+    const sandbox = {
+        state: {
+            startingBalance: 1000,
+            income: [{ amount: 100.10 }],
+            expenses: [
+                { amount: 50.05, cashAccountCode: 'main' },
+                { amount: 20.10, cashAccountCode: 'development' },
+                { amount: 10.05, cashAccountCode: 'emergency' }
+            ],
+            cashAccountBalances: { main: 500, development: 200, emergency: 300 }
+        }
+    };
+    const accounting = vm.runInNewContext(
+        `${cashbox}\n({ calculateCashboxAccountingTotals, initializeCashboxAccountingSnapshot, syncCashboxBalancesAfterSnapshot, getState: () => state })`,
+        sandbox,
+        { filename: 'js/cashbox.js' }
+    );
+
+    accounting.initializeCashboxAccountingSnapshot();
+    sandbox.state.startingBalance += 25.25;
+    sandbox.state.income.push({ amount: 30.30 });
+    sandbox.state.expenses.push(
+        { amount: 5.05, cashAccountCode: 'main' },
+        { amount: 4.04, cashAccountCode: 'development' },
+        { amount: 3.03, cashAccountCode: 'emergency' }
+    );
+
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(accounting.calculateCashboxAccountingTotals())),
+        {
+            startingBalance: 102525,
+            income: 13040,
+            expenses: { main: 5510, development: 2414, emergency: 1308 }
+        }
+    );
+    assert.equal(accounting.syncCashboxBalancesAfterSnapshot(), true);
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(accounting.getState().cashAccountBalances)),
+        { main: 550.50, development: 195.96, emergency: 296.97 }
+    );
+    assert.equal(accounting.syncCashboxBalancesAfterSnapshot(), true);
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(accounting.getState().cashAccountBalances)),
+        { main: 550.50, development: 195.96, emergency: 296.97 }
+    );
+});
+
+
+function createCashboxDomSandbox(overrides = {}) {
+    const { state: stateOverrides = {}, currentUserRole = 'manager', ...elementOverrides } = overrides;
+    const elements = new Map();
+    const makeElement = (id, initial = {}) => {
+        const element = {
+            id,
+            textContent: '',
+            innerHTML: '',
+            value: '',
+            disabled: false,
+            className: '',
+            classes: new Set(),
+            classList: {
+                add(name) { element.classes.add(name); },
+                remove(name) { element.classes.delete(name); },
+                contains(name) { return element.classes.has(name); }
+            },
+            ...initial
+        };
+        elements.set(id, element);
+        return element;
+    };
+    [
+        'cashBalance-main', 'cashBalance-development', 'cashBalance-emergency',
+        'cashBalance-total', 'cashTransfersList', 'cashTransferPreview',
+        'cashTransferPreviewText', 'cashTransferSubmitButton',
+        'cashTransferFrom', 'cashTransferTo', 'cashTransferAmount'
+    ].forEach(id => makeElement(id));
+    Object.assign(elements.get('cashTransferFrom'), { value: 'main' });
+    Object.assign(elements.get('cashTransferTo'), { value: 'development' });
+    Object.assign(elements.get('cashTransferAmount'), { value: '10' });
+    for (const [id, value] of Object.entries(elementOverrides)) {
+        const element = elements.get(id);
+        if (!element) throw new Error(`Unknown cashbox test element: ${id}`);
+        Object.assign(element, value);
+    }
+
+    const sandbox = {
+        state: {
+            cashAccountBalances: { main: 100, development: 20, emergency: 30 },
+            cashTransfers: [],
+            ...stateOverrides
+        },
+        currentUserRole,
+        document: { getElementById: id => elements.get(id) || null },
+        fmtNum: value => Number(value).toFixed(2),
+        formatDate: value => String(value || ''),
+        esc: value => String(value ?? '').replace(/[&<>"']/g, character => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[character]),
+        console
+    };
+    const api = vm.runInNewContext(
+        `${cashbox}\n({ renderCashbox, previewCashTransfer, getCashAccountBalance })`,
+        sandbox,
+        { filename: 'js/cashbox.js' }
+    );
+    return { api, elements, sandbox };
+}
+
+test('cashbox renderer displays all three balances, total and safely escaped transfer history', () => {
+    const { api, elements } = createCashboxDomSandbox({
+        state: {
+            cashAccountBalances: { main: 1120, development: 150, emergency: 175 },
+            cashTransfers: [{
+                fromAccountCode: 'main',
+                toAccountCode: 'development',
+                amount: 400,
+                notes: '<img src=x onerror=alert(1)>',
+                transferredAt: '2026-11-03'
+            }]
+        }
+    });
+
+    api.renderCashbox();
+
+    assert.equal(elements.get('cashBalance-main').textContent, '1120.00 ج.م');
+    assert.equal(elements.get('cashBalance-development').textContent, '150.00 ج.م');
+    assert.equal(elements.get('cashBalance-emergency').textContent, '175.00 ج.م');
+    assert.equal(elements.get('cashBalance-total').textContent, '1445.00 ج.م');
+    assert.ok(elements.get('cashTransfersList').innerHTML.includes('&lt;img src=x onerror=alert(1)&gt;'));
+    assert.doesNotMatch(elements.get('cashTransfersList').innerHTML, /<img/);
+});
+
+test('cashbox renderer does not expose manager balances in the owner role', () => {
+    const { api, elements } = createCashboxDomSandbox({
+        currentUserRole: 'owner',
+        state: { cashAccountBalances: { main: 900, development: 0, emergency: 0 } }
+    });
+
+    api.renderCashbox();
+
+    assert.equal(elements.get('cashBalance-main').textContent, '');
+    assert.equal(elements.get('cashBalance-total').textContent, '');
+});
+
+test('cash transfer preview disables invalid and over-balance transfers', () => {
+    const { api, elements } = createCashboxDomSandbox();
+
+    elements.get('cashTransferAmount').value = '125';
+    api.previewCashTransfer();
+    assert.equal(elements.get('cashTransferSubmitButton').disabled, true);
+    assert.match(elements.get('cashTransferPreviewText').textContent, /الرصيد المتاح/);
+
+    elements.get('cashTransferTo').value = 'main';
+    elements.get('cashTransferAmount').value = '10';
+    api.previewCashTransfer();
+    assert.equal(elements.get('cashTransferSubmitButton').disabled, true);
+    assert.match(elements.get('cashTransferPreviewText').textContent, /صندوقين مختلفين/);
+
+    elements.get('cashTransferTo').value = 'development';
+    elements.get('cashTransferAmount').value = '25';
+    api.previewCashTransfer();
+    assert.equal(elements.get('cashTransferSubmitButton').disabled, false);
+    assert.match(elements.get('cashTransferPreviewText').textContent, /الرصيد بعد التحويل/);
+});

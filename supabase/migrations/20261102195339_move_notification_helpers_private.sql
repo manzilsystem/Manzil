@@ -93,5 +93,6 @@ with check (private.can_read_notification(building_id, target_user_id, target_re
 revoke all on function public.can_read_notification(uuid, uuid, uuid) from public, anon, authenticated;
 drop function public.can_read_notification(uuid, uuid, uuid);
 
-revoke all on function public.is_building_manager(uuid) from public, anon, authenticated;
-drop function public.is_building_manager(uuid);
+-- The public helper may already have been removed by an earlier migration.
+-- DROP IF EXISTS keeps clean-database replay and upgraded projects consistent.
+drop function if exists public.is_building_manager(uuid);
