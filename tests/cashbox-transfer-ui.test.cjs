@@ -420,7 +420,7 @@ function createCashboxSummaryHarness(response) {
 }
 
 const validCashboxSummary = {
-    balances: { main: 100, development: 25, emergency: -5 },
+    balances: { main: 100, development: 25, emergency: 5 },
     transfers: [{
         id: 'transfer-1',
         from_account_code: 'main',
@@ -453,6 +453,8 @@ test('cashbox summary refresh preserves last known balances and transfers on mal
         { balances: { main: 100, development: 25 }, transfers: [] },
         { balances: { main: 100, development: null, emergency: 5 }, transfers: [] },
         { balances: { main: 100, development: 25, emergency: 5, extra: 1 }, transfers: [] },
+        { balances: { main: 100, development: -1, emergency: 5 }, transfers: [] },
+        { balances: { main: 100, development: 25, emergency: -0.01 }, transfers: [] },
         { balances: { main: 100, development: 25, emergency: 5 }, transfers: [{ id: 'bad' }] }
     ];
 
@@ -497,4 +499,19 @@ test('cashbox summary loader validates server data before assigning global state
     assert.ok(validationAt >= 0 && assignmentAt > validationAt);
     assert.ok(supabaseSource.includes('cashAccountBalances: cashboxSummary.balances'));
     assert.ok(supabaseSource.includes('cashTransfers: cashboxSummary.transfers.map(mapCashTransfer)'));
+});
+
+
+test('cashbox summary rejects negative balances in restricted funds', () => {
+    for (const balances of [
+        { main: 100, development: -1, emergency: 0 },
+        { main: 100, development: 0, emergency: -0.01 }
+    ]) {
+        assert.equal(
+            hasValidCashboxBalances(balances),
+            false,
+            'restricted fund balances cannot be negative'
+        );
+    }
+    assert.equal(hasValidCashboxBalances({ main: -1, development: 0, emergency: 0 }), true);
 });
