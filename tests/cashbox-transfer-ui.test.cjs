@@ -420,7 +420,7 @@ function createCashboxSummaryHarness(response) {
 }
 
 const validCashboxSummary = {
-    balances: { main: 100, development: 25, emergency: -5 },
+    balances: { main: 100, development: 25, emergency: 5 },
     transfers: [{
         id: 'transfer-1',
         from_account_code: 'main',
@@ -439,7 +439,7 @@ test('cashbox summary refresh validates and applies the complete authoritative s
     assert.equal(refreshed, true);
     assert.deepEqual(
         JSON.parse(JSON.stringify(harness.sandbox.state.cashAccountBalances)),
-        { main: 100, development: 25, emergency: -5 }
+        { main: 100, development: 25, emergency: 5 }
     );
     assert.equal(harness.sandbox.state.cashTransfers.length, 1);
     assert.equal(harness.sandbox.state.cashTransfers[0].amount, 25);
@@ -453,6 +453,8 @@ test('cashbox summary refresh preserves last known balances and transfers on mal
         { balances: { main: 100, development: 25 }, transfers: [] },
         { balances: { main: 100, development: null, emergency: 5 }, transfers: [] },
         { balances: { main: 100, development: 25, emergency: 5, extra: 1 }, transfers: [] },
+        { balances: { main: 100, development: -1, emergency: 5 }, transfers: [] },
+        { balances: { main: 100, development: 25, emergency: -0.01 }, transfers: [] },
         { balances: { main: 100, development: 25, emergency: 5 }, transfers: [{ id: 'bad' }] }
     ];
 
@@ -497,4 +499,24 @@ test('cashbox summary loader validates server data before assigning global state
     assert.ok(validationAt >= 0 && assignmentAt > validationAt);
     assert.ok(supabaseSource.includes('cashAccountBalances: cashboxSummary.balances'));
     assert.ok(supabaseSource.includes('cashTransfers: cashboxSummary.transfers.map(mapCashTransfer)'));
+});
+
+
+test('cashbox summary rejects negative balances in restricted funds', () => {
+    const api = vm.runInNewContext(
+        [source, '({ hasValidCashboxBalances })'].join(String.fromCharCode(10)),
+        {},
+        { filename: 'cashbox-negative-balance-test.js' }
+    );
+    for (const balances of [
+        { main: 100, development: -1, emergency: 0 },
+        { main: 100, development: 0, emergency: -0.01 }
+    ]) {
+        assert.equal(
+            api.hasValidCashboxBalances(balances),
+            false,
+            'restricted fund balances cannot be negative'
+        );
+    }
+    assert.equal(api.hasValidCashboxBalances({ main: -1, development: 0, emergency: 0 }), true);
 });

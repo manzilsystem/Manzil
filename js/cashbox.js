@@ -26,7 +26,8 @@ function hasValidCashboxBalances(balances) {
         accountCodes.every(code =>
             Object.prototype.hasOwnProperty.call(balances, code) &&
             typeof balances[code] === 'number' &&
-            Number.isFinite(balances[code])
+            Number.isFinite(balances[code]) &&
+            (code === 'main' || balances[code] >= 0)
         );
 }
 
