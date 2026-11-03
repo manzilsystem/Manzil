@@ -35,6 +35,13 @@ test('floor dropdown starts at floor one and uses the configured count', () => {
     assert.doesNotMatch(elements.residentFloor.innerHTML, /value="0"/);
 });
 
+test('Arabic-Indic floor digits are normalized for dropdown generation', () => {
+    const { api, elements } = createLayoutHarness();
+    api.populateResidentFloorOptions('٢');
+    assert.equal(elements.residentFloor.value, '2');
+    assert.match(elements.residentFloor.innerHTML, /value="2">الدور ٢/);
+});
+
 test('apartment numbers are sequential across floors and occupied numbers are hidden', () => {
     const { api, elements } = createLayoutHarness({
         residents: [
