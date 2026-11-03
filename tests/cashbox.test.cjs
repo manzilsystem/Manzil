@@ -65,6 +65,8 @@ test('cashbox screens and summaries are manager-only in the application', () => 
     assert.match(app, /'dashboard','income','expenses','cashbox','residents','reports'/);
     assert.match(html, /id="tab-cashbox"/);
     assert.match(html, /id="cashTransfersList"/);
+    assert.match(html, /id="cashBalance-total"/);
+    assert.match(cashbox, /reduce\(\(sum, code\) => sum \+ getCashAccountBalance\(code\), 0\)/);
     assert.match(html, /src="js\/cashbox\.js"/);
 });
 
