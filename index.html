@@ -504,8 +504,10 @@
 </details>
             <div class="app-card p-5 rounded-3xl border space-y-3">
                 <div class="flex justify-between items-center">
-                    <h3 class="font-bold text-xs flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> سجل التدقيق</h3>
-                    <button onclick="clearAuditLog()" class="text-[10px] text-slate-400 hover:text-rose-400 underline">مسح السجل</button>
+                    <div>
+                        <h3 class="font-bold text-xs flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-indigo-400" aria-hidden="true"></i> سجل العمليات</h3>
+                        <p class="text-[10px] text-slate-500 mt-1">يُحفظ تلقائيًا للمراجعة، ولا يمكن مسحه من التطبيق.</p>
+                    </div>
                 </div>
                 <div id="auditLogContainer" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
             </div>
