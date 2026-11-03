@@ -1,8 +1,8 @@
-\\set ON_ERROR_STOP on
-\\ir atomic-persistence.integration.sql
+\set ON_ERROR_STOP on
+\ir atomic-persistence.integration.sql
 
 -- Apply the candidate migration after the baseline fixture is fully built.
-\\ir ../supabase/migrations/20261103161000_notification_recipient_building_isolation.sql
+\ir ../supabase/migrations/20261103161000_notification_recipient_building_isolation.sql
 
 -- Owner B is linked only to a resident in the second building.
 INSERT INTO public.residents (
