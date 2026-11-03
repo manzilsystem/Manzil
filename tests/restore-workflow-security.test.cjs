@@ -28,3 +28,7 @@ test('restore retains the existing archive checksum and custom-format validation
     assert.match(workflow, /pg_restore --list "\/backup\/\$filename"/);
     assert.match(workflow, /--single-transaction --exit-on-error/);
 });
+
+test('restore request claiming retains row-level concurrency locking', () => {
+    assert.match(workflow, /FOR UPDATE OF r SKIP LOCKED/);
+});
