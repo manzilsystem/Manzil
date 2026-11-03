@@ -558,7 +558,7 @@ RESET ROLE;
 \ir monthly-cashbox-close.integration.sql
 
 
-\\ir ../supabase/migrations/20261103171300_index_cashbox_rate_history_fks.sql
+\ir ../supabase/migrations/20261103150003_index_cashbox_rate_history_fks.sql
 
 DO $foreign_key_indexes$
 DECLARE
