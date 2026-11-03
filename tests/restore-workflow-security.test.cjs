@@ -30,11 +30,10 @@ test('restore retains the existing archive checksum and custom-format validation
 });
 
 test('restore request is claimed atomically with SKIP LOCKED', () => {
-    assert.match(workflow, /WITH next_request AS \\(SELECT r\\.id FROM public\\.restore_requests r WHERE r\\.status='queued'[\\s\\S]*?LIMIT 1 FOR UPDATE SKIP LOCKED\\) UPDATE public\\.restore_requests r SET status='running'/);
-    assert.match(workflow, /RETURNING r\\.id::text[\\s\\S]*?COALESCE\\(\\(SELECT b\\.sha256 FROM public\\.backup_catalog b WHERE b\\.tag=r\\.backup_tag\\), ''\\)/);
-    assert.doesNotMatch(workflow, /SELECT r\\.id::text[\\s\\S]*?FOR UPDATE OF r SKIP LOCKED/);
+    assert.ok(workflow.includes("WITH next_request AS (SELECT r.id FROM public.restore_requests r WHERE r.status='queued' ORDER BY r.created_at LIMIT 1 FOR UPDATE SKIP LOCKED) UPDATE public.restore_requests r SET status='running'"));
+    assert.ok(workflow.includes("RETURNING r.id::text || '|' || r.backup_tag || '|' || COALESCE((SELECT b.sha256 FROM public.backup_catalog b WHERE b.tag=r.backup_tag), '')"));
+    assert.doesNotMatch(workflow, /FOR UPDATE OF r SKIP LOCKED/);
 });
-
 test('missing or malformed catalog digest is terminally failed before download or restore', () => {
     const invalidDigest = workflow.indexOf('if [[ ! "$expected_sha" =~');
     const failUpdate = workflow.indexOf("status='failed',finished_at=now(),result_message='بصمة النسخة غير موجودة أو غير صالحة في سجل النسخ'");
