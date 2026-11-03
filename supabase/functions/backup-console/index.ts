@@ -116,7 +116,7 @@ Deno.serve(async (req: Request) => {
       if (!assetResponse.ok || !assetResponse.body) return json(502, { error: 'backup_download_failed' })
       const contentLength = Number(assetResponse.headers.get('content-length') || dumpAsset.size)
       const finalHost = new URL(assetResponse.url).hostname
-      if (contentLength !== Number(backup.size_bytes) || !['release-assets.githubusercontent.com', 'objects.githubusercontent.com'].includes(finalHost)) {
+      const contentType = (assetResponse.headers.get('content-type') || '').split(';')[0].trim().toLowerCase()\n      if (contentLength !== Number(backup.size_bytes) || !['api.github.com', 'release-assets.githubusercontent.com', 'objects.githubusercontent.com'].includes(finalHost) || contentType !== 'application/octet-stream') {
         return json(502, { error: 'backup_download_response_invalid' })
       }
       const responseHeaders = new Headers(headers)
