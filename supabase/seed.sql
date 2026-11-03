@@ -9,28 +9,28 @@
 -- Owner 102: +201555001102 / PIN 654321
 
 INSERT INTO auth.users (
-    id, aud, role, email, encrypted_password, email_confirmed_at, confirmed_at,
+    id, aud, role, email, encrypted_password, email_confirmed_at,
     raw_app_meta_data, raw_user_meta_data, created_at, updated_at
 )
 VALUES
 (
     '10000000-0000-4000-8000-000000000001',
     'authenticated', 'authenticated', 'manager@manzil.invalid',
-    extensions.crypt('Manzil-Local-Only-2026!', extensions.gen_salt('bf')), now(), now(),
+    extensions.crypt('Manzil-Local-Only-2026!', extensions.gen_salt('bf')), now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
     '{"full_name":"مدير تجريبي"}'::jsonb, now(), now()
 ),
 (
     '10000000-0000-4000-8000-000000000002',
     'authenticated', 'authenticated', '201555001101@phone-login.manzil.invalid',
-    extensions.crypt('123456', extensions.gen_salt('bf')), now(), now(),
+    extensions.crypt('123456', extensions.gen_salt('bf')), now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
     '{"full_name":"مالك تجريبي 101","phone":"+201555001101"}'::jsonb, now(), now()
 ),
 (
     '10000000-0000-4000-8000-000000000003',
     'authenticated', 'authenticated', '201555001102@phone-login.manzil.invalid',
-    extensions.crypt('654321', extensions.gen_salt('bf')), now(), now(),
+    extensions.crypt('654321', extensions.gen_salt('bf')), now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
     '{"full_name":"مالك تجريبي 102","phone":"+201555001102"}'::jsonb, now(), now()
 )
