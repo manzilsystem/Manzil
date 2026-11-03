@@ -145,10 +145,24 @@ Deno.serve(async (request: Request) => {
 
   // Change the Auth credential first. Keep the RLS first-login gate closed
   // until Auth confirms the new password has been saved successfully.
-  const { error: passwordError } = await admin.auth.admin.updateUserById(callerData.user.id, {
-    password: newPin,
-  })
-  if (passwordError) return json(400, { error: 'pin_update_failed' })
+  let passwordError: { status?: number; message?: string } | null = null
+  try {
+    const result = await admin.auth.admin.updateUserById(callerData.user.id, {
+      password: newPin,
+    })
+    passwordError = result.error
+  } catch (error) {
+    console.error('Auth credential update request failed without a confirmed outcome:', error)
+    return json(503, { error: 'pin_update_status_unknown' })
+  }
+  if (passwordError) {
+    const status = Number(passwordError.status || 0)
+    if ([400, 401, 403, 422, 429].includes(status)) {
+      return json(400, { error: 'pin_update_failed' })
+    }
+    console.error('Auth credential update outcome is unknown:', passwordError)
+    return json(503, { error: 'pin_update_status_unknown' })
+  }
 
   const { data: updatedProfile, error: updateError } = await admin
     .from('profiles')

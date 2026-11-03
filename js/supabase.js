@@ -741,10 +741,41 @@ async function submitFirstOwnerPinChange(event) {
             return;
         }
         if (errorCode === 'pin_updated_retry_required') {
+            const session = activeSession;
+            const generation = authGeneration;
+            try {
+                const loaded = await loadState();
+                if (!loaded || !isCurrentAuthSession(session, generation)) {
+                    clearAuthenticatedState();
+                    setAuthModal(true);
+                    return;
+                }
+                if (!ownerMustChangePin) {
+                    const modal = document.getElementById('ownerPinChangeModal');
+                    modal?.classList.add('hidden');
+                    modal?.classList.remove('flex');
+                    event.target.reset();
+                    await openAuthenticatedApp();
+                    return;
+                }
+            } catch (stateError) {
+                console.warn('Could not verify owner PIN completion state:', stateError);
+            }
             document.getElementById('currentOwnerPin').value = pin;
             document.getElementById('newOwnerPin').value = '';
             document.getElementById('confirmOwnerPin').value = '';
-            showFirstOwnerPinChange('تم تغيير PIN لكن تعذر إنهاء الحساب. اختر PIN جديدًا آخر باستخدام الرمز الجديد كرمز حالي.');
+            showFirstOwnerPinChange('تم تحديث PIN، لكن تعذر تأكيد فتح الحساب. جرّب إكمال الدخول باستخدام PIN الجديد.');
+            return;
+        }
+        if (errorCode === 'pin_update_status_unknown') {
+            document.getElementById('currentOwnerPin').value = pin;
+            document.getElementById('newOwnerPin').value = '';
+            document.getElementById('confirmOwnerPin').value = '';
+            showFirstOwnerPinChange('تعذر التأكد من نتيجة تحديث PIN. جرّب PIN الجديد كرمز حالي؛ وإذا لم يقبله النظام، أدخل PIN السابق. لن تُفتح البيانات قبل اكتمال التحقق.');
+            return;
+        }
+        if (errorCode === 'pin_update_failed') {
+            showFirstOwnerPinChange('لم يتم تغيير PIN. تحقق من الرمز الحالي وحاول مرة أخرى.');
             return;
         }
         showFirstOwnerPinChange('تعذر التحقق من PIN الحالي أو إكمال التغيير. راجع الرمز وحاول مجددًا.');
