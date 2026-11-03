@@ -67,7 +67,7 @@ jobs:
           export GH_TOKEN
           psql_db() {
             docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \
-              postgres:17-alpine psql --no-password --host="$PGHOST" --port="$PGPORT" \
+              postgres:17-alpine psql --no-password --quiet --host="$PGHOST" --port="$PGPORT" \
               --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 "$@"
           }
 
