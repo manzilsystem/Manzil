@@ -73,3 +73,9 @@ test('subscription rate RLS caches auth identity and indexes created_by foreign 
     assert.match(optimization, /bm\.user_id = \(SELECT auth\.uid\(\)\)/);
     assert.match(optimization, /resident_subscription_rates_created_by_idx/);
 });
+
+test('unused legacy subscription SECURITY DEFINER RPC is removed', () => {
+    const cleanup = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103072000_drop_legacy_subscription_rate_rpc.sql'), 'utf8');
+    assert.match(cleanup, /DROP FUNCTION IF EXISTS public\.set_resident_subscription_rate\(uuid, uuid, date, numeric\)/);
+    assert.doesNotMatch(supabaseSource, /set_resident_subscription_rate/);
+});
