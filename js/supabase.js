@@ -585,6 +585,7 @@ async function submitSupabaseLogin(event) {
     event.preventDefault();
     if (authLoading) return;
     authLoading = true;
+    const previousUserId = activeSession?.user?.id || null;
     const button = event.submitter || event.target.querySelector('button[type="submit"]');
     if (button) button.disabled = true;
     setAuthModal(true, 'جاري التحقق...');
@@ -659,6 +660,9 @@ async function submitSupabaseLogin(event) {
         if (error) {
             showSupabaseError('بيانات الدخول غير صحيحة أو الحساب غير مرتبط بمبنى.');
             return;
+        }
+        if (previousUserId && previousUserId !== data?.session?.user?.id) {
+            clearAuthenticatedState();
         }
         activeSession = data?.session || null;
         if (!activeSession) {
@@ -846,14 +850,53 @@ function handlePinInput() {}
 
 async function initSupabaseApp() {
     document.body.classList.add('session-locked');
-    supabaseClient.auth.onAuthStateChange((_event, session) => {
-        if (!session || (activeSession?.user?.id && session.user?.id !== activeSession.user.id)) authGeneration += 1;
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        const previousUserId = activeSession?.user?.id || null;
+        const nextUserId = session?.user?.id || null;
+        const userChanged = Boolean(previousUserId && nextUserId && previousUserId !== nextUserId);
+        const loginInProgress = authLoading;
+        const shouldLoadSession = Boolean(
+            session && !loginInProgress &&
+            (userChanged || (event === 'SIGNED_IN' && !previousUserId))
+        );
+
+        if (!session || userChanged) {
+            authGeneration += 1;
+            setAuthModal(true, userChanged ? 'جاري تبديل الحساب...' : '');
+        }
+
         setTimeout(async () => {
             if (!session) {
                 clearAuthenticatedState();
                 setAuthModal(true);
                 return;
             }
+
+            if (shouldLoadSession) {
+                clearAuthenticatedState();
+                activeSession = session;
+                const generation = authGeneration;
+                try {
+                    const loaded = await loadState();
+                    if (!loaded || !isCurrentAuthSession(session, generation)) {
+                        clearAuthenticatedState();
+                        setAuthModal(true);
+                        return;
+                    }
+                    if (ownerMustChangePin) {
+                        setAuthModal(false);
+                        showFirstOwnerPinChange();
+                    } else {
+                        await openAuthenticatedApp();
+                    }
+                } catch (loadError) {
+                    await signOutLocally();
+                    clearAuthenticatedState();
+                    showSupabaseError(loadError?.message || 'تعذر تحميل بيانات المبنى.');
+                }
+                return;
+            }
+
             activeSession = session;
         }, 0);
     });

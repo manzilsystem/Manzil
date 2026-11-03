@@ -353,6 +353,105 @@ test('a sign-out during loadState prevents stale data from reopening the authent
     assert.equal(h.elements.get('pinLockModal').classList.contains('hidden'), false);
 });
 
+test('a cross-tab sign-in for a different user clears old data and loads the new account', async () => {
+    const h = makeHarness();
+    let loadCount = 0;
+    let openCount = 0;
+    h.app.setLoadState(async () => {
+        loadCount += 1;
+        h.app.setSnapshot({
+            activeBuildingId: 'new-building',
+            supabaseStateLoaded: true,
+            currentUserRole: 'manager',
+            state: {
+                buildingName: 'المبنى الجديد', managerName: '', managerPhone: '', defaultSubscription: 0,
+                startingBalance: 0, currentTheme: 'dark', residents: [{ id: 'new-resident' }],
+                income: [], expenses: [], notices: [], auditLogs: [], lastUpdated: Date.now(),
+            },
+        });
+        return true;
+    });
+    h.app.setOpenAuthenticatedApp(async () => { openCount += 1; });
+
+    await h.app.initSupabaseApp();
+    h.app.setSnapshot({
+        activeSession: { user: { id: 'old-user' } },
+        activeBuildingId: 'old-building',
+        supabaseStateLoaded: true,
+        currentUserRole: 'manager',
+        state: {
+            buildingName: 'المبنى القديم', managerName: '', managerPhone: '', defaultSubscription: 0,
+            startingBalance: 0, currentTheme: 'dark', residents: [{ id: 'old-resident' }],
+            income: [{ id: 'old-income' }], expenses: [], notices: [], auditLogs: [], lastUpdated: Date.now(),
+        },
+    });
+
+    h.getAuthListener()('SIGNED_IN', { user: { id: 'new-user' } });
+    assert.equal(h.sandbox.document.body.classList.contains('session-locked'), true);
+    await h.flushTimers();
+
+    const snapshot = h.app.getSnapshot();
+    assert.equal(loadCount, 1);
+    assert.equal(openCount, 1);
+    assert.equal(snapshot.activeSession.user.id, 'new-user');
+    assert.equal(snapshot.activeBuildingId, 'new-building');
+    assert.equal(snapshot.state.buildingName, 'المبنى الجديد');
+    assert.deepEqual(Array.from(snapshot.state.residents), [{ id: 'new-resident' }]);
+    assert.deepEqual(Array.from(snapshot.state.income), []);
+});
+
+test('a same-tab login that changes accounts reloads once without a competing auth-listener load', async () => {
+    const h = makeHarness();
+    let loadCount = 0;
+    let openCount = 0;
+    h.client.auth.getSession = async () => ({ data: { session: null }, error: null });
+    await h.app.initSupabaseApp();
+    h.app.setSnapshot({
+        activeSession: { user: { id: 'old-user' } },
+        activeBuildingId: 'old-building',
+        supabaseStateLoaded: true,
+        currentUserRole: 'manager',
+        state: {
+            buildingName: 'المبنى القديم', managerName: '', managerPhone: '', defaultSubscription: 0,
+            startingBalance: 0, currentTheme: 'dark', residents: [{ id: 'old-resident' }],
+            income: [], expenses: [], notices: [], auditLogs: [], lastUpdated: Date.now(),
+        },
+    });
+    h.elements.get('authIdentifier').value = 'new-manager@example.test';
+    h.elements.get('authPassword').value = 'secret';
+    h.client.auth.signInWithPassword = async () => {
+        const session = { user: { id: 'new-user' } };
+        h.getAuthListener()('SIGNED_IN', session);
+        return { data: { session }, error: null };
+    };
+    h.app.setLoadState(async () => {
+        loadCount += 1;
+        h.app.setSnapshot({
+            activeBuildingId: 'new-building',
+            supabaseStateLoaded: true,
+            currentUserRole: 'manager',
+            state: {
+                buildingName: 'المبنى الجديد', managerName: '', managerPhone: '', defaultSubscription: 0,
+                startingBalance: 0, currentTheme: 'dark', residents: [{ id: 'new-resident' }],
+                income: [], expenses: [], notices: [], auditLogs: [], lastUpdated: Date.now(),
+            },
+        });
+        return true;
+    });
+    h.app.setOpenAuthenticatedApp(async () => { openCount += 1; });
+
+    await h.app.submitSupabaseLogin(h.makeSubmitEvent());
+    await h.flushTimers();
+
+    const snapshot = h.app.getSnapshot();
+    assert.equal(loadCount, 1);
+    assert.equal(openCount, 1);
+    assert.equal(snapshot.activeSession.user.id, 'new-user');
+    assert.equal(snapshot.activeBuildingId, 'new-building');
+    assert.equal(snapshot.state.buildingName, 'المبنى الجديد');
+    assert.deepEqual(Array.from(snapshot.state.income), []);
+});
+
 test('a temporary getSession failure still leaves the auth listener available for later sign-out events', async () => {
     const h = makeHarness();
     h.client.auth.getSession = async () => { throw new Error('network unavailable'); };
