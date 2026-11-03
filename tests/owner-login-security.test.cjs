@@ -39,7 +39,9 @@ test('only the service role can call the owner login rate-limit RPC', () => {
 });
 
 test('owner login hashes the phone, rate-limits before Auth, and never returns a session for invalid credentials', () => {
-    assert.match(loginFunction, /crypto\.subtle\.digest\('SHA-256'/i);
+    assert.match(loginFunction, /crypto\.subtle\.importKey\([\s\S]*?name: 'HMAC'[\s\S]*?hash: 'SHA-256'/i);
+    assert.match(loginFunction, /crypto\.subtle\.sign\('HMAC', key/);
+    assert.match(loginFunction, /hashPhone\(phone, serviceRoleKey\)/);
     assert.match(loginFunction, /from\('profiles'\)[\s\S]*?eq\('phone', phone\)/);
     assert.match(loginFunction, /from\('building_members'\)[\s\S]*?eq\('role', 'owner'\)/);
     assert.match(loginFunction, /p_action: 'attempt'/);
