@@ -24,27 +24,4 @@
         return loaded;
     };
 
-    const originalSaveState = saveState;
-    saveState = async function saveStateWithSubscriptionRates() {
-        const saved = await originalSaveState();
-        if (!saved) return false;
-        const rates = state.residents.flatMap(resident =>
-            (Array.isArray(resident.subscriptionRates) ? resident.subscriptionRates : [])
-                .map(rate => ({ residentId: resident.id, ...rate }))
-        );
-        for (const rate of rates) {
-            const { error } = await supabaseClient.rpc('set_resident_subscription_rate', {
-                p_building_id: activeBuildingId,
-                p_resident_id: rate.residentId,
-                p_effective_month: rate.effectiveMonth,
-                p_monthly_amount: rate.monthlyAmount
-            });
-            if (error) {
-                console.error('Subscription rate persistence failed:', error);
-                toast('تم حفظ بيانات المبنى، لكن تعذر حفظ تاريخ الاشتراك. أعد الحفظ بعد التحقق من الاتصال.', 'error');
-                return true;
-            }
-        }
-        return true;
-    };
 })();
