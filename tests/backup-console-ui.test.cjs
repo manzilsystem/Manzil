@@ -50,3 +50,9 @@ test('uncertain restore outcome after worker interruption forces a fresh authent
     assert.match(backupUi, /تعذر تأكيد نتيجة الاستعادة بعد انقطاع المهمة/);
     assert.match(backupUi, /if \(\(completedRestore \|\| uncertainRestore\) && typeof lockCurrentSession === 'function'\)/);
 });
+
+
+test('backup schedule copy matches the UTC workflow and Cairo seasonal time', () => {
+    assert.match(html, /موعد النسخ اليومي 02:23 UTC \(04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة\)/);
+    assert.doesNotMatch(html, /نسخة يومية 04:23 صباحًا بتوقيت مصر/);
+});
