@@ -56,3 +56,10 @@ test('abandoned restore requests are failed after a safe timeout', () => {
 test('restore worker suppresses psql command tags so empty RETURNING results stay empty', () => {
     assert.ok(workflow.includes('psql --no-password --quiet --host="$PGHOST"'));
 });
+
+test('restore worker authenticates against the Supabase pooler before selecting a host', () => {
+    assert.match(restoreWorkflow, /Verify Supabase session-pooler connection/);
+    assert.match(restoreWorkflow, /for password_mode in decoded encoded/);
+    assert.match(restoreWorkflow, /-c "SELECT 1"/);
+    assert.match(restoreWorkflow, /PGHOST=\$candidate/);
+});
