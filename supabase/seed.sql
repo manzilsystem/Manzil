@@ -340,7 +340,6 @@ BEGIN
     END IF;
 
     IF NOT EXISTS (
-        SELECT 1 FROM auth.users
         SELECT 1 FROM auth.identities
         WHERE user_id = v_manager_id
           AND email = 'manager@manzil.invalid'
