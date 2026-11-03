@@ -148,7 +148,14 @@ Deno.serve(async (request: Request) => {
   const { error: passwordError } = await admin.auth.admin.updateUserById(callerData.user.id, {
     password: newPin,
   })
-  if (passwordError) return json(400, { error: 'pin_update_failed' })
+  if (passwordError) {
+    const status = Number(passwordError.status || 0)
+    if ([400, 401, 403, 422, 429].includes(status)) {
+      return json(400, { error: 'pin_update_failed' })
+    }
+    console.error('Auth credential update outcome is unknown:', passwordError)
+    return json(503, { error: 'pin_update_status_unknown' })
+  }
 
   const { data: updatedProfile, error: updateError } = await admin
     .from('profiles')
