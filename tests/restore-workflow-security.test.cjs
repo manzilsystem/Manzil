@@ -52,3 +52,7 @@ test('abandoned restore requests are failed after a safe timeout', () => {
     assert.ok(staleRecovery >= 0 && staleRecovery < claimNext, 'stale requests must be closed before claiming a new request');
     assert.ok(!workflow.includes("UPDATE public.restore_requests SET status='queued'"));
 });
+
+test('restore worker suppresses psql command tags so empty RETURNING results stay empty', () => {
+    assert.ok(workflow.includes('psql --no-password --quiet --host="$PGHOST"'));
+});
