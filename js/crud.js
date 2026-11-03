@@ -481,7 +481,7 @@ function isValidBackup(data) {
         const months = r.subscriptionRates.map(rate => rate?.effectiveMonth);
         return hasUnique(months) && r.subscriptionRates.every(rate =>
             rate && typeof rate === 'object' &&
-            /^\\d{4}-(0[1-9]|1[0-2])-01$/.test(String(rate.effectiveMonth || '')) &&
+            /^\d{4}-(0[1-9]|1[0-2])-01$/.test(String(rate.effectiveMonth || '')) &&
             validAmount(rate.monthlyAmount)
         );
     })) return false;
