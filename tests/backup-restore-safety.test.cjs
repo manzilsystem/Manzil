@@ -115,6 +115,7 @@ test('full database backup download is restricted to global managers and a serve
     assert.match(edge, /Deno\.env\.get\('BACKUP_REPO_TOKEN'\)/);
     assert.match(edge, /\.select\('tag,file_name,size_bytes,sha256'\)/);
     assert.match(edge, /backup_checksum_mismatch/);
+    assert.match(edge, /checksumMatch\[2\]\.split\('\/'\)\.pop\(\) !== filename/);
     assert.match(edge, /X-Backup-SHA256/);
     assert.match(edge, /release-assets\.githubusercontent\.com/);
     assert.doesNotMatch(ui, /BACKUP_REPO_TOKEN|manzil_backups|api\.github\.com/i);
