@@ -1,6 +1,6 @@
 function switchTab(tab) {
     if (!requireManager()) return;
-    const tabs = ['dashboard','income','expenses','residents','reports'];
+    const tabs = ['dashboard','income','expenses','cashbox','residents','reports'];
     if (!tabs.includes(tab)) return;
     tabs.forEach(t => {
         document.getElementById('tab-' + t)?.classList.toggle('hidden', t !== tab);
