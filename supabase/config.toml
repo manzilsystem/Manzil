@@ -1,0 +1,2 @@
+[functions.owner-login]
+verify_jwt = false

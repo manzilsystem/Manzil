@@ -17,6 +17,12 @@ const pinChangeFunction = fs.readFileSync(
     'utf8'
 );
 const client = fs.readFileSync(path.join(root, 'js/supabase.js'), 'utf8');
+const supabaseConfig = fs.readFileSync(path.join(root, 'supabase/config.toml'), 'utf8');
+
+test('owner login Edge Function does not require a pre-existing JWT', () => {
+    assert.ok(supabaseConfig.includes('[functions.owner-login]'));
+    assert.ok(supabaseConfig.includes('verify_jwt = false'));
+});
 
 test('owner login attempts are stored privately as hashes with a bounded lockout window', () => {
     assert.match(migration, /CREATE TABLE private\.owner_login_attempts/i);
