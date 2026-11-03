@@ -5,10 +5,10 @@
 \ir ../supabase/migrations/20261103060000_effective_dated_subscription_rates.sql
 \ir ../supabase/migrations/20261103070000_atomic_subscription_rate_snapshot.sql
 \ir ../supabase/migrations/20261103073000_restrict_subscription_rate_visibility.sql
-\ir ../supabase/migrations/20261103080000_manager_only_resident_notes.sql
-\ir ../supabase/migrations/20261103090000_owner_login_rate_limit.sql
-\ir ../supabase/migrations/20261103100000_subscription_rate_change_history.sql
-\ir ../supabase/migrations/20261103120000_owner_payment_notifications.sql
+\ir ../supabase/migrations/20261103062659_manager_only_resident_notes.sql
+\ir ../supabase/migrations/20261103063455_owner_login_rate_limit.sql
+\ir ../supabase/migrations/20261103064001_subscription_rate_change_history.sql
+\ir ../supabase/migrations/20261103070519_owner_payment_notifications.sql
 
 INSERT INTO public.profiles (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),

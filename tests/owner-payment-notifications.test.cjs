@@ -4,7 +4,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const root = path.join(__dirname, '..');
-const migration = fs.readFileSync(path.join(root, 'supabase/migrations/20261103120000_owner_payment_notifications.sql'), 'utf8');
+const migration = fs.readFileSync(path.join(root, 'supabase/migrations/20261103070519_owner_payment_notifications.sql'), 'utf8');
 const supabase = fs.readFileSync(path.join(root, 'js/supabase.js'), 'utf8');
 const access = fs.readFileSync(path.join(root, 'js/access.js'), 'utf8');
 const crud = fs.readFileSync(path.join(root, 'js/crud.js'), 'utf8');
