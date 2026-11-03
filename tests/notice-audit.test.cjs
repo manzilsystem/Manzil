@@ -4,7 +4,10 @@ const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
 
-const source = fs.readFileSync(path.join(__dirname, '..', 'js', 'crud.js'), 'utf8');
+const source = fs.readFileSync(path.join(__dirname, '..', 'js', 'notices.js'), 'utf8');
+const crudSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'crud.js'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+const sw = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
 
 function loadDeleteNotice() {
     const sandbox = {
@@ -21,7 +24,7 @@ function loadDeleteNotice() {
         logAction(action, details) { sandbox.state.auditLogs.push({ action, details }); },
     };
     const app = vm.runInNewContext(`${source}\n({ deleteNotice })`, sandbox, {
-        filename: 'js/crud.js',
+        filename: 'js/notices.js',
     });
     return { app, sandbox };
 }
@@ -33,4 +36,15 @@ test('deleting a notice records the deletion in the audit log', async () => {
 
     assert.deepEqual(sandbox.state.notices, []);
     assert.deepEqual(sandbox.state.auditLogs, [{ action: 'حذف إعلان', details: 'إعلان الصيانة' }]);
+});
+
+
+test('notice and WhatsApp handlers are loaded as a dedicated cached module', () => {
+    for (const name of ['openNoticeModal', 'applyNoticeTemplate', 'handleNoticeSubmit', 'deleteNotice', 'shareNoticeToWhatsApp', 'copyNoticeToClipboard', 'cleanPhone', 'sendWhatsAppReminder']) {
+        assert.match(source, new RegExp('function ' + name + '\\\\b|async function ' + name + '\\\\b'));
+        assert.doesNotMatch(crudSource, new RegExp('function ' + name + '\\\\b|async function ' + name + '\\\\b'));
+    }
+    assert.match(html, /js\\/crud\\.js[\\s\\S]*js\\/notices\\.js/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v33'/);
+    assert.match(sw, /'\\.\\/js\\/notices\\.js'/);
 });
