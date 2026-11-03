@@ -50,5 +50,5 @@ test('abandoned restore requests are failed after a safe timeout', () => {
     const staleRecovery = workflow.indexOf("started_at < now() - interval '60 minutes'");
     const claimNext = workflow.indexOf('WITH next_request AS');
     assert.ok(staleRecovery >= 0 && staleRecovery < claimNext, 'stale requests must be closed before claiming a new request');
-    assert.doesNotMatch(workflow, /UPDATE public\\.restore_requests SET status='queued'/);
+    assert.ok(!workflow.includes("UPDATE public.restore_requests SET status='queued'"));
 });
