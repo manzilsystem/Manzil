@@ -165,13 +165,13 @@ jobs:
           registered="$RUNNER_TEMP/registered-backup-tags.txt"
           releases="$RUNNER_TEMP/backup-releases.jsonl"
 
-          docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \\
-            postgres:17-alpine psql --no-password --quiet --tuples-only --no-align \\
-              --host="$PGHOST" --port="$PGPORT" --username="postgres.musvcrkljccubwbcrtjs" \\
-              --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 \\
+          docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \
+            postgres:17-alpine psql --no-password --quiet --tuples-only --no-align \
+              --host="$PGHOST" --port="$PGPORT" --username="postgres.musvcrkljccubwbcrtjs" \
+              --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 \
               -c "SELECT tag FROM public.backup_catalog" > "$registered"
 
-          gh release list --repo manzilsystem/manzil_backups --limit 1000 \\
+          gh release list --repo manzilsystem/manzil_backups --limit 1000 \
             --json tagName,createdAt | jq -c '.[]' > "$releases"
 
           now="$(date -u +%s)"
