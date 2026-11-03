@@ -102,7 +102,8 @@ test('owner portal uses the effective subscription rate for the current month', 
 
     renderOwnerPortal();
 
-    assert.deepEqual(requestedRate, { item: resident, month: 'نوفمبر 2026' });
+    assert.equal(requestedRate.item, resident);
+    assert.equal(requestedRate.month, 'نوفمبر 2026');
     assert.match(portal.innerHTML, /اشتراكك الشهري 125 ج\.م/);
     assert.match(portal.innerHTML, /المتبقي لهذا الشهر[\s\S]*?100 ج\.م/);
 });
