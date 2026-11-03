@@ -646,6 +646,6 @@ test('pending transfer payload is restored into the form after reload when form 
     const reloaded = createTransferHarness({ sessionStore: storage, amount: 15 });
     await reloaded.api.submitCashTransfer(reloaded.event);
     assert.equal(reloaded.calls.rpc.length, 0);
-    assert.equal(reloaded.elements.get('cashTransferAmount').value, '15');
+    assert.equal(reloaded.elements.get('cashTransferAmount').value, '10');
     assert.equal(reloaded.calls.toasts.at(-1).type, 'error');
 });
