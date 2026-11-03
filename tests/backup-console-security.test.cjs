@@ -9,7 +9,7 @@ const source = fs.readFileSync(
 );
 
 test('database restore requires manager membership in every building', () => {
-    assert.match(source, /const hasGlobalRestoreAccess = async (): Promise<boolean \| null>/);
+    assert.match(source, /\s+const hasGlobalRestoreAccess = async \(\): Promise<boolean \| null>/);
     assert.match(source, /admin\.from\('buildings'\)\.select\('id'\)/);
     assert.match(source, /admin\.from\('building_members'\)[\s\S]*?\.eq\('user_id', auth\.user\.id\)[\s\S]*?\.eq\('role', 'manager'\)/);
     assert.match(source, /buildings\.every\(building =>[\s\S]*?managedMemberships\?\.some\(item => item\.building_id === building\.id\)/);
