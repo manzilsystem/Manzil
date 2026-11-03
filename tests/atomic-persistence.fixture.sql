@@ -8,7 +8,8 @@ CREATE SCHEMA private;
 CREATE TYPE public.app_role AS ENUM ('manager', 'owner');
 
 CREATE TABLE public.profiles (
-    id uuid PRIMARY KEY
+    id uuid PRIMARY KEY,
+    must_change_pin boolean NOT NULL DEFAULT false
 );
 CREATE TABLE public.buildings (
     id uuid PRIMARY KEY,
@@ -80,6 +81,51 @@ LANGUAGE sql STABLE
 AS $$
     SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
 $$;
+
+
+CREATE FUNCTION private.is_building_manager(target_building uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $
+    SELECT EXISTS (
+        SELECT 1 FROM public.building_members
+        WHERE building_id = target_building
+          AND user_id = (SELECT auth.uid())
+          AND role = 'manager'
+    );
+$;
+
+CREATE FUNCTION private.owns_resident(target_resident uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $
+    SELECT EXISTS (
+        SELECT 1 FROM public.residents
+        WHERE id = target_resident
+          AND user_id = (SELECT auth.uid())
+    );
+$;
+
+CREATE FUNCTION private.owner_pin_change_complete()
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $
+    SELECT NOT EXISTS (
+        SELECT 1
+        FROM public.building_members member
+        JOIN public.profiles profile ON profile.id = member.user_id
+        WHERE member.user_id = (SELECT auth.uid())
+          AND member.role = 'owner'
+          AND profile.must_change_pin IS TRUE
+    );
+$;
+
+GRANT EXECUTE ON FUNCTION private.is_building_manager(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION private.owns_resident(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION private.owner_pin_change_complete() TO authenticated;
 
 GRANT USAGE ON SCHEMA private TO authenticated;
 GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated;
