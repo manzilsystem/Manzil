@@ -93,15 +93,18 @@ BEGIN
 
     IF p_payload ? 'subscription_rates' AND EXISTS (
         SELECT 1
-        FROM jsonb_to_recordset(p_payload->'subscription_rates') AS rate(
-            resident_id uuid, effective_month date, monthly_amount numeric
-        )
-        LEFT JOIN jsonb_to_recordset(p_payload->'residents') AS resident(id uuid)
-            ON resident.id = rate.resident_id
-        WHERE rate.resident_id IS NULL OR resident.id IS NULL
-           OR rate.effective_month IS NULL
-           OR date_trunc('month', rate.effective_month)::date <> rate.effective_month
-           OR rate.monthly_amount IS NULL OR rate.monthly_amount < 0
+        FROM jsonb_array_elements(p_payload->'subscription_rates') AS rate(value)
+        WHERE jsonb_typeof(rate.value) IS DISTINCT FROM 'object'
+           OR NULLIF(rate.value->>'resident_id', '') IS NULL
+           OR NOT EXISTS (
+                SELECT 1
+                FROM jsonb_to_recordset(p_payload->'residents') AS resident(id uuid)
+                WHERE resident.id = (rate.value->>'resident_id')::uuid
+           )
+           OR NULLIF(rate.value->>'effective_month', '') IS NULL
+           OR EXTRACT(DAY FROM (rate.value->>'effective_month')::date) <> 1
+           OR NULLIF(rate.value->>'monthly_amount', '') IS NULL
+           OR (rate.value->>'monthly_amount')::numeric < 0
     ) THEN
         RAISE EXCEPTION 'invalid_subscription_rates' USING ERRCODE = '22023';
     END IF;
