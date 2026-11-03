@@ -95,20 +95,6 @@ BEGIN
         IF EXISTS (
             SELECT 1 FROM jsonb_to_recordset(p_payload->'subscription_rates') AS rate(
                 resident_id uuid, effective_month date, monthly_amount numeric
-            ) WHERE rate.resident_id IS NULL
-        ) THEN
-            RAISE EXCEPTION 'missing_subscription_rate_resident_id' USING ERRCODE = '22023';
-        END IF;
-        IF EXISTS (
-            SELECT 1 FROM jsonb_to_recordset(p_payload->'subscription_rates') AS rate(
-                resident_id uuid, effective_month date, monthly_amount numeric
-            ) WHERE NOT (p_payload->'residents' @> jsonb_build_array(jsonb_build_object('id', rate.resident_id::text)))
-        ) THEN
-            RAISE EXCEPTION 'subscription_rate_resident_not_in_snapshot' USING ERRCODE = '22023';
-        END IF;
-        IF EXISTS (
-            SELECT 1 FROM jsonb_to_recordset(p_payload->'subscription_rates') AS rate(
-                resident_id uuid, effective_month date, monthly_amount numeric
             ) WHERE rate.effective_month IS NULL
                OR EXTRACT(DAY FROM rate.effective_month) <> 1
         ) THEN
@@ -182,6 +168,18 @@ BEGIN
         apartment_number = EXCLUDED.apartment_number, phone = EXCLUDED.phone,
         monthly_amount = EXCLUDED.monthly_amount, notes = EXCLUDED.notes
     WHERE current_resident.building_id = p_building_id;
+
+    IF p_payload ? 'subscription_rates' AND EXISTS (
+        SELECT 1
+        FROM jsonb_to_recordset(p_payload->'subscription_rates') AS rate(
+            resident_id uuid, effective_month date, monthly_amount numeric
+        )
+        LEFT JOIN public.residents resident
+            ON resident.id = rate.resident_id AND resident.building_id = p_building_id
+        WHERE resident.id IS NULL
+    ) THEN
+        RAISE EXCEPTION 'subscription_rate_resident_not_in_building' USING ERRCODE = '22023';
+    END IF;
 
     -- Subscription history is persisted in this same transaction as the snapshot.
     -- Omitted by older clients: preserve existing history during rolling deployments.
