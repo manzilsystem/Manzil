@@ -83,7 +83,7 @@ async function saveSettings() {
             p_floor_count: previousState.floorCount || 0,
             p_apartments_per_floor: previousState.apartmentsPerFloor || 0
         });
-        if (rollback.error) toast('فشل حفظ الإعدادات، وتعذر التراجع عن إعدادات الأدوار. أعد تحميل المبنى للتحقق.', 'error');
+        if (rollback.error || !rollback.data?.ok) toast('فشل حفظ الإعدادات، وتعذر التراجع عن إعدادات الأدوار. أعد تحميل المبنى للتحقق.', 'error');
         return;
     }
     renderAll(); updateAccessSwitchButton(); closeModal('settingsModal'); toast('تم حفظ إعدادات العقار', 'success');
