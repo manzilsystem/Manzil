@@ -138,7 +138,7 @@ CREATE TABLE public.notifications (
     building_id uuid NOT NULL REFERENCES public.buildings(id) ON DELETE CASCADE,
     target_user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
     target_resident_id uuid REFERENCES public.residents(id) ON DELETE CASCADE,
-    target_scope uuid,
+    target_scope uuid GENERATED ALWAYS AS (COALESCE(target_user_id, '00000000-0000-0000-0000-000000000000'::uuid)) STORED,
     kind text NOT NULL CHECK (kind IN ('unpaid','partial','payment','expense','collection_due','backup_stale','announcement')),
     dedupe_key text NOT NULL,
     title text NOT NULL,

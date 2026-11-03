@@ -1,17 +1,24 @@
 \set ON_ERROR_STOP on
 \ir atomic-persistence.fixture.sql
+\ir ../supabase/migrations/20261102234716_effective_dated_subscription_rates.sql
+\ir ../supabase/migrations/20261102234718_seed_subscription_rate_baselines.sql
 \ir ../supabase/migrations/20261103000000_atomic_building_snapshot.sql
+\ir ../supabase/migrations/20261103025013_atomic_subscription_rate_snapshot.sql
+\ir ../supabase/migrations/20261103025143_optimize_subscription_rate_rls.sql
+\ir ../supabase/migrations/20261103030212_drop_legacy_subscription_rate_rpc.sql
+\ir ../supabase/migrations/20261103031121_restrict_subscription_rate_visibility.sql
 \ir ../supabase/migrations/20261103050000_allow_all_five_themes.sql
-\ir ../supabase/migrations/20261103060000_effective_dated_subscription_rates.sql
-\ir ../supabase/migrations/20261103070000_atomic_subscription_rate_snapshot.sql
-\ir ../supabase/migrations/20261103073000_restrict_subscription_rate_visibility.sql
 \ir ../supabase/migrations/20261103062659_manager_only_resident_notes.sql
 \ir ../supabase/migrations/20261103063455_owner_login_rate_limit.sql
 \ir ../supabase/migrations/20261103064001_subscription_rate_change_history.sql
 \ir ../supabase/migrations/20261103070519_owner_payment_notifications.sql
-\ir ../supabase/migrations/20261103080000_restrict_notification_update_columns.sql
+\ir ../supabase/migrations/20261103105856_restrict_notification_update_columns.sql
+\ir ../supabase/migrations/20261103105902_key_owner_login_rate_limit_hashes.sql
 \ir ../supabase/migrations/20261103105908_cashbox_funds_and_transfers.sql
+\ir ../supabase/migrations/20261103110732_fix_owner_payment_notification_generated_scope.sql
 \ir ../supabase/migrations/20261103113213_monthly_cashbox_close.sql
+
+\ir ../supabase/migrations/20261103143759_allow_owner_notification_read_state_updates.sql
 
 INSERT INTO public.profiles (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),
