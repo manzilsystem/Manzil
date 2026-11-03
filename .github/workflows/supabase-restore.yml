@@ -94,23 +94,28 @@ jobs:
             exit 0
           fi
 
-          # Fetch the trusted digest from the database catalog, independently of the release asset.
-          request="$(psql_db -At -F '|' -c "SELECT r.id::text || '|' || r.backup_tag || '|' || COALESCE(b.sha256, '') FROM public.restore_requests r LEFT JOIN public.backup_catalog b ON b.tag = r.backup_tag WHERE r.status='queued' ORDER BY r.created_at LIMIT 1 FOR UPDATE OF r SKIP LOCKED")"
+          # Atomically claim one request. The row lock and status transition happen in one statement.
+          request="$(psql_db -At -F '|' -c "WITH next_request AS (SELECT r.id FROM public.restore_requests r WHERE r.status='queued' ORDER BY r.created_at LIMIT 1 FOR UPDATE SKIP LOCKED) UPDATE public.restore_requests r SET status='running',started_at=now(),result_message='بدأ تنفيذ الاستعادة' FROM next_request n WHERE r.id=n.id RETURNING r.id::text || '|' || r.backup_tag || '|' || COALESCE((SELECT b.sha256 FROM public.backup_catalog b WHERE b.tag=r.backup_tag), '')")"
           if [ -z "$request" ]; then
             echo "No pending restore request."
             exit 0
           fi
           IFS='|' read -r request_id tag expected_sha <<< "$request"
           [[ "$request_id" =~ ^[0-9a-f-]{36}$ ]]
-          [[ "$tag" =~ ^backup-[0-9]{8}T[0-9]{6}Z$ ]]
-          [[ "$expected_sha" =~ ^[a-f0-9]{64}$ ]] || { echo "::error::Missing or invalid catalog SHA-256"; exit 1; }
-          filename="manzil-db-${tag#backup-}.dump"
-          psql_db -c "UPDATE public.restore_requests SET status='running',started_at=now(),result_message='بدأ تنفيذ الاستعادة' WHERE id='$request_id' AND status='queued'"
 
           restore_failed() {
             psql_db -c "UPDATE public.restore_requests SET status='failed',finished_at=now(),result_message='فشلت الاستعادة؛ تم إلغاء معاملة PostgreSQL إن أمكن' WHERE id='$request_id' AND status='running'" || true
           }
           trap restore_failed ERR
+
+          [[ "$tag" =~ ^backup-[0-9]{8}T[0-9]{6}Z$ ]]
+          if [[ ! "$expected_sha" =~ ^[a-f0-9]{64}$ ]]; then
+            psql_db -c "UPDATE public.restore_requests SET status='failed',finished_at=now(),result_message='بصمة النسخة غير موجودة أو غير صالحة في سجل النسخ' WHERE id='$request_id' AND status='running'"
+            trap - ERR
+            echo "::error::Missing or invalid catalog SHA-256"
+            exit 1
+          fi
+          filename="manzil-db-${tag#backup-}.dump"
 
           gh release download "$tag" --repo manzilsystem/manzil_backups \
             --pattern "$filename" --pattern "$filename.sha256" --dir "$RUNNER_TEMP"
