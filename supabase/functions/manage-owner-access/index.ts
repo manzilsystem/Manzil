@@ -108,7 +108,7 @@ Deno.serve(async (request: Request) => {
 
   const { data: existingProfile, error: profileLookupError } = await admin
     .from('profiles')
-    .select('id')
+    .select('*')
     .eq('phone', phone)
     .limit(1)
     .maybeSingle()
@@ -143,6 +143,94 @@ Deno.serve(async (request: Request) => {
     ownerUserId = existingProfile.id
   }
 
+  const { data: previousMembership, error: previousMembershipError } = await admin
+    .from('building_members')
+    .select('building_id, user_id, role')
+    .eq('building_id', membership.building_id)
+    .eq('user_id', ownerUserId)
+    .maybeSingle()
+  if (previousMembershipError) return json(500, { error: 'membership_snapshot_failed' })
+  if (previousMembership && previousMembership.role !== 'owner') {
+    return json(409, { error: 'account_has_conflicting_role' })
+  }
+
+  const { data: profileSnapshot, error: profileSnapshotError } = await admin
+    .from('profiles')
+    .select('*')
+    .eq('id', ownerUserId)
+    .maybeSingle()
+  if (profileSnapshotError || !profileSnapshot) {
+    return json(500, { error: 'profile_snapshot_failed' })
+  }
+
+  const residentSnapshot = { user_id: resident.user_id, phone: resident.phone }
+  let profileSaved = false
+  let membershipSaved = false
+  let residentLinked = false
+  let auditId: string | null = null
+
+  async function compensateProvisioning(): Promise<boolean> {
+    if (auditId) {
+      const { error } = await admin.from('audit_logs').delete().eq('id', auditId)
+      if (error) console.error('owner_access_compensation_audit_failed', error)
+    }
+
+    if (createdNewUser && ownerUserId) {
+      const { error } = await admin.auth.admin.deleteUser(ownerUserId)
+      if (error) {
+        console.error('owner_access_compensation_auth_delete_failed', error)
+        return false
+      }
+      return true
+    }
+
+    let restored = true
+    if (residentLinked) {
+      const { error } = await admin.from('residents').update({
+        user_id: residentSnapshot.user_id,
+        phone: residentSnapshot.phone,
+      }).eq('id', resident.id).eq('building_id', membership.building_id)
+      if (error) {
+        restored = false
+        console.error('owner_access_compensation_resident_failed', error)
+      }
+    }
+
+    if (membershipSaved) {
+      if (previousMembership) {
+        const { error } = await admin.from('building_members').upsert(previousMembership)
+        if (error) {
+          restored = false
+          console.error('owner_access_compensation_membership_failed', error)
+        }
+      } else {
+        const { error } = await admin.from('building_members').delete()
+          .eq('building_id', membership.building_id)
+          .eq('user_id', ownerUserId)
+        if (error) {
+          restored = false
+          console.error('owner_access_compensation_membership_delete_failed', error)
+        }
+      }
+    }
+
+    if (profileSaved) {
+      const { error } = await admin.from('profiles').upsert(profileSnapshot)
+      if (error) {
+        restored = false
+        console.error('owner_access_compensation_profile_failed', error)
+      }
+    }
+    return restored
+  }
+
+  const failWithCompensation = async (error: string, status = 500) => {
+    const restored = await compensateProvisioning()
+    return json(restored ? status : 500, {
+      error: restored ? error : 'provisioning_compensation_failed',
+    })
+  }
+
   const temporaryPin = generateTemporaryPin()
 
   if (ownerUserId) {
@@ -165,29 +253,32 @@ Deno.serve(async (request: Request) => {
     phone,
     must_change_pin: true,
   })
-  if (upsertProfileError) {
-    if (createdNewUser && ownerUserId) await admin.auth.admin.deleteUser(ownerUserId)
-    return json(500, { error: 'profile_save_failed' })
-  }
+  if (upsertProfileError) return await failWithCompensation('profile_save_failed')
+  profileSaved = true
 
   const { error: membershipUpsertError } = await admin.from('building_members').upsert({
     building_id: membership.building_id,
     user_id: ownerUserId,
     role: 'owner',
   })
-  if (membershipUpsertError) {
-    if (createdNewUser && ownerUserId) await admin.auth.admin.deleteUser(ownerUserId)
-    return json(500, { error: 'membership_save_failed' })
-  }
+  if (membershipUpsertError) return await failWithCompensation('membership_save_failed')
+  membershipSaved = true
 
   const { error: residentUpdateError } = await admin.from('residents').update({
     user_id: ownerUserId,
     phone,
   }).eq('id', resident.id).eq('building_id', membership.building_id)
-  if (residentUpdateError) {
-    if (createdNewUser && ownerUserId) await admin.auth.admin.deleteUser(ownerUserId)
-    return json(500, { error: 'resident_link_failed' })
-  }
+  if (residentUpdateError) return await failWithCompensation('resident_link_failed')
+  residentLinked = true
+
+  const { data: auditEntry, error: auditError } = await admin.from('audit_logs').insert({
+    building_id: membership.building_id,
+    action: 'إصدار PIN مالك',
+    details: `${resident.name} - شقة ${resident.apartment_number}`,
+    actor_id: callerData.user.id,
+  }).select('id').single()
+  if (auditError || !auditEntry) return await failWithCompensation('audit_log_save_failed')
+  auditId = auditEntry.id
 
   if (!createdNewUser && ownerUserId) {
     const { error } = await admin.auth.admin.updateUserById(ownerUserId, {
@@ -196,15 +287,8 @@ Deno.serve(async (request: Request) => {
       password: temporaryPin,
       user_metadata: { full_name: resident.name, phone },
     })
-    if (error) return json(400, { error: 'auth_update_failed' })
+    if (error) return await failWithCompensation('auth_update_failed', 400)
   }
-
-  await admin.from('audit_logs').insert({
-    building_id: membership.building_id,
-    action: 'إصدار PIN مالك',
-    details: `${resident.name} - شقة ${resident.apartment_number}`,
-    actor_id: callerData.user.id,
-  })
 
   return json(200, {
     ok: true,
