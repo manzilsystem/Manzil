@@ -667,7 +667,7 @@ BEGIN
     WHERE building_id = '20000000-0000-4000-8000-000000000001'
       AND target_resident_id = '30000000-0000-4000-8000-000000000001'
       AND dedupe_key = 'income-batch:ABCDEF123456';
-    IF NOT FOUND OR v_notification.body NOT LIKE '%50%' OR v_notification.body NOT LIKE '%2027-01%' THEN
+    IF NOT FOUND OR v_notification.body NOT LIKE '%50%' OR v_notification.body NOT LIKE '%2027-02%' THEN
         RAISE EXCEPTION 'grouped notification was not reduced after one allocation was deleted: %', v_notification.body;
     END IF;
 
