@@ -29,8 +29,10 @@ test('an apartment with no active subscription can receive its first amount inli
 test('an existing or future-dated subscription must use the rate history workflow', () => {
     const app = loadSubscriptionEditHelpers();
     assert.equal(app.canEditInitialSubscriptionInline({ monthlyAmount: 100, subscriptionRates: [] }), false);
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    const nextMonth = new Date(Date.UTC(Number(currentMonth.slice(0, 4)), Number(currentMonth.slice(5, 7)), 1)).toISOString().slice(0, 7);
+    const nextMonthDate = new Date();
+    nextMonthDate.setDate(1);
+    nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
+    const nextMonth = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`;
     assert.equal(app.canEditInitialSubscriptionInline({
         monthlyAmount: 0,
         subscriptionRates: [{ effectiveMonth: nextMonth + '-01', monthlyAmount: 100 }]
