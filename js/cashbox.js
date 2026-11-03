@@ -7,6 +7,7 @@ const CASH_ACCOUNTS = Object.freeze({
 let cashTransferSaving = false;
 let cashTransferPendingRequestId = null;
 let cashTransferPendingPayload = null;
+let persistedCashTotals = null;
 
 function getCashAccountLabel(code) {
     return CASH_ACCOUNTS[code]?.label || CASH_ACCOUNTS.main.label;
@@ -15,6 +16,47 @@ function getCashAccountLabel(code) {
 function getCashAccountBalance(code) {
     const value = Number(state.cashAccountBalances?.[code]);
     return Number.isFinite(value) ? value : 0;
+}
+
+function calculateCashboxAccountingTotals() {
+    const cents = value => {
+        const amount = Number(value);
+        return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
+    };
+    const totals = {
+        income: state.income.reduce((sum, row) => sum + cents(row.amount), 0),
+        expenses: { main: 0, development: 0, emergency: 0 }
+    };
+    state.expenses.forEach(expense => {
+        const code = CASH_ACCOUNTS[expense.cashAccountCode] ? expense.cashAccountCode : 'main';
+        totals.expenses[code] += cents(expense.amount);
+    });
+    return totals;
+}
+
+function initializeCashboxAccountingSnapshot() {
+    persistedCashTotals = calculateCashboxAccountingTotals();
+}
+
+function syncCashboxBalancesAfterSnapshot() {
+    const next = calculateCashboxAccountingTotals();
+    if (!persistedCashTotals) {
+        persistedCashTotals = next;
+        return false;
+    }
+
+    const previous = persistedCashTotals;
+    const balances = state.cashAccountBalances || { main: 0, development: 0, emergency: 0 };
+    balances.main = (Math.round((Number(balances.main) || 0) * 100)
+        + next.income - previous.income
+        - next.expenses.main + previous.expenses.main) / 100;
+    balances.development = (Math.round((Number(balances.development) || 0) * 100)
+        - next.expenses.development + previous.expenses.development) / 100;
+    balances.emergency = (Math.round((Number(balances.emergency) || 0) * 100)
+        - next.expenses.emergency + previous.expenses.emergency) / 100;
+    state.cashAccountBalances = balances;
+    persistedCashTotals = next;
+    return true;
 }
 
 function renderCashbox() {
