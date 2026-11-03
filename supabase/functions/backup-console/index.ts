@@ -84,13 +84,16 @@ Deno.serve(async (req: Request) => {
         return json(409, { error: 'backup_release_invalid' })
       }
 
-      const dumpAsset = release.assets.find((asset: { name?: string; size?: number; state?: string; url?: string }) =>
+      const dumpAsset = release.assets.find((asset: { name?: string; size?: number; state?: string; url?: string; digest?: string }) =>
         asset.name === filename && asset.state === 'uploaded' && Number(asset.size) === Number(backup.size_bytes)
       )
       const checksumAsset = release.assets.find((asset: { name?: string; state?: string; url?: string }) =>
         asset.name === `${filename}.sha256` && asset.state === 'uploaded'
       )
       if (!dumpAsset?.url || !checksumAsset?.url) return json(404, { error: 'backup_asset_missing' })
+      if (dumpAsset.digest && dumpAsset.digest.toLowerCase() !== `sha256:${String(backup.sha256).toLowerCase()}`) {
+        return json(409, { error: 'backup_asset_digest_mismatch' })
+      }
 
       const trustedAssetUrl = (value: string) =>
         /^https:\/\/api\.github\.com\/repos\/manzilsystem\/manzil_backups\/releases\/assets\/\d+$/.test(value)
