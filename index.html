@@ -438,10 +438,13 @@
                 </div>
             </div>
             <details class="app-card p-5 rounded-3xl border group">
-<summary class="flex items-start justify-between gap-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden"><div>
-                    <h2 id="monthlyCloseTitle" class="min-w-0 font-bold text-base flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-indigo-400"></i> المراجعة والإقفال الشهري</h2>
-                    <p class="text-xs text-slate-400 mt-1">حساب الرصيد الافتتاحي وحركة كل صندوق والرصيد الختامي بالتوقيت المحلي للقاهرة.</p>
-                </div><i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform group-open:rotate-180 shrink-0" aria-hidden="true"></i></summary>
+<summary class="flex items-start justify-between gap-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+<span class="min-w-0 flex flex-col gap-1">
+<span id="monthlyCloseTitle" class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-indigo-400"></i> المراجعة والإقفال الشهري</span>
+<span class="text-xs text-slate-400">حساب الرصيد الافتتاحي وحركة كل صندوق والرصيد الختامي بالتوقيت المحلي للقاهرة.</span>
+</span>
+<i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform group-open:rotate-180 shrink-0" aria-hidden="true"></i>
+</summary>
 <section class="mt-4 space-y-4">
 <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
                     <label for="monthlyCloseMonthSelect" class="block text-xs font-bold space-y-1">
@@ -458,13 +461,13 @@
 </section>
 </details>
             <details class="app-card p-5 rounded-3xl border group">
-<summary class="flex items-start justify-between gap-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden"><div class="min-w-0 flex justify-between items-start gap-3">
-                    <div>
-                        <h2 class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-amber-400"></i> كشف المتأخرات</h2>
-                        <p class="text-xs text-slate-400 mt-0.5">إجمالي المديونية وتصنيف الفترات غير المسددة لكل شقة</p>
-                    </div>
-                    
-                </div><i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform group-open:rotate-180 shrink-0" aria-hidden="true"></i></summary>
+<summary class="flex items-start justify-between gap-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+<span class="min-w-0 flex flex-col gap-1">
+<span class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-amber-400"></i> كشف المتأخرات</span>
+<span class="text-xs text-slate-400">إجمالي المديونية وتصنيف الفترات غير المسددة لكل شقة</span>
+</span>
+<i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform group-open:rotate-180 shrink-0" aria-hidden="true"></i>
+</summary>
 <div class="mt-4 space-y-4">
 <div class="flex justify-end"><button onclick="exportArrearsCSV()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-2 rounded-xl text-[11px] font-bold transition shrink-0"><i class="fa-solid fa-file-csv ml-1"></i> CSV</button></div>
 <div class="app-input border rounded-2xl p-3 space-y-3">
