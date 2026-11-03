@@ -75,10 +75,10 @@ test('invalid arrears date ranges return an empty report with a validation flag'
 test('arrears UI exposes apartment, period, and status filters and exports the filtered report', () => {
     const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     const render = fs.readFileSync(path.join(__dirname, '..', 'js', 'render.js'), 'utf8');
-    const crud = fs.readFileSync(path.join(__dirname, '..', 'js', 'crud.js'), 'utf8');
+    const reports = fs.readFileSync(path.join(__dirname, '..', 'js', 'reports.js'), 'utf8');
     for (const id of ['arrearsApartmentFilter', 'arrearsFromMonth', 'arrearsToMonth', 'arrearsStatusFilter']) {
         assert.ok(html.includes(`id="${id}"`), id);
     }
     assert.match(render, /function getArrearsReportFilters/);
-    assert.match(crud, /buildArrearsReport\(getArrearsReportFilters\(\)\)/);
+    assert.match(reports, /buildArrearsReport\(getArrearsReportFilters\(\)\)/);
 });

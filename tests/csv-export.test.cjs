@@ -4,7 +4,7 @@ const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
 
-const source = fs.readFileSync(path.join(__dirname, '..', 'js', 'crud.js'), 'utf8');
+const source = fs.readFileSync(path.join(__dirname, '..', 'js', 'reports.js'), 'utf8');
 
 function loadExporter(state) {
     const downloads = [];
