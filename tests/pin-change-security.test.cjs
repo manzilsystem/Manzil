@@ -80,7 +80,9 @@ test('first PIN change requires the current PIN and goes through the protected s
     assert.match(edgeFunction, /pin_updated_retry_required/);
     assert.match(client, /errorCode === 'pin_update_status_unknown'/);
     assert.match(client, /errorCode === 'pin_update_failed'/);
-    const retryBranch = client.match(/if \(errorCode === 'pin_updated_retry_required'\) \{[\\s\\S]*?\n        \}/)?.[0];
-    assert.ok(retryBranch, 'client must reconcile profile state after an uncertain completion response');
+    const retryStart = client.indexOf("if (errorCode === 'pin_updated_retry_required')");
+    const retryEnd = client.indexOf("\n        if (errorCode === 'pin_update_status_unknown')", retryStart);
+    const retryBranch = client.slice(retryStart, retryEnd);
+    assert.ok(retryStart >= 0 && retryEnd > retryStart, 'client must reconcile profile state after an uncertain completion response');
     assert.ok(retryBranch.indexOf('await loadState()') < retryBranch.indexOf('showFirstOwnerPinChange'));
 });
