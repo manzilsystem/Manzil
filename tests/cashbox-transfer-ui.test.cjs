@@ -51,7 +51,7 @@ function createTransferHarness(options = {}) {
         persistedAuditLogIds: new Set(),
         document: { getElementById: id => elements.get(id) || null },
         requireManager: () => true,
-        generateId: () => 'request-123',
+        generateId: () => options.requestId || 'request-123',
         fmtNum: value => Number(value).toFixed(2),
         formatDate: value => String(value || ''),
         esc: value => String(value ?? ''),
@@ -645,7 +645,7 @@ test('pending cash transfer retry state is isolated by building id', async () =>
     const first = createTransferHarness({ sessionStore: storage, rpcThrows: [new Error('connection reset')] });
     await first.api.submitCashTransfer(first.event);
 
-    const otherBuilding = createTransferHarness({ sessionStore: storage });
+    const otherBuilding = createTransferHarness({ sessionStore: storage, requestId: 'request-456' });
     otherBuilding.sandbox.activeBuildingId = 'building-2';
     await otherBuilding.api.submitCashTransfer(otherBuilding.event);
 
