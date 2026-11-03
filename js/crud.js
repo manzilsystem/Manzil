@@ -257,8 +257,8 @@ async function handleResidentSubmit(e) {
     if (!name || !apartmentNumber || (state.floorCount > 0 && !floor)) { toast('الاسم والدور ورقم الشقة مطلوبة.', 'error'); return; }
     const existingResident = state.residents.find(item => item.id === editingResidentId);
     const unchangedLegacyLocation = existingResident
-        && String(existingResident.floor || '') === floor
-        && String(existingResident.apartmentNumber || '') === apartmentNumber;
+        && normalizeApartmentDigits(existingResident.floor || '') === floor
+        && normalizeApartmentDigits(existingResident.apartmentNumber || '') === apartmentNumber;
     const floorNumber = Number(floor);
     const apartmentValue = Number(apartmentNumber);
     if (!unchangedLegacyLocation && (!Number.isInteger(floorNumber) || floorNumber < 1
