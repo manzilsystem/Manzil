@@ -105,7 +105,7 @@ Deno.serve(async (req: Request) => {
       if (!checksumResponse.ok) return json(502, { error: 'backup_checksum_unavailable' })
       const checksumText = await checksumResponse.text()
       const checksumMatch = checksumText.trim().match(/^([a-f0-9]{64})\s+\*?(.+)$/i)
-      if (!checksumMatch || checksumMatch[1].toLowerCase() !== String(backup.sha256).toLowerCase() || checksumMatch[2] !== filename) {
+      if (!checksumMatch || checksumMatch[1].toLowerCase() !== String(backup.sha256).toLowerCase() || checksumMatch[2].split('/').pop() !== filename) {
         return json(409, { error: 'backup_checksum_mismatch' })
       }
 
