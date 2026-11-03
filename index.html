@@ -612,9 +612,12 @@
                 <section class="space-y-2">
                     <div class="font-bold text-sm">استعادة قاعدة البيانات</div>
                     <p class="text-xs text-rose-300 leading-5">تحذير: الاستعادة تستبدل قاعدة بيانات الإنتاج بالكامل، بما يشمل بيانات جميع المباني والحسابات والسجلات، بحالة النسخة المختارة. لا يمكن التراجع عنها من الواجهة.</p>
-                    <select id="backupRestoreSelect" class="w-full app-input border rounded-xl px-3 py-3 text-sm" aria-label="اختر النسخة المراد استعادتها">
+                    <select id="backupRestoreSelect" onchange="updateBackupDownloadButton()" class="w-full app-input border rounded-xl px-3 py-3 text-sm" aria-label="اختر النسخة المراد تنزيلها أو استعادتها">
                         <option value="">جارٍ تحميل النسخ...</option>
                     </select>
+                    <button id="backupDownloadButton" type="button" onclick="downloadDatabaseBackup()" class="w-full bg-indigo-700 hover:bg-indigo-600 disabled:opacity-50 text-white py-2.5 rounded-xl text-xs font-bold" disabled><i class="fa-solid fa-download ml-2"></i> تنزيل النسخة الكاملة</button>
+                    <div id="backupDownloadStatus" role="status" aria-live="polite" class="text-[11px] text-slate-400"></div>
+                    <p class="text-[10px] text-slate-500">التنزيل الكامل متاح فقط للمدير الذي يدير جميع المباني، ويتم التحقق من SHA-256 قبل حفظ الملف.</p>
                     <button id="backupRestoreButton" onclick="requestDatabaseRestore()" class="w-full bg-rose-700 hover:bg-rose-600 disabled:opacity-50 text-white py-3 rounded-xl font-bold" disabled>استعادة النسخة المختارة</button>
                     <div id="backupRestoreStatus" role="status" aria-live="polite" class="text-xs text-slate-400"></div>
                     <div id="backupRestoreHistory" class="space-y-2 text-xs"></div>
