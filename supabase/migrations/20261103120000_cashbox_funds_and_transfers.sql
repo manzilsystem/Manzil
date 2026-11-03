@@ -161,7 +161,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = pg_catalog, public
-AS $
+AS $$
 DECLARE
     v_actor uuid := auth.uid();
     v_version bigint;
