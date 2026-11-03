@@ -13,15 +13,15 @@ test('owner sessions select only fields required by the read-only portal', () =>
     assert.notEqual(end, -1, 'loadState must end before saveState');
 
     assert.ok(loadState.includes(
-        "const residentColumns = isManager ? '*' : 'id,name,apartment_number,monthly_amount,created_at'"
+        "const residentColumns = isManager\n        ? 'id,user_id,name,apartment_number,phone,monthly_amount,created_at'\n        : 'id,name,apartment_number,monthly_amount,created_at'"
     ), 'owner resident data must retain created_at for cumulative debt calculations');
 
     assert.ok(loadState.includes(
-        "const incomeColumns = isManager ? '*' : 'id,resident_id,amount,month,paid_at'"
+        "const incomeColumns = isManager\n        ? 'id,resident_id,amount,month,notes,paid_at'\n        : 'id,resident_id,amount,month,paid_at'"
     ), 'owner payment history needs only payment identity, amount, month, and date');
 
     assert.ok(loadState.includes(
-        "const noticeColumns = isManager ? '*' : 'id,text,created_at'"
+        "const noticeColumns = 'id,text,created_at'"
     ), 'owner announcements need only their displayed fields');
 
     assert.ok(loadState.includes("supabaseQuery('residents', residentColumns)"));
