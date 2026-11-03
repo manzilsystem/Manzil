@@ -53,15 +53,17 @@ function createTransferHarness(options = {}) {
         refreshCashboxSummary: async () => { calls.refreshes += 1; },
         loadState: async () => {
             calls.loads = (calls.loads || 0) + 1;
+            if (options.loadStateResult === false) return false;
             sandbox.state.cashAccountBalances = options.loadedBalances || {
                 main: 90, development: 30, emergency: 30
             };
-            sandbox.activeBuildingVersion = 5;
+            sandbox.activeBuildingVersion = options.loadedVersion ?? 5;
             return true;
         },
         supabaseClient: {
             rpc: async (name, args) => {
                 calls.rpc.push({ name, args });
+                if (options.rpcThrows?.length) throw options.rpcThrows.shift();
                 if (options.rpcResults?.length) return options.rpcResults.shift();
                 return options.rpcResult || {
                     data: {
@@ -193,4 +195,122 @@ test('cash transfer applies the authoritative insufficient-balance response with
     assert.equal(harness.calls.renders, 0);
     assert.equal(harness.calls.toasts.at(-1).type, 'error');
     assert.notEqual(harness.calls.toasts.at(-1).type, 'success');
+});
+
+
+test('cash transfer version conflict reloads authoritative state and never reports success', async () => {
+    const harness = createTransferHarness({
+        rpcResult: {
+            data: { ok: false, conflict: true, version: 6 },
+            error: null
+        },
+        loadedBalances: { main: 80, development: 40, emergency: 30 },
+        loadedVersion: 6
+    });
+
+    await harness.api.submitCashTransfer(harness.event);
+
+    assert.equal(harness.calls.loads, 1);
+    assert.equal(harness.calls.renders, 1);
+    assert.equal(harness.sandbox.activeBuildingVersion, 6);
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(harness.sandbox.state.cashAccountBalances)),
+        { main: 80, development: 40, emergency: 30 }
+    );
+    assert.equal(harness.calls.reset, undefined);
+    assert.equal(harness.calls.toasts.at(-1).type, 'error');
+    assert.notEqual(harness.calls.toasts.at(-1).type, 'success');
+});
+
+test('malformed RPC success response keeps balances and form intact for a safe retry', async () => {
+    const harness = createTransferHarness({
+        rpcResults: [
+            { data: { ok: true, version: 'not-a-version' }, error: null },
+            {
+                data: {
+                    ok: true, duplicate: true, version: 5,
+                    balances: { main: 90, development: 30, emergency: 30 }
+                },
+                error: null
+            }
+        ]
+    });
+    const initialBalances = { ...harness.sandbox.state.cashAccountBalances };
+
+    await harness.api.submitCashTransfer(harness.event);
+
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(harness.sandbox.state.cashAccountBalances)),
+        initialBalances
+    );
+    assert.equal(harness.calls.reset, undefined);
+    assert.equal(harness.calls.toasts.at(-1).type, 'error');
+    const requestId = harness.calls.rpc[0].args.p_request_id;
+
+    await harness.api.submitCashTransfer(harness.event);
+
+    assert.equal(harness.calls.rpc[1].args.p_request_id, requestId);
+    assert.equal(harness.calls.reset, true);
+    assert.equal(harness.calls.toasts.at(-1).type, 'success');
+});
+
+test('duplicate response with failed reload retains the request id until authoritative reload succeeds', async () => {
+    const harness = createTransferHarness({
+        loadStateResult: false,
+        rpcResults: [
+            {
+                data: {
+                    ok: true, duplicate: true, version: 5,
+                    balances: { main: 90, development: 30, emergency: 30 }
+                },
+                error: null
+            },
+            {
+                data: {
+                    ok: true, duplicate: true, version: 5,
+                    balances: { main: 90, development: 30, emergency: 30 }
+                },
+                error: null
+            }
+        ]
+    });
+
+    await harness.api.submitCashTransfer(harness.event);
+    const requestId = harness.calls.rpc[0].args.p_request_id;
+    assert.equal(harness.calls.reset, undefined);
+    assert.equal(harness.calls.toasts.at(-1).type, 'error');
+
+    harness.sandbox.loadStateResult = undefined;
+    await harness.api.submitCashTransfer(harness.event);
+
+    assert.equal(harness.calls.rpc[1].args.p_request_id, requestId);
+    assert.equal(harness.calls.reset, true);
+    assert.equal(harness.calls.toasts.at(-1).type, 'success');
+});
+
+test('thrown transport errors do not mutate balances or discard the idempotency key', async () => {
+    const harness = createTransferHarness({
+        rpcThrows: [new Error('connection reset')],
+        rpcResults: [{
+            data: {
+                ok: true, duplicate: true, version: 5,
+                balances: { main: 90, development: 30, emergency: 30 }
+            },
+            error: null
+        }]
+    });
+    const initialBalances = { ...harness.sandbox.state.cashAccountBalances };
+
+    await harness.api.submitCashTransfer(harness.event);
+    const requestId = harness.calls.rpc[0].args.p_request_id;
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(harness.sandbox.state.cashAccountBalances)),
+        initialBalances
+    );
+    assert.equal(harness.calls.reset, undefined);
+
+    await harness.api.submitCashTransfer(harness.event);
+    assert.equal(harness.calls.rpc[1].args.p_request_id, requestId);
+    assert.equal(harness.calls.reset, true);
+    assert.equal(harness.calls.toasts.at(-1).type, 'success');
 });
