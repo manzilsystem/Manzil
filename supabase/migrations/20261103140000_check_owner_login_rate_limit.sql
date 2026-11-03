@@ -58,23 +58,22 @@ BEGIN
         v_locked_until := NULL;
     END IF;
 
-    v_failed_attempts := v_failed_attempts + 1;
-    IF v_failed_attempts > 5 THEN
+    IF v_failed_attempts >= 5 THEN
         v_locked_until := v_now + interval '15 minutes';
-    ELSE
-        v_locked_until := NULL;
+        UPDATE private.owner_login_attempts
+        SET locked_until = v_locked_until,
+            updated_at = v_now
+        WHERE phone_hash = p_phone_hash;
+        RETURN jsonb_build_object('allowed', false, 'retry_after_seconds', 900);
     END IF;
 
+    v_failed_attempts := v_failed_attempts + 1;
     UPDATE private.owner_login_attempts
     SET window_started_at = v_window_started_at,
         failed_attempts = v_failed_attempts,
-        locked_until = v_locked_until,
+        locked_until = NULL,
         updated_at = v_now
     WHERE phone_hash = p_phone_hash;
-
-    IF v_locked_until IS NOT NULL THEN
-        RETURN jsonb_build_object('allowed', false, 'retry_after_seconds', 900);
-    END IF;
 
     RETURN jsonb_build_object(
         'allowed', true,
