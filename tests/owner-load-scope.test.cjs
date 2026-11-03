@@ -12,7 +12,7 @@ test('owner sessions skip manager-only data queries', () => {
     assert.notEqual(start, -1, 'loadState must exist');
     assert.notEqual(end, -1, 'loadState must end before saveState');
 
-    for (const table of ['expenses', 'audit_logs', 'resident_internal_notes']) {
+    for (const table of ['expenses', 'audit_logs']) {
         assert.match(
             loadState,
             new RegExp(`isManager \\? supabaseQuery\\('${table}'`),
@@ -20,7 +20,7 @@ test('owner sessions skip manager-only data queries', () => {
         );
     }
 
-    for (const table of ['residents', 'income', 'notices']) {
+    assert.match(loadState, /currentUserRole === 'manager' \\? supabaseQuery\\('resident_internal_notes'/);\n\n    for (const table of ['residents', 'income', 'notices']) {
         assert.match(loadState, new RegExp(`supabaseQuery\\('${table}'`));
     }
 });
