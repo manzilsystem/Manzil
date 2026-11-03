@@ -407,6 +407,7 @@ BEGIN
     v_transfer := public.transfer_cash_between_accounts(
         v_building,
         '40000000-0000-4000-8000-000000000010',
+        v_version,
         'main',
         'development',
         30,
@@ -421,6 +422,7 @@ BEGIN
     v_result := public.transfer_cash_between_accounts(
         v_building,
         '40000000-0000-4000-8000-000000000010',
+        v_version,
         'main',
         'development',
         30,
@@ -431,6 +433,22 @@ BEGIN
        OR (SELECT count(*) FROM public.cash_transfers
            WHERE building_id = v_building) <> 1 THEN
         RAISE EXCEPTION 'cash transfer retry was not idempotent: %', v_result;
+    END IF;
+
+    v_result := public.transfer_cash_between_accounts(
+        v_building,
+        '40000000-0000-4000-8000-000000000014',
+        v_version,
+        'main',
+        'development',
+        10,
+        'اختبار تعارض الإصدار'
+    );
+    IF v_result->>'conflict' <> 'true'
+       OR (v_result->>'version')::bigint <> v_version + 1
+       OR (SELECT count(*) FROM public.cash_transfers
+           WHERE building_id = v_building) <> 1 THEN
+        RAISE EXCEPTION 'stale cash transfer was not rejected: %', v_result;
     END IF;
 
     v_payload := '{
@@ -476,6 +494,7 @@ BEGIN
     v_transfer := public.transfer_cash_between_accounts(
         v_building,
         '40000000-0000-4000-8000-000000000013',
+        (v_result->>'version')::bigint,
         'development',
         'emergency',
         11,
