@@ -645,11 +645,19 @@
                 <button onclick="closeModal('incomeModal')" aria-label="إغلاق نافذة التحصيل" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <form id="incomeForm" onsubmit="handleIncomeSubmit(event)" class="p-5 space-y-3">
-                <select id="incomeResident" aria-label="الشقة" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر الشقة</option></select>
-                <input type="number" id="incomeAmount" min="0.01" step="0.01" inputmode="decimal" aria-label="مبلغ التحصيل" placeholder="مبلغ التحصيل" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
-                <select id="incomeMonth" aria-label="شهر التحصيل" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
-                <textarea id="incomeNotes" aria-label="ملاحظات التحصيل" rows="2" placeholder="ملاحظات" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
-                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-2xl font-bold transition">حفظ</button>
+                <select id="incomeResident" aria-label="الشقة" onchange="previewIncomeAllocation()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر الشقة</option></select>
+                <input type="number" id="incomeAmount" min="0.01" step="0.01" inputmode="decimal" aria-label="مبلغ التحصيل" placeholder="مبلغ التحصيل" oninput="previewIncomeAllocation()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                <label class="block text-xs space-y-1">
+                    <span class="text-slate-400">شهر بداية التوزيع</span>
+                    <select id="incomeMonth" aria-label="شهر بداية التوزيع" onchange="previewIncomeAllocation()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
+                </label>
+                <p class="text-[10px] text-slate-500">يُخصم المبلغ من أقدم المتأخرات أولًا، ثم يُوزع على الأشهر القادمة. راجع المعاينة قبل الحفظ.</p>
+                <div id="incomeAllocationPreview" aria-live="polite" class="hidden app-input border rounded-2xl p-3 space-y-2">
+                    <p id="incomeAllocationSummary" class="text-xs font-bold"></p>
+                    <div id="incomeAllocationRows" class="space-y-1"></div>
+                </div>
+                <textarea id="incomeNotes" aria-label="ملاحظات التحصيل" rows="2" placeholder="ملاحظات التحصيل" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
+                <button type="submit" id="incomeSubmitButton" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-2xl font-bold transition">حفظ التحصيل وتوزيعه</button>
             </form>
         </div>
     </div>

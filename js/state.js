@@ -118,6 +118,54 @@ function calculateCumulativeDebt(residentId) {
     return { count: unpaidMonths.length, totalDebt: totalDebtCents / 100, unpaidMonths: unpaidMonths.map(item => item.month) };
 }
 
+function calculateIncomeAllocationPreview(residentId, amount, selectedMonth, maxMonths = 120) {
+    const resident = state.residents.find(item => item.id === residentId);
+    const amountCents = Number.isFinite(Number(amount)) ? Math.round(Number(amount) * 100) : 0;
+    const selectedKey = monthLabelToKey(selectedMonth);
+    if (!resident || amountCents <= 0 || !selectedKey) {
+        return { allocations: [], totalAllocated: 0, remainingAmount: Math.max(0, amountCents) / 100, remainingCents: Math.max(0, amountCents), invalid: true };
+    }
+
+    const createdAt = new Date(resident.createdAt || Date.now());
+    const createdKey = Number.isNaN(createdAt.getTime())
+        ? selectedKey
+        : `${createdAt.getUTCFullYear()}-${String(createdAt.getUTCMonth() + 1).padStart(2, '0')}-01`;
+    if (selectedKey < createdKey) {
+        return { allocations: [], totalAllocated: 0, remainingAmount: amountCents / 100, remainingCents: amountCents, invalid: true, invalidStart: true };
+    }
+
+    const priorUnpaid = calculateCumulativeDebt(residentId).unpaidMonths
+        .map(month => ({ month, key: monthLabelToKey(month) }))
+        .filter(item => item.key && item.key <= selectedKey);
+    const startKey = priorUnpaid[0]?.key || selectedKey;
+    const [year, monthNumber] = startKey.split('-').map(Number);
+    const cursor = new Date(Date.UTC(year, monthNumber - 1, 1));
+    const allocations = [];
+    let remainingCents = amountCents;
+    const limit = Number.isInteger(maxMonths) && maxMonths > 0 ? Math.min(maxMonths, 240) : 120;
+
+    for (let offset = 0; offset < limit && remainingCents > 0; offset += 1) {
+        const monthLabel = `${monthsNames[cursor.getUTCMonth()]} ${cursor.getUTCFullYear()}`;
+        const outstandingCents = Math.max(0, Math.round(getMonthOutstanding(resident, monthLabel) * 100));
+        if (outstandingCents > 0) {
+            const allocationCents = Math.min(remainingCents, outstandingCents);
+            allocations.push({ month: monthLabel, amount: allocationCents / 100, amountCents: allocationCents });
+            remainingCents -= allocationCents;
+        }
+        cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+    }
+
+    return {
+        allocations,
+        totalAllocated: (amountCents - remainingCents) / 100,
+        remainingAmount: remainingCents / 100,
+        remainingCents,
+        startMonth: allocations[0]?.month || null,
+        invalid: false,
+        horizonExceeded: remainingCents > 0
+    };
+}
+
 function getArrearsBucket(monthCount) {
     if (monthCount <= 1) return 'شهر واحد';
     if (monthCount <= 3) return '2–3 أشهر';
