@@ -53,3 +53,61 @@ test('mutating CRUD handlers await the rollback-aware save path', () => {
     assert.match(crudSource, /const previousState = cloneStateSnapshot\(\);/);
     assert.match(crudSource, /if \(!await saveWithRollback\(previousState\)\) return;/);
 });
+
+
+function loadConcurrentSaveHelper() {
+    const pendingSaves = [];
+    const sandbox = {
+        renderCount: 0,
+        saveState: () => new Promise(resolve => pendingSaves.push(resolve)),
+        renderAll: () => { sandbox.renderCount += 1; },
+        console
+    };
+    const app = vm.runInNewContext(
+        `${stateSource}\\n({ getState: () => state, cloneStateSnapshot, saveWithRollback, getRenderCount: () => renderCount })`,
+        sandbox,
+        { filename: 'js/state.js' }
+    );
+    return { app, pendingSaves };
+}
+
+test('overlapping saves do not let an earlier failure roll back a later successful edit', async () => {
+    const { app, pendingSaves } = loadConcurrentSaveHelper();
+    app.getState().buildingName = 'التعديل الأول';
+    const beforeFirst = app.cloneStateSnapshot();
+    const first = app.saveWithRollback(beforeFirst);
+
+    const beforeSecond = app.cloneStateSnapshot();
+    app.getState().managerName = 'التعديل الثاني';
+    const second = app.saveWithRollback(beforeSecond);
+
+    assert.equal(pendingSaves.length, 2);
+    pendingSaves[0](false);
+    await Promise.resolve();
+    pendingSaves[1](true);
+
+    assert.equal(await first, false);
+    assert.equal(await second, true);
+    assert.equal(app.getState().buildingName, 'التعديل الأول');
+    assert.equal(app.getState().managerName, 'التعديل الثاني');
+});
+
+test('overlapping failed saves roll back to the earliest persisted state', async () => {
+    const { app, pendingSaves } = loadConcurrentSaveHelper();
+    app.getState().buildingName = 'تعديل أول فاشل';
+    const beforeFirst = app.cloneStateSnapshot();
+    const first = app.saveWithRollback(beforeFirst);
+
+    const beforeSecond = app.cloneStateSnapshot();
+    app.getState().managerName = 'تعديل ثانٍ فاشل';
+    const second = app.saveWithRollback(beforeSecond);
+
+    pendingSaves[0](false);
+    await Promise.resolve();
+    pendingSaves[1](false);
+
+    assert.equal(await first, false);
+    assert.equal(await second, false);
+    assert.equal(app.getState().buildingName, beforeFirst.buildingName);
+    assert.equal(app.getState().managerName, beforeFirst.managerName);
+});
