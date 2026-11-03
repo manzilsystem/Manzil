@@ -1,5 +1,6 @@
 name: Restore Manzil database backup
 
+# The push trigger also provides an immediate wake-up path for queued maintenance work.
 on:
   schedule:
     - cron: "*/5 * * * *"
