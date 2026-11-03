@@ -122,7 +122,25 @@ Deno.serve(async (request: Request) => {
     email: authEmailForPhone(profile.phone),
     password: currentPin,
   })
-  if (verifyError || verified.user?.id !== callerData.user.id) {
+  if (verifyError) {
+    if (verifyError.status !== 400 && verifyError.status !== 401) {
+      return json(503, { error: 'login_unavailable' })
+    }
+    const { data: failedAttempt, error: failedAttemptError } = await admin.rpc('owner_login_rate_limit', {
+      p_phone_hash: phoneHash,
+      p_action: 'attempt',
+    })
+    if (failedAttemptError) return json(503, { error: 'login_unavailable' })
+    if (failedAttempt?.allowed !== true) {
+      const retryAfter = Math.max(1, Number(failedAttempt?.retry_after_seconds) || 900)
+      return new Response(JSON.stringify({ error: 'rate_limited', retry_after_seconds: retryAfter }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(retryAfter) },
+      })
+    }
+    return json(400, { error: 'invalid_current_pin' })
+  }
+  if (verified.user?.id !== callerData.user.id) {
     return json(400, { error: 'invalid_current_pin' })
   }
 
