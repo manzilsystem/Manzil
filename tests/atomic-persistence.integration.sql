@@ -619,6 +619,7 @@ $foreign_key_indexes$;
 
 
 -- Deleting or changing an allocation must keep the owner's grouped notification accurate.
+SET request.jwt.claim.sub = '10000000-0000-4000-8000-000000000001';
 DO $income_notification_sync$
 DECLARE
     v_notification public.notifications%ROWTYPE;
