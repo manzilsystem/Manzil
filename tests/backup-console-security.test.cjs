@@ -30,3 +30,37 @@ test('backup creation remains available to a manager of their building', () => {
     assert.ok(backupBranch, 'request_backup handler must exist');
     assert.match(backupBranch, /admin\.from\('backup_requests'\)[\s\S]*?\.insert\(\{ building_id: membership\.building_id, requested_by: auth\.user\.id \}\)/);
 });
+
+
+const restoreWorkflow = fs.readFileSync(
+    path.join(__dirname, '..', '.github/workflows/supabase-restore.yml'),
+    'utf8'
+);
+const backupWorkflow = fs.readFileSync(
+    path.join(__dirname, '..', '.github/workflows/supabase-backup.yml'),
+    'utf8'
+);
+
+test('manual backup queue is dispatched by the maintenance worker with its request ID', () => {
+    assert.match(restoreWorkflow, /SELECT id::text FROM public\.backup_requests WHERE status='queued'/);
+    assert.match(restoreWorkflow, /SET status='dispatched',dispatched_at=now\(\)/);
+    assert.match(restoreWorkflow, /gh workflow run supabase-backup\.yml[\s\S]*?-f request_id="\$backup_request_id"/);
+    assert.match(restoreWorkflow, /status='failed'[\s\S]*?تعذر بدء مهمة النسخ الاحتياطي/);
+});
+
+test('manual backup workflow completes only the matching dispatched request', () => {
+    assert.match(backupWorkflow, /if: \$\{\{ github\.event_name == 'workflow_dispatch' && inputs\.request_id != '' \}\}/);
+    assert.match(backupWorkflow, /WHERE id='\$BACKUP_REQUEST_ID' AND status='dispatched'/);
+    assert.match(backupWorkflow, /status='succeeded',finished_at=now\(\)/);
+});
+
+test('maintenance worker expires abandoned manual backup requests', () => {
+    assert.match(restoreWorkflow, /status='failed',finished_at=now\(\)[\s\S]*?WHERE status='dispatched' AND dispatched_at < now\(\) - interval '30 minutes'/);
+});
+
+test('backup and restore workers share one non-cancelling maintenance concurrency group', () => {
+    for (const workflow of [restoreWorkflow, backupWorkflow]) {
+        assert.match(workflow, /group: supabase-database-maintenance/);
+        assert.match(workflow, /cancel-in-progress: false/);
+    }
+});
