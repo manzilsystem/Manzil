@@ -99,7 +99,7 @@ test('cashbox UI applies starting balance, collection and expense deltas in cent
         }
     };
     const accounting = vm.runInNewContext(
-        `${cashbox}\\n({ calculateCashboxAccountingTotals, initializeCashboxAccountingSnapshot, syncCashboxBalancesAfterSnapshot, getState: () => state })`,
+        `${cashbox}\n({ calculateCashboxAccountingTotals, initializeCashboxAccountingSnapshot, syncCashboxBalancesAfterSnapshot, getState: () => state })`,
         sandbox,
         { filename: 'js/cashbox.js' }
     );
