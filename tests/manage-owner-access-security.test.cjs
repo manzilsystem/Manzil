@@ -93,6 +93,13 @@ test('new Auth user cleanup restores the resident phone after the Auth cascade',
     assert.ok(source.includes('phone: residentSnapshot.phone,'));
 });
 
+test('resident linking treats a concurrent deletion as a failure and compensates', () => {
+    assert.match(
+        source,
+        /const \{ data: linkedResident, error: residentUpdateError \} = await admin\.from\('residents'\)\.update\([\s\S]*?\.select\('id'\)[\s\S]*?\.maybeSingle\(\)[\s\S]*?if \(residentUpdateError \|\| !linkedResident\) return await failWithCompensation\('resident_link_failed'\)/
+    );
+});
+
 test('audit persistence is required before changing an existing owner PIN', () => {
     const auditInsert = position("admin.from('audit_logs').insert");
     const authUpdate = position('admin.auth.admin.updateUserById');
