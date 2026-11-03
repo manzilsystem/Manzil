@@ -4,7 +4,7 @@ const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
 
-process.env.TZ = 'UTC';
+process.env.TZ = 'Africa/Cairo';
 const source = fs.readFileSync(path.join(__dirname, '..', 'js', 'state.js'), 'utf8');
 const fixedNow = new Date('2024-05-15T12:00:00.000Z');
 class FixedDate extends Date {
@@ -76,6 +76,29 @@ function loadCrudHelpers() {
         { filename: 'js/crud.js' }
     );
 }
+
+test('subscription effective month follows Cairo local time at month boundaries', () => {
+    const app = loadCrudHelpers();
+    const beforeMidnight = new Date('2026-10-31T21:59:59.000Z');
+    const afterMidnight = new Date('2026-10-31T22:00:00.000Z');
+
+    assert.equal(app.getLocalMonthKey(beforeMidnight), '2026-10');
+    assert.equal(app.getLocalMonthKey(afterMidnight), '2026-11');
+    assert.equal(app.getLocalMonthKey('invalid-date'), '');
+});
+
+test('current subscription amount uses the local effective month', () => {
+    const app = loadCrudHelpers();
+    const resident = {
+        monthlyAmount: 150,
+        subscriptionRates: [
+            { effectiveMonth: '2026-10-01', monthlyAmount: 100 },
+            { effectiveMonth: '2026-11-01', monthlyAmount: 125 }
+        ]
+    };
+
+    assert.equal(app.getCurrentSubscriptionAmount(resident, new Date('2026-10-31T22:30:00.000Z')), 125);
+});
 
 test('effective subscription month accepts YYYY-MM and rejects invalid months', () => {
     const app = loadCrudHelpers();
