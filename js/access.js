@@ -25,7 +25,7 @@ function renderOwnerPortal() {
     }
     const month = getCurrentMonth();
     const paidThisMonth = getPaidAmountForMonth(resident.id, month);
-    const dueThisMonth = Number(resident.monthlyAmount ?? state.defaultSubscription) || 0;
+    const dueThisMonth = getSubscriptionAmountForMonth(resident, month);
     const remainingThisMonth = Math.max(0, dueThisMonth - paidThisMonth);
     const debt = calculateCumulativeDebt(resident.id);
     const ownPayments = state.income
