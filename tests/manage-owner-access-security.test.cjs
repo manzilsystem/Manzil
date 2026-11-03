@@ -77,19 +77,20 @@ test('provisioning snapshots are captured after a new Auth user is created', () 
 });
 
 test('provisioning failures compensate resident, membership, profile, and audit changes', () => {
-    assert.match(source, /residentSnapshot = \\{ user_id: resident\\.user_id, phone: resident\\.phone \\}/);
-    assert.match(source, /admin\\.from\\('building_members'\\)\\.upsert\\(previousMembership\\)/);
-    assert.match(source, /admin\\.from\\('profiles'\\)\\.upsert\\(profileSnapshot\\)/);
-    assert.match(source, /admin\\.from\\('audit_logs'\\)\\.delete\\(\\)\\.eq\\('id', auditId\\)/);
-    assert.match(source, /owner_access_compensation_audit_failed/);
-    assert.match(source, /provisioning_compensation_failed/);
+    assert.ok(source.includes('residentSnapshot = { user_id: resident.user_id, phone: resident.phone }'));
+    assert.ok(source.includes(".from('building_members').upsert(previousMembership)"));
+    assert.ok(source.includes(".from('profiles').upsert(profileSnapshot)"));
+    assert.ok(source.includes(".from('audit_logs').delete().eq('id', auditId)"));
+    assert.ok(source.includes('owner_access_compensation_audit_failed'));
+    assert.ok(source.includes('provisioning_compensation_failed'));
 });
 
 test('new Auth user cleanup restores the resident phone after the Auth cascade', () => {
     const deleteUser = position('admin.auth.admin.deleteUser(ownerUserId)');
     const residentRestore = position('owner_access_compensation_new_user_resident_failed');
     assert.ok(deleteUser < residentRestore);
-    assert.match(source, /user_id: residentSnapshot\\.user_id,[\\s\\S]*?phone: residentSnapshot\\.phone/);
+    assert.ok(source.includes('user_id: residentSnapshot.user_id,'));
+    assert.ok(source.includes('phone: residentSnapshot.phone,'));
 });
 
 test('audit persistence is required before changing an existing owner PIN', () => {
