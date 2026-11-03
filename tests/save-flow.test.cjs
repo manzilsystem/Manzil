@@ -64,7 +64,7 @@ function loadConcurrentSaveHelper() {
         console
     };
     const app = vm.runInNewContext(
-        `${stateSource}\\n({ getState: () => state, cloneStateSnapshot, saveWithRollback, getRenderCount: () => renderCount })`,
+        `${stateSource}\n({ getState: () => state, cloneStateSnapshot, saveWithRollback, getRenderCount: () => renderCount })`,
         sandbox,
         { filename: 'js/state.js' }
     );
