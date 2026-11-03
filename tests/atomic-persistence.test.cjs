@@ -24,6 +24,9 @@ test('snapshot writes are atomic and guarded by a per-building optimistic versio
     assert.match(migration, /SET search_path = pg_catalog, public/);
     assert.match(migration, /income_resident_not_in_snapshot/);
     assert.match(migration, /cannot_delete_resident_with_income_history/);
+    assert.match(migration, /invalid_subscription_rates/);
+    assert.match(migration, /INSERT INTO public\.resident_subscription_rates AS current_rate/);
+    assert.match(migration, /p_payload->'subscription_rates'/);
     assert.ok(migration.includes('INSERT INTO public.residents AS current_resident'));
     assert.ok(migration.includes('INSERT INTO public.income AS current_income'));
     assert.ok(migration.includes('INSERT INTO public.expenses AS current_expense'));
@@ -37,6 +40,9 @@ test('client uses one idempotent RPC instead of multi-request full-table reconci
     assert.match(supabaseSource, /p_request_id:\s*requestId/);
     assert.doesNotMatch(supabaseSource, /async function deleteMissing/);
     assert.doesNotMatch(supabaseSource, /from\('income'\)\.delete/);
+    assert.match(supabaseSource, /subscription_rates:\s*state\.residents\.flatMap/);
+    const rateAdapter = fs.readFileSync(path.join(root, 'js', 'subscription-rates.js'), 'utf8');
+    assert.doesNotMatch(rateAdapter, /originalSaveState|set_resident_subscription_rate/);
 });
 
 test('audit history cannot be cleared from the UI and paid apartments cannot be deleted', () => {
