@@ -44,7 +44,7 @@ test('notice and WhatsApp handlers are loaded as a dedicated cached module', () 
         assert.ok(source.includes('function ' + name + '(') || source.includes('async function ' + name + '('), name + ' must be in notices.js');
         assert.ok(!crudSource.includes('function ' + name + '(') && !crudSource.includes('async function ' + name + '('), name + ' must be removed from crud.js');
     }
-    assert.match(html, /js\\/crud\\.js[\\s\\S]*js\\/notices\\.js/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v33'/);
-    assert.match(sw, /'\\.\\/js\\/notices\\.js'/);
+    assert.ok(html.indexOf('js/crud.js') < html.indexOf('js/notices.js'));
+    assert.ok(sw.includes("CACHE_NAME = 'manzil-v33'"));
+    assert.ok(sw.includes("'./js/notices.js'"));
 });
