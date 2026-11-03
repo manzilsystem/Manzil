@@ -30,7 +30,7 @@ test('restore retains the existing archive checksum and custom-format validation
 });
 
 test('restore request is claimed atomically with SKIP LOCKED', () => {
-    assert.match(workflow, /WITH next_request AS \\(SELECT r\\.id FROM public\\.restore_requests r WHERE r\\.status='queued'[\\s\\S]*?FOR UPDATE SKIP LOCKED LIMIT 1\\) UPDATE public\\.restore_requests r SET status='running'/);
+    assert.match(workflow, /WITH next_request AS \\(SELECT r\\.id FROM public\\.restore_requests r WHERE r\\.status='queued'[\\s\\S]*?LIMIT 1 FOR UPDATE SKIP LOCKED\\) UPDATE public\\.restore_requests r SET status='running'/);
     assert.match(workflow, /RETURNING r\\.id::text[\\s\\S]*?COALESCE\\(\\(SELECT b\\.sha256 FROM public\\.backup_catalog b WHERE b\\.tag=r\\.backup_tag\\), ''\\)/);
     assert.doesNotMatch(workflow, /SELECT r\\.id::text[\\s\\S]*?FOR UPDATE OF r SKIP LOCKED/);
 });
