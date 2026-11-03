@@ -7,6 +7,7 @@ const functions = [
     'backup-console',
     'manage-owner-access',
     'complete-owner-pin-change',
+    'owner-login',
 ];
 
 for (const name of functions) {
