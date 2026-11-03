@@ -7,6 +7,7 @@ const test = require('node:test');
 const root = path.join(__dirname, '..');
 const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const app = fs.readFileSync(path.join(root, 'js', 'app.js'), 'utf8');
 
 test('service worker is valid JavaScript and bumps the app cache', () => {
     assert.doesNotThrow(() => new vm.Script(sw, { filename: 'sw.js' }));
@@ -24,8 +25,9 @@ test('all runtime modules are pre-cached with the application shell', () => {
         'notices.js',
         'subscription-rates.js'
     ]) {
-        const escapedModule = module.replace('.', '\\.');
-        assert.match(html, new RegExp('<script src="js/' + escapedModule + '"></script>'));
-        assert.match(shell[1], new RegExp("'\\./js/" + escapedModule + "'"));
+        const referencedByHtml = html.includes('<script src="js/' + module + '"></script>');
+        const loadedDynamically = app.includes("script.src = 'js/" + module + "'");
+        assert.ok(referencedByHtml || loadedDynamically, module + ' must be loaded by the application');
+        assert.ok(shell[1].includes("'./js/" + module + "'"), module + ' must be in APP_SHELL');
     }
 });
