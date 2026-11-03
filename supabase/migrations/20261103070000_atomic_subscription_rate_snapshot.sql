@@ -91,18 +91,30 @@ BEGIN
     SELECT COALESCE(array_agg(x.id), ARRAY[]::uuid[]) INTO v_notice_ids
     FROM jsonb_to_recordset(p_payload->'notices') AS x(id uuid);
 
-    IF p_payload ? 'subscription_rates' AND EXISTS (
-        SELECT 1
-        FROM jsonb_to_recordset(p_payload->'subscription_rates') AS rate(
-            resident_id uuid, effective_month date, monthly_amount numeric
-        )
-        WHERE rate.resident_id IS NULL
-           OR NOT (rate.resident_id = ANY(v_resident_ids))
-           OR rate.effective_month IS NULL
-           OR EXTRACT(DAY FROM rate.effective_month) <> 1
-           OR rate.monthly_amount IS NULL OR rate.monthly_amount < 0
-    ) THEN
-        RAISE EXCEPTION 'invalid_subscription_rates' USING ERRCODE = '22023';
+    IF p_payload ? 'subscription_rates' THEN
+        IF EXISTS (
+            SELECT 1 FROM jsonb_to_recordset(p_payload->'subscription_rates') AS rate(
+                resident_id uuid, effective_month date, monthly_amount numeric
+            ) WHERE rate.resident_id IS NULL
+               OR NOT (rate.resident_id = ANY(v_resident_ids))
+        ) THEN
+            RAISE EXCEPTION 'invalid_subscription_rate_resident' USING ERRCODE = '22023';
+        END IF;
+        IF EXISTS (
+            SELECT 1 FROM jsonb_to_recordset(p_payload->'subscription_rates') AS rate(
+                resident_id uuid, effective_month date, monthly_amount numeric
+            ) WHERE rate.effective_month IS NULL
+               OR EXTRACT(DAY FROM rate.effective_month) <> 1
+        ) THEN
+            RAISE EXCEPTION 'invalid_subscription_rate_month' USING ERRCODE = '22023';
+        END IF;
+        IF EXISTS (
+            SELECT 1 FROM jsonb_to_recordset(p_payload->'subscription_rates') AS rate(
+                resident_id uuid, effective_month date, monthly_amount numeric
+            ) WHERE rate.monthly_amount IS NULL OR rate.monthly_amount < 0
+        ) THEN
+            RAISE EXCEPTION 'invalid_subscription_rate_amount' USING ERRCODE = '22023';
+        END IF;
     END IF;
 
     IF EXISTS (SELECT 1 FROM public.residents r WHERE r.id = ANY(v_resident_ids) AND r.building_id <> p_building_id)
