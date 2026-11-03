@@ -124,11 +124,16 @@ async function loadBackupConsole(options = {}) {
             localStorage.setItem(backupCacheKey(), JSON.stringify(data));
             const trackedRestoreRequestId = activeRestoreRequestId;
             renderBackupConsole(data, false);
-            const completedRestore = trackedRestoreRequestId && (data.restoreRequests || data.requests || [])
-                .find(item => item.id === trackedRestoreRequestId && item.status === 'succeeded');
-            if (completedRestore && typeof lockCurrentSession === 'function') {
+            const trackedRestore = trackedRestoreRequestId && (data.restoreRequests || data.requests || [])
+                .find(item => item.id === trackedRestoreRequestId);
+            const completedRestore = trackedRestore?.status === 'succeeded';
+            const uncertainRestore = trackedRestore?.status === 'failed'
+                && String(trackedRestore.result_message || '').includes('[RESTORE_OUTCOME_UNCERTAIN]');
+            if ((completedRestore || uncertainRestore) && typeof lockCurrentSession === 'function') {
                 await lockCurrentSession();
-                setAuthModal(true, 'اكتملت استعادة قاعدة البيانات. سجّل الدخول مرة أخرى لتحميل البيانات المستعادة.');
+                setAuthModal(true, uncertainRestore
+                    ? 'تعذر تأكيد نتيجة الاستعادة بعد انقطاع المهمة. سجّل الدخول مرة أخرى للتحقق من قاعدة البيانات الحالية.'
+                    : 'اكتملت استعادة قاعدة البيانات. سجّل الدخول مرة أخرى لتحميل البيانات المستعادة.');
                 return;
             }
             const refreshNotice = document.getElementById('backupRefreshNotice');
