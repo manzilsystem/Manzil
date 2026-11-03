@@ -42,3 +42,11 @@ test('restore request tracking survives cached renders until a fresh terminal re
     assert.match(backupUi, /const trackedRestoreRequestId = activeRestoreRequestId/);
     assert.match(backupUi, /item\.id === trackedRestoreRequestId && item\.status === 'succeeded'/);
 });
+
+
+test('uncertain restore outcome after worker interruption forces a fresh authenticated session', () => {
+    assert.match(backupUi, /const uncertainRestore = trackedRestore\?\.status === 'failed'/);
+    assert.match(backupUi, /RESTORE_OUTCOME_UNCERTAIN/);
+    assert.match(backupUi, /تعذر تأكيد نتيجة الاستعادة بعد انقطاع المهمة/);
+    assert.match(backupUi, /if \(\(completedRestore \|\| uncertainRestore\) && typeof lockCurrentSession === 'function'\)/);
+});
