@@ -503,15 +503,20 @@ test('cashbox summary loader validates server data before assigning global state
 
 
 test('cashbox summary rejects negative balances in restricted funds', () => {
+    const api = vm.runInNewContext(
+        `${source}\\n({ hasValidCashboxBalances })`,
+        {},
+        { filename: 'cashbox-negative-balance-test.js' }
+    );
     for (const balances of [
         { main: 100, development: -1, emergency: 0 },
         { main: 100, development: 0, emergency: -0.01 }
     ]) {
         assert.equal(
-            hasValidCashboxBalances(balances),
+            api.hasValidCashboxBalances(balances),
             false,
             'restricted fund balances cannot be negative'
         );
     }
-    assert.equal(hasValidCashboxBalances({ main: -1, development: 0, emergency: 0 }), true);
+    assert.equal(api.hasValidCashboxBalances({ main: -1, development: 0, emergency: 0 }), true);
 });
