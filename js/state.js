@@ -55,6 +55,13 @@ function cloneStateSnapshot() {
 
 let saveRollbackPendingCount = 0;
 let saveRollbackBaseline = null;
+let saveExecutionQueue = Promise.resolve();
+
+function enqueueStateSave() {
+    const queuedSave = saveExecutionQueue.then(() => saveState());
+    saveExecutionQueue = queuedSave.then(() => undefined, () => undefined);
+    return queuedSave;
+}
 
 async function saveWithRollback(previousState) {
     if (saveRollbackPendingCount === 0) saveRollbackBaseline = previousState;
@@ -63,7 +70,7 @@ async function saveWithRollback(previousState) {
 
     let saved = false;
     try {
-        saved = await saveState();
+        saved = await enqueueStateSave();
     } catch (error) {
         console.error('Save operation failed:', error);
     }
