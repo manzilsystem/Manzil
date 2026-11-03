@@ -9,6 +9,12 @@ const source = fs.readFileSync(path.join(__dirname, '..', 'js', 'cashbox.js'), '
 function createTransferHarness(options = {}) {
     const calls = { rpc: [], refreshes: 0, renders: 0, toasts: [] };
     const elements = new Map();
+    const storage = options.sessionStore || new Map();
+    const sessionStorage = {
+        getItem(key) { return storage.has(key) ? storage.get(key) : null; },
+        setItem(key, value) { storage.set(key, String(value)); },
+        removeItem(key) { storage.delete(key); }
+    };
     const makeElement = (id, initial = {}) => {
         const element = {
             id, value: '', textContent: '', disabled: false,
@@ -41,10 +47,11 @@ function createTransferHarness(options = {}) {
         currentUserRole: 'manager',
         activeBuildingId: 'building-1',
         activeBuildingVersion: 4,
+        sessionStorage,
         persistedAuditLogIds: new Set(),
         document: { getElementById: id => elements.get(id) || null },
         requireManager: () => true,
-        generateId: () => 'request-123',
+        generateId: () => options.requestId || 'request-123',
         fmtNum: value => Number(value).toFixed(2),
         formatDate: value => String(value || ''),
         esc: value => String(value ?? ''),
@@ -88,7 +95,7 @@ function createTransferHarness(options = {}) {
         filename: 'js/cashbox.js'
     });
     const event = { prevented: false, preventDefault() { this.prevented = true; } };
-    return { api, sandbox, elements, calls, event, options };
+    return { api, sandbox, elements, calls, event, options, storage };
 }
 
 test('cash transfer form submits the expected RPC payload and refreshes the UI after confirmation', async () => {
@@ -597,4 +604,65 @@ test('cash transfer requires the server transfer id before acknowledging a commi
 
     assert.equal(harness.calls.toasts.at(-1).type, 'error');
     assert.equal(harness.calls.reset, undefined);
+});
+
+test('uncertain cash transfer retries reuse the same idempotency key after a page reload', async () => {
+    const storage = new Map();
+    const first = createTransferHarness({ sessionStore: storage, rpcThrows: [new Error('connection reset')] });
+    await first.api.submitCashTransfer(first.event);
+    const requestId = first.calls.rpc[0].args.p_request_id;
+    assert.ok(storage.has('manzil:cash-transfer-pending:building-1'));
+
+    const reloaded = createTransferHarness({
+        sessionStore: storage,
+        rpcResults: [{ data: { ok: true, duplicate: true, version: 5, balances: { main: 90, development: 30, emergency: 30 } }, error: null }]
+    });
+    await reloaded.api.submitCashTransfer(reloaded.event);
+    assert.equal(reloaded.calls.rpc[0].args.p_request_id, requestId);
+    assert.equal(storage.has('manzil:cash-transfer-pending:building-1'), false);
+    assert.equal(reloaded.calls.toasts.at(-1).type, 'success');
+});
+
+test('an uncertain retry bypasses stale local balance checks and lets the server confirm idempotency', async () => {
+    const storage = new Map();
+    const first = createTransferHarness({ sessionStore: storage, rpcThrows: [new Error('connection reset')] });
+    await first.api.submitCashTransfer(first.event);
+
+    const reloaded = createTransferHarness({
+        sessionStore: storage,
+        rpcResults: [{ data: { ok: true, duplicate: true, version: 5, balances: { main: 90, development: 30, emergency: 30 } }, error: null }]
+    });
+    reloaded.sandbox.state.cashAccountBalances.main = 0;
+    await reloaded.api.submitCashTransfer(reloaded.event);
+
+    assert.equal(reloaded.calls.rpc.length, 1);
+    assert.equal(reloaded.calls.rpc[0].args.p_request_id, first.calls.rpc[0].args.p_request_id);
+    assert.equal(reloaded.calls.toasts.at(-1).type, 'success');
+});
+
+test('pending cash transfer retry state is isolated by building id', async () => {
+    const storage = new Map();
+    const first = createTransferHarness({ sessionStore: storage, rpcThrows: [new Error('connection reset')] });
+    await first.api.submitCashTransfer(first.event);
+
+    const otherBuilding = createTransferHarness({ sessionStore: storage, requestId: 'request-456' });
+    otherBuilding.sandbox.activeBuildingId = 'building-2';
+    await otherBuilding.api.submitCashTransfer(otherBuilding.event);
+
+    assert.equal(otherBuilding.calls.rpc[0].args.p_building_id, 'building-2');
+    assert.notEqual(otherBuilding.calls.rpc[0].args.p_request_id, first.calls.rpc[0].args.p_request_id);
+    assert.equal(storage.has('manzil:cash-transfer-pending:building-1'), true);
+    assert.equal(storage.has('manzil:cash-transfer-pending:building-2'), false);
+});
+
+test('pending transfer payload is restored into the form after reload when form values differ', async () => {
+    const storage = new Map();
+    const first = createTransferHarness({ sessionStore: storage, rpcThrows: [new Error('connection reset')] });
+    await first.api.submitCashTransfer(first.event);
+
+    const reloaded = createTransferHarness({ sessionStore: storage, amount: 15 });
+    await reloaded.api.submitCashTransfer(reloaded.event);
+    assert.equal(reloaded.calls.rpc.length, 0);
+    assert.equal(reloaded.elements.get('cashTransferAmount').value, '10');
+    assert.equal(reloaded.calls.toasts.at(-1).type, 'error');
 });
