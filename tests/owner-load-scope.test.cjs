@@ -23,7 +23,7 @@ test('owner sessions skip manager-only data queries', () => {
         "currentUserRole === 'manager' ? supabaseQuery('resident_internal_notes', 'resident_id,notes') : Promise.resolve([])"
     ));
 
-    for (const table of ['residents', 'income', 'notices']) {
-        assert.ok(loadState.includes(`supabaseQuery('${table}')`));
+    for (const [table, columns] of [['residents', 'residentColumns'], ['income', 'incomeColumns'], ['notices', 'noticeColumns']]) {
+        assert.ok(loadState.includes(`supabaseQuery('${table}', ${columns})`));
     }
 });
