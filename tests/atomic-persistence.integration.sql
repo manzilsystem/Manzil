@@ -375,6 +375,7 @@ DECLARE
     v_transfer jsonb;
     v_result jsonb;
     v_payload jsonb;
+    v_expected_main numeric;
 BEGIN
     IF has_table_privilege('authenticated', 'public.cash_transfers', 'INSERT')
        OR has_table_privilege('authenticated', 'public.cash_transfers', 'UPDATE')
@@ -386,11 +387,21 @@ BEGIN
     SELECT state_version INTO v_version
     FROM public.buildings WHERE id = v_building;
 
+    SELECT COALESCE(building.starting_balance, 0)
+        + COALESCE((SELECT SUM(payment.amount) FROM public.income payment
+                    WHERE payment.building_id = v_building), 0)
+        - COALESCE((SELECT SUM(expense.amount) FROM public.expenses expense
+                    WHERE expense.building_id = v_building
+                      AND COALESCE(expense.cash_account_code, 'main') = 'main'), 0)
+    INTO v_expected_main
+    FROM public.buildings building
+    WHERE building.id = v_building;
+
     v_summary := public.get_cashbox_summary(v_building);
-    IF (v_summary#>>'{balances,main}')::numeric <> 100
+    IF (v_summary#>>'{balances,main}')::numeric <> v_expected_main
        OR (v_summary#>>'{balances,development}')::numeric <> 0
        OR (v_summary#>>'{balances,emergency}')::numeric <> 0 THEN
-        RAISE EXCEPTION 'initial cashbox balances are incorrect: %', v_summary;
+        RAISE EXCEPTION 'initial cashbox balances do not match the financial ledger: % (expected main %)', v_summary, v_expected_main;
     END IF;
 
     v_transfer := public.transfer_cash_between_accounts(
