@@ -14,6 +14,7 @@ function openResidentModal(mode, id) {
         if (r) {
             document.getElementById('residentName').value = r.name || '';
             document.getElementById('residentApartment').value = r.apartmentNumber || '';
+            document.getElementById('residentFloor').value = r.floor || '';
             document.getElementById('residentPhone').value = r.phone || '';
             amountInput.value = r.monthlyAmount ?? '';
             amountInput.readOnly = true;
@@ -190,6 +191,7 @@ async function handleResidentSubmit(e) {
     ownerProvisionRequested = false;
     const name = document.getElementById('residentName').value.trim();
     const apartmentNumber = document.getElementById('residentApartment').value.trim();
+    const floor = document.getElementById('residentFloor').value.trim();
     const phone = document.getElementById('residentPhone').value.trim();
     const amountInput = document.getElementById('residentAmount').value.trim();
     const monthlyAmount = amountInput === '' ? Number(state.defaultSubscription) || 0 : Number(amountInput);
@@ -210,14 +212,14 @@ async function handleResidentSubmit(e) {
                 toast('غيّر قيمة الاشتراك من زر «إدارة تاريخ الاشتراك» حتى يُحفظ التغيير في السجل.', 'error');
                 return;
             }
-            Object.assign(r, { name, apartmentNumber, phone, monthlyAmount, notes });
+            Object.assign(r, { name, apartmentNumber, floor, phone, monthlyAmount, notes });
             targetResidentId = r.id;
             logAction('تعديل شقة', `${name} - شقة ${apartmentNumber}`);
         }
     } else {
         const createdAt = new Date();
         const resident = {
-            id: generateId(), name, apartmentNumber, phone, monthlyAmount, notes,
+            id: generateId(), name, apartmentNumber, floor, phone, monthlyAmount, notes,
             createdAt: createdAt.toISOString(),
             subscriptionRates: [{ effectiveMonth: getLocalMonthKey(createdAt) + '-01', monthlyAmount }]
         };
