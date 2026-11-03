@@ -27,7 +27,8 @@ DECLARE
     v_locked_until timestamptz;
     v_retry_after integer;
 BEGIN
-    IF p_phone_hash IS NULL OR p_phone_hash !~ '^[0-9a-f]{64}
+    IF p_phone_hash IS NULL OR p_phone_hash !~ '^[0-9a-f]{64}$'
+       OR p_action IS NULL OR p_action NOT IN ('attempt', 'success') THEN
         RAISE EXCEPTION 'invalid_owner_login_rate_limit_request'
             USING ERRCODE = '22023';
     END IF;
