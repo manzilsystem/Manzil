@@ -291,7 +291,7 @@ function isValidBackup(data) {
     const validNumber = value => (typeof value === 'number' && Number.isFinite(value)) ||
         (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value)));
     const validAmount = value => validNumber(value) && Number(value) >= 0;
-    if (!data.residents.every(r => r && typeof r === 'object' && validId(r.id) && typeof r.name === 'string' && typeof r.apartmentNumber === 'string' && (r.phone === undefined || typeof r.phone === 'string') && (r.notes === undefined || typeof r.notes === 'string') && validAmount(r.monthlyAmount ?? 0))) return false;
+    if (!data.residents.every(r => r && typeof r === 'object' && validId(r.id) && typeof r.name === 'string' && typeof r.apartmentNumber === 'string' && (r.phone === undefined || typeof r.phone === 'string') && (r.floor === undefined || r.floor === null || typeof r.floor === 'string') && (r.notes === undefined || typeof r.notes === 'string') && validAmount(r.monthlyAmount ?? 0))) return false;
     if (!data.residents.every(r => r.userId === undefined || r.userId === null || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(r.userId)))) return false;
     const hasUnique = values => new Set(values).size === values.length;
     if (!hasUnique(data.residents.map(r => r.id))) return false;

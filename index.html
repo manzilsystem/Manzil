@@ -311,7 +311,7 @@
                 <button onclick="openResidentModal('add')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-indigo-600/20 transition flex items-center gap-2"><i class="fa-solid fa-user-plus text-sm"></i> شقة جديدة</button>
             </div>
             <div class="app-card p-3 rounded-3xl border space-y-2 no-print">
-                <input type="search" id="searchResidentsInput" aria-label="البحث باسم الساكن أو رقم الشقة" oninput="renderResidentsGrid()" placeholder="ابحث بالاسم أو رقم الشقة..." class="w-full app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
+                <input type="search" id="searchResidentsInput" aria-label="البحث بالاسم أو رقم الشقة أو الدور" oninput="renderResidentsGrid()" placeholder="ابحث بالاسم أو رقم الشقة أو الدور..." class="w-full app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
                 <div class="resident-filters-grid grid grid-cols-2 gap-2">
                     <select id="residentStatusFilter" aria-label="تصفية الشقق حسب حالة السداد" onchange="renderResidentsGrid()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold">
                         <option value="all">كل الحالات</option>
@@ -680,6 +680,7 @@
                 <input type="text" id="residentName" aria-label="اسم الساكن" placeholder="اسم الساكن" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 <div class="grid grid-cols-2 gap-2">
                     <input type="text" id="residentApartment" aria-label="رقم الشقة" placeholder="رقم الشقة" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                    <input type="text" id="residentFloor" maxlength="30" aria-label="الدور" placeholder="الدور (اختياري)" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                     <input type="tel" id="residentPhone" aria-label="هاتف الساكن" placeholder="الهاتف" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 </div>
                 <input type="number" id="residentAmount" min="0" step="0.01" inputmode="decimal" aria-label="الاشتراك الشهري للشقة" placeholder="الاشتراك الشهري" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">

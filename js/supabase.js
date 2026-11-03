@@ -150,6 +150,7 @@ function mapResident(row) {
         userId: row.user_id || null,
         name: row.name,
         apartmentNumber: row.apartment_number,
+        floor: row.floor || '',
         phone: row.phone || '',
         monthlyAmount: Number(row.monthly_amount) || 0,
         notes: row.notes || '',
@@ -390,8 +391,8 @@ async function loadState() {
         : Promise.resolve({ data: null, error: null });
     const isManager = currentUserRole === 'manager';
     const residentColumns = isManager
-        ? 'id,user_id,name,apartment_number,phone,monthly_amount,created_at'
-        : 'id,name,apartment_number,monthly_amount,created_at';
+        ? 'id,user_id,name,apartment_number,floor,phone,monthly_amount,created_at'
+        : 'id,name,apartment_number,floor,monthly_amount,created_at';
     const incomeColumns = isManager
         ? 'id,resident_id,amount,month,notes,paid_at'
         : 'id,resident_id,amount,month,paid_at';
@@ -466,7 +467,7 @@ async function saveState() {
         },
         residents: state.residents.map(r => ({
             id: r.id, user_id: r.userId || null, name: r.name,
-            apartment_number: r.apartmentNumber, phone: r.phone || null,
+            apartment_number: r.apartmentNumber, floor: r.floor || null, phone: r.phone || null,
             monthly_amount: Number(r.monthlyAmount) || 0, notes: r.notes || null,
             created_at: toSupabaseTimestamp(r.createdAt)
         })),
