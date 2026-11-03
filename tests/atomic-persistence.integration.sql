@@ -12,7 +12,6 @@
 \ir ../supabase/migrations/20261103063455_owner_login_rate_limit.sql
 \ir ../supabase/migrations/20261103064001_subscription_rate_change_history.sql
 \ir ../supabase/migrations/20261103070519_owner_payment_notifications.sql
-\ir ../supabase/migrations/20261103180000_sync_owner_payment_notifications.sql
 \ir ../supabase/migrations/20261103105856_restrict_notification_update_columns.sql
 \ir ../supabase/migrations/20261103105902_key_owner_login_rate_limit_hashes.sql
 \ir ../supabase/migrations/20261103105908_cashbox_funds_and_transfers.sql
@@ -21,6 +20,7 @@
 
 \ir ../supabase/migrations/20261103143759_allow_owner_notification_read_state_updates.sql
 \ir ../supabase/migrations/20261103153941_cash_transfer_idempotency_payload.sql
+\ir ../supabase/migrations/20261103180000_sync_owner_payment_notifications.sql
 
 INSERT INTO public.profiles (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),
