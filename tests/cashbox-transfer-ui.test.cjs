@@ -50,7 +50,11 @@ function createTransferHarness(options = {}) {
         esc: value => String(value ?? ''),
         toast: (message, type) => calls.toasts.push({ message, type }),
         renderAll: () => { calls.renders += 1; },
-        refreshCashboxSummary: async () => { calls.refreshes += 1; },
+        refreshCashboxSummary: async () => {
+            calls.refreshes += 1;
+            if (options.refreshThrows) throw options.refreshThrows;
+            return options.refreshResult ?? true;
+        },
         loadState: async () => {
             calls.loads = (calls.loads || 0) + 1;
             if (options.loadStateResult === false) return false;
@@ -63,6 +67,7 @@ function createTransferHarness(options = {}) {
         supabaseClient: {
             rpc: async (name, args) => {
                 calls.rpc.push({ name, args });
+                if (options.onRpc) return options.onRpc(sandbox, name, args);
                 if (options.rpcThrows?.length) throw options.rpcThrows.shift();
                 if (options.rpcResults?.length) return options.rpcResults.shift();
                 return options.rpcResult || {
@@ -70,6 +75,7 @@ function createTransferHarness(options = {}) {
                         ok: true,
                         version: 5,
                         balances: { main: 90, development: 30, emergency: 30 },
+                        transfer_id: 'transfer-123',
                         audit_log_id: 'audit-123'
                     },
                     error: null
@@ -519,4 +525,76 @@ test('cashbox summary rejects negative balances in restricted funds', () => {
         );
     }
     assert.equal(api.hasValidCashboxBalances({ main: -1, development: 0, emergency: 0 }), true);
+});
+
+
+test('confirmed cash transfer keeps its history visible when summary refresh is unavailable', async () => {
+    const harness = createTransferHarness({ refreshResult: false });
+
+    await harness.api.submitCashTransfer(harness.event);
+
+    assert.equal(harness.sandbox.state.cashTransfers.length, 1);
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(harness.sandbox.state.cashTransfers[0])),
+        {
+            id: 'transfer-123',
+            fromAccountCode: 'main',
+            toAccountCode: 'development',
+            amount: 10,
+            notes: 'monthly allocation',
+            transferredAt: harness.sandbox.state.cashTransfers[0].transferredAt
+        }
+    );
+    assert.ok(Number.isFinite(Date.parse(harness.sandbox.state.cashTransfers[0].transferredAt)));
+    assert.equal(harness.calls.toasts.at(-1).type, 'success');
+});
+
+test('late cash transfer responses cannot overwrite a different active building', async () => {
+    const harness = createTransferHarness({
+        onRpc: async sandbox => {
+            sandbox.activeBuildingId = 'building-2';
+            return {
+                data: {
+                    ok: true,
+                    version: 5,
+                    balances: { main: 90, development: 30, emergency: 30 },
+                    transfer_id: 'transfer-123',
+                    audit_log_id: 'audit-123'
+                },
+                error: null
+            };
+        }
+    });
+    const previousBalances = { ...harness.sandbox.state.cashAccountBalances };
+
+    await harness.api.submitCashTransfer(harness.event);
+
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(harness.sandbox.state.cashAccountBalances)),
+        previousBalances
+    );
+    assert.deepEqual(harness.sandbox.state.cashTransfers, []);
+    assert.deepEqual(harness.sandbox.state.auditLogs, []);
+    assert.equal(harness.sandbox.activeBuildingVersion, 4);
+    assert.equal(harness.calls.renders, 0);
+    assert.notEqual(harness.calls.toasts.at(-1)?.type, 'success');
+});
+
+test('cash transfer requires the server transfer id before acknowledging a committed write', async () => {
+    const harness = createTransferHarness({
+        rpcResult: {
+            data: {
+                ok: true,
+                version: 5,
+                balances: { main: 90, development: 30, emergency: 30 },
+                audit_log_id: 'audit-123'
+            },
+            error: null
+        }
+    });
+
+    await harness.api.submitCashTransfer(harness.event);
+
+    assert.equal(harness.calls.toasts.at(-1).type, 'error');
+    assert.equal(harness.calls.reset, undefined);
 });
