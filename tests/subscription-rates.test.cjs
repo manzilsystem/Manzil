@@ -97,3 +97,75 @@ test('JSON backup validation accepts all supported application themes', () => {
         }), true, currentTheme);
     }
 });
+
+
+test('JSON backup round-trip preserves valid historical subscription rates', () => {
+    const app = loadCrudHelpers();
+    const backup = {
+        residents: [{
+            id: 'resident-1', name: 'Test', apartmentNumber: 'A1', monthlyAmount: 150,
+            subscriptionRates: [
+                { effectiveMonth: '2026-01-01', monthlyAmount: 100 },
+                { effectiveMonth: '2026-03-01', monthlyAmount: 150 }
+            ]
+        }],
+        income: [{ id: 'income-1', residentId: 'resident-1', month: 'يناير 2026', amount: 50 }],
+        expenses: [{ id: 'expense-1', title: 'Test expense', month: 'يناير 2026', amount: 10 }],
+        notices: [{ id: 'notice-1', text: 'Test notice' }],
+        currentTheme: 'ocean'
+    };
+    const restored = JSON.parse(JSON.stringify(backup));
+    assert.equal(app.isValidBackup(restored), true);
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(restored.residents[0].subscriptionRates)),
+        backup.residents[0].subscriptionRates
+    );
+});
+
+test('JSON backup rejects malformed or duplicate subscription rate history', () => {
+    const app = loadCrudHelpers();
+    const base = {
+        residents: [{ id: 'resident-1', name: 'Test', apartmentNumber: 'A1', monthlyAmount: 100 }],
+        income: [], expenses: [], notices: []
+    };
+    const invalidRates = [
+        [{ effectiveMonth: '2026-13-01', monthlyAmount: 100 }],
+        [{ effectiveMonth: '2026-02-15', monthlyAmount: 100 }],
+        [{ effectiveMonth: '2026-02-01', monthlyAmount: -1 }],
+        [{ effectiveMonth: '2026-02-01', monthlyAmount: 100 }, { effectiveMonth: '2026-02-01', monthlyAmount: 120 }],
+        'not-an-array'
+    ];
+    for (const subscriptionRates of invalidRates) {
+        const backup = structuredClone(base);
+        backup.residents[0].subscriptionRates = subscriptionRates;
+        assert.equal(app.isValidBackup(backup), false, JSON.stringify(subscriptionRates));
+    }
+});
+
+test('JSON backup rejects duplicate resident IDs, apartment numbers, and transaction IDs', () => {
+    const app = loadCrudHelpers();
+    const duplicateResidents = {
+        residents: [
+            { id: 'r1', name: 'A', apartmentNumber: 'A1', monthlyAmount: 100 },
+            { id: 'r1', name: 'B', apartmentNumber: 'B1', monthlyAmount: 100 }
+        ], income: [], expenses: [], notices: []
+    };
+    assert.equal(app.isValidBackup(duplicateResidents), false);
+
+    const duplicateApartments = {
+        residents: [
+            { id: 'r1', name: 'A', apartmentNumber: ' A1 ', monthlyAmount: 100 },
+            { id: 'r2', name: 'B', apartmentNumber: 'a1', monthlyAmount: 100 }
+        ], income: [], expenses: [], notices: []
+    };
+    assert.equal(app.isValidBackup(duplicateApartments), false);
+
+    const duplicateIncome = {
+        residents: [{ id: 'r1', name: 'A', apartmentNumber: 'A1', monthlyAmount: 100 }],
+        income: [
+            { id: 'i1', residentId: 'r1', month: 'يناير 2026', amount: 50 },
+            { id: 'i1', residentId: 'r1', month: 'يناير 2026', amount: 50 }
+        ], expenses: [], notices: []
+    };
+    assert.equal(app.isValidBackup(duplicateIncome), false);
+});
