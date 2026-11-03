@@ -165,10 +165,13 @@ async function requestDatabaseBackup() {
 
 async function requestDatabaseRestore() {
     if (!requireManager()) return;
-    const tag = document.getElementById('backupRestoreSelect')?.value;
+    const select = document.getElementById('backupRestoreSelect');
+    const tag = select?.value;
     if (!tag) { toast('اختر نسخة احتياطية أولاً', 'error'); return; }
-    if (!confirm('تحذير: سيتم استبدال قاعدة بيانات الإنتاج بالكامل بالنسخة المختارة. هل تريد المتابعة؟')) return;
-    const confirmation = prompt('للتأكيد اكتب RESTORE');
+    const selectedLabel = select.options[select.selectedIndex]?.textContent?.trim() || tag;
+    const warning = 'سيتم استبدال قاعدة بيانات الإنتاج بالكامل، بما يشمل جميع المباني والحسابات والسجلات.\\n\\nالنسخة المحددة: ' + selectedLabel + '\\nمعرّف النسخة: ' + tag + '\\n\\nلا يمكن التراجع عن العملية من داخل التطبيق. هل تريد المتابعة؟';
+    if (!confirm(warning)) return;
+    const confirmation = prompt('لتأكيد الاستعادة اكتب RESTORE');
     if (confirmation !== 'RESTORE') { toast('تم إلغاء الاستعادة', 'info'); return; }
     const button = document.getElementById('backupRestoreButton');
     const status = document.getElementById('backupRestoreStatus');
