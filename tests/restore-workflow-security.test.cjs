@@ -42,3 +42,13 @@ test('missing or malformed catalog digest is terminally failed before download o
     assert.ok(download > failUpdate, 'invalid digest must fail before downloading or restoring');
     assert.match(workflow, /trap - ERR/);
 });
+
+test('abandoned restore requests are failed after a safe timeout', () => {
+    assert.ok(workflow.includes("timeout-minutes: 45"));
+    assert.ok(workflow.includes("WHERE status='running' AND started_at IS NOT NULL AND started_at < now() - interval '60 minutes'"));
+    assert.ok(workflow.includes("توقفت مهمة الاستعادة دون إكمال؛ لم تتم إعادة المحاولة تلقائياً"));
+    const staleRecovery = workflow.indexOf("started_at < now() - interval '60 minutes'");
+    const claimNext = workflow.indexOf('WITH next_request AS');
+    assert.ok(staleRecovery >= 0 && staleRecovery < claimNext, 'stale requests must be closed before claiming a new request');
+    assert.ok(!workflow.includes("UPDATE public.restore_requests SET status='queued'"));
+});

@@ -94,6 +94,11 @@ jobs:
             exit 0
           fi
 
+          # A restore job has a hard 45-minute timeout. Anything still running after
+          # 60 minutes is abandoned (for example, a cancelled or lost runner).
+          # Single-transaction pg_restore rolls back when its database connection closes.
+          psql_db -c "UPDATE public.restore_requests SET status='failed',finished_at=now(),result_message='توقفت مهمة الاستعادة دون إكمال؛ لم تتم إعادة المحاولة تلقائياً' WHERE status='running' AND started_at IS NOT NULL AND started_at < now() - interval '60 minutes'"
+
           # Atomically claim one request. The row lock and status transition happen in one statement.
           request="$(psql_db -At -F '|' -c "WITH next_request AS (SELECT r.id FROM public.restore_requests r WHERE r.status='queued' ORDER BY r.created_at LIMIT 1 FOR UPDATE SKIP LOCKED) UPDATE public.restore_requests r SET status='running',started_at=now(),result_message='بدأ تنفيذ الاستعادة' FROM next_request n WHERE r.id=n.id RETURNING r.id::text || '|' || r.backup_tag || '|' || COALESCE((SELECT b.sha256 FROM public.backup_catalog b WHERE b.tag=r.backup_tag), '')")"
           if [ -z "$request" ]; then
