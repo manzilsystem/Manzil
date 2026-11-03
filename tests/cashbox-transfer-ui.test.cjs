@@ -314,3 +314,38 @@ test('thrown transport errors do not mutate balances or discard the idempotency 
     assert.equal(harness.calls.reset, true);
     assert.equal(harness.calls.toasts.at(-1).type, 'success');
 });
+
+
+test('cash transfer rejects incomplete authoritative balances or audit metadata', async () => {
+    const harness = createTransferHarness({
+        rpcResults: [
+            {
+                data: { ok: true, version: 5, balances: { main: 90, development: 30 } },
+                error: null
+            },
+            {
+                data: {
+                    ok: true, duplicate: true, version: 5,
+                    balances: { main: 90, development: 30, emergency: 30 }
+                },
+                error: null
+            }
+        ]
+    });
+    const initialBalances = { ...harness.sandbox.state.cashAccountBalances };
+
+    await harness.api.submitCashTransfer(harness.event);
+
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(harness.sandbox.state.cashAccountBalances)),
+        initialBalances
+    );
+    assert.equal(harness.calls.reset, undefined);
+    assert.equal(harness.calls.toasts.at(-1).type, 'error');
+
+    await harness.api.submitCashTransfer(harness.event);
+
+    assert.equal(harness.calls.rpc[1].args.p_request_id, harness.calls.rpc[0].args.p_request_id);
+    assert.equal(harness.calls.reset, true);
+    assert.equal(harness.calls.toasts.at(-1).type, 'success');
+});
