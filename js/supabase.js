@@ -11,6 +11,7 @@ let authGeneration = 0;
 let persistedAuditLogIds = new Set();
 let activeBuildingVersion = 1;
 let ownerNotificationsChannel = null;
+let pendingBuildingSelection = null;
 
 function isCurrentAuthSession(session, generation) {
     return Boolean(session && activeSession && session.user?.id === activeSession.user?.id && generation === authGeneration);
@@ -275,15 +276,76 @@ function subscribeOwnerNotificationsRealtime() {
         });
 }
 
+function escapeBuildingLabel(value) {
+    return String(value || '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[character]);
+}
+
+async function chooseBuildingMembership(memberships, session, generation) {
+    if (!Array.isArray(memberships) || memberships.length === 0) return null;
+    if (memberships.length === 1) return memberships[0];
+
+    const buildingIds = memberships.map(item => item.building_id);
+    const { data: buildings, error } = await supabaseClient.from('buildings')
+        .select('id,name').in('id', buildingIds);
+    if (!isCurrentAuthSession(session, generation)) return null;
+    if (error) throw error;
+
+    const names = new Map((buildings || []).map(building => [building.id, building.name || 'مبنى بدون اسم']));
+    const select = document.getElementById('buildingContextSelect');
+    const modal = document.getElementById('buildingContextModal');
+    if (!select || !modal) throw new Error('واجهة اختيار المبنى غير متاحة.');
+
+    select.innerHTML = memberships.map(membership => {
+        const name = names.get(membership.building_id);
+        if (!name) throw new Error('تعذر تحميل اسم أحد المباني المرتبطة بالحساب.');
+        const roleLabel = membership.role === 'manager' ? 'مدير' : 'مالك';
+        return '<option value="' + escapeBuildingLabel(membership.building_id) + '">' +
+            escapeBuildingLabel(name) + ' — ' + roleLabel + '</option>';
+    }).join('');
+
+    return new Promise(resolve => {
+        pendingBuildingSelection = { memberships, session, generation, resolve };
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        modal.setAttribute('aria-hidden', 'false');
+        select.focus?.();
+    });
+}
+
+function confirmBuildingSelection() {
+    const pending = pendingBuildingSelection;
+    if (!pending) return false;
+    if (!isCurrentAuthSession(pending.session, pending.generation)) {
+        pendingBuildingSelection = null;
+        pending.resolve(null);
+        return false;
+    }
+    const selectedId = document.getElementById('buildingContextSelect')?.value;
+    const membership = pending.memberships.find(item => item.building_id === selectedId);
+    if (!membership) return false;
+
+    pendingBuildingSelection = null;
+    const modal = document.getElementById('buildingContextModal');
+    modal?.classList.add('hidden');
+    modal?.classList.remove('flex');
+    modal?.setAttribute('aria-hidden', 'true');
+    pending.resolve(membership);
+    return true;
+}
+
 async function loadState() {
     const session = activeSession;
     const generation = authGeneration;
     if (!session) return false;
-    const { data: membership, error: membershipError } = await supabaseClient
-        .from('building_members').select('building_id, role').eq('user_id', session.user.id).limit(1).maybeSingle();
+    const { data: memberships, error: membershipError } = await supabaseClient
+        .from('building_members').select('building_id, role').eq('user_id', session.user.id).order('building_id');
     if (!isCurrentAuthSession(session, generation)) return false;
     if (membershipError) throw membershipError;
-    if (!membership) throw new Error('لا يوجد مبنى مرتبط بهذا الحساب. اطلب من المدير ربط الحساب أولاً.');
+    if (!memberships?.length) throw new Error('لا يوجد مبنى مرتبط بهذا الحساب. اطلب من المدير ربط الحساب أولاً.');
+    const membership = await chooseBuildingMembership(memberships, session, generation);
+    if (!membership || !isCurrentAuthSession(session, generation)) return false;
     const { data: profile, error: profileError } = await supabaseClient.from('profiles')
         .select('must_change_pin').eq('id', session.user.id).maybeSingle();
     if (!isCurrentAuthSession(session, generation)) return false;
