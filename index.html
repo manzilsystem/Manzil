@@ -100,6 +100,19 @@
         </div>
     </div>
 
+    <div id="buildingContextModal" role="dialog" aria-modal="true" aria-labelledby="buildingContextTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[70] hidden items-center justify-center p-4">
+        <section class="app-card border w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-4">
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/15 text-indigo-300 flex items-center justify-center"><i class="fa-solid fa-building"></i></div>
+                <h2 id="buildingContextTitle" class="text-xl font-black">اختر المبنى</h2>
+                <p class="text-xs text-slate-400 leading-6">هذا الحساب مرتبط بأكثر من مبنى أو دور. اختر سياق العمل قبل تحميل البيانات.</p>
+            </div>
+            <label for="buildingContextSelect" class="block text-xs font-bold">المبنى والدور</label>
+            <select id="buildingContextSelect" class="w-full app-input border rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-indigo-500"></select>
+            <button type="button" onclick="confirmBuildingSelection()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl text-sm font-bold">متابعة بهذا المبنى</button>
+        </section>
+    </div>
+
     <!-- Header -->
     <header class="app-card sticky top-0 z-30 border-b no-print">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center max-w-4xl">
