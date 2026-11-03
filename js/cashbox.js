@@ -6,6 +6,7 @@ const CASH_ACCOUNTS = Object.freeze({
 
 let cashTransferSaving = false;
 let cashTransferPendingRequestId = null;
+let cashTransferPendingPayload = null;
 
 function getCashAccountLabel(code) {
     return CASH_ACCOUNTS[code]?.label || CASH_ACCOUNTS.main.label;
@@ -111,8 +112,17 @@ async function submitCashTransfer(event) {
         return;
     }
 
+    const requestPayload = { fromAccountCode, toAccountCode, amount, notes };
+    if (cashTransferPendingRequestId && JSON.stringify(requestPayload) !== JSON.stringify(cashTransferPendingPayload)) {
+        toast('يوجد تحويل سابق لم يتأكد وصول نتيجته. أعد المحاولة بنفس البيانات أولًا.', 'error');
+        return;
+    }
+
     cashTransferSaving = true;
-    if (!cashTransferPendingRequestId) cashTransferPendingRequestId = generateId();
+    if (!cashTransferPendingRequestId) {
+        cashTransferPendingRequestId = generateId();
+        cashTransferPendingPayload = requestPayload;
+    }
     const submit = document.getElementById('cashTransferSubmitButton');
     if (submit) {
         submit.disabled = true;
@@ -131,6 +141,8 @@ async function submitCashTransfer(event) {
         if (error) throw error;
 
         if (data?.insufficient_balance) {
+            cashTransferPendingRequestId = null;
+            cashTransferPendingPayload = null;
             state.cashAccountBalances = {
                 ...(state.cashAccountBalances || {}),
                 [fromAccountCode]: Number(data.available_balance) || 0
@@ -163,6 +175,7 @@ async function submitCashTransfer(event) {
         }
 
         cashTransferPendingRequestId = null;
+        cashTransferPendingPayload = null;
         document.getElementById('cashTransferForm')?.reset();
         document.getElementById('cashTransferPreview')?.classList.add('hidden');
         renderAll();
