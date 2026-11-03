@@ -3,27 +3,78 @@ let incomeSaving = false;
 let expenseSaving = false;
 const quickPaySavingResidents = new Set();
 
+function getFloorLabel(floorNumber) {
+    return 'الدور ' + Number(floorNumber).toLocaleString('ar-EG');
+}
+
+function updateResidentApartmentOptions(preferredApartment = '') {
+    const floorSelect = document.getElementById('residentFloor');
+    const apartmentSelect = document.getElementById('residentApartment');
+    if (!floorSelect || !apartmentSelect) return;
+    const floorNumber = Number(floorSelect.value);
+    const currentResident = state.residents.find(item => item.id === editingResidentId);
+    const options = [];
+    if (Number.isInteger(floorNumber) && floorNumber >= 1 && floorNumber <= state.floorCount
+        && Number.isInteger(state.apartmentsPerFloor) && state.apartmentsPerFloor > 0) {
+        const firstApartment = (floorNumber - 1) * state.apartmentsPerFloor + 1;
+        for (let unit = 0; unit < state.apartmentsPerFloor; unit += 1) {
+            const number = String(firstApartment + unit);
+            const occupied = state.residents.some(item =>
+                item.id !== editingResidentId && String(item.apartmentNumber).trim() === number
+            );
+            if (!occupied) options.push(number);
+        }
+    }
+    const currentApartment = String(preferredApartment || currentResident?.apartmentNumber || '');
+    if (currentApartment && !options.includes(currentApartment)) options.unshift(currentApartment);
+    apartmentSelect.innerHTML = '<option value="">اختر رقم الشقة</option>' +
+        options.map(number => '<option value="' + esc(number) + '">شقة ' + esc(number) + '</option>').join('');
+    if (currentApartment && options.includes(currentApartment)) apartmentSelect.value = currentApartment;
+}
+
+function populateResidentFloorOptions(currentFloor = '') {
+    const select = document.getElementById('residentFloor');
+    if (!select) return;
+    const floors = [];
+    for (let floor = 1; floor <= state.floorCount; floor += 1) floors.push(String(floor));
+    const selectedFloor = String(currentFloor || '');
+    if (selectedFloor && !floors.includes(selectedFloor)) floors.unshift(selectedFloor);
+    select.innerHTML = '<option value="">اختر الدور</option>' +
+        floors.map(floor => {
+            const label = /^\\d+$/.test(floor) ? getFloorLabel(floor) : floor;
+            return '<option value="' + esc(floor) + '">' + esc(label) + '</option>';
+        }).join('');
+    select.value = selectedFloor;
+}
+
 function openResidentModal(mode, id) {
     if (!requireManager()) return;
-    editingResidentId = mode === 'edit' ? id : null;
+    const isEdit = mode === 'edit';
+    if (!isEdit && (!state.floorCount || !state.apartmentsPerFloor)) {
+        toast('حدد عدد الأدوار وعدد الشقق في إعدادات العقار أولًا.', 'error');
+        return;
+    }
+    editingResidentId = isEdit ? id : null;
     const amountInput = document.getElementById('residentAmount');
     const historyButton = document.getElementById('manageSubscriptionRatesBtn');
-    document.getElementById('residentModalTitle').textContent = mode === 'edit' ? 'تعديل بيانات الشقة' : 'شقة جديدة';
-    if (mode === 'edit') {
-        const r = state.residents.find(x => x.id === id);
-        if (r) {
-            document.getElementById('residentName').value = r.name || '';
-            document.getElementById('residentApartment').value = r.apartmentNumber || '';
-            document.getElementById('residentFloor').value = r.floor || '';
-            document.getElementById('residentPhone').value = r.phone || '';
-            amountInput.value = r.monthlyAmount ?? '';
+    document.getElementById('residentModalTitle').textContent = isEdit ? 'تعديل بيانات الشقة' : 'شقة جديدة';
+    if (isEdit) {
+        const resident = state.residents.find(item => item.id === id);
+        if (resident) {
+            document.getElementById('residentName').value = resident.name || '';
+            populateResidentFloorOptions(resident.floor || '');
+            updateResidentApartmentOptions(resident.apartmentNumber || '');
+            document.getElementById('residentPhone').value = resident.phone || '';
+            amountInput.value = resident.monthlyAmount ?? '';
             amountInput.readOnly = true;
             amountInput.setAttribute('aria-readonly', 'true');
             historyButton?.classList.remove('hidden');
-            document.getElementById('residentNotes').value = r.notes || '';
+            document.getElementById('residentNotes').value = resident.notes || '';
         }
     } else {
         document.getElementById('residentForm').reset();
+        populateResidentFloorOptions();
+        updateResidentApartmentOptions();
         amountInput.value = state.defaultSubscription || '';
         amountInput.readOnly = false;
         amountInput.removeAttribute('aria-readonly');
@@ -196,8 +247,23 @@ async function handleResidentSubmit(e) {
     const amountInput = document.getElementById('residentAmount').value.trim();
     const monthlyAmount = amountInput === '' ? Number(state.defaultSubscription) || 0 : Number(amountInput);
     const notes = document.getElementById('residentNotes').value.trim();
-    if (!name || !apartmentNumber) { toast('الاسم ورقم الشقة مطلوبان','error'); return; }
-    if (floor.length > 30) { toast('الدور يجب ألا يزيد عن 30 حرفًا','error'); return; }
+    if (!name || !apartmentNumber || !floor) { toast('الاسم والدور ورقم الشقة مطلوبة.', 'error'); return; }
+    const existingResident = state.residents.find(item => item.id === editingResidentId);
+    const unchangedLegacyLocation = existingResident
+        && String(existingResident.floor || '') === floor
+        && String(existingResident.apartmentNumber || '') === apartmentNumber;
+    const floorNumber = Number(floor);
+    const apartmentValue = Number(apartmentNumber);
+    const expectedApartment = (floorNumber - 1) * state.apartmentsPerFloor
+        + (apartmentValue - (floorNumber - 1) * state.apartmentsPerFloor);
+    if (!unchangedLegacyLocation && (!Number.isInteger(floorNumber) || floorNumber < 1
+        || floorNumber > state.floorCount || !Number.isInteger(apartmentValue)
+        || apartmentValue < (floorNumber - 1) * state.apartmentsPerFloor + 1
+        || apartmentValue > floorNumber * state.apartmentsPerFloor
+        || apartmentValue !== expectedApartment)) {
+        toast('رقم الشقة لا يتوافق مع الدور المحدد.', 'error');
+        return;
+    }
     if (!Number.isFinite(monthlyAmount) || monthlyAmount < 0) { toast('قيمة الاشتراك يجب أن تكون صفراً أو أكثر','error'); return; }
     if (shouldProvisionOwner && !normalizeOwnerPhone(phone)) { toast('أدخل رقم جوال صحيحًا أولاً؛ مثال مصري: 01012345678','error'); return; }
     const normalizedApartment = apartmentNumber.toLocaleLowerCase('ar-EG');
