@@ -29,6 +29,7 @@ test('quick pay ignores duplicate clicks while the first payment is saving', asy
         toast() {},
         saveWithRollback: () => {
             saveCalls += 1;
+            if (saveCalls > 1) return Promise.resolve(true);
             return new Promise(resolve => { releaseSave = resolve; });
         }
     };
