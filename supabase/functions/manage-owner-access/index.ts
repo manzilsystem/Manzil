@@ -143,6 +143,22 @@ Deno.serve(async (request: Request) => {
     ownerUserId = existingProfile.id
   }
 
+  const temporaryPin = generateTemporaryPin()
+
+  if (ownerUserId) {
+    // Keep the existing credentials unchanged until all database links succeed.
+  } else {
+    const { data, error } = await admin.auth.admin.createUser({
+      email: loginEmail,
+      email_confirm: true,
+      password: temporaryPin,
+      user_metadata: { full_name: resident.name, phone },
+    })
+    if (error || !data.user) return json(409, { error: 'phone_account_create_failed' })
+    ownerUserId = data.user.id
+    createdNewUser = true
+  }
+
   const { data: previousMembership, error: previousMembershipError } = await admin
     .from('building_members')
     .select('building_id, user_id, role')
@@ -229,22 +245,6 @@ Deno.serve(async (request: Request) => {
     return json(restored ? status : 500, {
       error: restored ? error : 'provisioning_compensation_failed',
     })
-  }
-
-  const temporaryPin = generateTemporaryPin()
-
-  if (ownerUserId) {
-    // Keep the existing credentials unchanged until all database links succeed.
-  } else {
-    const { data, error } = await admin.auth.admin.createUser({
-      email: loginEmail,
-      email_confirm: true,
-      password: temporaryPin,
-      user_metadata: { full_name: resident.name, phone },
-    })
-    if (error || !data.user) return json(409, { error: 'phone_account_create_failed' })
-    ownerUserId = data.user.id
-    createdNewUser = true
   }
 
   const { error: upsertProfileError } = await admin.from('profiles').upsert({
