@@ -65,7 +65,7 @@ test('a temporary PIN is never displayed when the manager session is lost during
         toast: message => toasts.push(message),
     };
     const app = vm.runInNewContext(
-        `${crudSource}\\n({ provisionOwnerAccess })`,
+        `${crudSource}\n({ provisionOwnerAccess })`,
         sandbox,
         { filename: 'js/crud.js' }
     );
