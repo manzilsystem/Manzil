@@ -149,6 +149,46 @@ jobs:
               --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 \
               -c "INSERT INTO public.backup_catalog(tag,file_name,size_bytes,sha256) VALUES ('$BACKUP_TAG','$BACKUP_FILE',$size,'$digest') ON CONFLICT(tag) DO UPDATE SET file_name=EXCLUDED.file_name,size_bytes=EXCLUDED.size_bytes,sha256=EXCLUDED.sha256,created_at=now()"
 
+      - name: Clean up stale orphaned backup releases
+        if: ${{ always() && env.PGHOST != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+          PGPASSWORD: ${{ env.PGPASSWORD }}
+          PGHOST: ${{ env.PGHOST }}
+          PGPORT: ${{ env.PGPORT }}
+          PGDATABASE: ${{ env.PGDATABASE }}
+          PGSSLMODE: ${{ env.PGSSLMODE }}
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN"
+          test -n "$PGPASSWORD"
+          registered="$RUNNER_TEMP/registered-backup-tags.txt"
+          releases="$RUNNER_TEMP/backup-releases.jsonl"
+
+          docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \\
+            postgres:17-alpine psql --no-password --quiet --tuples-only --no-align \\
+              --host="$PGHOST" --port="$PGPORT" --username="postgres.musvcrkljccubwbcrtjs" \\
+              --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 \\
+              -c "SELECT tag FROM public.backup_catalog" > "$registered"
+
+          gh release list --repo manzilsystem/manzil_backups --limit 1000 \\
+            --json tagName,createdAt | jq -c '.[]' > "$releases"
+
+          now="$(date -u +%s)"
+          while IFS= read -r release; do
+            tag="$(jq -r '.tagName' <<< "$release")"
+            created_at="$(jq -r '.createdAt' <<< "$release")"
+            [[ "$tag" =~ ^backup-[0-9]{8}T[0-9]{6}Z$ ]] || continue
+            grep -Fxq -- "$tag" "$registered" && continue
+
+            created_epoch="$(date -u -d "$created_at" +%s)"
+            age_seconds=$((now - created_epoch))
+            if (( age_seconds >= 86400 )); then
+              echo "Removing unregistered backup release older than 24 hours: $tag"
+              gh release delete "$tag" --repo manzilsystem/manzil_backups --yes --cleanup-tag
+            fi
+          done < "$releases"
+
       - name: Complete manual backup request
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.request_id != '' }}
         env:

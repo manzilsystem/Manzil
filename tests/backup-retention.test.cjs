@@ -21,3 +21,16 @@ test('catalog cleanup receives the database connection environment', () => {
         assert.ok(workflow.includes(variable + ': ${{ env.' + variable + ' }}'));
     }
 });
+
+
+test('orphan cleanup runs after a failed registration and only removes unregistered releases older than 24 hours', () => {
+    assert.ok(workflow.includes("if: ${{ always() && env.PGHOST != '' }}"));
+    assert.ok(workflow.includes('SELECT tag FROM public.backup_catalog'));
+    assert.ok(workflow.includes('age_seconds >= 86400'));
+    assert.ok(workflow.includes('grep -Fxq -- "$tag" "$registered" && continue'));
+    assert.ok(workflow.includes('gh release delete "$tag" --repo manzilsystem/manzil_backups --yes --cleanup-tag'));
+});
+
+test('orphan cleanup validates backup release tags before deletion', () => {
+    assert.ok(workflow.includes('[[ "$tag" =~ ^backup-[0-9]{8}T[0-9]{6}Z$ ]] || continue'));
+});
