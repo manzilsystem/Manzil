@@ -65,3 +65,35 @@ test('invalid month labels do not select a historical rate', () => {
     };
     assert.equal(app.getSubscriptionAmountForMonth(resident, 'invalid'), 150);
 });
+
+
+const crudSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'crud.js'), 'utf8');
+function loadCrudHelpers() {
+    return vm.runInNewContext(
+        `${crudSource}\\n({ isValidEffectiveMonth, isValidBackup })`,
+        {},
+        { filename: 'js/crud.js' }
+    );
+}
+
+test('effective subscription month accepts YYYY-MM and rejects invalid months', () => {
+    const app = loadCrudHelpers();
+    assert.equal(app.isValidEffectiveMonth('2026-11'), true);
+    assert.equal(app.isValidEffectiveMonth('2024-02'), true);
+    for (const value of ['2026-00', '2026-13', '2026-1', '26-11', '2026-11-01', '', null]) {
+        assert.equal(app.isValidEffectiveMonth(value), false, String(value));
+    }
+});
+
+test('JSON backup validation accepts all supported application themes', () => {
+    const app = loadCrudHelpers();
+    for (const currentTheme of ['dark', 'light', 'emerald', 'ocean', 'sand']) {
+        assert.equal(app.isValidBackup({
+            residents: [],
+            income: [],
+            expenses: [],
+            notices: [],
+            currentTheme
+        }), true, currentTheme);
+    }
+});
