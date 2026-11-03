@@ -20,6 +20,7 @@
 
 \ir ../supabase/migrations/20261103143759_allow_owner_notification_read_state_updates.sql
 \ir ../supabase/migrations/20261103153941_cash_transfer_idempotency_payload.sql
+\ir ../supabase/migrations/20261103172000_revoke_direct_financial_table_writes.sql
 
 INSERT INTO public.profiles (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),
