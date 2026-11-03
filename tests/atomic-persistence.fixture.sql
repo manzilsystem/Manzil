@@ -130,8 +130,10 @@ GRANT EXECUTE ON FUNCTION private.owner_pin_change_complete() TO authenticated;
 
 GRANT USAGE ON SCHEMA private TO authenticated;
 GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated;
-GRANT SELECT ON public.buildings, public.building_members, public.residents, public.income,
-    public.expenses, public.notices, public.audit_logs TO authenticated;
+GRANT SELECT, UPDATE ON public.buildings TO authenticated;
+GRANT SELECT ON public.building_members, public.residents, public.income,
+    public.expenses, public.notices TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.audit_logs TO authenticated;
 
 CREATE TABLE public.notifications (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
