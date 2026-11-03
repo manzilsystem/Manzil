@@ -104,7 +104,7 @@ Deno.serve(async (request: Request) => {
   const phoneHash = await hashPhone(profile.phone, serviceRoleKey)
   const { data: rateLimit, error: rateLimitError } = await admin.rpc('owner_login_rate_limit', {
     p_phone_hash: phoneHash,
-    p_action: 'attempt',
+    p_action: 'check',
   })
   if (rateLimitError) return json(503, { error: 'login_unavailable' })
   if (rateLimit?.allowed !== true) {
