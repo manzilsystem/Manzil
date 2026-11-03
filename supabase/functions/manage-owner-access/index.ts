@@ -173,6 +173,10 @@ Deno.serve(async (request: Request) => {
     return json(500, { error: 'membership_snapshot_failed' })
   }
   if (previousMembership && previousMembership.role !== 'owner') {
+    if (createdNewUser && ownerUserId) {
+      const { error } = await admin.auth.admin.deleteUser(ownerUserId)
+      if (error) return json(500, { error: 'provisioning_compensation_failed' })
+    }
     return json(409, { error: 'account_has_conflicting_role' })
   }
 
