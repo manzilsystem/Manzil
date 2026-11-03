@@ -3,6 +3,11 @@ let incomeSaving = false;
 let expenseSaving = false;
 const quickPaySavingResidents = new Set();
 
+function normalizeApartmentDigits(value) {
+    return String(value ?? '').replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632))
+        .replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776)).trim();
+}
+
 function getFloorLabel(floorNumber) {
     return 'الدور ' + Number(floorNumber).toLocaleString('ar-EG');
 }
@@ -20,14 +25,14 @@ function updateResidentApartmentOptions(preferredApartment = '') {
         for (let unit = 0; unit < state.apartmentsPerFloor; unit += 1) {
             const number = String(firstApartment + unit);
             const occupied = state.residents.some(item =>
-                item.id !== editingResidentId && String(item.apartmentNumber).trim() === number
+                item.id !== editingResidentId && normalizeApartmentDigits(item.apartmentNumber) === number
             );
             if (!occupied) options.push(number);
         }
     }
     const keepCurrentApartment = currentResident
-        && String(currentResident.floor || '') === String(floorSelect.value || '');
-    const currentApartment = String(preferredApartment || (keepCurrentApartment ? currentResident.apartmentNumber : '') || '');
+        && normalizeApartmentDigits(currentResident.floor || '') === normalizeApartmentDigits(floorSelect.value || '');
+    const currentApartment = normalizeApartmentDigits(preferredApartment || (keepCurrentApartment ? currentResident.apartmentNumber : '') || '');
     if (currentApartment && !options.includes(currentApartment)) options.unshift(currentApartment);
     apartmentSelect.innerHTML = '<option value="">اختر رقم الشقة</option>' +
         options.map(number => '<option value="' + esc(number) + '">شقة ' + esc(number) + '</option>').join('');
@@ -39,7 +44,7 @@ function populateResidentFloorOptions(currentFloor = '') {
     if (!select) return;
     const floors = [];
     for (let floor = 1; floor <= state.floorCount; floor += 1) floors.push(String(floor));
-    const selectedFloor = String(currentFloor || '');
+    const selectedFloor = normalizeApartmentDigits(currentFloor || '');
     if (selectedFloor && !floors.includes(selectedFloor)) floors.unshift(selectedFloor);
     select.innerHTML = '<option value="">اختر الدور</option>' +
         floors.map(floor => {
@@ -243,8 +248,8 @@ async function handleResidentSubmit(e) {
     const shouldProvisionOwner = ownerProvisionRequested;
     ownerProvisionRequested = false;
     const name = document.getElementById('residentName').value.trim();
-    const apartmentNumber = document.getElementById('residentApartment').value.trim();
-    const floor = document.getElementById('residentFloor').value.trim();
+    const apartmentNumber = normalizeApartmentDigits(document.getElementById('residentApartment').value);
+    const floor = normalizeApartmentDigits(document.getElementById('residentFloor').value);
     const phone = document.getElementById('residentPhone').value.trim();
     const amountInput = document.getElementById('residentAmount').value.trim();
     const monthlyAmount = amountInput === '' ? Number(state.defaultSubscription) || 0 : Number(amountInput);
@@ -265,8 +270,8 @@ async function handleResidentSubmit(e) {
     }
     if (!Number.isFinite(monthlyAmount) || monthlyAmount < 0) { toast('قيمة الاشتراك يجب أن تكون صفراً أو أكثر','error'); return; }
     if (shouldProvisionOwner && !normalizeOwnerPhone(phone)) { toast('أدخل رقم جوال صحيحًا أولاً؛ مثال مصري: 01012345678','error'); return; }
-    const normalizedApartment = apartmentNumber.toLocaleLowerCase('ar-EG');
-    if (state.residents.some(r => r.id !== editingResidentId && String(r.apartmentNumber||'').trim().toLocaleLowerCase('ar-EG') === normalizedApartment)) {
+    const normalizedApartment = normalizeApartmentDigits(apartmentNumber).toLocaleLowerCase('ar-EG');
+    if (state.residents.some(r => r.id !== editingResidentId && normalizeApartmentDigits(r.apartmentNumber).toLocaleLowerCase('ar-EG') === normalizedApartment)) {
         toast('رقم الشقة مسجل بالفعل','error'); return;
     }
     let targetResidentId;
