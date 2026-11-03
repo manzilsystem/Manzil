@@ -41,8 +41,8 @@ test('deleting a notice records the deletion in the audit log', async () => {
 
 test('notice and WhatsApp handlers are loaded as a dedicated cached module', () => {
     for (const name of ['openNoticeModal', 'applyNoticeTemplate', 'handleNoticeSubmit', 'deleteNotice', 'shareNoticeToWhatsApp', 'copyNoticeToClipboard', 'cleanPhone', 'sendWhatsAppReminder']) {
-        assert.match(source, new RegExp('function ' + name + '\\\\b|async function ' + name + '\\\\b'));
-        assert.doesNotMatch(crudSource, new RegExp('function ' + name + '\\\\b|async function ' + name + '\\\\b'));
+        assert.ok(source.includes('function ' + name + '(') || source.includes('async function ' + name + '('), name + ' must be in notices.js');
+        assert.ok(!crudSource.includes('function ' + name + '(') && !crudSource.includes('async function ' + name + '('), name + ' must be removed from crud.js');
     }
     assert.match(html, /js\\/crud\\.js[\\s\\S]*js\\/notices\\.js/);
     assert.match(sw, /CACHE_NAME = 'manzil-v33'/);
