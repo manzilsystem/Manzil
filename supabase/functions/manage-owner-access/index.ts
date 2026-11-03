@@ -165,7 +165,13 @@ Deno.serve(async (request: Request) => {
     .eq('building_id', membership.building_id)
     .eq('user_id', ownerUserId)
     .maybeSingle()
-  if (previousMembershipError) return json(500, { error: 'membership_snapshot_failed' })
+  if (previousMembershipError) {
+    if (createdNewUser && ownerUserId) {
+      const { error } = await admin.auth.admin.deleteUser(ownerUserId)
+      if (error) return json(500, { error: 'provisioning_compensation_failed' })
+    }
+    return json(500, { error: 'membership_snapshot_failed' })
+  }
   if (previousMembership && previousMembership.role !== 'owner') {
     return json(409, { error: 'account_has_conflicting_role' })
   }
@@ -176,6 +182,10 @@ Deno.serve(async (request: Request) => {
     .eq('id', ownerUserId)
     .maybeSingle()
   if (profileSnapshotError || !profileSnapshot) {
+    if (createdNewUser && ownerUserId) {
+      const { error } = await admin.auth.admin.deleteUser(ownerUserId)
+      if (error) return json(500, { error: 'provisioning_compensation_failed' })
+    }
     return json(500, { error: 'profile_snapshot_failed' })
   }
 
@@ -200,6 +210,16 @@ Deno.serve(async (request: Request) => {
       if (error) {
         console.error('owner_access_compensation_auth_delete_failed', error)
         return false
+      }
+      if (residentLinked) {
+        const { error: residentRestoreError } = await admin.from('residents').update({
+          user_id: residentSnapshot.user_id,
+          phone: residentSnapshot.phone,
+        }).eq('id', resident.id).eq('building_id', membership.building_id)
+        if (residentRestoreError) {
+          console.error('owner_access_compensation_new_user_resident_failed', residentRestoreError)
+          restored = false
+        }
       }
       return restored
     }
