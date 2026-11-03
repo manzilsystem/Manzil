@@ -12,7 +12,6 @@ const APP_SHELL = [
     './js/subscription-rates.js',
     './js/app.js',
     './js/monthly-close.js',
-    './js/monthly-close.js',
     './js/backup.js',
     './manifest.json',
     './icons/icon-192.png',
