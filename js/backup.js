@@ -111,8 +111,10 @@ async function loadBackupConsole(options = {}) {
         if (!last) return;
         const restoreButton = document.getElementById('backupRestoreButton');
         const createButton = document.getElementById('backupCreateButton');
+        const downloadButton = document.getElementById('backupDownloadButton');
         if (restoreButton) restoreButton.disabled = true;
         if (createButton) createButton.disabled = true;
+        if (downloadButton) downloadButton.disabled = true;
 
         let hasCache = false;
         try {
@@ -183,7 +185,11 @@ async function downloadDatabaseBackup() {
         const { data, error, response } = await supabaseClient.functions.invoke('backup-console', {
             body: { action: 'download_backup', backup_tag: tag }
         });
-        if (error) throw error;
+        if (error) {
+            let code = error.message || 'backup_download_failed';
+            try { code = (await error.context?.json())?.error || code; } catch { /* Keep the generic error. */ }
+            throw new Error(code);
+        }
         if (!(data instanceof Blob)) throw new Error('invalid_backup_download');
 
         const expectedSha = response?.headers?.get('x-backup-sha256') || '';
