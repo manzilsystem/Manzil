@@ -72,9 +72,22 @@ function renderBackupConsole(data, cached = false) {
     activeRestoreRequestId = pendingRestore?.id || null;
     const pendingBackup = backupRequests.some(item => ['queued', 'dispatched'].includes(item.status));
     const status = document.getElementById('backupRestoreStatus');
-    if (status && pendingRestore) status.textContent = backupStatusLabel(pendingRestore.status);
-    if (status && pendingBackup) status.textContent = 'طلب النسخ الاحتياطي قيد التنفيذ.';
-    if (status && !pendingRestore && !pendingBackup && !cached) status.textContent = '';
+    if (status && pendingRestore) {
+        status.textContent = pendingRestore.status === 'running'
+            ? 'جاري استبدال قاعدة البيانات. يمكنك متابعة الحالة هنا.'
+            : 'تم تسجيل طلب الاستعادة، وفي انتظار بدء التنفيذ.';
+    } else if (status && pendingBackup) {
+        status.textContent = 'طلب النسخ الاحتياطي قيد التنفيذ.';
+    } else if (status && !cached) {
+        const latestRestore = restoreRequests[0];
+        if (latestRestore?.status === 'succeeded') {
+            status.textContent = 'اكتملت الاستعادة بنجاح. ' + (latestRestore.result_message || 'تم تحديث قاعدة البيانات.');
+        } else if (latestRestore?.status === 'failed') {
+            status.textContent = 'فشلت الاستعادة. ' + (latestRestore.result_message || 'راجع تفاصيل العملية قبل إعادة المحاولة.');
+        } else {
+            status.textContent = '';
+        }
+    }
     scheduleBackupConsoleRefresh(Boolean(pendingRestore || pendingBackup));
 }
 
