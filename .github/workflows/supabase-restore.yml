@@ -43,14 +43,42 @@ jobs:
           fs.appendFileSync(process.env.GITHUB_ENV,
             `PGPASSWORD<<${delimiter}\n${password}\n${delimiter}\nPGPASSWORD_ENCODED<<${delimiter}\n${encoded}\n${delimiter}\nPGPORT=5432\nPGDATABASE=postgres\nPGSSLMODE=require\n`);
           NODE
+      
+      - name: Verify Supabase session-pooler connection
+        run: |
+          set -euo pipefail
           for index in 0 1 2 3 4 5; do
             candidate="aws-$index-eu-north-1.pooler.supabase.com"
-            if getent ahostsv4 "$candidate" >/dev/null 2>&1; then
-              echo "PGHOST=$candidate" >> "$GITHUB_ENV"
-              exit 0
-            fi
+            getent ahostsv4 "$candidate" >/dev/null 2>&1 || continue
+
+            for password_mode in decoded encoded; do
+              if [ "$password_mode" = decoded ]; then
+                candidate_password="$PGPASSWORD"
+              else
+                candidate_password="$PGPASSWORD_ENCODED"
+              fi
+
+              if docker run --rm \
+                -e PGPASSWORD="$candidate_password" \
+                -e PGPORT=5432 -e PGDATABASE=postgres -e PGSSLMODE=require \
+                -e PGHOST="$candidate" \
+                postgres:17-alpine \
+                psql --no-password --quiet --host="$candidate" --port=5432 \
+                  --username="postgres.musvcrkljccubwbcrtjs" --dbname=postgres \
+                  -v ON_ERROR_STOP=1 -c "SELECT 1" >/dev/null
+              then
+                echo "PGHOST=$candidate" >> "$GITHUB_ENV"
+                if [ "$password_mode" = encoded ]; then
+                  delimiter="GH_ENV_$(cat /proc/sys/kernel/random/uuid)"
+                  printf 'PGPASSWORD<<%s\\n%s\\n%s\\n' "$delimiter" "$candidate_password" "$delimiter" >> "$GITHUB_ENV"
+                fi
+                echo "Verified Supabase pooler connection using cluster index $index."
+                exit 0
+              fi
+            done
           done
-          echo "::error::No reachable Supabase pooler host"
+
+          echo "::error::Could not authenticate to any assigned Supabase session-pooler cluster."
           exit 1
 
       - name: Process one approved restore request
