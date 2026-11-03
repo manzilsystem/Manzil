@@ -82,7 +82,7 @@ function createTransferHarness(options = {}) {
         filename: 'js/cashbox.js'
     });
     const event = { prevented: false, preventDefault() { this.prevented = true; } };
-    return { api, sandbox, elements, calls, event };
+    return { api, sandbox, elements, calls, event, options };
 }
 
 test('cash transfer form submits the expected RPC payload and refreshes the UI after confirmation', async () => {
@@ -280,7 +280,7 @@ test('duplicate response with failed reload retains the request id until authori
     assert.equal(harness.calls.reset, undefined);
     assert.equal(harness.calls.toasts.at(-1).type, 'error');
 
-    harness.sandbox.loadStateResult = undefined;
+    harness.options.loadStateResult = undefined;
     await harness.api.submitCashTransfer(harness.event);
 
     assert.equal(harness.calls.rpc[1].args.p_request_id, requestId);
