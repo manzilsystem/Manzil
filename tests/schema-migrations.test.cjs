@@ -27,4 +27,5 @@ test('local migration history matches the applied Supabase order', () => {
     assert.ok(position('manual_backup_requests') < position('backup_requests_fk_indexes'));
     assert.ok(position('backup_requests_fk_indexes') < position('drop_redundant_notification_index'));
     assert.ok(position('effective_dated_subscription_rates') < position('atomic_subscription_rate_snapshot'));
+    assert.ok(position('atomic_subscription_rate_snapshot') < position('optimize_subscription_rate_rls'));
 });
