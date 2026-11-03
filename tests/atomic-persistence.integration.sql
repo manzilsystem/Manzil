@@ -484,7 +484,7 @@ BEGIN
             v_building,
             (v_result->>'version')::bigint,
             '40000000-0000-4000-8000-000000000012',
-            jsonb_set(v_payload, '{expenses,0,amount}', '11'::jsonb)
+            jsonb_set(v_payload, '{expenses,0,amount}', '31'::jsonb)
         );
         RAISE EXCEPTION 'fund overdraft unexpectedly committed';
     EXCEPTION WHEN SQLSTATE '22023' THEN
