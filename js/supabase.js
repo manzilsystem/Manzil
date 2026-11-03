@@ -161,7 +161,33 @@ function mapIncome(row) {
 }
 
 function mapExpense(row) {
-    return { id: row.id, title: row.title, amount: Number(row.amount) || 0, category: row.category || 'أخرى', month: row.month, notes: row.notes || '', date: row.spent_at };
+    return {
+        id: row.id, title: row.title, amount: Number(row.amount) || 0,
+        category: row.category || 'أخرى', month: row.month, notes: row.notes || '',
+        cashAccountCode: row.cash_account_code || 'main', date: row.spent_at
+    };
+}
+
+function mapCashTransfer(row) {
+    return {
+        id: row.id,
+        fromAccountCode: row.from_account_code,
+        toAccountCode: row.to_account_code,
+        amount: Number(row.amount) || 0,
+        notes: row.notes || '',
+        transferredAt: row.transferred_at
+    };
+}
+
+async function refreshCashboxSummary() {
+    if (currentUserRole !== 'manager' || !activeBuildingId) return false;
+    const { data, error } = await supabaseClient.rpc('get_cashbox_summary', {
+        p_building_id: activeBuildingId
+    });
+    if (error) throw error;
+    state.cashAccountBalances = data?.balances || { main: 0, development: 0, emergency: 0 };
+    state.cashTransfers = (data?.transfers || []).map(mapCashTransfer);
+    return true;
 }
 
 function mapNotice(row) {
@@ -267,6 +293,7 @@ async function loadState() {
         state = {
             ...state, buildingName: '', managerName: '', managerPhone: '', defaultSubscription: 0,
             startingBalance: 0, residents: [], income: [], expenses: [], notices: [], ownerNotifications: [], auditLogs: [],
+            cashAccountBalances: { main: 0, development: 0, emergency: 0 }, cashTransfers: [],
             currentTheme: 'dark', lastUpdated: Date.now()
         };
         persistedAuditLogIds = new Set();
@@ -288,13 +315,17 @@ async function loadState() {
             .order('created_at', { ascending: false })
             .limit(50)
         : Promise.resolve({ data: [], error: null });
-    const [residents, income, expenses, notices, auditLogs, residentNotes, ownerNotificationsResult] = await Promise.all([
+    const cashboxSummaryQuery = currentUserRole === 'manager'
+        ? supabaseClient.rpc('get_cashbox_summary', { p_building_id: activeBuildingId })
+        : Promise.resolve({ data: null, error: null });
+    const [residents, income, expenses, notices, auditLogs, residentNotes, ownerNotificationsResult, cashboxSummaryResult] = await Promise.all([
         supabaseQuery('residents'), supabaseQuery('income'), supabaseQuery('expenses'), supabaseQuery('notices'), supabaseQuery('audit_logs'),
         currentUserRole === 'manager' ? supabaseQuery('resident_internal_notes', 'resident_id,notes') : Promise.resolve([]),
-        ownerNotificationsQuery
+        ownerNotificationsQuery, cashboxSummaryQuery
     ]);
     if (!isCurrentAuthSession(session, generation)) return false;
     if (ownerNotificationsResult.error) throw ownerNotificationsResult.error;
+    if (cashboxSummaryResult.error) throw cashboxSummaryResult.error;
     state = {
         ...state,
         buildingName: building.name || 'Manzil',
@@ -305,7 +336,10 @@ async function loadState() {
         currentTheme: ['dark', 'light', 'emerald', 'ocean', 'sand'].includes(building.current_theme) ? building.current_theme : 'dark',
         residents: residents.map(mapResident), income: income.map(mapIncome), expenses: expenses.map(mapExpense),
         notices: notices.map(mapNotice), ownerNotifications: (ownerNotificationsResult.data || []).map(mapNotification),
-        auditLogs: auditLogs.map(mapAudit), lastUpdated: Date.now()
+        auditLogs: auditLogs.map(mapAudit),
+        cashAccountBalances: cashboxSummaryResult.data?.balances || { main: 0, development: 0, emergency: 0 },
+        cashTransfers: (cashboxSummaryResult.data?.transfers || []).map(mapCashTransfer),
+        lastUpdated: Date.now()
     };
     if (currentUserRole === 'manager') {
         const notesByResident = new Map(residentNotes.map(row => [row.resident_id, row.notes || '']));
@@ -352,7 +386,7 @@ async function saveState() {
         expenses: state.expenses.map(e => ({
             id: e.id, title: e.title, amount: Number(e.amount) || 0,
             category: e.category || 'أخرى', month: e.month, notes: e.notes || null,
-            spent_at: toSupabaseTimestamp(e.date)
+            cash_account_code: e.cashAccountCode || 'main', spent_at: toSupabaseTimestamp(e.date)
         })),
         notices: state.notices.map(n => ({
             id: n.id, text: n.text, created_at: toSupabaseTimestamp(n.date)
@@ -394,6 +428,11 @@ async function saveState() {
             }
             activeBuildingVersion = Number(data.version);
             payload.audit_logs.forEach(row => persistedAuditLogIds.add(row.id));
+            try {
+                await refreshCashboxSummary();
+            } catch (summaryError) {
+                console.warn('Cashbox summary refresh failed after snapshot save:', summaryError);
+            }
             return true;
         } catch (error) {
             lastError = error;
@@ -422,6 +461,7 @@ function clearAuthenticatedState() {
         ...state,
         buildingName: '', managerName: '', managerPhone: '', defaultSubscription: 0,
         startingBalance: 0, residents: [], income: [], expenses: [], notices: [], ownerNotifications: [], auditLogs: [],
+        cashAccountBalances: { main: 0, development: 0, emergency: 0 }, cashTransfers: [],
         currentTheme: 'dark', lastUpdated: 0
     };
     document.body.classList.remove('owner-mode');
