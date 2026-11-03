@@ -301,7 +301,7 @@ function renderExpenseTable() {
     let items = [...state.expenses].sort((a,b) => new Date(b.date)-new Date(a.date));
     if (fc) items = items.filter(e => e.category === fc);
     if (fm) items = items.filter(e => e.month === fm);
-    if (s) items = items.filter(e => [e.title, e.category, e.month, e.notes, e.amount].some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(s)));
+    if (s) items = items.filter(e => [e.title, e.category, e.month, e.notes, e.amount, getCashAccountLabel(e.cashAccountCode || 'main')].some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(s)));
     if (!items.length) {
         c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center space-y-3"><div class="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center mx-auto"><i class="fa-solid fa-receipt"></i></div><div><p class="text-sm font-bold">لا توجد مصروفات مطابقة</p><p class="text-xs text-slate-500 mt-1">سجّل أول مصروف أو غيّر الفلاتر الحالية.</p></div><button onclick="openModal(\'expenseModal\')" class="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition"><i class="fa-solid fa-plus"></i> تسجيل مصروف</button></div>';
         return;
@@ -310,7 +310,7 @@ function renderExpenseTable() {
         <div class="app-card p-3 rounded-2xl border flex justify-between items-center gap-2">
             <div class="flex items-center gap-2 min-w-0">
                 <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-receipt"></i></div>
-                <div class="min-w-0"><p class="text-xs font-bold truncate">${esc(e.title)}</p><p class="text-[10px] text-slate-500">${esc(e.category||'')} • ${esc(e.month||'')}</p></div>
+                <div class="min-w-0"><p class="text-xs font-bold truncate">${esc(e.title)}</p><p class="text-[10px] text-slate-500">${esc(e.category||'')} • ${esc(e.month||'')}</p><p class="text-[10px] text-indigo-300">${esc(getCashAccountLabel(e.cashAccountCode || 'main'))}</p></div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <span class="text-sm font-black text-rose-400">${fmtNum(e.amount)}</span>
