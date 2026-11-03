@@ -65,6 +65,21 @@ BEGIN
         RAISE EXCEPTION 'subscription rate was not persisted atomically';
     END IF;
 
+    BEGIN
+        v_result := public.persist_building_snapshot(v_building, 2,
+            '40000000-0000-4000-8000-000000000009',
+            jsonb_set(jsonb_set(v_payload, '{building,name}', '"Cross-building rate must roll back"'),
+              '{subscription_rates,0,resident_id}', '"30000000-0000-4000-8000-000000000099"'));
+        RAISE EXCEPTION 'cross-building subscription rate unexpectedly committed';
+    EXCEPTION WHEN SQLSTATE '22023' THEN
+        NULL;
+    END;
+    IF (SELECT state_version FROM public.buildings WHERE id = v_building) <> 2
+       OR (SELECT name FROM public.buildings WHERE id = v_building) <> 'Atomic success'
+       OR (SELECT count(*) FROM public.resident_subscription_rates WHERE building_id = v_building) <> 1 THEN
+        RAISE EXCEPTION 'cross-building subscription rate did not roll back the snapshot';
+    END IF;
+
     v_result := public.persist_building_snapshot(v_building, 1, v_request, v_payload);
     IF v_result->>'ok' <> 'true' OR v_result->>'duplicate' <> 'true' THEN
         RAISE EXCEPTION 'idempotent retry failed: %', v_result;
