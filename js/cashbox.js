@@ -7,7 +7,29 @@ const CASH_ACCOUNTS = Object.freeze({
 let cashTransferSaving = false;
 let cashTransferPendingRequestId = null;
 let cashTransferPendingPayload = null;
+let cashTransferPendingBuildingId = null;
 let persistedCashTotals = null;
+
+function cashTransferPendingStorageKey(buildingId) {
+    return 'manzil:cash-transfer-pending:' + buildingId;
+}
+
+function clearCashTransferPending(buildingId) {
+    try { sessionStorage.removeItem(cashTransferPendingStorageKey(buildingId)); } catch { /* Storage unavailable. */ }
+    if (cashTransferPendingBuildingId === buildingId) {
+        cashTransferPendingRequestId = null;
+        cashTransferPendingPayload = null;
+        cashTransferPendingBuildingId = null;
+    }
+}
+
+function clearCashTransferPendingMemory(buildingId) {
+    if (cashTransferPendingBuildingId === buildingId) {
+        cashTransferPendingRequestId = null;
+        cashTransferPendingPayload = null;
+        cashTransferPendingBuildingId = null;
+    }
+}
 
 function getCashAccountLabel(code) {
     return CASH_ACCOUNTS[code]?.label || CASH_ACCOUNTS.main.label;
@@ -202,26 +224,55 @@ async function submitCashTransfer(event) {
     event.preventDefault();
 
     const transferBuildingId = activeBuildingId;
+    if (cashTransferPendingBuildingId && cashTransferPendingBuildingId !== transferBuildingId) {
+        clearCashTransferPendingMemory(cashTransferPendingBuildingId);
+    }
+    if (!cashTransferPendingRequestId) {
+        try {
+            const saved = JSON.parse(sessionStorage.getItem(cashTransferPendingStorageKey(transferBuildingId)) || 'null');
+            const payload = saved?.payload;
+            if (typeof saved?.requestId === 'string' && saved.requestId.trim() &&
+                payload && typeof payload === 'object' &&
+                CASH_ACCOUNTS[payload.fromAccountCode] && CASH_ACCOUNTS[payload.toAccountCode] &&
+                payload.fromAccountCode !== payload.toAccountCode &&
+                typeof payload.amount === 'number' && Number.isFinite(payload.amount) && payload.amount > 0 &&
+                typeof payload.notes === 'string' && payload.notes.length <= 500) {
+                cashTransferPendingRequestId = saved.requestId;
+                cashTransferPendingPayload = payload;
+                cashTransferPendingBuildingId = transferBuildingId;
+            } else if (saved) {
+                sessionStorage.removeItem(cashTransferPendingStorageKey(transferBuildingId));
+            }
+        } catch { /* Fall back to the in-memory retry key if storage is unavailable. */ }
+    }
     const fromAccountCode = document.getElementById('cashTransferFrom')?.value || '';
     const toAccountCode = document.getElementById('cashTransferTo')?.value || '';
     const amount = Number(document.getElementById('cashTransferAmount')?.value);
     const notes = document.getElementById('cashTransferNotes')?.value.trim() || '';
     const available = getCashAccountBalance(fromAccountCode);
 
+    const requestPayload = { fromAccountCode, toAccountCode, amount, notes };
+    if (cashTransferPendingRequestId && JSON.stringify(requestPayload) !== JSON.stringify(cashTransferPendingPayload)) {
+        const fromInput = document.getElementById('cashTransferFrom');
+        const toInput = document.getElementById('cashTransferTo');
+        const amountInput = document.getElementById('cashTransferAmount');
+        const notesInput = document.getElementById('cashTransferNotes');
+        if (fromInput) fromInput.value = cashTransferPendingPayload.fromAccountCode;
+        if (toInput) toInput.value = cashTransferPendingPayload.toAccountCode;
+        if (amountInput) amountInput.value = String(cashTransferPendingPayload.amount);
+        if (notesInput) notesInput.value = cashTransferPendingPayload.notes;
+        previewCashTransfer();
+        toast('تمت استعادة بيانات تحويل سابق غير مؤكد. راجعها ثم اضغط التنفيذ مرة أخرى للتحقق دون تكرار.', 'error');
+        return;
+    }
     if (!CASH_ACCOUNTS[fromAccountCode] || !CASH_ACCOUNTS[toAccountCode] ||
         fromAccountCode === toAccountCode || !Number.isFinite(amount) || amount <= 0 ||
         notes.length > 500) {
         toast('راجع الصندوقين والمبلغ والملاحظات قبل التحويل.', 'error');
         return;
     }
-    if (amount > available + 0.000001) {
+    if (!cashTransferPendingRequestId && amount > available + 0.000001) {
         toast(`الرصيد المتاح في ${getCashAccountLabel(fromAccountCode)} غير كافٍ.`, 'error');
-        return;
-    }
-
-    const requestPayload = { fromAccountCode, toAccountCode, amount, notes };
-    if (cashTransferPendingRequestId && JSON.stringify(requestPayload) !== JSON.stringify(cashTransferPendingPayload)) {
-        toast('يوجد تحويل سابق لم يتأكد وصول نتيجته. أعد المحاولة بنفس البيانات أولًا.', 'error');
         return;
     }
 
@@ -229,6 +280,13 @@ async function submitCashTransfer(event) {
     if (!cashTransferPendingRequestId) {
         cashTransferPendingRequestId = generateId();
         cashTransferPendingPayload = requestPayload;
+        cashTransferPendingBuildingId = transferBuildingId;
+        try {
+            sessionStorage.setItem(cashTransferPendingStorageKey(transferBuildingId), JSON.stringify({
+                requestId: cashTransferPendingRequestId,
+                payload: requestPayload
+            }));
+        } catch { /* The in-memory retry key remains available if storage is unavailable. */ }
     }
     const submit = document.getElementById('cashTransferSubmitButton');
     if (submit) {
@@ -247,15 +305,13 @@ async function submitCashTransfer(event) {
             p_notes: notes
         });
         if (activeBuildingId !== transferBuildingId) {
-            cashTransferPendingRequestId = null;
-            cashTransferPendingPayload = null;
+            clearCashTransferPendingMemory(transferBuildingId);
             return;
         }
         if (error) throw error;
 
         if (data?.conflict) {
-            cashTransferPendingRequestId = null;
-            cashTransferPendingPayload = null;
+            clearCashTransferPending(transferBuildingId);
             if (!await loadState()) throw new Error('Could not reload after a cashbox version conflict');
             renderAll();
             toast('تغيرت البيانات في جلسة أخرى. تم تحديث الأرصدة؛ راجع المعاينة ثم أعد التحويل.', 'error');
@@ -271,8 +327,7 @@ async function submitCashTransfer(event) {
                 throw new Error('Invalid insufficient-balance response');
             }
             activeBuildingVersion = responseVersion;
-            cashTransferPendingRequestId = null;
-            cashTransferPendingPayload = null;
+            clearCashTransferPending(transferBuildingId);
             state.cashAccountBalances = {
                 ...(state.cashAccountBalances || {}),
                 [fromAccountCode]: availableBalance
@@ -291,8 +346,7 @@ async function submitCashTransfer(event) {
 
         if (data.duplicate) {
             if (!await loadState()) throw new Error('Could not reload after an idempotent cash transfer retry');
-            cashTransferPendingRequestId = null;
-            cashTransferPendingPayload = null;
+            clearCashTransferPending(transferBuildingId);
             document.getElementById('cashTransferForm')?.reset();
             document.getElementById('cashTransferPreview')?.classList.add('hidden');
             renderAll();
@@ -320,8 +374,7 @@ async function submitCashTransfer(event) {
             console.warn('Cashbox summary refresh failed after a confirmed transfer:', refreshError);
         }
         if (activeBuildingId !== transferBuildingId) {
-            cashTransferPendingRequestId = null;
-            cashTransferPendingPayload = null;
+            clearCashTransferPending(transferBuildingId);
             return;
         }
         if (!summaryRefreshed) {
@@ -336,16 +389,14 @@ async function submitCashTransfer(event) {
             }, ...existingTransfers.filter(transfer => transfer.id !== data.transfer_id)];
         }
 
-        cashTransferPendingRequestId = null;
-        cashTransferPendingPayload = null;
+        clearCashTransferPending(transferBuildingId);
         document.getElementById('cashTransferForm')?.reset();
         document.getElementById('cashTransferPreview')?.classList.add('hidden');
         renderAll();
         toast('تم التحويل بين الصناديق بنجاح.', 'success');
     } catch (error) {
         if (activeBuildingId !== transferBuildingId) {
-            cashTransferPendingRequestId = null;
-            cashTransferPendingPayload = null;
+            clearCashTransferPendingMemory(transferBuildingId);
             return;
         }
         console.error('Cash transfer failed:', error);
