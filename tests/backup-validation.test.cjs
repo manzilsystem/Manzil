@@ -4,9 +4,9 @@ const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
 
-const source = fs.readFileSync(path.join(__dirname, '..', 'js', 'crud.js'), 'utf8');
+const source = fs.readFileSync(path.join(__dirname, '..', 'js', 'backup.js'), 'utf8');
 const isValidBackup = vm.runInNewContext(`${source}\nisValidBackup`, {}, {
-    filename: 'js/crud.js',
+    filename: 'js/backup.js',
 });
 
 function validBackup(overrides = {}) {
