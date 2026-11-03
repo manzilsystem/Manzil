@@ -124,18 +124,45 @@ function getArrearsBucket(monthCount) {
     return '4 أشهر فأكثر';
 }
 
-function buildArrearsReport() {
-    const residents = state.residents.map(resident => {
-        const debt = calculateCumulativeDebt(resident.id);
-        const unpaidMonths = debt.unpaidMonths.map(month => ({ month, amount: getMonthOutstanding(resident, month) }));
+function buildArrearsReport(filters = {}) {
+    const residentId = String(filters.residentId || '');
+    const fromKey = filters.fromMonth ? `${filters.fromMonth}-01` : '';
+    const toKey = filters.toMonth ? `${filters.toMonth}-01` : '';
+    const statusBuckets = {
+        one: 'شهر واحد',
+        two_three: '2–3 أشهر',
+        four_plus: '4 أشهر فأكثر'
+    };
+    if (fromKey && toKey && fromKey > toKey) {
         return {
-            resident,
-            count: debt.count,
-            totalDebt: debt.totalDebt,
-            bucket: getArrearsBucket(debt.count),
-            unpaidMonths
+            residents: [], totalDebt: 0, overdueResidents: 0, overdueMonths: 0,
+            buckets: { 'شهر واحد': 0, '2–3 أشهر': 0, '4 أشهر فأكثر': 0 },
+            invalidRange: true
         };
-    }).filter(item => item.count > 0).sort((a, b) => b.totalDebt - a.totalDebt || String(a.resident.apartmentNumber || '').localeCompare(String(b.resident.apartmentNumber || ''), 'ar', { numeric: true }));
+    }
+
+    const residents = state.residents
+        .filter(resident => !residentId || resident.id === residentId)
+        .map(resident => {
+            const debt = calculateCumulativeDebt(resident.id);
+            const unpaidMonths = debt.unpaidMonths
+                .map(month => ({ month, monthKey: monthLabelToKey(month), amount: getMonthOutstanding(resident, month) }))
+                .filter(item => (!fromKey || (item.monthKey && item.monthKey >= fromKey))
+                    && (!toKey || (item.monthKey && item.monthKey <= toKey)))
+                .map(({ month, amount }) => ({ month, amount }));
+            const count = unpaidMonths.length;
+            const totalCents = unpaidMonths.reduce((sum, item) => sum + Math.round(item.amount * 100), 0);
+            return {
+                resident,
+                count,
+                totalDebt: totalCents / 100,
+                bucket: getArrearsBucket(count),
+                unpaidMonths
+            };
+        })
+        .filter(item => item.count > 0)
+        .filter(item => !filters.status || filters.status === 'all' || item.bucket === statusBuckets[filters.status])
+        .sort((a, b) => b.totalDebt - a.totalDebt || String(a.resident.apartmentNumber || '').localeCompare(String(b.resident.apartmentNumber || ''), 'ar', { numeric: true }));
 
     const buckets = { 'شهر واحد': 0, '2–3 أشهر': 0, '4 أشهر فأكثر': 0 };
     residents.forEach(item => { buckets[item.bucket] += 1; });
@@ -144,7 +171,8 @@ function buildArrearsReport() {
         totalDebt: residents.reduce((sum, item) => sum + Math.round(item.totalDebt * 100), 0) / 100,
         overdueResidents: residents.length,
         overdueMonths: residents.reduce((sum, item) => sum + item.count, 0),
-        buckets
+        buckets,
+        invalidRange: false
     };
 }
 

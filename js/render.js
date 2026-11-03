@@ -16,12 +16,51 @@ function renderAll() {
     renderNotices(); renderAuditLog(); renderArrearsReport(); populateSelects();
 }
 
+function getArrearsReportFilters() {
+    return {
+        residentId: document.getElementById('arrearsApartmentFilter')?.value || '',
+        fromMonth: document.getElementById('arrearsFromMonth')?.value || '',
+        toMonth: document.getElementById('arrearsToMonth')?.value || '',
+        status: document.getElementById('arrearsStatusFilter')?.value || 'all'
+    };
+}
+
+function populateArrearsApartmentFilter() {
+    const select = document.getElementById('arrearsApartmentFilter');
+    if (!select) return;
+    const selected = select.value;
+    const options = state.residents
+        .slice()
+        .sort((a, b) => String(a.apartmentNumber || '').localeCompare(String(b.apartmentNumber || ''), 'ar', { numeric: true }))
+        .map(resident => `<option value="${esc(resident.id)}">شقة ${esc(resident.apartmentNumber)} · ${esc(resident.name)}</option>`)
+        .join('');
+    select.innerHTML = '<option value="">كل الشقق</option>' + options;
+    if (selected && state.residents.some(resident => resident.id === selected)) select.value = selected;
+}
+
+function resetArrearsFilters() {
+    ['arrearsApartmentFilter','arrearsFromMonth','arrearsToMonth'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.value = '';
+    });
+    const status = document.getElementById('arrearsStatusFilter');
+    if (status) status.value = 'all';
+    renderArrearsReport();
+}
+
 function renderArrearsReport() {
     const c = document.getElementById('arrearsReportContainer');
     if (!c) return;
-    const report = buildArrearsReport();
+    populateArrearsApartmentFilter();
+    const filters = getArrearsReportFilters();
+    const report = buildArrearsReport(filters);
     if (!report.residents.length) {
-        c.innerHTML = '<p class="text-emerald-400 text-xs text-center py-4">✅ لا توجد متأخرات مستحقة حالياً</p>';
+        const message = report.invalidRange
+            ? 'الفترة المحددة غير صحيحة: شهر البداية بعد شهر النهاية.'
+            : (filters.residentId || filters.fromMonth || filters.toMonth || filters.status !== 'all')
+                ? 'لا توجد متأخرات تطابق الفلاتر المحددة.'
+                : 'لا توجد متأخرات مستحقة حالياً.';
+        c.innerHTML = `<p class="text-slate-400 text-xs text-center py-4">${message}</p>`;
         return;
     }
     const cards = report.residents.map(item => `
