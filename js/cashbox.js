@@ -177,6 +177,7 @@ async function submitCashTransfer(event) {
         const { data, error } = await supabaseClient.rpc('transfer_cash_between_accounts', {
             p_building_id: activeBuildingId,
             p_request_id: cashTransferPendingRequestId,
+            p_expected_version: activeBuildingVersion,
             p_from_account_code: fromAccountCode,
             p_to_account_code: toAccountCode,
             p_amount: amount,
@@ -184,6 +185,14 @@ async function submitCashTransfer(event) {
         });
         if (error) throw error;
 
+        if (data?.conflict) {
+            cashTransferPendingRequestId = null;
+            cashTransferPendingPayload = null;
+            if (!await loadState()) throw new Error('Could not reload after a cashbox version conflict');
+            renderAll();
+            toast('تغيرت البيانات في جلسة أخرى. تم تحديث الأرصدة؛ راجع المعاينة ثم أعد التحويل.', 'error');
+            return;
+        }
         if (data?.insufficient_balance) {
             cashTransferPendingRequestId = null;
             cashTransferPendingPayload = null;
@@ -197,6 +206,17 @@ async function submitCashTransfer(event) {
         }
         if (!data?.ok || !Number.isInteger(Number(data.version))) {
             throw new Error('Invalid cash transfer response');
+        }
+
+        if (data.duplicate) {
+            if (!await loadState()) throw new Error('Could not reload after an idempotent cash transfer retry');
+            cashTransferPendingRequestId = null;
+            cashTransferPendingPayload = null;
+            document.getElementById('cashTransferForm')?.reset();
+            document.getElementById('cashTransferPreview')?.classList.add('hidden');
+            renderAll();
+            toast('التحويل كان قد نُفذ مسبقًا. تم تحديث البيانات دون تكراره.', 'success');
+            return;
         }
 
         activeBuildingVersion = Number(data.version);
