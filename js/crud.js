@@ -55,6 +55,10 @@ function saveResidentAndProvisionOwner() {
     form.requestSubmit();
 }
 
+function isValidEffectiveMonth(value) {
+    return /^\d{4}-(0[1-9]|1[0-2])$/.test(String(value || ''));
+}
+
 async function handleResidentSubmit(e) {
     if (!requireManager()) return;
     e.preventDefault();
@@ -82,7 +86,7 @@ async function handleResidentSubmit(e) {
             if (Math.round(previousAmount * 100) !== Math.round(monthlyAmount * 100)) {
                 const currentMonth = new Date().toISOString().slice(0, 7);
                 const effectiveMonth = (prompt('تاريخ تطبيق قيمة الاشتراك الجديدة (YYYY-MM). لن تتغير الشهور السابقة.', currentMonth) || '').trim();
-                if (!/^\\d{4}-(0[1-9]|1[0-2])$/.test(effectiveMonth)) {
+                if (!isValidEffectiveMonth(effectiveMonth)) {
                     toast('تم إلغاء التعديل: أدخل شهرًا صحيحًا بصيغة YYYY-MM.', 'error');
                     return;
                 }
@@ -472,7 +476,7 @@ function isValidBackup(data) {
     if (!data.expenses.every(e => e && typeof e === 'object' && validId(e.id) && typeof e.title === 'string' && typeof e.month === 'string' && validAmount(e.amount) && (e.category === undefined || typeof e.category === 'string') && (e.notes === undefined || typeof e.notes === 'string'))) return false;
     if (!data.notices.every(n => n && typeof n === 'object' && validId(n.id) && typeof n.text === 'string')) return false;
     if (data.auditLogs !== undefined && !Array.isArray(data.auditLogs)) return false;
-    if (data.currentTheme !== undefined && !['dark','light','emerald'].includes(data.currentTheme)) return false;
+    if (data.currentTheme !== undefined && !['dark','light','emerald','ocean','sand'].includes(data.currentTheme)) return false;
     if (data.defaultSubscription !== undefined && !validAmount(data.defaultSubscription)) return false;
     if (data.startingBalance !== undefined && !validNumber(data.startingBalance)) return false;
     return true;
@@ -493,7 +497,8 @@ function importJSON(ev) {
             if (!await saveWithRollback(previousState)) throw new Error('تعذر حفظ النسخة');
             const importedTheme = state.currentTheme || 'dark';
             document.body.setAttribute('data-theme', importedTheme);
-            document.querySelector('meta[name="theme-color"]').setAttribute('content', importedTheme === 'light' ? '#f1f5f9' : importedTheme === 'emerald' ? '#021a13' : '#090d16');
+            const themeColors = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16' };
+            document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[importedTheme] || themeColors.dark);
             renderAll();
             toast('تم الاستيراد','success'); closeModal('backupModal');
         } catch (e) { console.error('تعذر استيراد النسخة:', e); toast('النسخة غير صالحة أو تعذر حفظها؛ لم يتم استبدال البيانات','error'); }
