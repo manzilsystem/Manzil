@@ -5,8 +5,8 @@ const test = require('node:test');
 
 const root = path.join(__dirname, '..');
 const migration = fs.readFileSync(path.join(root, 'supabase/migrations/20261103070519_owner_payment_notifications.sql'), 'utf8');
-const fixMigration = fs.readFileSync(path.join(root, 'supabase/migrations/20261103111500_fix_owner_payment_notification_scope.sql'), 'utf8');
-const grantsMigration = fs.readFileSync(path.join(root, 'supabase/migrations/20261103080000_restrict_notification_update_columns.sql'), 'utf8');
+const fixMigration = fs.readFileSync(path.join(root, 'supabase/migrations/20261103110732_fix_owner_payment_notification_generated_scope.sql'), 'utf8');
+const grantsMigration = fs.readFileSync(path.join(root, 'supabase/migrations/20261103105856_restrict_notification_update_columns.sql'), 'utf8');
 const supabase = fs.readFileSync(path.join(root, 'js/supabase.js'), 'utf8');
 const access = fs.readFileSync(path.join(root, 'js/access.js'), 'utf8');
 const crud = fs.readFileSync(path.join(root, 'js/crud.js'), 'utf8');
