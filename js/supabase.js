@@ -428,10 +428,8 @@ async function saveState() {
             }
             activeBuildingVersion = Number(data.version);
             payload.audit_logs.forEach(row => persistedAuditLogIds.add(row.id));
-            try {
-                await refreshCashboxSummary();
-            } catch (summaryError) {
-                console.warn('Cashbox summary refresh failed after snapshot save:', summaryError);
+            if (typeof syncCashboxBalancesAfterSnapshot === 'function') {
+                syncCashboxBalancesAfterSnapshot();
             }
             return true;
         } catch (error) {
