@@ -91,3 +91,11 @@ test('temporary Auth outages do not consume or clear owner PIN failure counters'
     assert.match(pinErrorBranch, /p_action: 'release'/);
     assert.match(pinErrorBranch, /error: 'login_unavailable'/);
 });
+
+test('rate limiter releases transient reservations without consuming a failed PIN attempt', () => {
+    assert.match(rateLimitMigration, /p_action NOT IN \('attempt', 'release', 'success'\)/);
+    assert.match(rateLimitMigration, /p_action = 'release'/);
+    assert.match(rateLimitMigration, /failed_attempts = GREATEST\(0, failed_attempts - 1\)/);
+    assert.match(rateLimitMigration, /IF v_failed_attempts >= 5 THEN/);
+    assert.match(rateLimitMigration, /RETURN jsonb_build_object\('allowed', false, 'retry_after_seconds', 900\)/);
+});
