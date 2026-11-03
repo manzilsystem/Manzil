@@ -319,6 +319,10 @@ function confirmBuildingSelection() {
     if (!pending) return false;
     if (!isCurrentAuthSession(pending.session, pending.generation)) {
         pendingBuildingSelection = null;
+        const modal = document.getElementById('buildingContextModal');
+        modal?.classList.add('hidden');
+        modal?.classList.remove('flex');
+        modal?.setAttribute('aria-hidden', 'true');
         pending.resolve(null);
         return false;
     }
