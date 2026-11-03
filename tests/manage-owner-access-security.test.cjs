@@ -65,3 +65,36 @@ test('failure to verify orphan-account links fails closed without adopting the p
     assert.match(guard, /profile_link_lookup_failed/);
     assert.ok(guard.indexOf('profile_link_lookup_failed') < guard.indexOf('ownerUserId = existingProfile.id'));
 });
+
+
+test('provisioning snapshots are captured after a new Auth user is created', () => {
+    const createUser = position('admin.auth.admin.createUser');
+    const createdFlag = position('createdNewUser = true');
+    const membershipSnapshot = position('const { data: previousMembership');
+    const profileSnapshot = position(".from('profiles')\\n    .select('*')\\n    .eq('id', ownerUserId)");
+    assert.ok(createUser < createdFlag && createdFlag < membershipSnapshot);
+    assert.ok(membershipSnapshot < profileSnapshot);
+});
+
+test('provisioning failures compensate resident, membership, profile, and audit changes', () => {
+    assert.match(source, /residentSnapshot = \\{ user_id: resident\\.user_id, phone: resident\\.phone \\}/);
+    assert.match(source, /admin\\.from\\('building_members'\\)\\.upsert\\(previousMembership\\)/);
+    assert.match(source, /admin\\.from\\('profiles'\\)\\.upsert\\(profileSnapshot\\)/);
+    assert.match(source, /admin\\.from\\('audit_logs'\\)\\.delete\\(\\)\\.eq\\('id', auditId\\)/);
+    assert.match(source, /owner_access_compensation_audit_failed/);
+    assert.match(source, /provisioning_compensation_failed/);
+});
+
+test('new Auth user cleanup restores the resident phone after the Auth cascade', () => {
+    const deleteUser = position('admin.auth.admin.deleteUser(ownerUserId)');
+    const residentRestore = position('owner_access_compensation_new_user_resident_failed');
+    assert.ok(deleteUser < residentRestore);
+    assert.match(source, /user_id: residentSnapshot\\.user_id,[\\s\\S]*?phone: residentSnapshot\\.phone/);
+});
+
+test('audit persistence is required before changing an existing owner PIN', () => {
+    const auditInsert = position("admin.from('audit_logs').insert");
+    const authUpdate = position('admin.auth.admin.updateUserById');
+    assert.ok(auditInsert < authUpdate);
+    assert.match(source, /if \\(auditError \\|\\| !auditEntry\\) return await failWithCompensation\\('audit_log_save_failed'\\)/);
+});
