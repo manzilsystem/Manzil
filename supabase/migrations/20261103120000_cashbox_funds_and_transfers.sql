@@ -155,6 +155,7 @@ GRANT EXECUTE ON FUNCTION public.get_cashbox_summary(uuid) TO authenticated;
 CREATE OR REPLACE FUNCTION private.transfer_cash_between_accounts(
     p_building_id uuid,
     p_request_id uuid,
+    p_expected_version bigint,
     p_from_account_code text,
     p_to_account_code text,
     p_amount numeric,
@@ -175,6 +176,7 @@ DECLARE
     v_summary jsonb;
 BEGIN
     IF v_actor IS NULL OR p_building_id IS NULL OR p_request_id IS NULL
+       OR p_expected_version IS NULL OR p_expected_version < 1
        OR p_amount IS NULL OR p_amount <= 0
        OR p_from_account_code IS NULL OR p_to_account_code IS NULL
        OR p_from_account_code NOT IN ('main', 'development', 'emergency')
@@ -219,6 +221,14 @@ BEGIN
             'transfer_id', v_transfer_id,
             'audit_log_id', v_audit_log_id,
             'balances', v_summary->'balances'
+        );
+    END IF;
+
+    IF v_version <> p_expected_version THEN
+        RETURN jsonb_build_object(
+            'ok', false,
+            'conflict', true,
+            'version', v_version
         );
     END IF;
 
@@ -274,12 +284,13 @@ BEGIN
     );
 END;
 $$;
-REVOKE ALL ON FUNCTION private.transfer_cash_between_accounts(uuid, uuid, text, text, numeric, text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION private.transfer_cash_between_accounts(uuid, uuid, text, text, numeric, text) TO authenticated;
+REVOKE ALL ON FUNCTION private.transfer_cash_between_accounts(uuid, uuid, bigint, text, text, numeric, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION private.transfer_cash_between_accounts(uuid, uuid, bigint, text, text, numeric, text) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.transfer_cash_between_accounts(
     p_building_id uuid,
     p_request_id uuid,
+    p_expected_version bigint,
     p_from_account_code text,
     p_to_account_code text,
     p_amount numeric,
@@ -291,12 +302,12 @@ SECURITY INVOKER
 SET search_path = pg_catalog, public
 AS $fn$
     SELECT private.transfer_cash_between_accounts(
-        p_building_id, p_request_id, p_from_account_code, p_to_account_code, p_amount, p_notes
+        p_building_id, p_request_id, p_expected_version, p_from_account_code, p_to_account_code, p_amount, p_notes
     );
 $fn$;
 
-REVOKE ALL ON FUNCTION public.transfer_cash_between_accounts(uuid, uuid, text, text, numeric, text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.transfer_cash_between_accounts(uuid, uuid, text, text, numeric, text) TO authenticated;
+REVOKE ALL ON FUNCTION public.transfer_cash_between_accounts(uuid, uuid, bigint, text, text, numeric, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.transfer_cash_between_accounts(uuid, uuid, bigint, text, text, numeric, text) TO authenticated;
 
 CREATE OR REPLACE FUNCTION private.persist_building_snapshot(
     p_building_id uuid,
