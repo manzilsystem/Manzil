@@ -37,6 +37,9 @@ $function$;
 revoke all on function public.can_read_notification(uuid, uuid, uuid) from public, anon;
 grant execute on function public.can_read_notification(uuid, uuid, uuid) to authenticated;
 
+revoke all on function public.is_building_manager(uuid) from public, anon;
+grant execute on function public.is_building_manager(uuid) to authenticated;
+
 
 -- RLS does not protect TRUNCATE, REFERENCES, or TRIGGER privileges.
 -- The app does not need these table-level capabilities from browser sessions.
