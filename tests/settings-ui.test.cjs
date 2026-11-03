@@ -37,7 +37,7 @@ test('settings redesign is included in the service worker cache version', () => 
     assert.match(html, /02:23 UTC/);
     assert.match(html, /04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة/);
     assert.doesNotMatch(html, /نسخة يومية الساعة 04:23 صباحًا بتوقيت مصر/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v48'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v49'/);
     assert.match(sw, /\.\/css\/style\.css/);
     assert.match(sw, /\.\/js\/state\.js/);
     assert.match(sw, /\.\/js\/settings\.js/);
