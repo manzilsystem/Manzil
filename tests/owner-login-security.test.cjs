@@ -8,6 +8,10 @@ const migration = fs.readFileSync(
     path.join(root, 'supabase/migrations/20261103063455_owner_login_rate_limit.sql'),
     'utf8'
 );
+const hashMigration = fs.readFileSync(
+    path.join(root, 'supabase/migrations/20261103110000_key_owner_login_rate_limit_hashes.sql'),
+    'utf8'
+);
 const loginFunction = fs.readFileSync(
     path.join(root, 'supabase/functions/owner-login/index.ts'),
     'utf8'
@@ -25,6 +29,7 @@ test('owner login Edge Function does not require a pre-existing JWT', () => {
 });
 
 test('owner login attempts are stored privately as hashes with a bounded lockout window', () => {
+    assert.match(hashMigration, /DELETE FROM private\\.owner_login_attempts/i);
     assert.match(migration, /CREATE TABLE private\.owner_login_attempts/i);
     assert.match(migration, /phone_hash text PRIMARY KEY CHECK \(phone_hash ~ '\^\[0-9a-f\]\{64\}\$'\)/i);
     assert.match(migration, /ENABLE ROW LEVEL SECURITY/i);
