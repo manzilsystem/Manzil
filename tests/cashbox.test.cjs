@@ -135,6 +135,7 @@ test('cashbox UI applies starting balance, collection and expense deltas in cent
 
 
 function createCashboxDomSandbox(overrides = {}) {
+    const { state: stateOverrides = {}, currentUserRole = 'manager', ...elementOverrides } = overrides;
     const elements = new Map();
     const makeElement = (id, initial = {}) => {
         const element = {
@@ -164,15 +165,19 @@ function createCashboxDomSandbox(overrides = {}) {
     Object.assign(elements.get('cashTransferFrom'), { value: 'main' });
     Object.assign(elements.get('cashTransferTo'), { value: 'development' });
     Object.assign(elements.get('cashTransferAmount'), { value: '10' });
-    for (const [id, value] of Object.entries(overrides)) Object.assign(elements.get(id), value);
+    for (const [id, value] of Object.entries(elementOverrides)) {
+        const element = elements.get(id);
+        if (!element) throw new Error(`Unknown cashbox test element: ${id}`);
+        Object.assign(element, value);
+    }
 
     const sandbox = {
         state: {
             cashAccountBalances: { main: 100, development: 20, emergency: 30 },
             cashTransfers: [],
-            ...overrides.state
+            ...stateOverrides
         },
-        currentUserRole: overrides.currentUserRole || 'manager',
+        currentUserRole,
         document: { getElementById: id => elements.get(id) || null },
         fmtNum: value => Number(value).toFixed(2),
         formatDate: value => String(value || ''),
@@ -209,7 +214,7 @@ test('cashbox renderer displays all three balances, total and safely escaped tra
     assert.equal(elements.get('cashBalance-development').textContent, '150.00 ج.م');
     assert.equal(elements.get('cashBalance-emergency').textContent, '175.00 ج.م');
     assert.equal(elements.get('cashBalance-total').textContent, '1445.00 ج.م');
-    assert.match(elements.get('cashTransfersList').innerHTML, /&lt;img src=x onerror=alert\(1\)&gt;/);
+    assert.match(elements.get('cashTransfersList').innerHTML, /&lt;img src=x onerror=alert\\(1\\)&gt;/);
     assert.doesNotMatch(elements.get('cashTransfersList').innerHTML, /<img/);
 });
 
