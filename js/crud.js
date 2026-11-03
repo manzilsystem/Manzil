@@ -10,8 +10,8 @@ function normalizeApartmentDigits(value) {
 
 function normalizeApartmentNumberKey(value) {
     const normalized = normalizeApartmentDigits(value);
-    return /^\\d+$/.test(normalized)
-        ? normalized.replace(/^0+(?=\\d)/, '')
+    return /^\d+$/.test(normalized)
+        ? normalized.replace(/^0+(?=\d)/, '')
         : normalized.toLocaleLowerCase('ar-EG');
 }
 
