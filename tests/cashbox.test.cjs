@@ -35,6 +35,10 @@ test('cash transfers are manager-only, read-only to clients, and idempotent', ()
     assert.match(migration, /GRANT SELECT ON public\.cash_transfers TO authenticated/);
     assert.match(migration, /cash_transfers_manager_read[\s\S]*?member\.role = 'manager'/);
     assert.match(migration, /transfer\.request_id = p_request_id/);
+    assert.match(migration, /v_version <> p_expected_version/);
+    assert.match(cashbox, /p_expected_version: activeBuildingVersion/);
+    assert.match(cashbox, /if \(data\?\.conflict\)[\s\S]*?await loadState\(\)/);
+    assert.match(cashbox, /if \(data\.duplicate\)[\s\S]*?await loadState\(\)/);
     assert.match(migration, /FOR UPDATE/);
     assert.match(migration, /insufficient_balance/);
     assert.match(migration, /REVOKE ALL ON FUNCTION public\.transfer_cash_between_accounts/);
@@ -55,6 +59,7 @@ test('cashbox screens and summaries are manager-only in the application', () => 
     assert.match(state, /cashAccountBalances: \{ main: 0, development: 0, emergency: 0 \}/);
     assert.match(state, /cashTransfers: \[\]/);
     assert.match(supabase, /currentUserRole === 'manager'[\s\S]*?get_cashbox_summary/);
+    assert.match(supabase, /initializeCashboxAccountingSnapshot\(\)/);
     assert.match(cashbox, /if \(currentUserRole !== 'manager'\) return/);
     assert.match(render, /renderCashbox\(\)/);
     assert.match(app, /'dashboard','income','expenses','cashbox','residents','reports'/);
