@@ -548,6 +548,7 @@
                     <input type="tel" id="residentPhone" aria-label="هاتف الساكن" placeholder="الهاتف" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 </div>
                 <input type="number" id="residentAmount" min="0" step="0.01" inputmode="decimal" aria-label="الاشتراك الشهري للشقة" placeholder="الاشتراك الشهري" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                <button type="button" id="manageSubscriptionRatesBtn" onclick="openSubscriptionRateModal(editingResidentId)" class="hidden w-full border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 py-2.5 rounded-xl text-xs font-bold">إدارة تاريخ الاشتراك والقيم السابقة</button>
                 <textarea id="residentNotes" aria-label="ملاحظات الشقة" rows="2" placeholder="ملاحظات" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
                 <div class="app-input border rounded-2xl p-3 space-y-2">
                     <p class="text-xs font-bold">دخول المالك بالجوال</p>
@@ -556,6 +557,55 @@
                 </div>
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">حفظ بيانات الشقة فقط</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Subscription Rate History Modal -->
+    <div id="subscriptionRateModal" role="dialog" aria-modal="true" aria-labelledby="subscriptionRateModalTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center z-[55] p-4">
+        <div class="app-card border w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+            <div class="bg-indigo-800 text-white px-5 py-4 flex justify-between items-center">
+                <div>
+                    <h3 id="subscriptionRateModalTitle" class="font-bold text-sm">تاريخ الاشتراك</h3>
+                    <p id="subscriptionRateResidentSummary" class="text-[11px] text-white/75 mt-1"></p>
+                </div>
+                <button type="button" onclick="closeModal('subscriptionRateModal')" aria-label="إغلاق سجل الاشتراك" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div class="app-input border rounded-2xl overflow-hidden">
+                    <div class="px-4 py-3 border-b border-slate-700/50">
+                        <p class="text-xs font-bold">السجل التاريخي الكامل</p>
+                        <p class="text-[10px] text-slate-500 mt-1">كل تغيير محفوظ بقيمته السابقة والجديدة وتاريخ تسجيله. السجلات السابقة لا تُحذف ولا تُستبدل.</p>
+                    </div>
+                    <div class="overflow-x-auto max-h-64">
+                        <table class="w-full text-xs text-right min-w-[680px]">
+                            <thead class="text-slate-400 bg-slate-900/40">
+                                <tr>
+                                    <th class="px-3 py-2">شهر السريان</th>
+                                    <th class="px-3 py-2">القيمة السابقة</th>
+                                    <th class="px-3 py-2">القيمة الجديدة</th>
+                                    <th class="px-3 py-2">تاريخ التسجيل</th>
+                                    <th class="px-3 py-2">النوع</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subscriptionRateHistoryBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <form id="subscriptionRateForm" onsubmit="addSubscriptionRateChange(event)" class="app-input border rounded-2xl p-4 space-y-3">
+                    <p class="text-xs font-bold">تسجيل قيمة جديدة</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label class="text-xs space-y-1">
+                            <span class="text-slate-400">شهر بدء التطبيق</span>
+                            <input type="month" id="subscriptionRateEffectiveMonth" required class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
+                        </label>
+                        <label class="text-xs space-y-1">
+                            <span class="text-slate-400">قيمة الاشتراك الشهرية</span>
+                            <input type="number" id="subscriptionRateAmount" min="0" step="0.01" inputmode="decimal" required class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
+                        </label>
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl text-xs font-bold">حفظ التغيير وإضافته للسجل</button>
+                </form>
+            </div>
         </div>
     </div>
 
