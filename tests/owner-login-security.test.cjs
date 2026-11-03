@@ -12,6 +12,10 @@ const hashMigration = fs.readFileSync(
     path.join(root, 'supabase/migrations/20261103110000_key_owner_login_rate_limit_hashes.sql'),
     'utf8'
 );
+const rateLimitMigration = fs.readFileSync(
+    path.join(root, 'supabase/migrations/20261103140000_check_owner_login_rate_limit.sql'),
+    'utf8'
+);
 const loginFunction = fs.readFileSync(
     path.join(root, 'supabase/functions/owner-login/index.ts'),
     'utf8'
@@ -39,8 +43,8 @@ test('owner login attempts are stored privately as hashes with a bounded lockout
 });
 
 test('only the service role can call the owner login rate-limit RPC', () => {
-    assert.match(migration, /REVOKE ALL ON FUNCTION public\.owner_login_rate_limit\(text, text\) FROM PUBLIC, anon, authenticated/i);
-    assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.owner_login_rate_limit\(text, text\) TO service_role/i);
+    assert.match(rateLimitMigration, /REVOKE ALL ON FUNCTION public\.owner_login_rate_limit\(text, text\) FROM PUBLIC, anon, authenticated/i);
+    assert.match(rateLimitMigration, /GRANT EXECUTE ON FUNCTION public\.owner_login_rate_limit\(text, text\) TO service_role/i);
 });
 
 test('owner login hashes the phone, rate-limits before Auth, and never returns a session for invalid credentials', () => {
@@ -49,9 +53,11 @@ test('owner login hashes the phone, rate-limits before Auth, and never returns a
     assert.match(loginFunction, /hashPhone\(phone, serviceRoleKey\)/);
     assert.match(loginFunction, /from\('profiles'\)[\s\S]*?eq\('phone', phone\)/);
     assert.match(loginFunction, /from\('building_members'\)[\s\S]*?eq\('role', 'owner'\)/);
+    assert.match(loginFunction, /p_action: 'check'/);
     assert.match(loginFunction, /p_action: 'attempt'/);
     assert.match(loginFunction, /status: 429|json\(429,/);
-    assert.ok(loginFunction.indexOf("p_action: 'attempt'") < loginFunction.indexOf('signInWithPassword'));
+    assert.ok(loginFunction.indexOf("p_action: 'check'") < loginFunction.indexOf('signInWithPassword'));
+    assert.ok(loginFunction.indexOf('signInWithPassword') < loginFunction.lastIndexOf("p_action: 'attempt'"));
     assert.match(loginFunction, /error: 'invalid_credentials'/);
     assert.match(loginFunction, /session:\s*\{[\s\S]*access_token:[\s\S]*refresh_token:/);
     assert.doesNotMatch(loginFunction, /serviceRoleKey.*access_token/i);
@@ -65,6 +71,24 @@ test('owner PIN login is routed through the protected Edge Function, while manag
 
 test('first PIN change shares the same account lockout policy', () => {
     assert.match(pinChangeFunction, /owner_login_rate_limit/);
+    assert.match(pinChangeFunction, /p_action: 'check'/);
     assert.match(pinChangeFunction, /p_action: 'attempt'/);
     assert.match(pinChangeFunction, /p_action: 'success'/);
+});
+
+
+test('temporary Auth outages do not consume or clear owner PIN failure counters', () => {
+    const loginErrorBranch = loginFunction.slice(loginFunction.indexOf('if (error) {'), loginFunction.indexOf('if (!data.session'));
+    assert.match(loginErrorBranch, /error\.status === 400 \|\| error\.status === 401/);
+    assert.match(loginErrorBranch, /p_action: 'attempt'/);
+    assert.doesNotMatch(loginErrorBranch, /p_action: 'success'/);
+    assert.match(loginErrorBranch, /Owner Auth provider unavailable/);
+
+    const pinErrorBranch = pinChangeFunction.slice(
+        pinChangeFunction.indexOf('if (verifyError) {'),
+        pinChangeFunction.indexOf('if (verified.user?.id')
+    );
+    assert.match(pinErrorBranch, /verifyError\.status !== 400 && verifyError\.status !== 401/);
+    assert.match(pinErrorBranch, /p_action: 'attempt'/);
+    assert.match(pinErrorBranch, /error: 'login_unavailable'/);
 });
