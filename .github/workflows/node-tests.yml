@@ -3,8 +3,28 @@ name: Node and PostgreSQL tests
 on:
   pull_request:
     branches: [main]
+    paths:
+      - "index.html"
+      - "css/**"
+      - "js/**"
+      - "icons/**"
+      - "manifest.json"
+      - "sw.js"
+      - "supabase/**"
+      - "tests/**"
+      - ".github/workflows/**"
   push:
     branches: [main]
+    paths:
+      - "index.html"
+      - "css/**"
+      - "js/**"
+      - "icons/**"
+      - "manifest.json"
+      - "sw.js"
+      - "supabase/**"
+      - "tests/**"
+      - ".github/workflows/**"
 
 permissions:
   contents: read
