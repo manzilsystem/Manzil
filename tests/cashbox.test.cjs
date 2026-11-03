@@ -187,7 +187,7 @@ function createCashboxDomSandbox(overrides = {}) {
         console
     };
     const api = vm.runInNewContext(
-        `${cashbox}\\n({ renderCashbox, previewCashTransfer, getCashAccountBalance })`,
+        `${cashbox}\n({ renderCashbox, previewCashTransfer, getCashAccountBalance })`,
         sandbox,
         { filename: 'js/cashbox.js' }
     );
