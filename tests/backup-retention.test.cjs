@@ -34,3 +34,12 @@ test('orphan cleanup runs after a failed registration and only removes unregiste
 test('orphan cleanup validates backup release tags before deletion', () => {
     assert.ok(workflow.includes('[[ "$tag" =~ ^backup-[0-9]{8}T[0-9]{6}Z$ ]] || continue'));
 });
+
+
+test('orphan cleanup shell command continuations use a single backslash', () => {
+    const cleanup = workflow.split('      - name: Clean up stale orphaned backup releases')[1]
+        .split('      - name: Complete manual backup request')[0];
+    assert.doesNotMatch(cleanup, /\\\\\\n/);
+    assert.match(cleanup, /docker run --rm[^\n]*\\\n/);
+    assert.match(cleanup, /gh release list[^\n]*\\\n/);
+});
