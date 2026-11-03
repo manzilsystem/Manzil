@@ -110,4 +110,6 @@ test('a stale authentication session cannot confirm a building selection', async
     h.select.value = 'building-1';
     assert.equal(h.api.confirmBuildingSelection(), false);
     assert.equal(await selection, null);
+    assert.equal(h.modal.classList.contains('hidden'), true);
+    assert.equal(h.modal.attributes['aria-hidden'], 'true');
 });
