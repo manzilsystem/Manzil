@@ -272,7 +272,14 @@ async function saveState() {
         audit_logs: state.auditLogs.filter(l => !persistedAuditLogIds.has(l.id)).map(l => ({
             id: l.id, action: l.action, details: l.details || null,
             created_at: toSupabaseTimestamp(l.date)
-        }))
+        })),
+        subscription_rates: state.residents.flatMap(resident =>
+            (Array.isArray(resident.subscriptionRates) ? resident.subscriptionRates : []).map(rate => ({
+                resident_id: resident.id,
+                effective_month: rate.effectiveMonth,
+                monthly_amount: Number(rate.monthlyAmount)
+            }))
+        )
         };
     } catch (error) {
         console.error('Could not prepare Supabase snapshot:', error);
