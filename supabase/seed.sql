@@ -284,12 +284,8 @@ VALUES
     '10000000-0000-4000-8000-000000000001'
 );
 
-INSERT INTO public.resident_internal_notes (resident_id, building_id, notes)
-VALUES (
-    '30000000-0000-4000-8000-000000000001',
-    '20000000-0000-4000-8000-000000000001',
-    'ملاحظة داخلية تجريبية للمدير فقط.'
-);
+-- The residents.notes insert above is copied by the migration trigger
+-- into resident_internal_notes; do not insert the same primary key twice.
 
 INSERT INTO public.audit_logs (id, building_id, action, details, actor_id, created_at)
 VALUES
