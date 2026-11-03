@@ -349,3 +349,150 @@ test('cash transfer rejects incomplete authoritative balances or audit metadata'
     assert.equal(harness.calls.reset, true);
     assert.equal(harness.calls.toasts.at(-1).type, 'success');
 });
+
+
+test('cash transfer rejects malformed insufficient-balance data without mutating state or losing its request id', async () => {
+    const harness = createTransferHarness({
+        rpcResults: [
+            {
+                data: { insufficient_balance: true, available_balance: null, version: 5 },
+                error: null
+            },
+            {
+                data: {
+                    ok: true, duplicate: true, version: 5,
+                    balances: { main: 90, development: 30, emergency: 30 }
+                },
+                error: null
+            }
+        ]
+    });
+    const initialBalances = { ...harness.sandbox.state.cashAccountBalances };
+
+    await harness.api.submitCashTransfer(harness.event);
+
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(harness.sandbox.state.cashAccountBalances)),
+        initialBalances
+    );
+    assert.equal(harness.calls.reset, undefined);
+    assert.equal(harness.calls.toasts.at(-1).type, 'error');
+
+    await harness.api.submitCashTransfer(harness.event);
+
+    assert.equal(harness.calls.rpc[1].args.p_request_id, harness.calls.rpc[0].args.p_request_id);
+    assert.equal(harness.calls.loads, 1);
+    assert.equal(harness.calls.reset, true);
+    assert.equal(harness.calls.toasts.at(-1).type, 'success');
+});
+
+function createCashboxSummaryHarness(response) {
+    const cashboxSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'cashbox.js'), 'utf8');
+    const supabaseSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'supabase.js'), 'utf8');
+    const mapStart = supabaseSource.indexOf('function mapCashTransfer(');
+    const refreshStart = supabaseSource.indexOf('async function refreshCashboxSummary()');
+    const refreshEnd = supabaseSource.indexOf('\\n}\\n', refreshStart) + 3;
+    assert.ok(mapStart >= 0 && refreshStart > mapStart && refreshEnd > refreshStart);
+
+    const calls = [];
+    const sandbox = {
+        state: {
+            cashAccountBalances: { main: 10, development: 20, emergency: 30 },
+            cashTransfers: [{ id: 'existing-transfer' }]
+        },
+        currentUserRole: 'manager',
+        activeBuildingId: 'building-1',
+        supabaseClient: {
+            rpc: async (name, args) => {
+                calls.push({ name, args });
+                return typeof response === 'function' ? response() : response;
+            }
+        },
+        console
+    };
+    const refreshCode = supabaseSource.slice(mapStart, refreshEnd);
+    const api = vm.runInNewContext(
+        `${cashboxSource}\\n${refreshCode}\\n({ normalizeCashboxSummary, refreshCashboxSummary })`,
+        sandbox,
+        { filename: 'cashbox-summary-harness.js' }
+    );
+    return { api, sandbox, calls };
+}
+
+const validCashboxSummary = {
+    balances: { main: 100, development: 25, emergency: -5 },
+    transfers: [{
+        id: 'transfer-1',
+        from_account_code: 'main',
+        to_account_code: 'development',
+        amount: '25.00',
+        notes: 'allocation',
+        transferred_at: '2026-11-03T12:00:00.000Z'
+    }]
+};
+
+test('cashbox summary refresh validates and applies the complete authoritative summary', async () => {
+    const harness = createCashboxSummaryHarness({ data: validCashboxSummary, error: null });
+
+    const refreshed = await harness.api.refreshCashboxSummary();
+
+    assert.equal(refreshed, true);
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(harness.sandbox.state.cashAccountBalances)),
+        { main: 100, development: 25, emergency: -5 }
+    );
+    assert.equal(harness.sandbox.state.cashTransfers.length, 1);
+    assert.equal(harness.sandbox.state.cashTransfers[0].amount, 25);
+    assert.equal(harness.sandbox.state.cashTransfers[0].fromAccountCode, 'main');
+    assert.equal(harness.calls[0].name, 'get_cashbox_summary');
+    assert.equal(harness.calls[0].args.p_building_id, 'building-1');
+});
+
+test('cashbox summary refresh preserves last known balances and transfers on malformed responses', async () => {
+    const malformedSummaries = [
+        { balances: { main: 100, development: 25 }, transfers: [] },
+        { balances: { main: 100, development: null, emergency: 5 }, transfers: [] },
+        { balances: { main: 100, development: 25, emergency: 5, extra: 1 }, transfers: [] },
+        { balances: { main: 100, development: 25, emergency: 5 }, transfers: [{ id: 'bad' }] }
+    ];
+
+    for (const summary of malformedSummaries) {
+        const harness = createCashboxSummaryHarness({ data: summary, error: null });
+        const previousBalances = { ...harness.sandbox.state.cashAccountBalances };
+        const previousTransfers = JSON.parse(JSON.stringify(harness.sandbox.state.cashTransfers));
+
+        await assert.rejects(harness.api.refreshCashboxSummary(), /Invalid cashbox summary/);
+
+        assert.deepEqual(
+            JSON.parse(JSON.stringify(harness.sandbox.state.cashAccountBalances)),
+            previousBalances
+        );
+        assert.deepEqual(
+            JSON.parse(JSON.stringify(harness.sandbox.state.cashTransfers)),
+            previousTransfers
+        );
+    }
+});
+
+test('cashbox summary refresh does not apply a response after the active building changes', async () => {
+    let resolveRpc;
+    const harness = createCashboxSummaryHarness(() => new Promise(resolve => { resolveRpc = resolve; }));
+    const previousBalances = { ...harness.sandbox.state.cashAccountBalances };
+    const refresh = harness.api.refreshCashboxSummary();
+
+    harness.sandbox.activeBuildingId = 'another-building';
+    resolveRpc({ data: validCashboxSummary, error: null });
+
+    assert.equal(await refresh, false);
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(harness.sandbox.state.cashAccountBalances)),
+        previousBalances
+    );
+});
+
+test('cashbox summary loader validates server data before assigning global state', () => {
+    const supabaseSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'supabase.js'), 'utf8');
+    assert.match(supabaseSource, /const cashboxSummary = currentUserRole === 'manager'[\\s\\S]*?normalizeCashboxSummary\\(cashboxSummaryResult\\.data\\)/);
+    assert.match(supabaseSource, /cashAccountBalances: cashboxSummary\\.balances/);
+    assert.match(supabaseSource, /cashTransfers: cashboxSummary\\.transfers\\.map\\(mapCashTransfer\\)/);
+});
