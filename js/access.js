@@ -42,6 +42,20 @@ function renderOwnerPortal() {
             <p class="text-xs leading-relaxed whitespace-pre-line">${esc(notice.text)}</p>
             <p class="text-[10px] text-slate-500 mt-2">${formatDate(notice.date)}</p>
         </article>`).join('') : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إعلانات حالياً.</p>';
+    const ownerNotifications = Array.isArray(state.ownerNotifications) ? state.ownerNotifications : [];
+    const unreadNotifications = ownerNotifications.filter(notification => !notification.readAt);
+    const notificationRows = ownerNotifications.length ? ownerNotifications.map(notification => `
+        <article class="app-input border rounded-2xl p-3 space-y-2">
+            <div class="flex items-start justify-between gap-3">
+                <p class="text-xs font-bold">${esc(notification.title)}</p>
+                ${notification.readAt ? '<span class="text-[9px] text-slate-500">مقروء</span>' : '<span class="text-[9px] text-indigo-300 font-bold">جديد</span>'}
+            </div>
+            <p class="text-xs leading-relaxed whitespace-pre-line">${esc(notification.body)}</p>
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-[10px] text-slate-500">${formatDate(notification.createdAt)}</span>
+                ${notification.readAt ? '' : `<button type="button" onclick="markOwnerNotificationRead('${esc(notification.id)}')" class="text-[10px] text-indigo-300 underline">تحديد كمقروء</button>`}
+            </div>
+        </article>`).join('') : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إشعارات حتى الآن.</p>';
 
     portal.innerHTML = `
         <div class="app-card border rounded-3xl p-5 sm:p-6 space-y-2">
@@ -57,6 +71,16 @@ function renderOwnerPortal() {
             </div>
             <div class="app-input border rounded-2xl p-3 flex items-center justify-between gap-3"><span class="text-xs font-bold">إجمالي متأخرات حسابك (${debt.count} شهر)</span><strong class="text-sm ${debt.totalDebt ? 'text-rose-400' : 'text-emerald-400'}">${fmtNum(debt.totalDebt)} ج.م</strong></div>
         </section>
+        <section class="app-card border rounded-3xl p-5 space-y-3" aria-labelledby="ownerNotificationsTitle">
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <h3 id="ownerNotificationsTitle" class="font-bold text-sm">إشعارات حسابك</h3>
+                    <p class="text-[10px] text-slate-500 mt-1">${unreadNotifications.length} إشعار غير مقروء</p>
+                </div>
+                ${unreadNotifications.length ? '<button type="button" onclick="markAllOwnerNotificationsRead()" class="text-[10px] text-indigo-300 underline">قراءة الكل</button>' : ''}
+            </div>
+            <div class="space-y-2">${notificationRows}</div>
+        </section>
         <section class="app-card border rounded-3xl p-5 space-y-2" aria-labelledby="ownerPaymentHistoryTitle">
             <h3 id="ownerPaymentHistoryTitle" class="font-bold text-sm">سجل دفعات شقتك</h3>
             ${paymentRows}
@@ -71,6 +95,43 @@ function renderOwnerPortal() {
     document.getElementById('headerBuildingTitle').textContent = state.buildingName || 'Manzil';
     document.getElementById('syncStatus').textContent = 'وضع المالك — قراءة فقط';
     updateAccessSwitchButton();
+}
+
+
+async function markOwnerNotificationRead(notificationId) {
+    if (currentUserRole !== 'owner' || !activeSession || !activeBuildingId) return;
+    const notification = (state.ownerNotifications || []).find(item => item.id === notificationId);
+    if (!notification || notification.readAt) return;
+    const readAt = new Date().toISOString();
+    const { error } = await supabaseClient.from('notifications')
+        .update({ read_at: readAt })
+        .eq('id', notificationId)
+        .eq('building_id', activeBuildingId)
+        .eq('target_user_id', activeSession.user.id);
+    if (error) {
+        toast('تعذر تحديث حالة الإشعار. حاول مجددًا.', 'error');
+        return;
+    }
+    notification.readAt = readAt;
+    renderOwnerPortal();
+}
+
+async function markAllOwnerNotificationsRead() {
+    if (currentUserRole !== 'owner' || !activeSession || !activeBuildingId) return;
+    const unread = (state.ownerNotifications || []).filter(item => !item.readAt);
+    if (!unread.length) return;
+    const readAt = new Date().toISOString();
+    const { error } = await supabaseClient.from('notifications')
+        .update({ read_at: readAt })
+        .eq('building_id', activeBuildingId)
+        .eq('target_user_id', activeSession.user.id)
+        .is('read_at', null);
+    if (error) {
+        toast('تعذر تحديث الإشعارات. حاول مجددًا.', 'error');
+        return;
+    }
+    unread.forEach(notification => { notification.readAt = readAt; });
+    renderOwnerPortal();
 }
 
 function requestOwnerPinOnWhatsApp() {
