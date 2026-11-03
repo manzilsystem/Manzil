@@ -12,7 +12,7 @@ test('notification SECURITY DEFINER helpers live in private schema, not exposed 
     assert.match(migration, /create or replace function private\.can_read_notification/i);
     assert.match(migration, /grant execute on function private\.can_read_notification\(uuid, uuid, uuid\) to authenticated/i);
     assert.match(migration, /drop function public\.can_read_notification\(uuid, uuid, uuid\)/i);
-    assert.match(migration, /drop function public\.is_building_manager\(uuid\)/i);
+    assert.match(migration, /drop function if exists public\.is_building_manager\(uuid\)/i);
 });
 
 test('private SECURITY DEFINER membership helpers use a hardened search_path', () => {

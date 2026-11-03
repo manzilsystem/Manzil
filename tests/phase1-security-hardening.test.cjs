@@ -11,7 +11,6 @@ const migration = fs.readFileSync(
 test('notification RLS helpers are executable by authenticated users but not anon or PUBLIC', () => {
     for (const signature of [
         'public.can_read_notification(uuid, uuid, uuid)',
-        'public.is_building_manager(uuid)',
     ]) {
         assert.match(
             migration,
@@ -22,6 +21,7 @@ test('notification RLS helpers are executable by authenticated users but not ano
             new RegExp('grant execute on function ' + signature.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' to authenticated', 'i')
         );
     }
+    assert.doesNotMatch(migration, /public\.is_building_manager\s*\(/i);
 });
 
 test('owner notification access stays blocked until first PIN change is complete', () => {

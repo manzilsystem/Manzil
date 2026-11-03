@@ -1,0 +1,47 @@
+name: Local Supabase seed validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - "tests/local-seed*"
+      - ".github/workflows/supabase-local-seed.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - "tests/local-seed*"
+      - ".github/workflows/supabase-local-seed.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  local-seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: 2.122.1
+
+      - name: Start minimal local Supabase stack
+        run: supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: Apply migrations and local-only seed
+        run: supabase db reset --local
+
+      - name: Verify fixtures, cashboxes, monthly close and owner RLS
+        shell: bash
+        run: |
+          db_url="$(supabase status -o env | sed -n 's/^DB_URL=//p' | tr -d '"')"
+          test -n "$db_url"
+          psql "$db_url" -v ON_ERROR_STOP=1 -f tests/local-seed.verify.sql
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: if command -v supabase >/dev/null 2>&1; then supabase stop --no-backup; fi

@@ -17,7 +17,7 @@ stable
 security definer
 set search_path = pg_catalog, public
 as $function$
-    select public.is_building_manager(p_building_id)
+    select private.is_building_manager(p_building_id)
         or (
             p_target_user_id = auth.uid()
             and private.owner_pin_change_complete()
@@ -37,8 +37,9 @@ $function$;
 revoke all on function public.can_read_notification(uuid, uuid, uuid) from public, anon;
 grant execute on function public.can_read_notification(uuid, uuid, uuid) to authenticated;
 
-revoke all on function public.is_building_manager(uuid) from public, anon;
-grant execute on function public.is_building_manager(uuid) to authenticated;
+-- The legacy public helper was removed by the preceding hardening migration.
+-- Policies use private.is_building_manager(uuid), granted in the helper-access migration.
+
 
 -- RLS does not protect TRUNCATE, REFERENCES, or TRIGGER privileges.
 -- The app does not need these table-level capabilities from browser sessions.
