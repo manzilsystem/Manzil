@@ -166,14 +166,28 @@ jobs:
               --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 \
               -c "UPDATE public.backup_requests SET status='succeeded',finished_at=now(),result_message='تم إنشاء النسخة الاحتياطية وفحصها بنجاح' WHERE id='$BACKUP_REQUEST_ID' AND status='dispatched'"
 
-      - name: Retain latest 30 backups
+      - name: Retain latest 30 backups and prune catalog
         env:
           GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+          PGPASSWORD: ${{ env.PGPASSWORD }}
+          PGHOST: ${{ env.PGHOST }}
+          PGPORT: ${{ env.PGPORT }}
+          PGDATABASE: ${{ env.PGDATABASE }}
+          PGSSLMODE: ${{ env.PGSSLMODE }}
         run: |
           set -euo pipefail
           gh release list --repo manzilsystem/manzil_backups --limit 1000 --json tagName,createdAt \
             | jq -r 'sort_by(.createdAt) | reverse | .[30:][] | .tagName' \
             | while IFS= read -r tag; do
                 [ -n "$tag" ] || continue
+                [[ "$tag" =~ ^backup-[0-9]{8}T[0-9]{6}Z$ ]]
                 gh release delete "$tag" --repo manzilsystem/manzil_backups --yes --cleanup-tag
               done
+
+          # Keep the database catalog bounded to the same 30 most recent registered backups.
+          # This also cleans catalog rows left behind if release deletion succeeded but a prior
+          # workflow run stopped before catalog maintenance completed.
+          docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \
+            postgres:17-alpine psql --no-password --host="$PGHOST" --port="$PGPORT" \
+              --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 \
+              -c "DELETE FROM public.backup_catalog WHERE tag NOT IN (SELECT tag FROM public.backup_catalog ORDER BY created_at DESC LIMIT 30)"
