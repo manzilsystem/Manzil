@@ -616,3 +616,53 @@ BEGIN
     END LOOP;
 END;
 $foreign_key_indexes$;
+
+
+-- Deleting or changing an allocation must keep the owner's grouped notification accurate.
+DO $income_notification_sync$
+DECLARE
+    v_notification public.notifications%ROWTYPE;
+BEGIN
+    SELECT * INTO v_notification
+    FROM public.notifications
+    WHERE building_id = '20000000-0000-4000-8000-000000000001'
+      AND target_resident_id = '30000000-0000-4000-8000-000000000001'
+      AND dedupe_key = 'income-batch:ABCDEF123456';
+    IF NOT FOUND OR v_notification.body NOT LIKE '%100%' THEN
+        RAISE EXCEPTION 'initial grouped payment notification is missing: %', v_notification;
+    END IF;
+
+    UPDATE public.income
+    SET amount = 40
+    WHERE id = '40000000-0000-4000-8000-000000000008';
+
+    SELECT * INTO v_notification
+    FROM public.notifications
+    WHERE building_id = '20000000-0000-4000-8000-000000000001'
+      AND target_resident_id = '30000000-0000-4000-8000-000000000001'
+      AND dedupe_key = 'income-batch:ABCDEF123456';
+    IF v_notification.body NOT LIKE '%90%' THEN
+        RAISE EXCEPTION 'grouped notification was not updated after allocation amount changed: %', v_notification.body;
+    END IF;
+
+    DELETE FROM public.income WHERE id = '40000000-0000-4000-8000-000000000008';
+    SELECT * INTO v_notification
+    FROM public.notifications
+    WHERE building_id = '20000000-0000-4000-8000-000000000001'
+      AND target_resident_id = '30000000-0000-4000-8000-000000000001'
+      AND dedupe_key = 'income-batch:ABCDEF123456';
+    IF NOT FOUND OR v_notification.body NOT LIKE '%50%' OR v_notification.body NOT LIKE '%2027-01%' THEN
+        RAISE EXCEPTION 'grouped notification was not reduced after one allocation was deleted: %', v_notification.body;
+    END IF;
+
+    DELETE FROM public.income WHERE id = '40000000-0000-4000-8000-000000000009';
+    IF EXISTS (
+        SELECT 1 FROM public.notifications
+        WHERE building_id = '20000000-0000-4000-8000-000000000001'
+          AND target_resident_id = '30000000-0000-4000-8000-000000000001'
+          AND dedupe_key = 'income-batch:ABCDEF123456'
+    ) THEN
+        RAISE EXCEPTION 'grouped notification remained after the final allocation was deleted';
+    END IF;
+END;
+$income_notification_sync$;
