@@ -518,6 +518,17 @@ async function saveState() {
 function clearAuthenticatedState() {
     stopOwnerNotificationsRealtime();
     authGeneration += 1;
+    if (pendingBuildingSelection) {
+        const pending = pendingBuildingSelection;
+        pendingBuildingSelection = null;
+        pending.resolve(null);
+    }
+    const buildingModal = document.getElementById('buildingContextModal');
+    if (buildingModal) {
+        buildingModal.classList.add('hidden');
+        buildingModal.classList.remove('flex');
+        buildingModal.setAttribute('aria-hidden', 'true');
+    }
     activeSession = null;
     activeBuildingId = null;
     activeBuildingVersion = 1;
