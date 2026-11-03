@@ -5,12 +5,15 @@ const test = require('node:test');
 
 const workflow = fs.readFileSync(path.join(__dirname, '..', '.github/workflows/supabase-backup.yml'), 'utf8');
 
-test('backup retention keeps every release for 30 days regardless of backup frequency', () => {
-    assert.ok(workflow.includes("date -u -d '30 days ago' +%s"));
-    assert.ok(workflow.includes("fromdateiso8601) < $cutoff"));
-    assert.ok(workflow.includes('gh release delete "$tag" --repo manzilsystem/manzil_backups --yes --cleanup-tag'));
-    assert.ok(workflow.includes("DELETE FROM public.backup_catalog WHERE created_at < now() - interval '30 days'"));
-    assert.doesNotMatch(workflow, /\.\[30:\]/);
+test('backup retention uses the catalog creation time and deletes releases before catalog rows', () => {
+    const cutoffQuery = workflow.indexOf("SELECT tag FROM public.backup_catalog WHERE created_at < now() - interval '30 days'");
+    const releaseDelete = workflow.indexOf('gh release delete "$tag" --repo manzilsystem/manzil_backups --yes --cleanup-tag', cutoffQuery);
+    const catalogDelete = workflow.indexOf("DELETE FROM public.backup_catalog WHERE created_at < now() - interval '30 days'");
+    assert.ok(cutoffQuery >= 0);
+    assert.ok(releaseDelete > cutoffQuery);
+    assert.ok(catalogDelete > releaseDelete);
+    assert.ok(workflow.includes('ORDER BY created_at ASC'));
+    assert.doesNotMatch(workflow, /createdAt|fromdateiso8601|\.\[30:\]/);
     assert.doesNotMatch(workflow, /ORDER BY created_at DESC LIMIT 30/);
 });
 
@@ -24,11 +27,12 @@ test('catalog cleanup inherits database connection values exported through GITHU
 });
 
 
-test('orphan cleanup runs after successful backup registration and only removes unregistered releases older than 24 hours', () => {
-    assert.ok(workflow.includes("if: ${{ success() }}"));
-    assert.ok(workflow.includes('SELECT tag FROM public.backup_catalog'));
+test('orphan cleanup uses the backup timestamp embedded in the tag, not release metadata', () => {
     assert.ok(workflow.includes('age_seconds >= 86400'));
     assert.ok(workflow.includes('grep -Fxq -- "$tag" "$registered" && continue'));
+    assert.ok(workflow.includes('timestamp="${tag#backup-}"'));
+    assert.ok(workflow.includes('backup_date="${timestamp:0:8} ${timestamp:9:2}:${timestamp:11:2}:${timestamp:13:2}"'));
+    assert.doesNotMatch(workflow, /createdAt/);
     assert.ok(workflow.includes('gh release delete "$tag" --repo manzilsystem/manzil_backups --yes --cleanup-tag'));
 });
 
