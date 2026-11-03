@@ -20,7 +20,7 @@ function createLayoutHarness({ floorCount = 11, apartmentsPerFloor = 2, resident
         esc: value => String(value ?? '').replace(/[&<>"']/g, ''),
     };
     const api = vm.runInNewContext(
-        crudSource + '\n({ populateResidentFloorOptions, updateResidentApartmentOptions, getFloorLabel })',
+        crudSource + '\n({ populateResidentFloorOptions, updateResidentApartmentOptions, getFloorLabel, normalizeApartmentNumberKey })',
         sandbox,
         { filename: 'js/crud.js' }
     );
@@ -85,6 +85,18 @@ test('changing the floor does not retain an apartment number from the previous f
     assert.doesNotMatch(elements.residentApartment.innerHTML, /value="3"/);
     assert.match(elements.residentApartment.innerHTML, /value="5">شقة 5/);
     assert.match(elements.residentApartment.innerHTML, /value="6">شقة 6/);
+});
+
+
+test('Arabic and Latin apartment digits share the same occupied number', () => {
+    const { api, elements } = createLayoutHarness({
+        residents: [{ id: 'legacy', apartmentNumber: '٠٣', floor: '2' }]
+    });
+    elements.residentFloor.value = '2';
+    api.updateResidentApartmentOptions();
+    assert.doesNotMatch(elements.residentApartment.innerHTML, /value="3"/);
+    assert.equal(api.normalizeApartmentNumberKey('٠٠٣'), '3');
+    assert.equal(api.normalizeApartmentNumberKey('003'), '3');
 });
 
 test('layout configuration is stored per building and only managers can change it', () => {

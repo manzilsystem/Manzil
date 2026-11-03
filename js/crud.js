@@ -8,6 +8,13 @@ function normalizeApartmentDigits(value) {
         .replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776)).trim();
 }
 
+function normalizeApartmentNumberKey(value) {
+    const normalized = normalizeApartmentDigits(value);
+    return /^\d+$/.test(normalized)
+        ? normalized.replace(/^0+(?=\d)/, '')
+        : normalized.toLocaleLowerCase('ar-EG');
+}
+
 function getFloorLabel(floorNumber) {
     return 'الدور ' + Number(floorNumber).toLocaleString('ar-EG');
 }
@@ -25,7 +32,7 @@ function updateResidentApartmentOptions(preferredApartment = '') {
         for (let unit = 0; unit < state.apartmentsPerFloor; unit += 1) {
             const number = String(firstApartment + unit);
             const occupied = state.residents.some(item =>
-                item.id !== editingResidentId && normalizeApartmentDigits(item.apartmentNumber) === number
+                item.id !== editingResidentId && normalizeApartmentNumberKey(item.apartmentNumber) === normalizeApartmentNumberKey(number)
             );
             if (!occupied) options.push(number);
         }
@@ -294,8 +301,8 @@ async function handleResidentSubmit(e) {
     }
     if (!Number.isFinite(monthlyAmount) || monthlyAmount < 0) { toast('قيمة الاشتراك يجب أن تكون صفراً أو أكثر','error'); return; }
     if (shouldProvisionOwner && !normalizeOwnerPhone(phone)) { toast('أدخل رقم جوال صحيحًا أولاً؛ مثال مصري: 01012345678','error'); return; }
-    const normalizedApartment = normalizeApartmentDigits(apartmentNumber).toLocaleLowerCase('ar-EG');
-    if (state.residents.some(r => r.id !== editingResidentId && normalizeApartmentDigits(r.apartmentNumber).toLocaleLowerCase('ar-EG') === normalizedApartment)) {
+    const normalizedApartment = normalizeApartmentNumberKey(apartmentNumber);
+    if (state.residents.some(r => r.id !== editingResidentId && normalizeApartmentNumberKey(r.apartmentNumber) === normalizedApartment)) {
         toast('رقم الشقة مسجل بالفعل','error'); return;
     }
     let targetResidentId;
