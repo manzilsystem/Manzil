@@ -103,7 +103,7 @@ test('backup and restore workers share a non-cancelling database maintenance loc
 });
 
 
-test('full database backup download is restricted to global managers and a server-held GitHub token', () => {
+test('backup catalog only enables downloads for a verified global manager', () => {\n    assert.match(edge, /const \[globalAccess, \{ data: backups/);\n    assert.match(edge, /canDownload: globalAccess/);\n    assert.match(ui, /backupDownloadAllowed = !cached && data\\.canDownload === true/);\n});\n\ntest('full database backup download is restricted to global managers and a server-held GitHub token', () => {
     assert.match(edge, /body\.action === 'download_backup'/);
     assert.match(edge, /if \(!globalAccess\) return json\(403, \{ error: 'global_manager_only' \}\)/);
     assert.match(edge, /Deno\.env\.get\('BACKUP_REPO_TOKEN'\)/);
