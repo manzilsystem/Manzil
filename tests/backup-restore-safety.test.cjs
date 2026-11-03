@@ -8,6 +8,7 @@ const test = require('node:test');
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const ui = read('js/backup.js');
+const html = read('index.html');
 const edge = read('supabase/functions/backup-console/index.ts');
 const backupWorkflow = read('.github/workflows/supabase-backup.yml');
 const restoreWorkflow = read('.github/workflows/supabase-restore.yml');
@@ -99,4 +100,25 @@ test('backup and restore workers share a non-cancelling database maintenance loc
     assert.match(restoreWorkflow, /group: supabase-database-maintenance/);
     assert.match(backupWorkflow, /cancel-in-progress: false/);
     assert.match(restoreWorkflow, /cancel-in-progress: false/);
+});
+
+
+test('full database backup download is restricted to global managers and a server-held GitHub token', () => {
+    assert.match(edge, /body\.action === 'download_backup'/);
+    assert.match(edge, /if \(!globalAccess\) return json\(403, \{ error: 'global_manager_only' \}\)/);
+    assert.match(edge, /Deno\.env\.get\('BACKUP_REPO_TOKEN'\)/);
+    assert.match(edge, /\.select\('tag,file_name,size_bytes,sha256'\)/);
+    assert.match(edge, /backup_checksum_mismatch/);
+    assert.match(edge, /X-Backup-SHA256/);
+    assert.match(edge, /release-assets\.githubusercontent\.com/);
+    assert.doesNotMatch(ui, /BACKUP_REPO_TOKEN|manzil_backups|api\.github\.com/i);
+});
+
+test('full backup download UI verifies the SHA-256 digest before saving the file', () => {
+    assert.match(html, /id="backupDownloadButton"/);
+    assert.match(html, /onclick="downloadDatabaseBackup\(\)"/);
+    assert.match(ui, /backupDownloadAllowed = !cached && data\.canDownload === true/);
+    assert.match(ui, /crypto\.subtle\.digest\('SHA-256'/);
+    assert.match(ui, /actualSha !== expectedSha\.toLowerCase\(\)/);
+    assert.match(ui, /backupDownloadInProgress/);
 });
