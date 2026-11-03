@@ -13,7 +13,7 @@ const hashMigration = fs.readFileSync(
     'utf8'
 );
 const rateLimitMigration = fs.readFileSync(
-    path.join(root, 'supabase/migrations/20261103140000_check_owner_login_rate_limit.sql'),
+    path.join(root, 'supabase/migrations/20261103144117_check_owner_login_rate_limit.sql'),
     'utf8'
 );
 const loginFunction = fs.readFileSync(
