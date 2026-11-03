@@ -11,6 +11,7 @@
 \ir ../supabase/migrations/20261103070519_owner_payment_notifications.sql
 \ir ../supabase/migrations/20261103080000_restrict_notification_update_columns.sql
 \ir ../supabase/migrations/20261103105908_cashbox_funds_and_transfers.sql
+\ir ../supabase/migrations/20261103112500_monthly_cashbox_close.sql
 
 INSERT INTO public.profiles (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),
@@ -546,3 +547,5 @@ BEGIN
 END;
 $cashbox_owner$;
 RESET ROLE;
+
+\ir monthly-cashbox-close.integration.sql

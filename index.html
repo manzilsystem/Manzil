@@ -410,6 +410,24 @@
                     <button onclick="exportToCSV()" class="w-full bg-amber-600 hover:bg-amber-500 text-white py-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 shadow"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button>
                 </div>
             </div>
+            <section class="app-card p-5 rounded-3xl border space-y-4" aria-labelledby="monthlyCloseTitle">
+                <div>
+                    <h2 id="monthlyCloseTitle" class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-indigo-400"></i> المراجعة والإقفال الشهري</h2>
+                    <p class="text-xs text-slate-400 mt-1">حساب الرصيد الافتتاحي وحركة كل صندوق والرصيد الختامي بالتوقيت المحلي للقاهرة.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
+                    <label for="monthlyCloseMonthSelect" class="block text-xs font-bold space-y-1">
+                        <span class="text-slate-400">شهر الإقفال</span>
+                        <select id="monthlyCloseMonthSelect" onchange="invalidateMonthlyClosePreview()" class="w-full app-input border rounded-xl px-3 py-2.5 text-xs font-semibold"></select>
+                    </label>
+                    <button type="button" id="monthlyCloseReviewButton" onclick="loadMonthlyCloseReport()" class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-xs font-bold">مراجعة الإقفال</button>
+                    <button type="button" id="monthlyClosePdfButton" onclick="exportMonthlyClosePdf()" disabled class="bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-xl text-xs font-bold"><i class="fa-solid fa-file-pdf ml-1"></i> تنزيل PDF</button>
+                </div>
+                <p id="monthlyCloseReportStatus" class="text-[11px] text-slate-500" role="status" aria-live="polite">اختر الشهر ثم اضغط «مراجعة الإقفال».</p>
+                <div id="monthlyClosePreview" class="app-input border rounded-2xl p-3 space-y-3" aria-live="polite">
+                    <p class="text-slate-500 text-center py-4">اختر الشهر ثم اضغط «مراجعة الإقفال».</p>
+                </div>
+            </section>
             <div class="app-card p-5 rounded-3xl border space-y-4">
                 <div class="flex justify-between items-start gap-3">
                     <div>
@@ -779,6 +797,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase.js"></script>
     <script src="js/cashbox.js"></script>
+    <script src="js/monthly-close.js"></script>
     <script src="js/backup.js"></script>
     <script src="js/app.js"></script>
 </body>

@@ -88,7 +88,7 @@ function renderArrearsReport() {
 function populateSelects() {
     const months = getActiveBuildingMonths();
     const current = getCurrentMonth();
-    ['incomeMonth','expenseMonth','reportMonthSelect'].forEach(id => {
+    ['incomeMonth','expenseMonth','reportMonthSelect','monthlyCloseMonthSelect'].forEach(id => {
         const el = document.getElementById(id); if (!el) return;
         const v = el.value || current;
         el.innerHTML = months.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
