@@ -53,8 +53,14 @@ function getSubscriptionAmountForMonthKey(resident, monthKey) {
     return Number(rates[rates.length - 1]?.monthlyAmount ?? resident?.monthlyAmount ?? state.defaultSubscription) || 0;
 }
 
-function getCurrentSubscriptionAmount(resident) {
-    return getSubscriptionAmountForMonthKey(resident, new Date().toISOString().slice(0, 7));
+function getLocalMonthKey(date = new Date()) {
+    const value = date instanceof Date ? date : new Date(date);
+    if (!Number.isFinite(value.getTime())) return '';
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function getCurrentSubscriptionAmount(resident, date = new Date()) {
+    return getSubscriptionAmountForMonthKey(resident, getLocalMonthKey(date));
 }
 
 let subscriptionRateResidentId = null;
@@ -107,8 +113,8 @@ function openSubscriptionRateModal(residentId) {
     document.getElementById('subscriptionRateResidentSummary').textContent =
         `${resident.name} · شقة ${resident.apartmentNumber} · القيمة الحالية ${formatSubscriptionAmount(resident.monthlyAmount)}`;
     const monthInput = document.getElementById('subscriptionRateEffectiveMonth');
-    monthInput.value = new Date().toISOString().slice(0, 7);
-    const createdMonth = String(resident.createdAt || '').slice(0, 7);
+    monthInput.value = getLocalMonthKey();
+    const createdMonth = getLocalMonthKey(resident.createdAt);
     if (createdMonth) monthInput.min = createdMonth;
     else monthInput.removeAttribute('min');
     document.getElementById('subscriptionRateAmount').value = getCurrentSubscriptionAmount(resident);
@@ -130,7 +136,7 @@ async function addSubscriptionRateChange(event) {
         toast('اختر شهرًا صحيحًا لتطبيق الاشتراك.', 'error');
         return;
     }
-    const createdMonth = String(resident.createdAt || '').slice(0, 7);
+    const createdMonth = getLocalMonthKey(resident.createdAt);
     if (createdMonth && effectiveMonth < createdMonth) {
         toast('لا يمكن تطبيق الاشتراك قبل تاريخ إنشاء الشقة.', 'error');
         return;
@@ -209,10 +215,11 @@ async function handleResidentSubmit(e) {
             logAction('تعديل شقة', `${name} - شقة ${apartmentNumber}`);
         }
     } else {
+        const createdAt = new Date();
         const resident = {
             id: generateId(), name, apartmentNumber, phone, monthlyAmount, notes,
-            createdAt: new Date().toISOString(),
-            subscriptionRates: [{ effectiveMonth: new Date().toISOString().slice(0, 7) + '-01', monthlyAmount }]
+            createdAt: createdAt.toISOString(),
+            subscriptionRates: [{ effectiveMonth: getLocalMonthKey(createdAt) + '-01', monthlyAmount }]
         };
         state.residents.push(resident);
         targetResidentId = resident.id;
