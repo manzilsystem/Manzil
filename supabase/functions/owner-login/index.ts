@@ -85,24 +85,8 @@ Deno.serve(async (request: Request) => {
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
-  const { data: profile, error: profileError } = await admin
-    .from('profiles')
-    .select('id')
-    .eq('phone', phone)
-    .maybeSingle()
-  if (profileError) return json(503, { error: 'login_unavailable' })
-  if (!profile) return json(401, { error: 'invalid_credentials' })
-
-  const { data: membership, error: membershipError } = await admin
-    .from('building_members')
-    .select('user_id')
-    .eq('user_id', profile.id)
-    .eq('role', 'owner')
-    .limit(1)
-    .maybeSingle()
-  if (membershipError) return json(503, { error: 'login_unavailable' })
-  if (!membership) return json(401, { error: 'invalid_credentials' })
-
+  // Count every syntactically valid phone probe, including unknown numbers,
+  // so callers cannot bypass lockout by guessing unregistered phone numbers.
   const phoneHash = await hashPhone(phone, serviceRoleKey)
   const { data: rateLimit, error: rateLimitError } = await admin.rpc('owner_login_rate_limit', {
     p_phone_hash: phoneHash,
@@ -116,6 +100,30 @@ Deno.serve(async (request: Request) => {
     const retryAfter = Math.max(1, Number(rateLimit?.retry_after_seconds) || 900)
     return json(429, { error: 'rate_limited', retry_after_seconds: retryAfter }, { 'Retry-After': String(retryAfter) })
   }
+
+  const { data: profile, error: profileError } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('phone', phone)
+    .maybeSingle()
+  if (profileError) {
+    await admin.rpc('owner_login_rate_limit', { p_phone_hash: phoneHash, p_action: 'release' })
+    return json(503, { error: 'login_unavailable' })
+  }
+  if (!profile) return json(401, { error: 'invalid_credentials' })
+
+  const { data: membership, error: membershipError } = await admin
+    .from('building_members')
+    .select('user_id')
+    .eq('user_id', profile.id)
+    .eq('role', 'owner')
+    .limit(1)
+    .maybeSingle()
+  if (membershipError) {
+    await admin.rpc('owner_login_rate_limit', { p_phone_hash: phoneHash, p_action: 'release' })
+    return json(503, { error: 'login_unavailable' })
+  }
+  if (!membership) return json(401, { error: 'invalid_credentials' })
 
   const verifier = createClient(supabaseUrl, publishableKey, {
     auth: { persistSession: false, autoRefreshToken: false },
