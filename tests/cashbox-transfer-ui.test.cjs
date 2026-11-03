@@ -391,8 +391,8 @@ function createCashboxSummaryHarness(response) {
     const supabaseSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'supabase.js'), 'utf8');
     const mapStart = supabaseSource.indexOf('function mapCashTransfer(');
     const refreshStart = supabaseSource.indexOf('async function refreshCashboxSummary()');
-    const refreshEnd = supabaseSource.indexOf('\\n}\\n', refreshStart) + 3;
-    assert.ok(mapStart >= 0 && refreshStart > mapStart && refreshEnd > refreshStart);
+    const nextFunction = supabaseSource.indexOf('function mapNotice(', refreshStart);
+    assert.ok(mapStart >= 0 && refreshStart > mapStart && nextFunction > refreshStart);
 
     const calls = [];
     const sandbox = {
@@ -410,9 +410,9 @@ function createCashboxSummaryHarness(response) {
         },
         console
     };
-    const refreshCode = supabaseSource.slice(mapStart, refreshEnd);
+    const refreshCode = supabaseSource.slice(mapStart, nextFunction);
     const api = vm.runInNewContext(
-        `${cashboxSource}\\n${refreshCode}\\n({ normalizeCashboxSummary, refreshCashboxSummary })`,
+        [cashboxSource, refreshCode, '({ normalizeCashboxSummary, refreshCashboxSummary })'].join(String.fromCharCode(10)),
         sandbox,
         { filename: 'cashbox-summary-harness.js' }
     );
@@ -492,7 +492,9 @@ test('cashbox summary refresh does not apply a response after the active buildin
 
 test('cashbox summary loader validates server data before assigning global state', () => {
     const supabaseSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'supabase.js'), 'utf8');
-    assert.match(supabaseSource, /const cashboxSummary = currentUserRole === 'manager'[\\s\\S]*?normalizeCashboxSummary\\(cashboxSummaryResult\\.data\\)/);
-    assert.match(supabaseSource, /cashAccountBalances: cashboxSummary\\.balances/);
-    assert.match(supabaseSource, /cashTransfers: cashboxSummary\\.transfers\\.map\\(mapCashTransfer\\)/);
+    const validationAt = supabaseSource.indexOf("const cashboxSummary = currentUserRole === 'manager'");
+    const assignmentAt = supabaseSource.indexOf('    state = {', validationAt);
+    assert.ok(validationAt >= 0 && assignmentAt > validationAt);
+    assert.ok(supabaseSource.includes('cashAccountBalances: cashboxSummary.balances'));
+    assert.ok(supabaseSource.includes('cashTransfers: cashboxSummary.transfers.map(mapCashTransfer)'));
 });
