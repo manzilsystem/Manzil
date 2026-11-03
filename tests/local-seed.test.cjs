@@ -17,7 +17,7 @@ test('Supabase CLI seed is explicitly enabled for the local workspace', () => {
 
 test('local fixtures use fictional invalid email domains and fixed local credentials', () => {
     assert.match(seed, /manager@manzil\.invalid/);
-    assert.doesNotMatch(seed, /INSERT INTO auth\.users\s*\([\s\S]*?\bemail\b/i);
+    assert.doesNotMatch(seed, /INSERT INTO auth\.users\s*\([^)]*\bemail\b/i);
     assert.match(seed, /@phone-login\.manzil\.invalid/);
     assert.match(seed, /Manzil-Local-Only-2026!/);
     assert.match(seed, /\+201555001101/);
