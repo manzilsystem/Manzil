@@ -159,16 +159,16 @@ jobs:
               -c "SELECT tag FROM public.backup_catalog" > "$registered"
 
           gh release list --repo manzilsystem/manzil_backups --limit 1000 \
-            --json tagName,createdAt | jq -c '.[]' > "$releases"
+            --json tagName | jq -r '.[].tagName' > "$releases"
 
           now="$(date -u +%s)"
-          while IFS= read -r release; do
-            tag="$(jq -r '.tagName' <<< "$release")"
-            created_at="$(jq -r '.createdAt' <<< "$release")"
-            [[ "$tag" =~ ^backup-[0-9]{8}T[0-9]{6}Z$ ]] || continue
+          while IFS= read -r tag; do
+            [[ "$tag" =~ ^backup-([0-9]{8})T([0-9]{6})Z$ ]] || continue
             grep -Fxq -- "$tag" "$registered" && continue
 
-            created_epoch="$(date -u -d "$created_at" +%s)"
+            timestamp="${tag#backup-}"
+            backup_date="${timestamp:0:8} ${timestamp:9:2}:${timestamp:11:2}:${timestamp:13:2}"
+            created_epoch="$(date -u -d "$backup_date" +%s)"
             age_seconds=$((now - created_epoch))
             if (( age_seconds >= 86400 )); then
               echo "Removing unregistered backup release older than 24 hours: $tag"
@@ -221,17 +221,21 @@ jobs:
           GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
         run: |
           set -euo pipefail
-          cutoff="$(date -u -d '30 days ago' +%s)"
-          gh release list --repo manzilsystem/manzil_backups --limit 1000 --json tagName,createdAt \
-            | jq -r --argjson cutoff "$cutoff" '.[] | select((.createdAt | fromdateiso8601) < $cutoff) | .tagName' \
-            | while IFS= read -r tag; do
-                [ -n "$tag" ] || continue
-                [[ "$tag" =~ ^backup-[0-9]{8}T[0-9]{6}Z$ ]]
-                gh release delete "$tag" --repo manzilsystem/manzil_backups --yes --cleanup-tag
-              done
 
-          # Keep every registered backup for a full 30 days, regardless of manual backup frequency.
-          # Prune catalog rows only after release deletion has completed successfully.
+          # The database catalog records the real backup timestamp; GitHub release metadata
+          # may reflect tag import time and is not used for retention decisions.
+          old_tags="$(docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \
+            postgres:17-alpine psql --no-password --host="$PGHOST" --port="$PGPORT" \
+              --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 \
+              -At -c "SELECT tag FROM public.backup_catalog WHERE created_at < now() - interval '30 days' ORDER BY created_at ASC")"
+
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            [[ "$tag" =~ ^backup-[0-9]{8}T[0-9]{6}Z$ ]]
+            gh release delete "$tag" --repo manzilsystem/manzil_backups --yes --cleanup-tag
+          done <<< "$old_tags"
+
+          # Prune catalog rows only after all corresponding release deletions succeeded.
           docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \
             postgres:17-alpine psql --no-password --host="$PGHOST" --port="$PGPORT" \
               --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 \
