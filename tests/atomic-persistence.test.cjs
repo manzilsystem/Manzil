@@ -67,3 +67,9 @@ test('database constraint accepts all five themes supported by the UI', () => {
     }
     assert.match(supabaseSource, /\['dark', 'light', 'emerald', 'ocean', 'sand'\]\.includes\(building\.current_theme\)/);
 });
+
+test('subscription rate RLS caches auth identity and indexes created_by foreign key', () => {
+    const optimization = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103071000_optimize_subscription_rate_rls.sql'), 'utf8');
+    assert.match(optimization, /bm\.user_id = \(SELECT auth\.uid\(\)\)/);
+    assert.match(optimization, /resident_subscription_rates_created_by_idx/);
+});
