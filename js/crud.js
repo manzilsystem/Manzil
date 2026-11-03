@@ -54,7 +54,7 @@ function getSubscriptionAmountForMonthKey(resident, monthKey) {
 }
 
 function getLocalMonthKey(date = new Date()) {
-    const value = date instanceof Date ? date : new Date(date);
+    const value = date && typeof date.getTime === 'function' ? date : new Date(date);
     if (!Number.isFinite(value.getTime())) return '';
     return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}`;
 }
