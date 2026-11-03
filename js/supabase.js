@@ -211,8 +211,9 @@ async function loadState() {
     if (!isCurrentAuthSession(session, generation)) return false;
     if (buildingError) throw buildingError;
     activeBuildingVersion = Number(building.state_version) || 1;
-    const [residents, income, expenses, notices, auditLogs] = await Promise.all([
-        supabaseQuery('residents'), supabaseQuery('income'), supabaseQuery('expenses'), supabaseQuery('notices'), supabaseQuery('audit_logs')
+    const [residents, income, expenses, notices, auditLogs, residentNotes] = await Promise.all([
+        supabaseQuery('residents'), supabaseQuery('income'), supabaseQuery('expenses'), supabaseQuery('notices'), supabaseQuery('audit_logs'),
+        currentUserRole === 'manager' ? supabaseQuery('resident_internal_notes', 'resident_id,notes') : Promise.resolve([])
     ]);
     if (!isCurrentAuthSession(session, generation)) return false;
     state = {
@@ -226,6 +227,12 @@ async function loadState() {
         residents: residents.map(mapResident), income: income.map(mapIncome), expenses: expenses.map(mapExpense),
         notices: notices.map(mapNotice), auditLogs: auditLogs.map(mapAudit), lastUpdated: Date.now()
     };
+    if (currentUserRole === 'manager') {
+        const notesByResident = new Map(residentNotes.map(row => [row.resident_id, row.notes || '']));
+        state.residents.forEach(resident => {
+            resident.notes = notesByResident.get(resident.id) || '';
+        });
+    }
     persistedAuditLogIds = new Set(auditLogs.map(row => row.id));
     currentResidentId = currentUserRole === 'owner' ? state.residents[0]?.id || null : null;
     supabaseStateLoaded = true;
