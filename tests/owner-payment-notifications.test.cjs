@@ -28,8 +28,8 @@ test('split advance payments are grouped into one notification', () => {
 test('owners can read their own notifications and only update read state', () => {
     assert.ok(migration.includes('private.is_building_manager(OLD.building_id)'));
     assert.ok(migration.includes('NEW.target_scope IS DISTINCT FROM OLD.target_scope'));
-    assert.match(grantsMigration, /REVOKE UPDATE ON TABLE public\\.notifications FROM authenticated/i);
-    assert.match(grantsMigration, /GRANT UPDATE \\(read_at\\) ON TABLE public\\.notifications TO authenticated/i);
+    assert.match(grantsMigration, /REVOKE UPDATE ON TABLE public\.notifications FROM authenticated/i);
+    assert.match(grantsMigration, /GRANT UPDATE \(read_at\) ON TABLE public\.notifications TO authenticated/i);
     assert.ok(access.includes('markOwnerNotificationRead'));
     assert.ok(access.includes('markAllOwnerNotificationsRead'));
     assert.ok(supabase.includes(".eq('target_user_id', session.user.id)"));
