@@ -276,6 +276,10 @@ async function handleResidentSubmit(e) {
     const notes = document.getElementById('residentNotes').value.trim();
     if (!name || !apartmentNumber || (state.floorCount > 0 && !floor)) { toast('الاسم والدور ورقم الشقة مطلوبة.', 'error'); return; }
     const existingResident = state.residents.find(item => item.id === editingResidentId);
+    if (editingResidentId && !existingResident) {
+        toast('تعذر العثور على الشقة. أعد تحميل البيانات ثم حاول مرة أخرى.', 'error');
+        return;
+    }
     const unchangedLegacyLocation = existingResident
         && normalizeApartmentDigits(existingResident.floor || '') === floor
         && normalizeApartmentDigits(existingResident.apartmentNumber || '') === apartmentNumber;
