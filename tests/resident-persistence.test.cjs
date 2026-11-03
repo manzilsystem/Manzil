@@ -47,7 +47,7 @@ test('atomic save converts a legacy millisecond createdAt into a timestamptz ISO
     const createdAt = Date.UTC(2026, 10, 1, 12, 30, 0);
     const { app, calls, loggedErrors } = makeSaveHarness({
         id: 'resident-id', userId: null, name: 'Test resident', apartmentNumber: '101',
-        phone: '', monthlyAmount: 100, notes: '', createdAt,
+        phone: '', floor: 'الثاني', monthlyAmount: 100, notes: '', createdAt,
     });
 
     assert.equal(await app.saveState(), true, JSON.stringify({
@@ -59,6 +59,7 @@ test('atomic save converts a legacy millisecond createdAt into a timestamptz ISO
     const rows = JSON.parse(JSON.stringify(calls[0].args.p_payload.residents));
     assert.equal(rows.length, 1);
     assert.equal(rows[0].created_at, new Date(createdAt).toISOString());
+    assert.equal(rows[0].floor, 'الثاني');
     assert.equal(typeof rows[0].created_at, 'string');
 });
 
