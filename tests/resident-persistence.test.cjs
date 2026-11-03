@@ -68,7 +68,7 @@ test('apartment floor is optional and supported by the atomic database snapshot'
     assert.match(migration, /ADD COLUMN IF NOT EXISTS floor text/);
     assert.match(migration, /apartment_number, floor, phone/);
     assert.match(migration, /floor text, phone text/);
-    assert.match(migration, /floor = EXCLUDED\.floor/);
+    assert.match(migration, /THEN EXCLUDED\.floor/);
     assert.match(supabaseSource, /floor: row\.floor \|\| ''/);
     assert.match(supabaseSource, /floor: r\.floor \|\| null/);
 });
