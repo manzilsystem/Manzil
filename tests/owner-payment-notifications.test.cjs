@@ -5,6 +5,7 @@ const test = require('node:test');
 
 const root = path.join(__dirname, '..');
 const migration = fs.readFileSync(path.join(root, 'supabase/migrations/20261103070519_owner_payment_notifications.sql'), 'utf8');
+const grantsMigration = fs.readFileSync(path.join(root, 'supabase/migrations/20261103080000_restrict_notification_update_columns.sql'), 'utf8');
 const supabase = fs.readFileSync(path.join(root, 'js/supabase.js'), 'utf8');
 const access = fs.readFileSync(path.join(root, 'js/access.js'), 'utf8');
 const crud = fs.readFileSync(path.join(root, 'js/crud.js'), 'utf8');
@@ -27,6 +28,8 @@ test('split advance payments are grouped into one notification', () => {
 test('owners can read their own notifications and only update read state', () => {
     assert.ok(migration.includes('private.is_building_manager(OLD.building_id)'));
     assert.ok(migration.includes('NEW.target_scope IS DISTINCT FROM OLD.target_scope'));
+    assert.match(grantsMigration, /REVOKE UPDATE ON TABLE public\.notifications FROM authenticated/i);
+    assert.match(grantsMigration, /GRANT UPDATE \(read_at\) ON TABLE public\.notifications TO authenticated/i);
     assert.ok(access.includes('markOwnerNotificationRead'));
     assert.ok(access.includes('markAllOwnerNotificationsRead'));
     assert.ok(supabase.includes(".eq('target_user_id', session.user.id)"));
