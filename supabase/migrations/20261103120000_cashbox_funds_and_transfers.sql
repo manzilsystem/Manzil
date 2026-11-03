@@ -265,7 +265,7 @@ BEGIN
         'balances', v_summary->'balances'
     );
 END;
-$;
+$$;
 REVOKE ALL ON FUNCTION private.transfer_cash_between_accounts(uuid, uuid, text, text, numeric, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION private.transfer_cash_between_accounts(uuid, uuid, text, text, numeric, text) TO authenticated;
 
