@@ -94,14 +94,16 @@ jobs:
             exit 0
           fi
 
-          request="$(psql_db -At -F '|' -c "SELECT id::text || '|' || backup_tag FROM public.restore_requests WHERE status='queued' ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED")"
+          # Fetch the trusted digest from the database catalog, independently of the release asset.
+          request="$(psql_db -At -F '|' -c "SELECT r.id::text || '|' || r.backup_tag || '|' || COALESCE(b.sha256, '') FROM public.restore_requests r LEFT JOIN public.backup_catalog b ON b.tag = r.backup_tag WHERE r.status='queued' ORDER BY r.created_at LIMIT 1 FOR UPDATE OF r SKIP LOCKED")"
           if [ -z "$request" ]; then
             echo "No pending restore request."
             exit 0
           fi
-          IFS='|' read -r request_id tag <<< "$request"
+          IFS='|' read -r request_id tag expected_sha <<< "$request"
           [[ "$request_id" =~ ^[0-9a-f-]{36}$ ]]
           [[ "$tag" =~ ^backup-[0-9]{8}T[0-9]{6}Z$ ]]
+          [[ "$expected_sha" =~ ^[a-f0-9]{64}$ ]] || { echo "::error::Missing or invalid catalog SHA-256"; exit 1; }
           filename="manzil-db-${tag#backup-}.dump"
           psql_db -c "UPDATE public.restore_requests SET status='running',started_at=now(),result_message='بدأ تنفيذ الاستعادة' WHERE id='$request_id' AND status='queued'"
 
@@ -113,6 +115,8 @@ jobs:
           gh release download "$tag" --repo manzilsystem/manzil_backups \
             --pattern "$filename" --pattern "$filename.sha256" --dir "$RUNNER_TEMP"
           (cd "$RUNNER_TEMP" && sha256sum --check "$filename.sha256")
+          actual_sha="$(sha256sum "$RUNNER_TEMP/$filename" | awk '{print $1}')"
+          [[ "$actual_sha" == "$expected_sha" ]] || { echo "::error::Backup digest does not match the trusted database catalog"; exit 1; }
           docker run --rm -v "$RUNNER_TEMP:/backup" postgres:17-alpine \
             pg_restore --list "/backup/$filename" >/dev/null
 
