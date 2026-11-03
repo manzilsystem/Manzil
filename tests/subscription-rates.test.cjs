@@ -68,9 +68,10 @@ test('invalid month labels do not select a historical rate', () => {
 
 
 const crudSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'crud.js'), 'utf8');
+const backupSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'backup.js'), 'utf8');
 function loadCrudHelpers() {
     return vm.runInNewContext(
-        `${crudSource}\n({ isValidEffectiveMonth, isValidBackup, getSubscriptionAmountForMonthKey })`,
+        `${crudSource}\n${backupSource}\n({ isValidEffectiveMonth, isValidBackup, getSubscriptionAmountForMonthKey })`,
         {},
         { filename: 'js/crud.js' }
     );

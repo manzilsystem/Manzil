@@ -8,6 +8,7 @@ const stateSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'state.js')
 const crudSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'crud.js'), 'utf8');
 const settingsSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'settings.js'), 'utf8');
 const noticesSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'notices.js'), 'utf8');
+const backupSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'backup.js'), 'utf8');
 
 function loadSaveHelper(saveResult = false) {
     const sandbox = {
@@ -119,4 +120,12 @@ test('overlapping failed saves roll back to the earliest persisted state', async
     assert.equal(await second, false);
     assert.equal(app.getState().buildingName, beforeFirst.buildingName);
     assert.equal(app.getState().managerName, beforeFirst.managerName);
+});
+
+test('JSON backup import and export live in backup.js and use rollback-safe persistence', () => {
+    for (const name of ['exportJSON', 'isValidBackup', 'importJSON']) {
+        assert.ok(backupSource.includes('function ' + name + '('));
+        assert.equal(crudSource.includes('function ' + name + '('), false);
+    }
+    assert.ok(backupSource.includes('saveWithRollback(previousState)'));
 });
