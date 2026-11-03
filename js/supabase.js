@@ -181,12 +181,16 @@ function mapCashTransfer(row) {
 
 async function refreshCashboxSummary() {
     if (currentUserRole !== 'manager' || !activeBuildingId) return false;
+    const buildingId = activeBuildingId;
     const { data, error } = await supabaseClient.rpc('get_cashbox_summary', {
-        p_building_id: activeBuildingId
+        p_building_id: buildingId
     });
     if (error) throw error;
-    state.cashAccountBalances = data?.balances || { main: 0, development: 0, emergency: 0 };
-    state.cashTransfers = (data?.transfers || []).map(mapCashTransfer);
+    if (currentUserRole !== 'manager' || activeBuildingId !== buildingId) return false;
+
+    const summary = normalizeCashboxSummary(data);
+    state.cashAccountBalances = summary.balances;
+    state.cashTransfers = summary.transfers.map(mapCashTransfer);
     return true;
 }
 
@@ -326,6 +330,9 @@ async function loadState() {
     if (!isCurrentAuthSession(session, generation)) return false;
     if (ownerNotificationsResult.error) throw ownerNotificationsResult.error;
     if (cashboxSummaryResult.error) throw cashboxSummaryResult.error;
+    const cashboxSummary = currentUserRole === 'manager'
+        ? normalizeCashboxSummary(cashboxSummaryResult.data)
+        : { balances: { main: 0, development: 0, emergency: 0 }, transfers: [] };
     state = {
         ...state,
         buildingName: building.name || 'Manzil',
@@ -337,8 +344,8 @@ async function loadState() {
         residents: residents.map(mapResident), income: income.map(mapIncome), expenses: expenses.map(mapExpense),
         notices: notices.map(mapNotice), ownerNotifications: (ownerNotificationsResult.data || []).map(mapNotification),
         auditLogs: auditLogs.map(mapAudit),
-        cashAccountBalances: cashboxSummaryResult.data?.balances || { main: 0, development: 0, emergency: 0 },
-        cashTransfers: (cashboxSummaryResult.data?.transfers || []).map(mapCashTransfer),
+        cashAccountBalances: cashboxSummary.balances,
+        cashTransfers: cashboxSummary.transfers.map(mapCashTransfer),
         lastUpdated: Date.now()
     };
     if (currentUserRole === 'manager') {
