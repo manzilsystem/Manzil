@@ -48,7 +48,7 @@ function populateResidentFloorOptions(currentFloor = '') {
     if (selectedFloor && !floors.includes(selectedFloor)) floors.unshift(selectedFloor);
     select.innerHTML = '<option value="">اختر الدور</option>' +
         floors.map(floor => {
-            const label = /^\\d+$/.test(floor) ? getFloorLabel(floor) : floor;
+            const label = /^\d+$/.test(floor) ? getFloorLabel(floor) : floor;
             return '<option value="' + esc(floor) + '">' + esc(label) + '</option>';
         }).join('');
     select.value = selectedFloor;
