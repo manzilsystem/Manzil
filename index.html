@@ -346,8 +346,36 @@
                     </div>
                     <button onclick="exportArrearsCSV()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-2 rounded-xl text-[11px] font-bold transition shrink-0"><i class="fa-solid fa-file-csv ml-1"></i> CSV</button>
                 </div>
+                <div class="app-input border rounded-2xl p-3 space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <label class="text-xs space-y-1">
+                            <span class="text-slate-400">الشقة</span>
+                            <select id="arrearsApartmentFilter" onchange="renderArrearsReport()" class="w-full app-input border rounded-xl px-3 py-2 text-xs">
+                                <option value="">كل الشقق</option>
+                            </select>
+                        </label>
+                        <label class="text-xs space-y-1">
+                            <span class="text-slate-400">حالة التأخير</span>
+                            <select id="arrearsStatusFilter" onchange="renderArrearsReport()" class="w-full app-input border rounded-xl px-3 py-2 text-xs">
+                                <option value="all">كل الحالات</option>
+                                <option value="one">شهر واحد</option>
+                                <option value="two_three">2–3 أشهر</option>
+                                <option value="four_plus">4 أشهر فأكثر</option>
+                            </select>
+                        </label>
+                        <label class="text-xs space-y-1">
+                            <span class="text-slate-400">من شهر</span>
+                            <input type="month" id="arrearsFromMonth" onchange="renderArrearsReport()" class="w-full app-input border rounded-xl px-3 py-2 text-xs">
+                        </label>
+                        <label class="text-xs space-y-1">
+                            <span class="text-slate-400">إلى شهر</span>
+                            <input type="month" id="arrearsToMonth" onchange="renderArrearsReport()" class="w-full app-input border rounded-xl px-3 py-2 text-xs">
+                        </label>
+                    </div>
+                    <button type="button" onclick="resetArrearsFilters()" class="text-[11px] text-indigo-300 hover:text-indigo-200 underline">مسح الفلاتر</button>
+                </div>
                 <div id="arrearsReportContainer" class="space-y-2"></div>
-                <p class="text-[10px] text-slate-500 border-t border-slate-700/50 pt-3">ملاحظة: تُحسب الأشهر السابقة بسعر الاشتراك الحالي للشقة لأن التطبيق لا يحتفظ بتاريخ تغيّر قيمة الاشتراك.</p>
+                <p class="text-[10px] text-slate-500 border-t border-slate-700/50 pt-3">تُحسب كل فترة بسعر الاشتراك المسجل بتاريخ سريانه، وليس بالسعر الحالي فقط.</p>
             </div>
             <div class="app-card p-5 rounded-3xl border space-y-3">
                 <div class="flex justify-between items-center">
