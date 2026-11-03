@@ -437,12 +437,16 @@
                     <button onclick="exportToCSV()" class="w-full bg-amber-600 hover:bg-amber-500 text-white py-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 shadow"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button>
                 </div>
             </div>
-            <section class="app-card p-5 rounded-3xl border space-y-4" aria-labelledby="monthlyCloseTitle">
-                <div>
-                    <h2 id="monthlyCloseTitle" class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-indigo-400"></i> المراجعة والإقفال الشهري</h2>
-                    <p class="text-xs text-slate-400 mt-1">حساب الرصيد الافتتاحي وحركة كل صندوق والرصيد الختامي بالتوقيت المحلي للقاهرة.</p>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
+            <details class="app-card p-5 rounded-3xl border group">
+<summary class="flex items-start justify-between gap-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+<span class="min-w-0 flex flex-col gap-1">
+<span id="monthlyCloseTitle" class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-indigo-400"></i> المراجعة والإقفال الشهري</span>
+<span class="text-xs text-slate-400">حساب الرصيد الافتتاحي وحركة كل صندوق والرصيد الختامي بالتوقيت المحلي للقاهرة.</span>
+</span>
+<i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform group-open:rotate-180 shrink-0" aria-hidden="true"></i>
+</summary>
+<section class="mt-4 space-y-4">
+<div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
                     <label for="monthlyCloseMonthSelect" class="block text-xs font-bold space-y-1">
                         <span class="text-slate-400">شهر الإقفال</span>
                         <select id="monthlyCloseMonthSelect" onchange="invalidateMonthlyClosePreview()" class="w-full app-input border rounded-xl px-3 py-2.5 text-xs font-semibold"></select>
@@ -454,16 +458,19 @@
                 <div id="monthlyClosePreview" class="app-input border rounded-2xl p-3 space-y-3" aria-live="polite">
                     <p class="text-slate-500 text-center py-4">اختر الشهر ثم اضغط «مراجعة الإقفال».</p>
                 </div>
-            </section>
-            <div class="app-card p-5 rounded-3xl border space-y-4">
-                <div class="flex justify-between items-start gap-3">
-                    <div>
-                        <h2 class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-amber-400"></i> كشف المتأخرات</h2>
-                        <p class="text-xs text-slate-400 mt-0.5">إجمالي المديونية وتصنيف الفترات غير المسددة لكل شقة</p>
-                    </div>
-                    <button onclick="exportArrearsCSV()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-2 rounded-xl text-[11px] font-bold transition shrink-0"><i class="fa-solid fa-file-csv ml-1"></i> CSV</button>
-                </div>
-                <div class="app-input border rounded-2xl p-3 space-y-3">
+</section>
+</details>
+            <details class="app-card p-5 rounded-3xl border group">
+<summary class="flex items-start justify-between gap-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+<span class="min-w-0 flex flex-col gap-1">
+<span class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-amber-400"></i> كشف المتأخرات</span>
+<span class="text-xs text-slate-400">إجمالي المديونية وتصنيف الفترات غير المسددة لكل شقة</span>
+</span>
+<i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform group-open:rotate-180 shrink-0" aria-hidden="true"></i>
+</summary>
+<div class="mt-4 space-y-4">
+<div class="flex justify-end"><button onclick="exportArrearsCSV()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-2 rounded-xl text-[11px] font-bold transition shrink-0"><i class="fa-solid fa-file-csv ml-1"></i> CSV</button></div>
+<div class="app-input border rounded-2xl p-3 space-y-3">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <label class="text-xs space-y-1">
                             <span class="text-slate-400">الشقة</span>
@@ -493,7 +500,8 @@
                 </div>
                 <div id="arrearsReportContainer" class="space-y-2"></div>
                 <p class="text-[10px] text-slate-500 border-t border-slate-700/50 pt-3">تُحسب كل فترة بسعر الاشتراك المسجل بتاريخ سريانه، وليس بالسعر الحالي فقط.</p>
-            </div>
+</div>
+</details>
             <div class="app-card p-5 rounded-3xl border space-y-3">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-xs flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> سجل التدقيق</h3>
