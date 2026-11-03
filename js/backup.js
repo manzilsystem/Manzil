@@ -332,11 +332,12 @@ function importJSON(ev) {
     if (f.size > 10 * 1024 * 1024) { toast('حجم النسخة أكبر من الحد المسموح (10 ميجابايت)','error'); ev.target.value = ''; return; }
     const r = new FileReader();
     r.onload = async () => {
+        let previousState = null;
         try {
             const data = JSON.parse(r.result);
             if (!isValidBackup(data)) throw new Error('ملف غير صالح');
             if (!confirm('استيراد البيانات؟ سيتم استبدال الحالية.')) return;
-            const previousState = cloneStateSnapshot();
+            previousState = cloneStateSnapshot();
             state = { ...state, ...data, auditLogs: Array.isArray(data.auditLogs) ? data.auditLogs : [] };
             const { data: layoutResult, error: layoutError } = await supabaseClient.rpc('set_building_apartment_layout', {
                 p_building_id: activeBuildingId,
@@ -358,7 +359,11 @@ function importJSON(ev) {
             document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[importedTheme] || themeColors.dark);
             renderAll();
             toast('تم الاستيراد','success'); closeModal('backupModal');
-        } catch (e) { console.error('تعذر استيراد النسخة:', e); toast('النسخة غير صالحة أو تعذر حفظها؛ لم يتم استبدال البيانات','error'); }
+        } catch (e) {
+            if (previousState) state = previousState;
+            console.error('تعذر استيراد النسخة:', e);
+            toast('النسخة غير صالحة أو تعذر حفظها؛ لم يتم استبدال البيانات','error');
+        }
         finally { ev.target.value = ''; }
     };
     r.onerror = () => { toast('تعذر قراءة الملف','error'); ev.target.value = ''; };
