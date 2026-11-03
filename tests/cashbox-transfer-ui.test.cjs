@@ -53,10 +53,10 @@ function createTransferHarness(options = {}) {
         refreshCashboxSummary: async () => { calls.refreshes += 1; },
         loadState: async () => {
             calls.loads = (calls.loads || 0) + 1;
-            state.cashAccountBalances = options.loadedBalances || {
+            sandbox.state.cashAccountBalances = options.loadedBalances || {
                 main: 90, development: 30, emergency: 30
             };
-            activeBuildingVersion = 5;
+            sandbox.activeBuildingVersion = 5;
             return true;
         },
         supabaseClient: {
