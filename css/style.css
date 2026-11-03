@@ -65,6 +65,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .app-input { background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-color); }
 .app-input:user-invalid:not(:focus) { border-color: #fb7185; box-shadow: 0 0 0 1px rgba(251, 113, 133, .18); }
 .tab-btn { min-width: 52px; min-height: 44px; justify-content: center; }
+nav[aria-label="التنقل الرئيسي"] .tab-btn { flex: 1 1 0; min-width: 0; padding-inline: .15rem; }
+nav[aria-label="التنقل الرئيسي"] .tab-btn span { white-space: nowrap; font-size: clamp(8px, 2.7vw, 10px); }
 .tab-btn { border-radius: 1rem; padding-inline: .65rem; transition: color .2s ease, background-color .2s ease, transform .2s ease; }
 .tab-btn.active { color: var(--accent-color); font-weight: 800; background: color-mix(in srgb, var(--accent-color) 14%, transparent); }
 .tab-btn:hover { background: color-mix(in srgb, var(--accent-color) 8%, transparent); }
@@ -221,8 +223,8 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
     header .container > div:last-child { flex-shrink: 0; gap: .125rem; }
     header .container > div:last-child button { min-width: 40px; min-height: 40px; padding: .5rem; }
     #headerBuildingTitle { max-width: 28vw; }
-    nav[aria-label="التنقل الرئيسي"] .tab-btn { min-width: 44px; }
-    nav[aria-label="التنقل الرئيسي"] .tab-btn span { font-size: 9px; }
+    nav[aria-label="التنقل الرئيسي"] .tab-btn { min-width: 0; padding-inline: .1rem; }
+    nav[aria-label="التنقل الرئيسي"] .tab-btn span { font-size: clamp(8px, 2.7vw, 9px); }
     #tab-dashboard > .grid.grid-cols-2 { gap: .5rem; }
     .section-toolbar { flex-direction: column; }
     .section-toolbar > button { width: 100%; }
