@@ -186,9 +186,13 @@ Deno.serve(async (request: Request) => {
   let auditId: string | null = null
 
   async function compensateProvisioning(): Promise<boolean> {
+    let restored = true
     if (auditId) {
       const { error } = await admin.from('audit_logs').delete().eq('id', auditId)
-      if (error) console.error('owner_access_compensation_audit_failed', error)
+      if (error) {
+        restored = false
+        console.error('owner_access_compensation_audit_failed', error)
+      }
     }
 
     if (createdNewUser && ownerUserId) {
@@ -197,10 +201,9 @@ Deno.serve(async (request: Request) => {
         console.error('owner_access_compensation_auth_delete_failed', error)
         return false
       }
-      return true
+      return restored
     }
 
-    let restored = true
     if (residentLinked) {
       const { error } = await admin.from('residents').update({
         user_id: residentSnapshot.user_id,
