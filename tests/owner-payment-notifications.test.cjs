@@ -5,17 +5,22 @@ const test = require('node:test');
 
 const root = path.join(__dirname, '..');
 const migration = fs.readFileSync(path.join(root, 'supabase/migrations/20261103070519_owner_payment_notifications.sql'), 'utf8');
+const fixMigration = fs.readFileSync(path.join(root, 'supabase/migrations/20261103111500_fix_owner_payment_notification_scope.sql'), 'utf8');
 const grantsMigration = fs.readFileSync(path.join(root, 'supabase/migrations/20261103080000_restrict_notification_update_columns.sql'), 'utf8');
 const supabase = fs.readFileSync(path.join(root, 'js/supabase.js'), 'utf8');
 const access = fs.readFileSync(path.join(root, 'js/access.js'), 'utf8');
 const crud = fs.readFileSync(path.join(root, 'js/crud.js'), 'utf8');
 
-test('new income allocations create owner-scoped payment notifications', () => {
+test('new income allocations create owner-scoped payment notifications without writing generated columns', () => {
     assert.ok(migration.includes('AFTER INSERT ON public.income'));
-    assert.ok(migration.includes('private.is_building_manager(NEW.building_id)'));
-    assert.ok(migration.includes('target_user_id, target_resident_id, target_scope'));
-    assert.ok(migration.includes('kind, dedupe_key, title, body, severity'));
-    assert.ok(migration.includes('ON CONFLICT (building_id, target_scope, dedupe_key)'));
+    assert.ok(fixMigration.includes('private.is_building_manager(NEW.building_id)'));
+
+    const insertColumns = fixMigration.match(/INSERT INTO public\.notifications\s*\(([\s\S]*?)\)\s*VALUES/i)?.[1] || '';
+    assert.ok(insertColumns, 'notification INSERT column list must exist');
+    assert.match(insertColumns, /target_user_id, target_resident_id/);
+    assert.doesNotMatch(insertColumns, /target_scope/);
+    assert.ok(fixMigration.includes('ON CONFLICT (building_id, target_scope, dedupe_key)'));
+    assert.ok(fixMigration.includes('REVOKE ALL ON FUNCTION private.notify_owner_on_income_insert()'));
 });
 
 test('split advance payments are grouped into one notification', () => {
