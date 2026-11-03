@@ -69,7 +69,7 @@ test('owner payment notifications stay in sync after income updates and deletion
     assert.ok(syncMigration.includes('AFTER DELETE ON public.income'));
     assert.ok(syncMigration.includes('AFTER UPDATE OF building_id, resident_id, amount, month, notes ON public.income'));
     assert.ok(syncMigration.includes('income-batch:'));
-    const syncInsertColumns = syncMigration.match(/INSERT INTO public\\.notifications\\s*\\(([\\s\\S]*?)\\)\\s*VALUES/i)?.[1] || '';
+    const syncInsertColumns = syncMigration.match(/INSERT INTO public\.notifications\s*\(([\s\S]*?)\)\s*VALUES/i)?.[1] || '';
     assert.ok(syncInsertColumns, 'sync notification INSERT column list must exist');
     assert.doesNotMatch(syncInsertColumns, /target_scope/);
     assert.ok(syncMigration.includes('DELETE FROM public.notifications'));
