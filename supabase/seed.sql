@@ -37,26 +37,26 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO auth.identities (
-    provider_id, user_id, identity_data, provider, email, created_at, updated_at
+    provider_id, user_id, identity_data, provider, created_at, updated_at
 )
 VALUES
 (
     '10000000-0000-4000-8000-000000000001',
     '10000000-0000-4000-8000-000000000001',
     '{"sub":"10000000-0000-4000-8000-000000000001","email":"manager@manzil.invalid","email_verified":true}'::jsonb,
-    'email', 'manager@manzil.invalid', now(), now()
+    'email', now(), now()
 ),
 (
     '10000000-0000-4000-8000-000000000002',
     '10000000-0000-4000-8000-000000000002',
     '{"sub":"10000000-0000-4000-8000-000000000002","email":"201555001101@phone-login.manzil.invalid","email_verified":true}'::jsonb,
-    'email', '201555001101@phone-login.manzil.invalid', now(), now()
+    'email', now(), now()
 ),
 (
     '10000000-0000-4000-8000-000000000003',
     '10000000-0000-4000-8000-000000000003',
     '{"sub":"10000000-0000-4000-8000-000000000003","email":"201555001102@phone-login.manzil.invalid","email_verified":true}'::jsonb,
-    'email', '201555001102@phone-login.manzil.invalid', now(), now()
+    'email', now(), now()
 )
 ON CONFLICT (provider_id, provider) DO NOTHING;
 
