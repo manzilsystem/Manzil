@@ -229,6 +229,13 @@ BEGIN
        ) THEN
         RAISE EXCEPTION 'owner A cannot read only their own payment notification';
     END IF;
+    IF has_table_privilege('authenticated', 'public.notifications', 'UPDATE')
+       OR NOT has_column_privilege('authenticated', 'public.notifications', 'read_at', 'UPDATE')
+       OR has_column_privilege('authenticated', 'public.notifications', 'title', 'UPDATE')
+       OR has_column_privilege('authenticated', 'public.notifications', 'body', 'UPDATE')
+       OR has_column_privilege('authenticated', 'public.notifications', 'target_user_id', 'UPDATE') THEN
+        RAISE EXCEPTION 'authenticated notification update grants are not restricted to read_at';
+    END IF;
     UPDATE public.notifications SET read_at = now()
     WHERE target_user_id = '10000000-0000-4000-8000-000000000002';
     IF NOT EXISTS (
