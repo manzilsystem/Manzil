@@ -75,11 +75,11 @@ BEGIN
     END;
 
     INSERT INTO public.notifications (
-        building_id, target_user_id, target_resident_id, target_scope, kind, dedupe_key,
+        building_id, target_user_id, target_resident_id, kind, dedupe_key,
         title, body, severity, action_path, created_by
     )
     VALUES (
-        p_building_id, v_user_id, p_resident_id, p_resident_id, 'payment', v_dedupe_key,
+        p_building_id, v_user_id, p_resident_id, 'payment', v_dedupe_key,
         v_title, v_body, 'success', '#ownerPaymentHistoryTitle', auth.uid()
     )
     ON CONFLICT (building_id, target_scope, dedupe_key)
