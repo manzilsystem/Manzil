@@ -122,7 +122,15 @@ async function loadBackupConsole(options = {}) {
         try {
             const data = await callBackupConsole({ action: 'list' });
             localStorage.setItem(backupCacheKey(), JSON.stringify(data));
+            const trackedRestoreRequestId = activeRestoreRequestId;
             renderBackupConsole(data, false);
+            const completedRestore = trackedRestoreRequestId && (data.restoreRequests || data.requests || [])
+                .find(item => item.id === trackedRestoreRequestId && item.status === 'succeeded');
+            if (completedRestore && typeof lockCurrentSession === 'function') {
+                await lockCurrentSession();
+                setAuthModal(true, 'اكتملت استعادة قاعدة البيانات. سجّل الدخول مرة أخرى لتحميل البيانات المستعادة.');
+                return;
+            }
             const refreshNotice = document.getElementById('backupRefreshNotice');
             if (refreshNotice) refreshNotice.textContent = 'تم تحديث الحالة من الخادم الآن.';
         } catch (error) {
