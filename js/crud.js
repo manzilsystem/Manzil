@@ -247,20 +247,17 @@ async function handleResidentSubmit(e) {
     const amountInput = document.getElementById('residentAmount').value.trim();
     const monthlyAmount = amountInput === '' ? Number(state.defaultSubscription) || 0 : Number(amountInput);
     const notes = document.getElementById('residentNotes').value.trim();
-    if (!name || !apartmentNumber || !floor) { toast('الاسم والدور ورقم الشقة مطلوبة.', 'error'); return; }
+    if (!name || !apartmentNumber || (state.floorCount > 0 && !floor)) { toast('الاسم والدور ورقم الشقة مطلوبة.', 'error'); return; }
     const existingResident = state.residents.find(item => item.id === editingResidentId);
     const unchangedLegacyLocation = existingResident
         && String(existingResident.floor || '') === floor
         && String(existingResident.apartmentNumber || '') === apartmentNumber;
     const floorNumber = Number(floor);
     const apartmentValue = Number(apartmentNumber);
-    const expectedApartment = (floorNumber - 1) * state.apartmentsPerFloor
-        + (apartmentValue - (floorNumber - 1) * state.apartmentsPerFloor);
     if (!unchangedLegacyLocation && (!Number.isInteger(floorNumber) || floorNumber < 1
         || floorNumber > state.floorCount || !Number.isInteger(apartmentValue)
         || apartmentValue < (floorNumber - 1) * state.apartmentsPerFloor + 1
-        || apartmentValue > floorNumber * state.apartmentsPerFloor
-        || apartmentValue !== expectedApartment)) {
+        || apartmentValue > floorNumber * state.apartmentsPerFloor)) {
         toast('رقم الشقة لا يتوافق مع الدور المحدد.', 'error');
         return;
     }
