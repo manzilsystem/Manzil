@@ -8,10 +8,9 @@ const workflow = fs.readFileSync(
     'utf8'
 );
 
-test('restore worker retrieves the trusted digest from the database catalog', () => {
-    assert.match(workflow, /LEFT JOIN public\.backup_catalog b ON b\.tag = r\.backup_tag/);
-    assert.match(workflow, /COALESCE\(b\.sha256, ''\)/);
-    assert.match(workflow, /expected_sha.*\^\[a-f0-9\]\{64\}\$/);
+test('restore worker retrieves and validates the trusted digest from the database catalog', () => {
+    assert.ok(workflow.includes("COALESCE((SELECT b.sha256 FROM public.backup_catalog b WHERE b.tag=r.backup_tag), '')"));
+    assert.ok(workflow.includes('if [[ ! "$expected_sha" =~ ^[a-f0-9]{64}$ ]]; then'));
 });
 
 test('restore archive must match the catalog digest before pg_restore validation or execution', () => {
