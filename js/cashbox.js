@@ -198,9 +198,10 @@ function previewCashTransfer() {
 }
 
 async function submitCashTransfer(event) {
-    if (!requireManager() || cashTransferSaving) return;
+    if (!requireManager() || cashTransferSaving || !activeBuildingId) return;
     event.preventDefault();
 
+    const transferBuildingId = activeBuildingId;
     const fromAccountCode = document.getElementById('cashTransferFrom')?.value || '';
     const toAccountCode = document.getElementById('cashTransferTo')?.value || '';
     const amount = Number(document.getElementById('cashTransferAmount')?.value);
@@ -237,7 +238,7 @@ async function submitCashTransfer(event) {
 
     try {
         const { data, error } = await supabaseClient.rpc('transfer_cash_between_accounts', {
-            p_building_id: activeBuildingId,
+            p_building_id: transferBuildingId,
             p_request_id: cashTransferPendingRequestId,
             p_expected_version: activeBuildingVersion,
             p_from_account_code: fromAccountCode,
@@ -245,6 +246,11 @@ async function submitCashTransfer(event) {
             p_amount: amount,
             p_notes: notes
         });
+        if (activeBuildingId !== transferBuildingId) {
+            cashTransferPendingRequestId = null;
+            cashTransferPendingPayload = null;
+            return;
+        }
         if (error) throw error;
 
         if (data?.conflict) {
@@ -278,6 +284,7 @@ async function submitCashTransfer(event) {
         const responseVersion = parseCashboxVersion(data?.version);
         if (!data?.ok || responseVersion === null ||
             (!data.duplicate && (!hasValidCashboxBalances(data.balances) ||
+                typeof data.transfer_id !== 'string' || !data.transfer_id.trim() ||
                 typeof data.audit_log_id !== 'string' || !data.audit_log_id.trim()))) {
             throw new Error('Invalid cash transfer response');
         }
@@ -306,10 +313,27 @@ async function submitCashTransfer(event) {
             persistedAuditLogIds.add(data.audit_log_id);
         }
 
+        let summaryRefreshed = false;
         try {
-            await refreshCashboxSummary();
+            summaryRefreshed = await refreshCashboxSummary();
         } catch (refreshError) {
             console.warn('Cashbox summary refresh failed after a confirmed transfer:', refreshError);
+        }
+        if (activeBuildingId !== transferBuildingId) {
+            cashTransferPendingRequestId = null;
+            cashTransferPendingPayload = null;
+            return;
+        }
+        if (!summaryRefreshed) {
+            const existingTransfers = Array.isArray(state.cashTransfers) ? state.cashTransfers : [];
+            state.cashTransfers = [{
+                id: data.transfer_id,
+                fromAccountCode,
+                toAccountCode,
+                amount,
+                notes,
+                transferredAt: new Date().toISOString()
+            }, ...existingTransfers.filter(transfer => transfer.id !== data.transfer_id)];
         }
 
         cashTransferPendingRequestId = null;
@@ -319,6 +343,11 @@ async function submitCashTransfer(event) {
         renderAll();
         toast('تم التحويل بين الصناديق بنجاح.', 'success');
     } catch (error) {
+        if (activeBuildingId !== transferBuildingId) {
+            cashTransferPendingRequestId = null;
+            cashTransferPendingPayload = null;
+            return;
+        }
         console.error('Cash transfer failed:', error);
         toast('تعذر تأكيد التحويل. أعد المحاولة دون تغيير البيانات للتحقق من نفس الطلب.', 'error');
     } finally {
