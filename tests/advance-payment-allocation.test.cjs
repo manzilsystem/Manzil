@@ -78,6 +78,25 @@ test('allocation rejects an amount that exceeds the supported future horizon ins
     assert.ok(result.remainingCents > 0);
 });
 
+test('allocation rejects the previous UTC month when the apartment was created after Cairo local midnight', () => {
+    const previousTimezone = process.env.TZ;
+    process.env.TZ = 'Africa/Cairo';
+    try {
+        const app = load();
+        const apartment = resident('r1', '2026-10-31T22:30:00.000Z');
+        app.state.residents = [apartment];
+
+        const result = app.calculateIncomeAllocationPreview('r1', 100, 'أكتوبر 2026');
+
+        assert.equal(new Date(apartment.createdAt).getUTCMonth(), 9);
+        assert.equal(new Date(apartment.createdAt).getMonth(), 10);
+        assert.equal(result.invalidStart, true);
+        assert.equal(result.allocations.length, 0);
+    } finally {
+        process.env.TZ = previousTimezone;
+    }
+});
+
 test('allocation rejects a starting month before the apartment creation date', () => {
     const app = load();
     app.state.residents = [resident('r1', '2024-05-01T00:00:00.000Z')];
