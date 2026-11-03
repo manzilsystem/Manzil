@@ -70,7 +70,7 @@ jobs:
                 echo "PGHOST=$candidate" >> "$GITHUB_ENV"
                 if [ "$password_mode" = encoded ]; then
                   delimiter="GH_ENV_$(cat /proc/sys/kernel/random/uuid)"
-                  printf 'PGPASSWORD<<%s\\n%s\\n%s\\n' "$delimiter" "$candidate_password" "$delimiter" >> "$GITHUB_ENV"
+                  printf '%s\n' "PGPASSWORD<<$delimiter" "$candidate_password" "$delimiter" >> "$GITHUB_ENV"
                 fi
                 echo "Verified Supabase pooler connection using cluster index $index."
                 exit 0
