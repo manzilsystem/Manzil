@@ -556,8 +556,11 @@
                             <label class="settings-field"><span>هاتف المدير</span><input type="tel" id="settingsManagerPhone" inputmode="tel" class="app-input border rounded-xl px-3 py-2.5"></label>
                             <label class="settings-field"><span>الاشتراك الشهري الافتراضي</span><input type="number" id="settingsDefaultSub" min="0" step="0.01" class="app-input border rounded-xl px-3 py-2.5"></label>
                             <label class="settings-field"><span>الرصيد الافتتاحي</span><input type="number" id="settingsStartingBalance" step="0.01" class="app-input border rounded-xl px-3 py-2.5"></label>
+                            <label class="settings-field"><span>عدد الأدوار (من الأول)</span><input type="number" id="settingsFloorCount" min="1" max="100" step="1" inputmode="numeric" placeholder="مثال: 11" class="app-input border rounded-xl px-3 py-2.5"></label>
+                            <label class="settings-field"><span>عدد الشقق في كل دور</span><input type="number" id="settingsApartmentsPerFloor" min="1" max="100" step="1" inputmode="numeric" placeholder="مثال: 2" class="app-input border rounded-xl px-3 py-2.5"></label>
                         </div>
                         <p class="settings-help">تغيير الاشتراك الافتراضي يؤثر على الشقق التي لا تملك قيمة اشتراك مخصصة.</p>
+                        <p class="settings-help">ترقيم الشقق مسلسل من الدور الأول. مثال: 11 دورًا × شقتين = الشقق 1–2 في الأول، 3–4 في الثاني، حتى 21–22 في الحادي عشر. الإعدادات مستقلة لكل عقار.</p>
                     </section>
                     <section id="settings-panel-appearance" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-appearance">
                         <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-palette"></i></span><div><h4>المظهر والثيمات</h4><p>اختر ألوانًا مريحة وواضحة لكل أجزاء التطبيق</p></div></div>
@@ -679,8 +682,8 @@
             <form id="residentForm" onsubmit="handleResidentSubmit(event)" class="p-5 space-y-3">
                 <input type="text" id="residentName" aria-label="اسم الساكن" placeholder="اسم الساكن" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 <div class="grid grid-cols-2 gap-2">
-                    <input type="text" id="residentApartment" aria-label="رقم الشقة" placeholder="رقم الشقة" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
-                    <input type="text" id="residentFloor" maxlength="30" aria-label="الدور" placeholder="الدور (اختياري)" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                    <select id="residentFloor" aria-label="الدور" onchange="updateResidentApartmentOptions()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر الدور</option></select>
+                    <select id="residentApartment" aria-label="رقم الشقة" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر رقم الشقة</option></select>
                     <input type="tel" id="residentPhone" aria-label="هاتف الساكن" placeholder="الهاتف" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 </div>
                 <input type="number" id="residentAmount" min="0" step="0.01" inputmode="decimal" aria-label="الاشتراك الشهري للشقة" placeholder="الاشتراك الشهري" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">

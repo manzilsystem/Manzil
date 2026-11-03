@@ -38,3 +38,9 @@ test('backup validation rejects empty or null financial values instead of coerci
     assert.equal(isValidBackup(validBackup({ expenses: [{ id: 'expense-1', title: 'مصروف', month: 'يناير 2024', amount: '' }] })), false);
     assert.equal(isValidBackup(validBackup({ defaultSubscription: '' })), false);
 });
+
+test('backup validation rejects duplicate apartment numbers written with different digit systems', () => {
+    const first = { id: 'resident-1', name: 'أول', apartmentNumber: '1', monthlyAmount: 100 };
+    const second = { id: 'resident-2', name: 'ثان', apartmentNumber: '١', monthlyAmount: 100 };
+    assert.equal(isValidBackup(validBackup({ residents: [first, second] })), false);
+});

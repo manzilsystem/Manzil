@@ -7,7 +7,7 @@ const vm = require('node:vm');
 const backupSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'backup.js'), 'utf8');
 
 function createImportHarness(fileContent, options = {}) {
-    const calls = { saves: 0, renders: 0, closes: 0, toasts: [] };
+    const calls = { saves: 0, layoutUpdates: 0, layoutArgs: [], renders: 0, closes: 0, toasts: [] };
     const sandbox = {
         state: {
             buildingName: 'Current building',
@@ -18,6 +18,14 @@ function createImportHarness(fileContent, options = {}) {
             auditLogs: []
         },
         requireManager: () => true,
+        activeBuildingId: 'building-id',
+        supabaseClient: {
+            rpc: async (name, args) => {
+                calls.layoutUpdates += 1;
+                calls.layoutArgs.push({ name, args });
+                return { data: { ok: true }, error: null };
+            }
+        },
         confirm: () => options.confirm ?? true,
         cloneStateSnapshot: () => JSON.parse(JSON.stringify(sandbox.state)),
         saveWithRollback: async previous => {

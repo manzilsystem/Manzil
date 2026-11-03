@@ -295,7 +295,7 @@ function isValidBackup(data) {
     if (!data.residents.every(r => r.userId === undefined || r.userId === null || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(r.userId)))) return false;
     const hasUnique = values => new Set(values).size === values.length;
     if (!hasUnique(data.residents.map(r => r.id))) return false;
-    const apartmentKeys = data.residents.map(r => String(r.apartmentNumber).trim().toLocaleLowerCase('ar-EG'));
+    const apartmentKeys = data.residents.map(r => String(r.apartmentNumber).replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632)).replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776)).trim().toLocaleLowerCase('ar-EG'));
     if (!hasUnique(apartmentKeys)) return false;
     if (!data.residents.every(r => {
         if (r.subscriptionRates === undefined) return true;
@@ -318,6 +318,11 @@ function isValidBackup(data) {
     if (data.currentTheme !== undefined && !['dark','light','emerald','ocean','sand'].includes(data.currentTheme)) return false;
     if (data.defaultSubscription !== undefined && !validAmount(data.defaultSubscription)) return false;
     if (data.startingBalance !== undefined && !validNumber(data.startingBalance)) return false;
+    const floorCount = data.floorCount ?? 0;
+    const apartmentsPerFloor = data.apartmentsPerFloor ?? 0;
+    if (!Number.isInteger(floorCount) || !Number.isInteger(apartmentsPerFloor)
+        || !((floorCount === 0 && apartmentsPerFloor === 0)
+            || (floorCount >= 1 && floorCount <= 100 && apartmentsPerFloor >= 1 && apartmentsPerFloor <= 100))) return false;
     return true;
 }
 
@@ -327,20 +332,38 @@ function importJSON(ev) {
     if (f.size > 10 * 1024 * 1024) { toast('حجم النسخة أكبر من الحد المسموح (10 ميجابايت)','error'); ev.target.value = ''; return; }
     const r = new FileReader();
     r.onload = async () => {
+        let previousState = null;
         try {
             const data = JSON.parse(r.result);
             if (!isValidBackup(data)) throw new Error('ملف غير صالح');
             if (!confirm('استيراد البيانات؟ سيتم استبدال الحالية.')) return;
-            const previousState = cloneStateSnapshot();
+            previousState = cloneStateSnapshot();
             state = { ...state, ...data, auditLogs: Array.isArray(data.auditLogs) ? data.auditLogs : [] };
-            if (!await saveWithRollback(previousState)) throw new Error('تعذر حفظ النسخة');
+            const { data: layoutResult, error: layoutError } = await supabaseClient.rpc('set_building_apartment_layout', {
+                p_building_id: activeBuildingId,
+                p_floor_count: state.floorCount || 0,
+                p_apartments_per_floor: state.apartmentsPerFloor || 0
+            });
+            if (layoutError || !layoutResult?.ok) throw new Error('تعذر حفظ إعدادات الأدوار في النسخة');
+            if (!await saveWithRollback(previousState)) {
+                await supabaseClient.rpc('set_building_apartment_layout', {
+                    p_building_id: activeBuildingId,
+                    p_floor_count: previousState.floorCount || 0,
+                    p_apartments_per_floor: previousState.apartmentsPerFloor || 0
+                });
+                throw new Error('تعذر حفظ النسخة');
+            }
             const importedTheme = state.currentTheme || 'dark';
             document.body.setAttribute('data-theme', importedTheme);
             const themeColors = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16' };
             document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[importedTheme] || themeColors.dark);
             renderAll();
             toast('تم الاستيراد','success'); closeModal('backupModal');
-        } catch (e) { console.error('تعذر استيراد النسخة:', e); toast('النسخة غير صالحة أو تعذر حفظها؛ لم يتم استبدال البيانات','error'); }
+        } catch (e) {
+            if (previousState) state = previousState;
+            console.error('تعذر استيراد النسخة:', e);
+            toast('النسخة غير صالحة أو تعذر حفظها؛ لم يتم استبدال البيانات','error');
+        }
         finally { ev.target.value = ''; }
     };
     r.onerror = () => { toast('تعذر قراءة الملف','error'); ev.target.value = ''; };
