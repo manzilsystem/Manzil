@@ -469,6 +469,10 @@
                     <div class="font-bold text-sm">النسخ التلقائي</div>
                     <p class="text-xs text-slate-400 leading-6">نسخة يومية 04:23 صباحًا بتوقيت مصر، مع فحص SHA-256 وصلاحية أرشيف PostgreSQL، والاحتفاظ بآخر 30 نسخة.</p>
                     <div id="backupLastStatus" class="text-xs text-slate-400">جارٍ تحميل سجل النسخ...</div>
+                    <div class="flex items-center justify-between gap-2">
+                        <p id="backupRefreshNotice" class="text-[10px] text-slate-500" role="status" aria-live="polite">حالة الطلبات تُحدّث تلقائيًا أثناء التنفيذ.</p>
+                        <button type="button" onclick="loadBackupConsole()" class="app-input border rounded-lg px-3 py-1.5 text-xs font-bold whitespace-nowrap"><i class="fa-solid fa-rotate ml-1" aria-hidden="true"></i> تحديث الحالة</button>
+                    </div>
                     <button id="backupCreateButton" type="button" onclick="requestDatabaseBackup()" class="w-full bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white py-2.5 rounded-xl text-xs font-bold"><i class="fa-solid fa-cloud-arrow-up ml-2"></i> إنشاء نسخة احتياطية الآن</button>
                     <p class="text-[10px] text-slate-500">ينشئ نسخة كاملة من قاعدة البيانات على الخادم، ولا يكتفي بتصدير بيانات الواجهة.</p>
                     <div id="backupRequestHistory" class="space-y-2 text-xs"></div>
