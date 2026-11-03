@@ -168,11 +168,13 @@ DECLARE
     v_version bigint;
     v_next_version bigint;
     v_transfer_id uuid;
+    v_audit_log_id uuid;
     v_available numeric;
     v_summary jsonb;
 BEGIN
     IF v_actor IS NULL OR p_building_id IS NULL OR p_request_id IS NULL
        OR p_amount IS NULL OR p_amount <= 0
+       OR p_from_account_code IS NULL OR p_to_account_code IS NULL
        OR p_from_account_code NOT IN ('main', 'development', 'emergency')
        OR p_to_account_code NOT IN ('main', 'development', 'emergency')
        OR p_from_account_code = p_to_account_code
@@ -251,7 +253,7 @@ BEGIN
         'تحويل بين الصناديق',
         p_from_account_code || ' → ' || p_to_account_code || ' · ' || p_amount::text || ' ج.م',
         v_actor
-    );
+    ) RETURNING id INTO v_audit_log_id;
 
     v_summary := private.get_cashbox_summary(p_building_id);
     RETURN jsonb_build_object(
@@ -259,10 +261,11 @@ BEGIN
         'duplicate', false,
         'version', v_next_version,
         'transfer_id', v_transfer_id,
+        'audit_log_id', v_audit_log_id,
         'balances', v_summary->'balances'
     );
 END;
-$$;
+$;
 
 REVOKE ALL ON FUNCTION private.transfer_cash_between_accounts(uuid, uuid, text, text, numeric, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION private.transfer_cash_between_accounts(uuid, uuid, text, text, numeric, text) TO authenticated;
