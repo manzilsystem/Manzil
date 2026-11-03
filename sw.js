@@ -1,4 +1,4 @@
-const CACHE_NAME = 'manzil-v29';
+const CACHE_NAME = 'manzil-v30';
 const APP_CACHE_PREFIX = 'manzil-';
 const APP_SHELL = [
     './',
@@ -13,7 +13,8 @@ const APP_SHELL = [
     './js/app.js',
     './js/backup.js',
     './manifest.json',
-    './icons/icon.svg'
+    './icons/icon-192.png',
+    './icons/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
