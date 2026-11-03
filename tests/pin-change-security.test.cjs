@@ -72,9 +72,19 @@ test('first PIN change requires the current PIN and goes through the protected s
             edgeFunction.indexOf('must_change_pin: false'),
         'the server must change the Auth password before opening the first-login data gate'
     );
-    assert.match(
-        edgeFunction,
-        /if \(passwordError\) return json\(400, \{ error: 'pin_update_failed' \}\)/
-    );
+    assert.match(edgeFunction, /if \(passwordError\) \{/);
+    assert.match(edgeFunction, /\[400, 401, 403, 422, 429\]\.includes\(status\)/);
+    assert.match(edgeFunction, /error: 'pin_update_failed'/);
+    assert.match(edgeFunction, /error: 'pin_update_status_unknown'/);
+    assert.match(edgeFunction, /catch \(error\) \{[\s\S]*?pin_update_status_unknown/);
+    assert.match(edgeFunction, /Auth credential update request failed without a confirmed outcome/);
+    assert.match(edgeFunction, /Auth credential update outcome is unknown/);
     assert.match(edgeFunction, /pin_updated_retry_required/);
+    assert.match(client, /errorCode === 'pin_update_status_unknown'/);
+    assert.match(client, /errorCode === 'pin_update_failed'/);
+    const retryStart = client.indexOf("if (errorCode === 'pin_updated_retry_required')");
+    const retryEnd = client.indexOf("\n        if (errorCode === 'pin_update_status_unknown')", retryStart);
+    const retryBranch = client.slice(retryStart, retryEnd);
+    assert.ok(retryStart >= 0 && retryEnd > retryStart, 'client must reconcile profile state after an uncertain completion response');
+    assert.ok(retryBranch.indexOf('await loadState()') < retryBranch.indexOf('showFirstOwnerPinChange'));
 });
