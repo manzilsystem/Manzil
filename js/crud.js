@@ -556,7 +556,7 @@ function exportToCSV() {
 
 function exportArrearsCSV() {
     if (!requireManager()) return;
-    const report = buildArrearsReport();
+    const report = buildArrearsReport(getArrearsReportFilters());
     const rows = [['الشقة','اسم الساكن','التصنيف','الشهر غير المسدد','المبلغ المستحق']];
     report.residents.forEach(item => item.unpaidMonths.forEach(month => {
         rows.push([item.resident.apartmentNumber, item.resident.name, item.bucket, month.month, month.amount]);
