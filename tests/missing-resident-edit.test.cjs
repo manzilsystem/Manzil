@@ -36,7 +36,7 @@ test('editing a resident that disappeared does not report a successful save', as
         renderAll() {},
         console
     };
-    const api = vm.runInNewContext(source + '\\n({ handleResidentSubmit })', sandbox, {
+    const api = vm.runInNewContext(source + String.fromCharCode(10) + '({ handleResidentSubmit })', sandbox, {
         filename: 'js/crud.js'
     });
 
