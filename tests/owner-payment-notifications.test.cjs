@@ -47,3 +47,8 @@ test('owner notification list subscribes to realtime inserts and updates', () =>
     assert.ok(supabase.includes("event: 'UPDATE'"));
     assert.ok(migration.includes('ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications'));
 });
+
+test('PostgreSQL notification fixture models target_scope as a generated column', () => {
+    const fixture = fs.readFileSync(path.join(root, 'tests/atomic-persistence.fixture.sql'), 'utf8');
+    assert.match(fixture, /target_scope uuid GENERATED ALWAYS AS \(COALESCE\(target_user_id,/);
+});
