@@ -19,11 +19,59 @@ function getCashAccountBalance(code) {
 }
 
 function hasValidCashboxBalances(balances) {
-    return Boolean(balances && typeof balances === 'object' && !Array.isArray(balances) &&
-        Object.keys(CASH_ACCOUNTS).every(code =>
+    if (!balances || typeof balances !== 'object' || Array.isArray(balances)) return false;
+    const accountCodes = Object.keys(CASH_ACCOUNTS);
+    const balanceCodes = Object.keys(balances);
+    return balanceCodes.length === accountCodes.length &&
+        accountCodes.every(code =>
             Object.prototype.hasOwnProperty.call(balances, code) &&
-            Number.isFinite(Number(balances[code]))
-        ));
+            typeof balances[code] === 'number' &&
+            Number.isFinite(balances[code])
+        );
+}
+
+function normalizeCashboxSummary(summary) {
+    const invalid = () => { throw new Error('Invalid cashbox summary from server'); };
+    if (!summary || typeof summary !== 'object' || Array.isArray(summary) ||
+        !hasValidCashboxBalances(summary.balances) || !Array.isArray(summary.transfers)) {
+        return invalid();
+    }
+
+    const transferIds = new Set();
+    const transfers = summary.transfers.map(transfer => {
+        if (!transfer || typeof transfer !== 'object' || Array.isArray(transfer) ||
+            typeof transfer.id !== 'string' || !transfer.id.trim() || transferIds.has(transfer.id) ||
+            !CASH_ACCOUNTS[transfer.from_account_code] ||
+            !CASH_ACCOUNTS[transfer.to_account_code] ||
+            transfer.from_account_code === transfer.to_account_code ||
+            (typeof transfer.amount !== 'number' &&
+                !(typeof transfer.amount === 'string' && transfer.amount.trim() !== '')) ||
+            !Number.isFinite(Number(transfer.amount)) || Number(transfer.amount) <= 0 ||
+            typeof transfer.transferred_at !== 'string' ||
+            !transfer.transferred_at.trim() ||
+            !Number.isFinite(Date.parse(transfer.transferred_at)) ||
+            (transfer.notes !== undefined && transfer.notes !== null && typeof transfer.notes !== 'string')) {
+            return invalid();
+        }
+        transferIds.add(transfer.id);
+        return { ...transfer, amount: Number(transfer.amount) };
+    });
+
+    return {
+        balances: {
+            main: summary.balances.main,
+            development: summary.balances.development,
+            emergency: summary.balances.emergency
+        },
+        transfers
+    };
+}
+
+function parseCashboxVersion(value) {
+    if (typeof value !== 'number' &&
+        !(typeof value === 'string' && value.trim() !== '')) return null;
+    const version = Number(value);
+    return Number.isSafeInteger(version) && version >= 1 ? version : null;
 }
 
 function calculateCashboxAccountingTotals() {
@@ -207,17 +255,27 @@ async function submitCashTransfer(event) {
             return;
         }
         if (data?.insufficient_balance) {
+            const availableBalance = (typeof data.available_balance === 'number' ||
+                (typeof data.available_balance === 'string' && data.available_balance.trim() !== ''))
+                ? Number(data.available_balance)
+                : NaN;
+            const responseVersion = parseCashboxVersion(data.version);
+            if (!Number.isFinite(availableBalance) || responseVersion === null) {
+                throw new Error('Invalid insufficient-balance response');
+            }
+            activeBuildingVersion = responseVersion;
             cashTransferPendingRequestId = null;
             cashTransferPendingPayload = null;
             state.cashAccountBalances = {
                 ...(state.cashAccountBalances || {}),
-                [fromAccountCode]: Number(data.available_balance) || 0
+                [fromAccountCode]: availableBalance
             };
             renderCashbox();
-            toast(`الرصيد الفعلي المتاح هو ${fmtNum(data.available_balance)} ج.م. تم إلغاء التحويل.`, 'error');
+            toast(`الرصيد الفعلي المتاح هو ${fmtNum(availableBalance)} ج.م. تم إلغاء التحويل.`, 'error');
             return;
         }
-        if (!data?.ok || !Number.isSafeInteger(Number(data.version)) || Number(data.version) < 1 ||
+        const responseVersion = parseCashboxVersion(data?.version);
+        if (!data?.ok || responseVersion === null ||
             (!data.duplicate && (!hasValidCashboxBalances(data.balances) ||
                 typeof data.audit_log_id !== 'string' || !data.audit_log_id.trim()))) {
             throw new Error('Invalid cash transfer response');
@@ -234,7 +292,7 @@ async function submitCashTransfer(event) {
             return;
         }
 
-        activeBuildingVersion = Number(data.version);
+        activeBuildingVersion = responseVersion;
         if (data.balances) state.cashAccountBalances = data.balances;
         if (data.audit_log_id) {
             const details = `${getCashAccountLabel(fromAccountCode)} ← ${getCashAccountLabel(toAccountCode)} · ${fmtNum(amount)} ج.م`;
