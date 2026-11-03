@@ -389,11 +389,14 @@ async function loadState() {
         ? supabaseClient.rpc('get_cashbox_summary', { p_building_id: activeBuildingId })
         : Promise.resolve({ data: null, error: null });
     const isManager = currentUserRole === 'manager';
+    const residentColumns = isManager ? '*' : 'id,name,apartment_number,monthly_amount,created_at';
+    const incomeColumns = isManager ? '*' : 'id,resident_id,amount,month,paid_at';
+    const noticeColumns = isManager ? '*' : 'id,text,created_at';
     const [residents, income, expenses, notices, auditLogs, residentNotes, ownerNotificationsResult, cashboxSummaryResult] = await Promise.all([
-        supabaseQuery('residents'),
-        supabaseQuery('income'),
+        supabaseQuery('residents', residentColumns),
+        supabaseQuery('income', incomeColumns),
         isManager ? supabaseQuery('expenses') : Promise.resolve([]),
-        supabaseQuery('notices'),
+        supabaseQuery('notices', noticeColumns),
         isManager ? supabaseQuery('audit_logs') : Promise.resolve([]),
         currentUserRole === 'manager' ? supabaseQuery('resident_internal_notes', 'resident_id,notes') : Promise.resolve([]),
         ownerNotificationsQuery,
