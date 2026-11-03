@@ -41,7 +41,7 @@ function createImportHarness(fileContent, options = {}) {
             readAsText() { this.result = fileContent; this.done = this.onload(); }
         }
     };
-    const api = vm.runInNewContext(`${backupSource}\\n({ importJSON })`, sandbox, {
+    const api = vm.runInNewContext(`${backupSource}\n({ importJSON })`, sandbox, {
         filename: 'js/backup.js'
     });
     const event = { target: { files: [{ size: Buffer.byteLength(fileContent) }], value: 'selected' } };
