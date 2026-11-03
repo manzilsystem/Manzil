@@ -250,8 +250,9 @@ BEGIN
     WHERE id = p_building_id
     RETURNING state_version INTO v_next_version;
 
-    INSERT INTO public.audit_logs (building_id, action, details, actor_id)
+    INSERT INTO public.audit_logs (id, building_id, action, details, actor_id)
     VALUES (
+        gen_random_uuid(),
         p_building_id,
         'تحويل بين الصناديق',
         p_from_account_code || ' → ' || p_to_account_code || ' · ' || p_amount::text || ' ج.م',
