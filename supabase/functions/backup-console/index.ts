@@ -15,6 +15,20 @@ Deno.serve(async (req: Request) => {
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
   const { data: membership, error: memberError } = await admin.from('building_members').select('building_id, role').eq('user_id', auth.user.id).eq('role', 'manager').limit(1).maybeSingle()
   if (memberError || !membership) return json(403, { error: 'manager_only' })
+
+  // A restore replaces the entire PostgreSQL database, not just one building.
+  // Require this caller to manage every building before accepting that destructive request.
+  const hasGlobalRestoreAccess = async (): Promise<boolean | null> => {
+    const [{ data: buildings, error: buildingsError }, { data: managedMemberships, error: membershipsError }] = await Promise.all([
+      admin.from('buildings').select('id'),
+      admin.from('building_members').select('building_id').eq('user_id', auth.user.id).eq('role', 'manager')
+    ])
+    if (buildingsError || membershipsError) return null
+    return Boolean(buildings?.length) && buildings.every(building =>
+      managedMemberships?.some(item => item.building_id === building.id)
+    )
+  }
+
   let body: { action?: string; backup_tag?: string; confirmation?: string; request_id?: string }
   try { body = await req.json() } catch { return json(400, { error: 'invalid_json' }) }
   if (body.action === 'list') {
@@ -37,6 +51,9 @@ Deno.serve(async (req: Request) => {
     return json(202, { request })
   }
   if (body.action === 'request_restore') {
+    const globalRestoreAccess = await hasGlobalRestoreAccess()
+    if (globalRestoreAccess === null) return json(500, { error: 'restore_authorization_check_failed' })
+    if (!globalRestoreAccess) return json(403, { error: 'global_manager_only' })
     const tag = typeof body.backup_tag === 'string' ? body.backup_tag : ''
     if (!/^backup-\d{8}T\d{6}Z$/.test(tag) || body.confirmation !== 'RESTORE') return json(400, { error: 'confirmation_required' })
     const { data: backup } = await admin.from('backup_catalog').select('tag').eq('tag', tag).maybeSingle()
