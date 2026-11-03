@@ -106,3 +106,12 @@ test('audit persistence is required before changing an existing owner PIN', () =
     assert.ok(auditInsert < authUpdate);
     assert.ok(source.includes("if (auditError || !auditEntry) return await failWithCompensation('audit_log_save_failed')"));
 });
+
+test('uncertain Auth credential updates do not roll back committed owner linkage', () => {
+    const authUpdate = position('admin.auth.admin.updateUserById');
+    const uncertainStatus = position('auth_update_status_unknown');
+    assert.ok(authUpdate < uncertainStatus);
+    const branch = source.slice(authUpdate, source.indexOf('return json(200', authUpdate));
+    assert.match(branch, /return json\(503, \{ error: 'auth_update_status_unknown' \}\)/);
+    assert.doesNotMatch(branch, /failWithCompensation/);
+});
