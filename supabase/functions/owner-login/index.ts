@@ -106,7 +106,7 @@ Deno.serve(async (request: Request) => {
   const phoneHash = await hashPhone(phone, serviceRoleKey)
   const { data: rateLimit, error: rateLimitError } = await admin.rpc('owner_login_rate_limit', {
     p_phone_hash: phoneHash,
-    p_action: 'attempt',
+    p_action: 'check',
   })
   if (rateLimitError) {
     console.error('Owner login rate limiter failed:', rateLimitError)
@@ -126,11 +126,24 @@ Deno.serve(async (request: Request) => {
   })
 
   if (error) {
-    if (error.status !== 400 && error.status !== 401) {
-      await admin.rpc('owner_login_rate_limit', { p_phone_hash: phoneHash, p_action: 'success' })
-      return json(503, { error: 'login_unavailable' })
+    if (error.status === 400 || error.status === 401) {
+      const { data: failedAttempt, error: failedAttemptError } = await admin.rpc('owner_login_rate_limit', {
+        p_phone_hash: phoneHash,
+        p_action: 'attempt',
+      })
+      if (failedAttemptError) {
+        console.error('Owner login failed-attempt recording failed:', failedAttemptError)
+        return json(503, { error: 'login_unavailable' })
+      }
+      if (failedAttempt?.allowed !== true) {
+        const retryAfter = Math.max(1, Number(failedAttempt?.retry_after_seconds) || 900)
+        return json(429, { error: 'rate_limited', retry_after_seconds: retryAfter }, { 'Retry-After': String(retryAfter) })
+      }
+      return json(401, { error: 'invalid_credentials' })
     }
-    return json(401, { error: 'invalid_credentials' })
+
+    console.error('Owner Auth provider unavailable:', error)
+    return json(503, { error: 'login_unavailable' })
   }
   if (!data.session?.access_token || !data.session?.refresh_token) {
     return json(503, { error: 'login_unavailable' })
