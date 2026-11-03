@@ -69,6 +69,11 @@ function renderCashbox() {
         if (element) element.textContent = `${fmtNum(getCashAccountBalance(code))} ج.م`;
     }
 
+    const totalBalance = Object.keys(CASH_ACCOUNTS)
+        .reduce((sum, code) => sum + getCashAccountBalance(code), 0);
+    const totalElement = document.getElementById('cashBalance-total');
+    if (totalElement) totalElement.textContent = `${fmtNum(totalBalance)} ج.م`;
+
     const list = document.getElementById('cashTransfersList');
     if (!list) return;
     const transfers = Array.isArray(state.cashTransfers) ? state.cashTransfers : [];
