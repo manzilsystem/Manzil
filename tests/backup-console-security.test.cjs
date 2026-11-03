@@ -83,14 +83,14 @@ const restoreWorkflowText = fs.readFileSync(
 );
 
 test('backup workflow preserves credentials and filenames exported through GITHUB_ENV', () => {
-    assert.match(backupWorkflowText, /PGPASSWORD<<\\?\$\{delimiter\}/);
-    assert.match(backupWorkflowText, /BACKUP_TAG=\$BACKUP_TAG/);
-    assert.match(backupWorkflowText, /BACKUP_FILE=\$BACKUP_FILE/);
+    assert.ok(backupWorkflowText.includes('PGPASSWORD<<${delimiter}'));
+    assert.ok(backupWorkflowText.includes('BACKUP_TAG=backup-$timestamp'));
+    assert.ok(backupWorkflowText.includes('BACKUP_FILE=$filename'));
     assert.doesNotMatch(backupWorkflowText, /\$\{\{ env\.(?:PGPASSWORD|PGHOST|PGPORT|PGDATABASE|PGSSLMODE|BACKUP_TAG|BACKUP_FILE) \}\}/);
 });
 
 test('restore worker does not overwrite dynamically exported database credentials', () => {
-    assert.match(restoreWorkflowText, /PGPASSWORD<<\\?\$\{delimiter\}/);
+    assert.ok(restoreWorkflowText.includes('PGPASSWORD<<${delimiter}'));
     assert.doesNotMatch(restoreWorkflowText, /\$\{\{ env\.(?:PGPASSWORD|PGHOST) \}\}/);
     assert.match(restoreWorkflowText, /psql_db\(\)/);
 });
