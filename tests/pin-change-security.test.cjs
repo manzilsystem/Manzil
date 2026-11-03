@@ -59,6 +59,8 @@ test('first PIN change requires the current PIN and goes through the protected s
     assert.match(edgeFunction, /currentPin === newPin/);
     assert.match(edgeFunction, /signInWithPassword\(/);
     assert.match(edgeFunction, /owner_login_rate_limit/);
+    assert.match(client, /errorCode === 'rate_limited'/);
+    assert.match(client, /showFirstOwnerPinChange\(.*retryMinutes/);
     assert.match(edgeFunction, /p_action: 'attempt'/);
     assert.match(edgeFunction, /p_action: 'success'/);
     assert.match(edgeFunction, /admin\.auth\.admin\.updateUserById/);

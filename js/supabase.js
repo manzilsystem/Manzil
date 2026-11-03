@@ -523,9 +523,15 @@ async function submitFirstOwnerPinChange(event) {
     }
     if (error || !data?.ok) {
         if (button) button.disabled = false;
-        let errorCode = data?.error;
+        let errorDetails = data || {};
         if (error?.context && typeof error.context.clone === 'function') {
-            try { errorCode = (await error.context.clone().json())?.error || errorCode; } catch {}
+            try { errorDetails = await error.context.clone().json(); } catch {}
+        }
+        const errorCode = errorDetails?.error || data?.error;
+        if (errorCode === 'rate_limited') {
+            const retryMinutes = Math.ceil(Math.max(1, Number(errorDetails.retry_after_seconds) || 900) / 60);
+            showFirstOwnerPinChange(`تم إيقاف المحاولات مؤقتًا بسبب تكرار PIN غير صحيح. حاول بعد ${retryMinutes} دقيقة.`);
+            return;
         }
         if (errorCode === 'pin_updated_retry_required') {
             document.getElementById('currentOwnerPin').value = pin;
