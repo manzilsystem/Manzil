@@ -2,8 +2,15 @@
 \ir atomic-persistence.fixture.sql
 \ir ../supabase/migrations/20261103000000_atomic_building_snapshot.sql
 \ir ../supabase/migrations/20261103050000_allow_all_five_themes.sql
+\ir ../supabase/migrations/20261103060000_effective_dated_subscription_rates.sql
+\ir ../supabase/migrations/20261103070000_atomic_subscription_rate_snapshot.sql
 
 INSERT INTO public.profiles (id) VALUES
+('10000000-0000-4000-8000-000000000001'),
+('10000000-0000-4000-8000-000000000002'),
+('10000000-0000-4000-8000-000000000003');
+
+INSERT INTO auth.users (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),
 ('10000000-0000-4000-8000-000000000002'),
 ('10000000-0000-4000-8000-000000000003');
@@ -34,7 +41,8 @@ BEGIN
       "building":{"name":"Atomic success","manager_name":"Manager","manager_phone":null,"default_subscription":100,"starting_balance":0,"current_theme":"dark"},
       "residents":[{"id":"30000000-0000-4000-8000-000000000001","user_id":"10000000-0000-4000-8000-000000000002","name":"Owner A","apartment_number":"A1","monthly_amount":100,"created_at":"2026-11-02T10:00:00Z"}],
       "income":[{"id":"50000000-0000-4000-8000-000000000001","resident_id":"30000000-0000-4000-8000-000000000001","amount":100,"month":"2026-11","paid_at":"2026-11-02T10:00:00Z"}],
-      "expenses":[],"notices":[],"audit_logs":[]
+      "expenses":[],"notices":[],"audit_logs":[],
+      "subscription_rates":[{"resident_id":"30000000-0000-4000-8000-000000000001","effective_month":"2026-11-01","monthly_amount":125}]
     }'::jsonb;
 
     v_result := public.persist_building_snapshot(v_building, 1, v_request, v_payload);
@@ -46,6 +54,15 @@ BEGIN
        OR NOT EXISTS (SELECT 1 FROM public.building_members
           WHERE building_id = v_building AND user_id = '10000000-0000-4000-8000-000000000002' AND role = 'owner') THEN
         RAISE EXCEPTION 'snapshot rows or owner membership were not persisted';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM public.resident_subscription_rates
+        WHERE resident_id = '30000000-0000-4000-8000-000000000001'
+          AND effective_month = DATE '2026-11-01' AND monthly_amount = 125
+          AND building_id = v_building
+    ) THEN
+        RAISE EXCEPTION 'subscription rate was not persisted atomically';
     END IF;
 
     v_result := public.persist_building_snapshot(v_building, 1, v_request, v_payload);
@@ -86,6 +103,23 @@ BEGIN
        OR (SELECT name FROM public.buildings WHERE id = v_building) <> 'Atomic success'
        OR EXISTS (SELECT 1 FROM public.expenses WHERE building_id = v_building) THEN
         RAISE EXCEPTION 'failed snapshot did not roll back all writes';
+    END IF;
+
+    BEGIN
+        v_result := public.persist_building_snapshot(v_building, 2,
+            '40000000-0000-4000-8000-000000000008',
+            jsonb_set(jsonb_set(v_payload, '{building,name}', '"Invalid rate must roll back"'),
+              '{subscription_rates,0,effective_month}', '"2026-11-15"'));
+        RAISE EXCEPTION 'invalid subscription rate unexpectedly committed';
+    EXCEPTION WHEN SQLSTATE '22023' THEN
+        NULL;
+    END;
+    IF (SELECT state_version FROM public.buildings WHERE id = v_building) <> 2
+       OR (SELECT name FROM public.buildings WHERE id = v_building) <> 'Atomic success'
+       OR (SELECT monthly_amount FROM public.resident_subscription_rates
+           WHERE resident_id = '30000000-0000-4000-8000-000000000001'
+             AND effective_month = DATE '2026-11-01') <> 125 THEN
+        RAISE EXCEPTION 'invalid subscription rate did not roll back the entire snapshot';
     END IF;
 
     BEGIN
