@@ -32,6 +32,11 @@ function authEmailForPhone(phone: string): string {
   return `${phone.slice(1)}@phone-login.manzil.invalid`
 }
 
+async function hashPhone(phone: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(phone))
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
+}
+
 Deno.serve(async (request: Request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (request.method !== 'POST') return json(405, { error: 'method_not_allowed' })
@@ -89,6 +94,20 @@ Deno.serve(async (request: Request) => {
   if (membershipError) return json(500, { error: 'membership_lookup_failed' })
   if (!membership) return json(403, { error: 'owner_only' })
 
+  const phoneHash = await hashPhone(profile.phone)
+  const { data: rateLimit, error: rateLimitError } = await admin.rpc('owner_login_rate_limit', {
+    p_phone_hash: phoneHash,
+    p_action: 'attempt',
+  })
+  if (rateLimitError) return json(503, { error: 'login_unavailable' })
+  if (rateLimit?.allowed !== true) {
+    const retryAfter = Math.max(1, Number(rateLimit?.retry_after_seconds) || 900)
+    return new Response(JSON.stringify({ error: 'rate_limited', retry_after_seconds: retryAfter }), {
+      status: 429,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(retryAfter) },
+    })
+  }
+
   const verifier = createClient(supabaseUrl, publishableKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
@@ -99,6 +118,12 @@ Deno.serve(async (request: Request) => {
   if (verifyError || verified.user?.id !== callerData.user.id) {
     return json(400, { error: 'invalid_current_pin' })
   }
+
+  const { error: rateLimitResetError } = await admin.rpc('owner_login_rate_limit', {
+    p_phone_hash: phoneHash,
+    p_action: 'success',
+  })
+  if (rateLimitResetError) return json(503, { error: 'login_unavailable' })
 
   // Change the Auth credential first. Keep the RLS first-login gate closed
   // until Auth confirms the new password has been saved successfully.
