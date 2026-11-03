@@ -97,5 +97,5 @@ test('audit persistence is required before changing an existing owner PIN', () =
     const auditInsert = position("admin.from('audit_logs').insert");
     const authUpdate = position('admin.auth.admin.updateUserById');
     assert.ok(auditInsert < authUpdate);
-    assert.match(source, /if \\(auditError \\|\\| !auditEntry\\) return await failWithCompensation\\('audit_log_save_failed'\\)/);
+    assert.ok(source.includes("if (auditError || !auditEntry) return await failWithCompensation('audit_log_save_failed')"));
 });
