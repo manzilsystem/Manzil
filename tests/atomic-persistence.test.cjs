@@ -25,7 +25,7 @@ test('snapshot writes are atomic and guarded by a per-building optimistic versio
     assert.match(migration, /SET search_path = pg_catalog, public/);
     assert.match(migration, /income_resident_not_in_snapshot/);
     assert.match(migration, /cannot_delete_resident_with_income_history/);
-    assert.match(subscriptionMigration, /invalid_subscription_rates/);
+    assert.match(subscriptionMigration, /invalid_subscription_rate_(resident|month|amount)/);
     assert.match(subscriptionMigration, /INSERT INTO public\.resident_subscription_rates AS current_rate/);
     assert.match(subscriptionMigration, /p_payload->'subscription_rates'/);
     assert.match(subscriptionMigration, /CREATE OR REPLACE FUNCTION private\.persist_building_snapshot/);
