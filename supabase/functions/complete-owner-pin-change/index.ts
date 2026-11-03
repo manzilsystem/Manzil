@@ -104,7 +104,7 @@ Deno.serve(async (request: Request) => {
   const phoneHash = await hashPhone(profile.phone, serviceRoleKey)
   const { data: rateLimit, error: rateLimitError } = await admin.rpc('owner_login_rate_limit', {
     p_phone_hash: phoneHash,
-    p_action: 'check',
+    p_action: 'attempt',
   })
   if (rateLimitError) return json(503, { error: 'login_unavailable' })
   if (rateLimit?.allowed !== true) {
@@ -124,19 +124,12 @@ Deno.serve(async (request: Request) => {
   })
   if (verifyError) {
     if (verifyError.status !== 400 && verifyError.status !== 401) {
-      return json(503, { error: 'login_unavailable' })
-    }
-    const { data: failedAttempt, error: failedAttemptError } = await admin.rpc('owner_login_rate_limit', {
-      p_phone_hash: phoneHash,
-      p_action: 'attempt',
-    })
-    if (failedAttemptError) return json(503, { error: 'login_unavailable' })
-    if (failedAttempt?.allowed !== true) {
-      const retryAfter = Math.max(1, Number(failedAttempt?.retry_after_seconds) || 900)
-      return new Response(JSON.stringify({ error: 'rate_limited', retry_after_seconds: retryAfter }), {
-        status: 429,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(retryAfter) },
+      const { error: releaseError } = await admin.rpc('owner_login_rate_limit', {
+        p_phone_hash: phoneHash,
+        p_action: 'release',
       })
+      if (releaseError) console.error('Could not release PIN attempt after Auth outage:', releaseError)
+      return json(503, { error: 'login_unavailable' })
     }
     return json(400, { error: 'invalid_current_pin' })
   }
