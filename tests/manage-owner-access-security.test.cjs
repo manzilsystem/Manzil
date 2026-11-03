@@ -71,7 +71,7 @@ test('provisioning snapshots are captured after a new Auth user is created', () 
     const createUser = position('admin.auth.admin.createUser');
     const createdFlag = position('createdNewUser = true');
     const membershipSnapshot = position('const { data: previousMembership');
-    const profileSnapshot = position(".from('profiles')\\n    .select('*')\\n    .eq('id', ownerUserId)");
+    const profileSnapshot = position(".from('profiles')\n    .select('*')\n    .eq('id', ownerUserId)");
     assert.ok(createUser < createdFlag && createdFlag < membershipSnapshot);
     assert.ok(membershipSnapshot < profileSnapshot);
 });
