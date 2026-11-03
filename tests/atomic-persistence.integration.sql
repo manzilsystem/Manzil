@@ -680,5 +680,54 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'grouped notification remained after the final allocation was deleted';
     END IF;
+
+    INSERT INTO public.income
+        (id, building_id, resident_id, amount, month, notes, paid_at, created_by)
+    VALUES (
+        '50000000-0000-4000-8000-000000000012',
+        '20000000-0000-4000-8000-000000000001',
+        '30000000-0000-4000-8000-000000000001',
+        25, '2027-03', 'تحصيل عادي',
+        now(), '10000000-0000-4000-8000-000000000001'
+    );
+
+    SELECT * INTO v_notification
+    FROM public.notifications
+    WHERE building_id = '20000000-0000-4000-8000-000000000001'
+      AND target_resident_id = '30000000-0000-4000-8000-000000000001'
+      AND dedupe_key = 'income:50000000-0000-4000-8000-000000000012';
+    IF NOT FOUND OR v_notification.body NOT LIKE '%25%' THEN
+        RAISE EXCEPTION 'single payment notification was not created';
+    END IF;
+
+    UPDATE public.notifications
+    SET read_at = now()
+    WHERE id = v_notification.id;
+
+    UPDATE public.income
+    SET amount = 35, month = '2027-04'
+    WHERE id = '50000000-0000-4000-8000-000000000012';
+
+    SELECT * INTO v_notification
+    FROM public.notifications
+    WHERE building_id = '20000000-0000-4000-8000-000000000001'
+      AND target_resident_id = '30000000-0000-4000-8000-000000000001'
+      AND dedupe_key = 'income:50000000-0000-4000-8000-000000000012';
+    IF v_notification.body NOT LIKE '%35%' OR v_notification.body NOT LIKE '%2027-04%'
+       OR v_notification.read_at IS NULL THEN
+        RAISE EXCEPTION 'single payment notification did not update or preserve read state';
+    END IF;
+
+    DELETE FROM public.income
+    WHERE id = '50000000-0000-4000-8000-000000000012';
+    IF EXISTS (
+        SELECT 1 FROM public.notifications
+        WHERE building_id = '20000000-0000-4000-8000-000000000001'
+          AND target_resident_id = '30000000-0000-4000-8000-000000000001'
+          AND dedupe_key = 'income:50000000-0000-4000-8000-000000000012'
+    ) THEN
+        RAISE EXCEPTION 'single payment notification remained after income deletion';
+    END IF;
+
 END;
 $income_notification_sync$;
