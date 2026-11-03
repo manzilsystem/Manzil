@@ -80,3 +80,22 @@ test('backup retention deletes release assets before pruning catalog records', (
     assert.ok(releaseDelete >= 0);
     assert.ok(catalogDelete > releaseDelete);
 });
+
+
+test('backup request fails closed when restore queue state cannot be verified', () => {
+    assert.match(edge, /pendingRestoreError/);
+    assert.match(edge, /if \(pendingRestoreError\) return json\(500, \{ error: 'maintenance_state_check_failed' \}\)/);
+});
+
+test('restore request fails closed when backup lookup or either maintenance queue query fails', () => {
+    assert.match(edge, /if \(backupError\) return json\(500, \{ error: 'backup_lookup_failed' \}\)/);
+    assert.match(edge, /pendingError \|\| pendingBackupError/);
+    assert.match(edge, /if \(error\) return json\(500, \{ error: 'status_query_failed' \}\)/);
+});
+
+test('backup and restore workers share a non-cancelling database maintenance lock', () => {
+    assert.match(backupWorkflow, /group: supabase-database-maintenance/);
+    assert.match(restoreWorkflow, /group: supabase-database-maintenance/);
+    assert.match(backupWorkflow, /cancel-in-progress: false/);
+    assert.match(restoreWorkflow, /cancel-in-progress: false/);
+});
