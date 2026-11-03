@@ -330,7 +330,7 @@ BEGIN
        OR (SELECT count(*) FROM public.resident_subscription_rate_changes) <> 5
        OR (SELECT count(*) FROM public.notices) <> 1
        OR (SELECT count(*) FROM public.notifications) <> 2
-       OR (SELECT count(*) FROM public.resident_internal_notes) <> 1
+       OR (SELECT count(*) FROM public.resident_internal_notes) <> 4
        OR (SELECT count(*) FROM public.audit_logs) <> 3 THEN
         RAISE EXCEPTION 'local_seed_count_mismatch';
     END IF;
