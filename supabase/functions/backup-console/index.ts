@@ -15,7 +15,8 @@ Deno.serve(async (req: Request) => {
   if (authError || !auth.user) return json(401, { error: 'unauthorized' })
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
   const { data: membership, error: memberError } = await admin.from('building_members').select('building_id, role').eq('user_id', auth.user.id).eq('role', 'manager').limit(1).maybeSingle()
-  if (memberError || !membership) return json(403, { error: 'manager_only' })
+  if (memberError) return json(500, { error: 'membership_check_failed' })
+  if (!membership) return json(403, { error: 'manager_only' })
 
   // A restore replaces the entire PostgreSQL database, not just one building.
   // Require this caller to manage every building before accepting that destructive request.
@@ -42,7 +43,8 @@ Deno.serve(async (req: Request) => {
     return json(200, { backups: backups || [], restoreRequests: restoreRequests || [], backupRequests: backupRequests || [] })
   }
   if (body.action === 'request_backup') {
-    const { data: pendingRestore } = await admin.from('restore_requests').select('id').in('status', ['queued','running']).limit(1).maybeSingle()
+    const { data: pendingRestore, error: pendingRestoreError } = await admin.from('restore_requests').select('id').in('status', ['queued','running']).limit(1).maybeSingle()
+    if (pendingRestoreError) return json(500, { error: 'maintenance_state_check_failed' })
     if (pendingRestore) return json(409, { error: 'restore_already_pending' })
     const { data: request, error } = await admin.from('backup_requests')
       .insert({ building_id: membership.building_id, requested_by: auth.user.id })
@@ -57,10 +59,17 @@ Deno.serve(async (req: Request) => {
     if (!globalRestoreAccess) return json(403, { error: 'global_manager_only' })
     const tag = typeof body.backup_tag === 'string' ? body.backup_tag : ''
     if (!/^backup-\d{8}T\d{6}Z$/.test(tag) || body.confirmation !== 'RESTORE') return json(400, { error: 'confirmation_required' })
-    const { data: backup } = await admin.from('backup_catalog').select('tag').eq('tag', tag).maybeSingle()
+    const { data: backup, error: backupError } = await admin.from('backup_catalog').select('tag').eq('tag', tag).maybeSingle()
+    if (backupError) return json(500, { error: 'backup_lookup_failed' })
     if (!backup) return json(404, { error: 'backup_not_found' })
-    const { data: pending } = await admin.from('restore_requests').select('id').in('status', ['queued','running']).limit(1).maybeSingle()
-    const { data: pendingBackup } = await admin.from('backup_requests').select('id').in('status', ['queued','dispatched']).limit(1).maybeSingle()
+    const [
+      { data: pending, error: pendingError },
+      { data: pendingBackup, error: pendingBackupError }
+    ] = await Promise.all([
+      admin.from('restore_requests').select('id').in('status', ['queued','running']).limit(1).maybeSingle(),
+      admin.from('backup_requests').select('id').in('status', ['queued','dispatched']).limit(1).maybeSingle()
+    ])
+    if (pendingError || pendingBackupError) return json(500, { error: 'maintenance_state_check_failed' })
     if (pending || pendingBackup) return json(409, { error: 'restore_already_pending' })
     const { data: request, error } = await admin.from('restore_requests').insert({ building_id: membership.building_id, requested_by: auth.user.id, backup_tag: tag }).select('id,backup_tag,status,created_at').single()
     if (error?.code === '23505') return json(409, { error: 'restore_already_pending' })
@@ -70,7 +79,8 @@ Deno.serve(async (req: Request) => {
   if (body.action === 'status') {
     const id = typeof body.request_id === 'string' ? body.request_id : ''
     const { data, error } = await admin.from('restore_requests').select('id,backup_tag,status,result_message,created_at,started_at,finished_at').eq('id', id).eq('building_id', membership.building_id).maybeSingle()
-    if (error || !data) return json(404, { error: 'request_not_found' })
+    if (error) return json(500, { error: 'status_query_failed' })
+    if (!data) return json(404, { error: 'request_not_found' })
     return json(200, { request: data })
   }
   return json(400, { error: 'unknown_action' })
