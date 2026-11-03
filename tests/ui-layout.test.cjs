@@ -50,3 +50,18 @@ test('form controls expose accessible names for assistive technology', () => {
         assert.ok(control[0].includes('aria-label="'), `expected control #${id} to have an accessible name`);
     }
 });
+
+
+test('modal focus management restores focus per modal and targets the topmost open dialog', () => {
+    const app = fs.readFileSync('js/app.js', 'utf8');
+    assert.match(app, /const modalReturnFocus = new Map\(\)/);
+    assert.match(app, /function getTopmostOpenModal\(\)/);
+    assert.match(app, /return openModals\[openModals\.length - 1\] \|\| null/);
+    assert.match(app, /modalReturnFocus\.set\(id, document\.activeElement\)/);
+    assert.match(app, /modalReturnFocus\.get\(id\)/);
+    assert.match(app, /modalReturnFocus\.delete\(id\)/);
+    assert.match(app, /const modal = getTopmostOpenModal\(\)/);
+    assert.match(app, /topmostModal\.contains\(returnFocus\)/);
+    assert.match(app, /function getModalFocusableElements\(modal\)/);
+    assert.match(app, /!modal\.contains\(document\.activeElement\)/);
+});
