@@ -150,7 +150,12 @@
 
         <!-- DASHBOARD -->
         <section id="tab-dashboard" class="space-y-4">
-            <div class="app-card p-4 rounded-3xl border space-y-3 bg-gradient-to-r from-indigo-950/20 via-slate-900/20 to-indigo-950/20">
+            <details class="app-card rounded-3xl border overflow-hidden">
+                <summary class="p-4 cursor-pointer flex items-center justify-between gap-3 text-sm font-bold">
+                    <span class="flex items-center gap-2"><span class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">📢</span> إعلانات العمارة</span>
+                    <i class="fa-solid fa-chevron-down text-xs text-slate-400" aria-hidden="true"></i>
+                </summary>
+                <div class="p-4 pt-0 space-y-3 bg-gradient-to-r from-indigo-950/20 via-slate-900/20 to-indigo-950/20">
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-2">
                         <span class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">📢</span>
@@ -163,7 +168,8 @@
                     </div>
                 </div>
                 <div id="noticeBoardContent" class="space-y-2"></div>
-            </div>
+                </div>
+            </details>
 
             <section class="app-card p-4 rounded-3xl border space-y-3" aria-labelledby="quickActionsTitle">
                 <div class="flex items-center justify-between">
@@ -238,6 +244,12 @@
                 </div>
             </section>
 
+            <details class="app-card rounded-3xl border overflow-hidden">
+                <summary class="p-4 cursor-pointer flex items-center justify-between gap-3 text-sm font-bold">
+                    <span><i class="fa-solid fa-chart-column text-indigo-400 ml-2" aria-hidden="true"></i> التحليلات والتفاصيل المالية</span>
+                    <i class="fa-solid fa-chevron-down text-xs text-slate-400" aria-hidden="true"></i>
+                </summary>
+                <div class="p-4 pt-0 space-y-4">
             <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
                 <div class="flex flex-wrap items-baseline justify-between gap-2"><h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-chart-line text-indigo-400"></i> التدفق النقدي البصري</h3><span id="cashFlowPeriodLabel" class="text-[10px] text-slate-500"></span></div>
                 <div id="cashFlowChartContainer" class="w-full h-32 flex items-end justify-between gap-2 pt-4 px-2 border-b border-slate-700/50 pb-2"></div>
@@ -273,6 +285,8 @@
                     <div id="recentExpenseList" class="space-y-2"></div>
                 </div>
             </div>
+                </div>
+            </details>
         </section>
 
         <!-- INCOME -->
