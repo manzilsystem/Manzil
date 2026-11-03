@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const vm = require('node:vm');
 
 const root = path.join(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -10,6 +11,10 @@ const moduleSource = read('js/monthly-close.js');
 const html = read('index.html');
 const render = read('js/render.js');
 const integration = read('tests/monthly-cashbox-close.integration.sql');
+
+test('monthly close module parses as valid JavaScript', () => {
+    assert.doesNotThrow(() => new vm.Script(moduleSource, { filename: 'js/monthly-close.js' }));
+});
 
 test('monthly close is manager-only and read-only in Cairo local time', () => {
     assert.match(migration, /private\.get_monthly_cashbox_close/);
@@ -39,6 +44,7 @@ test('monthly close UI and export remain manager-side and Arabic RTL', () => {
     assert.match(html, /js\/monthly-close\.js/);
     assert.match(moduleSource, /html2pdf\.js/);
     assert.match(moduleSource, /application\/pdf/);
+    assert.match(moduleSource, /pdfBlob\.type !== 'application\/pdf'/);
     assert.match(render, /'monthlyCloseMonthSelect'/);
 });
 
