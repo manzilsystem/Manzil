@@ -51,6 +51,10 @@ function createTransferHarness(options = {}) {
         toast: (message, type) => calls.toasts.push({ message, type }),
         renderAll: () => { calls.renders += 1; },
         refreshCashboxSummary: async () => { calls.refreshes += 1; },
+        loadState: async () => {
+            calls.loads = (calls.loads || 0) + 1;
+            return true;
+        },
         supabaseClient: {
             rpc: async (name, args) => {
                 calls.rpc.push({ name, args });
