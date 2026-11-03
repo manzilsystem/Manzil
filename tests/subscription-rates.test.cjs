@@ -85,7 +85,19 @@ test('effective subscription month accepts YYYY-MM and rejects invalid months', 
     }
 });
 
-test('effective rate helper returns the latest rate effective in the selected month', () => {\n    const app = loadCrudHelpers();\n    const resident = { monthlyAmount: 150, subscriptionRates: [\n        { effectiveMonth: '2026-01-01', monthlyAmount: 100 },\n        { effectiveMonth: '2026-03-01', monthlyAmount: 125 },\n        { effectiveMonth: '2026-05-01', monthlyAmount: 150 }\n    ] };\n    assert.equal(app.getSubscriptionAmountForMonthKey(resident, '2026-02'), 100);\n    assert.equal(app.getSubscriptionAmountForMonthKey(resident, '2026-04'), 125);\n    assert.equal(app.getSubscriptionAmountForMonthKey(resident, '2026-06'), 150);\n});\n\ntest('JSON backup validation accepts all supported application themes', () => {
+test('effective rate helper returns the latest rate effective in the selected month', () => {
+    const app = loadCrudHelpers();
+    const resident = { monthlyAmount: 150, subscriptionRates: [
+        { effectiveMonth: '2026-01-01', monthlyAmount: 100 },
+        { effectiveMonth: '2026-03-01', monthlyAmount: 125 },
+        { effectiveMonth: '2026-05-01', monthlyAmount: 150 }
+    ] };
+    assert.equal(app.getSubscriptionAmountForMonthKey(resident, '2026-02'), 100);
+    assert.equal(app.getSubscriptionAmountForMonthKey(resident, '2026-04'), 125);
+    assert.equal(app.getSubscriptionAmountForMonthKey(resident, '2026-06'), 150);
+});
+
+test('JSON backup validation accepts all supported application themes', () => {
     const app = loadCrudHelpers();
     for (const currentTheme of ['dark', 'light', 'emerald', 'ocean', 'sand']) {
         assert.equal(app.isValidBackup({
