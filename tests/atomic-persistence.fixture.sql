@@ -3,6 +3,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE ROLE authenticated NOLOGIN;
 CREATE ROLE anon NOLOGIN;
 CREATE SCHEMA auth;
+CREATE TABLE auth.users (id uuid PRIMARY KEY);
 CREATE SCHEMA private;
 CREATE TYPE public.app_role AS ENUM ('manager', 'owner');
 
