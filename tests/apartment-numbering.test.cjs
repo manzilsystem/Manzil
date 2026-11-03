@@ -20,7 +20,7 @@ function createLayoutHarness({ floorCount = 11, apartmentsPerFloor = 2, resident
         esc: value => String(value ?? '').replace(/[&<>"']/g, ''),
     };
     const api = vm.runInNewContext(
-        crudSource + '\\n({ populateResidentFloorOptions, updateResidentApartmentOptions, getFloorLabel })',
+        crudSource + '\n({ populateResidentFloorOptions, updateResidentApartmentOptions, getFloorLabel })',
         sandbox,
         { filename: 'js/crud.js' }
     );
