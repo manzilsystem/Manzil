@@ -1,6 +1,8 @@
 let backupConsoleRefreshTimer = null;
 let backupConsoleLoadPromise = null;
 let activeRestoreRequestId = null;
+let backupDownloadAllowed = false;
+let backupDownloadInProgress = false;
 function backupCacheKey() { return 'manzil.backup-console.v1.' + (activeBuildingId || 'none'); }
 
 function formatBackupBytes(bytes) {
@@ -32,9 +34,11 @@ function renderBackupConsole(data, cached = false) {
     const backupHistory = document.getElementById('backupRequestHistory');
     const restoreButton = document.getElementById('backupRestoreButton');
     const createButton = document.getElementById('backupCreateButton');
-    if (!select || !last || !history || !restoreButton || !createButton) return;
+    const downloadButton = document.getElementById('backupDownloadButton');
+    if (!select || !last || !history || !restoreButton || !createButton || !downloadButton) return;
 
     const backups = Array.isArray(data.backups) ? data.backups : [];
+    backupDownloadAllowed = !cached && data.canDownload === true;
     const restoreRequests = Array.isArray(data.restoreRequests) ? data.restoreRequests : (Array.isArray(data.requests) ? data.requests : []);
     const backupRequests = Array.isArray(data.backupRequests) ? data.backupRequests : [];
     const selected = select.value;
@@ -49,6 +53,7 @@ function renderBackupConsole(data, cached = false) {
     // Cached state is display-only; destructive/financial actions require a fresh server read.
     restoreButton.disabled = cached || !backups.length || restorePending || backupPending;
     createButton.disabled = cached || backupPending || restorePending;
+    updateBackupDownloadButton();
 
     last.textContent = backups.length
         ? (cached ? 'نسخة محفوظة محليًا — ' : '') + 'آخر نسخة: ' + new Date(backups[0].created_at).toLocaleString('ar-EG') + ' — ' + formatBackupBytes(backups[0].size_bytes)
@@ -157,6 +162,62 @@ async function loadBackupConsole(options = {}) {
         backupConsoleLoadPromise = null;
     }
 }
+function updateBackupDownloadButton() {
+    const button = document.getElementById('backupDownloadButton');
+    const select = document.getElementById('backupRestoreSelect');
+    if (button) button.disabled = !backupDownloadAllowed || backupDownloadInProgress || !select?.value;
+}
+
+async function downloadDatabaseBackup() {
+    if (!requireManager()) return;
+    const select = document.getElementById('backupRestoreSelect');
+    const tag = select?.value || '';
+    const button = document.getElementById('backupDownloadButton');
+    const status = document.getElementById('backupDownloadStatus');
+    if (!button || button.disabled || !/^backup-\\d{8}T\\d{6}Z$/.test(tag)) return;
+
+    backupDownloadInProgress = true;
+    updateBackupDownloadButton();
+    if (status) status.textContent = 'جارٍ تنزيل النسخة والتحقق من سلامتها...';
+    try {
+        const { data, error, response } = await supabaseClient.functions.invoke('backup-console', {
+            body: { action: 'download_backup', backup_tag: tag }
+        });
+        if (error) throw error;
+        if (!(data instanceof Blob)) throw new Error('invalid_backup_download');
+
+        const expectedSha = response?.headers?.get('x-backup-sha256') || '';
+        if (!/^[a-f0-9]{64}$/i.test(expectedSha)) throw new Error('backup_checksum_missing');
+        const digest = await crypto.subtle.digest('SHA-256', await data.arrayBuffer());
+        const actualSha = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+        if (actualSha !== expectedSha.toLowerCase()) throw new Error('backup_checksum_mismatch');
+
+        const filename = `manzil-db-${tag.slice('backup-'.length)}.dump`;
+        const objectUrl = URL.createObjectURL(data);
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+        if (status) status.textContent = 'تم التحقق من SHA-256 وبدء تنزيل النسخة بنجاح.';
+    } catch (error) {
+        if (status) {
+            status.textContent = error.message === 'backup_download_not_configured'
+                ? 'تنزيل النسخ لم يُفعّل على الخادم بعد.'
+                : error.message === 'global_manager_only'
+                    ? 'تنزيل قاعدة البيانات الكاملة متاح للمدير الذي يدير جميع المباني فقط.'
+                    : 'فشل تنزيل النسخة أو لم تتطابق بصمتها. لم يتم حفظ الملف.';
+        }
+        console.error('Backup download error:', error);
+    } finally {
+        backupDownloadInProgress = false;
+        updateBackupDownloadButton();
+    }
+}
+
 async function requestDatabaseBackup() {
     if (!requireManager()) return;
     const button = document.getElementById('backupCreateButton');
