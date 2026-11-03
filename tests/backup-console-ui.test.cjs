@@ -28,3 +28,17 @@ test('backup console prevents overlapping list requests and retries failed refre
     assert.match(backupUi, /if \(backupConsoleLoadPromise\) return backupConsoleLoadPromise/);
     assert.match(backupUi, /scheduleBackupConsoleRefresh\(true\)/);
 });
+
+
+test('restore session refresh is required after successful database replacement', () => {
+    assert.match(backupUi, /lockCurrentSession/);
+    assert.match(backupUi, /اكتملت استعادة قاعدة البيانات/);
+});
+
+
+test('restore request tracking survives cached renders until a fresh terminal result arrives', () => {
+    assert.match(backupUi, /if \(pendingRestore\?\.id\) activeRestoreRequestId = pendingRestore\.id/);
+    assert.match(backupUi, /else if \(!cached\) activeRestoreRequestId = null/);
+    assert.match(backupUi, /const trackedRestoreRequestId = activeRestoreRequestId/);
+    assert.match(backupUi, /item\.id === trackedRestoreRequestId && item\.status === 'succeeded'/);
+});
