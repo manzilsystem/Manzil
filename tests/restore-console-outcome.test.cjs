@@ -22,3 +22,10 @@ test('restore interface warns that production database data will be replaced', (
     assert.match(html, /الاستعادة تستبدل بيانات قاعدة الإنتاج بالكامل/);
     assert.match(html, /لا يمكن التراجع عنها من الواجهة/);
 });
+
+test('restore confirmation identifies the exact selected backup before submission', () => {
+    assert.match(backupUi, /const selectedLabel = select\.options\[select\.selectedIndex\]/);
+    assert.match(backupUi, /النسخة المحددة:/);
+    assert.match(backupUi, /معرّف النسخة:/);
+    assert.match(backupUi, /if \(!confirm\(warning\)\) return/);
+});
