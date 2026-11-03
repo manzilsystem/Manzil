@@ -363,7 +363,8 @@ async function loadState() {
         stopOwnerNotificationsRealtime();
         state = {
             ...state, buildingName: '', managerName: '', managerPhone: '', defaultSubscription: 0,
-            startingBalance: 0, residents: [], income: [], expenses: [], notices: [], ownerNotifications: [], auditLogs: [],
+            startingBalance: 0, floorCount: 0, apartmentsPerFloor: 0,
+            residents: [], income: [], expenses: [], notices: [], ownerNotifications: [], auditLogs: [],
             cashAccountBalances: { main: 0, development: 0, emergency: 0 }, cashTransfers: [],
             currentTheme: 'dark', lastUpdated: Date.now()
         };
@@ -374,7 +375,7 @@ async function loadState() {
         renderAll();
         return true;
     }
-    const { data: building, error: buildingError } = await supabaseClient.from('buildings').select('id,name,manager_name,manager_phone,default_subscription,starting_balance,current_theme,state_version').eq('id', activeBuildingId).single();
+    const { data: building, error: buildingError } = await supabaseClient.from('buildings').select('id,name,manager_name,manager_phone,default_subscription,starting_balance,current_theme,floor_count,apartments_per_floor,state_version').eq('id', activeBuildingId).single();
     if (!isCurrentAuthSession(session, generation)) return false;
     if (buildingError) throw buildingError;
     activeBuildingVersion = Number(building.state_version) || 1;
@@ -423,6 +424,8 @@ async function loadState() {
         defaultSubscription: Number(building.default_subscription) || 0,
         startingBalance: Number(building.starting_balance) || 0,
         currentTheme: ['dark', 'light', 'emerald', 'ocean', 'sand'].includes(building.current_theme) ? building.current_theme : 'dark',
+        floorCount: Number(building.floor_count) || 0,
+        apartmentsPerFloor: Number(building.apartments_per_floor) || 0,
         residents: residents.map(mapResident), income: income.map(mapIncome), expenses: expenses.map(mapExpense),
         notices: notices.map(mapNotice), ownerNotifications: (ownerNotificationsResult.data || []).map(mapNotification),
         auditLogs: auditLogs.map(mapAudit),
@@ -561,7 +564,8 @@ function clearAuthenticatedState() {
     state = {
         ...state,
         buildingName: '', managerName: '', managerPhone: '', defaultSubscription: 0,
-        startingBalance: 0, residents: [], income: [], expenses: [], notices: [], ownerNotifications: [], auditLogs: [],
+        startingBalance: 0, floorCount: 0, apartmentsPerFloor: 0,
+        residents: [], income: [], expenses: [], notices: [], ownerNotifications: [], auditLogs: [],
         cashAccountBalances: { main: 0, development: 0, emergency: 0 }, cashTransfers: [],
         currentTheme: 'dark', lastUpdated: 0
     };
