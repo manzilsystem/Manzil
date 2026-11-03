@@ -17,7 +17,7 @@ stable
 security definer
 set search_path = pg_catalog, public
 as $function$
-  select public.is_building_manager(p_building_id)
+  select private.is_building_manager(p_building_id)
     or (
       p_target_user_id = auth.uid()
       and private.owner_pin_change_complete()
@@ -42,7 +42,7 @@ security definer
 set search_path = public
 as $function$
 begin
-  if not public.is_building_manager(old.building_id) then
+  if not private.is_building_manager(old.building_id) then
     if new.id <> old.id
       or new.building_id <> old.building_id
       or new.target_user_id is distinct from old.target_user_id
@@ -69,11 +69,11 @@ for each row execute function public.protect_notification_fields();
 
 create policy notifications_manager_delete on public.notifications
 for delete to authenticated
-using (public.is_building_manager(building_id));
+using (private.is_building_manager(building_id));
 
 create policy notifications_manager_insert on public.notifications
 for insert to authenticated
-with check (public.is_building_manager(building_id));
+with check (private.is_building_manager(building_id));
 
 create policy notifications_select_scoped on public.notifications
 for select to authenticated
