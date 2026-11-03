@@ -22,7 +22,7 @@ test('monthly close and arrears are collapsed disclosures with their controls pr
 });
 
 test('report disclosure summaries do not contain interactive buttons', () => {
-    for (const summary of reportTab.matchAll(/<summary[\\s\\S]*?<\\/summary>/g)) {
-        assert.doesNotMatch(summary[0], /<button\\b/);
+    for (const summary of reportTab.matchAll(/<summary[\s\S]*?<\/summary>/g)) {
+        assert.doesNotMatch(summary[0], /<button\b/);
     }
 });
