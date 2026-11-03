@@ -95,7 +95,7 @@ jobs:
           fi
 
           # Fetch the trusted digest from the database catalog, independently of the release asset.
-          request="$(psql_db -At -F '|' -c "SELECT r.id::text || '|' || r.backup_tag || '|' || COALESCE(b.sha256, '') FROM public.restore_requests r LEFT JOIN public.backup_catalog b ON b.tag = r.backup_tag WHERE r.status='queued' ORDER BY r.created_at LIMIT 1")"
+          request="$(psql_db -At -F '|' -c "SELECT r.id::text || '|' || r.backup_tag || '|' || COALESCE(b.sha256, '') FROM public.restore_requests r LEFT JOIN public.backup_catalog b ON b.tag = r.backup_tag WHERE r.status='queued' ORDER BY r.created_at LIMIT 1 FOR UPDATE OF r SKIP LOCKED")"
           if [ -z "$request" ]; then
             echo "No pending restore request."
             exit 0
