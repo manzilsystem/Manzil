@@ -38,7 +38,7 @@ test('reissuing an existing owner PIN waits until profile, membership, and resid
 test('existing-owner reissue remains distinct from new-user creation', () => {
     assert.match(
         source,
-        /if \(createdNewUser && ownerUserId\) await admin\.auth\.admin\.deleteUser\(ownerUserId\)/
+        /if \(createdNewUser && ownerUserId\) \{[\s\S]*?admin\.auth\.admin\.deleteUser\(ownerUserId\)/
     );
     assert.match(source, /if \(!createdNewUser && ownerUserId\)\s*\{[\s\S]*?updateUserById/);
 });
@@ -64,4 +64,54 @@ test('failure to verify orphan-account links fails closed without adopting the p
     assert.match(guard, /residentLinkLookupError \|\| membershipLookupError/);
     assert.match(guard, /profile_link_lookup_failed/);
     assert.ok(guard.indexOf('profile_link_lookup_failed') < guard.indexOf('ownerUserId = existingProfile.id'));
+});
+
+
+test('provisioning snapshots are captured after a new Auth user is created', () => {
+    const createUser = position('admin.auth.admin.createUser');
+    const createdFlag = position('createdNewUser = true');
+    const membershipSnapshot = position('const { data: previousMembership');
+    const profileSnapshot = position(".from('profiles')\n    .select('*')\n    .eq('id', ownerUserId)");
+    assert.ok(createUser < createdFlag && createdFlag < membershipSnapshot);
+    assert.ok(membershipSnapshot < profileSnapshot);
+});
+
+test('provisioning failures compensate resident, membership, profile, and audit changes', () => {
+    assert.ok(source.includes('residentSnapshot = { user_id: resident.user_id, phone: resident.phone }'));
+    assert.ok(source.includes(".from('building_members').upsert(previousMembership)"));
+    assert.ok(source.includes(".from('profiles').upsert(profileSnapshot)"));
+    assert.ok(source.includes(".from('audit_logs').delete().eq('id', auditId)"));
+    assert.ok(source.includes('owner_access_compensation_audit_failed'));
+    assert.ok(source.includes('provisioning_compensation_failed'));
+});
+
+test('new Auth user cleanup restores the resident phone after the Auth cascade', () => {
+    const deleteUser = position('admin.auth.admin.deleteUser(ownerUserId)');
+    const residentRestore = position('owner_access_compensation_new_user_resident_failed');
+    assert.ok(deleteUser < residentRestore);
+    assert.ok(source.includes('user_id: residentSnapshot.user_id,'));
+    assert.ok(source.includes('phone: residentSnapshot.phone,'));
+});
+
+test('resident linking treats a concurrent deletion as a failure and compensates', () => {
+    assert.match(
+        source,
+        /const \{ data: linkedResident, error: residentUpdateError \} = await admin\.from\('residents'\)\.update\([\s\S]*?\.select\('id'\)[\s\S]*?\.maybeSingle\(\)[\s\S]*?if \(residentUpdateError \|\| !linkedResident\) return await failWithCompensation\('resident_link_failed'\)/
+    );
+});
+
+test('audit persistence is required before changing an existing owner PIN', () => {
+    const auditInsert = position("admin.from('audit_logs').insert");
+    const authUpdate = position('admin.auth.admin.updateUserById');
+    assert.ok(auditInsert < authUpdate);
+    assert.ok(source.includes("if (auditError || !auditEntry) return await failWithCompensation('audit_log_save_failed')"));
+});
+
+test('uncertain Auth credential updates do not roll back committed owner linkage', () => {
+    const authUpdate = position('admin.auth.admin.updateUserById');
+    const uncertainStatus = position('auth_update_status_unknown');
+    assert.ok(authUpdate < uncertainStatus);
+    const branch = source.slice(authUpdate, source.indexOf('return json(200', authUpdate));
+    assert.match(branch, /return json\(503, \{ error: 'auth_update_status_unknown' \}\)/);
+    assert.doesNotMatch(branch, /failWithCompensation/);
 });
