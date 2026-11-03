@@ -291,11 +291,13 @@ Deno.serve(async (request: Request) => {
   if (membershipUpsertError) return await failWithCompensation('membership_save_failed')
   membershipSaved = true
 
-  const { error: residentUpdateError } = await admin.from('residents').update({
+  const { data: linkedResident, error: residentUpdateError } = await admin.from('residents').update({
     user_id: ownerUserId,
     phone,
   }).eq('id', resident.id).eq('building_id', membership.building_id)
-  if (residentUpdateError) return await failWithCompensation('resident_link_failed')
+    .select('id')
+    .maybeSingle()
+  if (residentUpdateError || !linkedResident) return await failWithCompensation('resident_link_failed')
   residentLinked = true
 
   const { data: auditEntry, error: auditError } = await admin.from('audit_logs').insert({
