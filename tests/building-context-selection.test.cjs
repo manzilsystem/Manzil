@@ -44,7 +44,7 @@ function makeHarness(buildings) {
             };
         },
     };
-    const sandbox = { document, console: { warn() {}, error() {} } };
+    const sandbox = { window: { supabase: { createClient: () => supabaseClient } }, document, console: { warn() {}, error() {} } };
     const api = vm.runInNewContext(`${source}
         ({
             chooseBuildingMembership,
