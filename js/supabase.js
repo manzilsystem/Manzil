@@ -373,7 +373,7 @@ async function loadState() {
         renderAll();
         return true;
     }
-    const { data: building, error: buildingError } = await supabaseClient.from('buildings').select('*').eq('id', activeBuildingId).single();
+    const { data: building, error: buildingError } = await supabaseClient.from('buildings').select('id,name,manager_name,manager_phone,default_subscription,starting_balance,current_theme,state_version').eq('id', activeBuildingId).single();
     if (!isCurrentAuthSession(session, generation)) return false;
     if (buildingError) throw buildingError;
     activeBuildingVersion = Number(building.state_version) || 1;
@@ -389,15 +389,21 @@ async function loadState() {
         ? supabaseClient.rpc('get_cashbox_summary', { p_building_id: activeBuildingId })
         : Promise.resolve({ data: null, error: null });
     const isManager = currentUserRole === 'manager';
-    const residentColumns = isManager ? '*' : 'id,name,apartment_number,monthly_amount,created_at';
-    const incomeColumns = isManager ? '*' : 'id,resident_id,amount,month,paid_at';
-    const noticeColumns = isManager ? '*' : 'id,text,created_at';
+    const residentColumns = isManager
+        ? 'id,user_id,name,apartment_number,phone,monthly_amount,created_at'
+        : 'id,name,apartment_number,monthly_amount,created_at';
+    const incomeColumns = isManager
+        ? 'id,resident_id,amount,month,notes,paid_at'
+        : 'id,resident_id,amount,month,paid_at';
+    const expenseColumns = 'id,title,amount,category,month,notes,cash_account_code,spent_at';
+    const noticeColumns = 'id,text,created_at';
+    const auditColumns = 'id,action,details,created_at';
     const [residents, income, expenses, notices, auditLogs, residentNotes, ownerNotificationsResult, cashboxSummaryResult] = await Promise.all([
         supabaseQuery('residents', residentColumns),
         supabaseQuery('income', incomeColumns),
-        isManager ? supabaseQuery('expenses') : Promise.resolve([]),
+        isManager ? supabaseQuery('expenses', expenseColumns) : Promise.resolve([]),
         supabaseQuery('notices', noticeColumns),
-        isManager ? supabaseQuery('audit_logs') : Promise.resolve([]),
+        isManager ? supabaseQuery('audit_logs', auditColumns) : Promise.resolve([]),
         currentUserRole === 'manager' ? supabaseQuery('resident_internal_notes', 'resident_id,notes') : Promise.resolve([]),
         ownerNotificationsQuery,
         cashboxSummaryQuery
