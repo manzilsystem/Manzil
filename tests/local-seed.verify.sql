@@ -18,10 +18,13 @@ BEGIN
         RAISE EXCEPTION 'local_seed_fixture_count_mismatch';
     END IF;
     IF NOT EXISTS (
+        SELECT 1 FROM auth.identities
+        WHERE user_id = v_manager_id AND email = 'manager@manzil.invalid'
+    ) OR NOT EXISTS (
         SELECT 1 FROM auth.users
-        WHERE id = v_manager_id AND email = 'manager@manzil.invalid'
+        WHERE id = v_manager_id
           AND encrypted_password = extensions.crypt('Manzil-Local-Only-2026!', encrypted_password)
-    ) THEN RAISE EXCEPTION 'local_manager_password_hash_invalid'; END IF;
+    ) THEN RAISE EXCEPTION 'local_manager_auth_fixture_invalid'; END IF;
     IF NOT EXISTS (
         SELECT 1 FROM public.building_members
         WHERE building_id = v_building_id AND user_id = v_manager_id AND role = 'manager'
