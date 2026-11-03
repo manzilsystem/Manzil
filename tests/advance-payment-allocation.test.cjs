@@ -90,6 +90,6 @@ test('income form previews the split and saves separate month allocations with o
     assert.match(html, /id="incomeAllocationPreview"/);
     assert.match(html, /onchange="previewIncomeAllocation\(\)"/);
     assert.match(crudSource, /calculateIncomeAllocationPreview\(residentId, amount, month\)/);
-    assert.match(crudSource, /دفعة موزعة ${paymentReference}/);
+    assert.ok(crudSource.includes('دفعة موزعة ${paymentReference}'));
     assert.match(crudSource, /if \(!requireManager\(\) \|\| incomeSaving\) return/);
 });
