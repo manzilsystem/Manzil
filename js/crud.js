@@ -25,7 +25,9 @@ function updateResidentApartmentOptions(preferredApartment = '') {
             if (!occupied) options.push(number);
         }
     }
-    const currentApartment = String(preferredApartment || currentResident?.apartmentNumber || '');
+    const keepCurrentApartment = currentResident
+        && String(currentResident.floor || '') === String(floorSelect.value || '');
+    const currentApartment = String(preferredApartment || (keepCurrentApartment ? currentResident.apartmentNumber : '') || '');
     if (currentApartment && !options.includes(currentApartment)) options.unshift(currentApartment);
     apartmentSelect.innerHTML = '<option value="">اختر رقم الشقة</option>' +
         options.map(number => '<option value="' + esc(number) + '">شقة ' + esc(number) + '</option>').join('');
