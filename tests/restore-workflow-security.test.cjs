@@ -8,10 +8,9 @@ const workflow = fs.readFileSync(
     'utf8'
 );
 
-test('restore worker retrieves the trusted digest from the database catalog', () => {
-    assert.match(workflow, /LEFT JOIN public\.backup_catalog b ON b\.tag = r\.backup_tag/);
-    assert.match(workflow, /COALESCE\(b\.sha256, ''\)/);
-    assert.match(workflow, /expected_sha.*\^\[a-f0-9\]\{64\}\$/);
+test('restore worker retrieves and validates the trusted digest from the database catalog', () => {
+    assert.ok(workflow.includes("COALESCE((SELECT b.sha256 FROM public.backup_catalog b WHERE b.tag=r.backup_tag), '')"));
+    assert.ok(workflow.includes('if [[ ! "$expected_sha" =~ ^[a-f0-9]{64}$ ]]; then'));
 });
 
 test('restore archive must match the catalog digest before pg_restore validation or execution', () => {
@@ -29,6 +28,17 @@ test('restore retains the existing archive checksum and custom-format validation
     assert.match(workflow, /--single-transaction --exit-on-error/);
 });
 
-test('restore request claiming retains row-level concurrency locking', () => {
-    assert.match(workflow, /FOR UPDATE OF r SKIP LOCKED/);
+test('restore request is claimed atomically with SKIP LOCKED', () => {
+    assert.ok(workflow.includes("WITH next_request AS (SELECT r.id FROM public.restore_requests r WHERE r.status='queued' ORDER BY r.created_at LIMIT 1 FOR UPDATE SKIP LOCKED) UPDATE public.restore_requests r SET status='running'"));
+    assert.ok(workflow.includes("RETURNING r.id::text || '|' || r.backup_tag || '|' || COALESCE((SELECT b.sha256 FROM public.backup_catalog b WHERE b.tag=r.backup_tag), '')"));
+    assert.doesNotMatch(workflow, /FOR UPDATE OF r SKIP LOCKED/);
+});
+test('missing or malformed catalog digest is terminally failed before download or restore', () => {
+    const invalidDigest = workflow.indexOf('if [[ ! "$expected_sha" =~');
+    const failUpdate = workflow.indexOf("status='failed',finished_at=now(),result_message='بصمة النسخة غير موجودة أو غير صالحة في سجل النسخ'");
+    const download = workflow.indexOf('gh release download');
+    assert.ok(invalidDigest >= 0, 'catalog digest must be validated');
+    assert.ok(failUpdate > invalidDigest, 'invalid digest must transition the claimed request to failed');
+    assert.ok(download > failUpdate, 'invalid digest must fail before downloading or restoring');
+    assert.match(workflow, /trap - ERR/);
 });
