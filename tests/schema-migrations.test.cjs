@@ -33,4 +33,5 @@ test('local migration history matches the applied Supabase order', () => {
     assert.ok(position('restrict_subscription_rate_visibility') < position('manager_only_resident_notes'));
     assert.ok(position('manager_only_resident_notes') < position('owner_login_rate_limit'));
     assert.ok(position('owner_login_rate_limit') < position('subscription_rate_change_history'));
+    assert.ok(position('subscription_rate_change_history') < position('owner_payment_notifications'));
 });
