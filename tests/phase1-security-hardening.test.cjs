@@ -21,7 +21,7 @@ test('notification RLS helpers are executable by authenticated users but not ano
             new RegExp('grant execute on function ' + signature.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' to authenticated', 'i')
         );
     }
-    assert.doesNotMatch(migration, /public\\.is_building_manager\\s*\\(/i);
+    assert.doesNotMatch(migration, /public\.is_building_manager\s*\(/i);
 });
 
 test('owner notification access stays blocked until first PIN change is complete', () => {
