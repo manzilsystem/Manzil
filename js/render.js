@@ -14,6 +14,7 @@ function renderAll() {
     document.getElementById('printBuildingMeta').textContent = `المدير: ${state.managerName || '—'} • ${getCurrentMonth()}`;
     renderDashboard(); renderIncomeTable(); renderExpenseTable(); renderResidentsGrid();
     renderNotices(); renderAuditLog(); renderArrearsReport(); populateSelects();
+    renderCashbox();
 }
 
 function getArrearsReportFilters() {
