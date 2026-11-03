@@ -14,13 +14,42 @@ function switchTab(tab) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-let modalReturnFocus = null;
+const modalReturnFocus = new Map();
+
+function getOpenModals() {
+    return Array.from(document.querySelectorAll('[role="dialog"]'))
+        .filter(modal => !modal.classList.contains('hidden'));
+}
+
+function getTopmostOpenModal() {
+    const openModals = getOpenModals();
+    return openModals[openModals.length - 1] || null;
+}
+
+function getModalFocusableElements(modal) {
+    return Array.from(modal.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+    )).filter(item => item.offsetParent !== null && !item.closest('[inert], [aria-hidden="true"]'));
+}
+
+function focusModal(modal) {
+    if (!modal) return;
+    const focusable = getModalFocusableElements(modal);
+    if (focusable.length) {
+        focusable[0].focus();
+        return;
+    }
+    if (!modal.hasAttribute('tabindex')) modal.setAttribute('tabindex', '-1');
+    modal.focus();
+}
 
 function openModal(id) {
     if (id !== 'pinLockModal' && !requireManager()) return;
     const modal = document.getElementById(id);
     if (!modal) return;
-    modalReturnFocus = document.activeElement;
+    if (modal.classList.contains('hidden')) {
+        modalReturnFocus.set(id, document.activeElement);
+    }
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     modal.setAttribute('aria-hidden', 'false');
@@ -29,8 +58,9 @@ function openModal(id) {
     document.body.classList.add('modal-open');
     if (id === 'backupModal') loadBackupConsole();
     requestAnimationFrame(() => {
-        const focusable = modal.querySelector('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
-        (focusable || modal).focus();
+        if (!modal.classList.contains('hidden') && getTopmostOpenModal() === modal) {
+            focusModal(modal);
+        }
     });
 }
 
@@ -40,14 +70,25 @@ function closeModal(id) {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     modal.setAttribute('aria-hidden', 'true');
-    const anotherModalOpen = Array.from(document.querySelectorAll('[role="dialog"]')).some(item => !item.classList.contains('hidden'));
-    if (!anotherModalOpen) document.body.classList.remove('modal-open');
-    if (modalReturnFocus && typeof modalReturnFocus.focus === 'function') modalReturnFocus.focus();
-    modalReturnFocus = null;
+
+    const returnFocus = modalReturnFocus.get(id);
+    modalReturnFocus.delete(id);
+
+    const topmostModal = getTopmostOpenModal();
+    if (!topmostModal) {
+        document.body.classList.remove('modal-open');
+        if (returnFocus?.isConnected && typeof returnFocus.focus === 'function') {
+            returnFocus.focus();
+        }
+    } else if (returnFocus?.isConnected && topmostModal.contains(returnFocus)) {
+        returnFocus.focus();
+    } else {
+        focusModal(topmostModal);
+    }
 }
 
 function handleModalKeyboard(event) {
-    const modal = Array.from(document.querySelectorAll('[role="dialog"]')).find(item => !item.classList.contains('hidden'));
+    const modal = getTopmostOpenModal();
     if (!modal) return;
     if (event.key === 'Escape' && modal.id !== 'pinLockModal') {
         event.preventDefault();
@@ -55,11 +96,21 @@ function handleModalKeyboard(event) {
         return;
     }
     if (event.key !== 'Tab') return;
-    const items = Array.from(modal.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])')).filter(item => item.offsetParent !== null);
-    if (!items.length) { event.preventDefault(); modal.focus(); return; }
+    const items = getModalFocusableElements(modal);
+    if (!items.length) {
+        event.preventDefault();
+        if (!modal.hasAttribute('tabindex')) modal.setAttribute('tabindex', '-1');
+        modal.focus();
+        return;
+    }
     const first = items[0], last = items[items.length - 1];
-    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    if (event.shiftKey && (document.activeElement === first || !modal.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || !modal.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+    }
 }
 
 async function loadSubscriptionRateAdapter() {
