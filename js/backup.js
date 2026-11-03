@@ -109,6 +109,7 @@ async function loadBackupConsole(options = {}) {
         if (!requireManager()) return;
         const last = document.getElementById('backupLastStatus');
         if (!last) return;
+        backupDownloadAllowed = false;
         const restoreButton = document.getElementById('backupRestoreButton');
         const createButton = document.getElementById('backupCreateButton');
         const downloadButton = document.getElementById('backupDownloadButton');
