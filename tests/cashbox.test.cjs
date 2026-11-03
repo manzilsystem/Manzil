@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const vm = require('node:vm');
 
 const root = path.join(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -67,4 +68,11 @@ test('main balance includes all income while fund balances are backed by transfe
     assert.match(migration, /'development',[\s\S]*?to_account_code = 'development'/);
     assert.match(migration, /'emergency',[\s\S]*?to_account_code = 'emergency'/);
     assert.match(migration, /-- Fund accounts may only spend money explicitly transferred into them/);
+});
+
+test('all client-side JavaScript modules parse without syntax errors', () => {
+    const jsDirectory = path.join(root, 'js');
+    for (const file of fs.readdirSync(jsDirectory).filter(name => name.endsWith('.js'))) {
+        assert.doesNotThrow(() => new vm.Script(fs.readFileSync(path.join(jsDirectory, file), 'utf8'), { filename: file }), file);
+    }
 });
