@@ -13,6 +13,10 @@ ALTER TABLE public.resident_subscription_rates ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.resident_subscription_rates FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.resident_subscription_rates TO authenticated;
 
+-- This migration repeats the initial subscription-rate setup under a later version.
+-- Recreate the policy safely because the earlier migration may already have installed it.
+DROP POLICY IF EXISTS resident_subscription_rates_member_read ON public.resident_subscription_rates;
+
 CREATE POLICY resident_subscription_rates_member_read
 ON public.resident_subscription_rates FOR SELECT TO authenticated
 USING (EXISTS (
