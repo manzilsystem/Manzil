@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const vm = require('node:vm');
 
 const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
 const html = read('index.html');
@@ -45,4 +46,46 @@ test('settings redesign is included in the service worker cache version', () => 
     assert.match(html, /js\/crud\.js[\s\S]*js\/notices\.js/);
     assert.match(html, /js\/crud\.js[\s\S]*js\/settings\.js/);
     assert.doesNotMatch(crud, /function openSettingsModal|function saveSettings|function switchSettingsTab/);
+});
+
+
+test('settings report a failed layout rollback even when the RPC has no transport error', async () => {
+    const messages = [];
+    let rpcCalls = 0;
+    const elements = {
+        settingsDefaultSub: { value: '0' },
+        settingsStartingBalance: { value: '0' },
+        settingsFloorCount: { value: '3' },
+        settingsApartmentsPerFloor: { value: '4' },
+        settingsBuildingName: { value: 'Building' },
+        settingsManagerName: { value: 'Manager' },
+        settingsManagerPhone: { value: '01000000000' }
+    };
+    const sandbox = {
+        state: {},
+        activeBuildingId: 'building-1',
+        requireManager: () => true,
+        document: { getElementById: id => elements[id] || null },
+        cloneStateSnapshot: () => ({ floorCount: 2, apartmentsPerFloor: 4 }),
+        supabaseClient: {
+            rpc: async () => {
+                rpcCalls += 1;
+                return rpcCalls === 1
+                    ? { data: { ok: true }, error: null }
+                    : { data: { ok: false }, error: null };
+            }
+        },
+        saveWithRollback: async () => false,
+        toast: (message, type) => messages.push({ message, type })
+    };
+    const api = vm.runInNewContext(settings + String.fromCharCode(10) + '({ saveSettings })', sandbox, {
+        filename: 'js/settings.js'
+    });
+
+    await api.saveSettings();
+
+    assert.equal(rpcCalls, 2);
+    assert.equal(messages.length, 1);
+    assert.equal(messages[0].type, 'error');
+    assert.match(messages[0].message, /تعذر التراجع عن إعدادات الأدوار/);
 });
