@@ -99,7 +99,7 @@ BEGIN
 
     BEGIN
         v_result := public.persist_building_snapshot(v_building, 2,
-            '50000000-0000-4000-8000-000000000003',
+            '40000000-0000-4000-8000-000000000009',
             jsonb_set(jsonb_set(v_payload, '{building,name}', '"Cross-building rate must roll back"'),
               '{subscription_rates,0,resident_id}', '"30000000-0000-4000-8000-000000000099"'));
         RAISE EXCEPTION 'cross-building subscription rate unexpectedly committed';
@@ -154,7 +154,7 @@ BEGIN
 
     BEGIN
         v_result := public.persist_building_snapshot(v_building, 2,
-            '50000000-0000-4000-8000-000000000002',
+            '40000000-0000-4000-8000-000000000008',
             jsonb_set(jsonb_set(v_payload, '{building,name}', '"Invalid rate must roll back"'),
               '{subscription_rates,0,effective_month}', '"2026-11-15"'));
         RAISE EXCEPTION 'invalid subscription rate unexpectedly committed';
@@ -186,8 +186,8 @@ BEGIN
       (v_payload->'subscription_rates') || '[{"resident_id":"30000000-0000-4000-8000-000000000002","effective_month":"2026-11-01","monthly_amount":100}]'::jsonb);
     v_payload := jsonb_set(v_payload, '{income}',
       (v_payload->'income') || '[
-        {"id":"50000000-0000-4000-8000-000000000002","resident_id":"30000000-0000-4000-8000-000000000001","amount":50,"month":"2026-12","notes":"دفعة موزعة ABCDEF123456 (1/2)","paid_at":"2026-11-03T06:00:00Z"},
-        {"id":"50000000-0000-4000-8000-000000000003","resident_id":"30000000-0000-4000-8000-000000000001","amount":50,"month":"2027-01","notes":"دفعة موزعة ABCDEF123456 (2/2)","paid_at":"2026-11-03T06:00:00Z"}
+        {"id":"40000000-0000-4000-8000-000000000008","resident_id":"30000000-0000-4000-8000-000000000001","amount":50,"month":"2026-12","notes":"دفعة موزعة ABCDEF123456 (1/2)","paid_at":"2026-11-03T06:00:00Z"},
+        {"id":"40000000-0000-4000-8000-000000000009","resident_id":"30000000-0000-4000-8000-000000000001","amount":50,"month":"2027-01","notes":"دفعة موزعة ABCDEF123456 (2/2)","paid_at":"2026-11-03T06:00:00Z"}
       ]'::jsonb);
     v_result := public.persist_building_snapshot(v_building, 2,
         '40000000-0000-4000-8000-000000000006', v_payload);
@@ -628,12 +628,12 @@ BEGIN
     INSERT INTO public.income
         (id, building_id, resident_id, amount, month, notes, paid_at, created_by)
     VALUES
-        ('50000000-0000-4000-8000-000000000002',
+        ('50000000-0000-4000-8000-000000000010',
          '20000000-0000-4000-8000-000000000001',
          '30000000-0000-4000-8000-000000000001',
          50, '2027-01', 'دفعة موزعة ABCDEF123456 (1/2)',
          now(), '10000000-0000-4000-8000-000000000001'),
-        ('50000000-0000-4000-8000-000000000003',
+        ('50000000-0000-4000-8000-000000000011',
          '20000000-0000-4000-8000-000000000001',
          '30000000-0000-4000-8000-000000000001',
          50, '2027-02', 'دفعة موزعة ABCDEF123456 (2/2)',
@@ -650,7 +650,7 @@ BEGIN
 
     UPDATE public.income
     SET amount = 40
-    WHERE id = '50000000-0000-4000-8000-000000000002';
+    WHERE id = '50000000-0000-4000-8000-000000000010';
 
     SELECT * INTO v_notification
     FROM public.notifications
@@ -661,7 +661,7 @@ BEGIN
         RAISE EXCEPTION 'grouped notification was not updated after allocation amount changed: %', v_notification.body;
     END IF;
 
-    DELETE FROM public.income WHERE id = '50000000-0000-4000-8000-000000000002';
+    DELETE FROM public.income WHERE id = '50000000-0000-4000-8000-000000000010';
     SELECT * INTO v_notification
     FROM public.notifications
     WHERE building_id = '20000000-0000-4000-8000-000000000001'
@@ -671,7 +671,7 @@ BEGIN
         RAISE EXCEPTION 'grouped notification was not reduced after one allocation was deleted: %', v_notification.body;
     END IF;
 
-    DELETE FROM public.income WHERE id = '50000000-0000-4000-8000-000000000003';
+    DELETE FROM public.income WHERE id = '50000000-0000-4000-8000-000000000011';
     IF EXISTS (
         SELECT 1 FROM public.notifications
         WHERE building_id = '20000000-0000-4000-8000-000000000001'
