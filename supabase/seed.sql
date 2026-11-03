@@ -338,7 +338,7 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM auth.identities
         WHERE user_id = v_manager_id
-          AND email = 'manager@manzil.invalid'
+          AND identity_data->>'email' = 'manager@manzil.invalid'
     ) OR NOT EXISTS (
         SELECT 1 FROM auth.users
         WHERE id = v_manager_id
