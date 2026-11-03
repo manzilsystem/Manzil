@@ -193,10 +193,3 @@ BEGIN
 END;
 $$;
 
-DO $$
-BEGIN
-    IF to_regprocedure('public.set_resident_subscription_rate(uuid,uuid,date,numeric)') IS NOT NULL THEN
-        RAISE EXCEPTION 'legacy subscription rate RPC must not exist';
-    END IF;
-END;
-$$;
