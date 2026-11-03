@@ -21,6 +21,10 @@
 \ir ../supabase/migrations/20261103143759_allow_owner_notification_read_state_updates.sql
 \ir ../supabase/migrations/20261103153941_cash_transfer_idempotency_payload.sql
 \ir ../supabase/migrations/20261103172000_revoke_direct_financial_table_writes.sql
+\ir ../supabase/migrations/20261103180000_sync_owner_payment_notifications.sql
+\ir ../supabase/migrations/20261103172000_revoke_direct_financial_table_writes.sql
+\ir ../supabase/migrations/20261103180000_sync_owner_payment_notifications.sql
+\ir ../supabase/migrations/20261103180000_sync_owner_payment_notifications.sql
 
 INSERT INTO public.profiles (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),
@@ -617,3 +621,126 @@ BEGIN
     END LOOP;
 END;
 $foreign_key_indexes$;
+
+
+-- Deleting or changing an allocation must keep the owner's grouped notification accurate.
+SET request.jwt.claim.sub = '10000000-0000-4000-8000-000000000001';
+DO $income_notification_sync$
+DECLARE
+    v_notification public.notifications%ROWTYPE;
+BEGIN
+    INSERT INTO public.income
+        (id, building_id, resident_id, amount, month, notes, paid_at, created_by)
+    VALUES
+        ('50000000-0000-4000-8000-000000000010',
+         '20000000-0000-4000-8000-000000000001',
+         '30000000-0000-4000-8000-000000000001',
+         50, '2027-01', 'دفعة موزعة ABCDEF123456 (1/2)',
+         now(), '10000000-0000-4000-8000-000000000001'),
+        ('50000000-0000-4000-8000-000000000011',
+         '20000000-0000-4000-8000-000000000001',
+         '30000000-0000-4000-8000-000000000001',
+         50, '2027-02', 'دفعة موزعة ABCDEF123456 (2/2)',
+         now(), '10000000-0000-4000-8000-000000000001');
+
+    SELECT * INTO v_notification
+    FROM public.notifications
+    WHERE building_id = '20000000-0000-4000-8000-000000000001'
+      AND target_resident_id = '30000000-0000-4000-8000-000000000001'
+      AND dedupe_key = 'income-batch:ABCDEF123456';
+    IF NOT FOUND OR v_notification.body NOT LIKE '%100%' THEN
+        RAISE EXCEPTION 'initial grouped payment notification is missing: %', v_notification;
+    END IF;
+
+    UPDATE public.income
+    SET amount = 40
+    WHERE id = '50000000-0000-4000-8000-000000000010';
+
+    SELECT * INTO v_notification
+    FROM public.notifications
+    WHERE building_id = '20000000-0000-4000-8000-000000000001'
+      AND target_resident_id = '30000000-0000-4000-8000-000000000001'
+      AND dedupe_key = 'income-batch:ABCDEF123456';
+    IF v_notification.body NOT LIKE '%90%' THEN
+        RAISE EXCEPTION 'grouped notification was not updated after allocation amount changed: %', v_notification.body;
+    END IF;
+
+    IF (
+        SELECT count(*) FROM public.notifications
+        WHERE building_id = '20000000-0000-4000-8000-000000000001'
+          AND target_resident_id = '30000000-0000-4000-8000-000000000001'
+          AND dedupe_key = 'income-batch:ABCDEF123456'
+    ) <> 1 THEN
+        RAISE EXCEPTION 'grouped payment update created duplicate notifications';
+    END IF;
+
+    DELETE FROM public.income WHERE id = '50000000-0000-4000-8000-000000000010';
+    SELECT * INTO v_notification
+    FROM public.notifications
+    WHERE building_id = '20000000-0000-4000-8000-000000000001'
+      AND target_resident_id = '30000000-0000-4000-8000-000000000001'
+      AND dedupe_key = 'income-batch:ABCDEF123456';
+    IF NOT FOUND OR v_notification.body NOT LIKE '%50%' OR v_notification.body NOT LIKE '%2027-02%' THEN
+        RAISE EXCEPTION 'grouped notification was not reduced after one allocation was deleted: %', v_notification.body;
+    END IF;
+
+    DELETE FROM public.income WHERE id = '50000000-0000-4000-8000-000000000011';
+    IF EXISTS (
+        SELECT 1 FROM public.notifications
+        WHERE building_id = '20000000-0000-4000-8000-000000000001'
+          AND target_resident_id = '30000000-0000-4000-8000-000000000001'
+          AND dedupe_key = 'income-batch:ABCDEF123456'
+    ) THEN
+        RAISE EXCEPTION 'grouped notification remained after the final allocation was deleted';
+    END IF;
+
+    INSERT INTO public.income
+        (id, building_id, resident_id, amount, month, notes, paid_at, created_by)
+    VALUES (
+        '50000000-0000-4000-8000-000000000012',
+        '20000000-0000-4000-8000-000000000001',
+        '30000000-0000-4000-8000-000000000001',
+        25, '2027-03', 'تحصيل عادي',
+        now(), '10000000-0000-4000-8000-000000000001'
+    );
+
+    SELECT * INTO v_notification
+    FROM public.notifications
+    WHERE building_id = '20000000-0000-4000-8000-000000000001'
+      AND target_resident_id = '30000000-0000-4000-8000-000000000001'
+      AND dedupe_key = 'income:50000000-0000-4000-8000-000000000012';
+    IF NOT FOUND OR v_notification.body NOT LIKE '%25%' THEN
+        RAISE EXCEPTION 'single payment notification was not created';
+    END IF;
+
+    UPDATE public.notifications
+    SET read_at = now()
+    WHERE id = v_notification.id;
+
+    UPDATE public.income
+    SET amount = 35, month = '2027-04'
+    WHERE id = '50000000-0000-4000-8000-000000000012';
+
+    SELECT * INTO v_notification
+    FROM public.notifications
+    WHERE building_id = '20000000-0000-4000-8000-000000000001'
+      AND target_resident_id = '30000000-0000-4000-8000-000000000001'
+      AND dedupe_key = 'income:50000000-0000-4000-8000-000000000012';
+    IF v_notification.body NOT LIKE '%35%' OR v_notification.body NOT LIKE '%2027-04%'
+       OR v_notification.read_at IS NULL THEN
+        RAISE EXCEPTION 'single payment notification did not update or preserve read state';
+    END IF;
+
+    DELETE FROM public.income
+    WHERE id = '50000000-0000-4000-8000-000000000012';
+    IF EXISTS (
+        SELECT 1 FROM public.notifications
+        WHERE building_id = '20000000-0000-4000-8000-000000000001'
+          AND target_resident_id = '30000000-0000-4000-8000-000000000001'
+          AND dedupe_key = 'income:50000000-0000-4000-8000-000000000012'
+    ) THEN
+        RAISE EXCEPTION 'single payment notification remained after income deletion';
+    END IF;
+
+END;
+$income_notification_sync$;
