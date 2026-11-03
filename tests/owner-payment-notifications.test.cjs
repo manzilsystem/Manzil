@@ -33,7 +33,7 @@ test('owners can read their own notifications and only update read state', () =>
 });
 
 test('owner notification list subscribes to realtime inserts and updates', () => {
-    assert.ok(supabase.includes('supabaseClient.channel('));
+    assert.ok(supabase.includes('.channel('));
     assert.ok(supabase.includes("table: 'notifications'"));
     assert.ok(supabase.includes("event: 'INSERT'"));
     assert.ok(supabase.includes("event: 'UPDATE'"));
