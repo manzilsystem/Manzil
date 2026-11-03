@@ -5,7 +5,7 @@ const test = require('node:test');
 
 const root = path.join(__dirname, '..');
 const migration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103000000_atomic_building_snapshot.sql'), 'utf8');
-const subscriptionMigration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103070000_atomic_subscription_rate_snapshot.sql'), 'utf8');
+const subscriptionMigration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103025013_atomic_subscription_rate_snapshot.sql'), 'utf8');
 const supabaseSource = fs.readFileSync(path.join(root, 'js', 'supabase.js'), 'utf8');
 const stateSource = fs.readFileSync(path.join(root, 'js', 'state.js'), 'utf8');
 
@@ -69,13 +69,13 @@ test('database constraint accepts all five themes supported by the UI', () => {
 });
 
 test('subscription rate RLS caches auth identity and indexes created_by foreign key', () => {
-    const optimization = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103071000_optimize_subscription_rate_rls.sql'), 'utf8');
+    const optimization = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103025143_optimize_subscription_rate_rls.sql'), 'utf8');
     assert.match(optimization, /bm\.user_id = \(SELECT auth\.uid\(\)\)/);
     assert.match(optimization, /resident_subscription_rates_created_by_idx/);
 });
 
 test('unused legacy subscription SECURITY DEFINER RPC is removed', () => {
-    const cleanup = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103072000_drop_legacy_subscription_rate_rpc.sql'), 'utf8');
+    const cleanup = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103030212_drop_legacy_subscription_rate_rpc.sql'), 'utf8');
     assert.match(cleanup, /DROP FUNCTION IF EXISTS public\.set_resident_subscription_rate\(uuid, uuid, date, numeric\)/);
     assert.doesNotMatch(supabaseSource, /set_resident_subscription_rate/);
 });
