@@ -194,9 +194,9 @@ Deno.serve(async (request: Request) => {
   }
 
   const residentSnapshot = { user_id: resident.user_id, phone: resident.phone }
-  let profileSaved = false
-  let membershipSaved = false
-  let residentLinked = false
+  let profileWriteAttempted = false
+  let membershipWriteAttempted = false
+  let residentLinkAttempted = false
   let auditId: string | null = null
 
   async function compensateProvisioning(): Promise<boolean> {
@@ -215,7 +215,7 @@ Deno.serve(async (request: Request) => {
         console.error('owner_access_compensation_auth_delete_failed', error)
         return false
       }
-      if (residentLinked) {
+      if (residentLinkAttempted) {
         const { error: residentRestoreError } = await admin.from('residents').update({
           user_id: residentSnapshot.user_id,
           phone: residentSnapshot.phone,
@@ -228,7 +228,7 @@ Deno.serve(async (request: Request) => {
       return restored
     }
 
-    if (residentLinked) {
+    if (residentLinkAttempted) {
       const { error } = await admin.from('residents').update({
         user_id: residentSnapshot.user_id,
         phone: residentSnapshot.phone,
@@ -239,7 +239,7 @@ Deno.serve(async (request: Request) => {
       }
     }
 
-    if (membershipSaved) {
+    if (membershipWriteAttempted) {
       if (previousMembership) {
         const { error } = await admin.from('building_members').upsert(previousMembership)
         if (error) {
@@ -257,7 +257,7 @@ Deno.serve(async (request: Request) => {
       }
     }
 
-    if (profileSaved) {
+    if (profileWriteAttempted) {
       const { error } = await admin.from('profiles').upsert(profileSnapshot)
       if (error) {
         restored = false
@@ -274,6 +274,7 @@ Deno.serve(async (request: Request) => {
     })
   }
 
+  profileWriteAttempted = true
   const { error: upsertProfileError } = await admin.from('profiles').upsert({
     id: ownerUserId,
     full_name: resident.name,
@@ -281,16 +282,16 @@ Deno.serve(async (request: Request) => {
     must_change_pin: true,
   })
   if (upsertProfileError) return await failWithCompensation('profile_save_failed')
-  profileSaved = true
 
+  membershipWriteAttempted = true
   const { error: membershipUpsertError } = await admin.from('building_members').upsert({
     building_id: membership.building_id,
     user_id: ownerUserId,
     role: 'owner',
   })
   if (membershipUpsertError) return await failWithCompensation('membership_save_failed')
-  membershipSaved = true
 
+  residentLinkAttempted = true
   const { data: linkedResident, error: residentUpdateError } = await admin.from('residents').update({
     user_id: ownerUserId,
     phone,
@@ -298,7 +299,6 @@ Deno.serve(async (request: Request) => {
     .select('id')
     .maybeSingle()
   if (residentUpdateError || !linkedResident) return await failWithCompensation('resident_link_failed')
-  residentLinked = true
 
   const { data: auditEntry, error: auditError } = await admin.from('audit_logs').insert({
     building_id: membership.building_id,
