@@ -19,6 +19,7 @@
 \ir ../supabase/migrations/20261103113213_monthly_cashbox_close.sql
 
 \ir ../supabase/migrations/20261103143759_allow_owner_notification_read_state_updates.sql
+\ir ../supabase/migrations/20261103154000_cash_transfer_idempotency_payload.sql
 
 INSERT INTO public.profiles (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),
@@ -589,7 +590,6 @@ RESET ROLE;
 
 
 \ir ../supabase/migrations/20261103152547_index_cashbox_rate_history_fks.sql
-\ir ../supabase/migrations/20261103154000_cash_transfer_idempotency_payload.sql
 
 DO $foreign_key_indexes$
 DECLARE
