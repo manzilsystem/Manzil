@@ -24,6 +24,7 @@ function calculateCashboxAccountingTotals() {
         return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
     };
     const totals = {
+        startingBalance: cents(state.startingBalance),
         income: state.income.reduce((sum, row) => sum + cents(row.amount), 0),
         expenses: { main: 0, development: 0, emergency: 0 }
     };
@@ -48,6 +49,7 @@ function syncCashboxBalancesAfterSnapshot() {
     const previous = persistedCashTotals;
     const balances = state.cashAccountBalances || { main: 0, development: 0, emergency: 0 };
     balances.main = (Math.round((Number(balances.main) || 0) * 100)
+        + next.startingBalance - previous.startingBalance
         + next.income - previous.income
         - next.expenses.main + previous.expenses.main) / 100;
     balances.development = (Math.round((Number(balances.development) || 0) * 100)
