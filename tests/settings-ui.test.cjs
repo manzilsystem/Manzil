@@ -9,6 +9,7 @@ const css = read('css/style.css');
 const state = read('js/state.js');
 const auth = read('js/supabase.js');
 const crud = read('js/crud.js');
+const settings = read('js/settings.js');
 const sw = read('sw.js');
 
 test('settings are divided into accessible functional tabs', () => {
@@ -17,8 +18,8 @@ test('settings are divided into accessible functional tabs', () => {
         assert.match(html, new RegExp('id="settings-panel-' + tab + '"'));
         assert.match(html, new RegExp('aria-controls="settings-panel-' + tab + '"'));
     }
-    assert.match(crud, /function switchSettingsTab\(tab\)/);
-    assert.match(crud, /function openSettingsModal\(\)[\s\S]*switchSettingsTab\('building'\)/);
+    assert.match(settings, /function switchSettingsTab\(tab\)/);
+    assert.match(settings, /function openSettingsModal\(\)[\s\S]*switchSettingsTab\('building'\)/);
 });
 
 test('all five themes are selectable, persisted and restored after authentication', () => {
@@ -29,11 +30,14 @@ test('all five themes are selectable, persisted and restored after authenticatio
         assert.ok(auth.includes("'" + theme + "'"), 'auth bootstrap must support ' + theme);
     }
     assert.match(state, /updateThemeSelection\(\)/);
-    assert.match(crud, /SETTINGS_THEME_NAMES/);
+    assert.match(settings, /SETTINGS_THEME_NAMES/);
 });
 
 test('settings redesign is included in the service worker cache version', () => {
-    assert.match(sw, /CACHE_NAME = 'manzil-v31'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v32'/);
     assert.match(sw, /\.\/css\/style\.css/);
     assert.match(sw, /\.\/js\/state\.js/);
+    assert.match(sw, /\.\/js\/settings\.js/);
+    assert.match(html, /js\/crud\.js[\s\S]*js\/settings\.js/);
+    assert.doesNotMatch(crud, /function openSettingsModal|function saveSettings|function switchSettingsTab/);
 });
