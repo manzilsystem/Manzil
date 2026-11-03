@@ -56,6 +56,7 @@ test('owner login hashes the phone, rate-limits before Auth, and never returns a
     assert.match(loginFunction, /p_action: 'attempt'/);
     assert.match(loginFunction, /status: 429|json\(429,/);
     assert.ok(loginFunction.indexOf("p_action: 'attempt'") < loginFunction.indexOf('signInWithPassword'));
+    assert.ok(loginFunction.indexOf("p_action: 'attempt'") < loginFunction.indexOf(".from('profiles')"), 'unknown phone probes must be rate-limited before profile lookup');
     assert.match(loginFunction, /p_action: 'release'/);
     assert.match(loginFunction, /error: 'invalid_credentials'/);
     assert.match(loginFunction, /session:\s*\{[\s\S]*access_token:[\s\S]*refresh_token:/);
