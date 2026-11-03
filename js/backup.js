@@ -176,7 +176,7 @@ async function downloadDatabaseBackup() {
     const tag = select?.value || '';
     const button = document.getElementById('backupDownloadButton');
     const status = document.getElementById('backupDownloadStatus');
-    if (!button || button.disabled || !/^backup-\\d{8}T\\d{6}Z$/.test(tag)) return;
+    if (!button || button.disabled || !/^backup-\d{8}T\d{6}Z$/.test(tag)) return;
 
     backupDownloadInProgress = true;
     updateBackupDownloadButton();
