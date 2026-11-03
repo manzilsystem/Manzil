@@ -709,7 +709,8 @@
                     <input type="tel" id="residentPhone" aria-label="هاتف الساكن" placeholder="الهاتف" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 </div>
                 <input type="number" id="residentAmount" min="0" step="0.01" inputmode="decimal" aria-label="الاشتراك الشهري للشقة" placeholder="الاشتراك الشهري" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
-                <button type="button" id="manageSubscriptionRatesBtn" onclick="openSubscriptionRateModal(editingResidentId)" class="hidden w-full border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 py-2.5 rounded-xl text-xs font-bold">إدارة تاريخ الاشتراك والقيم السابقة</button>
+                <p id="residentAmountHelp" class="hidden text-[10px] text-slate-500 -mt-1"></p>
+                <button type="button" id="manageSubscriptionRatesBtn" onclick="openSubscriptionRateModal(editingResidentId)" class="hidden w-full border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 py-2.5 rounded-xl text-xs font-bold">تحديد / تعديل الاشتراك وسجله التاريخي</button>
                 <textarea id="residentNotes" aria-label="ملاحظات الشقة" rows="2" placeholder="ملاحظات" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
                 <div class="app-input border rounded-2xl p-3 space-y-2">
                     <p class="text-xs font-bold">دخول المالك بالجوال</p>
