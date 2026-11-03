@@ -78,6 +78,24 @@ Deno.serve(async (request: Request) => {
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
+  const { data: profile, error: profileError } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('phone', phone)
+    .maybeSingle()
+  if (profileError) return json(503, { error: 'login_unavailable' })
+  if (!profile) return json(401, { error: 'invalid_credentials' })
+
+  const { data: membership, error: membershipError } = await admin
+    .from('building_members')
+    .select('user_id')
+    .eq('user_id', profile.id)
+    .eq('role', 'owner')
+    .limit(1)
+    .maybeSingle()
+  if (membershipError) return json(503, { error: 'login_unavailable' })
+  if (!membership) return json(401, { error: 'invalid_credentials' })
+
   const phoneHash = await hashPhone(phone)
   const { data: rateLimit, error: rateLimitError } = await admin.rpc('owner_login_rate_limit', {
     p_phone_hash: phoneHash,
