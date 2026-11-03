@@ -59,3 +59,16 @@ test('owner read-state updates do not compare the generated target_scope column'
     assert.doesNotMatch(readStateMigration, /NEW\.target_scope/);
     assert.match(readStateMigration, /NEW\.created_at IS DISTINCT FROM OLD\.created_at/);
 });
+
+
+test('owner payment notifications stay in sync after income updates and deletions', () => {
+    const syncMigration = fs.readFileSync(
+        path.join(root, 'supabase/migrations/20261103180000_sync_owner_payment_notifications.sql'),
+        'utf8'
+    );
+    assert.match(syncMigration, /AFTER DELETE ON public\\.income/);
+    assert.match(syncMigration, /AFTER UPDATE OF building_id, resident_id, amount, month, notes ON public\\.income/);
+    assert.match(syncMigration, /income-batch:/);
+    assert.match(syncMigration, /DELETE FROM public\\.notifications/);
+    assert.match(syncMigration, /ON CONFLICT \\(building_id, target_scope, dedupe_key\\)/);
+});
