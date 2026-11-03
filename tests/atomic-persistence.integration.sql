@@ -4,6 +4,7 @@
 \ir ../supabase/migrations/20261103050000_allow_all_five_themes.sql
 \ir ../supabase/migrations/20261103060000_effective_dated_subscription_rates.sql
 \ir ../supabase/migrations/20261103070000_atomic_subscription_rate_snapshot.sql
+\ir ../supabase/migrations/20261103073000_restrict_subscription_rate_visibility.sql
 
 INSERT INTO public.profiles (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),
@@ -149,10 +150,35 @@ BEGIN
 
     v_payload := jsonb_set(v_payload, '{residents}',
       (v_payload->'residents') || '[{"id":"30000000-0000-4000-8000-000000000002","user_id":"10000000-0000-4000-8000-000000000003","name":"Owner B","apartment_number":"B1","monthly_amount":100}]'::jsonb);
+    v_payload := jsonb_set(v_payload, '{subscription_rates}',
+      (v_payload->'subscription_rates') || '[{"resident_id":"30000000-0000-4000-8000-000000000002","effective_month":"2026-11-01","monthly_amount":100}]'::jsonb);
     v_result := public.persist_building_snapshot(v_building, 2,
         '40000000-0000-4000-8000-000000000006', v_payload);
     IF v_result->>'ok' <> 'true' OR (v_result->>'version')::bigint <> 3 THEN
         RAISE EXCEPTION 'second snapshot failed: %', v_result;
+    END IF;
+
+    IF (SELECT count(*) FROM public.resident_subscription_rates WHERE building_id = v_building) <> 2 THEN
+        RAISE EXCEPTION 'manager cannot read all subscription rates';
+    END IF;
+
+    PERFORM set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
+    IF (SELECT count(*) FROM public.resident_subscription_rates WHERE building_id = v_building) <> 1
+       OR EXISTS (SELECT 1 FROM public.resident_subscription_rates
+                  WHERE building_id = v_building AND resident_id <> '30000000-0000-4000-8000-000000000001') THEN
+        RAISE EXCEPTION 'owner A can read another resident subscription rate';
+    END IF;
+
+    PERFORM set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000003', true);
+    IF (SELECT count(*) FROM public.resident_subscription_rates WHERE building_id = v_building) <> 1
+       OR EXISTS (SELECT 1 FROM public.resident_subscription_rates
+                  WHERE building_id = v_building AND resident_id <> '30000000-0000-4000-8000-000000000002') THEN
+        RAISE EXCEPTION 'owner B can read another resident subscription rate';
+    END IF;
+
+    PERFORM set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+    IF (SELECT count(*) FROM public.resident_subscription_rates WHERE building_id = v_building) <> 2 THEN
+        RAISE EXCEPTION 'manager subscription rate visibility was restricted';
     END IF;
 
     v_payload := jsonb_set(v_payload, '{residents}',
