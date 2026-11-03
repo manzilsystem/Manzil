@@ -18,6 +18,14 @@ function getCashAccountBalance(code) {
     return Number.isFinite(value) ? value : 0;
 }
 
+function hasValidCashboxBalances(balances) {
+    return Boolean(balances && typeof balances === 'object' && !Array.isArray(balances) &&
+        Object.keys(CASH_ACCOUNTS).every(code =>
+            Object.prototype.hasOwnProperty.call(balances, code) &&
+            Number.isFinite(Number(balances[code]))
+        ));
+}
+
 function calculateCashboxAccountingTotals() {
     const cents = value => {
         const amount = Number(value);
@@ -209,7 +217,9 @@ async function submitCashTransfer(event) {
             toast(`الرصيد الفعلي المتاح هو ${fmtNum(data.available_balance)} ج.م. تم إلغاء التحويل.`, 'error');
             return;
         }
-        if (!data?.ok || !Number.isInteger(Number(data.version))) {
+        if (!data?.ok || !Number.isSafeInteger(Number(data.version)) || Number(data.version) < 1 ||
+            (!data.duplicate && (!hasValidCashboxBalances(data.balances) ||
+                typeof data.audit_log_id !== 'string' || !data.audit_log_id.trim()))) {
             throw new Error('Invalid cash transfer response');
         }
 
