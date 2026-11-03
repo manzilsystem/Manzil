@@ -51,9 +51,18 @@ function createTransferHarness(options = {}) {
         toast: (message, type) => calls.toasts.push({ message, type }),
         renderAll: () => { calls.renders += 1; },
         refreshCashboxSummary: async () => { calls.refreshes += 1; },
+        loadState: async () => {
+            calls.loads = (calls.loads || 0) + 1;
+            sandbox.state.cashAccountBalances = options.loadedBalances || {
+                main: 90, development: 30, emergency: 30
+            };
+            sandbox.activeBuildingVersion = 5;
+            return true;
+        },
         supabaseClient: {
             rpc: async (name, args) => {
                 calls.rpc.push({ name, args });
+                if (options.rpcResults?.length) return options.rpcResults.shift();
                 return options.rpcResult || {
                     data: {
                         ok: true,
@@ -116,4 +125,72 @@ test('cash transfer form rejects an amount above the local balance before callin
     assert.equal(harness.calls.refreshes, 0);
     assert.equal(harness.calls.renders, 0);
     assert.equal(harness.calls.toasts.at(-1).type, 'error');
+});
+
+
+test('cash transfer preserves the pending request and local balances after an uncertain network failure', async () => {
+    const networkError = new Error('network unavailable');
+    const harness = createTransferHarness({
+        rpcResults: [
+            { data: null, error: networkError },
+            {
+                data: {
+                    ok: true,
+                    duplicate: true,
+                    version: 5,
+                    balances: { main: 90, development: 30, emergency: 30 }
+                },
+                error: null
+            }
+        ]
+    });
+    const initialBalances = { ...harness.sandbox.state.cashAccountBalances };
+
+    await harness.api.submitCashTransfer(harness.event);
+
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(harness.sandbox.state.cashAccountBalances)),
+        initialBalances
+    );
+    assert.equal(harness.calls.reset, undefined);
+    assert.equal(harness.calls.toasts.at(-1).type, 'error');
+    assert.equal(harness.calls.rpc.length, 1);
+
+    await harness.api.submitCashTransfer(harness.event);
+
+    assert.equal(harness.calls.rpc.length, 2);
+    assert.equal(
+        harness.calls.rpc[0].args.p_request_id,
+        harness.calls.rpc[1].args.p_request_id
+    );
+    assert.equal(harness.calls.reset, true);
+    assert.equal(harness.calls.toasts.at(-1).type, 'success');
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(harness.sandbox.state.cashAccountBalances)),
+        { main: 90, development: 30, emergency: 30 }
+    );
+});
+
+test('cash transfer applies the authoritative insufficient-balance response without reporting success', async () => {
+    const harness = createTransferHarness({
+        rpcResult: {
+            data: {
+                ok: false,
+                insufficient_balance: true,
+                available_balance: 7.25,
+                version: 4
+            },
+            error: null
+        }
+    });
+
+    await harness.api.submitCashTransfer(harness.event);
+
+    assert.equal(harness.calls.rpc.length, 1);
+    assert.equal(harness.sandbox.state.cashAccountBalances.main, 7.25);
+    assert.equal(harness.sandbox.state.cashAccountBalances.development, 20);
+    assert.equal(harness.calls.reset, undefined);
+    assert.equal(harness.calls.renders, 0);
+    assert.equal(harness.calls.toasts.at(-1).type, 'error');
+    assert.notEqual(harness.calls.toasts.at(-1).type, 'success');
 });
