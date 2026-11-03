@@ -2,6 +2,7 @@
 \ir notification-building-isolation.integration.sql
 
 \ir ../supabase/migrations/20261103165000_revoke_unused_table_grants.sql
+\ir ../supabase/migrations/20261103172000_revoke_direct_financial_table_writes.sql
 
 DO $grant_checks$
 DECLARE
