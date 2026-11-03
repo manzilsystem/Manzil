@@ -90,6 +90,10 @@ async function loadBackupConsole(options = {}) {
         if (!requireManager()) return;
         const last = document.getElementById('backupLastStatus');
         if (!last) return;
+        const restoreButton = document.getElementById('backupRestoreButton');
+        const createButton = document.getElementById('backupCreateButton');
+        if (restoreButton) restoreButton.disabled = true;
+        if (createButton) createButton.disabled = true;
 
         let hasCache = false;
         try {
