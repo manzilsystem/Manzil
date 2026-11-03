@@ -96,7 +96,7 @@ BEGIN
             SELECT 1 FROM jsonb_to_recordset(p_payload->'subscription_rates') AS rate(
                 resident_id uuid, effective_month date, monthly_amount numeric
             ) WHERE rate.resident_id IS NULL
-               OR NOT (rate.resident_id = ANY(v_resident_ids))
+               OR NOT (p_payload->'residents' @> jsonb_build_array(jsonb_build_object('id', rate.resident_id::text)))
         ) THEN
             RAISE EXCEPTION 'invalid_subscription_rate_resident' USING ERRCODE = '22023';
         END IF;
