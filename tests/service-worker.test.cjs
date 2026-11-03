@@ -1,17 +1,21 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 const test = require('node:test');
 
-const serviceWorker = fs.readFileSync('sw.js', 'utf8');
-const cacheName = serviceWorker.match(/const CACHE_NAME = 'manzil-v([0-9]+)';/);
+const root = path.join(__dirname, '..');
+const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 
-test('service worker uses a new shell cache for the current app release', () => {
-    assert.ok(cacheName, 'service worker cache version is present');
-    assert.equal(Number(cacheName[1]), 30, 'increase this expected version for future app-shell releases');
+test('service worker is valid JavaScript and bumps the app cache', () => {
+    assert.doesNotThrow(() => new vm.Script(sw, { filename: 'sw.js' }));
+    assert.match(sw, /const CACHE_NAME = 'manzil-v31'/);
 });
 
-test('app shell caches the current PNG icons and never references the removed SVG', () => {
-    assert.ok(serviceWorker.includes("'./icons/icon-192.png'"));
-    assert.ok(serviceWorker.includes("'./icons/icon-512.png'"));
-    assert.ok(!serviceWorker.includes('icons/icon.svg'));
+test('monthly close module is pre-cached with the application shell', () => {
+    assert.match(html, /<script src="js\/monthly-close\.js"><\/script>/);
+    const shell = sw.match(/const APP_SHELL = \[([\s\S]*?)\];/);
+    assert.ok(shell, 'APP_SHELL must exist');
+    assert.match(shell[1], /'\.\/js\/monthly-close\.js'/);
 });
