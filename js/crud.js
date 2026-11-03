@@ -471,10 +471,27 @@ function isValidBackup(data) {
     const validAmount = value => validNumber(value) && Number(value) >= 0;
     if (!data.residents.every(r => r && typeof r === 'object' && validId(r.id) && typeof r.name === 'string' && typeof r.apartmentNumber === 'string' && (r.phone === undefined || typeof r.phone === 'string') && (r.notes === undefined || typeof r.notes === 'string') && validAmount(r.monthlyAmount ?? 0))) return false;
     if (!data.residents.every(r => r.userId === undefined || r.userId === null || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(r.userId)))) return false;
+    const hasUnique = values => new Set(values).size === values.length;
+    if (!hasUnique(data.residents.map(r => r.id))) return false;
+    const apartmentKeys = data.residents.map(r => String(r.apartmentNumber).trim().toLocaleLowerCase('ar-EG'));
+    if (!hasUnique(apartmentKeys)) return false;
+    if (!data.residents.every(r => {
+        if (r.subscriptionRates === undefined) return true;
+        if (!Array.isArray(r.subscriptionRates)) return false;
+        const months = r.subscriptionRates.map(rate => rate?.effectiveMonth);
+        return hasUnique(months) && r.subscriptionRates.every(rate =>
+            rate && typeof rate === 'object' &&
+            /^\d{4}-(0[1-9]|1[0-2])-01$/.test(String(rate.effectiveMonth || '')) &&
+            validAmount(rate.monthlyAmount)
+        );
+    })) return false;
     const residentIds = new Set(data.residents.map(r => r.id));
     if (!data.income.every(i => i && typeof i === 'object' && validId(i.id) && validId(i.residentId) && residentIds.has(i.residentId) && typeof i.month === 'string' && validAmount(i.amount) && (i.notes === undefined || typeof i.notes === 'string'))) return false;
+    if (!hasUnique(data.income.map(i => i.id))) return false;
     if (!data.expenses.every(e => e && typeof e === 'object' && validId(e.id) && typeof e.title === 'string' && typeof e.month === 'string' && validAmount(e.amount) && (e.category === undefined || typeof e.category === 'string') && (e.notes === undefined || typeof e.notes === 'string'))) return false;
+    if (!hasUnique(data.expenses.map(e => e.id))) return false;
     if (!data.notices.every(n => n && typeof n === 'object' && validId(n.id) && typeof n.text === 'string')) return false;
+    if (!hasUnique(data.notices.map(n => n.id))) return false;
     if (data.auditLogs !== undefined && !Array.isArray(data.auditLogs)) return false;
     if (data.currentTheme !== undefined && !['dark','light','emerald','ocean','sand'].includes(data.currentTheme)) return false;
     if (data.defaultSubscription !== undefined && !validAmount(data.defaultSubscription)) return false;
