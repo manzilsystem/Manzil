@@ -35,6 +35,9 @@ CREATE TABLE IF NOT EXISTS public.cash_transfers (
     CONSTRAINT cash_transfers_request_unique UNIQUE (building_id, request_id)
 );
 
+ALTER TABLE public.cash_transfers
+    ADD COLUMN IF NOT EXISTS audit_log_id uuid REFERENCES public.audit_logs(id) ON DELETE SET NULL;
+
 CREATE INDEX IF NOT EXISTS cash_transfers_building_transferred_idx
     ON public.cash_transfers (building_id, transferred_at DESC);
 
@@ -201,8 +204,8 @@ BEGIN
         RAISE EXCEPTION 'building_not_found' USING ERRCODE = 'P0002';
     END IF;
 
-    SELECT transfer.id
-    INTO v_transfer_id
+    SELECT transfer.id, transfer.audit_log_id
+    INTO v_transfer_id, v_audit_log_id
     FROM public.cash_transfers transfer
     WHERE transfer.building_id = p_building_id
       AND transfer.request_id = p_request_id;
@@ -214,6 +217,7 @@ BEGIN
             'duplicate', true,
             'version', v_version,
             'transfer_id', v_transfer_id,
+            'audit_log_id', v_audit_log_id,
             'balances', v_summary->'balances'
         );
     END IF;
@@ -253,6 +257,10 @@ BEGIN
         p_from_account_code || ' → ' || p_to_account_code || ' · ' || p_amount::text || ' ج.م',
         v_actor
     ) RETURNING id INTO v_audit_log_id;
+
+    UPDATE public.cash_transfers
+    SET audit_log_id = v_audit_log_id
+    WHERE id = v_transfer_id;
 
     v_summary := private.get_cashbox_summary(p_building_id);
     RETURN jsonb_build_object(
