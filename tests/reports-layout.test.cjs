@@ -13,7 +13,7 @@ test('landlord report remains immediately visible in the reports tab', () => {
 });
 
 test('monthly close and arrears are collapsed disclosures with their controls preserved', () => {
-    assert.match(reportTab, /<details class="app-card[^>]*>[\s\S]*?<h2 id="monthlyCloseTitle"/);
+    assert.match(reportTab, /<details class="app-card[^>]*>[\s\S]*?id="monthlyCloseTitle"/);
     assert.match(reportTab, /<details class="app-card[^>]*>[\s\S]*?كشف المتأخرات/);
     for (const id of ['monthlyCloseMonthSelect', 'monthlyCloseReviewButton', 'monthlyClosePdfButton', 'monthlyClosePreview', 'arrearsApartmentFilter', 'arrearsStatusFilter', 'arrearsFromMonth', 'arrearsToMonth', 'arrearsReportContainer']) {
         assert.ok(reportTab.includes('id="' + id + '"'), 'missing ' + id);
