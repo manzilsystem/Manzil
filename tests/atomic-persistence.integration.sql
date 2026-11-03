@@ -9,6 +9,7 @@
 \ir ../supabase/migrations/20261103063455_owner_login_rate_limit.sql
 \ir ../supabase/migrations/20261103064001_subscription_rate_change_history.sql
 \ir ../supabase/migrations/20261103070519_owner_payment_notifications.sql
+\ir ../supabase/migrations/20261103080000_restrict_notification_update_columns.sql
 
 INSERT INTO public.profiles (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),
@@ -228,6 +229,13 @@ BEGIN
             AND kind = 'payment'
        ) THEN
         RAISE EXCEPTION 'owner A cannot read only their own payment notification';
+    END IF;
+    IF has_table_privilege('authenticated', 'public.notifications', 'UPDATE')
+       OR NOT has_column_privilege('authenticated', 'public.notifications', 'read_at', 'UPDATE')
+       OR has_column_privilege('authenticated', 'public.notifications', 'title', 'UPDATE')
+       OR has_column_privilege('authenticated', 'public.notifications', 'body', 'UPDATE')
+       OR has_column_privilege('authenticated', 'public.notifications', 'target_user_id', 'UPDATE') THEN
+        RAISE EXCEPTION 'authenticated notification update grants are not restricted to read_at';
     END IF;
     UPDATE public.notifications SET read_at = now()
     WHERE target_user_id = '10000000-0000-4000-8000-000000000002';
