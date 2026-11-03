@@ -332,7 +332,7 @@ function renderResidentsGrid() {
         return { key: 'overdue', label: 'غير مسدد', className: 'text-rose-400 bg-rose-500/10 border-rose-500/20' };
     };
     let list = state.residents.map(r => ({ r, status: getStatus(r), debt: calculateCumulativeDebt(r.id) }));
-    if (s) list = list.filter(item => String(item.r.name||'').toLocaleLowerCase('ar-EG').includes(s) || String(item.r.apartmentNumber||'').toLocaleLowerCase('ar-EG').includes(s));
+    if (s) list = list.filter(item => String(item.r.name||'').toLocaleLowerCase('ar-EG').includes(s) || String(item.r.apartmentNumber||'').toLocaleLowerCase('ar-EG').includes(s) || String(item.r.floor||'').toLocaleLowerCase('ar-EG').includes(s));
     if (statusFilter !== 'all') list = list.filter(item => item.status.key === statusFilter);
     list.sort((a, b) => {
         if (sortBy === 'debt') return b.debt.totalDebt - a.debt.totalDebt;
