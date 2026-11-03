@@ -36,6 +36,7 @@ function getCurrentMonth() { const d = new Date(); return `${monthsNames[d.getMo
 
 let state = {
     buildingName:'', managerName:'', managerPhone:'', defaultSubscription:0, startingBalance:0,
+    floorCount:0, apartmentsPerFloor:0,
     currentTheme:'dark',
     residents:[], income:[], expenses:[], notices:[], ownerNotifications:[], auditLogs:[],
     cashAccountBalances: { main: 0, development: 0, emergency: 0 }, cashTransfers: [], lastUpdated:0

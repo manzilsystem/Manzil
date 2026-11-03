@@ -30,6 +30,8 @@ function openSettingsModal() {
     document.getElementById('settingsManagerPhone').value = state.managerPhone||'';
     document.getElementById('settingsDefaultSub').value = state.defaultSubscription||'';
     document.getElementById('settingsStartingBalance').value = state.startingBalance ?? '';
+    document.getElementById('settingsFloorCount').value = state.floorCount || '';
+    document.getElementById('settingsApartmentsPerFloor').value = state.apartmentsPerFloor || '';
     const account = document.getElementById('settingsAccountEmail');
     if (account) account.textContent = currentUserRole === 'manager'
         ? (activeSession?.user?.email || '—')
@@ -46,8 +48,15 @@ async function saveSettings() {
     if (!requireManager()) return;
     const defaultSubscription = Number(document.getElementById('settingsDefaultSub').value || 0);
     const startingBalance = Number(document.getElementById('settingsStartingBalance').value || 0);
-    if (!Number.isFinite(defaultSubscription) || defaultSubscription < 0 || !Number.isFinite(startingBalance)) {
-        toast('تحقق من قيم الاشتراك والرصيد الافتتاحي','error'); return;
+    const floorCount = Number(document.getElementById('settingsFloorCount').value || 0);
+    const apartmentsPerFloor = Number(document.getElementById('settingsApartmentsPerFloor').value || 0);
+    const validLayout = (floorCount === 0 && apartmentsPerFloor === 0)
+        || (Number.isInteger(floorCount) && floorCount >= 1 && floorCount <= 100
+            && Number.isInteger(apartmentsPerFloor) && apartmentsPerFloor >= 1 && apartmentsPerFloor <= 100);
+    if (!Number.isFinite(defaultSubscription) || defaultSubscription < 0
+        || !Number.isFinite(startingBalance) || !validLayout) {
+        toast('تحقق من قيم الاشتراك والرصيد وعدد الأدوار والشقق (من 1 إلى 100).', 'error');
+        return;
     }
     const previousState = cloneStateSnapshot();
     state.buildingName = document.getElementById('settingsBuildingName').value.trim();
@@ -55,8 +64,29 @@ async function saveSettings() {
     state.managerPhone = document.getElementById('settingsManagerPhone').value.trim();
     state.defaultSubscription = defaultSubscription;
     state.startingBalance = startingBalance;
-    if (!await saveWithRollback(previousState)) return;
-    renderAll(); updateAccessSwitchButton(); closeModal('settingsModal'); toast('تم الحفظ','success');
+    state.floorCount = floorCount;
+    state.apartmentsPerFloor = apartmentsPerFloor;
+
+    const { data: layoutResult, error: layoutError } = await supabaseClient.rpc('set_building_apartment_layout', {
+        p_building_id: activeBuildingId,
+        p_floor_count: floorCount,
+        p_apartments_per_floor: apartmentsPerFloor
+    });
+    if (layoutError || !layoutResult?.ok) {
+        state = previousState;
+        toast('تعذر حفظ إعدادات الأدوار والشقق. لم يتم اعتماد التغيير.', 'error');
+        return;
+    }
+    if (!await saveWithRollback(previousState)) {
+        const rollback = await supabaseClient.rpc('set_building_apartment_layout', {
+            p_building_id: activeBuildingId,
+            p_floor_count: previousState.floorCount || 0,
+            p_apartments_per_floor: previousState.apartmentsPerFloor || 0
+        });
+        if (rollback.error) toast('فشل حفظ الإعدادات، وتعذر التراجع عن إعدادات الأدوار. أعد تحميل المبنى للتحقق.', 'error');
+        return;
+    }
+    renderAll(); updateAccessSwitchButton(); closeModal('settingsModal'); toast('تم حفظ إعدادات العقار', 'success');
 }
 
 async function sendSettingsPasswordReset() {

@@ -13,7 +13,7 @@ test('manager load selects only fields consumed by application state', () => {
     assert.notEqual(end, -1);
 
     assert.ok(loadState.includes(
-        "from('buildings').select('id,name,manager_name,manager_phone,default_subscription,starting_balance,current_theme,state_version')"
+        "from('buildings').select('id,name,manager_name,manager_phone,default_subscription,starting_balance,current_theme,floor_count,apartments_per_floor,state_version')"
     ));
 
     assert.ok(loadState.includes(
