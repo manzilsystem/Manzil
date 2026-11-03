@@ -16,21 +16,21 @@ VALUES
 (
     '10000000-0000-4000-8000-000000000001',
     'authenticated', 'authenticated', 'manager@manzil.invalid',
-    crypt('Manzil-Local-Only-2026!', gen_salt('bf')), now(), now(),
+    extensions.crypt('Manzil-Local-Only-2026!', extensions.gen_salt('bf')), now(), now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
     '{"full_name":"مدير تجريبي"}'::jsonb, now(), now()
 ),
 (
     '10000000-0000-4000-8000-000000000002',
     'authenticated', 'authenticated', '201555001101@phone-login.manzil.invalid',
-    crypt('123456', gen_salt('bf')), now(), now(),
+    extensions.crypt('123456', extensions.gen_salt('bf')), now(), now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
     '{"full_name":"مالك تجريبي 101","phone":"+201555001101"}'::jsonb, now(), now()
 ),
 (
     '10000000-0000-4000-8000-000000000003',
     'authenticated', 'authenticated', '201555001102@phone-login.manzil.invalid',
-    crypt('654321', gen_salt('bf')), now(), now(),
+    extensions.crypt('654321', extensions.gen_salt('bf')), now(), now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
     '{"full_name":"مالك تجريبي 102","phone":"+201555001102"}'::jsonb, now(), now()
 )
@@ -343,7 +343,7 @@ BEGIN
         SELECT 1 FROM auth.users
         WHERE id = v_manager_id
           AND email = 'manager@manzil.invalid'
-          AND encrypted_password = crypt('Manzil-Local-Only-2026!', encrypted_password)
+          AND encrypted_password = extensions.crypt('Manzil-Local-Only-2026!', encrypted_password)
     ) THEN
         RAISE EXCEPTION 'local_manager_auth_fixture_invalid';
     END IF;
