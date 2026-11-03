@@ -21,7 +21,8 @@ test('backup console requires a verified manager session', () => {
     assert.match(edge, /if \(!token\) return json\(401, \{ error: 'unauthorized' \}\)/);
     assert.match(edge, /caller\.auth\.getUser\(token\)/);
     assert.match(edge, /eq\('role', 'manager'\)/);
-    assert.match(edge, /if \(memberError \|\| !membership\) return json\(403, \{ error: 'manager_only' \}\)/);
+    assert.match(edge, /if \(memberError\) return json\(500, \{ error: 'membership_check_failed' \}\)/);
+    assert.match(edge, /if \(!membership\) return json\(403, \{ error: 'manager_only' \}\)/);
 });
 
 test('database-wide restore requires management access to every building', () => {
