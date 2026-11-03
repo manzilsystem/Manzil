@@ -57,7 +57,7 @@ function previewCashTransfer() {
     const validAmount = Number.isFinite(amount) && amount > 0;
     const validAccounts = Boolean(CASH_ACCOUNTS[from] && CASH_ACCOUNTS[to] && from !== to);
     const available = getCashAccountBalance(from);
-    const sufficient = from === 'main' || amount <= available + 0.000001;
+    const sufficient = amount <= available + 0.000001;
     const valid = validAmount && validAccounts && sufficient;
 
     if (submit) submit.disabled = !valid || cashTransferSaving;
@@ -106,7 +106,7 @@ async function submitCashTransfer(event) {
         toast('راجع الصندوقين والمبلغ والملاحظات قبل التحويل.', 'error');
         return;
     }
-    if (fromAccountCode !== 'main' && amount > available + 0.000001) {
+    if (amount > available + 0.000001) {
         toast(`الرصيد المتاح في ${getCashAccountLabel(fromAccountCode)} غير كافٍ.`, 'error');
         return;
     }
