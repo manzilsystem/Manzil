@@ -29,6 +29,18 @@ test('restore retains the existing archive checksum and custom-format validation
     assert.match(workflow, /--single-transaction --exit-on-error/);
 });
 
-test('restore request claiming retains row-level concurrency locking', () => {
-    assert.match(workflow, /FOR UPDATE OF r SKIP LOCKED/);
+test('restore request is claimed atomically with SKIP LOCKED', () => {
+    assert.match(workflow, /WITH next_request AS \\(SELECT r\\.id FROM public\\.restore_requests r WHERE r\\.status='queued'[\\s\\S]*?FOR UPDATE SKIP LOCKED LIMIT 1\\) UPDATE public\\.restore_requests r SET status='running'/);
+    assert.match(workflow, /RETURNING r\\.id::text[\\s\\S]*?COALESCE\\(\\(SELECT b\\.sha256 FROM public\\.backup_catalog b WHERE b\\.tag=r\\.backup_tag\\), ''\\)/);
+    assert.doesNotMatch(workflow, /SELECT r\\.id::text[\\s\\S]*?FOR UPDATE OF r SKIP LOCKED/);
+});
+
+test('missing or malformed catalog digest is terminally failed before download or restore', () => {
+    const invalidDigest = workflow.indexOf('if [[ ! "$expected_sha" =~');
+    const failUpdate = workflow.indexOf("status='failed',finished_at=now(),result_message='بصمة النسخة غير موجودة أو غير صالحة في سجل النسخ'");
+    const download = workflow.indexOf('gh release download');
+    assert.ok(invalidDigest >= 0, 'catalog digest must be validated');
+    assert.ok(failUpdate > invalidDigest, 'invalid digest must transition the claimed request to failed');
+    assert.ok(download > failUpdate, 'invalid digest must fail before downloading or restoring');
+    assert.match(workflow, /trap - ERR/);
 });
