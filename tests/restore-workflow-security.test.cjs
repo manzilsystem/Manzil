@@ -58,8 +58,8 @@ test('restore worker suppresses psql command tags so empty RETURNING results sta
 });
 
 test('restore worker authenticates against the Supabase pooler before selecting a host', () => {
-    assert.match(restoreWorkflow, /Verify Supabase session-pooler connection/);
-    assert.match(restoreWorkflow, /for password_mode in decoded encoded/);
-    assert.match(restoreWorkflow, /-c "SELECT 1"/);
-    assert.match(restoreWorkflow, /PGHOST=\$candidate/);
+    assert.match(workflow, /Verify Supabase session-pooler connection/);
+    assert.match(workflow, /for password_mode in decoded encoded/);
+    assert.match(workflow, /-c "SELECT 1"/);
+    assert.match(workflow, /PGHOST=\$candidate/);
 });
