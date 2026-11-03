@@ -1,4 +1,5 @@
 let backupConsoleRefreshTimer = null;
+let backupConsoleLoadPromise = null;
 let activeRestoreRequestId = null;
 function backupCacheKey() { return 'manzil.backup-console.v1.' + (activeBuildingId || 'none'); }
 
@@ -45,8 +46,9 @@ function renderBackupConsole(data, cached = false) {
 
     const restorePending = restoreRequests.some(item => ['queued', 'running'].includes(item.status));
     const backupPending = backupRequests.some(item => ['queued', 'dispatched'].includes(item.status));
-    restoreButton.disabled = !backups.length || restorePending || backupPending;
-    createButton.disabled = backupPending || restorePending;
+    // Cached state is display-only; destructive/financial actions require a fresh server read.
+    restoreButton.disabled = cached || !backups.length || restorePending || backupPending;
+    createButton.disabled = cached || backupPending || restorePending;
 
     last.textContent = backups.length
         ? (cached ? 'نسخة محفوظة محليًا — ' : '') + 'آخر نسخة: ' + new Date(backups[0].created_at).toLocaleString('ar-EG') + ' — ' + formatBackupBytes(backups[0].size_bytes)
@@ -82,31 +84,48 @@ function scheduleBackupConsoleRefresh(shouldRefresh) {
 }
 
 async function loadBackupConsole(options = {}) {
-    if (document.getElementById('backupModal')?.classList.contains('hidden')) return;
-    if (!requireManager()) return;
-    const last = document.getElementById('backupLastStatus');
-    if (!last) return;
+    if (backupConsoleLoadPromise) return backupConsoleLoadPromise;
+    backupConsoleLoadPromise = (async () => {
+        if (document.getElementById('backupModal')?.classList.contains('hidden')) return;
+        if (!requireManager()) return;
+        const last = document.getElementById('backupLastStatus');
+        if (!last) return;
 
-    let hasCache = false;
-    try {
-        const cached = JSON.parse(localStorage.getItem(backupCacheKey()) || 'null');
-        if (cached && Array.isArray(cached.backups)) {
-            hasCache = true;
-            renderBackupConsole(cached, true);
+        let hasCache = false;
+        try {
+            const cached = JSON.parse(localStorage.getItem(backupCacheKey()) || 'null');
+            if (cached && Array.isArray(cached.backups)) {
+                hasCache = true;
+                renderBackupConsole(cached, true);
+            }
+        } catch { /* Ignore invalid local cache. */ }
+
+        if (!hasCache && !options.silent) last.textContent = 'جارٍ تحميل النسخ من الخادم لأول مرة...';
+        try {
+            const data = await callBackupConsole({ action: 'list' });
+            localStorage.setItem(backupCacheKey(), JSON.stringify(data));
+            renderBackupConsole(data, false);
+            const refreshNotice = document.getElementById('backupRefreshNotice');
+            if (refreshNotice) refreshNotice.textContent = 'تم تحديث الحالة من الخادم الآن.';
+        } catch (error) {
+            last.textContent = hasCache
+                ? 'تعذر تحديث البيانات؛ المعروض سجل محفوظ محليًا وقد لا يعكس الحالة الحالية.'
+                : 'تعذر تحميل النسخ. تحقق من الاتصال ثم اضغط تحديث.';
+            const refreshNotice = document.getElementById('backupRefreshNotice');
+            if (refreshNotice) refreshNotice.textContent = 'فشل الاتصال بالخادم. أعد المحاولة قبل إنشاء نسخة أو طلب استعادة.';
+            // Retry while the modal remains open; cached state never enables actions.
+            if (!document.getElementById('backupModal')?.classList.contains('hidden')) {
+                scheduleBackupConsoleRefresh(true);
+            }
+            console.error('Backup console error:', error);
         }
-    } catch { /* Ignore invalid local cache. */ }
-
-    if (!hasCache && !options.silent) last.textContent = 'جارٍ تحميل النسخ من الخادم لأول مرة...';
+    })();
     try {
-        const data = await callBackupConsole({ action: 'list' });
-        localStorage.setItem(backupCacheKey(), JSON.stringify(data));
-        renderBackupConsole(data, false);
-    } catch (error) {
-        if (!hasCache) last.textContent = 'تعذر تحميل النسخ. تحقق من الاتصال ثم أعد فتح النافذة.';
-        console.error('Backup console error:', error);
+        return await backupConsoleLoadPromise;
+    } finally {
+        backupConsoleLoadPromise = null;
     }
 }
-
 async function requestDatabaseBackup() {
     if (!requireManager()) return;
     const button = document.getElementById('backupCreateButton');
