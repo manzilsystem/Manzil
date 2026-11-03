@@ -24,6 +24,7 @@ function updateThemeSelection() {
     if (label) label.textContent = SETTINGS_THEME_NAMES[theme];
 }
 let ownerProvisionRequested = false;
+let incomeSaving = false;
 
 function openResidentModal(mode, id) {
     if (!requireManager()) return;
@@ -380,23 +381,119 @@ async function quickPayResident(residentId) {
     toast(`تم تسجيل باقي اشتراك ${month}`,'success');
 }
 
+function previewIncomeAllocation() {
+    const preview = document.getElementById('incomeAllocationPreview');
+    const summary = document.getElementById('incomeAllocationSummary');
+    const rows = document.getElementById('incomeAllocationRows');
+    const submit = document.getElementById('incomeSubmitButton');
+    if (!preview || !summary || !rows) return;
+
+    const residentId = document.getElementById('incomeResident')?.value || '';
+    const amount = Number(document.getElementById('incomeAmount')?.value);
+    const month = document.getElementById('incomeMonth')?.value || '';
+    const ready = Boolean(residentId && month && Number.isFinite(amount) && amount > 0);
+    if (!ready) {
+        preview.classList.add('hidden');
+        if (submit) submit.disabled = false;
+        return;
+    }
+
+    const result = calculateIncomeAllocationPreview(residentId, amount, month);
+    preview.classList.remove('hidden');
+    if (result.invalidStart) {
+        summary.textContent = 'لا يمكن توزيع التحصيل قبل تاريخ إنشاء الشقة.';
+        rows.innerHTML = '';
+        if (submit) submit.disabled = true;
+        return;
+    }
+    if (result.invalid || !result.allocations.length) {
+        summary.textContent = 'لا توجد اشتراكات مستحقة يمكن توزيع المبلغ عليها من هذا الشهر.';
+        rows.innerHTML = '';
+        if (submit) submit.disabled = true;
+        return;
+    }
+
+    summary.textContent = result.remainingCents > 0
+        ? `تم توزيع ${fmtNum(result.totalAllocated)} من ${fmtNum(amount)} ج.م. المتبقي ${fmtNum(result.remainingAmount)} ج.م خارج نطاق التوزيع؛ قلّل المبلغ.`
+        : `سيتم توزيع ${fmtNum(result.totalAllocated)} ج.م على ${result.allocations.length} شهر، بدءًا من أقدم شهر غير مسدد.`;
+    rows.innerHTML = result.allocations.map(item =>
+        `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${esc(item.month)}</span><strong class="text-emerald-400">${fmtNum(item.amount)} ج.م</strong></div>`
+    ).join('');
+    if (submit) submit.disabled = result.remainingCents > 0;
+}
+
 async function handleIncomeSubmit(e) {
-    if (!requireManager()) return;
+    if (!requireManager() || incomeSaving) return;
     e.preventDefault();
     const residentId = document.getElementById('incomeResident').value;
     const amount = Number(document.getElementById('incomeAmount').value);
     const month = document.getElementById('incomeMonth').value;
     const notes = document.getElementById('incomeNotes').value.trim();
-    if (!residentId || !Number.isFinite(amount) || amount <= 0 || !month) { toast('اختر الشقة والشهر وأدخل مبلغاً أكبر من صفر','error'); return; }
-    const r = state.residents.find(x => x.id === residentId);
-    if (!r) { toast('الشقة المحددة غير موجودة؛ حدّث القائمة ثم حاول مجدداً','error'); return; }
+    if (!residentId || !Number.isFinite(amount) || amount <= 0 || !month) {
+        toast('اختر الشقة والشهر وأدخل مبلغاً أكبر من صفر', 'error');
+        return;
+    }
+    const resident = state.residents.find(item => item.id === residentId);
+    if (!resident) {
+        toast('الشقة المحددة غير موجودة؛ حدّث القائمة ثم حاول مجدداً', 'error');
+        return;
+    }
+
+    const allocation = calculateIncomeAllocationPreview(residentId, amount, month);
+    if (allocation.invalid || !allocation.allocations.length || allocation.remainingCents > 0) {
+        previewIncomeAllocation();
+        toast('تعذر توزيع كامل المبلغ على فترات الاشتراك. راجع المعاينة أو قلّل المبلغ.', 'error');
+        return;
+    }
+
+    incomeSaving = true;
+    const submit = document.getElementById('incomeSubmitButton');
+    if (submit) {
+        submit.disabled = true;
+        submit.textContent = 'جارٍ الحفظ...';
+    }
     const previousState = cloneStateSnapshot();
-    state.income.push({ id: generateId(), residentId, amount, month, date: new Date().toISOString(), notes });
-    logAction('تحصيل', `${r?.name} - ${month} - ${fmtNum(amount)}`);
-    if (!await saveWithRollback(previousState)) return;
-    closeModal('incomeModal'); document.getElementById('incomeForm').reset(); renderAll();
-    toast('تم تسجيل التحصيل','success');;
+    const paidAt = new Date().toISOString();
+    const paymentReference = generateId().replace(/-/g, '').slice(0, 8).toUpperCase();
+    allocation.allocations.forEach((item, index) => {
+        const allocationNote = allocation.allocations.length > 1
+            ? [notes, `دفعة موزعة ${paymentReference} (${index + 1}/${allocation.allocations.length})`].filter(Boolean).join(' · ')
+            : notes;
+        state.income.push({
+            id: generateId(),
+            residentId,
+            amount: item.amount,
+            month: item.month,
+            date: paidAt,
+            notes: allocationNote
+        });
+    });
+    logAction(
+        'تحصيل موزع',
+        `${resident.name} - ${fmtNum(amount)} ج.م - ${allocation.allocations.length} شهر - ${paymentReference}`
+    );
+
+    try {
+        if (!await saveWithRollback(previousState)) return;
+        closeModal('incomeModal');
+        document.getElementById('incomeForm').reset();
+        document.getElementById('incomeAllocationPreview')?.classList.add('hidden');
+        renderAll();
+        toast(
+            allocation.allocations.length > 1
+                ? `تم توزيع التحصيل على ${allocation.allocations.length} أشهر`
+                : 'تم تسجيل التحصيل',
+            'success'
+        );
+    } finally {
+        incomeSaving = false;
+        if (submit) {
+            submit.disabled = false;
+            submit.textContent = 'حفظ التحصيل وتوزيعه';
+        }
+    }
 }
+
 
 async function deleteIncome(id) {
     if (!requireManager()) return;

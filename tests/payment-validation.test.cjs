@@ -17,7 +17,13 @@ function loadHandler(residents) {
     const sandbox = {
         state: { residents, income: [], expenses: [], notices: [], auditLogs: [] },
         requireManager: () => true,
-        document: { getElementById: id => ({ value: values[id] ?? '', reset() {} }) },
+        document: { getElementById: id => ({
+            value: values[id] ?? '',
+            reset() {},
+            classList: { add() {}, remove() {} },
+            disabled: false,
+            textContent: '',
+        }) },
         cloneStateSnapshot: () => JSON.parse(JSON.stringify(sandbox.state)),
         generateId: () => 'income-id',
         logAction: (...args) => { sandbox.state.auditLogs.push(args); },
@@ -26,6 +32,11 @@ function loadHandler(residents) {
         renderAll() {},
         toast: (...args) => messages.push(args),
         fmtNum: value => String(value),
+        calculateIncomeAllocationPreview: (residentId, amount, month) => ({
+            invalid: false,
+            allocations: [{ month, amount: Number(amount) }],
+            remainingCents: 0,
+        }),
     };
     const app = vm.runInNewContext(`${source}\n({ handleIncomeSubmit })`, sandbox, {
         filename: 'js/crud.js',
