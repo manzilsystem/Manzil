@@ -38,7 +38,7 @@ test('reissuing an existing owner PIN waits until profile, membership, and resid
 test('existing-owner reissue remains distinct from new-user creation', () => {
     assert.match(
         source,
-        /if \(createdNewUser && ownerUserId\) await admin\.auth\.admin\.deleteUser\(ownerUserId\)/
+        /if \(createdNewUser && ownerUserId\) \{[\\s\\S]*?admin\.auth\.admin\.deleteUser\(ownerUserId\)/
     );
     assert.match(source, /if \(!createdNewUser && ownerUserId\)\s*\{[\s\S]*?updateUserById/);
 });
