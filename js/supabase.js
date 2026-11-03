@@ -395,7 +395,7 @@ async function loadState() {
         isManager ? supabaseQuery('expenses') : Promise.resolve([]),
         supabaseQuery('notices'),
         isManager ? supabaseQuery('audit_logs') : Promise.resolve([]),
-        isManager ? supabaseQuery('resident_internal_notes', 'resident_id,notes') : Promise.resolve([]),
+        currentUserRole === 'manager' ? supabaseQuery('resident_internal_notes', 'resident_id,notes') : Promise.resolve([]),
         ownerNotificationsQuery,
         cashboxSummaryQuery
     ]);
