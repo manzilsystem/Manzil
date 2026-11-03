@@ -28,3 +28,9 @@ test('backup console prevents overlapping list requests and retries failed refre
     assert.match(backupUi, /if \(backupConsoleLoadPromise\) return backupConsoleLoadPromise/);
     assert.match(backupUi, /scheduleBackupConsoleRefresh\(true\)/);
 });
+
+
+test('restore session refresh is required after successful database replacement', () => {
+    assert.match(backupUi, /lockCurrentSession/);
+    assert.match(backupUi, /اكتملت استعادة قاعدة البيانات/);
+});
