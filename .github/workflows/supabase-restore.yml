@@ -37,11 +37,11 @@ jobs:
           if (!url.password) throw new Error('Missing database password');
           const encoded = url.password.replace(/%(?![0-9a-fA-F]{2})/g, '%25');
           const password = decodeURIComponent(encoded);
-          process.stdout.write(`::add-mask::${password}\n`);
-          process.stdout.write(`::add-mask::${encoded}\n`);
+          process.stdout.write(`::add-mask::${password}\\n`);
+          process.stdout.write(`::add-mask::${encoded}\\n`);
           const delimiter = `GH_ENV_${crypto.randomUUID()}`;
           fs.appendFileSync(process.env.GITHUB_ENV,
-            `PGPASSWORD<<${delimiter}\n${password}\n${delimiter}\nPGPASSWORD_ENCODED<<${delimiter}\n${encoded}\n${delimiter}\nPGPORT=5432\nPGDATABASE=postgres\nPGSSLMODE=require\n`);
+            `PGPASSWORD<<${delimiter}\\n${password}\\n${delimiter}\\nPGPASSWORD_ENCODED<<${delimiter}\\n${encoded}\\n${delimiter}\\nPGPORT=5432\\nPGDATABASE=postgres\\nPGSSLMODE=require\\n`);
           NODE
           for index in 0 1 2 3 4 5; do
             candidate="aws-$index-eu-north-1.pooler.supabase.com"
@@ -66,8 +66,8 @@ jobs:
           set -euo pipefail
           export GH_TOKEN
           psql_db() {
-            docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \
-              postgres:17-alpine psql --no-password --host="$PGHOST" --port="$PGPORT" \
+            docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \\
+              postgres:17-alpine psql --no-password --host="$PGHOST" --port="$PGPORT" \\
               --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 "$@"
           }
 
@@ -94,14 +94,16 @@ jobs:
             exit 0
           fi
 
-          request="$(psql_db -At -F '|' -c "SELECT id::text || '|' || backup_tag FROM public.restore_requests WHERE status='queued' ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED")"
+          # Fetch the trusted digest from the database catalog, independently of the release asset.
+          request="$(psql_db -At -F '|' -c "SELECT r.id::text || '|' || r.backup_tag || '|' || COALESCE(b.sha256, '') FROM public.restore_requests r LEFT JOIN public.backup_catalog b ON b.tag = r.backup_tag WHERE r.status='queued' ORDER BY r.created_at LIMIT 1")"
           if [ -z "$request" ]; then
             echo "No pending restore request."
             exit 0
           fi
-          IFS='|' read -r request_id tag <<< "$request"
+          IFS='|' read -r request_id tag expected_sha <<< "$request"
           [[ "$request_id" =~ ^[0-9a-f-]{36}$ ]]
           [[ "$tag" =~ ^backup-[0-9]{8}T[0-9]{6}Z$ ]]
+          [[ "$expected_sha" =~ ^[a-f0-9]{64}$ ]] || { echo "::error::Missing or invalid catalog SHA-256"; exit 1; }
           filename="manzil-db-${tag#backup-}.dump"
           psql_db -c "UPDATE public.restore_requests SET status='running',started_at=now(),result_message='بدأ تنفيذ الاستعادة' WHERE id='$request_id' AND status='queued'"
 
@@ -110,17 +112,19 @@ jobs:
           }
           trap restore_failed ERR
 
-          gh release download "$tag" --repo manzilsystem/manzil_backups \
+          gh release download "$tag" --repo manzilsystem/manzil_backups \\
             --pattern "$filename" --pattern "$filename.sha256" --dir "$RUNNER_TEMP"
           (cd "$RUNNER_TEMP" && sha256sum --check "$filename.sha256")
-          docker run --rm -v "$RUNNER_TEMP:/backup" postgres:17-alpine \
+          actual_sha="$(sha256sum "$RUNNER_TEMP/$filename" | awk '{print $1}')"
+          [[ "$actual_sha" == "$expected_sha" ]] || { echo "::error::Backup digest does not match the trusted database catalog"; exit 1; }
+          docker run --rm -v "$RUNNER_TEMP:/backup" postgres:17-alpine \\
             pg_restore --list "/backup/$filename" >/dev/null
 
-          docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \
-            -v "$RUNNER_TEMP:/backup" postgres:17-alpine \
-            pg_restore --host="$PGHOST" --port="$PGPORT" \
-              --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" \
-              --no-password --clean --if-exists --single-transaction --exit-on-error \
+          docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \\
+            -v "$RUNNER_TEMP:/backup" postgres:17-alpine \\
+            pg_restore --host="$PGHOST" --port="$PGPORT" \\
+              --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" \\
+              --no-password --clean --if-exists --single-transaction --exit-on-error \\
               --no-owner --no-acl "/backup/$filename"
 
           trap - ERR
