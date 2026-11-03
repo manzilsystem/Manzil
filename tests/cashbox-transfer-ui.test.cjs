@@ -623,6 +623,23 @@ test('uncertain cash transfer retries reuse the same idempotency key after a pag
     assert.equal(reloaded.calls.toasts.at(-1).type, 'success');
 });
 
+test('an uncertain retry bypasses stale local balance checks and lets the server confirm idempotency', async () => {
+    const storage = new Map();
+    const first = createTransferHarness({ sessionStore: storage, rpcThrows: [new Error('connection reset')] });
+    await first.api.submitCashTransfer(first.event);
+
+    const reloaded = createTransferHarness({
+        sessionStore: storage,
+        rpcResults: [{ data: { ok: true, duplicate: true, version: 5, balances: { main: 90, development: 30, emergency: 30 } }, error: null }]
+    });
+    reloaded.sandbox.state.cashAccountBalances.main = 0;
+    await reloaded.api.submitCashTransfer(reloaded.event);
+
+    assert.equal(reloaded.calls.rpc.length, 1);
+    assert.equal(reloaded.calls.rpc[0].args.p_request_id, first.calls.rpc[0].args.p_request_id);
+    assert.equal(reloaded.calls.toasts.at(-1).type, 'success');
+});
+
 test('pending cash transfer retry state is isolated by building id', async () => {
     const storage = new Map();
     const first = createTransferHarness({ sessionStore: storage, rpcThrows: [new Error('connection reset')] });
