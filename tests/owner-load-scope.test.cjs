@@ -14,7 +14,7 @@ test('owner sessions skip manager-only data queries', () => {
 
     for (const table of ['expenses', 'audit_logs']) {
         assert.ok(
-            loadState.includes(`isManager ? supabaseQuery('${table}') : Promise.resolve([])`),
+            loadState.includes(`isManager ? supabaseQuery('${table}', ${table === 'expenses' ? 'expenseColumns' : 'auditColumns'}) : Promise.resolve([])`),
             `${table} must only be queried for managers`
         );
     }
