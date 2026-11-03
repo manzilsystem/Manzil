@@ -17,7 +17,8 @@ const migrations = [
 ].join('\n');
 
 test('backup console requires a verified manager session', () => {
-    assert.match(edge, /authorization\.startsWith\('Bearer '\)/);\n    assert.match(edge, /if \(!token\) return json\(401, \{ error: 'unauthorized' \}\)/);
+    assert.match(edge, /authorization\.startsWith\('Bearer '\)/);
+    assert.match(edge, /if \(!token\) return json\(401, \{ error: 'unauthorized' \}\)/);
     assert.match(edge, /caller\.auth\.getUser\(token\)/);
     assert.match(edge, /eq\('role', 'manager'\)/);
     assert.match(edge, /if \(memberError \|\| !membership\) return json\(403, \{ error: 'manager_only' \}\)/);
