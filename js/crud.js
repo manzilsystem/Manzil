@@ -455,11 +455,12 @@ async function handleIncomeSubmit(e) {
     }
     const previousState = cloneStateSnapshot();
     const paidAt = new Date().toISOString();
-    const paymentReference = generateId().replace(/-/g, '').slice(0, 8).toUpperCase();
+    const paymentReference = generateId().replace(/-/g, '').slice(0, 12).toUpperCase();
     allocation.allocations.forEach((item, index) => {
-        const allocationNote = allocation.allocations.length > 1
-            ? [notes, `دفعة موزعة ${paymentReference} (${index + 1}/${allocation.allocations.length})`].filter(Boolean).join(' · ')
-            : notes;
+        const allocationNote = [
+            `دفعة موزعة ${paymentReference} (${index + 1}/${allocation.allocations.length})`,
+            notes
+        ].filter(Boolean).join(' · ');
         state.income.push({
             id: generateId(),
             residentId,

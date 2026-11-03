@@ -10,6 +10,7 @@ let authLoginMode = 'manager';
 let authGeneration = 0;
 let persistedAuditLogIds = new Set();
 let activeBuildingVersion = 1;
+let ownerNotificationsChannel = null;
 
 function isCurrentAuthSession(session, generation) {
     return Boolean(session && activeSession && session.user?.id === activeSession.user?.id && generation === authGeneration);
@@ -167,6 +168,20 @@ function mapNotice(row) {
     return { id: row.id, text: row.text, date: row.created_at };
 }
 
+function mapNotification(row) {
+    return {
+        id: row.id,
+        buildingId: row.building_id,
+        title: row.title,
+        body: row.body,
+        kind: row.kind,
+        severity: row.severity,
+        actionPath: row.action_path || '',
+        readAt: row.read_at || null,
+        createdAt: row.created_at
+    };
+}
+
 function mapAudit(row) {
     return { id: row.id, action: row.action, details: row.details || '', date: row.created_at };
 }
@@ -175,6 +190,59 @@ async function supabaseQuery(table, columns = '*') {
     const { data, error } = await supabaseClient.from(table).select(columns);
     if (error) throw error;
     return data || [];
+}
+
+function stopOwnerNotificationsRealtime() {
+    if (!ownerNotificationsChannel) return;
+    const channel = ownerNotificationsChannel;
+    ownerNotificationsChannel = null;
+    if (typeof supabaseClient.removeChannel === 'function') {
+        supabaseClient.removeChannel(channel).catch(error => {
+            console.warn('Could not stop owner notification realtime channel:', error);
+        });
+    }
+}
+
+function subscribeOwnerNotificationsRealtime() {
+    stopOwnerNotificationsRealtime();
+    if (currentUserRole !== 'owner' || !activeSession?.user?.id || !supabaseClient.channel) return;
+    const userId = activeSession.user.id;
+    ownerNotificationsChannel = supabaseClient
+        .channel(`owner-notifications:${userId}`)
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `target_user_id=eq.${userId}`
+        }, payload => {
+            const row = payload.new;
+            if (!row || row.building_id !== activeBuildingId) return;
+            const notification = mapNotification(row);
+            const index = state.ownerNotifications.findIndex(item => item.id === notification.id);
+            if (index >= 0) state.ownerNotifications[index] = notification;
+            else state.ownerNotifications.unshift(notification);
+            state.ownerNotifications = state.ownerNotifications.slice(0, 50);
+            renderOwnerPortal();
+        })
+        .on('postgres_changes', {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `target_user_id=eq.${userId}`
+        }, payload => {
+            const row = payload.new;
+            if (!row || row.building_id !== activeBuildingId) return;
+            const notification = mapNotification(row);
+            const index = state.ownerNotifications.findIndex(item => item.id === notification.id);
+            if (index >= 0) state.ownerNotifications[index] = notification;
+            else state.ownerNotifications.unshift(notification);
+            renderOwnerPortal();
+        })
+        .subscribe(status => {
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                console.warn('Owner notification realtime channel status:', status);
+            }
+        });
 }
 
 async function loadState() {
@@ -195,9 +263,10 @@ async function loadState() {
     currentUserRole = membership.role;
     ownerMustChangePin = currentUserRole === 'owner' && profile?.must_change_pin === true;
     if (ownerMustChangePin) {
+        stopOwnerNotificationsRealtime();
         state = {
             ...state, buildingName: '', managerName: '', managerPhone: '', defaultSubscription: 0,
-            startingBalance: 0, residents: [], income: [], expenses: [], notices: [], auditLogs: [],
+            startingBalance: 0, residents: [], income: [], expenses: [], notices: [], ownerNotifications: [], auditLogs: [],
             currentTheme: 'dark', lastUpdated: Date.now()
         };
         persistedAuditLogIds = new Set();
@@ -211,11 +280,21 @@ async function loadState() {
     if (!isCurrentAuthSession(session, generation)) return false;
     if (buildingError) throw buildingError;
     activeBuildingVersion = Number(building.state_version) || 1;
-    const [residents, income, expenses, notices, auditLogs, residentNotes] = await Promise.all([
+    const ownerNotificationsQuery = currentUserRole === 'owner'
+        ? supabaseClient.from('notifications')
+            .select('id,building_id,target_user_id,target_resident_id,kind,title,body,severity,action_path,read_at,created_at')
+            .eq('building_id', activeBuildingId)
+            .eq('target_user_id', session.user.id)
+            .order('created_at', { ascending: false })
+            .limit(50)
+        : Promise.resolve({ data: [], error: null });
+    const [residents, income, expenses, notices, auditLogs, residentNotes, ownerNotificationsResult] = await Promise.all([
         supabaseQuery('residents'), supabaseQuery('income'), supabaseQuery('expenses'), supabaseQuery('notices'), supabaseQuery('audit_logs'),
-        currentUserRole === 'manager' ? supabaseQuery('resident_internal_notes', 'resident_id,notes') : Promise.resolve([])
+        currentUserRole === 'manager' ? supabaseQuery('resident_internal_notes', 'resident_id,notes') : Promise.resolve([]),
+        ownerNotificationsQuery
     ]);
     if (!isCurrentAuthSession(session, generation)) return false;
+    if (ownerNotificationsResult.error) throw ownerNotificationsResult.error;
     state = {
         ...state,
         buildingName: building.name || 'Manzil',
@@ -225,7 +304,8 @@ async function loadState() {
         startingBalance: Number(building.starting_balance) || 0,
         currentTheme: ['dark', 'light', 'emerald', 'ocean', 'sand'].includes(building.current_theme) ? building.current_theme : 'dark',
         residents: residents.map(mapResident), income: income.map(mapIncome), expenses: expenses.map(mapExpense),
-        notices: notices.map(mapNotice), auditLogs: auditLogs.map(mapAudit), lastUpdated: Date.now()
+        notices: notices.map(mapNotice), ownerNotifications: (ownerNotificationsResult.data || []).map(mapNotification),
+        auditLogs: auditLogs.map(mapAudit), lastUpdated: Date.now()
     };
     if (currentUserRole === 'manager') {
         const notesByResident = new Map(residentNotes.map(row => [row.resident_id, row.notes || '']));
@@ -236,6 +316,7 @@ async function loadState() {
     persistedAuditLogIds = new Set(auditLogs.map(row => row.id));
     currentResidentId = currentUserRole === 'owner' ? state.residents[0]?.id || null : null;
     supabaseStateLoaded = true;
+    subscribeOwnerNotificationsRealtime();
     return true;
 }
 
@@ -326,6 +407,7 @@ async function saveState() {
 }
 
 function clearAuthenticatedState() {
+    stopOwnerNotificationsRealtime();
     authGeneration += 1;
     activeSession = null;
     activeBuildingId = null;
@@ -339,7 +421,7 @@ function clearAuthenticatedState() {
     state = {
         ...state,
         buildingName: '', managerName: '', managerPhone: '', defaultSubscription: 0,
-        startingBalance: 0, residents: [], income: [], expenses: [], notices: [], auditLogs: [],
+        startingBalance: 0, residents: [], income: [], expenses: [], notices: [], ownerNotifications: [], auditLogs: [],
         currentTheme: 'dark', lastUpdated: 0
     };
     document.body.classList.remove('owner-mode');

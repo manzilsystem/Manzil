@@ -8,6 +8,7 @@
 \ir ../supabase/migrations/20261103080000_manager_only_resident_notes.sql
 \ir ../supabase/migrations/20261103090000_owner_login_rate_limit.sql
 \ir ../supabase/migrations/20261103100000_subscription_rate_change_history.sql
+\ir ../supabase/migrations/20261103120000_owner_payment_notifications.sql
 
 INSERT INTO public.profiles (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),
@@ -171,6 +172,11 @@ BEGIN
     v_payload := jsonb_set(v_payload, '{subscription_rates,0,monthly_amount}', '130'::jsonb);
     v_payload := jsonb_set(v_payload, '{subscription_rates}',
       (v_payload->'subscription_rates') || '[{"resident_id":"30000000-0000-4000-8000-000000000002","effective_month":"2026-11-01","monthly_amount":100}]'::jsonb);
+    v_payload := jsonb_set(v_payload, '{income}',
+      (v_payload->'income') || '[
+        {"id":"40000000-0000-4000-8000-000000000008","resident_id":"30000000-0000-4000-8000-000000000001","amount":50,"month":"2026-12","notes":"دفعة موزعة ABCDEF123456 (1/2)","paid_at":"2026-11-03T06:00:00Z"},
+        {"id":"40000000-0000-4000-8000-000000000009","resident_id":"30000000-0000-4000-8000-000000000001","amount":50,"month":"2027-01","notes":"دفعة موزعة ABCDEF123456 (2/2)","paid_at":"2026-11-03T06:00:00Z"}
+      ]'::jsonb);
     v_result := public.persist_building_snapshot(v_building, 2,
         '40000000-0000-4000-8000-000000000006', v_payload);
     IF v_result->>'ok' <> 'true' OR (v_result->>'version')::bigint <> 3 THEN
@@ -179,6 +185,19 @@ BEGIN
 
     IF (SELECT count(*) FROM public.resident_subscription_rates WHERE building_id = v_building) <> 2 THEN
         RAISE EXCEPTION 'manager cannot read all subscription rates';
+    END IF;
+
+    IF (SELECT count(*) FROM public.notifications WHERE building_id = v_building AND kind = 'payment') <> 2
+       OR NOT EXISTS (
+          SELECT 1 FROM public.notifications
+          WHERE target_user_id = '10000000-0000-4000-8000-000000000002'
+            AND target_resident_id = '30000000-0000-4000-8000-000000000001'
+            AND title = 'تم تسجيل دفعة مقدمة'
+            AND body LIKE '%100%'
+            AND body LIKE '%2026-12%'
+            AND body LIKE '%2027-01%'
+       ) THEN
+        RAISE EXCEPTION 'owner payment notification was not grouped or aggregated';
     END IF;
 
     IF (SELECT count(*) FROM public.resident_subscription_rate_changes WHERE building_id = v_building) <> 3
@@ -202,6 +221,30 @@ BEGIN
            WHERE id = '30000000-0000-4000-8000-000000000001') IS NOT NULL THEN
         RAISE EXCEPTION 'owner can read manager-only resident notes';
     END IF;
+    IF (SELECT count(*) FROM public.notifications WHERE building_id = v_building) <> 2
+       OR NOT EXISTS (
+          SELECT 1 FROM public.notifications
+          WHERE target_user_id = '10000000-0000-4000-8000-000000000002'
+            AND kind = 'payment'
+       ) THEN
+        RAISE EXCEPTION 'owner A cannot read only their own payment notification';
+    END IF;
+    UPDATE public.notifications SET read_at = now()
+    WHERE target_user_id = '10000000-0000-4000-8000-000000000002';
+    IF NOT EXISTS (
+        SELECT 1 FROM public.notifications
+        WHERE target_user_id = '10000000-0000-4000-8000-000000000002' AND read_at IS NOT NULL
+    ) THEN
+        RAISE EXCEPTION 'owner cannot mark their notification as read';
+    END IF;
+    BEGIN
+        UPDATE public.notifications SET body = 'tampered'
+        WHERE target_user_id = '10000000-0000-4000-8000-000000000002';
+        RAISE EXCEPTION 'owner unexpectedly modified notification content';
+    EXCEPTION WHEN SQLSTATE '42501' THEN
+        NULL;
+    END;
+
     IF (SELECT count(*) FROM public.resident_subscription_rate_changes WHERE building_id = v_building) <> 0 THEN
         RAISE EXCEPTION 'owner can read manager-only subscription rate history';
     END IF;
@@ -216,6 +259,10 @@ BEGIN
        OR EXISTS (SELECT 1 FROM public.resident_subscription_rates
                   WHERE building_id = v_building AND resident_id <> '30000000-0000-4000-8000-000000000002') THEN
         RAISE EXCEPTION 'owner B can read another resident subscription rate';
+    END IF;
+
+    IF (SELECT count(*) FROM public.notifications WHERE building_id = v_building) <> 0 THEN
+        RAISE EXCEPTION 'owner B can read another apartment payment notification';
     END IF;
 
     PERFORM set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
