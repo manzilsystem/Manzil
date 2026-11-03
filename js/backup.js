@@ -295,7 +295,7 @@ function isValidBackup(data) {
     if (!data.residents.every(r => r.userId === undefined || r.userId === null || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(r.userId)))) return false;
     const hasUnique = values => new Set(values).size === values.length;
     if (!hasUnique(data.residents.map(r => r.id))) return false;
-    const apartmentKeys = data.residents.map(r => String(r.apartmentNumber).trim().toLocaleLowerCase('ar-EG'));
+    const apartmentKeys = data.residents.map(r => String(r.apartmentNumber).replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632)).replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776)).trim().toLocaleLowerCase('ar-EG'));
     if (!hasUnique(apartmentKeys)) return false;
     if (!data.residents.every(r => {
         if (r.subscriptionRates === undefined) return true;
