@@ -518,14 +518,22 @@ function previewExpense() {
     const category = document.getElementById('expenseCategory')?.value || '';
     const month = document.getElementById('expenseMonth')?.value || '';
     const notes = document.getElementById('expenseNotes')?.value.trim() || '';
+    const cashAccountCode = document.getElementById('expenseCashAccount')?.value || 'main';
+    const accountBalance = getCashAccountBalance(cashAccountCode);
+    const balanceAfter = accountBalance - (Number.isFinite(amount) ? amount : 0);
+    const fundInsufficient = cashAccountCode !== 'main' && Number.isFinite(amount) && amount > accountBalance + 0.000001;
     if (!title || !Number.isFinite(amount) || amount <= 0 || !month) {
         preview.classList.add('hidden');
         return;
     }
 
     summary.textContent = `معاينة المصروف: ${title} — ${fmtNum(amount)} ج.م`;
+    summary.className = `text-xs font-bold ${fundInsufficient ? 'text-rose-400' : 'text-rose-300'}`;
     details.innerHTML = [
         `<div class="flex justify-between gap-3"><span>الفئة</span><strong>${esc(category || 'أخرى')}</strong></div>`,
+        `<div class="flex justify-between gap-3"><span>الصندوق</span><strong>${esc(getCashAccountLabel(cashAccountCode))}</strong></div>`,
+        `<div class="flex justify-between gap-3"><span>الرصيد قبل الصرف</span><strong>${fmtNum(accountBalance)} ج.م</strong></div>`,
+        `<div class="flex justify-between gap-3"><span>الرصيد بعد الصرف</span><strong class="${fundInsufficient ? 'text-rose-400' : ''}">${fmtNum(balanceAfter)} ج.م</strong></div>`,
         `<div class="flex justify-between gap-3"><span>الشهر</span><strong>${esc(month)}</strong></div>`,
         `<div class="flex justify-between gap-3"><span>الملاحظات</span><strong class="text-left">${esc(notes || '—')}</strong></div>`
     ].join('');
@@ -540,8 +548,16 @@ async function handleExpenseSubmit(e) {
     const category = document.getElementById('expenseCategory').value;
     const month = document.getElementById('expenseMonth').value;
     const notes = document.getElementById('expenseNotes').value.trim();
-    if (!title || !Number.isFinite(amount) || amount <= 0 || !month) {
-        toast('أدخل وصفاً ومبلغاً أكبر من صفر واختر الشهر', 'error');
+    const cashAccountCode = document.getElementById('expenseCashAccount')?.value || 'main';
+    if (!title || !Number.isFinite(amount) || amount <= 0 || !month ||
+        !['main', 'development', 'emergency'].includes(cashAccountCode)) {
+        toast('أدخل وصفاً ومبلغاً أكبر من صفر واختر الشهر والصندوق', 'error');
+        return;
+    }
+    const availableBalance = getCashAccountBalance(cashAccountCode);
+    if (cashAccountCode !== 'main' && amount > availableBalance + 0.000001) {
+        toast(`الرصيد المتاح في ${getCashAccountLabel(cashAccountCode)} غير كافٍ.`, 'error');
+        previewExpense();
         return;
     }
 
@@ -552,7 +568,7 @@ async function handleExpenseSubmit(e) {
         submit.textContent = 'جارٍ الحفظ...';
     }
     const previousState = cloneStateSnapshot();
-    state.expenses.push({ id: generateId(), title, amount, category, month, notes, date: new Date().toISOString() });
+    state.expenses.push({ id: generateId(), title, amount, category, month, notes, cashAccountCode, date: new Date().toISOString() });
     logAction('مصروف', `${title} - ${fmtNum(amount)}`);
     try {
         if (!await saveWithRollback(previousState)) return;

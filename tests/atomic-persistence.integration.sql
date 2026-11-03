@@ -10,6 +10,7 @@
 \ir ../supabase/migrations/20261103064001_subscription_rate_change_history.sql
 \ir ../supabase/migrations/20261103070519_owner_payment_notifications.sql
 \ir ../supabase/migrations/20261103080000_restrict_notification_update_columns.sql
+\ir ../supabase/migrations/20261103120000_cashbox_funds_and_transfers.sql
 
 INSERT INTO public.profiles (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),
@@ -360,3 +361,175 @@ BEGIN
 END;
 $$;
 
+-- Internal cashboxes: transfers are atomic, idempotent, and never create income.
+SET request.jwt.claim.sub = '10000000-0000-4000-8000-000000000001';
+SET ROLE authenticated;
+DO $cashbox$
+DECLARE
+    v_building uuid := '20000000-0000-4000-8000-000000000001';
+    v_resident uuid := '30000000-0000-4000-8000-000000000001';
+    v_manager uuid := '10000000-0000-4000-8000-000000000001';
+    v_owner uuid := '10000000-0000-4000-8000-000000000002';
+    v_version bigint;
+    v_summary jsonb;
+    v_transfer jsonb;
+    v_result jsonb;
+    v_payload jsonb;
+    v_expected_main numeric;
+BEGIN
+    IF has_table_privilege('authenticated', 'public.cash_transfers', 'INSERT')
+       OR has_table_privilege('authenticated', 'public.cash_transfers', 'UPDATE')
+       OR has_table_privilege('authenticated', 'public.cash_transfers', 'DELETE')
+       OR NOT has_table_privilege('authenticated', 'public.cash_transfers', 'SELECT') THEN
+        RAISE EXCEPTION 'cash transfer table grants are too broad or missing';
+    END IF;
+
+    SELECT state_version INTO v_version
+    FROM public.buildings WHERE id = v_building;
+
+    SELECT COALESCE(building.starting_balance, 0)
+        + COALESCE((SELECT SUM(payment.amount) FROM public.income payment
+                    WHERE payment.building_id = v_building), 0)
+        - COALESCE((SELECT SUM(expense.amount) FROM public.expenses expense
+                    WHERE expense.building_id = v_building
+                      AND COALESCE(expense.cash_account_code, 'main') = 'main'), 0)
+    INTO v_expected_main
+    FROM public.buildings building
+    WHERE building.id = v_building;
+
+    v_summary := public.get_cashbox_summary(v_building);
+    IF (v_summary#>>'{balances,main}')::numeric <> v_expected_main
+       OR (v_summary#>>'{balances,development}')::numeric <> 0
+       OR (v_summary#>>'{balances,emergency}')::numeric <> 0 THEN
+        RAISE EXCEPTION 'initial cashbox balances do not match the financial ledger: % (expected main %)', v_summary, v_expected_main;
+    END IF;
+
+    v_transfer := public.transfer_cash_between_accounts(
+        v_building,
+        '40000000-0000-4000-8000-000000000010',
+        v_version,
+        'main',
+        'development',
+        30,
+        'تمويل صندوق التطوير'
+    );
+    IF v_transfer->>'ok' <> 'true'
+       OR v_transfer->>'duplicate' <> 'false'
+       OR (v_transfer->>'version')::bigint <> v_version + 1 THEN
+        RAISE EXCEPTION 'cash transfer failed: %', v_transfer;
+    END IF;
+
+    v_result := public.transfer_cash_between_accounts(
+        v_building,
+        '40000000-0000-4000-8000-000000000010',
+        v_version,
+        'main',
+        'development',
+        30,
+        'تمويل صندوق التطوير'
+    );
+    IF v_result->>'ok' <> 'true'
+       OR v_result->>'duplicate' <> 'true'
+       OR (SELECT count(*) FROM public.cash_transfers
+           WHERE building_id = v_building) <> 1 THEN
+        RAISE EXCEPTION 'cash transfer retry was not idempotent: %', v_result;
+    END IF;
+
+    v_result := public.transfer_cash_between_accounts(
+        v_building,
+        '40000000-0000-4000-8000-000000000014',
+        v_version,
+        'main',
+        'development',
+        10,
+        'اختبار تعارض الإصدار'
+    );
+    IF v_result->>'conflict' <> 'true'
+       OR (v_result->>'version')::bigint <> v_version + 1
+       OR (SELECT count(*) FROM public.cash_transfers
+           WHERE building_id = v_building) <> 1 THEN
+        RAISE EXCEPTION 'stale cash transfer was not rejected: %', v_result;
+    END IF;
+
+    v_payload := '{
+      "building":{"name":"Cashbox test","manager_name":"Manager","manager_phone":null,"default_subscription":100,"starting_balance":0,"current_theme":"dark"},
+      "residents":[{"id":"30000000-0000-4000-8000-000000000001","user_id":"10000000-0000-4000-8000-000000000002","name":"Owner A","apartment_number":"A1","monthly_amount":100,"notes":null,"created_at":"2026-11-02T10:00:00Z"}],
+      "income":[{"id":"50000000-0000-4000-8000-000000000001","resident_id":"30000000-0000-4000-8000-000000000001","amount":100,"month":"2026-11","paid_at":"2026-11-02T10:00:00Z"}],
+      "expenses":[{"id":"60000000-0000-4000-8000-000000000010","title":"Development expense","amount":20,"category":"تطوير","month":"2026-11","cash_account_code":"development"}],
+      "notices":[],"audit_logs":[],
+      "subscription_rates":[{"resident_id":"30000000-0000-4000-8000-000000000001","effective_month":"2026-11-01","monthly_amount":125}]
+    }'::jsonb;
+
+    v_result := public.persist_building_snapshot(
+        v_building,
+        v_version + 1,
+        '40000000-0000-4000-8000-000000000011',
+        v_payload
+    );
+    IF v_result->>'ok' <> 'true'
+       OR (SELECT cash_account_code FROM public.expenses
+           WHERE id = '60000000-0000-4000-8000-000000000010') <> 'development' THEN
+        RAISE EXCEPTION 'cash account expense persistence failed: %', v_result;
+    END IF;
+
+    v_summary := public.get_cashbox_summary(v_building);
+    IF (v_summary#>>'{balances,main}')::numeric <> 70
+       OR (v_summary#>>'{balances,development}')::numeric <> 10
+       OR (v_summary#>>'{balances,emergency}')::numeric <> 0 THEN
+        RAISE EXCEPTION 'cashbox balances after allocation are incorrect: %', v_summary;
+    END IF;
+
+    BEGIN
+        PERFORM public.persist_building_snapshot(
+            v_building,
+            (v_result->>'version')::bigint,
+            '40000000-0000-4000-8000-000000000012',
+            jsonb_set(v_payload, '{expenses,0,amount}', '31'::jsonb)
+        );
+        RAISE EXCEPTION 'fund overdraft unexpectedly committed';
+    EXCEPTION WHEN SQLSTATE '22023' THEN
+        NULL;
+    END;
+
+    v_transfer := public.transfer_cash_between_accounts(
+        v_building,
+        '40000000-0000-4000-8000-000000000013',
+        (v_result->>'version')::bigint,
+        'development',
+        'emergency',
+        11,
+        'يجب رفض التحويل الزائد'
+    );
+    IF v_transfer->>'ok' <> 'false'
+       OR v_transfer->>'insufficient_balance' <> 'true'
+       OR (v_transfer->>'available_balance')::numeric <> 10
+       OR (SELECT count(*) FROM public.cash_transfers
+           WHERE building_id = v_building) <> 1 THEN
+        RAISE EXCEPTION 'insufficient fund transfer was not rejected: %', v_transfer;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM public.audit_logs
+        WHERE building_id = v_building AND action = 'تحويل بين الصناديق'
+          AND actor_id = v_manager
+    ) THEN
+        RAISE EXCEPTION 'cash transfer audit record is missing';
+    END IF;
+END;
+$cashbox$;
+
+SET request.jwt.claim.sub = '10000000-0000-4000-8000-000000000002';
+DO $cashbox_owner$
+BEGIN
+    BEGIN
+        PERFORM public.get_cashbox_summary('20000000-0000-4000-8000-000000000001');
+        RAISE EXCEPTION 'owner unexpectedly accessed cashbox summary';
+    EXCEPTION WHEN SQLSTATE '42501' THEN
+        NULL;
+    END;
+    IF (SELECT count(*) FROM public.cash_transfers) <> 0 THEN
+        RAISE EXCEPTION 'owner can read manager-only cash transfers';
+    END IF;
+END;
+$cashbox_owner$;
+RESET ROLE;
