@@ -661,6 +661,15 @@ BEGIN
         RAISE EXCEPTION 'grouped notification was not updated after allocation amount changed: %', v_notification.body;
     END IF;
 
+    IF (
+        SELECT count(*) FROM public.notifications
+        WHERE building_id = '20000000-0000-4000-8000-000000000001'
+          AND target_resident_id = '30000000-0000-4000-8000-000000000001'
+          AND dedupe_key = 'income-batch:ABCDEF123456'
+    ) <> 1 THEN
+        RAISE EXCEPTION 'grouped payment update created duplicate notifications';
+    END IF;
+
     DELETE FROM public.income WHERE id = '50000000-0000-4000-8000-000000000010';
     SELECT * INTO v_notification
     FROM public.notifications
