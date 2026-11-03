@@ -1,6 +1,7 @@
 let ownerProvisionRequested = false;
 let incomeSaving = false;
 let expenseSaving = false;
+const quickPaySavingResidents = new Set();
 
 function openResidentModal(mode, id) {
     if (!requireManager()) return;
@@ -344,16 +345,22 @@ async function deleteResident(id) {
 }
 
 async function quickPayResident(residentId) {
-    if (!requireManager()) return;
-    const r = state.residents.find(x => x.id === residentId); if (!r) return;
-    const month = getCurrentMonth();
-    const amount = getMonthOutstanding(r, month);
-    if (amount <= 0) { toast('تم سداد اشتراك الشهر بالكامل','info'); return; }
-    const previousState = cloneStateSnapshot();
-    state.income.push({ id: generateId(), residentId, amount, month, date: new Date().toISOString(), notes: 'دفع سريع' });
-    logAction('تحصيل', `${r.name} - ${month} - ${fmtNum(amount)}`);
-    if (!await saveWithRollback(previousState)) return;
-    toast(`تم تسجيل باقي اشتراك ${month}`,'success');
+    if (!requireManager() || quickPaySavingResidents.has(residentId)) return;
+    quickPaySavingResidents.add(residentId);
+    try {
+        const r = state.residents.find(x => x.id === residentId);
+        if (!r) return;
+        const month = getCurrentMonth();
+        const amount = getMonthOutstanding(r, month);
+        if (amount <= 0) { toast('تم سداد اشتراك الشهر بالكامل','info'); return; }
+        const previousState = cloneStateSnapshot();
+        state.income.push({ id: generateId(), residentId, amount, month, date: new Date().toISOString(), notes: 'دفع سريع' });
+        logAction('تحصيل', `${r.name} - ${month} - ${fmtNum(amount)}`);
+        if (!await saveWithRollback(previousState)) return;
+        toast(`تم تسجيل باقي اشتراك ${month}`,'success');
+    } finally {
+        quickPaySavingResidents.delete(residentId);
+    }
 }
 
 function previewIncomeAllocation() {
