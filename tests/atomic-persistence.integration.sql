@@ -174,8 +174,8 @@ BEGIN
       (v_payload->'subscription_rates') || '[{"resident_id":"30000000-0000-4000-8000-000000000002","effective_month":"2026-11-01","monthly_amount":100}]'::jsonb);
     v_payload := jsonb_set(v_payload, '{income}',
       (v_payload->'income') || '[
-        {"id":"40000000-0000-4000-8000-000000000008","resident_id":"30000000-0000-4000-8000-000000000002","amount":50,"month":"2026-11","notes":"دفعة موزعة ABCDEF123456 (1/2)","paid_at":"2026-11-03T06:00:00Z"},
-        {"id":"40000000-0000-4000-8000-000000000009","resident_id":"30000000-0000-4000-8000-000000000002","amount":50,"month":"2026-12","notes":"دفعة موزعة ABCDEF123456 (2/2)","paid_at":"2026-11-03T06:00:00Z"}
+        {"id":"40000000-0000-4000-8000-000000000008","resident_id":"30000000-0000-4000-8000-000000000001","amount":50,"month":"2026-12","notes":"دفعة موزعة ABCDEF123456 (1/2)","paid_at":"2026-11-03T06:00:00Z"},
+        {"id":"40000000-0000-4000-8000-000000000009","resident_id":"30000000-0000-4000-8000-000000000001","amount":50,"month":"2027-01","notes":"دفعة موزعة ABCDEF123456 (2/2)","paid_at":"2026-11-03T06:00:00Z"}
       ]'::jsonb);
     v_result := public.persist_building_snapshot(v_building, 2,
         '40000000-0000-4000-8000-000000000006', v_payload);
@@ -190,12 +190,12 @@ BEGIN
     IF (SELECT count(*) FROM public.notifications WHERE building_id = v_building AND kind = 'payment') <> 2
        OR NOT EXISTS (
           SELECT 1 FROM public.notifications
-          WHERE target_user_id = '10000000-0000-4000-8000-000000000003'
-            AND target_resident_id = '30000000-0000-4000-8000-000000000002'
+          WHERE target_user_id = '10000000-0000-4000-8000-000000000002'
+            AND target_resident_id = '30000000-0000-4000-8000-000000000001'
             AND title = 'تم تسجيل دفعة مقدمة'
             AND body LIKE '%100%'
-            AND body LIKE '%2026-11%'
             AND body LIKE '%2026-12%'
+            AND body LIKE '%2027-01%'
        ) THEN
         RAISE EXCEPTION 'owner payment notification was not grouped or aggregated';
     END IF;
@@ -221,7 +221,7 @@ BEGIN
            WHERE id = '30000000-0000-4000-8000-000000000001') IS NOT NULL THEN
         RAISE EXCEPTION 'owner can read manager-only resident notes';
     END IF;
-    IF (SELECT count(*) FROM public.notifications WHERE building_id = v_building) <> 1
+    IF (SELECT count(*) FROM public.notifications WHERE building_id = v_building) <> 2
        OR NOT EXISTS (
           SELECT 1 FROM public.notifications
           WHERE target_user_id = '10000000-0000-4000-8000-000000000002'
@@ -261,13 +261,8 @@ BEGIN
         RAISE EXCEPTION 'owner B can read another resident subscription rate';
     END IF;
 
-    IF (SELECT count(*) FROM public.notifications WHERE building_id = v_building) <> 1
-       OR NOT EXISTS (
-          SELECT 1 FROM public.notifications
-          WHERE target_user_id = '10000000-0000-4000-8000-000000000003'
-            AND target_resident_id = '30000000-0000-4000-8000-000000000002'
-       ) THEN
-        RAISE EXCEPTION 'owner B cannot read their own payment notification';
+    IF (SELECT count(*) FROM public.notifications WHERE building_id = v_building) <> 0 THEN
+        RAISE EXCEPTION 'owner B can read another apartment payment notification';
     END IF;
 
     PERFORM set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
