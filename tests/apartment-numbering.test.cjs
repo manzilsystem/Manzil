@@ -68,6 +68,18 @@ test('editing keeps the current apartment available without showing other occupi
     assert.doesNotMatch(elements.residentApartment.innerHTML, /value="4"/);
 });
 
+test('changing the floor does not retain an apartment number from the previous floor', () => {
+    const { api, elements } = createLayoutHarness({
+        editingResidentId: 'current',
+        residents: [{ id: 'current', apartmentNumber: '3', floor: '2' }]
+    });
+    elements.residentFloor.value = '3';
+    api.updateResidentApartmentOptions();
+    assert.doesNotMatch(elements.residentApartment.innerHTML, /value="3"/);
+    assert.match(elements.residentApartment.innerHTML, /value="5">شقة 5/);
+    assert.match(elements.residentApartment.innerHTML, /value="6">شقة 6/);
+});
+
 test('layout configuration is stored per building and only managers can change it', () => {
     assert.match(migration, /ADD COLUMN IF NOT EXISTS floor_count integer/);
     assert.match(migration, /ADD COLUMN IF NOT EXISTS apartments_per_floor integer/);
