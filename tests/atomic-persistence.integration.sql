@@ -6,6 +6,7 @@
 \ir ../supabase/migrations/20261103070000_atomic_subscription_rate_snapshot.sql
 \ir ../supabase/migrations/20261103073000_restrict_subscription_rate_visibility.sql
 \ir ../supabase/migrations/20261103080000_manager_only_resident_notes.sql
+\ir ../supabase/migrations/20261103090000_owner_login_rate_limit.sql
 
 INSERT INTO public.profiles (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),
@@ -217,7 +218,51 @@ END;
 $test$;
 
 RESET ROLE;
-SELECT 'atomic persistence integration tests passed' AS result;
+
+-- The owner PIN login limiter is atomic, service-role-only, and time-windowed.
+SET ROLE service_role;
+DO $rate_limit$
+DECLARE
+    v_result jsonb;
+    v_hash text := repeat('a', 64);
+    v_attempt integer;
+BEGIN
+    IF has_function_privilege('authenticated', 'public.owner_login_rate_limit(text,text)', 'EXECUTE')
+       OR NOT has_function_privilege('service_role', 'public.owner_login_rate_limit(text,text)', 'EXECUTE') THEN
+        RAISE EXCEPTION 'owner login limiter grants are too broad or missing';
+    END IF;
+
+    FOR v_attempt IN 1..5 LOOP
+        v_result := public.owner_login_rate_limit(v_hash, 'attempt');
+        IF v_result->>'allowed' <> 'true' THEN
+            RAISE EXCEPTION 'owner login attempt % was blocked too early: %', v_attempt, v_result;
+        END IF;
+    END LOOP;
+
+    v_result := public.owner_login_rate_limit(v_hash, 'attempt');
+    IF v_result->>'allowed' <> 'false'
+       OR COALESCE((v_result->>'retry_after_seconds')::integer, 0) < 1 THEN
+        RAISE EXCEPTION 'sixth owner login attempt was not rate limited: %', v_result;
+    END IF;
+
+    v_result := public.owner_login_rate_limit(v_hash, 'attempt');
+    IF v_result->>'allowed' <> 'false' THEN
+        RAISE EXCEPTION 'locked owner login attempts were not blocked: %', v_result;
+    END IF;
+
+    v_result := public.owner_login_rate_limit(v_hash, 'success');
+    IF v_result->>'allowed' <> 'true' THEN
+        RAISE EXCEPTION 'successful owner login did not clear rate-limit state: %', v_result;
+    END IF;
+
+    v_result := public.owner_login_rate_limit(v_hash, 'attempt');
+    IF v_result->>'allowed' <> 'true' THEN
+        RAISE EXCEPTION 'owner login limiter did not reset after success: %', v_result;
+    END IF;
+END;
+$rate_limit$;
+RESET ROLE;
+SELECT 'atomic persistence and owner login rate-limit integration tests passed' AS result;
 
 
 -- Every theme supported by the UI must satisfy the database constraint.
