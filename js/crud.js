@@ -266,7 +266,11 @@ async function provisionOwnerAccess(residentId) {
             toast(messages[errorCode] || fallback, 'error');
             return;
         }
-        await loadState();
+        const loaded = await loadState();
+        if (loaded !== true) {
+            toast('تم إنشاء الحساب، لكن لم يُعرض الرمز لتعذر التحقق من الجلسة. سجّل الدخول مجددًا وتحقق من الحساب قبل إعادة الإصدار.', 'error');
+            return;
+        }
     } catch (error) {
         console.error('Owner provisioning refresh failed:', error);
         toast('تم إنشاء الحساب لكن تعذر تحديث البيانات. أعد تحميل الصفحة قبل متابعة العمل.', 'error');

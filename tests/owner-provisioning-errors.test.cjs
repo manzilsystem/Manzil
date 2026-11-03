@@ -47,3 +47,33 @@ test('a real fetch/network failure keeps the connection message', async () => {
 
     assert.deepEqual(toasts, ['تعذر الاتصال بـ Supabase. تحقق من الإنترنت ثم أعد المحاولة.']);
 });
+
+
+
+test('a temporary PIN is never displayed when the manager session is lost during state refresh', async () => {
+    const toasts = [];
+    let rendered = false;
+    const sandbox = {
+        console: { error() {} },
+        requireManager: () => true,
+        supabaseClient: { functions: { invoke: async () => ({
+            data: { temporary_pin: '12345678', phone: '201012345678' },
+            error: null,
+        }) } },
+        loadState: async () => false,
+        renderAll: () => { rendered = true; },
+        toast: message => toasts.push(message),
+    };
+    const app = vm.runInNewContext(
+        `${crudSource}\n({ provisionOwnerAccess })`,
+        sandbox,
+        { filename: 'js/crud.js' }
+    );
+
+    await app.provisionOwnerAccess('resident-id');
+
+    assert.equal(rendered, false);
+    assert.deepEqual(toasts, [
+        'تم إنشاء الحساب، لكن لم يُعرض الرمز لتعذر التحقق من الجلسة. سجّل الدخول مجددًا وتحقق من الحساب قبل إعادة الإصدار.'
+    ]);
+});
