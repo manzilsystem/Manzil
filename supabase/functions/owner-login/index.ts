@@ -127,7 +127,12 @@ Deno.serve(async (request: Request) => {
 
   if (error) {
     if (error.status !== 400 && error.status !== 401) {
-      await admin.rpc('owner_login_rate_limit', { p_phone_hash: phoneHash, p_action: 'success' })
+      const { error: releaseError } = await admin.rpc('owner_login_rate_limit', {
+        p_phone_hash: phoneHash,
+        p_action: 'release',
+      })
+      if (releaseError) console.error('Could not release owner login attempt after Auth outage:', releaseError)
+      console.error('Owner Auth provider unavailable:', error)
       return json(503, { error: 'login_unavailable' })
     }
     return json(401, { error: 'invalid_credentials' })

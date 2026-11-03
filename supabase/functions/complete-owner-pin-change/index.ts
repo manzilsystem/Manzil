@@ -122,7 +122,18 @@ Deno.serve(async (request: Request) => {
     email: authEmailForPhone(profile.phone),
     password: currentPin,
   })
-  if (verifyError || verified.user?.id !== callerData.user.id) {
+  if (verifyError) {
+    if (verifyError.status !== 400 && verifyError.status !== 401) {
+      const { error: releaseError } = await admin.rpc('owner_login_rate_limit', {
+        p_phone_hash: phoneHash,
+        p_action: 'release',
+      })
+      if (releaseError) console.error('Could not release PIN attempt after Auth outage:', releaseError)
+      return json(503, { error: 'login_unavailable' })
+    }
+    return json(400, { error: 'invalid_current_pin' })
+  }
+  if (verified.user?.id !== callerData.user.id) {
     return json(400, { error: 'invalid_current_pin' })
   }
 
