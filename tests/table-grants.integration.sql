@@ -4,6 +4,8 @@
 \ir ../supabase/migrations/20261103165000_revoke_unused_table_grants.sql
 
 DO $grant_checks$
+DECLARE
+    v_table text;
 BEGIN
     IF NOT has_table_privilege('authenticated', 'public.buildings', 'SELECT')
        OR NOT has_table_privilege('authenticated', 'public.buildings', 'UPDATE')
