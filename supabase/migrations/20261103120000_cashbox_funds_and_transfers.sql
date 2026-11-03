@@ -59,7 +59,6 @@ CREATE POLICY cash_transfers_manager_read
 CREATE OR REPLACE FUNCTION private.get_cashbox_summary(p_building_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
-STABLE
 SECURITY DEFINER
 SET search_path = pg_catalog, public
 AS $$
