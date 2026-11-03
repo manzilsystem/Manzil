@@ -556,3 +556,32 @@ $cashbox_owner$;
 RESET ROLE;
 
 \ir monthly-cashbox-close.integration.sql
+
+
+\ir ../supabase/migrations/20261103150003_index_cashbox_rate_history_fks.sql
+
+DO $foreign_key_indexes$
+DECLARE
+    v_index text;
+BEGIN
+    FOREACH v_index IN ARRAY ARRAY[
+        'cash_transfers_audit_log_id_idx',
+        'cash_transfers_created_by_idx',
+        'resident_subscription_rate_changes_changed_by_idx',
+        'resident_subscription_rate_changes_resident_id_idx'
+    ] LOOP
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_class index_class
+            JOIN pg_namespace index_schema ON index_schema.oid = index_class.relnamespace
+            JOIN pg_index index_meta ON index_meta.indexrelid = index_class.oid
+            WHERE index_schema.nspname = 'public'
+              AND index_class.relname = v_index
+              AND index_meta.indisvalid
+              AND index_meta.indisready
+        ) THEN
+            RAISE EXCEPTION 'Required foreign-key index is missing or invalid: %', v_index;
+        END IF;
+    END LOOP;
+END;
+$foreign_key_indexes$;
