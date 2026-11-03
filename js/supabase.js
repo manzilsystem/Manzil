@@ -404,10 +404,51 @@ async function submitSupabaseLogin(event) {
             showSupabaseError('PIN المالك يجب أن يتكون من 6 أرقام أو 8 أرقام للرمز المؤقت.');
             return;
         }
-        const credentials = isManagerEmail ? { email: identifier, password } : { email: ownerAuthEmail(phone), password };
-        authRequestFailed = true;
-        const { data, error } = await supabaseClient.auth.signInWithPassword(credentials);
-        authRequestFailed = false;
+        let data;
+        let error;
+        if (isManagerEmail) {
+            authRequestFailed = true;
+            ({ data, error } = await supabaseClient.auth.signInWithPassword({ email: identifier, password }));
+            authRequestFailed = false;
+        } else {
+            authRequestFailed = true;
+            const response = await supabaseClient.functions.invoke('owner-login', {
+                body: { phone, pin: password }
+            });
+            authRequestFailed = false;
+            data = response.data;
+            error = response.error;
+            if (error) {
+                let details = data || {};
+                if (error.context && typeof error.context.clone === 'function') {
+                    try { details = await error.context.clone().json(); } catch {}
+                }
+                if (details?.error === 'rate_limited') {
+                    const retrySeconds = Math.max(1, Number(details.retry_after_seconds) || 900);
+                    const retryMinutes = Math.ceil(retrySeconds / 60);
+                    showSupabaseError(`تم إيقاف محاولات الدخول مؤقتًا بسبب تكرار PIN غير صحيح. حاول بعد ${retryMinutes} دقيقة.`);
+                } else if (details?.error === 'login_unavailable') {
+                    showSupabaseError('خدمة دخول المالك غير متاحة مؤقتًا. حاول لاحقًا.');
+                } else {
+                    showSupabaseError('رقم الجوال أو PIN غير صحيح.');
+                }
+                return;
+            }
+            if (!data?.session?.access_token || !data?.session?.refresh_token) {
+                showSupabaseError('لم تُنشأ جلسة دخول للمالك. حاول مجددًا.');
+                return;
+            }
+            const sessionResult = await supabaseClient.auth.setSession({
+                access_token: data.session.access_token,
+                refresh_token: data.session.refresh_token
+            });
+            if (sessionResult.error || !sessionResult.data?.session) {
+                showSupabaseError('تعذر إنشاء جلسة المالك. تحقق من الاتصال وحاول مجددًا.');
+                return;
+            }
+            data = sessionResult.data;
+            error = null;
+        }
         if (error) {
             showSupabaseError('بيانات الدخول غير صحيحة أو الحساب غير مرتبط بمبنى.');
             return;
@@ -482,9 +523,15 @@ async function submitFirstOwnerPinChange(event) {
     }
     if (error || !data?.ok) {
         if (button) button.disabled = false;
-        let errorCode = data?.error;
+        let errorDetails = data || {};
         if (error?.context && typeof error.context.clone === 'function') {
-            try { errorCode = (await error.context.clone().json())?.error || errorCode; } catch {}
+            try { errorDetails = await error.context.clone().json(); } catch {}
+        }
+        const errorCode = errorDetails?.error || data?.error;
+        if (errorCode === 'rate_limited') {
+            const retryMinutes = Math.ceil(Math.max(1, Number(errorDetails.retry_after_seconds) || 900) / 60);
+            showFirstOwnerPinChange(`تم إيقاف المحاولات مؤقتًا بسبب تكرار PIN غير صحيح. حاول بعد ${retryMinutes} دقيقة.`);
+            return;
         }
         if (errorCode === 'pin_updated_retry_required') {
             document.getElementById('currentOwnerPin').value = pin;

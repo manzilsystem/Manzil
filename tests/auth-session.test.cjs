@@ -44,9 +44,13 @@ function makeHarness() {
     const client = {
         auth: {
             signInWithPassword: async () => ({ data: { session: { user: { id: 'user-1' } } }, error: null }),
+            setSession: async tokens => ({ data: { session: { user: { id: 'user-1' }, ...tokens } }, error: null }),
             signOut: async () => ({ error: null }),
             getSession: async () => ({ data: { session: null }, error: null }),
             onAuthStateChange: callback => { authListener = callback; return { data: { subscription: { unsubscribe() {} } } }; },
+        },
+        functions: {
+            invoke: async () => ({ data: { session: { access_token: 'access-token', refresh_token: 'refresh-token' } }, error: null }),
         },
     };
     const sandbox = {
@@ -162,38 +166,80 @@ test('owner mode rejects a PIN shorter than six digits before contacting Supabas
     assert.match(h.elements.get('pinErrorMsg').textContent, /PIN المالك يجب أن يتكون من 6 أرقام أو 8 أرقام للرمز المؤقت/);
 });
 
-test('owner mode accepts an eight-digit temporary PIN and passes it to Supabase Auth', async () => {
+test('owner mode routes an eight-digit temporary PIN through the rate-limited login function', async () => {
     const h = makeHarness();
     h.app.setLoginMode('owner');
     h.elements.get('authIdentifier').value = '01012345678';
     h.elements.get('authPassword').value = '12345678';
-    let credentials;
-    h.client.auth.signInWithPassword = async value => {
-        credentials = value;
-        return { data: {}, error: null };
+    h.app.setLoadState(async () => false);
+    let invocation;
+    let sessionTokens;
+    h.client.functions.invoke = async (name, options) => {
+        invocation = { name, body: options.body };
+        return { data: { session: { access_token: 'access-token', refresh_token: 'refresh-token' } }, error: null };
+    };
+    h.client.auth.setSession = async tokens => {
+        sessionTokens = tokens;
+        return { data: { session: { user: { id: 'user-1' } } }, error: null };
+    };
+    h.client.auth.signInWithPassword = async () => {
+        throw new Error('owner PIN must not bypass rate limiter');
     };
 
     await h.app.submitSupabaseLogin(h.makeSubmitEvent());
 
-    assert.equal(credentials?.password, '12345678');
-    assert.match(h.elements.get('pinErrorMsg').textContent, /لم تُنشأ جلسة دخول/);
+    assert.equal(invocation?.name, 'owner-login');
+    assert.equal(invocation?.body.phone, '+201012345678');
+    assert.equal(invocation?.body.pin, '12345678');
+    assert.equal(sessionTokens?.access_token, 'access-token');
+    assert.equal(sessionTokens?.refresh_token, 'refresh-token');
 });
 
-test('owner mode continues to accept existing six-digit permanent PINs', async () => {
+test('owner mode continues to accept existing six-digit permanent PINs through the rate-limited login function', async () => {
     const h = makeHarness();
     h.app.setLoginMode('owner');
     h.elements.get('authIdentifier').value = '01012345678';
     h.elements.get('authPassword').value = '123456';
-    let credentials;
-    h.client.auth.signInWithPassword = async value => {
-        credentials = value;
-        return { data: {}, error: null };
+    h.app.setLoadState(async () => false);
+    let body;
+    h.client.functions.invoke = async (name, options) => {
+        assert.equal(name, 'owner-login');
+        body = options.body;
+        return { data: { session: { access_token: 'access-token', refresh_token: 'refresh-token' } }, error: null };
+    };
+    h.client.auth.setSession = async () => ({ data: { session: { user: { id: 'user-1' } } }, error: null });
+    h.client.auth.signInWithPassword = async () => {
+        throw new Error('owner PIN must not bypass rate limiter');
     };
 
     await h.app.submitSupabaseLogin(h.makeSubmitEvent());
 
-    assert.equal(credentials?.password, '123456');
-    assert.match(h.elements.get('pinErrorMsg').textContent, /لم تُنشأ جلسة دخول/);
+    assert.equal(body?.pin, '123456');
+});
+
+test('owner login rate-limit response is shown as a temporary lockout without creating a session', async () => {
+    const h = makeHarness();
+    h.app.setLoginMode('owner');
+    h.elements.get('authIdentifier').value = '01012345678';
+    h.elements.get('authPassword').value = '123456';
+    let setSessionCalled = false;
+    h.client.functions.invoke = async () => ({
+        data: null,
+        error: {
+            context: {
+                clone: () => ({ json: async () => ({ error: 'rate_limited', retry_after_seconds: 901 }) }),
+            },
+        },
+    });
+    h.client.auth.setSession = async () => {
+        setSessionCalled = true;
+        return { data: { session: null }, error: null };
+    };
+
+    await h.app.submitSupabaseLogin(h.makeSubmitEvent());
+
+    assert.equal(setSessionCalled, false);
+    assert.match(h.elements.get('pinErrorMsg').textContent, /حاول بعد 16 دقيقة/);
 });
 
 test('a failed local sign-out does not prevent locking the interface or clearing prior account data', async () => {
