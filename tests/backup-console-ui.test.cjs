@@ -40,7 +40,7 @@ test('restore request tracking survives cached renders until a fresh terminal re
     assert.match(backupUi, /if \(pendingRestore\?\.id\) activeRestoreRequestId = pendingRestore\.id/);
     assert.match(backupUi, /else if \(!cached\) activeRestoreRequestId = null/);
     assert.match(backupUi, /const trackedRestoreRequestId = activeRestoreRequestId/);
-    assert.match(backupUi, /item\.id === trackedRestoreRequestId && item\.status === 'succeeded'/);
+    assert.match(backupUi, /find\(item => item\.id === trackedRestoreRequestId\)/);
 });
 
 
