@@ -251,17 +251,6 @@ async function submitCashTransfer(event) {
     const notes = document.getElementById('cashTransferNotes')?.value.trim() || '';
     const available = getCashAccountBalance(fromAccountCode);
 
-    if (!CASH_ACCOUNTS[fromAccountCode] || !CASH_ACCOUNTS[toAccountCode] ||
-        fromAccountCode === toAccountCode || !Number.isFinite(amount) || amount <= 0 ||
-        notes.length > 500) {
-        toast('راجع الصندوقين والمبلغ والملاحظات قبل التحويل.', 'error');
-        return;
-    }
-    if (amount > available + 0.000001) {
-        toast(`الرصيد المتاح في ${getCashAccountLabel(fromAccountCode)} غير كافٍ.`, 'error');
-        return;
-    }
-
     const requestPayload = { fromAccountCode, toAccountCode, amount, notes };
     if (cashTransferPendingRequestId && JSON.stringify(requestPayload) !== JSON.stringify(cashTransferPendingPayload)) {
         const fromInput = document.getElementById('cashTransferFrom');
@@ -274,6 +263,16 @@ async function submitCashTransfer(event) {
         if (notesInput) notesInput.value = cashTransferPendingPayload.notes;
         previewCashTransfer();
         toast('تمت استعادة بيانات تحويل سابق غير مؤكد. راجعها ثم اضغط التنفيذ مرة أخرى للتحقق دون تكرار.', 'error');
+        return;
+    }
+    if (!CASH_ACCOUNTS[fromAccountCode] || !CASH_ACCOUNTS[toAccountCode] ||
+        fromAccountCode === toAccountCode || !Number.isFinite(amount) || amount <= 0 ||
+        notes.length > 500) {
+        toast('راجع الصندوقين والمبلغ والملاحظات قبل التحويل.', 'error');
+        return;
+    }
+    if (!cashTransferPendingRequestId && amount > available + 0.000001) {
+        toast(`الرصيد المتاح في ${getCashAccountLabel(fromAccountCode)} غير كافٍ.`, 'error');
         return;
     }
 
