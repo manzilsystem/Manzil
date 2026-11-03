@@ -91,12 +91,14 @@ async function loadMonthlyCloseReport() {
     status.textContent = 'جارٍ حساب الأرصدة والحركات من قاعدة البيانات...';
     preview.innerHTML = '<p class="text-slate-400 text-center py-4">جارٍ إعداد المراجعة الشهرية...</p>';
 
+    const buildingId = activeBuildingId;
     try {
         const result = await supabaseClient.rpc('get_monthly_cashbox_close', {
-            p_building_id: activeBuildingId,
+            p_building_id: buildingId,
             p_month: monthKey
         });
         if (result.error) throw result.error;
+        if (activeBuildingId !== buildingId || monthLabelToKey(monthSelect.value) !== monthKey) return;
         const data = result.data;
         if (
             !data ||
@@ -106,7 +108,7 @@ async function loadMonthlyCloseReport() {
             !monthlyCloseAccounts.every(function (account) { return data.accounts[account.code]; })
         ) throw new Error('invalid_monthly_close_response');
 
-        monthlyCloseLastReport = { data: data, buildingId: activeBuildingId, monthKey: monthKey };
+        monthlyCloseLastReport = { data: data, buildingId: buildingId, monthKey: monthKey };
         preview.innerHTML = renderMonthlyClosePreview(data);
         status.textContent = data.reconciled
             ? 'اكتملت المراجعة والمطابقة النقدية.'
@@ -205,7 +207,7 @@ async function exportMonthlyClosePdf() {
         root = document.createElement('section');
         root.dir = 'rtl';
         root.lang = 'ar';
-        root.style.cssText = 'position:fixed;top:0;left:-10000px;width:190mm;padding:8mm;box-sizing:border-box;background:#fff;z-index:-1';
+        root.style.cssText = 'position:fixed;top:0;left:0;width:190mm;padding:8mm;box-sizing:border-box;background:#fff;z-index:-1';
         root.innerHTML = renderMonthlyClosePdfHtml(report.data);
         document.body.appendChild(root);
 
