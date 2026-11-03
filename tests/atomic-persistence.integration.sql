@@ -5,6 +5,7 @@
 \ir ../supabase/migrations/20261103060000_effective_dated_subscription_rates.sql
 \ir ../supabase/migrations/20261103070000_atomic_subscription_rate_snapshot.sql
 \ir ../supabase/migrations/20261103073000_restrict_subscription_rate_visibility.sql
+\ir ../supabase/migrations/20261103080000_manager_only_resident_notes.sql
 
 INSERT INTO public.profiles (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),
@@ -40,7 +41,7 @@ DECLARE
 BEGIN
     v_payload := '{
       "building":{"name":"Atomic success","manager_name":"Manager","manager_phone":null,"default_subscription":100,"starting_balance":0,"current_theme":"dark"},
-      "residents":[{"id":"30000000-0000-4000-8000-000000000001","user_id":"10000000-0000-4000-8000-000000000002","name":"Owner A","apartment_number":"A1","monthly_amount":100,"created_at":"2026-11-02T10:00:00Z"}],
+      "residents":[{"id":"30000000-0000-4000-8000-000000000001","user_id":"10000000-0000-4000-8000-000000000002","name":"Owner A","apartment_number":"A1","monthly_amount":100,"notes":"manager-only secret","created_at":"2026-11-02T10:00:00Z"}],
       "income":[{"id":"50000000-0000-4000-8000-000000000001","resident_id":"30000000-0000-4000-8000-000000000001","amount":100,"month":"2026-11","paid_at":"2026-11-02T10:00:00Z"}],
       "expenses":[],"notices":[],"audit_logs":[],
       "subscription_rates":[{"resident_id":"30000000-0000-4000-8000-000000000001","effective_month":"2026-11-01","monthly_amount":125}]
@@ -55,6 +56,21 @@ BEGIN
        OR NOT EXISTS (SELECT 1 FROM public.building_members
           WHERE building_id = v_building AND user_id = '10000000-0000-4000-8000-000000000002' AND role = 'owner') THEN
         RAISE EXCEPTION 'snapshot rows or owner membership were not persisted';
+    END IF;
+
+    IF (SELECT notes FROM public.residents
+        WHERE id = '30000000-0000-4000-8000-000000000001') IS NOT NULL
+       OR NOT EXISTS (
+          SELECT 1 FROM public.resident_internal_notes
+          WHERE resident_id = '30000000-0000-4000-8000-000000000001'
+            AND building_id = v_building AND notes = 'manager-only secret'
+       ) THEN
+        RAISE EXCEPTION 'resident internal note was not isolated from the residents row';
+    END IF;
+    IF NOT has_table_privilege('authenticated', 'public.resident_internal_notes', 'SELECT')
+       OR has_table_privilege('authenticated', 'public.resident_internal_notes', 'INSERT')
+       OR has_table_privilege('authenticated', 'public.resident_internal_notes', 'UPDATE') THEN
+        RAISE EXCEPTION 'resident internal notes table grants are too broad';
     END IF;
 
     IF NOT EXISTS (
@@ -163,6 +179,11 @@ BEGIN
     END IF;
 
     PERFORM set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
+    IF (SELECT count(*) FROM public.resident_internal_notes WHERE building_id = v_building) <> 0
+       OR (SELECT notes FROM public.residents
+           WHERE id = '30000000-0000-4000-8000-000000000001') IS NOT NULL THEN
+        RAISE EXCEPTION 'owner can read manager-only resident notes';
+    END IF;
     IF (SELECT count(*) FROM public.resident_subscription_rates WHERE building_id = v_building) <> 1
        OR EXISTS (SELECT 1 FROM public.resident_subscription_rates
                   WHERE building_id = v_building AND resident_id <> '30000000-0000-4000-8000-000000000001') THEN
