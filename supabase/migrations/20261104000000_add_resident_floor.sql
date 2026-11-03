@@ -192,7 +192,17 @@ BEGIN
     )
     ON CONFLICT (id) DO UPDATE SET
         user_id = EXCLUDED.user_id, name = EXCLUDED.name,
-        apartment_number = EXCLUDED.apartment_number, floor = EXCLUDED.floor, phone = EXCLUDED.phone,
+        apartment_number = EXCLUDED.apartment_number,
+        floor = CASE
+            WHEN EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements(p_payload->'residents') AS payload_resident
+                WHERE payload_resident->>'id' = current_resident.id::text
+                  AND payload_resident ? 'floor'
+            ) THEN EXCLUDED.floor
+            ELSE current_resident.floor
+        END,
+        phone = EXCLUDED.phone,
         monthly_amount = EXCLUDED.monthly_amount, notes = EXCLUDED.notes
     WHERE current_resident.building_id = p_building_id;
 
