@@ -131,14 +131,6 @@ jobs:
             --notes "Automated PostgreSQL custom-format backup. Verify with the accompanying SHA-256 file."
 
       - name: Register backup in Manzil catalog
-        env:
-          BACKUP_TAG: ${{ env.BACKUP_TAG }}
-          BACKUP_FILE: ${{ env.BACKUP_FILE }}
-          PGHOST: ${{ env.PGHOST }}
-          PGPASSWORD: ${{ env.PGPASSWORD }}
-          PGPORT: ${{ env.PGPORT }}
-          PGDATABASE: ${{ env.PGDATABASE }}
-          PGSSLMODE: ${{ env.PGSSLMODE }}
         run: |
           set -euo pipefail
           size="$(stat -c '%s' "$RUNNER_TEMP/$BACKUP_FILE")"
@@ -153,11 +145,6 @@ jobs:
         if: ${{ always() && env.PGHOST != '' }}
         env:
           GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
-          PGPASSWORD: ${{ env.PGPASSWORD }}
-          PGHOST: ${{ env.PGHOST }}
-          PGPORT: ${{ env.PGPORT }}
-          PGDATABASE: ${{ env.PGDATABASE }}
-          PGSSLMODE: ${{ env.PGSSLMODE }}
         run: |
           set -euo pipefail
           test -n "$GH_TOKEN"
