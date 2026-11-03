@@ -63,7 +63,7 @@ test('atomic save converts a legacy millisecond createdAt into a timestamptz ISO
 });
 
 test('new apartments use an ISO creation timestamp and invalid saved dates are rejected', () => {
-    assert.match(crudSource, /createdAt:\s*new Date\(\)\.toISOString\(\)/);
+    assert.match(crudSource, /const createdAt = new Date\(\);[\s\S]*?createdAt: createdAt\.toISOString\(\),/);
     assert.throws(() => makeSaveHarness({}).app.toSupabaseTimestamp('not-a-date'), /Invalid timestamp/);
 });
 
