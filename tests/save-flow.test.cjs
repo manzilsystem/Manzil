@@ -50,6 +50,7 @@ test('mutating CRUD handlers await the rollback-aware save path', () => {
     ]) {
         assert.match(crudSource, new RegExp(`async function ${name}\\b`));
     }
+    assert.match(settingsSource, /async function saveSettings\b[\s\S]*saveWithRollback\(previousState\)/);
     assert.doesNotMatch(crudSource, /(^|[^\w])saveState\s*\(/);
     assert.match(crudSource, /const previousState = cloneStateSnapshot\(\);/);
     assert.match(crudSource, /if \(!await saveWithRollback\(previousState\)\) return;/);
