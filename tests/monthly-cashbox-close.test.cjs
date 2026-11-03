@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const root = path.join(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
-const migration = read('supabase/migrations/20261103112500_monthly_cashbox_close.sql');
+const migration = read('supabase/migrations/20261103113213_monthly_cashbox_close.sql');
 const moduleSource = read('js/monthly-close.js');
 const html = read('index.html');
 const render = read('js/render.js');
