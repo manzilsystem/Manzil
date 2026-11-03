@@ -5,7 +5,7 @@ const test = require('node:test');
 
 const root = path.join(__dirname, '..');
 const migration = fs.readFileSync(
-    path.join(root, 'supabase/migrations/20261103090000_owner_login_rate_limit.sql'),
+    path.join(root, 'supabase/migrations/20261103063455_owner_login_rate_limit.sql'),
     'utf8'
 );
 const loginFunction = fs.readFileSync(

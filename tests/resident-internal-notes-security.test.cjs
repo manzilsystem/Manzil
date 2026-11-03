@@ -5,7 +5,7 @@ const test = require('node:test');
 
 const root = path.join(__dirname, '..');
 const migration = fs.readFileSync(
-    path.join(root, 'supabase/migrations/20261103080000_manager_only_resident_notes.sql'),
+    path.join(root, 'supabase/migrations/20261103062659_manager_only_resident_notes.sql'),
     'utf8'
 );
 const supabaseSource = fs.readFileSync(path.join(root, 'js/supabase.js'), 'utf8');

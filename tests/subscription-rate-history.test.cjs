@@ -5,7 +5,7 @@ const test = require('node:test');
 
 const root = path.join(__dirname, '..');
 const migration = fs.readFileSync(
-    path.join(root, 'supabase/migrations/20261103100000_subscription_rate_change_history.sql'),
+    path.join(root, 'supabase/migrations/20261103064001_subscription_rate_change_history.sql'),
     'utf8'
 );
 const adapter = fs.readFileSync(path.join(root, 'js/subscription-rates.js'), 'utf8');
