@@ -78,7 +78,7 @@ test('multiple memberships require explicit selection and display escaped buildi
     h.api.setSession(session, 4);
 
     const selection = h.api.chooseBuildingMembership(memberships, session, 4);
-    await Promise.resolve();
+    await new Promise(resolve => setImmediate(resolve));
 
     assert.equal(h.modal.classList.contains('hidden'), false);
     assert.match(h.select.innerHTML, /العمارة الأولى — مدير/);
@@ -101,7 +101,7 @@ test('a stale authentication session cannot confirm a building selection', async
         { building_id: 'building-1', role: 'manager' },
         { building_id: 'building-2', role: 'manager' },
     ], session, 1);
-    await Promise.resolve();
+    await new Promise(resolve => setImmediate(resolve));
     h.api.setSession({ user: { id: 'user-2' } }, 2);
 
     h.select.value = 'building-1';
