@@ -16,15 +16,14 @@ test('retention only deletes releases with the expected backup tag format', () =
     assert.ok(workflow.includes('[[ "$tag" =~ ^backup-[0-9]{8}T[0-9]{6}Z$ ]]'));
 });
 
-test('catalog cleanup receives the database connection environment', () => {
-    for (const variable of ['PGPASSWORD', 'PGHOST', 'PGPORT', 'PGDATABASE', 'PGSSLMODE']) {
-        assert.ok(workflow.includes(variable + ': ${{ env.' + variable + ' }}'));
-    }
+test('catalog cleanup inherits database connection values exported through GITHUB_ENV', () => {
+    assert.ok(workflow.includes('docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE'));
+    assert.doesNotMatch(workflow, /\\$\\{\\{ env\\.(?:PGPASSWORD|PGHOST|PGPORT|PGDATABASE|PGSSLMODE) \\}\\}/);
 });
 
 
 test('orphan cleanup runs after a failed registration and only removes unregistered releases older than 24 hours', () => {
-    assert.ok(workflow.includes("if: ${{ always() && env.PGHOST != '' }}"));
+    assert.ok(workflow.includes("if: ${{ success() }}"));
     assert.ok(workflow.includes('SELECT tag FROM public.backup_catalog'));
     assert.ok(workflow.includes('age_seconds >= 86400'));
     assert.ok(workflow.includes('grep -Fxq -- "$tag" "$registered" && continue'));
