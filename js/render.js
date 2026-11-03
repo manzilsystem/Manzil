@@ -332,7 +332,7 @@ function renderResidentsGrid() {
         return { key: 'overdue', label: 'غير مسدد', className: 'text-rose-400 bg-rose-500/10 border-rose-500/20' };
     };
     let list = state.residents.map(r => ({ r, status: getStatus(r), debt: calculateCumulativeDebt(r.id) }));
-    if (s) list = list.filter(item => String(item.r.name||'').toLocaleLowerCase('ar-EG').includes(s) || String(item.r.apartmentNumber||'').toLocaleLowerCase('ar-EG').includes(s));
+    if (s) list = list.filter(item => String(item.r.name||'').toLocaleLowerCase('ar-EG').includes(s) || String(item.r.apartmentNumber||'').toLocaleLowerCase('ar-EG').includes(s) || String(item.r.floor||'').toLocaleLowerCase('ar-EG').includes(s));
     if (statusFilter !== 'all') list = list.filter(item => item.status.key === statusFilter);
     list.sort((a, b) => {
         if (sortBy === 'debt') return b.debt.totalDebt - a.debt.totalDebt;
@@ -361,7 +361,7 @@ function renderResidentsGrid() {
             <div class="flex justify-between items-start">
                 <div class="flex items-center gap-2">
                     <div class="w-11 h-11 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-sm font-black shrink-0">${esc(r.apartmentNumber||'?')}</div>
-                    <div class="min-w-0"><p class="text-sm font-bold truncate">${esc(r.name)}</p><p class="text-[10px] text-slate-500 truncate">${esc(r.phone||'')}</p></div>
+                    <div class="min-w-0"><p class="text-sm font-bold truncate">${esc(r.name)}</p><p class="text-[10px] text-slate-500 truncate">${r.floor ? `الدور ${esc(r.floor)} · ` : ''}${esc(r.phone||'')}</p></div>
                 </div>
                 <div class="flex gap-1">
                     <button onclick="editResident('${r.id}')" aria-label="تعديل بيانات ${esc(r.name)}" class="text-indigo-400 hover:text-indigo-300 p-1.5"><i class="fa-solid fa-pen text-xs"></i></button>
