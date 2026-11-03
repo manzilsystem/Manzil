@@ -94,7 +94,10 @@ test('multiple memberships require explicit selection and display escaped buildi
 
 test('a stale authentication session cannot confirm a building selection', async () => {
     const session = { user: { id: 'user-1' } };
-    const h = makeHarness([{ id: 'building-1', name: 'العمارة الأولى' }]);
+    const h = makeHarness([
+        { id: 'building-1', name: 'العمارة الأولى' },
+        { id: 'building-2', name: 'العمارة الثانية' },
+    ]);
     h.api.setSession(session, 1);
 
     const selection = h.api.chooseBuildingMembership([
