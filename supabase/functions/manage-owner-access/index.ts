@@ -316,7 +316,14 @@ Deno.serve(async (request: Request) => {
       password: temporaryPin,
       user_metadata: { full_name: resident.name, phone },
     })
-    if (error) return await failWithCompensation('auth_update_failed', 400)
+    if (error) {
+      // Auth Admin is outside the database compensation boundary. A transport
+      // error may be returned after Auth has committed the new credential.
+      // Keep the database linkage and audit row intact so either credential
+      // outcome remains attached to the same owner account; allow a safe retry.
+      console.error('owner_access_auth_update_status_unknown', error)
+      return json(503, { error: 'auth_update_status_unknown' })
+    }
   }
 
   return json(200, {
