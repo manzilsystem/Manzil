@@ -439,7 +439,7 @@ test('cashbox summary refresh validates and applies the complete authoritative s
     assert.equal(refreshed, true);
     assert.deepEqual(
         JSON.parse(JSON.stringify(harness.sandbox.state.cashAccountBalances)),
-        { main: 100, development: 25, emergency: -5 }
+        { main: 100, development: 25, emergency: 5 }
     );
     assert.equal(harness.sandbox.state.cashTransfers.length, 1);
     assert.equal(harness.sandbox.state.cashTransfers[0].amount, 25);
@@ -504,7 +504,7 @@ test('cashbox summary loader validates server data before assigning global state
 
 test('cashbox summary rejects negative balances in restricted funds', () => {
     const api = vm.runInNewContext(
-        `${source}\\n({ hasValidCashboxBalances })`,
+        [source, '({ hasValidCashboxBalances })'].join(String.fromCharCode(10)),
         {},
         { filename: 'cashbox-negative-balance-test.js' }
     );
