@@ -318,6 +318,11 @@ function isValidBackup(data) {
     if (data.currentTheme !== undefined && !['dark','light','emerald','ocean','sand'].includes(data.currentTheme)) return false;
     if (data.defaultSubscription !== undefined && !validAmount(data.defaultSubscription)) return false;
     if (data.startingBalance !== undefined && !validNumber(data.startingBalance)) return false;
+    const floorCount = data.floorCount ?? 0;
+    const apartmentsPerFloor = data.apartmentsPerFloor ?? 0;
+    if (!Number.isInteger(floorCount) || !Number.isInteger(apartmentsPerFloor)
+        || !((floorCount === 0 && apartmentsPerFloor === 0)
+            || (floorCount >= 1 && floorCount <= 100 && apartmentsPerFloor >= 1 && apartmentsPerFloor <= 100))) return false;
     return true;
 }
 
@@ -333,7 +338,20 @@ function importJSON(ev) {
             if (!confirm('استيراد البيانات؟ سيتم استبدال الحالية.')) return;
             const previousState = cloneStateSnapshot();
             state = { ...state, ...data, auditLogs: Array.isArray(data.auditLogs) ? data.auditLogs : [] };
-            if (!await saveWithRollback(previousState)) throw new Error('تعذر حفظ النسخة');
+            const { data: layoutResult, error: layoutError } = await supabaseClient.rpc('set_building_apartment_layout', {
+                p_building_id: activeBuildingId,
+                p_floor_count: state.floorCount || 0,
+                p_apartments_per_floor: state.apartmentsPerFloor || 0
+            });
+            if (layoutError || !layoutResult?.ok) throw new Error('تعذر حفظ إعدادات الأدوار في النسخة');
+            if (!await saveWithRollback(previousState)) {
+                await supabaseClient.rpc('set_building_apartment_layout', {
+                    p_building_id: activeBuildingId,
+                    p_floor_count: previousState.floorCount || 0,
+                    p_apartments_per_floor: previousState.apartmentsPerFloor || 0
+                });
+                throw new Error('تعذر حفظ النسخة');
+            }
             const importedTheme = state.currentTheme || 'dark';
             document.body.setAttribute('data-theme', importedTheme);
             const themeColors = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16' };
