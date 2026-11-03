@@ -28,19 +28,27 @@ let ownerProvisionRequested = false;
 function openResidentModal(mode, id) {
     if (!requireManager()) return;
     editingResidentId = mode === 'edit' ? id : null;
+    const amountInput = document.getElementById('residentAmount');
+    const historyButton = document.getElementById('manageSubscriptionRatesBtn');
     document.getElementById('residentModalTitle').textContent = mode === 'edit' ? 'تعديل بيانات الشقة' : 'شقة جديدة';
     if (mode === 'edit') {
         const r = state.residents.find(x => x.id === id);
         if (r) {
-            document.getElementById('residentName').value = r.name||'';
-            document.getElementById('residentApartment').value = r.apartmentNumber||'';
-            document.getElementById('residentPhone').value = r.phone||'';
-            document.getElementById('residentAmount').value = r.monthlyAmount ?? '';
-            document.getElementById('residentNotes').value = r.notes||'';
+            document.getElementById('residentName').value = r.name || '';
+            document.getElementById('residentApartment').value = r.apartmentNumber || '';
+            document.getElementById('residentPhone').value = r.phone || '';
+            amountInput.value = r.monthlyAmount ?? '';
+            amountInput.readOnly = true;
+            amountInput.setAttribute('aria-readonly', 'true');
+            historyButton?.classList.remove('hidden');
+            document.getElementById('residentNotes').value = r.notes || '';
         }
     } else {
         document.getElementById('residentForm').reset();
-        document.getElementById('residentAmount').value = state.defaultSubscription || '';
+        amountInput.value = state.defaultSubscription || '';
+        amountInput.readOnly = false;
+        amountInput.removeAttribute('aria-readonly');
+        historyButton?.classList.add('hidden');
     }
     openModal('residentModal');
 }
@@ -58,6 +66,138 @@ function saveResidentAndProvisionOwner() {
 function isValidEffectiveMonth(value) {
     return /^\d{4}-(0[1-9]|1[0-2])$/.test(String(value || ''));
 }
+
+function getSubscriptionAmountForMonthKey(resident, monthKey) {
+    const rates = (Array.isArray(resident?.subscriptionRates) ? resident.subscriptionRates : [])
+        .filter(rate => /^\d{4}-(0[1-9]|1[0-2])-01$/.test(String(rate.effectiveMonth || ''))
+            && String(rate.effectiveMonth).slice(0, 7) <= monthKey)
+        .sort((a, b) => a.effectiveMonth.localeCompare(b.effectiveMonth));
+    return Number(rates[rates.length - 1]?.monthlyAmount ?? resident?.monthlyAmount ?? state.defaultSubscription) || 0;
+}
+
+function getCurrentSubscriptionAmount(resident) {
+    return getSubscriptionAmountForMonthKey(resident, new Date().toISOString().slice(0, 7));
+}
+
+let subscriptionRateResidentId = null;
+
+function escapeSubscriptionHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[character]);
+}
+
+function formatSubscriptionAmount(value) {
+    return new Intl.NumberFormat('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        .format(Number(value) || 0);
+}
+
+function renderSubscriptionRateHistory(resident) {
+    const body = document.getElementById('subscriptionRateHistoryBody');
+    if (!body) return;
+    const history = Array.isArray(resident.subscriptionRateHistory) ? resident.subscriptionRateHistory : [];
+    if (!history.length) {
+        body.innerHTML = '<tr><td colspan="5" class="px-3 py-5 text-center text-xs text-slate-500">لا يوجد سجل تاريخي بعد.</td></tr>';
+        return;
+    }
+    body.innerHTML = [...history]
+        .sort((a, b) => String(b.changedAt).localeCompare(String(a.changedAt)))
+        .map(change => {
+            const previous = change.previousMonthlyAmount == null
+                ? '—'
+                : formatSubscriptionAmount(change.previousMonthlyAmount);
+            const recordedAt = change.changedAt
+                ? new Date(change.changedAt).toLocaleString('ar-EG')
+                : '—';
+            const type = change.changeType === 'baseline' ? 'قيمة تأسيسية' : 'تغيير';
+            const actor = change.changedBy ? 'المدير' : 'النظام';
+            return `<tr class="border-t border-slate-700/40">
+                <td class="px-3 py-2 whitespace-nowrap">${escapeSubscriptionHtml(String(change.effectiveMonth || '').slice(0, 7))}</td>
+                <td class="px-3 py-2 whitespace-nowrap">${previous}</td>
+                <td class="px-3 py-2 whitespace-nowrap font-bold">${formatSubscriptionAmount(change.newMonthlyAmount)}</td>
+                <td class="px-3 py-2 whitespace-nowrap">${escapeSubscriptionHtml(recordedAt)}</td>
+                <td class="px-3 py-2 whitespace-nowrap">${type} · ${actor}</td>
+            </tr>`;
+        }).join('');
+}
+
+function openSubscriptionRateModal(residentId) {
+    if (!requireManager()) return;
+    const resident = state.residents.find(item => item.id === residentId);
+    if (!resident) return;
+    subscriptionRateResidentId = resident.id;
+    document.getElementById('subscriptionRateResidentSummary').textContent =
+        `${resident.name} · شقة ${resident.apartmentNumber} · القيمة الحالية ${formatSubscriptionAmount(resident.monthlyAmount)}`;
+    const monthInput = document.getElementById('subscriptionRateEffectiveMonth');
+    monthInput.value = new Date().toISOString().slice(0, 7);
+    const createdMonth = String(resident.createdAt || '').slice(0, 7);
+    if (createdMonth) monthInput.min = createdMonth;
+    else monthInput.removeAttribute('min');
+    document.getElementById('subscriptionRateAmount').value = getCurrentSubscriptionAmount(resident);
+    renderSubscriptionRateHistory(resident);
+    openModal('subscriptionRateModal');
+}
+
+async function addSubscriptionRateChange(event) {
+    if (!requireManager()) return;
+    event.preventDefault();
+    const resident = state.residents.find(item => item.id === subscriptionRateResidentId);
+    if (!resident) {
+        toast('تعذر العثور على الشقة. أعد فتح سجل الاشتراك.', 'error');
+        return;
+    }
+    const effectiveMonth = document.getElementById('subscriptionRateEffectiveMonth').value.trim();
+    const monthlyAmount = Number(document.getElementById('subscriptionRateAmount').value);
+    if (!isValidEffectiveMonth(effectiveMonth)) {
+        toast('اختر شهرًا صحيحًا لتطبيق الاشتراك.', 'error');
+        return;
+    }
+    const createdMonth = String(resident.createdAt || '').slice(0, 7);
+    if (createdMonth && effectiveMonth < createdMonth) {
+        toast('لا يمكن تطبيق الاشتراك قبل تاريخ إنشاء الشقة.', 'error');
+        return;
+    }
+    if (!Number.isFinite(monthlyAmount) || monthlyAmount < 0) {
+        toast('قيمة الاشتراك يجب أن تكون صفرًا أو أكثر.', 'error');
+        return;
+    }
+
+    const effectiveDate = effectiveMonth + '-01';
+    const existingRate = (resident.subscriptionRates || []).find(rate => rate.effectiveMonth === effectiveDate);
+    const previousAmount = existingRate
+        ? Number(existingRate.monthlyAmount) || 0
+        : getSubscriptionAmountForMonthKey(resident, effectiveMonth);
+    if (Math.round(previousAmount * 100) === Math.round(monthlyAmount * 100)) {
+        toast('لا يوجد تغيير في قيمة الاشتراك لهذا الشهر.', 'info');
+        return;
+    }
+
+    const previousState = cloneStateSnapshot();
+    resident.subscriptionRates = Array.isArray(resident.subscriptionRates) ? resident.subscriptionRates : [];
+    resident.subscriptionRates = resident.subscriptionRates.filter(rate => rate.effectiveMonth !== effectiveDate);
+    resident.subscriptionRates.push({ effectiveMonth: effectiveDate, monthlyAmount });
+    resident.subscriptionRates.sort((a, b) => a.effectiveMonth.localeCompare(b.effectiveMonth));
+    resident.monthlyAmount = getCurrentSubscriptionAmount(resident);
+    logAction('تغيير قيمة الاشتراك', `${resident.name} - ${previousAmount} إلى ${monthlyAmount} بدءًا من ${effectiveMonth}`);
+
+    if (!await saveWithRollback(previousState)) return;
+    try {
+        if (typeof reloadResidentSubscriptionRateHistory === 'function') {
+            await reloadResidentSubscriptionRateHistory(resident.id);
+        }
+    } catch (error) {
+        console.error('Could not refresh subscription rate history:', error);
+    }
+    renderSubscriptionRateHistory(resident);
+    const amountInput = document.getElementById('residentAmount');
+    if (amountInput && editingResidentId === resident.id) amountInput.value = resident.monthlyAmount;
+    const summary = document.getElementById('subscriptionRateResidentSummary');
+    if (summary) {
+        summary.textContent = `${resident.name} · شقة ${resident.apartmentNumber} · القيمة الحالية ${formatSubscriptionAmount(resident.monthlyAmount)}`;
+    }
+    toast('تم حفظ تغيير الاشتراك وإضافته إلى السجل التاريخي.', 'success');
+}
+
 
 async function handleResidentSubmit(e) {
     if (!requireManager()) return;
@@ -84,22 +224,8 @@ async function handleResidentSubmit(e) {
         if (r) {
             const previousAmount = Number(r.monthlyAmount ?? state.defaultSubscription) || 0;
             if (Math.round(previousAmount * 100) !== Math.round(monthlyAmount * 100)) {
-                const currentMonth = new Date().toISOString().slice(0, 7);
-                const effectiveMonth = (prompt('تاريخ تطبيق قيمة الاشتراك الجديدة (YYYY-MM). لن تتغير الشهور السابقة.', currentMonth) || '').trim();
-                if (!isValidEffectiveMonth(effectiveMonth)) {
-                    toast('تم إلغاء التعديل: أدخل شهرًا صحيحًا بصيغة YYYY-MM.', 'error');
-                    return;
-                }
-                const createdMonth = String(r.createdAt || '').slice(0, 7);
-                if (createdMonth && effectiveMonth < createdMonth) {
-                    toast('لا يمكن تطبيق الاشتراك قبل تاريخ إنشاء الشقة.', 'error');
-                    return;
-                }
-                r.subscriptionRates = Array.isArray(r.subscriptionRates) ? r.subscriptionRates : [];
-                r.subscriptionRates = r.subscriptionRates.filter(rate => rate.effectiveMonth !== effectiveMonth + '-01');
-                r.subscriptionRates.push({ effectiveMonth: effectiveMonth + '-01', monthlyAmount });
-                r.subscriptionRates.sort((a, b) => a.effectiveMonth.localeCompare(b.effectiveMonth));
-                logAction('تغيير قيمة الاشتراك', `${name} - ${previousAmount} إلى ${monthlyAmount} بدءًا من ${effectiveMonth}`);
+                toast('غيّر قيمة الاشتراك من زر «إدارة تاريخ الاشتراك» حتى يُحفظ التغيير في السجل.', 'error');
+                return;
             }
             Object.assign(r, { name, apartmentNumber, phone, monthlyAmount, notes });
             targetResidentId = r.id;

@@ -7,6 +7,7 @@
 \ir ../supabase/migrations/20261103073000_restrict_subscription_rate_visibility.sql
 \ir ../supabase/migrations/20261103080000_manager_only_resident_notes.sql
 \ir ../supabase/migrations/20261103090000_owner_login_rate_limit.sql
+\ir ../supabase/migrations/20261103100000_subscription_rate_change_history.sql
 
 INSERT INTO public.profiles (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),
@@ -167,6 +168,7 @@ BEGIN
 
     v_payload := jsonb_set(v_payload, '{residents}',
       (v_payload->'residents') || '[{"id":"30000000-0000-4000-8000-000000000002","user_id":"10000000-0000-4000-8000-000000000003","name":"Owner B","apartment_number":"B1","monthly_amount":100}]'::jsonb);
+    v_payload := jsonb_set(v_payload, '{subscription_rates,0,monthly_amount}', '130'::jsonb);
     v_payload := jsonb_set(v_payload, '{subscription_rates}',
       (v_payload->'subscription_rates') || '[{"resident_id":"30000000-0000-4000-8000-000000000002","effective_month":"2026-11-01","monthly_amount":100}]'::jsonb);
     v_result := public.persist_building_snapshot(v_building, 2,
@@ -179,11 +181,29 @@ BEGIN
         RAISE EXCEPTION 'manager cannot read all subscription rates';
     END IF;
 
+    IF (SELECT count(*) FROM public.resident_subscription_rate_changes WHERE building_id = v_building) <> 3
+       OR NOT EXISTS (
+          SELECT 1 FROM public.resident_subscription_rate_changes
+          WHERE resident_id = '30000000-0000-4000-8000-000000000001'
+            AND previous_monthly_amount = 125 AND new_monthly_amount = 130
+            AND change_type = 'change'
+       ) THEN
+        RAISE EXCEPTION 'subscription rate change history did not preserve old and new values';
+    END IF;
+    IF has_table_privilege('authenticated', 'public.resident_subscription_rate_changes', 'INSERT')
+       OR has_table_privilege('authenticated', 'public.resident_subscription_rate_changes', 'UPDATE')
+       OR has_table_privilege('authenticated', 'public.resident_subscription_rate_changes', 'DELETE') THEN
+        RAISE EXCEPTION 'subscription rate history is directly mutable by clients';
+    END IF;
+
     PERFORM set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
     IF (SELECT count(*) FROM public.resident_internal_notes WHERE building_id = v_building) <> 0
        OR (SELECT notes FROM public.residents
            WHERE id = '30000000-0000-4000-8000-000000000001') IS NOT NULL THEN
         RAISE EXCEPTION 'owner can read manager-only resident notes';
+    END IF;
+    IF (SELECT count(*) FROM public.resident_subscription_rate_changes WHERE building_id = v_building) <> 0 THEN
+        RAISE EXCEPTION 'owner can read manager-only subscription rate history';
     END IF;
     IF (SELECT count(*) FROM public.resident_subscription_rates WHERE building_id = v_building) <> 1
        OR EXISTS (SELECT 1 FROM public.resident_subscription_rates
