@@ -118,3 +118,32 @@ test('getArrearsBucket groups month counts at the documented boundaries', () => 
     assert.equal(app.getArrearsBucket(3), '2–3 أشهر');
     assert.equal(app.getArrearsBucket(4), '4 أشهر فأكثر');
 });
+
+
+test('multiple partial payments accumulate without exceeding the monthly subscription', () => {
+    const app = loadCalculators();
+    const resident = { id: 'r1', monthlyAmount: 100 };
+    app.state.income = [
+        { residentId: 'r1', month: 'يناير 2024', amount: 20 },
+        { residentId: 'r1', month: 'يناير 2024', amount: 30 },
+        { residentId: 'r1', month: 'يناير 2024', amount: 80 }
+    ];
+    assert.equal(app.getPaidAmountForMonth('r1', 'يناير 2024'), 130);
+    assert.equal(app.getMonthOutstanding(resident, 'يناير 2024'), 0);
+});
+
+test('historical subscription change affects only its effective month and later months', () => {
+    const app = loadCalculators();
+    const resident = {
+        id: 'r1',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        monthlyAmount: 150,
+        subscriptionRates: [
+            { effectiveMonth: '2024-01-01', monthlyAmount: 100 },
+            { effectiveMonth: '2024-03-01', monthlyAmount: 150 }
+        ]
+    };
+    assert.equal(app.getMonthOutstanding(resident, 'يناير 2024'), 100);
+    assert.equal(app.getMonthOutstanding(resident, 'فبراير 2024'), 100);
+    assert.equal(app.getMonthOutstanding(resident, 'مارس 2024'), 150);
+});
