@@ -69,7 +69,8 @@ function renderBackupConsole(data, cached = false) {
     }
 
     const pendingRestore = restoreRequests.find(item => ['queued', 'running'].includes(item.status));
-    activeRestoreRequestId = pendingRestore?.id || null;
+    if (pendingRestore?.id) activeRestoreRequestId = pendingRestore.id;
+    else if (!cached) activeRestoreRequestId = null;
     const pendingBackup = backupRequests.some(item => ['queued', 'dispatched'].includes(item.status));
     const status = document.getElementById('backupRestoreStatus');
     if (status && pendingRestore) {
