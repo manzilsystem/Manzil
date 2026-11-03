@@ -30,3 +30,23 @@ test('mobile action bars and filters can wrap without horizontal overflow', () =
     assert.match(css, /\.list-filters input, \.list-filters select \{ width: 100%; min-width: 0; flex-basis: auto; \}/);
     assert.match(css, /\.resident-filters-grid \{ grid-template-columns: minmax\(0, 1fr\); \}/);
 });
+
+
+test('form controls expose accessible names for assistive technology', () => {
+    const controlIds = [
+        'filterIncomeMonth',
+        'filterExpenseCategory',
+        'filterExpenseMonth',
+        'reportMonthSelect',
+        'noticeInput',
+        'residentNotes',
+        'incomeNotes',
+        'expenseCategory',
+        'expenseNotes'
+    ];
+    for (const id of controlIds) {
+        const control = html.match(new RegExp('<(?:input|select|textarea)\\\\b[^>]*\\\\bid="' + id + '"[^>]*>'));
+        assert.ok(control, `expected control #${id} to exist`);
+        assert.match(control[0], /\\\\baria-label="[^"]+"/, `expected control #${id} to have an accessible name`);
+    }
+});
