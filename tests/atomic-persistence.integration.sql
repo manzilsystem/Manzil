@@ -22,6 +22,8 @@
 \ir ../supabase/migrations/20261103153941_cash_transfer_idempotency_payload.sql
 \ir ../supabase/migrations/20261103172000_revoke_direct_financial_table_writes.sql
 \ir ../supabase/migrations/20261103180000_sync_owner_payment_notifications.sql
+\ir ../supabase/migrations/20261103172000_revoke_direct_financial_table_writes.sql
+\ir ../supabase/migrations/20261103180000_sync_owner_payment_notifications.sql
 \ir ../supabase/migrations/20261103180000_sync_owner_payment_notifications.sql
 
 INSERT INTO public.profiles (id) VALUES
