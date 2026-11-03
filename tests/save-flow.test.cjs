@@ -81,9 +81,11 @@ test('overlapping saves do not let an earlier failure roll back a later successf
     app.getState().managerName = 'التعديل الثاني';
     const second = app.saveWithRollback(beforeSecond);
 
-    assert.equal(pendingSaves.length, 2);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(pendingSaves.length, 1);
     pendingSaves[0](false);
-    await Promise.resolve();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(pendingSaves.length, 2);
     pendingSaves[1](true);
 
     assert.equal(await first, false);
@@ -102,8 +104,11 @@ test('overlapping failed saves roll back to the earliest persisted state', async
     app.getState().managerName = 'تعديل ثانٍ فاشل';
     const second = app.saveWithRollback(beforeSecond);
 
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(pendingSaves.length, 1);
     pendingSaves[0](false);
-    await Promise.resolve();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(pendingSaves.length, 2);
     pendingSaves[1](false);
 
     assert.equal(await first, false);
