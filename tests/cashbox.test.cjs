@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const root = path.join(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
-const migration = read('supabase/migrations/20261103120000_cashbox_funds_and_transfers.sql');
+const migration = read('supabase/migrations/20261103105908_cashbox_funds_and_transfers.sql');
 const cashbox = read('js/cashbox.js');
 const supabase = read('js/supabase.js');
 const state = read('js/state.js');
