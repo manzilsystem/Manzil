@@ -254,6 +254,7 @@ test('cash transfer preview disables invalid and over-balance transfers', () => 
 
 test('cash transfer idempotency keys cannot be reused with a different payload', () => {
     const migration = read('supabase/migrations/20261103154000_cash_transfer_idempotency_payload.sql');
+    const integration = read('tests/atomic-persistence.integration.sql');
     assert.match(migration, /transfer\.from_account_code, transfer\.to_account_code/);
     assert.match(migration, /v_existing_from_account_code IS DISTINCT FROM p_from_account_code/);
     assert.match(migration, /v_existing_to_account_code IS DISTINCT FROM p_to_account_code/);
