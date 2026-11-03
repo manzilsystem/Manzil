@@ -51,7 +51,7 @@ test('arrears report filters unpaid months by inclusive period boundaries', () =
 test('arrears report filters by overdue status after applying period and apartment filters', () => {
     const app = load();
     app.state.residents = [
-        resident('r1', '1'),
+        resident('r1', '1', '2024-04-01T00:00:00.000Z'),
         resident('r2', '2', '2024-01-01T00:00:00.000Z')
     ];
     app.state.income = [
