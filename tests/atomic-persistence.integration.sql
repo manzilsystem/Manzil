@@ -443,6 +443,36 @@ BEGIN
         RAISE EXCEPTION 'cash transfer retry was not idempotent: %', v_result;
     END IF;
 
+    BEGIN
+        PERFORM public.transfer_cash_between_accounts(
+            v_building,
+            '40000000-0000-4000-8000-000000000010',
+            v_version,
+            'main',
+            'emergency',
+            30,
+            'تمويل صندوق التطوير'
+        );
+        RAISE EXCEPTION 'changed cash transfer payload reused an existing request id';
+    EXCEPTION
+        WHEN SQLSTATE '22023' THEN
+            IF SQLERRM <> 'cash_transfer_idempotency_key_reused' THEN
+                RAISE;
+            END IF;
+    END;
+
+    IF (SELECT count(*) FROM public.cash_transfers WHERE building_id = v_building) <> 1
+       OR NOT EXISTS (
+           SELECT 1 FROM public.cash_transfers
+           WHERE building_id = v_building
+             AND request_id = '40000000-0000-4000-8000-000000000010'
+             AND from_account_code = 'main'
+             AND to_account_code = 'development'
+             AND amount = 30
+       ) THEN
+        RAISE EXCEPTION 'mismatched idempotency retry changed the stored cash transfer';
+    END IF;
+
     v_result := public.transfer_cash_between_accounts(
         v_building,
         '40000000-0000-4000-8000-000000000014',
@@ -559,6 +589,7 @@ RESET ROLE;
 
 
 \ir ../supabase/migrations/20261103152547_index_cashbox_rate_history_fks.sql
+\ir ../supabase/migrations/20261103154000_cash_transfer_idempotency_payload.sql
 
 DO $foreign_key_indexes$
 DECLARE
