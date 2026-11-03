@@ -14,7 +14,7 @@ test('service worker is valid JavaScript and bumps the app cache', () => {
 });
 
 test('all runtime modules are pre-cached with the application shell', () => {
-    const shell = sw.match(/const APP_SHELL = \\[([\\s\\S]*?)\\];/);
+    const shell = sw.match(/const APP_SHELL = \[([\s\S]*?)\];/);
     assert.ok(shell, 'APP_SHELL must exist');
 
     for (const module of [
@@ -24,7 +24,8 @@ test('all runtime modules are pre-cached with the application shell', () => {
         'notices.js',
         'subscription-rates.js'
     ]) {
-        assert.match(html, new RegExp('<script src="js/' + module.replace('.', '\\\\.') + '"></script>'));
-        assert.match(shell[1], new RegExp("'\\\\./js/" + module.replace('.', '\\\\.') + "'"));
+        const escapedModule = module.replace('.', '\\.');
+        assert.match(html, new RegExp('<script src="js/' + escapedModule + '"></script>'));
+        assert.match(shell[1], new RegExp("'\\./js/" + escapedModule + "'"));
     }
 });
