@@ -157,7 +157,7 @@ function calculateIncomeAllocationPreview(residentId, amount, selectedMonth, max
     const createdAt = new Date(resident.createdAt || Date.now());
     const createdKey = Number.isNaN(createdAt.getTime())
         ? selectedKey
-        : `${createdAt.getUTCFullYear()}-${String(createdAt.getUTCMonth() + 1).padStart(2, '0')}-01`;
+        : `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}-01`;
     if (selectedKey < createdKey) {
         return { allocations: [], totalAllocated: 0, remainingAmount: amountCents / 100, remainingCents: amountCents, invalid: true, invalidStart: true };
     }
