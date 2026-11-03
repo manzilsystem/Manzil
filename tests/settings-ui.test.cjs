@@ -34,10 +34,12 @@ test('all five themes are selectable, persisted and restored after authenticatio
 });
 
 test('settings redesign is included in the service worker cache version', () => {
-    assert.match(sw, /CACHE_NAME = 'manzil-v32'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v33'/);
     assert.match(sw, /\.\/css\/style\.css/);
     assert.match(sw, /\.\/js\/state\.js/);
     assert.match(sw, /\.\/js\/settings\.js/);
+    assert.match(sw, /\.\/js\/notices\.js/);
+    assert.match(html, /js\/crud\.js[\s\S]*js\/notices\.js/);
     assert.match(html, /js\/crud\.js[\s\S]*js\/settings\.js/);
     assert.doesNotMatch(crud, /function openSettingsModal|function saveSettings|function switchSettingsTab/);
 });

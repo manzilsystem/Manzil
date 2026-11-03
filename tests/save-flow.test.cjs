@@ -7,6 +7,7 @@ const vm = require('node:vm');
 const stateSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'state.js'), 'utf8');
 const crudSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'crud.js'), 'utf8');
 const settingsSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'settings.js'), 'utf8');
+const noticesSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'notices.js'), 'utf8');
 
 function loadSaveHelper(saveResult = false) {
     const sandbox = {
@@ -46,11 +47,12 @@ test('saveWithRollback rerenders the interface after a successful save', async (
 test('mutating CRUD handlers await the rollback-aware save path', () => {
     for (const name of [
         'deleteResident', 'quickPayResident', 'handleIncomeSubmit', 'deleteIncome',
-        'handleExpenseSubmit', 'deleteExpense', 'handleNoticeSubmit', 'deleteNotice'
+        'handleExpenseSubmit', 'deleteExpense'
     ]) {
         assert.match(crudSource, new RegExp(`async function ${name}\\b`));
     }
     assert.match(settingsSource, /async function saveSettings\b[\s\S]*saveWithRollback\(previousState\)/);
+    for (const name of ['handleNoticeSubmit', 'deleteNotice']) assert.match(noticesSource, new RegExp('async function ' + name + '\\b'));
     assert.doesNotMatch(crudSource, /(^|[^\w])saveState\s*\(/);
     assert.match(crudSource, /const previousState = cloneStateSnapshot\(\);/);
     assert.match(crudSource, /if \(!await saveWithRollback\(previousState\)\) return;/);

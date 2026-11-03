@@ -10,7 +10,7 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 
 test('service worker is valid JavaScript and bumps the app cache', () => {
     assert.doesNotThrow(() => new vm.Script(sw, { filename: 'sw.js' }));
-    assert.match(sw, /const CACHE_NAME = 'manzil-v32'/);
+    assert.match(sw, /const CACHE_NAME = 'manzil-v33'/);
 });
 
 test('monthly close module is pre-cached with the application shell', () => {
@@ -18,4 +18,6 @@ test('monthly close module is pre-cached with the application shell', () => {
     const shell = sw.match(/const APP_SHELL = \[([\s\S]*?)\];/);
     assert.ok(shell, 'APP_SHELL must exist');
     assert.match(shell[1], /'\.\/js\/monthly-close\.js'/);
+    assert.match(shell[1], /'\.\/js\/notices\.js'/);
+    assert.match(html, /js\/crud\.js[\s\S]*js\/notices\.js/);
 });
