@@ -25,6 +25,7 @@ function updateThemeSelection() {
 }
 let ownerProvisionRequested = false;
 let incomeSaving = false;
+let expenseSaving = false;
 
 function openResidentModal(mode, id) {
     if (!requireManager()) return;
@@ -505,22 +506,69 @@ async function deleteIncome(id) {
     toast('تم الحذف','info');
 }
 
+function previewExpense() {
+    const preview = document.getElementById('expensePreview');
+    const summary = document.getElementById('expensePreviewSummary');
+    const details = document.getElementById('expensePreviewDetails');
+    if (!preview || !summary || !details) return;
+
+    const title = document.getElementById('expenseTitle')?.value.trim() || '';
+    const amount = Number(document.getElementById('expenseAmount')?.value);
+    const category = document.getElementById('expenseCategory')?.value || '';
+    const month = document.getElementById('expenseMonth')?.value || '';
+    const notes = document.getElementById('expenseNotes')?.value.trim() || '';
+    if (!title || !Number.isFinite(amount) || amount <= 0 || !month) {
+        preview.classList.add('hidden');
+        return;
+    }
+
+    summary.textContent = `معاينة المصروف: ${title} — ${fmtNum(amount)} ج.م`;
+    details.innerHTML = [
+        `<div class="flex justify-between gap-3"><span>الفئة</span><strong>${esc(category || 'أخرى')}</strong></div>`,
+        `<div class="flex justify-between gap-3"><span>الشهر</span><strong>${esc(month)}</strong></div>`,
+        `<div class="flex justify-between gap-3"><span>الملاحظات</span><strong class="text-left">${esc(notes || '—')}</strong></div>`
+    ].join('');
+    preview.classList.remove('hidden');
+}
+
 async function handleExpenseSubmit(e) {
-    if (!requireManager()) return;
+    if (!requireManager() || expenseSaving) return;
     e.preventDefault();
     const title = document.getElementById('expenseTitle').value.trim();
     const amount = Number(document.getElementById('expenseAmount').value);
     const category = document.getElementById('expenseCategory').value;
     const month = document.getElementById('expenseMonth').value;
     const notes = document.getElementById('expenseNotes').value.trim();
-    if (!title || !Number.isFinite(amount) || amount <= 0 || !month) { toast('أدخل وصفاً ومبلغاً أكبر من صفر واختر الشهر','error'); return; }
+    if (!title || !Number.isFinite(amount) || amount <= 0 || !month) {
+        toast('أدخل وصفاً ومبلغاً أكبر من صفر واختر الشهر', 'error');
+        return;
+    }
+
+    expenseSaving = true;
+    const submit = document.getElementById('expenseSubmitButton');
+    if (submit) {
+        submit.disabled = true;
+        submit.textContent = 'جارٍ الحفظ...';
+    }
     const previousState = cloneStateSnapshot();
     state.expenses.push({ id: generateId(), title, amount, category, month, notes, date: new Date().toISOString() });
     logAction('مصروف', `${title} - ${fmtNum(amount)}`);
-    if (!await saveWithRollback(previousState)) return;
-    closeModal('expenseModal'); document.getElementById('expenseForm').reset(); renderAll();
-    toast('تم تسجيل المصروف','success');;
+    try {
+        if (!await saveWithRollback(previousState)) return;
+        closeModal('expenseModal');
+        document.getElementById('expenseForm').reset();
+        document.getElementById('expensePreview')?.classList.add('hidden');
+        renderAll();
+        toast('تم تسجيل المصروف', 'success');
+    } finally {
+        expenseSaving = false;
+        if (submit) {
+            submit.disabled = false;
+            submit.textContent = 'حفظ المصروف';
+        }
+    }
 }
+
 
 async function deleteExpense(id) {
     if (!requireManager()) return;

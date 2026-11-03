@@ -670,18 +670,22 @@
                 <button onclick="closeModal('expenseModal')" aria-label="إغلاق نافذة المصروف" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <form id="expenseForm" onsubmit="handleExpenseSubmit(event)" class="p-5 space-y-3">
-                <input type="text" id="expenseTitle" aria-label="وصف المصروف" placeholder="وصف المصروف" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
-                <input type="number" id="expenseAmount" min="0.01" step="0.01" aria-label="مبلغ المصروف" placeholder="مبلغ المصروف" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
-                <select id="expenseCategory" aria-label="فئة المصروف" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                <input type="text" id="expenseTitle" aria-label="وصف المصروف" placeholder="وصف المصروف" oninput="previewExpense()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                <input type="number" id="expenseAmount" min="0.01" step="0.01" aria-label="مبلغ المصروف" placeholder="مبلغ المصروف" oninput="previewExpense()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                <select id="expenseCategory" aria-label="فئة المصروف" onchange="previewExpense()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                     <option value="كهرباء">كهرباء</option>
                     <option value="صيانة أسانسير">صيانة أسانسير</option>
                     <option value="نظافة">نظافة</option>
                     <option value="أعمال سباكة وصنايعي">أعمال سباكة وصنايعي</option>
                     <option value="أخرى">أخرى</option>
                 </select>
-                <select id="expenseMonth" aria-label="شهر المصروف" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
-                <textarea id="expenseNotes" aria-label="ملاحظات المصروف" rows="2" placeholder="ملاحظات" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
-                <button type="submit" class="w-full bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-2xl font-bold transition">حفظ</button>
+                <select id="expenseMonth" aria-label="شهر المصروف" onchange="previewExpense()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
+                <textarea id="expenseNotes" aria-label="ملاحظات المصروف" rows="2" placeholder="ملاحظات المصروف" oninput="previewExpense()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
+                <div id="expensePreview" aria-live="polite" class="hidden app-input border border-rose-500/30 rounded-2xl p-3 space-y-2">
+                    <p id="expensePreviewSummary" class="text-xs font-bold text-rose-300"></p>
+                    <div id="expensePreviewDetails" class="space-y-1 text-[11px] text-slate-400"></div>
+                </div>
+                <button type="submit" id="expenseSubmitButton" class="w-full bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-2xl font-bold transition">حفظ المصروف</button>
             </form>
         </div>
     </div>
