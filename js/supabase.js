@@ -349,6 +349,9 @@ async function loadState() {
     }
     persistedAuditLogIds = new Set(auditLogs.map(row => row.id));
     currentResidentId = currentUserRole === 'owner' ? state.residents[0]?.id || null : null;
+    if (currentUserRole === 'manager' && typeof initializeCashboxAccountingSnapshot === 'function') {
+        initializeCashboxAccountingSnapshot();
+    }
     supabaseStateLoaded = true;
     subscribeOwnerNotificationsRealtime();
     return true;
