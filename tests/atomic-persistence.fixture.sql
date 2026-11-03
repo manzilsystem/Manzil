@@ -132,3 +132,34 @@ GRANT USAGE ON SCHEMA private TO authenticated;
 GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated;
 GRANT SELECT ON public.buildings, public.building_members, public.residents, public.income,
     public.expenses, public.notices, public.audit_logs TO authenticated;
+
+CREATE TABLE public.notifications (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    building_id uuid NOT NULL REFERENCES public.buildings(id) ON DELETE CASCADE,
+    target_user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+    target_resident_id uuid REFERENCES public.residents(id) ON DELETE CASCADE,
+    target_scope uuid,
+    kind text NOT NULL CHECK (kind IN ('unpaid','partial','payment','expense','collection_due','backup_stale','announcement')),
+    dedupe_key text NOT NULL,
+    title text NOT NULL,
+    body text NOT NULL,
+    severity text NOT NULL DEFAULT 'info' CHECK (severity IN ('info','success','warning','danger')),
+    action_path text,
+    read_at timestamptz,
+    created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT notifications_target_check CHECK (
+        (target_user_id IS NULL AND target_resident_id IS NULL) OR target_user_id IS NOT NULL
+    ),
+    CONSTRAINT notifications_dedupe_scope_unique UNIQUE (building_id, target_scope, dedupe_key)
+);
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+GRANT SELECT, UPDATE ON public.notifications TO authenticated;
+CREATE POLICY notifications_select_scoped ON public.notifications
+FOR SELECT TO authenticated
+USING (private.is_building_manager(building_id) OR target_user_id = auth.uid());
+CREATE POLICY notifications_update_read_state ON public.notifications
+FOR UPDATE TO authenticated
+USING (private.is_building_manager(building_id) OR target_user_id = auth.uid())
+WITH CHECK (private.is_building_manager(building_id) OR target_user_id = auth.uid());
