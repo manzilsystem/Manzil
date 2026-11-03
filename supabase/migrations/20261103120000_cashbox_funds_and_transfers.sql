@@ -162,7 +162,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = pg_catalog, public
-AS $$
+AS $
 DECLARE
     v_actor uuid := auth.uid();
     v_version bigint;
@@ -266,7 +266,6 @@ BEGIN
     );
 END;
 $;
-
 REVOKE ALL ON FUNCTION private.transfer_cash_between_accounts(uuid, uuid, text, text, numeric, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION private.transfer_cash_between_accounts(uuid, uuid, text, text, numeric, text) TO authenticated;
 
