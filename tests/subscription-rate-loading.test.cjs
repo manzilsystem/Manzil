@@ -12,9 +12,15 @@ if (start < 0 || end < 0) throw new Error('resident mapping helpers not found');
 const mappingSource = supabase.slice(start, end);
 
 function loadMappingHelpers() {
+    const RealDate = Date;
+    class FixedDate extends RealDate {
+        constructor(...args) {
+            super(...(args.length ? args : ['2026-11-04T12:00:00.000Z']));
+        }
+    }
     return vm.runInNewContext(
         mappingSource + '\n({ mapResident, attachResidentSubscriptionHistory })',
-        {},
+        { Date: FixedDate },
         { filename: 'js/supabase.js' }
     );
 }
@@ -38,6 +44,7 @@ test('effective subscription rates and manager audit history are restored per ap
         app.mapResident({ id: 'r2', name: 'B', apartment_number: '2', monthly_amount: 90 })
     ];
     const mapped = app.attachResidentSubscriptionHistory(residents, [
+        { resident_id: 'r1', effective_month: '2026-12-01', monthly_amount: '140' },
         { resident_id: 'r1', effective_month: '2026-03-01', monthly_amount: '125' },
         { resident_id: 'r1', effective_month: '2026-01-01', monthly_amount: '100' },
         { resident_id: 'r2', effective_month: '2026-01-01', monthly_amount: '90' }
@@ -54,9 +61,12 @@ test('effective subscription rates and manager audit history are restored per ap
         }
     ]);
 
+    assert.equal(mapped[0].monthlyAmount, 125);
+    assert.equal(mapped[1].monthlyAmount, 90);
     assert.deepEqual(JSON.parse(JSON.stringify(mapped[0].subscriptionRates)), [
         { effectiveMonth: '2026-01-01', monthlyAmount: 100 },
-        { effectiveMonth: '2026-03-01', monthlyAmount: 125 }
+        { effectiveMonth: '2026-03-01', monthlyAmount: 125 },
+        { effectiveMonth: '2026-12-01', monthlyAmount: 140 }
     ]);
     assert.deepEqual(JSON.parse(JSON.stringify(mapped[1].subscriptionRates)), [
         { effectiveMonth: '2026-01-01', monthlyAmount: 90 }
