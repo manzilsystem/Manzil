@@ -31,13 +31,13 @@ test('settings use responsive cards and full-page section navigation', () => {
     assert.match(html, /id="settingsSectionToolbar"/);
     assert.match(html, /onclick="showSettingsOverview\\(\\)"/);
     assert.match(html, /id="settingsSaveButton"/);
-    assert.match(css, /\\.settings-card-grid\\s*\\{[^}]*grid-template-columns:\\s*repeat\\(2/);
-    assert.match(css, /@media \\(max-width: 640px\\)[\\s\\S]*settings-card-grid \\{ grid-template-columns:1fr/);
-    assert.match(css, /\\.settings-card\\s*\\{[^}]*min-height:\\s*104px/);
-    assert.match(css, /\\.settings-overview\\s*\\{[^}]*overflow-y:\\s*auto/);
-    assert.match(css, /\\.settings-content\\s*\\{[^}]*overflow-y:\\s*auto/);
-    assert.match(settings, /function showSettingsOverview\\(\\)/);
-    assert.match(settings, /function switchSettingsTab\\(tab\\)/);
+    assert.match(css, /\.settings-card-grid\\s*\\{[^}]*grid-template-columns:\\s*repeat\(2/);
+    assert.match(css, /@media \(max-width: 640px\)[\s\S]*settings-card-grid \{ grid-template-columns:1fr/);
+    assert.match(css, /\.settings-card\\s*\\{[^}]*min-height:\s*104px/);
+    assert.match(css, /\.settings-overview\\s*\\{[^}]*overflow-y:\s*auto/);
+    assert.match(css, /\.settings-content\\s*\\{[^}]*overflow-y:\s*auto/);
+    assert.match(settings, /function showSettingsOverview\(\)/);
+    assert.match(settings, /function switchSettingsTab\(tab\)/);
 });
  
 test('all five themes are selectable, persisted and restored after authentication', () => {
