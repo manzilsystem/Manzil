@@ -286,6 +286,7 @@ function renderIncomeTable() {
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <span class="text-sm font-black text-emerald-400">${fmtNum(i.amount)}</span>
+                <button onclick="sendIncomeReceiptOnWhatsApp('${i.id}')" aria-label="إرسال إيصال واتساب إلى ${esc(r?.name || '')}" title="إرسال إيصال واتساب" class="text-emerald-400 hover:text-emerald-300 p-1"><i class="fa-brands fa-whatsapp text-sm"></i></button>
                 <button onclick="openIncomeEditModal('${i.id}')" aria-label="تعديل التحصيل ${i.month}" class="text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-pen text-xs"></i></button>
                 <button onclick="deleteIncome('${i.id}')" aria-label="حذف التحصيل ${i.month}" class="text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash text-xs"></i></button>
             </div>
