@@ -34,7 +34,7 @@ function renderOwnerPortal() {
         .slice(0, 12);
     const paymentRows = ownPayments.length ? ownPayments.map(payment => `
         <div class="flex items-center justify-between gap-3 border-b border-slate-700/50 py-2 last:border-0">
-            <div><p class="text-xs font-bold">${esc(payment.month || '—')}</p><p class="text-[10px] text-slate-500">${formatDate(payment.date)}</p></div>
+            <div><p class="text-xs font-bold">${esc(payment.month || '—')}</p><p class="text-[10px] text-slate-500">${formatDate(payment.date)} · ${esc(getIncomePaymentMethodLabel(payment.paymentMethod))}</p></div>
             <span class="text-sm font-black text-emerald-400">${fmtNum(payment.amount)} ج.م</span>
         </div>`).join('') : '<p class="text-xs text-slate-500 text-center py-3">لا توجد دفعات مسجلة بعد.</p>';
     const notices = state.notices.length ? state.notices.slice().reverse().map(notice => `
