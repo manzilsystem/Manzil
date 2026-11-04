@@ -1,9 +1,10 @@
-const CACHE_NAME = 'manzil-v93';
+const CACHE_NAME = 'manzil-v95';
 const APP_CACHE_PREFIX = 'manzil-';
 const APP_SHELL = [
     './',
     './index.html',
     './css/style.css',
+    './js/telemetry.js',
     './js/state.js',
     './js/access.js',
     './js/render.js',
