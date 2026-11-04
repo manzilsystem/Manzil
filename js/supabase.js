@@ -435,7 +435,7 @@ async function loadState() {
             startingBalance: 0, floorCount: 0, apartmentsPerFloor: 0,
             residents: [], income: [], expenses: [], notices: [], ownerNotifications: [], auditLogs: [],
             cashAccountBalances: { main: 0, development: 0, emergency: 0 }, cashTransfers: [],
-            currentTheme: 'dark', paymentSettings: getBuildingPaymentSettings(null), subscriptionDueDay: 1, subscriptionGraceDays: 0, paymentAllocationPolicy: 'oldest_first', lastUpdated: Date.now()
+            currentTheme: 'dark', paymentSettings: getBuildingPaymentSettings(null), subscriptionDueDay: 1, subscriptionGraceDays: 0, paymentAllocationPolicy: 'oldest_first', receiptThankYouTemplate: null, reminderMessageTemplate: null, lastUpdated: Date.now()
         };
         persistedAuditLogIds = new Set();
         currentResidentId = null;
@@ -444,7 +444,7 @@ async function loadState() {
         renderAll();
         return true;
     }
-    const { data: building, error: buildingError } = await supabaseClient.from('buildings').select('id,name,manager_name,manager_phone,default_subscription,starting_balance,current_theme,payment_settings,subscription_due_day,subscription_grace_days,payment_allocation_policy,floor_count,apartments_per_floor,state_version').eq('id', activeBuildingId).single();
+    const { data: building, error: buildingError } = await supabaseClient.from('buildings').select('id,name,manager_name,manager_phone,default_subscription,starting_balance,current_theme,payment_settings,subscription_due_day,subscription_grace_days,payment_allocation_policy,receipt_thank_you_template,arrears_reminder_template,floor_count,apartments_per_floor,state_version').eq('id', activeBuildingId).single();
     if (!isCurrentAuthSession(session, generation)) return false;
     if (buildingError) throw buildingError;
     activeBuildingVersion = Number(building.state_version) || 1;
@@ -515,6 +515,8 @@ async function loadState() {
         subscriptionDueDay: Math.min(28, Math.max(1, Number(building.subscription_due_day) || 1)),
         subscriptionGraceDays: Math.min(31, Math.max(0, Number(building.subscription_grace_days) || 0)),
         paymentAllocationPolicy: ['oldest_first', 'selected_month_first'].includes(building.payment_allocation_policy) ? building.payment_allocation_policy : 'oldest_first',
+        receiptThankYouTemplate: building.receipt_thank_you_template ?? null,
+        reminderMessageTemplate: building.arrears_reminder_template ?? null,
         floorCount: Number(building.floor_count) || 0,
         apartmentsPerFloor: Number(building.apartments_per_floor) || 0,
         residents: attachResidentSubscriptionHistory(residents.map(mapResident), subscriptionRatesResult.data || [], subscriptionRateHistoryResult.data || []),
