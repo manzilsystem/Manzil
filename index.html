@@ -9,6 +9,26 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#071f27">
+    <script>
+    (() => {
+        if (!('serviceWorker' in navigator) || !location.protocol.startsWith('http')) return;
+        let reloading = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (reloading) return;
+            reloading = true;
+            location.reload();
+        });
+        const refreshWorker = () => navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+            .then(registration => registration.update().catch(() => {}))
+            .catch(error => console.warn('تعذر تحديث التطبيق تلقائيًا:', error));
+        refreshWorker();
+        window.addEventListener('pageshow', refreshWorker);
+        window.addEventListener('focus', refreshWorker);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') refreshWorker();
+        });
+    })();
+    </script>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icons/manzil-logo.png">
     <link rel="apple-touch-icon" sizes="192x192" href="icons/manzil-logo.png">
