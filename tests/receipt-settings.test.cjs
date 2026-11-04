@@ -84,7 +84,7 @@ test('receipt template character counter updates live and marks the limit', () =
         settingsReceiptCharacterCount: { textContent: '', classList: { toggle() {} } },
         settingsReceiptPreview: { textContent: '' }
     };
-    const api = vm.runInNewContext(settingsSource + '\\n({ renderReceiptPreview })', {
+    const api = vm.runInNewContext(settingsSource + '\n({ renderReceiptPreview })', {
         document: { getElementById: id => elements[id] || null },
         state: { buildingName: 'عمارة الاختبار' }
     });
