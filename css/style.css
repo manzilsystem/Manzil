@@ -269,69 +269,6 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 [data-theme] .app-card { background-color:var(--bg-card); border-color:var(--border-color); }
 [data-theme] .app-input { background-color:var(--bg-input); color:var(--text-main); border-color:var(--border-color); }
 [data-theme] .text-slate-400,[data-theme] .text-slate-500 { color:var(--text-muted) !important; }
-#settingsModal { padding:.65rem; }
-#settingsModal > .app-card { max-width:52rem; width:min(100%,52rem); height:min(88dvh,760px); max-height:88dvh; overflow:hidden; display:flex; flex-direction:column; }
-#settingsModal > .app-card > .bg-indigo-700 { flex:none; }
-#settingsModal .settings-layout { flex:1; overflow:hidden; }
-#settingsModal .settings-content { flex:1; max-height:none; min-height:0; }
-#settingsModal .settings-tabs,#settingsModal .settings-footer { flex:none; }
-@media(max-width:640px) { #settingsModal { padding:.35rem; } #settingsModal > .app-card { height:94dvh; max-height:94dvh; border-radius:1.25rem; } }
-.settings-layout { display:flex; flex-direction:column; min-height:0; }
-.settings-overview { flex:1; min-height:0; overflow-y:auto; padding:1.1rem; overscroll-behavior:contain; }
-.settings-overview-heading { margin-bottom:1rem; }
-.settings-overview-heading h4 { font-size:1rem; font-weight:900; color:var(--text-main); }
-.settings-overview-heading p { margin-top:.25rem; color:var(--text-muted); font-size:.75rem; }
-.settings-card-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.8rem; }
-.settings-card { display:flex; align-items:center; gap:.8rem; min-width:0; min-height:104px; padding:1rem; text-align:right; border:1px solid var(--border-color); border-radius:1.1rem; background:var(--surface-raised); color:var(--text-main); transition:border-color .18s,background .18s,transform .18s,box-shadow .18s; }
-.settings-card:hover { border-color:var(--accent-color); background:var(--surface-soft); transform:translateY(-2px); box-shadow:var(--shadow-soft); }
-.settings-card:active { transform:scale(.99); }
-.settings-card:focus-visible,.settings-back-button:focus-visible { outline:3px solid var(--accent-color); outline-offset:2px; }
-.settings-card-icon { display:grid; place-items:center; width:2.8rem; height:2.8rem; flex:none; border-radius:.9rem; color:var(--accent-color); background:var(--surface-soft); font-size:1.05rem; }
-.settings-card-copy { display:flex; flex:1; flex-direction:column; gap:.3rem; min-width:0; }
-.settings-card-copy b { font-size:.82rem; font-weight:900; }
-.settings-card-copy small { color:var(--text-muted); font-size:.68rem; line-height:1.65; }
-.settings-card-arrow { flex:none; color:var(--text-muted); font-size:.7rem; }
-.settings-section-toolbar { display:flex; align-items:center; gap:.8rem; margin-bottom:1.1rem; padding-bottom:.9rem; border-bottom:1px solid var(--border-color); }
-.settings-back-button { display:inline-flex; align-items:center; gap:.45rem; min-height:44px; flex:none; padding:.6rem .85rem; border:1px solid var(--border-color); border-radius:.8rem; color:var(--text-main); font-size:.75rem; font-weight:800; background:var(--surface-raised); }
-.settings-section-toolbar h4 { font-size:.95rem; font-weight:900; color:var(--text-main); }
-.settings-section-toolbar p { color:var(--text-muted); font-size:.68rem; margin-top:.15rem; }
-.settings-footer-overview { grid-template-columns:1fr; }
-.settings-footer-overview #settingsSaveButton { display:none; }
-.settings-tab:focus-visible,.theme-option:focus-visible { outline:3px solid var(--accent-color); outline-offset:2px; }
-.settings-content { padding:1.1rem; min-height:310px; max-height:min(62vh,600px); overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; }
-.settings-panel { animation:settingsPanelIn .18s ease; }
-@keyframes settingsPanelIn { from { opacity:.4; transform:translateY(4px) } to { opacity:1; transform:translateY(0) } }
-.settings-section-heading { display:flex; align-items:center; gap:.75rem; margin-bottom:.35rem; }
-.settings-section-heading h4 { font-size:.92rem; font-weight:900; }
-.settings-section-heading p { color:var(--text-muted); font-size:.7rem; margin-top:.1rem; }
-.settings-section-icon { display:grid; place-items:center; width:2.6rem; height:2.6rem; flex:none; border-radius:.9rem; color:var(--accent-color); background:var(--surface-soft); }
-.settings-field { display:flex; flex-direction:column; gap:.4rem; min-width:0; color:var(--text-muted); font-size:.75rem; font-weight:700; }
-.settings-field input { width:100%; min-width:0; color:var(--text-main); }
-.settings-help { color:var(--text-muted); font-size:.7rem; line-height:1.8; }
-.settings-info-card,.settings-account-card { border:1px solid var(--border-color); background:var(--surface-raised); border-radius:1rem; padding:1rem; }
-.settings-info-card p { color:var(--text-muted); font-size:.75rem; line-height:1.8; margin:.55rem 0; }
-.settings-status { color:#34d399; font-size:.72rem; font-weight:800; }
-.settings-account-card { display:grid; gap:.8rem; }
-.settings-account-card > div,.settings-inline-row { display:flex; justify-content:space-between; align-items:center; gap:1rem; font-size:.75rem; }
-.settings-account-card span,.settings-inline-row span { color:var(--text-muted); }
-.settings-account-card b { overflow-wrap:anywhere; text-align:left; }
-.settings-footer { display:grid; grid-template-columns:1fr 1.5fr; gap:.65rem; padding:1rem; border-top:1px solid var(--border-color); background:var(--surface-raised); }
-.theme-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65rem; }
-.theme-option { display:flex; flex-direction:column; align-items:stretch; gap:.2rem; padding:.55rem; text-align:right; border:1px solid var(--border-color); border-radius:1rem; background:var(--surface-raised); color:var(--text-main); transition:border-color .18s,transform .18s,box-shadow .18s; }
-.theme-option:hover { transform:translateY(-2px); }
-.theme-option.active { border-color:var(--accent-color); box-shadow:0 0 0 2px color-mix(in srgb,var(--accent-color) 20%,transparent); }
-.theme-option > span:nth-child(2) { font-size:.78rem; font-weight:900; }
-.theme-option small { color:var(--text-muted); font-size:.65rem; }
-.theme-preview { display:flex; align-items:flex-end; gap:.25rem; height:2.55rem; padding:.35rem; border-radius:.65rem; overflow:hidden; }
-.theme-preview i { display:block; height:65%; flex:1; border-radius:.2rem; background:var(--preview-accent); }
-.theme-preview i:nth-child(2) { height:88%; background:var(--preview-card); }
-.theme-preview i:nth-child(3) { height:48%; background:var(--preview-muted); }
-.theme-preview-dark { background:#0b1020; --preview-accent:#818cf8; --preview-card:#29364f; --preview-muted:#9aa8c2; }
-.theme-preview-light { background:#edf2fa; --preview-accent:#4f46e5; --preview-card:#cbd5e1; --preview-muted:#94a3b8; }
-.theme-preview-emerald { background:#071c18; --preview-accent:#34d399; --preview-card:#285446; --preview-muted:#a0c9b8; }
-.theme-preview-ocean { background:#071827; --preview-accent:#38bdf8; --preview-card:#28485f; --preview-muted:#9ab8ce; }
-.theme-preview-sand { background:#211b16; --preview-accent:#e6a85c; --preview-card:#594735; --preview-muted:#c8b8a5; }
-@media(prefers-reduced-motion:reduce) { .settings-panel { animation:none; } .settings-tab,.theme-option { transition:none; } }
 
 /* Theme-aware contrast for common utility classes */
 [data-theme="light"] .text-slate-300,[data-theme="light"] .text-slate-200 { color:#334155 !important; }
@@ -390,56 +327,10 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
         border-radius:1.25rem;
     }
 }
-/* Manager-only owner account controls and searchable activity history. */
-.settings-owner-list { display:flex; flex-direction:column; gap:.65rem; }
-.settings-owner-row { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.8rem; border:1px solid var(--border-color); border-radius:.9rem; min-width:0; }
-.settings-owner-row > div:first-child { min-width:0; }
-.settings-owner-row b { display:block; font-size:.75rem; overflow-wrap:anywhere; }
-.settings-owner-actions { display:flex; flex-direction:column; gap:.4rem; flex:none; }
-.settings-owner-action { min-height:40px; padding:.5rem .7rem; border-radius:.7rem; background:var(--accent-color); color:#fff; font-size:.68rem; font-weight:800; white-space:nowrap; }
-.settings-owner-action.secondary { background:var(--surface-raised); border:1px solid var(--border-color); color:var(--text-main); }
 .audit-log-row { display:flex; padding:.65rem .2rem; border-bottom:1px solid var(--border-color); }
 .audit-log-row:last-child { border-bottom:0; }
 @media(max-width:420px) { .settings-owner-row { align-items:flex-start; flex-direction:column; } .settings-owner-actions { width:100%; flex-direction:row; flex-wrap:wrap; } .settings-owner-action { flex:1 1 auto; } }
 
-/* Financial settings: compact, touch-friendly controls. */
-.settings-payment-card {
-    min-width:0;
-    padding:1rem;
-    border:1px solid var(--border-color);
-    border-radius:1rem;
-    background:var(--surface-raised);
-}
-.settings-payment-toggle {
-    display:flex;
-    align-items:center;
-    gap:.75rem;
-    min-height:44px;
-    color:var(--text-main);
-    cursor:pointer;
-}
-.settings-payment-toggle input {
-    width:1.15rem;
-    height:1.15rem;
-    flex:none;
-    accent-color:var(--accent-color);
-}
-.settings-payment-toggle span { display:flex; flex-direction:column; gap:.15rem; min-width:0; }
-.settings-payment-toggle b { font-size:.8rem; font-weight:900; }
-.settings-payment-toggle small { color:var(--text-muted); font-size:.68rem; line-height:1.6; }
-.settings-payment-card .settings-field input,
-.settings-payment-card .settings-field select { min-height:46px; }
-
-/* Settings cards adapt to compact Android screens. */
-@media (max-width: 640px) {
-    .settings-overview,.settings-content { padding:.9rem; }
-    .settings-card-grid { grid-template-columns:1fr; gap:.65rem; }
-    .settings-card { min-height:88px; padding:.85rem; }
-    .settings-card-icon { width:2.6rem; height:2.6rem; }
-}
-@media (min-width: 641px) {
-    .settings-card-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
-}
 
 /* Manager unit profile: fixed header with a scrollable detail body. */
 #residentProfileModal > .app-card {
@@ -548,38 +439,6 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 [data-theme="ocean"] .auth-submit,
 [data-theme="sand"] .auth-submit,
 [data-theme="turquoise"] .auth-submit { color:#06242b; }
-
-
-/* Full-page settings: spacious overview and focused section view. */
-#settingsModal { padding:1rem; }
-#settingsModal > .app-card { width:min(96vw, 90rem); height:92dvh; max-height:94dvh; display:flex; flex-direction:column; overflow:hidden; }
-#settingsModal > .app-card > .settings-layout { flex:1; width:100%; min-height:0; overflow:hidden; }
-#settingsModal .settings-overview { width:100%; padding:clamp(1.25rem, 3vw, 2.5rem); }
-#settingsModal .settings-overview-heading { margin-bottom:1.5rem; }
-#settingsModal .settings-overview-heading h4 { font-size:1.25rem; }
-#settingsModal .settings-overview-heading p { font-size:.9rem; }
-#settingsModal .settings-card-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:1.1rem; }
-#settingsModal .settings-card { min-height:clamp(130px, 19vh, 190px); padding:1.25rem; border-radius:1.25rem; }
-#settingsModal .settings-card-icon { width:3.5rem; height:3.5rem; font-size:1.25rem; }
-#settingsModal .settings-card-copy b { font-size:.95rem; }
-#settingsModal .settings-card-copy small { font-size:.78rem; }
-#settingsModal .settings-content { width:100%; flex:1; min-height:0; max-height:none; padding:clamp(1.25rem, 3vw, 2.5rem); overflow-y:auto; }
-#settingsModal .settings-panel { width:100%; }
-#settingsModal .settings-footer { flex:none; padding:1rem clamp(1.25rem, 3vw, 2.5rem); }
-@media (max-width:900px) {
-  #settingsModal .settings-card-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
-  #settingsModal .settings-card { min-height:125px; }
-}
-@media (max-width:560px) {
-  #settingsModal { padding:.35rem; }
-  #settingsModal > .app-card { width:100%; height:94dvh; max-height:94dvh; border-radius:1.1rem; }
-  #settingsModal .settings-overview { padding:1rem; }
-  #settingsModal .settings-card-grid { grid-template-columns:minmax(0,1fr); gap:.7rem; }
-  #settingsModal .settings-card { min-height:88px; padding:.85rem; }
-  #settingsModal .settings-card-icon { width:2.8rem; height:2.8rem; }
-  #settingsModal .settings-content { padding:1rem; }
-  #settingsModal .settings-footer { padding:.8rem 1rem; }
-}
 
 
 /* Manzil branded sign-in: midnight navy, brushed gold and turquoise. */
@@ -841,732 +700,1704 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 
 
-/* Settings overview occupies the entire viewport; cards expand to fill the grid. */
-#settingsModal { inset:0; width:100vw; height:100dvh; padding:0; }
-#settingsModal > .app-card {
-  width:100vw;
-  max-width:none;
-  height:100dvh;
-  max-height:100dvh;
-  min-height:100dvh;
-  border-radius:0;
-}
-#settingsModal .settings-overview {
-  display:flex;
-  flex-direction:column;
-  min-height:0;
-  padding:clamp(1.25rem,2.5vw,2.75rem);
-}
-#settingsModal .settings-overview-heading { flex:none; }
-#settingsModal .settings-card-grid {
-  flex:1;
-  min-height:0;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  grid-template-rows:repeat(2,minmax(150px,1fr));
-  align-content:stretch;
-  gap:clamp(.85rem,1.4vw,1.4rem);
-}
-#settingsModal .settings-card {
-  width:100%;
-  height:100%;
-  min-height:0;
-  justify-content:flex-start;
-  padding:clamp(1rem,1.7vw,1.75rem);
-}
-#settingsModal .settings-content { min-height:0; }
-@media (max-width:900px) {
-  #settingsModal .settings-card-grid {
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    grid-template-rows:repeat(4,minmax(130px,1fr));
-  }
-}
-@media (max-width:560px) {
-  #settingsModal .settings-overview { padding:1rem; }
-  #settingsModal .settings-card-grid {
-    flex:none;
-    grid-template-columns:minmax(0,1fr);
-    grid-template-rows:none;
-    gap:.7rem;
-  }
-  #settingsModal .settings-card { height:auto; min-height:88px; padding:.85rem; }
+/* ============================================================
+   Settings workspace
+   Branded shell, sidebar navigation, overview cards and section panels.
+   ============================================================ */
+#settingsModal {
+    --settings-accent: #159e9a;
+    --settings-accent-bright: #55c9bd;
+    --settings-accent-deep: #0d6f6c;
+    --settings-gold: #c9973d;
+    --settings-ink: #071f27;
+    --settings-ink-2: #0b2633;
+    --settings-ink-3: #123b50;
+    --settings-line: color-mix(in srgb, var(--border-color) 72%, transparent);
+    --settings-surface: color-mix(in srgb, var(--bg-card) 94%, var(--bg-main));
+    --settings-surface-raised: var(--surface-raised, color-mix(in srgb, var(--bg-card) 84%, var(--bg-main)));
+    --settings-text: var(--text-main);
+    --settings-muted: var(--text-muted);
 }
 
-
-/* Mobile settings: compact icon tiles in two columns; rows follow card content. */
-@media (max-width:560px) {
-  #settingsModal .settings-overview {
-    padding:1rem .85rem;
-  }
-  #settingsModal .settings-card-grid {
-    display:grid;
-    flex:1 0 auto;
-    min-height:0;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    grid-template-rows:none;
-    grid-auto-rows:minmax(112px,auto);
-    align-content:start;
-    gap:.7rem;
-  }
-  #settingsModal .settings-card {
-    height:auto;
-    min-height:112px;
-    padding:.8rem .55rem;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    gap:.5rem;
-    text-align:center;
-  }
-  #settingsModal .settings-card-icon {
-    width:2.65rem;
-    height:2.65rem;
-    font-size:1.05rem;
-  }
-  #settingsModal .settings-card-copy {
-    flex:0 0 auto;
-    align-items:center;
-    gap:0;
-  }
-  #settingsModal .settings-card-copy b {
-    font-size:.76rem;
-    line-height:1.5;
-  }
-  #settingsModal .settings-card-copy small,
-  #settingsModal .settings-card-arrow {
-    display:none;
-  }
+#settingsModal > .settings-shell {
+    width: min(100%, 86rem);
+    max-width: none;
+    height: min(94dvh, 61rem);
+    max-height: calc(100dvh - 2rem);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 24%, var(--settings-line));
+    border-radius: 1.65rem;
+    background: var(--settings-surface);
+    box-shadow: 0 32px 90px rgba(2, 12, 20, .55);
 }
 
-
-/* Keep all eight mobile settings tiles visible without page scrolling. */
-@media (max-width:560px) {
-  #settingsModal .settings-overview {
-    flex:1 1 auto;
-    min-height:0;
-    overflow:hidden;
-    padding:.55rem .65rem;
-  }
-  #settingsModal .settings-overview-heading {
-    margin-bottom:.55rem;
-  }
-  #settingsModal .settings-overview-heading h4 {
-    font-size:1rem;
-    line-height:1.25;
-  }
-  #settingsModal .settings-overview-heading p {
-    display:none;
-  }
-  #settingsModal .settings-card-grid {
-    flex:1 1 0;
-    min-height:0;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    grid-template-rows:repeat(4,minmax(0,1fr));
-    grid-auto-rows:unset;
-    align-content:stretch;
-    gap:.45rem;
-  }
-  #settingsModal .settings-card {
-    min-height:0;
-    height:100%;
-    padding:.3rem .25rem;
-    gap:.25rem;
-  }
-  #settingsModal .settings-card-icon {
-    width:2.1rem;
-    height:2.1rem;
-    font-size:.9rem;
-    flex:0 0 auto;
-  }
-  #settingsModal .settings-card-copy b {
-    font-size:.7rem;
-    line-height:1.25;
-  }
-}
-@media (max-width:360px) {
-  #settingsModal .settings-overview { padding:.4rem; }
-  #settingsModal .settings-card-grid { gap:.3rem; }
-  #settingsModal .settings-card-icon { width:1.8rem;height:1.8rem; }
-  #settingsModal .settings-card-copy b { font-size:.64rem; }
-}
-
-
-/* Settings: larger touch targets and true full-screen section pages. */
-#settingsModal { inset:0; width:100vw; height:100dvh; padding:0; }
-#settingsModal > .app-card {
-  display:flex;
-  flex-direction:column;
-  width:100vw;
-  max-width:none;
-  height:100dvh;
-  max-height:100dvh;
-  min-height:100dvh;
-  border:0;
-  border-radius:0;
-  overflow:hidden;
-}
-#settingsModal > .app-card > .settings-layout {
-  display:flex;
-  flex:1 1 auto;
-  flex-direction:column;
-  width:100%;
-  min-height:0;
-  overflow:hidden;
-}
-#settingsModal .settings-overview {
-  display:flex;
-  flex:1 1 auto;
-  flex-direction:column;
-  min-height:0;
-  overflow:hidden;
-  padding:clamp(1rem,2.2vw,2rem);
-}
-#settingsModal .settings-overview-heading { flex:0 0 auto; margin-bottom:clamp(.6rem,1.4vh,1.1rem); }
-#settingsModal .settings-card-grid {
-  display:grid;
-  flex:1 1 0;
-  min-height:0;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  grid-template-rows:repeat(2,minmax(0,1fr));
-  align-content:stretch;
-  gap:clamp(.65rem,1.2vw,1.1rem);
-}
-#settingsModal .settings-card {
-  display:flex;
-  width:100%;
-  height:100%;
-  min-height:0;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  gap:clamp(.45rem,1.2vh,.85rem);
-  padding:clamp(.65rem,1.5vw,1.25rem);
-  text-align:center;
-}
-#settingsModal .settings-card-icon {
-  display:grid;
-  place-items:center;
-  width:clamp(3.8rem,6vw,5.2rem);
-  height:clamp(3.8rem,6vw,5.2rem);
-  flex:0 0 auto;
-  font-size:clamp(1.55rem,2.5vw,2.1rem);
-}
-#settingsModal .settings-card-copy { flex:0 0 auto; align-items:center; }
-#settingsModal .settings-card-copy b { font-size:clamp(.88rem,1.15vw,1.05rem); }
-#settingsModal .settings-card-copy small { max-width:24rem; font-size:clamp(.68rem,.85vw,.78rem); }
-#settingsModal .settings-card-arrow { display:none; }
-#settingsModal .settings-content {
-  display:flex;
-  flex:1 1 auto;
-  flex-direction:column;
-  width:100%;
-  min-height:0;
-  max-height:none;
-  padding:clamp(1rem,2vw,2rem);
-  overflow-y:auto;
-  overscroll-behavior:contain;
-}
-#settingsModal .settings-section-toolbar { flex:0 0 auto; }
-#settingsModal .settings-panel { flex:0 0 auto; width:100%; }
-#settingsModal .settings-footer { flex:0 0 auto; }
-@media (max-width:900px) {
-  #settingsModal .settings-card-grid {
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    grid-template-rows:repeat(4,minmax(0,1fr));
-  }
-  #settingsModal .settings-card-icon { width:clamp(3.5rem,9vw,4.5rem);height:clamp(3.5rem,9vw,4.5rem);font-size:clamp(1.4rem,3vw,1.8rem); }
-}
-@media (max-width:560px) {
-  #settingsModal { padding:0; }
-  #settingsModal > .app-card { width:100vw;height:100dvh;max-height:100dvh;min-height:100dvh;border-radius:0; }
-  #settingsModal .settings-overview { padding:.65rem .7rem .75rem; }
-  #settingsModal .settings-overview-heading { margin-bottom:.45rem; }
-  #settingsModal .settings-overview-heading h4 { font-size:1.05rem;line-height:1.3; }
-  #settingsModal .settings-overview-heading p { display:none; }
-  #settingsModal .settings-card-grid {
-    flex:1 1 0;
-    min-height:0;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    grid-template-rows:repeat(4,minmax(0,1fr));
-    gap:.55rem;
-  }
-  #settingsModal .settings-card {
-    min-height:0;
-    height:100%;
-    gap:.35rem;
-    padding:.35rem .2rem;
-    border-radius:1rem;
-  }
-  #settingsModal .settings-card-icon {
-    width:clamp(3.15rem,14vw,4.25rem);
-    height:clamp(3.15rem,14vw,4.25rem);
-    font-size:clamp(1.35rem,6vw,1.8rem);
-  }
-  #settingsModal .settings-card-copy b { font-size:clamp(.72rem,3.2vw,.88rem);line-height:1.3; }
-  #settingsModal .settings-content { padding:.85rem .8rem; }
-  #settingsModal .settings-footer { padding:.65rem .8rem; }
-}
-@media (max-height:650px) and (max-width:560px) {
-  #settingsModal .settings-overview { padding:.35rem .5rem; }
-  #settingsModal .settings-overview-heading { margin-bottom:.25rem; }
-  #settingsModal .settings-card-grid { gap:.3rem; }
-  #settingsModal .settings-card-icon { width:2.8rem;height:2.8rem;font-size:1.2rem; }
-  #settingsModal .settings-card { gap:.2rem;padding:.2rem; }
-}
-
-
-/* Mobile settings: balanced full-screen tiles with prominent, consistent icons. */
-@media (max-width:560px) {
-  #settingsModal .settings-overview {
-    padding:clamp(.55rem,2.2vw,.85rem);
-  }
-  #settingsModal .settings-overview-heading {
-    margin-bottom:clamp(.45rem,1.5vh,.8rem);
-  }
-  #settingsModal .settings-overview-heading h4 {
-    font-size:clamp(1.05rem,4.2vw,1.25rem);
-  }
-  #settingsModal .settings-card-grid {
-    display:grid;
-    flex:1 1 0;
-    min-height:0;
-    width:100%;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    grid-template-rows:repeat(4,minmax(0,1fr));
-    gap:clamp(.5rem,2vw,.8rem);
-  }
-  #settingsModal .settings-card {
-    display:flex;
-    width:100%;
-    min-width:0;
-    min-height:0;
-    height:100%;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap:clamp(.45rem,1.5vh,.75rem);
-    padding:.5rem .35rem;
-    border-radius:1.15rem;
-    text-align:center;
-  }
-  #settingsModal .settings-card-icon {
-    display:grid;
-    place-items:center;
-    width:clamp(3.8rem,18vw,5rem);
-    height:clamp(3.8rem,18vw,5rem);
-    flex:0 0 auto;
-    border-radius:1.15rem;
-    font-size:clamp(1.75rem,8vw,2.35rem);
-  }
-  #settingsModal .settings-card-icon i {
-    line-height:1;
-  }
-  #settingsModal .settings-card-copy {
-    display:flex;
-    flex:0 0 auto;
-    width:100%;
-    align-items:center;
-    justify-content:center;
-    min-width:0;
-  }
-  #settingsModal .settings-card-copy b {
-    max-width:100%;
-    font-size:clamp(.82rem,3.6vw,.98rem);
-    line-height:1.4;
-    overflow-wrap:anywhere;
-  }
-  #settingsModal .settings-card-copy small,
-  #settingsModal .settings-card-arrow {
-    display:none;
-  }
-}
-@media (max-height:650px) and (max-width:560px) {
-  #settingsModal .settings-overview { padding:.35rem .45rem; }
-  #settingsModal .settings-overview-heading { margin-bottom:.25rem; }
-  #settingsModal .settings-card-grid { gap:.35rem; }
-  #settingsModal .settings-card { gap:.25rem;padding:.25rem; }
-  #settingsModal .settings-card-icon {
-    width:clamp(3rem,12vw,3.8rem);
-    height:clamp(3rem,12vw,3.8rem);
-    font-size:clamp(1.4rem,6vw,1.8rem);
-  }
-  #settingsModal .settings-card-copy b { font-size:.78rem; }
-}
-
-
-/* Manzil settings identity system: consistent brand, controls and touch targets. */
+/* ---------- Top bar ---------- */
 #settingsModal .settings-topbar {
-  display:grid;
-  grid-template-columns:auto minmax(0,1fr) auto;
-  align-items:center;
-  gap:clamp(.75rem,2vw,1.5rem);
-  flex:0 0 auto;
-  min-height:5.5rem;
-  padding:.8rem clamp(1rem,2.5vw,2rem);
-  color:#f7fbfa;
-  background:linear-gradient(112deg,#0b2633 0%,#123b50 58%,#15545c 100%);
-  border-bottom:1px solid rgba(255,255,255,.1);
+    position: relative;
+    z-index: 3;
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: clamp(.75rem, 2vw, 1.5rem);
+    min-height: 5rem;
+    padding: .85rem clamp(1rem, 2.4vw, 1.75rem);
+    color: #f2fbfa;
+    border-bottom: 1px solid rgba(201, 151, 61, .28);
+    background:
+        radial-gradient(circle at 12% 0%, rgba(85, 201, 189, .22), transparent 45%),
+        linear-gradient(115deg, var(--settings-ink) 0%, var(--settings-ink-2) 55%, var(--settings-ink-3) 100%);
 }
-#settingsModal .settings-brand-lockup { display:flex;align-items:center;gap:.7rem;min-width:0; }
+#settingsModal .settings-topbar::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 2px;
+    opacity: .75;
+    background: linear-gradient(90deg, transparent, var(--settings-accent-bright), var(--settings-gold), transparent);
+}
+#settingsModal .settings-brand-lockup {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    min-width: 0;
+}
 #settingsModal .settings-brand-mark {
-  display:block;width:clamp(2.65rem,5vw,3.25rem);height:clamp(2.65rem,5vw,3.25rem);
-  flex:0 0 auto;object-fit:contain;background:transparent;
+    width: 2.85rem;
+    height: 2.85rem;
+    flex: 0 0 auto;
+    padding: .2rem;
+    object-fit: contain;
+    border: 1px solid rgba(255, 255, 255, .35);
+    border-radius: .9rem;
+    background: rgba(255, 255, 255, .94);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .24);
 }
-#settingsModal .settings-brand-copy { display:flex;flex-direction:column;line-height:1.05; }
-#settingsModal .settings-brand-copy strong { color:#fff;font-size:1.12rem;font-weight:900;letter-spacing:.01em; }
-#settingsModal .settings-brand-copy span { color:#75d6cf;font-size:.62rem;font-weight:800;letter-spacing:.2em;margin-top:.2rem; }
-#settingsModal .settings-brand-copy small { color:#b8cbd0;font-size:.58rem;margin-top:.28rem; }
-#settingsModal .settings-topbar-title { min-width:0;text-align:center; }
-#settingsModal .settings-topbar-title h3 { color:#fff;font-size:clamp(1rem,1.5vw,1.25rem);font-weight:900;line-height:1.35; }
-#settingsModal .settings-topbar-title p { color:#b9cdd0;font-size:.7rem;margin-top:.2rem; }
+#settingsModal .settings-brand-copy {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: baseline;
+    gap: 0 .45rem;
+    min-width: 0;
+}
+#settingsModal .settings-brand-copy strong {
+    color: #fff;
+    font-size: 1.18rem;
+    font-weight: 900;
+    letter-spacing: .01em;
+}
+#settingsModal .settings-brand-copy span {
+    color: var(--settings-accent-bright);
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .2em;
+}
+#settingsModal .settings-brand-copy small {
+    grid-column: 1 / -1;
+    color: rgba(233, 247, 246, .68);
+    font-size: .66rem;
+}
+#settingsModal .settings-topbar-title {
+    min-width: 0;
+    text-align: center;
+}
+#settingsModal .settings-topbar-title h3 {
+    color: #fff;
+    font-size: 1.02rem;
+    font-weight: 900;
+}
+#settingsModal .settings-topbar-title p {
+    margin-top: .15rem;
+    color: rgba(226, 244, 242, .66);
+    font-size: .7rem;
+}
 #settingsModal .settings-close-button {
-  display:grid;place-items:center;width:2.65rem;height:2.65rem;flex:0 0 auto;
-  border:1px solid rgba(255,255,255,.2);border-radius:.9rem;
-  color:#e8f4f2;background:rgba(255,255,255,.07);transition:background .18s ease,border-color .18s ease;
+    display: grid;
+    place-items: center;
+    width: 2.7rem;
+    height: 2.7rem;
+    border: 1px solid rgba(255, 255, 255, .18);
+    border-radius: .9rem;
+    color: #e8f7f5;
+    background: rgba(255, 255, 255, .08);
+    transition: background .18s ease, border-color .18s ease, transform .18s ease;
 }
-#settingsModal .settings-close-button:hover { background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4); }
-#settingsModal .settings-overview-heading h4 { color:var(--text-primary,#fff);font-size:clamp(1.1rem,1.7vw,1.45rem);font-weight:900; }
-#settingsModal .settings-overview-heading p { color:var(--text-secondary,#94a3b8);font-size:.82rem;margin-top:.3rem; }
+#settingsModal .settings-close-button:hover {
+    border-color: rgba(255, 255, 255, .32);
+    background: rgba(255, 255, 255, .16);
+    transform: rotate(90deg);
+}
+
+/* ---------- Layout ---------- */
+#settingsModal .settings-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(15rem, 18.5rem) minmax(0, 1fr);
+}
+#settingsModal .settings-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* ---------- Sidebar ---------- */
+#settingsModal .settings-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 0;
+    padding: 1.15rem .95rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    border-inline-end: 1px solid var(--settings-line);
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--settings-ink-2) 8%, var(--settings-surface)) 0%,
+        var(--settings-surface) 55%);
+}
+#settingsModal .settings-profile {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .85rem;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 24%, var(--settings-line));
+    border-radius: 1rem;
+    background: linear-gradient(135deg,
+        color-mix(in srgb, var(--settings-accent) 16%, transparent),
+        color-mix(in srgb, var(--settings-gold) 6%, transparent));
+}
+#settingsModal .settings-profile-avatar {
+    display: grid;
+    place-items: center;
+    width: 2.9rem;
+    height: 2.9rem;
+    flex: 0 0 auto;
+    border-radius: .85rem;
+    color: #052e2c;
+    font-size: 1.15rem;
+    background: linear-gradient(140deg, var(--settings-accent-bright), var(--settings-accent));
+    box-shadow: 0 8px 20px rgba(21, 158, 154, .28);
+}
+#settingsModal .settings-profile-copy {
+    display: flex;
+    flex-direction: column;
+    gap: .1rem;
+    min-width: 0;
+}
+#settingsModal .settings-profile-copy > b {
+    color: var(--settings-text);
+    font-size: .85rem;
+    font-weight: 900;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#settingsModal .settings-profile-copy > span {
+    color: var(--settings-muted);
+    font-size: .66rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#settingsModal .settings-profile-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+    margin-top: .35rem;
+}
+#settingsModal .settings-profile-chips > span {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    padding: .12rem .4rem;
+    border: 1px solid var(--settings-line);
+    border-radius: 999px;
+    color: var(--settings-muted);
+    background: color-mix(in srgb, var(--settings-surface-raised) 85%, transparent);
+    font-size: .58rem;
+    font-weight: 700;
+}
+#settingsModal .settings-profile-chips b {
+    color: var(--settings-accent);
+}
+#settingsModal .settings-nav-label {
+    padding-inline-start: .4rem;
+    color: var(--settings-muted);
+    font-size: .6rem;
+    font-weight: 900;
+    letter-spacing: .12em;
+}
+#settingsModal .settings-nav {
+    display: flex;
+    flex-direction: column;
+    gap: .22rem;
+}
+#settingsModal .settings-nav-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    width: 100%;
+    padding: .55rem .6rem;
+    border: 1px solid transparent;
+    border-radius: .8rem;
+    text-align: start;
+    color: var(--settings-muted);
+    background: transparent;
+    transition: background .16s ease, color .16s ease, border-color .16s ease;
+}
+#settingsModal .settings-nav-item:hover {
+    color: var(--settings-text);
+    background: color-mix(in srgb, var(--settings-accent) 8%, transparent);
+}
+#settingsModal .settings-nav-item.is-active {
+    color: var(--settings-text);
+    border-color: color-mix(in srgb, var(--settings-accent) 30%, transparent);
+    background: linear-gradient(100deg,
+        color-mix(in srgb, var(--settings-accent) 18%, transparent),
+        color-mix(in srgb, var(--settings-accent) 6%, transparent));
+    box-shadow: 0 6px 18px rgba(9, 50, 60, .12);
+}
+#settingsModal .settings-nav-item.is-active::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 3px;
+    border-radius: 999px;
+    background: linear-gradient(var(--settings-accent-bright), var(--settings-accent));
+}
+#settingsModal .settings-nav-icon {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 18%, transparent);
+    border-radius: .6rem;
+    color: var(--settings-accent);
+    background: color-mix(in srgb, var(--settings-accent) 12%, transparent);
+    font-size: .86rem;
+    transition: background .16s ease, color .16s ease;
+}
+#settingsModal .settings-nav-item.is-active .settings-nav-icon {
+    border-color: transparent;
+    color: #042d2c;
+    background: linear-gradient(140deg, var(--settings-accent-bright), var(--settings-accent));
+}
+#settingsModal .settings-nav-copy {
+    display: flex;
+    flex-direction: column;
+    gap: .05rem;
+    min-width: 0;
+}
+#settingsModal .settings-nav-copy b {
+    color: inherit;
+    font-size: .76rem;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#settingsModal .settings-nav-copy small {
+    color: var(--settings-muted);
+    font-size: .6rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#settingsModal .settings-nav-note {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-top: auto;
+    padding: .65rem .7rem;
+    border: 1px dashed var(--settings-line);
+    border-radius: .8rem;
+    color: var(--settings-muted);
+    background: color-mix(in srgb, var(--settings-surface-raised) 55%, transparent);
+    font-size: .6rem;
+    line-height: 1.7;
+}
+#settingsModal .settings-nav-note i {
+    color: var(--settings-accent);
+}
+
+/* ---------- Overview ---------- */
+#settingsModal .settings-overview {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: clamp(1rem, 2.4vw, 1.6rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+#settingsModal .settings-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: clamp(1rem, 2.4vw, 1.6rem);
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 30%, transparent);
+    border-radius: 1.25rem;
+    color: #ecfbf9;
+    background:
+        radial-gradient(circle at 90% 10%, rgba(85, 201, 189, .28), transparent 42%),
+        radial-gradient(circle at 8% 100%, rgba(201, 151, 61, .22), transparent 46%),
+        linear-gradient(120deg, var(--settings-ink-2), var(--settings-ink-3));
+    box-shadow: 0 18px 40px rgba(4, 24, 34, .2);
+}
+#settingsModal .settings-hero::before {
+    content: "";
+    position: absolute;
+    inset: auto -4rem -6rem auto;
+    width: 12rem;
+    height: 12rem;
+    border: 1px solid rgba(255, 255, 255, .09);
+    border-radius: 50%;
+}
+#settingsModal .settings-hero-copy {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+#settingsModal .settings-hero-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .28rem .6rem;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 999px;
+    color: #bff4ee;
+    background: rgba(255, 255, 255, .08);
+    font-size: .62rem;
+    font-weight: 800;
+}
+#settingsModal .settings-hero-copy h4 {
+    margin-top: .55rem;
+    color: #fff;
+    font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+    font-weight: 900;
+}
+#settingsModal .settings-hero-copy p {
+    max-width: 34rem;
+    margin-top: .3rem;
+    color: rgba(226, 246, 243, .72);
+    font-size: .78rem;
+    line-height: 1.8;
+}
+#settingsModal .settings-hero-stats {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(4.6rem, 1fr));
+    gap: .55rem;
+}
+#settingsModal .settings-hero-stats > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .1rem;
+    min-width: 4.4rem;
+    padding: .65rem .55rem;
+    border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: .85rem;
+    background: rgba(255, 255, 255, .08);
+    backdrop-filter: blur(6px);
+}
+#settingsModal .settings-hero-stats span {
+    color: rgba(226, 246, 243, .7);
+    font-size: .58rem;
+    font-weight: 700;
+}
+#settingsModal .settings-hero-stats b {
+    color: #fff;
+    font-size: 1.15rem;
+    font-weight: 900;
+    line-height: 1.2;
+}
+#settingsModal .settings-overview-heading h4 {
+    color: var(--settings-text);
+    font-size: .95rem;
+    font-weight: 900;
+}
+#settingsModal .settings-overview-heading p {
+    margin-top: .1rem;
+    color: var(--settings-muted);
+    font-size: .68rem;
+}
+#settingsModal .settings-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem;
+    padding-bottom: .25rem;
+}
 #settingsModal .settings-card {
-  position:relative;isolation:isolate;
-  border:1px solid var(--border-color,rgba(148,163,184,.2));
-  border-radius:1.35rem;
-  background:linear-gradient(145deg,rgba(21,158,154,.075),rgba(255,255,255,.025));
-  box-shadow:0 8px 24px rgba(0,0,0,.08);
-  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease;
+    --card-accent: var(--settings-accent);
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    min-width: 0;
+    min-height: 6.4rem;
+    padding: .95rem 1rem;
+    overflow: hidden;
+    border: 1px solid var(--settings-line);
+    border-radius: 1rem;
+    text-align: start;
+    color: var(--settings-text);
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--card-accent) 7%, transparent), transparent 55%),
+        var(--settings-surface-raised);
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
 }
+#settingsModal .settings-card::before {
+    content: "";
+    position: absolute;
+    inset-inline-end: -2rem;
+    top: -2.6rem;
+    width: 7rem;
+    height: 7rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--card-accent) 18%, transparent), transparent 68%);
+    pointer-events: none;
+}
+#settingsModal .settings-card > * {
+    position: relative;
+    z-index: 1;
+}
+#settingsModal .settings-card[data-tone="teal"] { --card-accent: #159e9a; }
+#settingsModal .settings-card[data-tone="gold"] { --card-accent: #c9973d; }
+#settingsModal .settings-card[data-tone="sky"] { --card-accent: #38a8e0; }
+#settingsModal .settings-card[data-tone="violet"] { --card-accent: #8b7cf6; }
+#settingsModal .settings-card[data-tone="emerald"] { --card-accent: #2ea879; }
+#settingsModal .settings-card[data-tone="amber"] { --card-accent: #e0a034; }
+#settingsModal .settings-card[data-tone="rose"] { --card-accent: #e06a8b; }
+#settingsModal .settings-card[data-tone="indigo"] { --card-accent: #6477e8; }
 #settingsModal .settings-card:hover {
-  transform:translateY(-2px);border-color:rgba(21,158,154,.55);
-  box-shadow:0 14px 30px rgba(0,0,0,.14);
-  background:linear-gradient(145deg,rgba(21,158,154,.15),rgba(255,255,255,.04));
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--card-accent) 55%, var(--settings-line));
+    box-shadow: 0 14px 30px rgba(3, 20, 28, .18);
 }
-#settingsModal .settings-card:focus-visible,
-#settingsModal .settings-close-button:focus-visible,
-#settingsModal .settings-back-button:focus-visible,
-#settingsModal .settings-save-button:focus-visible {
-  outline:3px solid #36c6bd;outline-offset:3px;
+#settingsModal .settings-card.is-active {
+    border-color: var(--card-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--card-accent) 35%, transparent);
 }
 #settingsModal .settings-card-icon {
-  color:#159e9a;
-  background:linear-gradient(145deg,rgba(21,158,154,.2),rgba(21,158,154,.08));
-  border:1px solid rgba(21,158,154,.2);
-  border-radius:1.2rem;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, var(--card-accent) 26%, transparent);
+    border-radius: .9rem;
+    color: var(--card-accent);
+    background: color-mix(in srgb, var(--card-accent) 13%, transparent);
+    font-size: 1.2rem;
+    transition: transform .18s ease;
 }
-#settingsModal .settings-card-copy b { color:var(--text-primary,#f8fafc);font-weight:900; }
+#settingsModal .settings-card:hover .settings-card-icon {
+    transform: scale(1.06) rotate(-3deg);
+}
+#settingsModal .settings-card-copy {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+#settingsModal .settings-card-copy b {
+    color: var(--settings-text);
+    font-size: .86rem;
+    font-weight: 900;
+}
+#settingsModal .settings-card-copy small {
+    color: var(--settings-muted);
+    font-size: .64rem;
+    line-height: 1.6;
+}
+#settingsModal .settings-card-arrow {
+    flex: 0 0 auto;
+    color: var(--card-accent);
+    font-size: .78rem;
+    opacity: .6;
+    transition: opacity .18s ease, transform .18s ease;
+}
+#settingsModal .settings-card:hover .settings-card-arrow {
+    opacity: 1;
+    transform: translateX(-4px);
+}
+
+/* ---------- Section content ---------- */
+#settingsModal .settings-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+#settingsLayout[data-settings-view="overview"] #settings-content { display: none; }
+#settingsLayout[data-settings-view="section"] #settingsOverview { display: none; }
+#settingsModal .settings-overview.hidden,
+#settingsModal .settings-content.hidden,
+#settingsModal .settings-panel.hidden,
+#settingsModal .settings-section-toolbar.hidden,
+#settingsModal .settings-save-button.hidden {
+    display: none !important;
+}
 #settingsModal .settings-section-toolbar {
-  display:flex;align-items:center;gap:1rem;
-  padding:0 0 1rem;margin-bottom:1.25rem;
-  border-bottom:1px solid var(--border-color,rgba(148,163,184,.2));
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: .9rem clamp(1rem, 2.4vw, 1.6rem);
+    border-bottom: 1px solid var(--settings-line);
+    background: color-mix(in srgb, var(--settings-surface) 88%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
 }
 #settingsModal .settings-back-button {
-  display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
-  min-height:2.75rem;padding:.65rem 1rem;border-radius:.9rem;
-  border:1px solid rgba(21,158,154,.3);color:#159e9a;font-weight:800;
-  background:rgba(21,158,154,.09);white-space:nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    min-height: 2.45rem;
+    padding: .45rem .8rem;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 30%, transparent);
+    border-radius: .7rem;
+    color: var(--settings-accent);
+    background: color-mix(in srgb, var(--settings-accent) 9%, transparent);
+    font-size: .7rem;
+    font-weight: 800;
+    white-space: nowrap;
 }
-#settingsModal .settings-section-toolbar h4 { color:var(--text-primary,#fff);font-size:1.1rem;font-weight:900; }
-#settingsModal .settings-section-toolbar p { color:var(--text-secondary,#94a3b8);font-size:.72rem;margin-top:.2rem; }
+#settingsModal .settings-back-button:hover {
+    background: color-mix(in srgb, var(--settings-accent) 16%, transparent);
+}
+#settingsModal .settings-section-toolbar-copy {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    min-width: 0;
+}
+#settingsModal .settings-section-toolbar-icon {
+    display: grid;
+    place-items: center;
+    width: 2.35rem;
+    height: 2.35rem;
+    flex: 0 0 auto;
+    border-radius: .7rem;
+    color: var(--settings-accent);
+    background: color-mix(in srgb, var(--settings-accent) 12%, transparent);
+    font-size: .9rem;
+}
+#settingsModal .settings-section-toolbar h4 {
+    color: var(--settings-text);
+    font-size: .92rem;
+    font-weight: 900;
+}
+#settingsModal .settings-section-toolbar p {
+    margin-top: .1rem;
+    color: var(--settings-muted);
+    font-size: .64rem;
+}
+#settingsModal .settings-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    max-width: 72rem;
+    margin-inline: auto;
+    padding: clamp(1rem, 2.4vw, 1.6rem);
+}
 #settingsModal .settings-section-heading {
-  display:flex;align-items:center;gap:.9rem;
-  padding:1rem 1.1rem;border:1px solid rgba(21,158,154,.2);
-  border-radius:1.1rem;background:linear-gradient(110deg,rgba(21,158,154,.12),rgba(255,255,255,.025));
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 22%, var(--settings-line));
+    border-radius: 1rem;
+    background: linear-gradient(110deg,
+        color-mix(in srgb, var(--settings-accent) 11%, transparent),
+        transparent 62%);
 }
-#settingsModal .settings-section-heading h4 { color:var(--text-primary,#fff);font-weight:900;font-size:1rem; }
-#settingsModal .settings-section-heading p { color:var(--text-secondary,#94a3b8);font-size:.72rem;margin-top:.25rem; }
+#settingsModal .settings-section-heading h4 {
+    color: var(--settings-text);
+    font-size: 1rem;
+    font-weight: 900;
+}
+#settingsModal .settings-section-heading p {
+    margin-top: .2rem;
+    color: var(--settings-muted);
+    font-size: .7rem;
+    line-height: 1.7;
+}
 #settingsModal .settings-section-icon {
-  display:grid;place-items:center;width:3rem;height:3rem;flex:0 0 auto;
-  border-radius:1rem;color:#159e9a;background:rgba(21,158,154,.15);font-size:1.15rem;
+    display: grid;
+    place-items: center;
+    width: 2.9rem;
+    height: 2.9rem;
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 20%, transparent);
+    border-radius: .85rem;
+    color: var(--settings-accent);
+    background: color-mix(in srgb, var(--settings-accent) 14%, transparent);
+    font-size: 1.1rem;
 }
-#settingsModal .settings-field { display:flex;flex-direction:column;gap:.45rem;min-width:0; }
-#settingsModal .settings-field > span { color:var(--text-primary,#e2e8f0);font-size:.78rem;font-weight:800; }
+
+/* ---------- Shared form pieces ---------- */
+#settingsModal .settings-subsection {
+    display: flex;
+    flex-direction: column;
+    gap: .85rem;
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid var(--settings-line);
+    border-radius: 1rem;
+    background: var(--settings-surface-raised);
+}
+#settingsModal .settings-subsection-heading {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    min-width: 0;
+}
+#settingsModal .settings-subsection-icon {
+    display: grid;
+    place-items: center;
+    width: 2.35rem;
+    height: 2.35rem;
+    flex: 0 0 auto;
+    border-radius: .7rem;
+    color: var(--settings-accent);
+    background: color-mix(in srgb, var(--settings-accent) 12%, transparent);
+    font-size: .9rem;
+}
+#settingsModal .settings-subsection-heading h5 {
+    color: var(--settings-text);
+    font-size: .84rem;
+    font-weight: 900;
+    line-height: 1.5;
+}
+#settingsModal .settings-subsection-heading p {
+    margin-top: .1rem;
+    color: var(--settings-muted);
+    font-size: .66rem;
+    line-height: 1.6;
+}
+#settingsModal .settings-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem 1rem;
+    min-width: 0;
+}
+#settingsModal .settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+    min-width: 0;
+}
+#settingsModal .settings-field > span {
+    color: var(--settings-text);
+    font-size: .72rem;
+    font-weight: 800;
+}
 #settingsModal .settings-field input,
 #settingsModal .settings-field select,
 #settingsModal .settings-field textarea {
-  width:100%;min-height:2.85rem;border-radius:.85rem;
-  border-color:var(--border-color,rgba(148,163,184,.25));
-  transition:border-color .15s ease,box-shadow .15s ease;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: .6rem .8rem;
+    border-radius: .75rem;
+    transition: border-color .15s ease, box-shadow .15s ease;
 }
 #settingsModal .settings-field input:focus,
 #settingsModal .settings-field select:focus,
 #settingsModal .settings-field textarea:focus {
-  border-color:#159e9a;outline:none;box-shadow:0 0 0 3px rgba(21,158,154,.15);
+    border-color: var(--settings-accent);
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--settings-accent) 18%, transparent);
 }
-#settingsModal .settings-info-card,
-#settingsModal .settings-payment-card,
-#settingsModal .settings-account-card {
-  border:1px solid var(--border-color,rgba(148,163,184,.2));
-  border-radius:1rem;padding:1rem;background:rgba(148,163,184,.055);
+#settingsModal .settings-field input:disabled,
+#settingsModal .settings-field select:disabled,
+#settingsModal .settings-field textarea:disabled {
+    cursor: not-allowed;
+    opacity: .6;
 }
-#settingsModal .settings-help { color:var(--text-secondary,#94a3b8);font-size:.72rem;line-height:1.8; }
-#settingsModal .settings-footer {
-  display:flex;align-items:center;justify-content:flex-end;gap:.75rem;
-  flex:0 0 auto;padding:1rem clamp(1rem,2.5vw,2rem);
-  border-top:1px solid var(--border-color,rgba(148,163,184,.2));
-  background:var(--surface-color,rgba(15,23,42,.94));
+#settingsModal .settings-help {
+    color: var(--settings-muted);
+    font-size: .65rem;
+    line-height: 1.85;
 }
-#settingsModal .settings-footer > button { min-height:2.9rem;padding:.7rem 1.25rem; }
-#settingsModal .settings-save-button {
-  color:#062d2c;background:linear-gradient(110deg,#159e9a,#55c9bd);
-  box-shadow:0 6px 18px rgba(21,158,154,.2);
-}
-#settingsModal .settings-footer-overview { justify-content:flex-end; }
-[data-theme="light"] #settingsModal .settings-card,
-[data-theme="light"] #settingsModal .settings-info-card,
-[data-theme="light"] #settingsModal .settings-payment-card,
-[data-theme="light"] #settingsModal .settings-account-card {
-  background:#fff;border-color:#dce7e8;box-shadow:0 5px 18px rgba(15,55,65,.05);
-}
-[data-theme="light"] #settingsModal .settings-card-copy b,
-[data-theme="light"] #settingsModal .settings-overview-heading h4,
-[data-theme="light"] #settingsModal .settings-section-heading h4,
-[data-theme="light"] #settingsModal .settings-section-toolbar h4,
-[data-theme="light"] #settingsModal .settings-field > span { color:#173b48; }
-[data-theme="light"] #settingsModal .settings-overview-heading p,
-[data-theme="light"] #settingsModal .settings-section-heading p,
-[data-theme="light"] #settingsModal .settings-section-toolbar p,
-[data-theme="light"] #settingsModal .settings-help { color:#647b83; }
-@media (max-width:560px) {
-  #settingsModal .settings-topbar { min-height:4.45rem;grid-template-columns:auto minmax(0,1fr) auto;gap:.45rem;padding:.55rem .7rem; }
-  #settingsModal .settings-brand-lockup { gap:.35rem; }
-  #settingsModal .settings-brand-mark { width:2.25rem;height:2.25rem; }
-  #settingsModal .settings-brand-copy strong { font-size:.9rem; }
-  #settingsModal .settings-brand-copy span { font-size:.52rem; }
-  #settingsModal .settings-brand-copy small { display:none; }
-  #settingsModal .settings-topbar-title { text-align:right; }
-  #settingsModal .settings-topbar-title h3 { font-size:.92rem; }
-  #settingsModal .settings-topbar-title p { font-size:.59rem; }
-  #settingsModal .settings-close-button { width:2.35rem;height:2.35rem; }
-  #settingsModal .settings-section-toolbar { align-items:flex-start;flex-direction:column;gap:.65rem; }
-  #settingsModal .settings-back-button { min-height:2.5rem; }
-  #settingsModal .settings-footer { padding:.65rem .8rem; }
-}
-@media (prefers-reduced-motion:reduce) {
-  #settingsModal .settings-card,
-  #settingsModal .settings-close-button { transition:none; }
-  #settingsModal .settings-card:hover { transform:none; }
-}
-
-
-/* Responsive preview of the official Manzil identity in Appearance settings. */
-#settingsModal .settings-brand-preview {
-  display:flex;flex-direction:column;gap:1rem;padding:clamp(.9rem,2vw,1.25rem);
-  border:1px solid rgba(21,158,154,.24);border-radius:1.2rem;
-  background:linear-gradient(135deg,rgba(21,158,154,.09),rgba(201,151,61,.045));
-}
-#settingsModal .settings-brand-preview-heading { display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap; }
-#settingsModal .settings-brand-preview-heading h5 { color:var(--text-primary,#f8fafc);font-size:.95rem;font-weight:900; }
-#settingsModal .settings-brand-preview-heading p { color:var(--text-secondary,#94a3b8);font-size:.72rem;margin-top:.2rem; }
-#settingsModal .settings-brand-approved { display:inline-flex;align-items:center;padding:.35rem .65rem;border-radius:999px;color:#159e9a;background:rgba(21,158,154,.12);font-size:.65rem;font-weight:800; }
-#settingsModal .settings-brand-preview-grid { display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:.8rem; }
-#settingsModal .settings-brand-preview-card { display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.65rem;min-height:10rem;padding:1rem;border-radius:1rem;border:1px solid rgba(148,163,184,.2); }
-#settingsModal .settings-brand-preview-dark { background:linear-gradient(135deg,#0b2633,#123b50); }
-#settingsModal .settings-brand-preview-light { background:#f2f7f6; }
-#settingsModal .settings-brand-preview-card img { display:block;width:100%;height:7.25rem;object-fit:contain; }
-#settingsModal .settings-brand-preview-light img { width:5rem;height:5rem; }
-#settingsModal .settings-brand-preview-card span { color:#e7f3f1;font-size:.7rem;font-weight:800; }
-#settingsModal .settings-brand-preview-light span { color:#173b48; }
-[data-theme="light"] #settingsModal .settings-brand-preview-heading h5 { color:#173b48; }
-[data-theme="light"] #settingsModal .settings-brand-preview-heading p { color:#647b83; }
-@media (max-width:560px) {
-  #settingsModal .settings-brand-preview-grid { grid-template-columns:minmax(0,1fr) minmax(0,.8fr);gap:.55rem; }
-  #settingsModal .settings-brand-preview-card { min-height:8.5rem;padding:.65rem; }
-  #settingsModal .settings-brand-preview-card img { height:5.8rem; }
-  #settingsModal .settings-brand-preview-light img { width:4.2rem;height:4.2rem; }
-}
-
-
-/* Payment method details follow their enabled state without discarding values. */
-#settingsModal .settings-payment-card.is-disabled {
-  border-style:dashed;border-color:var(--border-color,rgba(148,163,184,.22));
-  background:rgba(148,163,184,.035);
-}
-#settingsModal .settings-payment-card.is-disabled .settings-payment-toggle {
-  color:var(--text-secondary,#94a3b8);
-}
-#settingsModal .settings-payment-card [hidden] { display:none !important; }
-#settingsModal .settings-payment-card input:disabled,
-#settingsModal .settings-payment-card select:disabled {
-  cursor:not-allowed;
-}
-
-
-/* Live summary for subscription rules before saving. */
-#settingsModal .settings-subscription-summary {
-  display:flex;flex-direction:column;gap:.8rem;padding:1rem 1.1rem;
-  border:1px solid rgba(21,158,154,.28);border-radius:1.1rem;
-  background:linear-gradient(120deg,rgba(21,158,154,.12),rgba(21,158,154,.035));
-}
-#settingsModal .settings-subscription-summary-title {
-  display:flex;align-items:center;gap:.55rem;color:#159e9a;
-}
-#settingsModal .settings-subscription-summary-title h5 { color:var(--text-primary,#f8fafc);font-size:.84rem;font-weight:900; }
-#settingsModal .settings-subscription-summary-output {
-  display:block;color:var(--text-secondary,#cbd5e1);font-size:.78rem;line-height:1.9;
-  white-space:pre-line;
-}
-[data-theme="light"] #settingsModal .settings-subscription-summary-title h5 { color:#173b48; }
-[data-theme="light"] #settingsModal .settings-subscription-summary-output { color:#526b73; }
-
-
-/* Live apartment numbering preview in Building settings. */
 #settingsModal .settings-building-layout-summary {
-  display:flex;flex-direction:column;gap:.65rem;padding:1rem 1.1rem;
-  border:1px solid rgba(21,158,154,.28);border-radius:1.1rem;
-  background:linear-gradient(120deg,rgba(21,158,154,.12),rgba(21,158,154,.035));
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+    padding: .85rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 25%, var(--settings-line));
+    border-radius: .85rem;
+    background: linear-gradient(120deg,
+        color-mix(in srgb, var(--settings-accent) 12%, transparent),
+        transparent 70%);
 }
 #settingsModal .settings-building-layout-summary h5 {
-  color:var(--text-primary,#f8fafc);font-size:.84rem;font-weight:900;
+    color: var(--settings-text);
+    font-size: .78rem;
+    font-weight: 900;
 }
 #settingsModal .settings-building-layout-summary output {
-  display:block;color:var(--text-secondary,#cbd5e1);font-size:.78rem;line-height:1.9;white-space:pre-line;
+    display: block;
+    color: var(--settings-muted);
+    font-size: .68rem;
+    line-height: 1.9;
+    white-space: pre-line;
 }
-[data-theme="light"] #settingsModal .settings-building-layout-summary h5 { color:#173b48; }
-[data-theme="light"] #settingsModal .settings-building-layout-summary output { color:#526b73; }
-
-
-/* Live character counts for receipt and reminder templates */
-#settingsModal .settings-character-count { align-self:flex-end; color:var(--text-muted); font-size:.68rem; font-weight:700; direction:rtl; }
-#settingsModal .settings-character-count.is-near-limit { color:#d97706; }
-#settingsModal .settings-character-count.is-at-limit { color:#dc2626; }
-
-
-#settingsBackupSummary { border-color:rgba(16,185,129,.28); }
-#settingsBackupSummary button { min-height:36px; padding:.35rem .65rem; border-radius:.6rem; }
-
-
-.settings-owner-summary { color:var(--text-muted); font-size:.72rem; font-weight:800; line-height:1.8; }
-#settingsOwnerAccessSearch { min-height:46px; }
-
-
-/* Settings layout fix: prevent icon/card collisions on compact screens. */
-#settingsModal .settings-card {
-  min-width:0;
-  overflow:hidden;
+#settingsModal .settings-info-card {
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid var(--settings-line);
+    border-radius: 1rem;
+    background: var(--settings-surface-raised);
 }
-#settingsModal .settings-card-icon {
-  display:grid;
-  place-items:center;
-  flex:0 0 auto;
-  line-height:1;
+#settingsModal .settings-info-card-title {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    color: var(--settings-accent);
+    font-size: .74rem;
+    font-weight: 900;
 }
-#settingsModal .settings-card-icon i {
-  display:block;
-  line-height:1;
+#settingsModal .settings-info-card p {
+    color: var(--settings-muted);
+    font-size: .66rem;
+    line-height: 1.85;
 }
-#settingsModal .settings-card-copy {
-  min-width:0;
-  max-width:100%;
+#settingsModal .settings-info-list {
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+    padding-inline-start: 1rem;
+    list-style: disc;
+    color: var(--settings-muted);
+    font-size: .66rem;
+    line-height: 1.85;
 }
-#settingsModal .settings-card-copy b {
-  display:block;
-  max-width:100%;
-  overflow-wrap:anywhere;
-}
-@media (max-width:560px) {
-  #settingsModal .settings-overview {
-    flex:1 1 auto;
-    min-height:0;
-    overflow-y:auto;
-    overflow-x:hidden;
-    padding:.8rem .7rem 1rem;
-    scrollbar-gutter:stable;
-  }
-  #settingsModal .settings-overview-heading {
-    margin-bottom:.75rem;
-  }
-  #settingsModal .settings-overview-heading p {
-    display:block;
-    font-size:.68rem;
-  }
-  #settingsModal .settings-card-grid {
-    display:grid;
-    flex:0 0 auto;
-    min-height:0;
-    width:100%;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    grid-template-rows:none;
-    grid-auto-rows:minmax(132px,auto);
-    align-content:start;
-    gap:.65rem;
-  }
-  #settingsModal .settings-card {
-    width:100%;
-    height:auto;
-    min-height:132px;
-    padding:.75rem .45rem;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap:.55rem;
-    text-align:center;
-  }
-  #settingsModal .settings-card-icon {
-    width:3.35rem;
-    height:3.35rem;
-    font-size:1.55rem;
-    border-radius:1rem;
-  }
-  #settingsModal .settings-card-copy {
-    display:flex;
-    flex:0 0 auto;
-    width:100%;
-    align-items:center;
-    justify-content:center;
-    gap:0;
-  }
-  #settingsModal .settings-card-copy b {
-    font-size:clamp(.76rem,3.4vw,.9rem);
-    line-height:1.4;
-    overflow-wrap:anywhere;
-  }
-  #settingsModal .settings-card-copy small,
-  #settingsModal .settings-card-arrow {
-    display:none;
-  }
-}
-@media (max-width:360px) {
-  #settingsModal .settings-card-grid { gap:.45rem; }
-  #settingsModal .settings-card { min-height:120px;padding:.6rem .3rem; }
-  #settingsModal .settings-card-icon { width:3rem;height:3rem;font-size:1.35rem; }
-  #settingsModal .settings-card-copy b { font-size:.74rem; }
-}
-@media (max-height:650px) and (max-width:560px) {
-  #settingsModal .settings-overview { padding:.5rem .6rem .8rem; }
-  #settingsModal .settings-card-grid { grid-auto-rows:minmax(112px,auto);gap:.45rem; }
-  #settingsModal .settings-card { min-height:112px;gap:.35rem;padding:.45rem .25rem; }
-  #settingsModal .settings-card-icon { width:2.75rem;height:2.75rem;font-size:1.2rem; }
-}
-@media (min-width:561px) and (max-height:700px) {
-  #settingsModal .settings-overview { overflow-y:auto; }
-  #settingsModal .settings-card-grid { grid-auto-rows:minmax(125px,auto);grid-template-rows:none; }
+#settingsModal .settings-info-list b {
+    color: var(--settings-text);
 }
 
+/* ---------- Payment methods ---------- */
+#settingsModal .settings-payment-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: .8rem;
+}
+#settingsModal .settings-payment-card {
+    display: flex;
+    flex-direction: column;
+    gap: .9rem;
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid var(--settings-line);
+    border-radius: 1rem;
+    background: var(--settings-surface-raised);
+    transition: border-color .18s ease, background .18s ease;
+}
+#settingsModal .settings-payment-card-wide {
+    grid-column: 1 / -1;
+}
+#settingsModal .settings-payment-card.is-disabled {
+    border-style: dashed;
+    background: color-mix(in srgb, var(--settings-surface-raised) 60%, transparent);
+}
+#settingsModal .settings-payment-toggle {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    min-width: 0;
+    cursor: pointer;
+}
+#settingsModal .settings-method-icon {
+    display: grid;
+    place-items: center;
+    width: 2.55rem;
+    height: 2.55rem;
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 20%, transparent);
+    border-radius: .75rem;
+    color: var(--settings-accent);
+    background: color-mix(in srgb, var(--settings-accent) 12%, transparent);
+    font-size: .95rem;
+}
+#settingsModal .settings-payment-card.is-disabled .settings-method-icon {
+    border-style: dashed;
+    color: var(--settings-muted);
+    background: color-mix(in srgb, var(--settings-muted) 9%, transparent);
+}
+#settingsModal .settings-method-copy {
+    display: flex;
+    flex-direction: column;
+    gap: .05rem;
+    min-width: 0;
+}
+#settingsModal .settings-method-copy b {
+    color: var(--settings-text);
+    font-size: .8rem;
+    font-weight: 900;
+}
+#settingsModal .settings-method-copy small {
+    color: var(--settings-muted);
+    font-size: .62rem;
+    line-height: 1.5;
+}
+#settingsModal .settings-payment-toggle input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    position: relative;
+    width: 2.7rem;
+    height: 1.5rem;
+    flex: 0 0 auto;
+    margin-inline-start: auto;
+    border: 1px solid var(--settings-line);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--settings-muted) 34%, transparent);
+    cursor: pointer;
+    transition: background .18s ease, border-color .18s ease;
+}
+#settingsModal .settings-payment-toggle input[type="checkbox"]::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    inset-inline-start: .18rem;
+    width: 1.12rem;
+    height: 1.12rem;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .28);
+    transform: translateY(-50%);
+    transition: inset-inline-start .18s ease;
+}
+#settingsModal .settings-payment-toggle input[type="checkbox"]:checked {
+    border-color: var(--settings-accent);
+    background: var(--settings-accent);
+}
+#settingsModal .settings-payment-toggle input[type="checkbox"]:checked::after {
+    inset-inline-start: calc(100% - 1.3rem);
+}
+#settingsModal .settings-payment-details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .7rem .9rem;
+}
+#settingsModal .settings-payment-details .settings-field-full {
+    grid-column: 1 / -1;
+}
+#settingsModal .settings-payment-details[hidden],
+#settingsModal .settings-payment-card [hidden] {
+    display: none !important;
+}
 
-/* Building settings: grouped sections with consistent responsive spacing. */
-#settingsModal .settings-subsection {
-  display:flex;flex-direction:column;gap:.9rem;min-width:0;
-  padding:1rem;border:1px solid var(--border-color,rgba(148,163,184,.2));
-  border-radius:1rem;background:var(--surface-secondary,rgba(148,163,184,.045));
+/* ---------- Subscription rules ---------- */
+#settingsModal .settings-subscription-summary {
+    display: flex;
+    flex-direction: column;
+    gap: .7rem;
+    padding: .95rem 1.05rem;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 26%, var(--settings-line));
+    border-radius: 1rem;
+    background: linear-gradient(120deg,
+        color-mix(in srgb, var(--settings-accent) 12%, transparent),
+        transparent 68%);
 }
-#settingsModal .settings-subsection-heading {
-  display:flex;align-items:center;gap:.7rem;min-width:0;
+#settingsModal .settings-subscription-summary-title {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
 }
-#settingsModal .settings-subsection-icon {
-  display:grid;place-items:center;flex:0 0 2.35rem;width:2.35rem;height:2.35rem;
-  border-radius:.75rem;color:#159e9a;background:rgba(21,158,154,.12);font-size:1rem;
+#settingsModal .settings-subscription-summary-icon {
+    display: grid;
+    place-items: center;
+    width: 2.15rem;
+    height: 2.15rem;
+    flex: 0 0 auto;
+    border-radius: .65rem;
+    color: var(--settings-accent);
+    background: color-mix(in srgb, var(--settings-accent) 14%, transparent);
+    font-size: .82rem;
 }
-#settingsModal .settings-subsection-heading h5 {
-  color:var(--text-primary,#f8fafc);font-size:.86rem;font-weight:900;line-height:1.5;
+#settingsModal .settings-subscription-summary-title h5 {
+    color: var(--settings-text);
+    font-size: .8rem;
+    font-weight: 900;
 }
-#settingsModal .settings-subsection-heading p {
-  margin-top:.12rem;color:var(--text-muted,#94a3b8);font-size:.7rem;line-height:1.6;
+#settingsModal .settings-subscription-summary-title p {
+    margin-top: .05rem;
+    color: var(--settings-muted);
+    font-size: .62rem;
 }
-#settingsModal .settings-fields-grid {
-  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem 1rem;min-width:0;
+#settingsModal .settings-subscription-summary-output {
+    display: block;
+    color: var(--settings-muted);
+    font-size: .7rem;
+    line-height: 1.95;
+    white-space: pre-line;
 }
-#settingsModal .settings-subsection .settings-building-layout-summary { margin-top:0; }
-#settingsModal .settings-subsection .settings-help { margin:0;line-height:1.8; }
-@media (max-width:640px) {
-  #settingsModal .settings-subsection { padding:.85rem;gap:.8rem; }
-  #settingsModal .settings-fields-grid { grid-template-columns:minmax(0,1fr);gap:.75rem; }
+
+/* ---------- Appearance ---------- */
+#settingsModal .settings-brand-preview {
+    display: flex;
+    flex-direction: column;
+    gap: .8rem;
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, var(--settings-gold) 28%, var(--settings-line));
+    border-radius: 1rem;
+    background: linear-gradient(135deg,
+        color-mix(in srgb, var(--settings-accent) 8%, transparent),
+        color-mix(in srgb, var(--settings-gold) 5%, transparent));
+}
+#settingsModal .settings-brand-preview-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    flex-wrap: wrap;
+}
+#settingsModal .settings-brand-preview-heading h5 {
+    color: var(--settings-text);
+    font-size: .86rem;
+    font-weight: 900;
+}
+#settingsModal .settings-brand-preview-heading p {
+    margin-top: .1rem;
+    color: var(--settings-muted);
+    font-size: .64rem;
+}
+#settingsModal .settings-brand-approved {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .3rem .6rem;
+    border-radius: 999px;
+    color: var(--settings-accent);
+    background: color-mix(in srgb, var(--settings-accent) 12%, transparent);
+    font-size: .6rem;
+    font-weight: 800;
+}
+#settingsModal .settings-brand-preview-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: .7rem;
+}
+#settingsModal .settings-brand-preview-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .55rem;
+    min-height: 9rem;
+    padding: .85rem;
+    border: 1px solid rgba(148, 163, 184, .2);
+    border-radius: .85rem;
+}
+#settingsModal .settings-brand-preview-dark {
+    background: linear-gradient(135deg, #0b2633, #123b50);
+}
+#settingsModal .settings-brand-preview-light {
+    background: #f2f7f6;
+}
+#settingsModal .settings-brand-preview-card img {
+    display: block;
+    width: 100%;
+    height: 6.5rem;
+    object-fit: contain;
+}
+#settingsModal .settings-brand-preview-light img {
+    width: 4.6rem;
+    height: 4.6rem;
+}
+#settingsModal .settings-brand-preview-card span {
+    color: #e7f3f1;
+    font-size: .66rem;
+    font-weight: 800;
+}
+#settingsModal .settings-brand-preview-light span {
+    color: #173b48;
+}
+#settingsModal .settings-inline-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .6rem .8rem;
+    border-radius: .7rem;
+    color: var(--settings-muted);
+    background: color-mix(in srgb, var(--settings-accent) 7%, transparent);
+    font-size: .68rem;
+}
+#settingsModal .settings-inline-row strong {
+    color: var(--settings-accent);
+    font-weight: 900;
+}
+#settingsModal .theme-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .6rem;
+}
+#settingsModal .theme-option {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    padding: .45rem;
+    border: 1px solid var(--settings-line);
+    border-radius: .8rem;
+    text-align: center;
+    color: var(--settings-text);
+    background: var(--settings-surface);
+    transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease;
+}
+#settingsModal .theme-option:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--settings-accent) 45%, var(--settings-line));
+}
+#settingsModal .theme-option.active {
+    border-color: var(--settings-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--settings-accent) 35%, transparent);
+}
+#settingsModal .theme-option.active::after {
+    content: "\f00c";
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro";
+    font-weight: 900;
+    position: absolute;
+    top: .35rem;
+    inset-inline-end: .35rem;
+    display: grid;
+    place-items: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 50%;
+    color: #032a29;
+    background: var(--settings-accent);
+    font-size: .55rem;
+}
+#settingsModal .theme-option > span:not(.theme-preview) {
+    margin-top: .2rem;
+    font-size: .7rem;
+    font-weight: 900;
+}
+#settingsModal .theme-option > small {
+    color: var(--settings-muted);
+    font-size: .55rem;
+}
+#settingsModal .theme-preview {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: .22rem;
+    width: 100%;
+    height: 3.1rem;
+    padding: .45rem;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: .55rem;
+    background: var(--preview-bg, #0b1020);
+}
+#settingsModal .theme-preview i {
+    display: block;
+    width: 100%;
+    height: .3rem;
+    border-radius: 999px;
+    background: var(--preview-muted, #4a5878);
+    opacity: .55;
+}
+#settingsModal .theme-preview i:first-child {
+    width: 60%;
+    height: .42rem;
+    background: var(--preview-accent, #818cf8);
+    opacity: 1;
+}
+#settingsModal .theme-preview i:nth-child(2) { width: 85%; }
+#settingsModal .theme-preview i:nth-child(3) { width: 72%; }
+#settingsModal .theme-preview-dark { --preview-bg: #0b1020; --preview-accent: #818cf8; --preview-muted: #4a5878; }
+#settingsModal .theme-preview-light { --preview-bg: #f3f6fc; --preview-accent: #4f46e5; --preview-muted: #c7d2e5; }
+#settingsModal .theme-preview-emerald { --preview-bg: #071c18; --preview-accent: #34d399; --preview-muted: #3d6b5c; }
+#settingsModal .theme-preview-ocean { --preview-bg: #071827; --preview-accent: #38bdf8; --preview-muted: #37617c; }
+#settingsModal .theme-preview-sand { --preview-bg: #211b16; --preview-accent: #e6a85c; --preview-muted: #6b5643; }
+#settingsModal .theme-preview-turquoise { --preview-bg: #082a34; --preview-accent: #24c4c7; --preview-muted: #386a72; }
+
+/* ---------- Backup ---------- */
+#settingsModal .settings-backup-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .8rem;
+}
+#settingsModal .settings-info-card-title-split {
+    justify-content: space-between;
+    gap: .5rem;
+}
+#settingsModal .settings-info-card-title-split > span {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+}
+#settingsModal .settings-inline-action {
+    min-height: auto !important;
+    padding: .25rem .55rem;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 35%, transparent);
+    border-radius: .5rem;
+    color: var(--settings-accent);
+    font-size: .6rem;
+    font-weight: 900;
+}
+#settingsModal .settings-meta-text {
+    color: var(--settings-muted);
+    font-size: .6rem;
+}
+#settingsModal .settings-status {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    align-self: flex-start;
+    padding: .25rem .55rem;
+    border-radius: 999px;
+    color: #2ea879;
+    background: rgba(46, 168, 121, .12);
+    font-size: .6rem;
+    font-weight: 800;
+}
+#settingsModal .settings-primary-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    align-self: flex-start;
+    padding: .65rem 1rem;
+    border-radius: .75rem;
+    color: #042d2c;
+    background: linear-gradient(120deg, var(--settings-accent-bright), var(--settings-accent));
+    box-shadow: 0 8px 20px rgba(21, 158, 154, .22);
+    font-size: .72rem;
+    font-weight: 900;
+}
+#settingsModal .settings-primary-action:hover {
+    filter: brightness(1.05);
+}
+
+/* ---------- Receipt and reminder editors ---------- */
+#settingsModal .settings-editor-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: start;
+}
+#settingsModal .settings-preview-card {
+    position: sticky;
+    top: 1rem;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--settings-line);
+    border-radius: 1rem;
+    background: var(--settings-surface-raised);
+}
+#settingsModal .settings-preview-head {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    padding: .75rem .9rem;
+    border-bottom: 1px solid var(--settings-line);
+    background: color-mix(in srgb, var(--settings-accent) 7%, transparent);
+}
+#settingsModal .settings-preview-icon {
+    display: grid;
+    place-items: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    flex: 0 0 auto;
+    border-radius: .55rem;
+    color: var(--settings-accent);
+    background: color-mix(in srgb, var(--settings-accent) 12%, transparent);
+    font-size: .75rem;
+}
+#settingsModal .settings-preview-head b {
+    display: block;
+    color: var(--settings-text);
+    font-size: .72rem;
+    font-weight: 900;
+}
+#settingsModal .settings-preview-head small {
+    display: block;
+    color: var(--settings-muted);
+    font-size: .56rem;
+    line-height: 1.6;
+}
+#settingsModal .settings-preview-body {
+    flex: 1 1 auto;
+    min-height: 12rem;
+    max-height: 20rem;
+    margin: 0;
+    padding: .85rem .95rem;
+    overflow: auto;
+    color: var(--settings-text);
+    font-family: 'Cairo', sans-serif;
+    font-size: .68rem;
+    line-height: 1.95;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+#settingsModal .settings-character-count {
+    align-self: flex-end;
+    margin-top: -.15rem;
+    color: var(--settings-muted);
+    font-size: .62rem;
+    font-weight: 700;
+}
+#settingsModal .settings-character-count.is-near-limit { color: #d97706; }
+#settingsModal .settings-character-count.is-at-limit { color: #dc2626; }
+#settingsModal .settings-variable-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3rem;
+    direction: ltr;
+}
+#settingsModal .settings-variable-chips code {
+    padding: .2rem .45rem;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 22%, var(--settings-line));
+    border-radius: .45rem;
+    color: var(--settings-accent);
+    background: color-mix(in srgb, var(--settings-accent) 8%, transparent);
+    font-size: .62rem;
+}
+
+/* ---------- Account ---------- */
+#settingsModal .settings-account-card {
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+    padding: 1rem;
+    border: 1px solid var(--settings-line);
+    border-radius: 1rem;
+    background: var(--settings-surface-raised);
+}
+#settingsModal .settings-account-avatar {
+    display: grid;
+    place-items: center;
+    width: 3.2rem;
+    height: 3.2rem;
+    flex: 0 0 auto;
+    border-radius: .9rem;
+    color: #042d2c;
+    background: linear-gradient(140deg, var(--settings-accent-bright), var(--settings-accent));
+    font-size: 1.2rem;
+}
+#settingsModal .settings-account-rows {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem 1.5rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+#settingsModal .settings-account-rows > div {
+    display: flex;
+    flex-direction: column;
+    gap: .1rem;
+    min-width: 0;
+}
+#settingsModal .settings-account-rows span {
+    color: var(--settings-muted);
+    font-size: .6rem;
+    font-weight: 700;
+}
+#settingsModal .settings-account-rows b {
+    overflow: hidden;
+    color: var(--settings-text);
+    font-size: .75rem;
+    font-weight: 900;
+    text-overflow: ellipsis;
+}
+#settingsModal .settings-account-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .6rem;
+}
+#settingsModal .settings-owner-summary {
+    color: var(--settings-muted);
+    font-size: .64rem;
+    font-weight: 700;
+    line-height: 1.8;
+}
+#settingsModal .settings-owner-list {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    max-height: 22rem;
+    padding-inline-end: .15rem;
+    overflow: auto;
+}
+#settingsModal .settings-owner-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .7rem .8rem;
+    border: 1px solid var(--settings-line);
+    border-radius: .75rem;
+    background: var(--settings-surface);
+}
+#settingsModal .settings-owner-row b {
+    color: var(--settings-text);
+    font-size: .72rem;
+    font-weight: 800;
+}
+#settingsModal .settings-owner-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .4rem;
+}
+#settingsModal .settings-owner-action {
+    min-height: 2.5rem;
+    padding: .35rem .65rem;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 32%, transparent);
+    border-radius: .55rem;
+    color: var(--settings-accent);
+    background: color-mix(in srgb, var(--settings-accent) 10%, transparent);
+    font-size: .62rem;
+    font-weight: 800;
+}
+#settingsModal .settings-owner-action.secondary {
+    border-color: var(--settings-line);
+    color: var(--settings-muted);
+    background: transparent;
+}
+
+/* ---------- Footer ---------- */
+#settingsModal .settings-footer {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .8rem clamp(1rem, 2.4vw, 1.6rem);
+    border-top: 1px solid var(--settings-line);
+    background: color-mix(in srgb, var(--settings-surface) 92%, transparent);
+    backdrop-filter: blur(12px);
+}
+#settingsModal .settings-footer-note {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    color: var(--settings-muted);
+    font-size: .62rem;
+    line-height: 1.7;
+}
+#settingsModal .settings-footer-note i {
+    color: var(--settings-accent);
+}
+#settingsModal .settings-footer-actions {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    flex: 0 0 auto;
+}
+#settingsModal .settings-secondary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    min-height: 2.6rem;
+    padding: .55rem .95rem;
+    border: 1px solid var(--settings-line);
+    border-radius: .7rem;
+    color: var(--settings-text);
+    background: var(--settings-surface-raised);
+    font-size: .72rem;
+    font-weight: 800;
+    transition: border-color .16s ease, color .16s ease;
+}
+#settingsModal .settings-secondary-button:hover {
+    border-color: color-mix(in srgb, var(--settings-accent) 40%, var(--settings-line));
+    color: var(--settings-accent);
+}
+#settingsModal .settings-save-button {
+    min-height: 2.6rem;
+    padding: .55rem 1.15rem;
+    border-radius: .7rem;
+    color: #042d2c;
+    background: linear-gradient(120deg, var(--settings-accent-bright), var(--settings-accent));
+    box-shadow: 0 8px 20px rgba(21, 158, 154, .25);
+    font-size: .74rem;
+    font-weight: 900;
+    transition: transform .16s ease, box-shadow .16s ease;
+}
+#settingsModal .settings-save-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 26px rgba(21, 158, 154, .3);
+}
+
+/* ---------- Light theme polish ---------- */
+[data-theme="light"] #settingsModal .settings-shell,
+[data-theme="light"] #settingsModal .settings-overview,
+[data-theme="light"] #settingsModal .settings-content {
+    background: #f7fbfa;
+}
+[data-theme="light"] #settingsModal .settings-sidebar {
+    background: linear-gradient(180deg, #f3f9f8, #ffffff);
+}
+[data-theme="light"] #settingsModal .settings-card {
+    border-color: #dfe9e8;
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--card-accent) 5%, transparent), transparent 55%),
+        #ffffff;
+    box-shadow: 0 5px 16px rgba(15, 55, 65, .05);
+}
+[data-theme="light"] #settingsModal .settings-subsection,
+[data-theme="light"] #settingsModal .settings-info-card,
+[data-theme="light"] #settingsModal .settings-payment-card,
+[data-theme="light"] #settingsModal .settings-account-card,
+[data-theme="light"] #settingsModal .settings-preview-card {
+    border-color: #dfe9e8;
+    background: #ffffff;
+}
+[data-theme="light"] #settingsModal .settings-footer {
+    background: #ffffff;
+}
+[data-theme="light"] #settingsModal .settings-nav-item.is-active {
+    color: #0e3a44;
+}
+[data-theme="light"] #settingsModal .settings-nav-item.is-active .settings-nav-icon {
+    color: #042d2c;
+}
+
+/* ---------- Responsive ---------- */
+@media (min-width: 1181px) {
+    #settingsModal .settings-card-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    #settingsModal .settings-card {
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: space-between;
+        min-height: 8.6rem;
+        padding: 1rem;
+    }
+    #settingsModal .settings-card-copy b {
+        font-size: .84rem;
+    }
+    #settingsModal .settings-card-arrow {
+        align-self: flex-end;
+        margin-top: auto;
+    }
+}
+@media (max-width: 900px) {
+    #settingsModal .settings-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    #settingsModal .settings-sidebar {
+        display: none;
+    }
+}
+@media (max-width: 760px) {
+    #settingsModal .settings-hero {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    #settingsModal .settings-hero-stats {
+        width: 100%;
+    }
+    #settingsModal .settings-payment-grid,
+    #settingsModal .settings-backup-grid,
+    #settingsModal .settings-editor-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    #settingsModal .settings-payment-card-wide {
+        grid-column: auto;
+    }
+    #settingsModal .settings-preview-card {
+        position: static;
+    }
+}
+@media (max-width: 640px) {
+    #settingsModal .settings-fields-grid,
+    #settingsModal .settings-payment-details {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    #settingsModal .settings-payment-details .settings-field-full {
+        grid-column: auto;
+    }
+}
+@media (max-width: 560px) {
+    #settingsModal {
+        padding: 0 !important;
+    }
+    #settingsModal > .settings-shell {
+        width: 100vw;
+        max-width: 100vw;
+        height: 100dvh;
+        max-height: 100dvh;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    #settingsModal .settings-topbar {
+        min-height: 4.35rem;
+        gap: .5rem;
+        padding: .55rem .75rem;
+    }
+    #settingsModal .settings-brand-mark {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: .7rem;
+    }
+    #settingsModal .settings-brand-copy strong { font-size: .95rem; }
+    #settingsModal .settings-brand-copy span { font-size: .52rem; }
+    #settingsModal .settings-brand-copy small { display: none; }
+    #settingsModal .settings-topbar-title h3 { font-size: .9rem; }
+    #settingsModal .settings-topbar-title p { display: none; }
+    #settingsModal .settings-close-button {
+        width: 2.35rem;
+        height: 2.35rem;
+    }
+    #settingsModal .settings-overview {
+        gap: .8rem;
+        padding: .8rem .7rem 1rem;
+    }
+    #settingsModal .settings-hero {
+        gap: .8rem;
+        padding: .85rem;
+    }
+    #settingsModal .settings-hero-copy p { font-size: .7rem; }
+    #settingsModal .settings-hero-stats { gap: .4rem; }
+    #settingsModal .settings-hero-stats > div {
+        min-width: 0;
+        padding: .5rem .3rem;
+    }
+    #settingsModal .settings-hero-stats b { font-size: 1rem; }
+    #settingsModal .settings-card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: repeat(4, minmax(6.4rem, 1fr));
+        flex: 1 1 auto;
+        gap: .55rem;
+    }
+    #settingsModal .settings-card {
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: .45rem;
+        min-height: 6.6rem;
+        padding: .7rem;
+    }
+    #settingsModal .settings-card-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1rem;
+    }
+    #settingsModal .settings-card-copy b { font-size: .74rem; }
+    #settingsModal .settings-card-copy small { display: none; }
+    #settingsModal .settings-card-arrow { display: none; }
+    #settingsModal .settings-section-toolbar {
+        flex-wrap: wrap;
+        gap: .55rem;
+        padding: .7rem .8rem;
+    }
+    #settingsModal .settings-back-button {
+        min-height: 2.3rem;
+        padding: .4rem .7rem;
+        font-size: .68rem;
+    }
+    #settingsModal .settings-section-toolbar h4 { font-size: .85rem; }
+    #settingsModal .settings-section-toolbar p { display: none; }
+    #settingsModal .settings-section-toolbar-icon {
+        width: 2rem;
+        height: 2rem;
+    }
+    #settingsModal .settings-panel {
+        gap: .8rem;
+        padding: .8rem .75rem 1.2rem;
+    }
+    #settingsModal .settings-section-heading {
+        gap: .6rem;
+        padding: .8rem;
+    }
+    #settingsModal .settings-section-heading p { font-size: .64rem; }
+    #settingsModal .settings-section-icon {
+        width: 2.45rem;
+        height: 2.45rem;
+        font-size: .95rem;
+    }
+    #settingsModal .settings-subsection { padding: .8rem; }
+    #settingsModal .settings-account-card { align-items: flex-start; }
+    #settingsModal .settings-account-rows {
+        grid-template-columns: minmax(0, 1fr);
+        gap: .5rem;
+    }
+    #settingsModal .settings-owner-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    #settingsModal .settings-owner-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    #settingsModal .theme-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    #settingsModal .settings-preview-body { max-height: none; }
+    #settingsModal .settings-footer {
+        flex-wrap: wrap;
+        gap: .5rem;
+        padding: .65rem .8rem;
+    }
+    #settingsModal .settings-footer-note { display: none; }
+    #settingsModal .settings-footer-actions { width: 100%; }
+    #settingsModal .settings-footer-actions > button { flex: 1 1 0; }
+}
+
+/* ---------- Motion and scrollbars ---------- */
+#settingsModal .settings-overview,
+#settingsModal .settings-content,
+#settingsModal .settings-sidebar,
+#settingsModal .settings-owner-list {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--settings-accent) 42%, transparent) transparent;
+}
+@media (prefers-reduced-motion: reduce) {
+    #settingsModal .settings-card,
+    #settingsModal .settings-card-icon,
+    #settingsModal .settings-card-arrow,
+    #settingsModal .settings-close-button,
+    #settingsModal .settings-nav-item,
+    #settingsModal .theme-option,
+    #settingsModal .settings-save-button {
+        transition: none;
+    }
+    #settingsModal .settings-card:hover,
+    #settingsModal .settings-card:hover .settings-card-icon,
+    #settingsModal .settings-close-button:hover {
+        transform: none;
+    }
 }

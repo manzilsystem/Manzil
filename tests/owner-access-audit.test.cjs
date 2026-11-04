@@ -35,7 +35,7 @@ test('audit log attributes actions to profile names and supports safe client-sid
 });
 
 test('owner account controls are touch-friendly and service worker cache is refreshed', () => {
-    assert.match(css, /\.settings-owner-action \{ min-height:40px/);
-    assert.match(css, /@media\(max-width:420px\)[\s\S]*\.settings-owner-row/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v90'/);
+    assert.match(css, /\.settings-owner-action \{[\s\S]*?min-height: 2\.5rem;/);
+    assert.match(css, /@media \(max-width: 560px\)[\s\S]*?\.settings-owner-row \{/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v91'/);
 });
