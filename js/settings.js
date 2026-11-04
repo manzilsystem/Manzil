@@ -10,7 +10,7 @@ function renderReceiptPreview() {
         'الشقة: 12', 'المبلغ المستلم: 500 ج.م', 'طريقة الدفع: نقدًا',
         'تفاصيل السداد:', '• نوفمبر 2026: 500 ج.م',
         'تاريخ الاستلام: 04/11/2026', 'رقم الإيصال: SAMPLE-001', '', thankYou
-    ].join('\\n');
+    ].join('\n');
 }
 const SETTINGS_THEME_NAMES = { dark:'ليلي', light:'نهاري', emerald:'زمردي', ocean:'محيطي', sand:'رملي' };
 function switchSettingsTab(tab) {
