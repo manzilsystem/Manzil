@@ -5,7 +5,7 @@ const test = require('node:test');
 const vm = require('node:vm');
 
 const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
-const settingsSource = read('js/state.js') + '\\n' + read('js/settings.js');
+const settingsSource = read('js/state.js') + '\n' + read('js/settings.js');
 const noticesSource = read('js/notices.js');
 
 function makeStorage(initial = {}) {
