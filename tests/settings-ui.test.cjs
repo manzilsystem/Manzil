@@ -27,7 +27,8 @@ test('settings are divided into accessible functional tabs', () => {
 
 test('settings use responsive cards and full-page section navigation', () => {
     for (const tab of ['building', 'payments', 'subscriptions', 'appearance', 'backup', 'receipts', 'reminders', 'account']) {
-        assert.ok(html.includes('id="settings-tab-' + tab + '"'));\n        assert.ok(html.includes('class="settings-card"'));
+        assert.ok(html.includes('id="settings-tab-' + tab + '"'));
+        assert.ok(html.includes('class="settings-card"'));
     }
     assert.match(html, /id="settingsOverview"/);
     assert.match(html, /id="settingsSectionToolbar"/);
