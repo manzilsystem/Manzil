@@ -36,6 +36,21 @@ function switchSettingsTab(tab) {
         panel?.classList.toggle('hidden', !active);
     });
 }
+
+function handleSettingsTabKeydown(event) {
+    if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+    const currentIndex = SETTINGS_TABS.findIndex(name => document.activeElement?.id === 'settings-tab-' + name);
+    if (currentIndex < 0) return;
+    event.preventDefault();
+    const nextIndex = event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+            ? SETTINGS_TABS.length - 1
+            : (currentIndex + (event.key === 'ArrowLeft' ? 1 : -1) + SETTINGS_TABS.length) % SETTINGS_TABS.length;
+    const nextTab = SETTINGS_TABS[nextIndex];
+    switchSettingsTab(nextTab);
+    document.getElementById('settings-tab-' + nextTab)?.focus();
+}
 function updateThemeSelection() {
     const theme = SETTINGS_THEME_NAMES[state.currentTheme] ? state.currentTheme : 'dark';
     document.querySelectorAll('[data-theme-option]').forEach(button => {
