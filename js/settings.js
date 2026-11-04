@@ -24,17 +24,35 @@ function renderReminderPreview() {
     });
 }
 const SETTINGS_THEME_NAMES = { dark:'ليلي', light:'نهاري', emerald:'زمردي', ocean:'محيطي', sand:'رملي' };
+function showSettingsOverview() {
+    document.getElementById('settingsOverview')?.classList.remove('hidden');
+    document.getElementById('settingsSectionToolbar')?.classList.add('hidden');
+    document.querySelectorAll('.settings-panel').forEach(panel => panel.classList.add('hidden'));
+    document.getElementById('settingsSaveButton')?.classList.add('hidden');
+    document.querySelector('.settings-footer')?.classList.add('settings-footer-overview');
+    document.getElementById('settingsModalTitle').innerHTML = '<i class="fa-solid fa-gear ml-2"></i> الإعدادات';
+}
 function switchSettingsTab(tab) {
     if (!SETTINGS_TABS.includes(tab)) return;
+    document.getElementById('settingsOverview')?.classList.add('hidden');
+    document.getElementById('settingsSectionToolbar')?.classList.remove('hidden');
+    document.getElementById('settingsSaveButton')?.classList.remove('hidden');
+    document.querySelector('.settings-footer')?.classList.remove('settings-footer-overview');
+    const titles = {
+        building: 'بيانات العمارة', payments: 'طرق التحصيل', subscriptions: 'الاشتراكات',
+        appearance: 'المظهر والثيمات', backup: 'النسخ الاحتياطي', receipts: 'الإيصالات',
+        reminders: 'التذكيرات', account: 'الحساب والصلاحيات'
+    };
+    const title = titles[tab];
+    const titleNode = document.getElementById('settingsCurrentSectionTitle');
+    if (titleNode) titleNode.textContent = title;
+    const modalTitle = document.getElementById('settingsModalTitle');
+    if (modalTitle) modalTitle.textContent = title;
     SETTINGS_TABS.forEach(name => {
-        const active = name === tab;
-        const button = document.getElementById('settings-tab-' + name);
-        const panel = document.getElementById('settings-panel-' + name);
-        button?.classList.toggle('active', active);
-        button?.setAttribute('aria-selected', String(active));
-        button?.setAttribute('tabindex', active ? '0' : '-1');
-        panel?.classList.toggle('hidden', !active);
+        document.getElementById('settings-panel-' + name)?.classList.toggle('hidden', name !== tab);
     });
+    document.getElementById('settings-content')?.scrollTo?.({ top: 0, behavior: 'auto' });
+    document.getElementById('settingsSectionToolbar')?.scrollIntoView?.({ block: 'start' });
 }
 
 function handleSettingsTabKeydown(event) {
@@ -145,7 +163,7 @@ function openSettingsModal() {
         reminderInput.oninput = renderReminderPreview;
     }
     renderReminderPreview();
-    switchSettingsTab('building');
+    showSettingsOverview();
     updateThemeSelection();
     openModal('settingsModal');
 }
