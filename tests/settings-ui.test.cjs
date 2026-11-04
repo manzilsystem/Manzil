@@ -66,7 +66,7 @@ test('settings redesign is included in the service worker cache version', () => 
     assert.match(html, /02:23 UTC/);
     assert.match(html, /04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة/);
     assert.doesNotMatch(html, /نسخة يومية الساعة 04:23 صباحًا بتوقيت مصر/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v73'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v74'/);
     assert.ok(css.includes('width:100vw;') && css.includes('max-width:none;'), 'settings must occupy the full viewport width');
     assert.ok(css.includes('height:100dvh;') && css.includes('max-height:100dvh;'), 'settings must occupy the full viewport height');
     assert.ok(css.includes('grid-template-rows:repeat(2,minmax(150px,1fr))'), 'desktop cards must expand into two full-height rows');
@@ -176,4 +176,12 @@ test('settings cards use larger full-screen tiles and sections remain full-scree
     assert.ok(css.includes('flex-direction:column;') && css.includes('.settings-section-toolbar { flex:0 0 auto; }'));
     assert.ok(settings.includes("document.getElementById('settingsOverview')?.classList.add('hidden')"));
     assert.ok(settings.includes("document.getElementById('settingsSectionToolbar')?.classList.remove('hidden')"));
+});
+
+
+test('service worker refreshes cached assets from network and checks for updates automatically', () => {
+    assert.match(sw, /CACHE_NAME = 'manzil-v74'/);
+    assert.match(sw, /fetch\\(new Request\\(request, \\{ cache: 'no-cache' \\}\\)\\)/);
+    assert.match(sw, /\\.catch\\(\\(\\) => caches\\.match\\(request\\)\\)/);
+    assert.match(read('js/app.js'), /updateViaCache: 'none'/);
 });
