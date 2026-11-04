@@ -11,7 +11,7 @@ const app = fs.readFileSync(path.join(root, 'js', 'app.js'), 'utf8');
 
 test('service worker is valid JavaScript and bumps the app cache', () => {
     assert.doesNotThrow(() => new vm.Script(sw, { filename: 'sw.js' }));
-    assert.match(sw, /const CACHE_NAME = 'manzil-v93'/);
+    assert.match(sw, /const CACHE_NAME = 'manzil-v95'/);
 });
 
 test('all runtime modules are pre-cached with the application shell', () => {
@@ -19,6 +19,7 @@ test('all runtime modules are pre-cached with the application shell', () => {
     assert.ok(shell, 'APP_SHELL must exist');
 
     for (const module of [
+        'telemetry.js',
         'cashbox.js',
         'monthly-close.js',
         'backup.js',
@@ -30,4 +31,9 @@ test('all runtime modules are pre-cached with the application shell', () => {
         assert.ok(referencedByHtml || loadedDynamically, module + ' must be loaded by the application');
         assert.ok(shell[1].includes("'./js/" + module + "'"), module + ' must be in APP_SHELL');
     }
+});
+
+test('the shell reloads for worker updates only when a controller already existed', () => {
+    assert.match(html, /const hadController = Boolean\(navigator\.serviceWorker\.controller\)/);
+    assert.match(html, /if \(!hadController \|\| reloading\) return;/);
 });
