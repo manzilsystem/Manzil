@@ -137,15 +137,6 @@ function getCurrentSubscriptionAmount(resident, date = new Date()) {
     return getSubscriptionAmountForMonthKey(resident, getLocalMonthKey(date));
 }
 
-function canEditInitialSubscriptionInline(resident) {
-    if (!resident || getCurrentSubscriptionAmount(resident) > 0) return false;
-    const currentMonth = getLocalMonthKey();
-    return !(Array.isArray(resident.subscriptionRates) ? resident.subscriptionRates : []).some(rate =>
-        String(rate.effectiveMonth || '').slice(0, 7) > currentMonth
-        && Number(rate.monthlyAmount) > 0
-    );
-}
-
 
 let subscriptionRateResidentId = null;
 
