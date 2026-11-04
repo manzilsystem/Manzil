@@ -153,7 +153,7 @@ test('receipt and reminder templates synchronize through building settings', () 
     assert.ok(settings.includes('arrears_reminder_template: reminderTemplate || null'));
     assert.ok(settings.includes('localStorage.removeItem(getReceiptSettingsKey())'));
     assert.ok(settings.includes('localStorage.removeItem(getReminderTemplateKey())'));
-    assert.match(sw, /CACHE_NAME = 'manzil-v73'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v74'/);
 });
 
 
