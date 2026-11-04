@@ -132,17 +132,23 @@ async function saveSettings() {
         if (rollback.error || !rollback.data?.ok) toast('فشل حفظ الإعدادات، وتعذر التراجع عن إعدادات الأدوار. أعد تحميل المبنى للتحقق.', 'error');
         return;
     }
+    let messagePreferencesSaved = true;
     try {
         if (receiptThankYou) localStorage.setItem(getReceiptSettingsKey(), receiptThankYou);
         else localStorage.removeItem(getReceiptSettingsKey());
         if (reminderTemplate) localStorage.setItem(getReminderTemplateKey(), reminderTemplate);
         else localStorage.removeItem(getReminderTemplateKey());
     } catch (error) {
-        console.error('Could not save receipt preferences:', error);
-        toast('تعذر حفظ إعدادات الرسائل على هذا الجهاز.', 'error');
-        return;
+        messagePreferencesSaved = false;
+        console.error('Could not save message preferences:', error);
     }
-    renderAll(); updateAccessSwitchButton(); closeModal('settingsModal'); toast('تم حفظ إعدادات العقار والإيصال', 'success');
+    renderAll();
+    updateAccessSwitchButton();
+    closeModal('settingsModal');
+    toast(messagePreferencesSaved
+        ? 'تم حفظ إعدادات العقار والرسائل'
+        : 'تم حفظ بيانات العمارة، لكن تعذر حفظ نصوص الرسائل على هذا الجهاز.',
+    messagePreferencesSaved ? 'success' : 'error');
 }
 
 async function sendSettingsPasswordReset() {
