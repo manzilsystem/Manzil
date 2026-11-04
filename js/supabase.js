@@ -1,5 +1,5 @@
 const SUPABASE_URL = 'https://musvcrkljccubwbcrtjs.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_ysHOFQfwUFZDlqT6RrOqHA_vGSHrNZs';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_' + 'ysHOFQfwUFZDlqT6RrOqHA_vGSHrNZs';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 let activeSession = null;
 let activeBuildingId = null;
@@ -8,6 +8,7 @@ let authLoading = false;
 let ownerMustChangePin = false;
 let authLoginMode = 'manager';
 let authGeneration = 0;
+let passwordRecoveryPending = false;
 let persistedAuditLogIds = new Set();
 let activeBuildingVersion = 1;
 let ownerNotificationsChannel = null;
@@ -699,6 +700,74 @@ async function signOutLocally() {
     }
 }
 
+function showPasswordRecoveryModal() {
+    const modal = document.getElementById('passwordRecoveryModal');
+    if (!modal) {
+        setAuthModal(true, 'تعذر فتح شاشة تغيير كلمة المرور. أعد فتح رابط الاستعادة.');
+        return;
+    }
+    for (const id of ['recoveryNewPassword', 'recoveryConfirmPassword']) {
+        const input = document.getElementById(id);
+        if (input) input.value = '';
+    }
+    const error = document.getElementById('passwordRecoveryError');
+    if (error) { error.textContent = ''; error.classList.add('hidden'); }
+    setAuthModal(false);
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+    setTimeout(() => document.getElementById('recoveryNewPassword')?.focus(), 100);
+}
+
+function hidePasswordRecoveryModal() {
+    const modal = document.getElementById('passwordRecoveryModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+}
+
+async function submitPasswordRecovery(event) {
+    event.preventDefault();
+    if (!passwordRecoveryPending || !activeSession) {
+        setAuthModal(true, 'انتهت صلاحية رابط الاستعادة. اطلب رابطًا جديدًا.');
+        hidePasswordRecoveryModal();
+        return;
+    }
+    const password = document.getElementById('recoveryNewPassword')?.value || '';
+    const confirmation = document.getElementById('recoveryConfirmPassword')?.value || '';
+    const errorElement = document.getElementById('passwordRecoveryError');
+    const button = document.getElementById('passwordRecoverySubmit');
+    const showError = message => {
+        if (errorElement) { errorElement.textContent = message; errorElement.classList.remove('hidden'); }
+    };
+    if (password.length < 8 || password.length > 128) {
+        showError('يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.');
+        return;
+    }
+    if (password !== confirmation) {
+        showError('كلمتا المرور غير متطابقتين.');
+        return;
+    }
+    if (button) { button.disabled = true; button.textContent = 'جارٍ حفظ كلمة المرور...'; }
+    try {
+        const { error } = await supabaseClient.auth.updateUser({ password });
+        if (error) throw error;
+        passwordRecoveryPending = false;
+        hidePasswordRecoveryModal();
+        clearAuthenticatedState();
+        await signOutLocally();
+        setAuthModal(true, 'تم تغيير كلمة المرور بنجاح. سجّل الدخول باستخدام كلمة المرور الجديدة.');
+    } catch (error) {
+        console.error('Password recovery update failed:', error);
+        showError('تعذر تغيير كلمة المرور. قد يكون الرابط منتهي الصلاحية؛ اطلب رابط استعادة جديدًا.');
+    } finally {
+        if (button) { button.disabled = false; button.textContent = 'حفظ كلمة المرور'; }
+    }
+}
+
 async function submitSupabaseLogin(event) {
     event.preventDefault();
     if (authLoading) return;
@@ -969,6 +1038,13 @@ function handlePinInput() {}
 async function initSupabaseApp() {
     document.body.classList.add('session-locked');
     supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (event === 'PASSWORD_RECOVERY' && session) {
+            passwordRecoveryPending = true;
+            clearAuthenticatedState();
+            activeSession = session;
+            showPasswordRecoveryModal();
+            return;
+        }
         const previousUserId = activeSession?.user?.id || null;
         const nextUserId = session?.user?.id || null;
         const userChanged = Boolean(previousUserId && nextUserId && previousUserId !== nextUserId);
@@ -996,6 +1072,7 @@ async function initSupabaseApp() {
                 const generation = authGeneration;
                 try {
                     const loaded = await loadState();
+                    if (passwordRecoveryPending) return;
                     if (!loaded || !isCurrentAuthSession(session, generation)) {
                         clearAuthenticatedState();
                         setAuthModal(true);
@@ -1023,8 +1100,13 @@ async function initSupabaseApp() {
     try {
         ({ data, error } = await supabaseClient.auth.getSession());
     } catch {
+        if (passwordRecoveryPending) return;
         clearAuthenticatedState();
         showSupabaseError('تعذر الاتصال بخدمة المصادقة. تحقق من الاتصال ثم أعد المحاولة.');
+        return;
+    }
+    if (passwordRecoveryPending) {
+        activeSession = data?.session || activeSession;
         return;
     }
     if (error) {
@@ -1038,6 +1120,7 @@ async function initSupabaseApp() {
         const generation = authGeneration;
         try {
             const loaded = await loadState();
+            if (passwordRecoveryPending) return;
             if (!loaded || !isCurrentAuthSession(session, generation)) {
                 clearAuthenticatedState();
                 setAuthModal(true);
