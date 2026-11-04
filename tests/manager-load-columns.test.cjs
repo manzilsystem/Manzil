@@ -26,7 +26,7 @@ test('manager load selects only fields consumed by application state', () => {
         "const expenseColumns = 'id,title,amount,category,month,notes,cash_account_code,spent_at'"
     ));
     assert.ok(loadState.includes(
-        "const auditColumns = 'id,action,details,created_at'"
+        "const auditColumns = 'id,action,details,actor_id,created_at,actor:profiles!audit_logs_actor_id_fkey(full_name)'"
     ));
 
     assert.ok(loadState.includes("supabaseQuery('expenses', expenseColumns)"));
