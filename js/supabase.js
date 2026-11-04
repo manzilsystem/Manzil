@@ -757,6 +757,7 @@ async function submitPasswordRecovery(event) {
         const { error } = await supabaseClient.auth.updateUser({ password });
         if (error) throw error;
         passwordRecoveryPending = false;
+        try { sessionStorage.removeItem('manzil.passwordRecoveryPending'); } catch {}
         hidePasswordRecoveryModal();
         clearAuthenticatedState();
         await signOutLocally();
@@ -1037,10 +1038,14 @@ function verifyPinCode() { return submitSupabaseLogin(event); }
 function handlePinInput() {}
 
 async function initSupabaseApp() {
+    try {
+        passwordRecoveryPending = passwordRecoveryPending || sessionStorage.getItem('manzil.passwordRecoveryPending') === '1';
+    } catch {}
     document.body.classList.add('session-locked');
     supabaseClient.auth.onAuthStateChange((event, session) => {
         if (event === 'PASSWORD_RECOVERY' && session) {
             passwordRecoveryPending = true;
+            try { sessionStorage.setItem('manzil.passwordRecoveryPending', '1'); } catch {}
             clearAuthenticatedState();
             activeSession = session;
             showPasswordRecoveryModal();
@@ -1108,6 +1113,14 @@ async function initSupabaseApp() {
     }
     if (passwordRecoveryPending) {
         activeSession = data?.session || activeSession;
+        if (activeSession) {
+            showPasswordRecoveryModal();
+        } else {
+            passwordRecoveryPending = false;
+            try { sessionStorage.removeItem('manzil.passwordRecoveryPending'); } catch {}
+            clearAuthenticatedState();
+            setAuthModal(true, 'انتهت صلاحية رابط الاستعادة. اطلب رابطًا جديدًا.');
+        }
         return;
     }
     if (error) {
