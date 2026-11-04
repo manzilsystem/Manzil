@@ -1371,3 +1371,18 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
   #settingsModal .settings-brand-preview-card img { height:5.8rem; }
   #settingsModal .settings-brand-preview-light img { width:4.2rem;height:4.2rem; }
 }
+
+
+/* Payment method details follow their enabled state without discarding values. */
+#settingsModal .settings-payment-card.is-disabled {
+  border-style:dashed;border-color:var(--border-color,rgba(148,163,184,.22));
+  background:rgba(148,163,184,.035);
+}
+#settingsModal .settings-payment-card.is-disabled .settings-payment-toggle {
+  color:var(--text-secondary,#94a3b8);
+}
+#settingsModal .settings-payment-card [hidden] { display:none !important; }
+#settingsModal .settings-payment-card input:disabled,
+#settingsModal .settings-payment-card select:disabled {
+  cursor:not-allowed;
+}

@@ -110,6 +110,29 @@ function renderSettingsOwnerAccess() {
     }).join('');
 }
 
+function syncPaymentMethodDetails() {
+    const methods = [
+        { toggle: 'settingsPaymentWalletEnabled', details: 'settingsWalletDetails' },
+        { toggle: 'settingsPaymentInstapayEnabled', details: 'settingsInstapayDetails' },
+        { toggle: 'settingsPaymentBankEnabled', details: 'settingsBankDetails' }
+    ];
+    methods.forEach(({ toggle: toggleId, details: detailsId }) => {
+        const toggle = document.getElementById(toggleId);
+        const details = document.getElementById(detailsId);
+        if (!toggle || !details) return;
+        const enabled = toggle.checked;
+        details.hidden = !enabled;
+        details.classList.toggle('hidden', !enabled);
+        details.setAttribute('aria-hidden', String(!enabled));
+        toggle.setAttribute('aria-expanded', String(enabled));
+        details.querySelectorAll('input, select, textarea').forEach(field => {
+            field.disabled = !enabled;
+        });
+        toggle.onchange = syncPaymentMethodDetails;
+        toggle.closest('.settings-payment-card')?.classList.toggle('is-disabled', !enabled);
+    });
+}
+
 function openSettingsModal() {
     if (!requireManager()) return;
     document.getElementById('settingsBuildingName').value = state.buildingName||'';
@@ -134,6 +157,7 @@ function openSettingsModal() {
     document.getElementById('settingsBankAccountName').value = paymentSettings.bank_transfer.accountName;
     document.getElementById('settingsBankAccountNumber').value = paymentSettings.bank_transfer.accountNumber;
     document.getElementById('settingsBankIban').value = paymentSettings.bank_transfer.iban;
+    syncPaymentMethodDetails();
     document.getElementById('settingsSubscriptionDueDay').value = Number(state.subscriptionDueDay) || 1;
     document.getElementById('settingsSubscriptionGraceDays').value = Number(state.subscriptionGraceDays) || 0;
     document.getElementById('settingsPaymentAllocationPolicy').value =

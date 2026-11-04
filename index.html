@@ -678,23 +678,23 @@
                             <label class="settings-payment-toggle"><input type="checkbox" id="settingsPaymentCashEnabled" checked><span><b>نقدًا</b><small>التحصيل المباشر من المدير</small></span></label>
                         </section>
                         <section class="settings-payment-card space-y-3">
-                            <label class="settings-payment-toggle"><input type="checkbox" id="settingsPaymentWalletEnabled" checked><span><b>محفظة إلكترونية</b><small>مثل Vodafone Cash أو Orange Cash</small></span></label>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label class="settings-payment-toggle"><input type="checkbox" id="settingsPaymentWalletEnabled" checked aria-controls="settingsWalletDetails"><span><b>محفظة إلكترونية</b><small>مثل Vodafone Cash أو Orange Cash</small></span></label>
+                            <div id="settingsWalletDetails" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <label class="settings-field"><span>نوع المحفظة</span><select id="settingsWalletProvider" class="app-input border rounded-xl px-3 py-2.5"><option value="">اختر الشركة</option><option value="Vodafone Cash">Vodafone Cash</option><option value="Orange Cash">Orange Cash</option><option value="Etisalat Cash">Etisalat Cash</option><option value="WE Pay">WE Pay</option><option value="أخرى">أخرى</option></select></label>
                                 <label class="settings-field"><span>اسم صاحب المحفظة</span><input id="settingsWalletAccountName" maxlength="120" autocomplete="off" class="app-input border rounded-xl px-3 py-2.5"></label>
                                 <label class="settings-field sm:col-span-2"><span>رقم المحفظة</span><input id="settingsWalletNumber" type="tel" inputmode="tel" maxlength="32" autocomplete="off" placeholder="01xxxxxxxxx" class="app-input border rounded-xl px-3 py-2.5"></label>
                             </div>
                         </section>
                         <section class="settings-payment-card space-y-3">
-                            <label class="settings-payment-toggle"><input type="checkbox" id="settingsPaymentInstapayEnabled" checked><span><b>InstaPay</b><small>عنوان الدفع اللحظي أو IPA</small></span></label>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label class="settings-payment-toggle"><input type="checkbox" id="settingsPaymentInstapayEnabled" checked aria-controls="settingsInstapayDetails"><span><b>InstaPay</b><small>عنوان الدفع اللحظي أو IPA</small></span></label>
+                            <div id="settingsInstapayDetails" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <label class="settings-field"><span>اسم صاحب الحساب</span><input id="settingsInstapayAccountName" maxlength="120" autocomplete="off" class="app-input border rounded-xl px-3 py-2.5"></label>
                                 <label class="settings-field"><span>عنوان InstaPay / IPA</span><input id="settingsInstapayAddress" maxlength="120" autocomplete="off" dir="ltr" placeholder="name@instapay" class="app-input border rounded-xl px-3 py-2.5"></label>
                             </div>
                         </section>
                         <section class="settings-payment-card space-y-3">
-                            <label class="settings-payment-toggle"><input type="checkbox" id="settingsPaymentBankEnabled" checked><span><b>تحويل بنكي</b><small>بيانات الحساب البنكي لاستقبال التحويلات</small></span></label>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label class="settings-payment-toggle"><input type="checkbox" id="settingsPaymentBankEnabled" checked aria-controls="settingsBankDetails"><span><b>تحويل بنكي</b><small>بيانات الحساب البنكي لاستقبال التحويلات</small></span></label>
+                            <div id="settingsBankDetails" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <label class="settings-field"><span>اسم البنك</span><input id="settingsBankName" maxlength="100" autocomplete="off" class="app-input border rounded-xl px-3 py-2.5"></label>
                                 <label class="settings-field"><span>اسم صاحب الحساب</span><input id="settingsBankAccountName" maxlength="120" autocomplete="off" class="app-input border rounded-xl px-3 py-2.5"></label>
                                 <label class="settings-field"><span>رقم الحساب</span><input id="settingsBankAccountNumber" maxlength="48" autocomplete="off" dir="ltr" class="app-input border rounded-xl px-3 py-2.5"></label>
