@@ -28,6 +28,34 @@ function renderOwnerPortal() {
     const dueThisMonth = getSubscriptionAmountForMonth(resident, month);
     const remainingThisMonth = Math.max(0, dueThisMonth - paidThisMonth);
     const debt = calculateCumulativeDebt(resident.id);
+    const paymentSettings = normalizePaymentSettings(state.paymentSettings);
+    const paymentInstructions = Object.entries(INCOME_PAYMENT_METHOD_LABELS)
+        .filter(([method]) => paymentSettings[method]?.enabled)
+        .map(([method, label]) => {
+            const settings = paymentSettings[method] || {};
+            const details = [];
+            if (method === 'wallet') {
+                if (settings.provider) details.push('الشركة: ' + settings.provider);
+                if (settings.accountName) details.push('صاحب المحفظة: ' + settings.accountName);
+                if (settings.number) details.push('رقم المحفظة: ' + settings.number);
+            } else if (method === 'instapay') {
+                if (settings.accountName) details.push('صاحب الحساب: ' + settings.accountName);
+                if (settings.address) details.push('عنوان الدفع: ' + settings.address);
+            } else if (method === 'bank_transfer') {
+                if (settings.bankName) details.push('البنك: ' + settings.bankName);
+                if (settings.accountName) details.push('صاحب الحساب: ' + settings.accountName);
+                if (settings.accountNumber) details.push('رقم الحساب: ' + settings.accountNumber);
+                if (settings.iban) details.push('IBAN: ' + settings.iban);
+            } else {
+                details.push('يتم التسليم مباشرةً إلى مدير العمارة.');
+            }
+            return `<div class="app-input border rounded-xl p-3 space-y-1">
+                <p class="text-xs font-bold">${esc(label)}</p>
+                ${details.length ? details.map(item => `<p class="text-[11px] text-slate-400 break-words">${esc(item)}</p>`).join('') : '<p class="text-[11px] text-slate-500">يرجى التواصل مع المدير للحصول على بيانات الاستلام.</p>'}
+            </div>`;
+        }).join('');
+    const subscriptionDueDay = Math.min(28, Math.max(1, Number(state.subscriptionDueDay) || 1));
+    const subscriptionGraceDays = Math.min(31, Math.max(0, Number(state.subscriptionGraceDays) || 0));
     const ownPayments = state.income
         .filter(payment => payment.residentId === resident.id)
         .sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -70,6 +98,13 @@ function renderOwnerPortal() {
                 <div class="app-input border rounded-2xl p-3"><p class="text-[10px] text-slate-500">المتبقي لهذا الشهر</p><p class="font-black ${remainingThisMonth ? 'text-rose-400' : 'text-emerald-400'} mt-1">${fmtNum(remainingThisMonth)} ج.م</p></div>
             </div>
             <div class="app-input border rounded-2xl p-3 flex items-center justify-between gap-3"><span class="text-xs font-bold">إجمالي متأخرات حسابك (${debt.count} شهر)</span><strong class="text-sm ${debt.totalDebt ? 'text-rose-400' : 'text-emerald-400'}">${fmtNum(debt.totalDebt)} ج.م</strong></div>
+        </section>
+        <section class="app-card border rounded-3xl p-5 space-y-3" aria-labelledby="ownerPaymentMethodsTitle">
+            <div>
+                <h3 id="ownerPaymentMethodsTitle" class="font-bold text-sm">طرق سداد الاشتراك</h3>
+                <p class="text-[10px] text-slate-500 mt-1">موعد الاستحقاق يوم ${subscriptionDueDay} من كل شهر · فترة السماح ${subscriptionGraceDays} يوم</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${paymentInstructions}</div>
         </section>
         <section class="app-card border rounded-3xl p-5 space-y-3" aria-labelledby="ownerNotificationsTitle">
             <div class="flex items-center justify-between gap-3">
