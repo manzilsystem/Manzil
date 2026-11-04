@@ -27,7 +27,7 @@ function loadReceiptApp(phone = '01012345678') {
         window: { open: url => opened.push(url) },
         encodeURIComponent
     };
-    const app = vm.runInNewContext(`${notices}\\n({ sendIncomeReceiptOnWhatsApp })`, sandbox);
+    const app = vm.runInNewContext(`${notices}\n({ sendIncomeReceiptOnWhatsApp })`, sandbox);
     return { app, opened, messages };
 }
 
