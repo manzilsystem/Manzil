@@ -178,14 +178,14 @@ test('settings UI persists method details and monthly collection rules per build
     assert.match(settingsSource, /state\.subscriptionDueDay = subscriptionDueDay/);
     assert.match(settingsSource, /state\.subscriptionGraceDays = subscriptionGraceDays/);
     assert.match(settingsSource, /state\.paymentAllocationPolicy = paymentAllocationPolicy/);
-    assert.match(supabaseSource, /payment_settings: normalizePaymentSettings\(state\.paymentSettings\)/);
+    assert.match(supabaseSource, /payment_settings: getBuildingPaymentSettings\(state\.paymentSettings\)/);
     assert.match(supabaseSource, /subscription_due_day: Math\.min\(28/);
     assert.match(supabaseSource, /payment_allocation_policy: \['oldest_first', 'selected_month_first'\]/);
 });
 
 test('enabled payment details are rendered in the read-only owner portal', () => {
     assert.match(accessSource, /طرق سداد الاشتراك/);
-    assert.match(accessSource, /paymentSettings\.bank_transfer/);
+    assert.match(accessSource, /method === 'bank_transfer'/);
     assert.match(accessSource, /settings\.iban/);
     assert.match(accessSource, /موعد الاستحقاق يوم/);
     assert.match(accessSource, /esc\(item\)/);
