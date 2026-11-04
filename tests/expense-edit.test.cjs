@@ -27,7 +27,7 @@ function createApp() {
         toast: message => sandbox.toasts.push(message), renderAll() {}, generateId: () => 'new-expense',
         toasts: []
     };
-    const app = vm.runInNewContext(crud + '\\n({ openExpenseEditModal, handleExpenseSubmit })', sandbox);
+    const app = vm.runInNewContext(crud + '\n({ openExpenseEditModal, handleExpenseSubmit })', sandbox);
     return { app, sandbox, elements };
 }
 
