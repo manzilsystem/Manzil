@@ -1442,6 +1442,9 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     cursor: not-allowed;
     opacity: .6;
 }
+#settingsModal .settings-field input[dir="ltr"] {
+    text-align: right;
+}
 #settingsModal .settings-help {
     color: var(--settings-muted);
     font-size: .65rem;
@@ -1984,6 +1987,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     flex-wrap: wrap;
     gap: .3rem;
     direction: ltr;
+    justify-content: flex-end;
 }
 #settingsModal .settings-variable-chips code {
     padding: .2rem .45rem;
@@ -2394,12 +2398,834 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     #settingsModal .settings-close-button,
     #settingsModal .settings-nav-item,
     #settingsModal .theme-option,
-    #settingsModal .settings-save-button {
+    #settingsModal .settings-save-button,
+    #settingsModal .settings-mini-button,
+    #settingsModal .settings-payment-toggle-row {
         transition: none;
     }
     #settingsModal .settings-card:hover,
     #settingsModal .settings-card:hover .settings-card-icon,
     #settingsModal .settings-close-button:hover {
         transform: none;
+    }
+}
+
+/* ---------- Settings v2: form + live context workspace ---------- */
+#settingsModal .settings-section-heading {
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+#settingsModal .settings-heading-copy {
+    flex: 1 1 15rem;
+    min-width: 0;
+}
+#settingsModal .settings-heading-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem;
+    margin-inline-start: auto;
+}
+#settingsModal .settings-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .3rem .6rem;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 26%, var(--settings-line));
+    border-radius: 999px;
+    color: var(--settings-accent);
+    background: color-mix(in srgb, var(--settings-accent) 9%, transparent);
+    font-size: .6rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+#settingsModal .settings-chip b {
+    font-weight: 900;
+}
+#settingsModal .settings-chip.is-gold {
+    border-color: color-mix(in srgb, var(--settings-gold) 38%, var(--settings-line));
+    color: var(--settings-gold);
+    background: color-mix(in srgb, var(--settings-gold) 10%, transparent);
+}
+#settingsModal .settings-chip.is-teal {
+    border-color: color-mix(in srgb, var(--settings-accent) 40%, var(--settings-line));
+}
+
+#settingsModal .settings-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(14.5rem, .9fr);
+    align-items: start;
+    gap: .9rem;
+    min-width: 0;
+}
+#settingsModal .settings-workspace-main {
+    display: flex;
+    flex-direction: column;
+    gap: .8rem;
+    min-width: 0;
+}
+#settingsModal .settings-workspace-aside {
+    position: sticky;
+    top: 4.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: .7rem;
+    align-self: start;
+    min-width: 0;
+}
+#settingsModal .settings-field-hint {
+    color: var(--settings-muted);
+    font-size: .61rem;
+    font-weight: 500;
+    line-height: 1.7;
+}
+#settingsModal .settings-field > .settings-input-unit {
+    display: flex;
+    align-items: stretch;
+    gap: .4rem;
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+}
+#settingsModal .settings-input-unit input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+#settingsModal .settings-input-unit > b {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.9rem;
+    padding: 0 .55rem;
+    border: 1px solid var(--settings-line);
+    border-radius: .7rem;
+    color: var(--settings-muted);
+    background: color-mix(in srgb, var(--settings-surface) 70%, transparent);
+    font-size: .6rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+#settingsModal .settings-input-unit.is-currency > b {
+    border-color: color-mix(in srgb, var(--settings-gold) 34%, var(--settings-line));
+    color: var(--settings-gold);
+    background: color-mix(in srgb, var(--settings-gold) 8%, transparent);
+}
+
+/* Building live card */
+#settingsModal .settings-live-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: .55rem;
+    overflow: hidden;
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 38%, transparent);
+    border-radius: 1rem;
+    color: #eaf7f4;
+    background:
+        radial-gradient(120% 100% at 85% 0%, rgba(85, 201, 189, .22), transparent 55%),
+        linear-gradient(150deg, #0b2633, #123b50 70%, #0d3c40);
+    box-shadow: 0 18px 38px rgba(2, 20, 35, .26);
+}
+#settingsModal .settings-live-card::after {
+    content: "";
+    position: absolute;
+    inset-inline-end: -2.2rem;
+    top: -2.2rem;
+    width: 6.5rem;
+    height: 6.5rem;
+    border: 1px solid rgba(240, 204, 126, .28);
+    border-radius: 50%;
+    pointer-events: none;
+}
+#settingsModal .settings-live-head {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    min-width: 0;
+}
+#settingsModal .settings-live-icon {
+    display: grid;
+    place-items: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    flex: 0 0 auto;
+    border: 1px solid rgba(240, 204, 126, .35);
+    border-radius: .65rem;
+    color: #f0cc7e;
+    background: rgba(240, 204, 126, .1);
+    font-size: .82rem;
+}
+#settingsModal .settings-live-head b {
+    display: block;
+    color: #f4fbfa;
+    font-size: .76rem;
+    font-weight: 900;
+}
+#settingsModal .settings-live-head small {
+    display: block;
+    color: rgba(220, 240, 237, .62);
+    font-size: .57rem;
+}
+#settingsModal .settings-live-name {
+    color: #ffffff;
+    font-size: .98rem;
+    font-weight: 900;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+#settingsModal .settings-live-manager {
+    color: rgba(220, 240, 237, .72);
+    font-size: .66rem;
+    line-height: 1.7;
+}
+#settingsModal .settings-live-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .4rem;
+}
+#settingsModal .settings-live-stats > div {
+    padding: .45rem .55rem;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: .6rem;
+    background: rgba(255, 255, 255, .05);
+    text-align: center;
+}
+#settingsModal .settings-live-stats span {
+    display: block;
+    color: rgba(220, 240, 237, .6);
+    font-size: .55rem;
+    font-weight: 700;
+}
+#settingsModal .settings-live-stats b {
+    color: #ffffff;
+    font-size: .95rem;
+    font-weight: 900;
+}
+#settingsModal .settings-live-list {
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    margin: 0;
+}
+#settingsModal .settings-live-list > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .5rem;
+    padding-top: .3rem;
+    border-top: 1px dashed rgba(255, 255, 255, .12);
+}
+#settingsModal .settings-live-list dt {
+    color: rgba(220, 240, 237, .62);
+    font-size: .59rem;
+    font-weight: 700;
+}
+#settingsModal .settings-live-list dd {
+    margin: 0;
+    color: #f0cc7e;
+    font-size: .68rem;
+    font-weight: 900;
+    unicode-bidi: plaintext;
+}
+#settingsModal .settings-building-layout-summary output {
+    min-height: 3.4rem;
+}
+#settingsModal .settings-floor-stack {
+    display: flex;
+    flex-direction: column;
+    gap: .28rem;
+    max-height: 8.6rem;
+    overflow: auto;
+    scrollbar-width: thin;
+}
+#settingsModal .settings-floor-row {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+}
+#settingsModal .settings-floor-label {
+    flex: 0 0 auto;
+    min-width: 2.6rem;
+    color: var(--settings-muted);
+    font-size: .56rem;
+    font-weight: 800;
+}
+#settingsModal .settings-floor-dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .2rem;
+}
+#settingsModal .settings-floor-dots i {
+    display: block;
+    width: .5rem;
+    height: .5rem;
+    border-radius: .16rem;
+    background: color-mix(in srgb, var(--settings-accent) 60%, transparent);
+}
+#settingsModal .settings-floor-row:first-child .settings-floor-dots i {
+    background: color-mix(in srgb, var(--settings-gold) 70%, transparent);
+}
+#settingsModal .settings-aside-note {
+    display: flex;
+    align-items: flex-start;
+    gap: .4rem;
+    padding: .55rem .7rem;
+    border: 1px dashed color-mix(in srgb, var(--settings-gold) 40%, transparent);
+    border-radius: .65rem;
+    color: var(--settings-muted);
+    font-size: .58rem;
+    line-height: 1.75;
+}
+#settingsModal .settings-aside-note i {
+    margin-top: .15rem;
+    color: var(--settings-gold);
+}
+
+/* Payment methods */
+#settingsModal .settings-info-card-compact {
+    gap: .3rem;
+    padding: .8rem .95rem;
+}
+#settingsModal .settings-method-head {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    min-width: 0;
+}
+#settingsModal .settings-method-copy {
+    flex: 1 1 auto;
+}
+#settingsModal .settings-method-status {
+    flex: 0 0 auto;
+    padding: .22rem .55rem;
+    border: 1px solid rgba(46, 168, 121, .32);
+    border-radius: 999px;
+    color: #2ea879;
+    background: rgba(46, 168, 121, .1);
+    font-size: .56rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+#settingsModal .settings-method-status.is-off {
+    border-color: color-mix(in srgb, var(--settings-muted) 30%, transparent);
+    color: var(--settings-muted);
+    background: color-mix(in srgb, var(--settings-muted) 8%, transparent);
+}
+#settingsModal .settings-method-points {
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--settings-muted);
+    font-size: .61rem;
+    line-height: 1.6;
+}
+#settingsModal .settings-method-points li {
+    position: relative;
+    padding-inline-start: .85rem;
+}
+#settingsModal .settings-method-points li::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    top: .55em;
+    width: .32rem;
+    height: .32rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--settings-accent) 62%, transparent);
+}
+#settingsModal .settings-payment-toggle-row {
+    justify-content: space-between;
+    min-height: 2.6rem;
+    padding: .5rem .7rem;
+    border: 1px solid var(--settings-line);
+    border-radius: .7rem;
+    color: var(--settings-text);
+    background: color-mix(in srgb, var(--settings-surface) 60%, transparent);
+    font-size: .66rem;
+    font-weight: 800;
+    transition: border-color .16s ease, background .16s ease;
+}
+#settingsModal .settings-payment-toggle-row:hover {
+    border-color: color-mix(in srgb, var(--settings-accent) 38%, var(--settings-line));
+}
+#settingsModal .settings-payment-note {
+    display: flex;
+    align-items: flex-start;
+    gap: .35rem;
+    color: var(--settings-muted);
+    font-size: .58rem;
+    line-height: 1.7;
+}
+#settingsModal .settings-payment-note i {
+    margin-top: .15rem;
+    color: var(--settings-accent);
+}
+
+/* Subscription rules timeline */
+#settingsModal .settings-rule-timeline {
+    display: flex;
+    flex-direction: column;
+}
+#settingsModal .settings-rule-step {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: .55rem;
+    padding-bottom: .75rem;
+}
+#settingsModal .settings-rule-step::before {
+    content: "";
+    position: absolute;
+    top: 2.1rem;
+    inset-inline-start: .95rem;
+    bottom: 0;
+    width: 1px;
+    background: var(--settings-line);
+}
+#settingsModal .settings-rule-step:last-child {
+    padding-bottom: 0;
+}
+#settingsModal .settings-rule-step:last-child::before {
+    display: none;
+}
+#settingsModal .settings-rule-step-icon {
+    display: grid;
+    place-items: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 26%, transparent);
+    border-radius: .55rem;
+    color: var(--settings-accent);
+    background: color-mix(in srgb, var(--settings-accent) 12%, transparent);
+    font-size: .68rem;
+}
+#settingsModal .settings-rule-step.is-late .settings-rule-step-icon {
+    border-color: rgba(244, 63, 94, .3);
+    color: #fb7185;
+    background: rgba(244, 63, 94, .1);
+}
+#settingsModal .settings-rule-step b {
+    display: block;
+    color: var(--settings-text);
+    font-size: .7rem;
+    font-weight: 900;
+}
+#settingsModal .settings-rule-step small {
+    display: block;
+    margin-top: .1rem;
+    color: var(--settings-muted);
+    font-size: .62rem;
+    line-height: 1.6;
+}
+#settingsModal .settings-rule-example {
+    padding-top: .55rem;
+    border-top: 1px dashed var(--settings-line);
+    color: var(--settings-muted);
+    font-size: .6rem;
+    line-height: 1.8;
+}
+
+/* Appearance */
+#settingsModal .settings-brand-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+}
+#settingsModal .settings-brand-meta > span {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .28rem .55rem;
+    border: 1px solid var(--settings-line);
+    border-radius: 999px;
+    color: var(--settings-muted);
+    background: color-mix(in srgb, var(--settings-surface) 70%, transparent);
+    font-size: .58rem;
+    font-weight: 700;
+}
+#settingsModal .settings-brand-meta i {
+    color: var(--settings-gold);
+}
+#settingsModal .settings-theme-current-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    margin-inline-start: auto;
+    padding: .3rem .6rem;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 30%, var(--settings-line));
+    border-radius: 999px;
+    color: var(--settings-muted);
+    background: color-mix(in srgb, var(--settings-accent) 8%, transparent);
+    font-size: .6rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+#settingsModal .settings-theme-current-pill b {
+    color: var(--settings-accent);
+    font-weight: 900;
+}
+
+/* Backup hero */
+#settingsModal .settings-backup-hero {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid rgba(46, 168, 121, .32);
+    border-radius: 1rem;
+    background:
+        linear-gradient(120deg, rgba(46, 168, 121, .13), transparent 62%),
+        var(--settings-surface-raised);
+}
+#settingsModal .settings-backup-hero-icon {
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    flex: 0 0 auto;
+    border: 1px solid rgba(46, 168, 121, .32);
+    border-radius: .85rem;
+    color: #2ea879;
+    background: rgba(46, 168, 121, .12);
+    font-size: 1.15rem;
+}
+#settingsModal .settings-backup-hero h5 {
+    color: var(--settings-text);
+    font-size: .84rem;
+    font-weight: 900;
+}
+#settingsModal .settings-backup-hero p {
+    margin-top: .2rem;
+    color: var(--settings-muted);
+    font-size: .65rem;
+    line-height: 1.8;
+}
+#settingsModal .settings-backup-stats {
+    display: flex;
+    gap: .4rem;
+}
+#settingsModal .settings-backup-stats > div {
+    min-width: 4.2rem;
+    padding: .42rem .55rem;
+    border: 1px solid var(--settings-line);
+    border-radius: .6rem;
+    background: color-mix(in srgb, var(--settings-surface) 72%, transparent);
+    text-align: center;
+}
+#settingsModal .settings-backup-stats span {
+    display: block;
+    color: var(--settings-muted);
+    font-size: .53rem;
+    font-weight: 700;
+}
+#settingsModal .settings-backup-stats b {
+    color: var(--settings-text);
+    font-size: .66rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+#settingsModal .settings-backup-actions {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+
+/* Receipt and reminder editors */
+#settingsModal .settings-editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+}
+#settingsModal .settings-mini-button {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .4rem .7rem;
+    border: 1px solid var(--settings-line);
+    border-radius: .55rem;
+    color: var(--settings-muted);
+    background: color-mix(in srgb, var(--settings-surface) 70%, transparent);
+    font-size: .61rem;
+    font-weight: 800;
+    transition: color .16s ease, border-color .16s ease;
+}
+#settingsModal .settings-mini-button:hover {
+    border-color: color-mix(in srgb, var(--settings-accent) 42%, var(--settings-line));
+    color: var(--settings-accent);
+}
+#settingsModal .settings-toolbar-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    color: var(--settings-muted);
+    font-size: .58rem;
+}
+#settingsModal .settings-toolbar-hint i {
+    color: var(--settings-accent);
+}
+#settingsModal .settings-variable-chip {
+    padding: .28rem .5rem;
+    border: 1px solid color-mix(in srgb, var(--settings-accent) 24%, var(--settings-line));
+    border-radius: .45rem;
+    color: var(--settings-accent);
+    background: color-mix(in srgb, var(--settings-accent) 8%, transparent);
+    font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+    font-size: .6rem;
+    font-weight: 700;
+    transition: background .15s ease, border-color .15s ease;
+}
+#settingsModal .settings-variable-chip:hover {
+    border-color: color-mix(in srgb, var(--settings-accent) 55%, var(--settings-line));
+    background: color-mix(in srgb, var(--settings-accent) 15%, transparent);
+}
+#settingsModal .settings-variable-legend code {
+    margin-inline-end: .2rem;
+    color: var(--settings-accent);
+    font-size: .6rem;
+}
+#settingsModal .settings-phone-card {
+    border-color: rgba(15, 59, 58, .4);
+    background: linear-gradient(160deg, #071f27, #0b2c33);
+}
+#settingsModal .settings-phone-card .settings-preview-head {
+    border-bottom-color: rgba(255, 255, 255, .08);
+    background: rgba(255, 255, 255, .04);
+}
+#settingsModal .settings-phone-card .settings-preview-head b {
+    color: #eaf7f4;
+}
+#settingsModal .settings-phone-card .settings-preview-head small {
+    color: rgba(220, 240, 237, .58);
+}
+#settingsModal .settings-phone-card .settings-preview-icon {
+    color: #55c9bd;
+    background: rgba(85, 201, 189, .12);
+}
+#settingsModal .settings-phone {
+    display: flex;
+    flex-direction: column;
+    gap: .55rem;
+    padding: .8rem;
+}
+#settingsModal .settings-phone-bar {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    color: rgba(220, 240, 237, .72);
+    font-size: .58rem;
+    font-weight: 700;
+}
+#settingsModal .settings-phone-dot {
+    width: .5rem;
+    height: .5rem;
+    border-radius: 50%;
+    background: #25d366;
+    box-shadow: 0 0 0 3px rgba(37, 211, 102, .14);
+}
+#settingsModal .settings-phone-dot.is-whatsapp {
+    background: #f0cc7e;
+    box-shadow: 0 0 0 3px rgba(240, 204, 126, .14);
+}
+#settingsModal .settings-phone .settings-preview-body {
+    min-height: 13rem;
+    max-height: 20rem;
+    padding: .8rem .9rem;
+    border-radius: .85rem .25rem .85rem .85rem;
+    color: #e9f7f4;
+    background: linear-gradient(155deg, #0f3b3a, #0b2f36);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06);
+    font-size: .65rem;
+}
+
+/* Account */
+#settingsModal .settings-account-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    margin-inline-start: auto;
+    padding: .3rem .6rem;
+    border: 1px solid rgba(46, 168, 121, .32);
+    border-radius: 999px;
+    color: #2ea879;
+    background: rgba(46, 168, 121, .1);
+    font-size: .58rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+#settingsModal .settings-owner-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .45rem;
+}
+#settingsModal .settings-owner-stats > div {
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    min-width: 0;
+    padding: .6rem .65rem;
+    border: 1px solid var(--settings-line);
+    border-radius: .7rem;
+    background: color-mix(in srgb, var(--settings-surface) 62%, transparent);
+}
+#settingsModal .settings-owner-stats i {
+    color: var(--settings-accent);
+    font-size: .7rem;
+}
+#settingsModal .settings-owner-stats span {
+    color: var(--settings-muted);
+    font-size: .56rem;
+    font-weight: 700;
+}
+#settingsModal .settings-owner-stats b {
+    color: var(--settings-text);
+    font-size: .98rem;
+    font-weight: 900;
+}
+#settingsModal .settings-owner-stats .is-linked i,
+#settingsModal .settings-owner-stats .is-linked b { color: #2ea879; }
+#settingsModal .settings-owner-stats .is-pending i,
+#settingsModal .settings-owner-stats .is-pending b { color: #d97706; }
+#settingsModal .settings-owner-stats .is-missing i,
+#settingsModal .settings-owner-stats .is-missing b { color: #fb7185; }
+#settingsModal .settings-field > .settings-search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+}
+#settingsModal .settings-search-wrap > i {
+    position: absolute;
+    inset-inline-start: .8rem;
+    color: var(--settings-muted);
+    font-size: .72rem;
+    pointer-events: none;
+}
+#settingsModal .settings-search-wrap input {
+    padding-inline-start: 2.1rem;
+}
+#settingsModal .settings-session-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--settings-line);
+    border-radius: 1rem;
+    background: var(--settings-surface-raised);
+}
+#settingsModal .settings-session-copy {
+    display: flex;
+    align-items: flex-start;
+    gap: .7rem;
+    flex: 1 1 18rem;
+    min-width: 0;
+}
+#settingsModal .settings-session-icon {
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, var(--settings-gold) 32%, transparent);
+    border-radius: .7rem;
+    color: var(--settings-gold);
+    background: color-mix(in srgb, var(--settings-gold) 10%, transparent);
+    font-size: .85rem;
+}
+#settingsModal .settings-session-copy b {
+    color: var(--settings-text);
+    font-size: .76rem;
+    font-weight: 900;
+}
+#settingsModal .settings-session-copy p {
+    margin-top: .15rem;
+    color: var(--settings-muted);
+    font-size: .62rem;
+    line-height: 1.75;
+}
+#settingsModal .settings-secondary-button.is-danger {
+    border-color: rgba(244, 63, 94, .3);
+    color: #fb7185;
+    background: rgba(244, 63, 94, .08);
+}
+#settingsModal .settings-secondary-button.is-danger:hover {
+    border-color: rgba(244, 63, 94, .5);
+    color: #fda4af;
+}
+
+/* ---------- Settings v2 responsive ---------- */
+@media (max-width: 1080px) {
+    #settingsModal .settings-workspace {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    #settingsModal .settings-workspace-aside {
+        position: static;
+    }
+    #settingsModal .settings-backup-hero {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+    #settingsModal .settings-backup-stats {
+        grid-column: 1 / -1;
+    }
+}
+@media (max-width: 760px) {
+    #settingsModal .settings-backup-hero {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    #settingsModal .settings-backup-stats {
+        grid-column: auto;
+        flex-wrap: wrap;
+    }
+    #settingsModal .settings-backup-stats > div {
+        flex: 1 1 0;
+    }
+    #settingsModal .settings-owner-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (max-width: 560px) {
+    #settingsModal .settings-section-heading {
+        align-items: flex-start;
+    }
+    #settingsModal .settings-heading-meta {
+        width: 100%;
+        margin-inline-start: 0;
+    }
+    #settingsModal .settings-workspace {
+        gap: .7rem;
+    }
+    #settingsModal .settings-live-card {
+        padding: .85rem;
+    }
+    #settingsModal .settings-account-badge {
+        align-self: flex-start;
+        margin-inline-start: 0;
+    }
+    #settingsModal .settings-session-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    #settingsModal .settings-session-copy {
+        flex: 0 0 auto;
+    }
+    #settingsModal .settings-session-card .settings-account-actions {
+        flex-direction: column;
+    }
+    #settingsModal .settings-session-card .settings-secondary-button {
+        width: 100%;
+    }
+    #settingsModal .settings-phone .settings-preview-body {
+        min-height: 10rem;
     }
 }

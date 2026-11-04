@@ -414,4 +414,4 @@ function requestOwnerPinOnWhatsApp() {
     if (notice) notice.classList.remove('hidden');
 }
 
-document.addEventListener('DOMContentLoaded', updateAccessSwitchButton);
+document.addEventListener('DOMContentLoaded', () => updateAccessSwitchButton());

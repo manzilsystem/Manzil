@@ -19,6 +19,26 @@ test('access.js loads without legacy session-handler ReferenceErrors', () => {
     assert.deepEqual(registeredEvents, ['DOMContentLoaded']);
 });
 
+test('access.js defers updateAccessSwitchButton until supabase.js defines it', () => {
+    let readyHandler = null;
+    const sandbox = {
+        document: {
+            addEventListener: (eventName, handler) => {
+                if (eventName === 'DOMContentLoaded') readyHandler = handler;
+            },
+        },
+    };
+
+    assert.doesNotThrow(() => vm.runInNewContext(accessSource, sandbox, { filename: 'js/access.js' }));
+    assert.equal(typeof readyHandler, 'function');
+
+    let calls = 0;
+    sandbox.updateAccessSwitchButton = () => { calls += 1; };
+
+    assert.doesNotThrow(() => readyHandler());
+    assert.equal(calls, 1);
+});
+
 test('a missing resident error shown in the owner portal is not aria-hidden', () => {
     const attributes = { 'aria-hidden': 'true' };
     const classes = new Set(['hidden']);
