@@ -153,7 +153,7 @@ function renderSubscriptionRulePreview() {
         `فترة السماح: ${graceLabel}`,
         `توزيع الدفعات: ${policyLabel}`,
         'يبدأ التأخير بعد انتهاء يوم الاستحقاق وفترة السماح.'
-    ].join('\\n');
+    ].join('\n');
 }
 
 function openSettingsModal() {
