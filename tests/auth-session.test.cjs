@@ -493,6 +493,7 @@ test('PASSWORD_RECOVERY opens the password form without loading manager data', a
     assert.equal(loadCount, 0);
     assert.equal(h.elements.get('passwordRecoveryModal').classList.contains('hidden'), false);
     assert.equal(h.elements.get('passwordRecoveryModal').attributes['aria-hidden'], 'false');
+    assert.equal(h.sandbox.document.body.classList.contains('session-locked'), true);
 });
 
 test('password recovery validates confirmation, updates password, and requires a fresh login', async () => {
