@@ -228,23 +228,31 @@ async function saveSettings() {
         if (rollback.error || !rollback.data?.ok) toast('فشل حفظ الإعدادات، وتعذر التراجع عن إعدادات الأدوار. أعد تحميل المبنى للتحقق.', 'error');
         return;
     }
-    let messagePreferencesSaved = true;
+    const { data: messageSettingsRow, error: messageSettingsError } = await supabaseClient.from('buildings')
+        .update({
+            receipt_thank_you_template: receiptThankYou || null,
+            arrears_reminder_template: reminderTemplate || null
+        })
+        .eq('id', activeBuildingId)
+        .select('id')
+        .maybeSingle();
+    if (messageSettingsError || !messageSettingsRow?.id) {
+        console.error('Could not save building message templates:', messageSettingsError || 'manager update returned no row');
+        toast('تم حفظ بقية الإعدادات، لكن تعذر حفظ قوالب الرسائل على الخادم. أعد المحاولة.', 'error');
+        return;
+    }
+    state.receiptThankYouTemplate = receiptThankYou || null;
+    state.reminderMessageTemplate = reminderTemplate || null;
     try {
-        if (receiptThankYou) localStorage.setItem(getReceiptSettingsKey(), receiptThankYou);
-        else localStorage.removeItem(getReceiptSettingsKey());
-        if (reminderTemplate) localStorage.setItem(getReminderTemplateKey(), reminderTemplate);
-        else localStorage.removeItem(getReminderTemplateKey());
+        localStorage.removeItem(getReceiptSettingsKey());
+        localStorage.removeItem(getReminderTemplateKey());
     } catch (error) {
-        messagePreferencesSaved = false;
-        console.error('Could not save message preferences:', error);
+        console.warn('Legacy message template cleanup failed:', error);
     }
     renderAll();
     updateAccessSwitchButton();
     closeModal('settingsModal');
-    toast(messagePreferencesSaved
-        ? 'تم حفظ إعدادات العقار والتحصيل والاشتراكات والرسائل'
-        : 'تم حفظ بيانات العمارة، لكن تعذر حفظ نصوص الرسائل على هذا الجهاز.',
-    messagePreferencesSaved ? 'success' : 'error');
+    toast('تم حفظ إعدادات العقار والتحصيل والاشتراكات والرسائل ومزامنتها بين الأجهزة', 'success');
 }
 
 async function sendSettingsPasswordReset() {

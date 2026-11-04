@@ -116,14 +116,14 @@ test('settings report a failed layout rollback even when the RPC has no transpor
 });
 
 test('receipt and reminder templates synchronize through building settings', () => {
-    assert.match(state, /state\\.receiptThankYouTemplate !== null/);
-    assert.match(state, /state\\.reminderMessageTemplate !== null/);
-    assert.match(auth, /receipt_thank_you_template,arrears_reminder_template/);
-    assert.match(auth, /receiptThankYouTemplate: building\\.receipt_thank_you_template \\?\\? null/);
-    assert.match(auth, /reminderMessageTemplate: building\\.arrears_reminder_template \\?\\? null/);
-    assert.match(settings, /receipt_thank_you_template: receiptThankYou \\|\\| null/);
-    assert.match(settings, /arrears_reminder_template: reminderTemplate \\|\\| null/);
-    assert.match(settings, /localStorage\\.removeItem\\(getReceiptSettingsKey\\(\\)\\)/);
-    assert.match(settings, /localStorage\\.removeItem\\(getReminderTemplateKey\\(\\)\\)/);
+    assert.ok(state.includes('state.receiptThankYouTemplate !== null'));
+    assert.ok(state.includes('state.reminderMessageTemplate !== null'));
+    assert.ok(auth.includes('receipt_thank_you_template,arrears_reminder_template'));
+    assert.ok(auth.includes('receiptThankYouTemplate: building.receipt_thank_you_template ?? null'));
+    assert.ok(auth.includes('reminderMessageTemplate: building.arrears_reminder_template ?? null'));
+    assert.ok(settings.includes('receipt_thank_you_template: receiptThankYou || null'));
+    assert.ok(settings.includes('arrears_reminder_template: reminderTemplate || null'));
+    assert.ok(settings.includes('localStorage.removeItem(getReceiptSettingsKey())'));
+    assert.ok(settings.includes('localStorage.removeItem(getReminderTemplateKey())'));
     assert.match(sw, /CACHE_NAME = 'manzil-v61'/);
 });
