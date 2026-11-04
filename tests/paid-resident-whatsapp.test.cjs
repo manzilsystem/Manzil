@@ -6,7 +6,7 @@ const test = require('node:test');
 
 const source = fs.readFileSync(path.join(__dirname, '..', 'js', 'render.js'), 'utf8');
 const start = source.indexOf('function renderResidentsGrid()');
-const end = source.indexOf('\\nfunction clearResidentFilters()', start);
+const end = source.indexOf(String.fromCharCode(10) + 'function clearResidentFilters()', start);
 assert.ok(start >= 0 && end > start, 'renderResidentsGrid source must exist');
 const renderResidentsGridSource = source.slice(start, end);
 
@@ -38,7 +38,7 @@ function renderCard({ paid, hasReceipt = true, priorDebt = !paid }) {
 
 test('fully paid apartment shows WhatsApp receipt action instead of overdue reminder', () => {
     const html = renderCard({ paid: true });
-    assert.match(html, /sendIncomeReceiptOnWhatsApp\\('payment-1'\\)/);
+    assert.match(html, /sendIncomeReceiptOnWhatsApp\('payment-1'\)/);
     assert.match(html, /إرسال إيصال واتساب/);
     assert.doesNotMatch(html, /sendWhatsAppReminder/);
 });
@@ -50,13 +50,13 @@ test('fully paid apartment without a current-month receipt has no misleading Wha
 
 test('unpaid apartment keeps the WhatsApp arrears reminder action', () => {
     const html = renderCard({ paid: false });
-    assert.match(html, /sendWhatsAppReminder\\('resident-1'\\)/);
+    assert.match(html, /sendWhatsAppReminder\('resident-1'\)/);
     assert.match(html, /إرسال تذكير واتساب/);
     assert.doesNotMatch(html, /sendIncomeReceiptOnWhatsApp/);
 });
 
 test('paid current month keeps arrears reminder when older months remain unpaid', () => {
     const html = renderCard({ paid: true, priorDebt: true });
-    assert.match(html, /sendWhatsAppReminder\\('resident-1'\\)/);
+    assert.match(html, /sendWhatsAppReminder\('resident-1'\)/);
     assert.doesNotMatch(html, /sendIncomeReceiptOnWhatsApp/);
 });
