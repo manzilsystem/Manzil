@@ -18,7 +18,7 @@ function groupOwnerPaymentsIntoReceipts(residentId) {
     (Array.isArray(state.income) ? state.income : [])
         .filter(payment => payment.residentId === residentId)
         .forEach(payment => {
-            const match = String(payment.notes || '').match(/دفعة موزعة\\s+([A-Z0-9]+)/i);
+            const match = String(payment.notes || '').match(/دفعة موزعة\s+([A-Z0-9]+)/i);
             const reference = match?.[1]
                 || String(payment.id || '').replace(/[^a-z0-9]/gi, '').slice(0, 12).toUpperCase();
             const key = match
@@ -38,7 +38,7 @@ function groupOwnerPaymentsIntoReceipts(residentId) {
 
     return Array.from(groups.values()).map(receipt => {
         const payments = receipt.payments.slice().sort((a, b) => {
-            const order = item => Number(String(item.notes || '').match(/\\((\\d+)\\//)?.[1] || 0);
+            const order = item => Number(String(item.notes || '').match(/\((\d+)\\//)?.[1] || 0);
             return order(a) - order(b);
         });
         const totalCents = payments.reduce((sum, payment) => {
@@ -50,7 +50,7 @@ function groupOwnerPaymentsIntoReceipts(residentId) {
 }
 
 function getOwnerManagerWhatsAppPhone() {
-    let phone = String(state.managerPhone || '').replace(/\\D/g, '');
+    let phone = String(state.managerPhone || '').replace(/\D/g, '');
     if (phone.startsWith('00')) phone = phone.slice(2);
     else if (phone.startsWith('0')) phone = '20' + phone.slice(1);
     else if (phone.length === 10) phone = '20' + phone;
@@ -71,7 +71,7 @@ function contactOwnerManager() {
         `العمارة: ${state.buildingName || '—'}`,
         `الشقة: ${resident.apartmentNumber || '—'}`,
         `الاسم: ${resident.name || '—'}`
-    ].join('\\n');
+    ].join('\n');
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
 }
 
