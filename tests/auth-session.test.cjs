@@ -321,7 +321,6 @@ test('a Supabase SIGNED_OUT event clears account data and returns to the login m
     assert.equal(snapshot.state.buildingName, '');
     assert.equal(h.elements.get('pinLockModal').classList.contains('hidden'), false);
     assert.equal(h.sandbox.document.body.classList.contains('session-locked'), true);
-    assert.equal(h.sessionStorage.getItem('manzil.passwordRecoveryPending'), '1');
 });
 
 test('a sign-out during loadState prevents stale data from reopening the authenticated app', async () => {
@@ -504,6 +503,7 @@ test('PASSWORD_RECOVERY opens the password form without loading manager data', a
     assert.equal(h.elements.get('passwordRecoveryModal').classList.contains('hidden'), false);
     assert.equal(h.elements.get('passwordRecoveryModal').attributes['aria-hidden'], 'false');
     assert.equal(h.sandbox.document.body.classList.contains('session-locked'), true);
+    assert.equal(h.sessionStorage.getItem('manzil.passwordRecoveryPending'), '1');
 });
 
 test('password recovery validates confirmation, updates password, and requires a fresh login', async () => {
