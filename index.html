@@ -800,7 +800,9 @@
                         <div class="settings-account-card"><div><span>الحساب</span><b id="settingsAccountEmail" dir="ltr">—</b></div><div><span>نوع الصلاحية</span><b id="settingsAccountRole">—</b></div></div>
                         <section class="settings-info-card space-y-3">
                             <div><h5 class="font-bold text-sm">إدارة حسابات الملاك</h5><p class="text-[11px] text-slate-500 mt-1">كل مالك مرتبط بشقة واحدة. يمكنك إنشاء حسابه أو إعادة إصدار PIN مؤقت عند الحاجة؛ صلاحية المالك تظل للعرض فقط.</p></div>
-                            <div id="settingsOwnerAccessList" class="settings-owner-list"></div>
+                            <p id="settingsOwnerAccessSummary" class="settings-owner-summary" aria-live="polite">جارٍ تجهيز ملخص الحسابات...</p>
+                            <label class="settings-field" for="settingsOwnerAccessSearch"><span>بحث عن مالك أو شقة</span><input id="settingsOwnerAccessSearch" type="search" oninput="renderSettingsOwnerAccess()" autocomplete="off" placeholder="اكتب اسم المالك أو رقم الشقة أو الهاتف" class="app-input border rounded-xl px-3 py-2.5"></label>
+                            <div id="settingsOwnerAccessList" class="settings-owner-list" aria-live="polite"></div>
                         </section>
                         <button id="settingsPasswordResetBtn" type="button" onclick="sendSettingsPasswordReset()" class="w-full app-input border py-3 rounded-xl text-sm font-bold">إرسال رابط تغيير كلمة مرور المدير</button>
                         <button type="button" onclick="lockCurrentSession()" class="w-full app-input border py-3 rounded-xl text-sm font-bold"><i class="fa-solid fa-lock ml-2"></i> قفل الجلسة وتبديل المستخدم</button>
