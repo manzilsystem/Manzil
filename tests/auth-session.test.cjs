@@ -38,6 +38,7 @@ function makeHarness() {
         'ownerPortal', 'ownerPinChangeModal', 'ownerTempPinModal', 'ownerTempPinValue', 'passwordRecoveryModal', 'passwordRecoveryError', 'recoveryNewPassword', 'recoveryConfirmPassword', 'passwordRecoverySubmit',
         'currentOwnerPin', 'newOwnerPin', 'confirmOwnerPin', 'syncStatus',
     ]) elements.set(id, makeElement());
+    elements.get('passwordRecoveryModal').classList.add('hidden');
 
     const button = makeElement();
     let authListener = null;
