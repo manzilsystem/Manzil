@@ -23,6 +23,15 @@ test('settings are divided into accessible functional tabs', () => {
     assert.match(settings, /function openSettingsModal\(\)[\s\S]*switchSettingsTab\('building'\)/);
 });
 
+test('settings tabs keep readable responsive columns and touch targets', () => {
+    const columnCounts = [...css.matchAll(/\.settings-tabs\s*\{[^}]*grid-template-columns:\s*repeat\((\d+)/g)]
+        .map(([, columns]) => Number(columns));
+    assert.deepEqual(columnCounts, [4, 3, 2]);
+    assert.ok(css.includes('@media (max-width: 640px) {\n    .settings-tabs { grid-template-columns:repeat(3,minmax(0,1fr));'));
+    assert.ok(css.includes('@media (max-width: 420px) {\n    .settings-tabs { grid-template-columns:repeat(2,minmax(0,1fr));'));
+    assert.match(css, /\.settings-tab\s*\{[^}]*min-height:\s*44px/);
+    assert.match(css, /\.settings-content\s*\{[^}]*overflow-y:\s*auto/);
+});
 test('all five themes are selectable, persisted and restored after authentication', () => {
     for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand']) {
         assert.match(html, new RegExp('data-theme-option="' + theme + '"'));
@@ -38,7 +47,7 @@ test('settings redesign is included in the service worker cache version', () => 
     assert.match(html, /02:23 UTC/);
     assert.match(html, /04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة/);
     assert.doesNotMatch(html, /نسخة يومية الساعة 04:23 صباحًا بتوقيت مصر/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v64'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v65'/);
     assert.ok(css.includes('max-width:52rem'));
     assert.ok(css.includes('height:min(88dvh,760px)'));
     assert.ok(css.includes('height:94dvh'));
@@ -125,7 +134,7 @@ test('receipt and reminder templates synchronize through building settings', () 
     assert.ok(settings.includes('arrears_reminder_template: reminderTemplate || null'));
     assert.ok(settings.includes('localStorage.removeItem(getReceiptSettingsKey())'));
     assert.ok(settings.includes('localStorage.removeItem(getReminderTemplateKey())'));
-    assert.match(sw, /CACHE_NAME = 'manzil-v64'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v65'/);
 });
 
 
