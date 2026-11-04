@@ -12,6 +12,69 @@ function clearOwnerPortal() {
     portal.setAttribute('aria-hidden', 'true');
 }
 
+
+function groupOwnerPaymentsIntoReceipts(residentId) {
+    const groups = new Map();
+    (Array.isArray(state.income) ? state.income : [])
+        .filter(payment => payment.residentId === residentId)
+        .forEach(payment => {
+            const match = String(payment.notes || '').match(/دفعة موزعة\s+([A-Z0-9]+)/i);
+            const reference = match?.[1]
+                || String(payment.id || '').replace(/[^a-z0-9]/gi, '').slice(0, 12).toUpperCase();
+            const key = match
+                ? `${payment.date || ''}:${residentId}:${reference}`
+                : `single:${payment.id}`;
+            if (!groups.has(key)) {
+                groups.set(key, {
+                    id: key,
+                    reference,
+                    date: payment.date || '',
+                    paymentMethod: payment.paymentMethod || '',
+                    payments: []
+                });
+            }
+            groups.get(key).payments.push(payment);
+        });
+
+    return Array.from(groups.values()).map(receipt => {
+        const payments = receipt.payments.slice().sort((a, b) => {
+            const order = item => Number(String(item.notes || '').match(/\((\d+)\//)?.[1] || 0);
+            return order(a) - order(b);
+        });
+        const totalCents = payments.reduce((sum, payment) => {
+            const amount = Number(payment.amount);
+            return sum + (Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0);
+        }, 0);
+        return { ...receipt, payments, totalAmount: totalCents / 100 };
+    }).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+}
+
+function getOwnerManagerWhatsAppPhone() {
+    let phone = String(state.managerPhone || '').replace(/\D/g, '');
+    if (phone.startsWith('00')) phone = phone.slice(2);
+    else if (phone.startsWith('0')) phone = '20' + phone.slice(1);
+    else if (phone.length === 10) phone = '20' + phone;
+    return phone;
+}
+
+function contactOwnerManager() {
+    if (currentUserRole !== 'owner' || !activeSession || !activeBuildingId || !currentResidentId) return;
+    const phone = getOwnerManagerWhatsAppPhone();
+    if (!phone || phone.length < 10) {
+        toast('رقم مدير العمارة غير مسجل في إعدادات المبنى. اطلب تحديثه من الإدارة.', 'error');
+        return;
+    }
+    const resident = state.residents.find(item => item.id === currentResidentId);
+    if (!resident) return;
+    const message = [
+        'مرحبًا، أحتاج الاستفسار عن حساب شقتي في تطبيق Manzil.',
+        `العمارة: ${state.buildingName || '—'}`,
+        `الشقة: ${resident.apartmentNumber || '—'}`,
+        `الاسم: ${resident.name || '—'}`
+    ].join('\n');
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+}
+
 function renderOwnerPortal() {
     const portal = document.getElementById('ownerPortal');
     if (!portal) return;
@@ -68,6 +131,70 @@ function renderOwnerPortal() {
         .filter(payment => payment.residentId === resident.id)
         .sort((a, b) => new Date(b.date) - new Date(a.date))
         .slice(0, 12);
+    const ownerReceipts = groupOwnerPaymentsIntoReceipts(resident.id);
+    const ownerReceiptRows = ownerReceipts.length ? ownerReceipts.map(receipt => {
+        const allocationRows = receipt.payments.map(payment => `
+            <div class="flex items-center justify-between gap-3 py-2 border-b border-slate-700/40 last:border-0">
+                <span class="text-xs">${esc(payment.month || '—')}</span>
+                <strong class="text-xs text-emerald-400 shrink-0">${fmtNum(payment.amount)} ج.م</strong>
+            </div>`).join('');
+        return `
+            <details class="app-input border rounded-2xl p-3">
+                <summary class="cursor-pointer list-none flex items-center justify-between gap-3">
+                    <span class="min-w-0">
+                        <strong class="block text-xs">إيصال رقم ${esc(receipt.reference)}</strong>
+                        <span class="block text-[10px] text-slate-500 mt-1">${esc(formatDate(receipt.date) || '—')} · ${esc(getIncomePaymentMethodLabel(receipt.paymentMethod))}</span>
+                    </span>
+                    <strong class="text-sm font-black text-emerald-400 shrink-0">${fmtNum(receipt.totalAmount)} ج.م</strong>
+                </summary>
+                <div class="mt-3 pt-3 border-t border-slate-700/50 space-y-3">
+                    <div class="grid grid-cols-2 gap-2 text-[10px]">
+                        <div><span class="text-slate-500">العمارة</span><p class="font-bold mt-1">${esc(state.buildingName || '—')}</p></div>
+                        <div><span class="text-slate-500">الشقة</span><p class="font-bold mt-1">${esc(resident.apartmentNumber || '—')}</p></div>
+                        <div><span class="text-slate-500">صاحب الإيصال</span><p class="font-bold mt-1">${esc(resident.name || '—')}</p></div>
+                        <div><span class="text-slate-500">طريقة الدفع</span><p class="font-bold mt-1">${esc(getIncomePaymentMethodLabel(receipt.paymentMethod))}</p></div>
+                        <div><span class="text-slate-500">تاريخ الاستلام</span><p class="font-bold mt-1">${esc(formatDate(receipt.date) || '—')}</p></div>
+                        <div><span class="text-slate-500">المبلغ المستلم</span><p class="font-black text-emerald-400 mt-1">${fmtNum(receipt.totalAmount)} ج.م</p></div>
+                    </div>
+                    <div class="rounded-xl border border-slate-700/40 px-3">
+                        <p class="text-[10px] font-bold text-slate-400 pt-2">تفاصيل توزيع المبلغ</p>
+                        ${allocationRows}
+                    </div>
+                    <p class="text-[10px] text-slate-500">${esc(typeof getReceiptThankYouMessage === 'function' ? getReceiptThankYouMessage() : 'تم تسجيل عملية السداد بنجاح.')}</p>
+                </div>
+            </details>`;
+    }).join('') : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إيصالات مسجلة لهذا الحساب حتى الآن.</p>';
+    const ownerArrears = (debt.unpaidMonths || []).map(unpaidMonth => ({
+        month: unpaidMonth,
+        amount: getMonthOutstanding(resident, unpaidMonth)
+    }));
+    const ownerArrearsHtml = ownerArrears.length
+        ? `<details class="app-input border rounded-2xl p-3">
+            <summary class="cursor-pointer list-none flex items-center justify-between gap-3">
+                <span class="text-xs font-bold">تفصيل الشهور المتأخرة</span>
+                <span class="text-[10px] text-indigo-300">عرض التفاصيل</span>
+            </summary>
+            <div class="mt-2 pt-2 border-t border-slate-700/40">
+                ${ownerArrears.slice(0, 12).map(item => `
+                    <div class="flex justify-between gap-3 py-2 border-b border-slate-700/40 last:border-0">
+                        <span class="text-xs">${esc(item.month)}</span>
+                        <strong class="text-xs text-rose-400">${fmtNum(item.amount)} ج.م</strong>
+                    </div>`).join('')}
+                ${ownerArrears.length > 12 ? `<p class="text-[10px] text-slate-500 pt-2">تم عرض أقدم 12 شهرًا من أصل ${fmtNum(ownerArrears.length)} شهر.</p>` : ''}
+            </div>
+        </details>`
+        : '<p class="text-[10px] text-emerald-400 text-center">لا توجد شهور متأخرة.</p>';
+    const managerPhone = String(state.managerPhone || '').trim();
+    const managerPhoneTel = managerPhone.replace(/[^0-9+]/g, '');
+    const managerContact = managerPhoneTel
+        ? `<div class="app-input border rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="min-w-0"><p class="text-[10px] text-slate-500">التواصل مع المدير</p><p class="text-xs font-bold mt-1">${esc(state.managerName || 'مدير العمارة')}</p><p class="text-[10px] text-slate-500 mt-1" dir="ltr">${esc(managerPhone)}</p></div>
+            <div class="flex gap-2">
+                <a href="tel:${esc(managerPhoneTel)}" class="inline-flex items-center justify-center min-h-11 px-3 rounded-xl border border-slate-600 text-xs font-bold"><i class="fa-solid fa-phone ml-1"></i> اتصال</a>
+                <button type="button" onclick="contactOwnerManager()" class="min-h-11 px-3 rounded-xl bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold"><i class="fa-brands fa-whatsapp ml-1"></i> واتساب</button>
+            </div>
+        </div>`
+        : '<div class="app-input border rounded-2xl p-3 text-xs text-slate-500">رقم تواصل المدير غير مسجل. اطلب من الإدارة تحديث رقم الهاتف في بيانات العمارة.</div>';
     const paymentRows = ownPayments.length ? ownPayments.map(payment => `
         <div class="flex items-center justify-between gap-3 border-b border-slate-700/50 py-2 last:border-0">
             <div><p class="text-xs font-bold">${esc(payment.month || '—')}</p><p class="text-[10px] text-slate-500">${formatDate(payment.date)} · ${esc(getIncomePaymentMethodLabel(payment.paymentMethod))}</p></div>
@@ -99,6 +226,7 @@ function renderOwnerPortal() {
             <h2 id="ownerPortalTitle" class="text-xl font-black">أهلاً ${esc(resident.name)}</h2>
             <p class="text-xs text-slate-400">الشقة ${esc(resident.apartmentNumber)}${state.buildingName ? ` • ${esc(state.buildingName)}` : ''}</p>
         </div>
+        ${managerContact}
         <section class="app-card border rounded-3xl p-5 space-y-4" aria-label="ملخص حساب الشقة">
             <div class="flex items-center justify-between"><h3 class="font-bold text-sm">ملخص ${esc(month)}</h3><span class="text-[10px] text-slate-500">اشتراكك الشهري ${fmtNum(dueThisMonth)} ج.م</span></div>
             <div class="grid grid-cols-2 gap-3 text-center">
@@ -106,6 +234,7 @@ function renderOwnerPortal() {
                 <div class="app-input border rounded-2xl p-3"><p class="text-[10px] text-slate-500">المتبقي لهذا الشهر</p><p class="font-black ${remainingThisMonth ? 'text-rose-400' : 'text-emerald-400'} mt-1">${fmtNum(remainingThisMonth)} ج.م</p></div>
             </div>
             <div class="app-input border rounded-2xl p-3 flex items-center justify-between gap-3"><span class="text-xs font-bold">إجمالي متأخرات حسابك (${debt.count} شهر)</span><strong class="text-sm ${debt.totalDebt ? 'text-rose-400' : 'text-emerald-400'}">${fmtNum(debt.totalDebt)} ج.م</strong></div>
+            ${ownerArrearsHtml}
         </section>
         <section class="app-card border rounded-3xl p-5 space-y-3" aria-labelledby="ownerPaymentMethodsTitle">
             <div>
@@ -113,6 +242,13 @@ function renderOwnerPortal() {
                 <p class="text-[10px] text-slate-500 mt-1">موعد الاستحقاق يوم ${subscriptionDueDay} من كل شهر · فترة السماح ${subscriptionGraceDays} يوم</p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${paymentInstructions}</div>
+        </section>
+        <section class="app-card border rounded-3xl p-5 space-y-3" aria-labelledby="ownerReceiptsTitle">
+            <div>
+                <h3 id="ownerReceiptsTitle" class="font-bold text-sm">إيصالات السداد</h3>
+                <p class="text-[10px] text-slate-500 mt-1">${ownerReceipts.length} إيصال مسجل لحساب شقتك</p>
+            </div>
+            <div class="space-y-2">${ownerReceiptRows}</div>
         </section>
         <section class="app-card border rounded-3xl p-5 space-y-3" aria-labelledby="ownerNotificationsTitle">
             <div class="flex items-center justify-between gap-3">
@@ -125,7 +261,7 @@ function renderOwnerPortal() {
             <div class="space-y-2">${notificationRows}</div>
         </section>
         <section class="app-card border rounded-3xl p-5 space-y-2" aria-labelledby="ownerPaymentHistoryTitle">
-            <h3 id="ownerPaymentHistoryTitle" class="font-bold text-sm">سجل دفعات شقتك</h3>
+            <h3 id="ownerPaymentHistoryTitle" class="font-bold text-sm">سجل الدفعات حسب الشهر</h3>
             ${paymentRows}
         </section>
         <section class="app-card border rounded-3xl p-5 space-y-3" aria-labelledby="ownerNoticesTitle">
