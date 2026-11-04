@@ -41,6 +41,7 @@ function makeHarness() {
 
     const button = makeElement();
     let authListener = null;
+    let storageListener = null;
     const client = {
         auth: {
             signInWithPassword: async () => ({ data: { session: { user: { id: 'user-1' } } }, error: null }),
@@ -55,8 +56,8 @@ function makeHarness() {
         },
     };
     const sandbox = {
-        window: { supabase: { createClient: () => client } },
-        sessionStorage: (() => {
+        window: { supabase: { createClient: () => client }, addEventListener(type, callback) { if (type === 'storage') storageListener = callback; } },
+        localStorage: (() => {
             const values = new Map();
             return {
                 getItem(key) { return values.has(key) ? values.get(key) : null; },
@@ -103,7 +104,8 @@ function makeHarness() {
 
     return {
         app, sandbox, client, button, elements, queuedTimers,
-        sessionStorage: sandbox.sessionStorage,
+        localStorage: sandbox.localStorage,
+        getStorageListener: () => storageListener,
         makeSubmitEvent() {
             return {
                 preventDefault() {},
@@ -503,7 +505,7 @@ test('PASSWORD_RECOVERY opens the password form without loading manager data', a
     assert.equal(h.elements.get('passwordRecoveryModal').classList.contains('hidden'), false);
     assert.equal(h.elements.get('passwordRecoveryModal').attributes['aria-hidden'], 'false');
     assert.equal(h.sandbox.document.body.classList.contains('session-locked'), true);
-    assert.equal(h.sessionStorage.getItem('manzil.passwordRecoveryPending'), '1');
+    assert.notEqual(h.localStorage.getItem('manzil.passwordRecoveryPending'), null);
 });
 
 test('password recovery validates confirmation, updates password, and requires a fresh login', async () => {
@@ -533,6 +535,30 @@ test('password recovery validates confirmation, updates password, and requires a
     assert.match(h.elements.get('pinErrorMsg').textContent, /تم تغيير كلمة المرور بنجاح/);
 });
 
+
+test('a recovery lock in another tab closes the active manager session before data remains visible', async () => {
+    const h = makeHarness();
+    const session = { user: { id: 'manager-1' } };
+    let loadCount = 0;
+    h.client.auth.getSession = async () => ({ data: { session }, error: null });
+    h.app.setLoadState(async () => { loadCount += 1; return true; });
+    h.app.setOpenAuthenticatedApp(async () => {});
+    await h.app.initSupabaseApp();
+    assert.equal(loadCount, 1);
+    assert.equal(h.app.getSnapshot().activeSession.user.id, 'manager-1');
+
+    const marker = String(Date.now());
+    h.getStorageListener()({
+        key: 'manzil.passwordRecoveryPending',
+        oldValue: null,
+        newValue: marker,
+    });
+
+    assert.equal(loadCount, 1);
+    assert.equal(h.app.getSnapshot().activeSession.user.id, 'manager-1');
+    assert.equal(h.elements.get('passwordRecoveryModal').classList.contains('hidden'), false);
+    assert.equal(h.sandbox.document.body.classList.contains('session-locked'), true);
+});
 
 test('password recovery mode survives a page reload and keeps manager data locked', async () => {
     const h = makeHarness();
