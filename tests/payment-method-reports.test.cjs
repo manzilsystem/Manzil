@@ -35,7 +35,7 @@ function renderReport() {
             bank_transfer: 'تحويل بنكي'
         })[method] || 'غير محدد'
     };
-    const app = vm.runInNewContext(reports + '\\n({ generateLandlordReport })', sandbox);
+    const app = vm.runInNewContext(reports + String.fromCharCode(10) + '({ generateLandlordReport })', sandbox);
     app.generateLandlordReport();
     return preview.innerHTML;
 }
