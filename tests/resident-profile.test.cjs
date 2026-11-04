@@ -154,5 +154,5 @@ test('profile collection action opens the existing income form for its unit with
 });
 
 test('profile feature refreshes the installed application cache', () => {
-    assert.match(sw, /CACHE_NAME = 'manzil-v78'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v79'/);
 });
