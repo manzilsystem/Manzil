@@ -9,6 +9,7 @@ const settings = read('js/settings.js');
 const auth = read('js/supabase.js');
 const render = read('js/render.js');
 const access = read('js/access.js');
+const provision = read('supabase/functions/manage-owner-access/index.ts');
 const css = read('css/style.css');
 const sw = read('sw.js');
 
