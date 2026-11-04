@@ -38,7 +38,7 @@ function groupOwnerPaymentsIntoReceipts(residentId) {
 
     return Array.from(groups.values()).map(receipt => {
         const payments = receipt.payments.slice().sort((a, b) => {
-            const order = item => Number(String(item.notes || '').match(/\((\d+)\\//)?.[1] || 0);
+            const order = item => Number(String(item.notes || '').match(/\((\d+)\//)?.[1] || 0);
             return order(a) - order(b);
         });
         const totalCents = payments.reduce((sum, payment) => {
