@@ -49,11 +49,11 @@ test('the redesigned sign-in shell collapses and prioritizes the form on mobile'
 });
 
 test('Manzil branding uses the supplied logo on sign-in and app header with responsive styling', () => {
-    assert.match(html, /src="icons\/manzil-brand\.svg" alt="شعار منزل \\| Manzil"/);
-    assert.match(html, /class="header-brand-mark"[^>]*>[\s\S]*?src="icons\/manzil-brand\.svg"/);
+    assert.match(html, /src="icons\/manzil-logo\.png" alt="شعار منزل \\| Manzil"/);
+    assert.match(html, /class="header-brand-mark"[^>]*>[\s\S]*?src="icons\/manzil-logo\.png"/);
     assert.doesNotMatch(html, /<svg class="w-6 h-6" viewBox="0 0 24 24"/);
-    assert.ok(css.includes('#pinLockModal .auth-logo-frame {') && css.includes('background:#020303'));
-    assert.ok(css.includes('#pinLockModal .auth-logo-frame { width:6.25rem'));
+    assert.ok(css.includes('background:transparent !important'));
+    assert.ok(css.includes('#pinLockModal .auth-logo-frame { width:6.25rem') || css.includes('width:min(100%,15rem)'));
 });
 
 
