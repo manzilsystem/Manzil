@@ -62,10 +62,10 @@ function getReceiptThankYouMessage() {
     catch { return DEFAULT_RECEIPT_THANK_YOU; }
 }
 
-const DEFAULT_REMINDER_TEMPLATE = 'مرحباً {name}،\\nنذكركم بسداد مستحقات العمارة {building}.\\nإجمالي المتأخرات: {amount} ج.م ({count} شهر).\\nالشهور المستحقة: {months}\\nشكراً لتعاونكم.';
+const DEFAULT_REMINDER_TEMPLATE = 'مرحباً {name}،\nنذكركم بسداد مستحقات العمارة {building}.\nإجمالي المتأخرات: {amount} ج.م ({count} شهر).\nالشهور المستحقة: {months}\nشكراً لتعاونكم.';
 function getReminderTemplateKey() {
     const buildingId = typeof activeBuildingId === 'undefined' ? 'default' : (activeBuildingId || 'default');
-    return `manzil:${buildingId}:arrears-reminder-template`;
+    return \`manzil:\${buildingId}:arrears-reminder-template\`;
 }
 function getReminderMessageTemplate() {
     try {
@@ -76,7 +76,7 @@ function getReminderMessageTemplate() {
     }
 }
 function renderReminderTemplate(template, values) {
-    return String(template || DEFAULT_REMINDER_TEMPLATE).replace(/\\{([a-z_]+)\\}/gi, (match, key) =>
+    return String(template || DEFAULT_REMINDER_TEMPLATE).replace(/\{([a-z_]+)\}/gi, (match, key) =>
         Object.prototype.hasOwnProperty.call(values, key.toLowerCase()) ? String(values[key.toLowerCase()] ?? '') : ''
     );
 }
