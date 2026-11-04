@@ -82,15 +82,11 @@ function openResidentModal(mode, id) {
             updateResidentApartmentOptions(resident.apartmentNumber || '');
             document.getElementById('residentPhone').value = resident.phone || '';
             amountInput.value = getCurrentSubscriptionAmount(resident);
-            const canSetInitialSubscription = canEditInitialSubscriptionInline(resident);
-            amountInput.readOnly = !canSetInitialSubscription;
-            if (canSetInitialSubscription) amountInput.removeAttribute('aria-readonly');
-            else amountInput.setAttribute('aria-readonly', 'true');
+            amountInput.readOnly = false;
+            amountInput.removeAttribute('aria-readonly');
             const amountHelp = document.getElementById('residentAmountHelp');
             if (amountHelp) {
-                amountHelp.textContent = canSetInitialSubscription
-                    ? 'لم يتم تحديد الاشتراك بعد؛ أدخل قيمته هنا وسيبدأ تطبيقها من الشهر الحالي.'
-                    : 'لتغيير اشتراك قائم أو تسجيل قيمة بتاريخ سابق، استخدم سجل الاشتراك.';
+                amountHelp.textContent = 'يمكنك تعديل الاشتراك مباشرة؛ سيُسجّل التغيير من الشهر الحالي مع الاحتفاظ بالسجل السابق. لاختيار شهر سريان آخر استخدم سجل الاشتراك.';
                 amountHelp.classList.remove('hidden');
             }
             historyButton?.classList.remove('hidden');
@@ -313,10 +309,6 @@ async function handleResidentSubmit(e) {
         if (r) {
             const previousAmount = getCurrentSubscriptionAmount(r);
             const subscriptionChanged = Math.round(previousAmount * 100) !== Math.round(monthlyAmount * 100);
-            if (subscriptionChanged && (previousAmount > 0 || monthlyAmount <= 0 || !canEditInitialSubscriptionInline(r))) {
-                toast('غيّر قيمة الاشتراك القائم من زر «تحديد / تعديل الاشتراك» حتى يُحفظ التغيير في السجل.', 'error');
-                return;
-            }
             Object.assign(r, { name, apartmentNumber, floor, phone, notes });
             if (subscriptionChanged) {
                 const effectiveMonth = getLocalMonthKey();
@@ -326,7 +318,7 @@ async function handleResidentSubmit(e) {
                 r.subscriptionRates.push({ effectiveMonth: effectiveDate, monthlyAmount });
                 r.subscriptionRates.sort((a, b) => a.effectiveMonth.localeCompare(b.effectiveMonth));
                 r.monthlyAmount = getCurrentSubscriptionAmount(r);
-                logAction('تحديد الاشتراك لأول مرة', `${name} - ${previousAmount} إلى ${monthlyAmount} بدءًا من ${effectiveMonth}`);
+                logAction('تغيير قيمة الاشتراك', `${name} - ${previousAmount} إلى ${monthlyAmount} بدءًا من ${effectiveMonth}`);
             } else {
                 r.monthlyAmount = monthlyAmount;
                 logAction('تعديل شقة', `${name} - شقة ${apartmentNumber}`);
@@ -547,7 +539,9 @@ async function handleIncomeSubmit(e) {
     const amount = Number(document.getElementById('incomeAmount').value);
     const month = document.getElementById('incomeMonth').value;
     const notes = document.getElementById('incomeNotes').value.trim();
-    if (!residentId || !Number.isFinite(amount) || amount <= 0 || !month) {
+    const paymentMethod = document.getElementById('incomePaymentMethod').value;
+    if (!residentId || !Number.isFinite(amount) || amount <= 0 || !month
+        || !Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod)) {
         toast('اختر الشقة والشهر وأدخل مبلغاً أكبر من صفر', 'error');
         return;
     }
@@ -584,12 +578,13 @@ async function handleIncomeSubmit(e) {
             amount: item.amount,
             month: item.month,
             date: paidAt,
+            paymentMethod,
             notes: allocationNote
         });
     });
     logAction(
         'تحصيل موزع',
-        `${resident.name} - ${fmtNum(amount)} ج.م - ${allocation.allocations.length} شهر - ${paymentReference}`
+        `${resident.name} - ${fmtNum(amount)} ج.م - ${getIncomePaymentMethodLabel(paymentMethod)} - ${allocation.allocations.length} شهر - ${paymentReference}`
     );
 
     try {
@@ -634,6 +629,7 @@ function openIncomeEditModal(id) {
         .map(month => '<option value="' + esc(month) + '">' + esc(month) + '</option>').join('');
     monthSelect.value = payment.month;
     document.getElementById('incomeEditAmount').value = payment.amount;
+    document.getElementById('incomeEditPaymentMethod').value = payment.paymentMethod || '';
     document.getElementById('incomeEditNotes').value = payment.notes || '';
     openModal('incomeEditModal');
 }
@@ -656,7 +652,9 @@ async function handleIncomeEditSubmit(event) {
     const month = document.getElementById('incomeEditMonth').value;
     const monthKey = monthLabelToKey(month);
     const notes = document.getElementById('incomeEditNotes').value.trim();
-    if (!monthKey || amountCents <= 0) {
+    const paymentMethod = document.getElementById('incomeEditPaymentMethod').value;
+    if (!monthKey || amountCents <= 0
+        || !Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod)) {
         toast('اختر شهرًا صحيحًا وأدخل مبلغًا أكبر من صفر.', 'error');
         return;
     }
@@ -677,7 +675,8 @@ async function handleIncomeEditSubmit(event) {
         return;
     }
     if (amountCents === Math.round(Number(payment.amount) * 100)
-        && month === payment.month && notes === (payment.notes || '')) {
+        && month === payment.month && notes === (payment.notes || '')
+        && paymentMethod === (payment.paymentMethod || '')) {
         toast('لم يتم تغيير بيانات التحصيل.', 'info');
         return;
     }
@@ -693,8 +692,10 @@ async function handleIncomeEditSubmit(event) {
     const previousMonth = payment.month;
     payment.amount = amountCents / 100;
     payment.month = month;
+    payment.paymentMethod = paymentMethod;
     payment.notes = notes;
     logAction('تعديل تحصيل', resident.name + ' - ' + previousMonth + ' إلى ' + month
+        + ' - طريقة الدفع: ' + getIncomePaymentMethodLabel(paymentMethod)
         + ' - ' + fmtNum(previousAmount) + ' إلى ' + fmtNum(payment.amount));
     try {
         if (!await saveWithRollback(previousState)) return;
