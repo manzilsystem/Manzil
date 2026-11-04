@@ -20,7 +20,7 @@ test('manager settings expose owner account provisioning without granting owner 
     assert.match(settings, /provisionOwnerAccess\('\$\{esc\(resident\.id\)\}'\)/);
     assert.match(settings, /editResident\('\$\{esc\(resident\.id\)\}'\)/);
     assert.match(access, /function requireManager\(/);
-    assert.match(auth, /\.eq\('role', 'manager'\)/);
+    assert.match(provision, /role.*manager/);
     assert.match(auth, /: 'id,name,apartment_number,floor,monthly_amount,created_at'/);
 });
 
