@@ -538,3 +538,11 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 }
 @media (max-width:360px) { .auth-mode-grid { grid-template-columns:1fr; } .auth-logo-frame { width:4.25rem; height:4.25rem; } .auth-brand-description { font-size:.62rem; } }
 @media (prefers-reduced-motion:reduce) { .auth-mode-button,.auth-submit { transition:none; } }
+
+/* Maintain button-label contrast across all six palettes. */
+.auth-submit { color:#fff; }
+[data-theme="dark"] .auth-submit,
+[data-theme="emerald"] .auth-submit,
+[data-theme="ocean"] .auth-submit,
+[data-theme="sand"] .auth-submit,
+[data-theme="turquoise"] .auth-submit { color:#06242b; }
