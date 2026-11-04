@@ -114,6 +114,7 @@ function sendIncomeReceiptOnWhatsApp(incomeId) {
         'نؤكد استلام دفعة الاشتراك بنجاح.',
         `الشقة: ${resident.apartmentNumber || '—'}`,
         `المبلغ المستلم: ${fmtNum(total)} ج.م`,
+        `طريقة الدفع: ${getIncomePaymentMethodLabel(payment.paymentMethod)}`,
         'تفاصيل السداد:',
         details,
         `تاريخ الاستلام: ${formatDate(payment.date)}`,

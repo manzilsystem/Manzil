@@ -710,7 +710,7 @@
                     <select id="residentApartment" aria-label="رقم الشقة" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر رقم الشقة</option></select>
                     <input type="tel" id="residentPhone" aria-label="هاتف الساكن" placeholder="الهاتف" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 </div>
-                <input type="number" id="residentAmount" min="0" step="0.01" inputmode="decimal" aria-label="الاشتراك الشهري للشقة" placeholder="الاشتراك الشهري" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                <label class="block text-xs space-y-1"><span class="text-slate-400">الاشتراك الشهري الحالي (جنيه)</span><input type="number" id="residentAmount" min="0" step="0.01" inputmode="decimal" aria-label="الاشتراك الشهري للشقة" placeholder="الاشتراك الشهري" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></label>
                 <p id="residentAmountHelp" class="hidden text-[10px] text-slate-500 -mt-1"></p>
                 <button type="button" id="manageSubscriptionRatesBtn" onclick="openSubscriptionRateModal(editingResidentId)" class="hidden w-full border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 py-2.5 rounded-xl text-xs font-bold">تحديد / تعديل الاشتراك وسجله التاريخي</button>
                 <textarea id="residentNotes" aria-label="ملاحظات الشقة" rows="2" placeholder="ملاحظات" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
@@ -784,6 +784,16 @@
                 <select id="incomeResident" aria-label="الشقة" onchange="previewIncomeAllocation()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر الشقة</option></select>
                 <input type="number" id="incomeAmount" min="0.01" step="0.01" inputmode="decimal" aria-label="مبلغ التحصيل" placeholder="مبلغ التحصيل" oninput="previewIncomeAllocation()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 <label class="block text-xs space-y-1">
+                    <span class="text-slate-400">طريقة الدفع</span>
+                    <select id="incomePaymentMethod" aria-label="طريقة الدفع" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                        <option value="" disabled selected>اختر طريقة الدفع</option>
+                        <option value="cash">نقدًا</option>
+                        <option value="wallet">محفظة إلكترونية</option>
+                        <option value="instapay">InstaPay</option>
+                        <option value="bank_transfer">تحويل بنكي</option>
+                    </select>
+                </label>
+                <label class="block text-xs space-y-1">
                     <span class="text-slate-400">شهر بداية التوزيع</span>
                     <select id="incomeMonth" aria-label="شهر بداية التوزيع" onchange="previewIncomeAllocation()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
                 </label>
@@ -813,6 +823,16 @@
                 <label class="block text-xs space-y-1">
                     <span class="text-slate-400">الشهر</span>
                     <select id="incomeEditMonth" aria-label="شهر التحصيل" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm"></select>
+                </label>
+                <label class="block text-xs space-y-1">
+                    <span class="text-slate-400">طريقة الدفع</span>
+                    <select id="incomeEditPaymentMethod" aria-label="طريقة الدفع" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm">
+                        <option value="">اختر طريقة الدفع</option>
+                        <option value="cash">نقدًا</option>
+                        <option value="wallet">محفظة إلكترونية</option>
+                        <option value="instapay">InstaPay</option>
+                        <option value="bank_transfer">تحويل بنكي</option>
+                    </select>
                 </label>
                 <label class="block text-xs space-y-1">
                     <span class="text-slate-400">المبلغ</span>

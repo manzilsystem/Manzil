@@ -159,7 +159,7 @@ function mapResident(row) {
 }
 
 function mapIncome(row) {
-    return { id: row.id, residentId: row.resident_id, amount: Number(row.amount) || 0, month: row.month, notes: row.notes || '', date: row.paid_at };
+    return { id: row.id, residentId: row.resident_id, amount: Number(row.amount) || 0, month: row.month, notes: row.notes || '', paymentMethod: row.payment_method || null, date: row.paid_at };
 }
 
 function mapExpense(row) {
@@ -395,8 +395,8 @@ async function loadState() {
         ? 'id,user_id,name,apartment_number,floor,phone,monthly_amount,created_at'
         : 'id,name,apartment_number,floor,monthly_amount,created_at';
     const incomeColumns = isManager
-        ? 'id,resident_id,amount,month,notes,paid_at'
-        : 'id,resident_id,amount,month,paid_at';
+        ? 'id,resident_id,amount,month,notes,payment_method,paid_at'
+        : 'id,resident_id,amount,month,payment_method,paid_at';
     const expenseColumns = 'id,title,amount,category,month,notes,cash_account_code,spent_at';
     const noticeColumns = 'id,text,created_at';
     const auditColumns = 'id,action,details,created_at';
@@ -476,7 +476,7 @@ async function saveState() {
         })),
         income: state.income.map(i => ({
             id: i.id, resident_id: i.residentId, amount: Number(i.amount) || 0,
-            month: i.month, notes: i.notes || null, paid_at: toSupabaseTimestamp(i.date)
+            month: i.month, notes: i.notes || null, payment_method: i.paymentMethod || null, paid_at: toSupabaseTimestamp(i.date)
         })),
         expenses: state.expenses.map(e => ({
             id: e.id, title: e.title, amount: Number(e.amount) || 0,
