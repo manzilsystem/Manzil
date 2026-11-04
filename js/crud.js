@@ -186,7 +186,7 @@ function openSubscriptionRateModal(residentId) {
     if (!resident) return;
     subscriptionRateResidentId = resident.id;
     document.getElementById('subscriptionRateResidentSummary').textContent =
-        `${resident.name} · شقة ${resident.apartmentNumber} · القيمة الحالية ${formatSubscriptionAmount(resident.monthlyAmount)}`;
+        `${resident.name} · شقة ${resident.apartmentNumber} · القيمة الحالية ${formatSubscriptionAmount(getCurrentSubscriptionAmount(resident))}`;
     const monthInput = document.getElementById('subscriptionRateEffectiveMonth');
     monthInput.value = getLocalMonthKey();
     const createdMonth = getLocalMonthKey(resident.createdAt);
@@ -252,7 +252,7 @@ async function addSubscriptionRateChange(event) {
     if (amountInput && editingResidentId === resident.id) amountInput.value = resident.monthlyAmount;
     const summary = document.getElementById('subscriptionRateResidentSummary');
     if (summary) {
-        summary.textContent = `${resident.name} · شقة ${resident.apartmentNumber} · القيمة الحالية ${formatSubscriptionAmount(resident.monthlyAmount)}`;
+        summary.textContent = `${resident.name} · شقة ${resident.apartmentNumber} · القيمة الحالية ${formatSubscriptionAmount(getCurrentSubscriptionAmount(resident))}`;
     }
     toast('تم حفظ تغيير الاشتراك وإضافته إلى السجل التاريخي.', 'success');
 }
@@ -463,23 +463,40 @@ async function deleteResident(id) {
     toast('تم الحذف','info');
 }
 
-async function quickPayResident(residentId) {
-    if (!requireManager() || quickPaySavingResidents.has(residentId)) return;
-    quickPaySavingResidents.add(residentId);
-    try {
-        const r = state.residents.find(x => x.id === residentId);
-        if (!r) return;
-        const month = getCurrentMonth();
-        const amount = getMonthOutstanding(r, month);
-        if (amount <= 0) { toast('تم سداد اشتراك الشهر بالكامل','info'); return; }
-        const previousState = cloneStateSnapshot();
-        state.income.push({ id: generateId(), residentId, amount, month, date: new Date().toISOString(), notes: 'دفع سريع' });
-        logAction('تحصيل', `${r.name} - ${month} - ${fmtNum(amount)}`);
-        if (!await saveWithRollback(previousState)) return;
-        toast(`تم تسجيل باقي اشتراك ${month}`,'success');
-    } finally {
-        quickPaySavingResidents.delete(residentId);
+function quickPayResident(residentId) {
+    if (!requireManager()) return;
+    const resident = state.residents.find(item => item.id === residentId);
+    if (!resident) {
+        toast('تعذر العثور على الشقة. حدّث البيانات ثم حاول مرة أخرى.', 'error');
+        return;
     }
+
+    const month = getCurrentMonth();
+    const amount = getMonthOutstanding(resident, month);
+    if (amount <= 0) {
+        toast('تم سداد اشتراك الشهر بالكامل.', 'info');
+        return;
+    }
+
+    if (typeof populateSelects === 'function') populateSelects();
+    const residentSelect = document.getElementById('incomeResident');
+    const amountInput = document.getElementById('incomeAmount');
+    const monthSelect = document.getElementById('incomeMonth');
+    const paymentMethodSelect = document.getElementById('incomePaymentMethod');
+    const notesInput = document.getElementById('incomeNotes');
+    if (!residentSelect || !amountInput || !monthSelect || !paymentMethodSelect) {
+        toast('تعذر تجهيز نموذج التحصيل. أعد تحميل الصفحة وحاول مرة أخرى.', 'error');
+        return;
+    }
+
+    residentSelect.value = residentId;
+    amountInput.value = amount.toFixed(2);
+    monthSelect.value = month;
+    paymentMethodSelect.value = '';
+    if (notesInput) notesInput.value = 'دفع سريع';
+
+    previewIncomeAllocation();
+    openModal('incomeModal');
 }
 
 function previewIncomeAllocation() {
