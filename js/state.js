@@ -52,6 +52,16 @@ let state = {
     residents:[], income:[], expenses:[], notices:[], ownerNotifications:[], auditLogs:[],
     cashAccountBalances: { main: 0, development: 0, emergency: 0 }, cashTransfers: [], lastUpdated:0
 };
+const DEFAULT_RECEIPT_THANK_YOU = 'شكراً لالتزامكم، ونسعد دائماً بخدمتكم.';
+function getReceiptSettingsKey() {
+    const buildingId = typeof activeBuildingId === 'undefined' ? 'default' : (activeBuildingId || 'default');
+    return `manzil:${buildingId}:receipt-thank-you`;
+}
+function getReceiptThankYouMessage() {
+    try { return String(localStorage.getItem(getReceiptSettingsKey()) || '').trim() || DEFAULT_RECEIPT_THANK_YOU; }
+    catch { return DEFAULT_RECEIPT_THANK_YOU; }
+}
+
 let editingResidentId = null;
 var currentUserRole = null;
 var currentResidentId = null;
