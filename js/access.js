@@ -28,8 +28,16 @@ function renderOwnerPortal() {
     const dueThisMonth = getSubscriptionAmountForMonth(resident, month);
     const remainingThisMonth = Math.max(0, dueThisMonth - paidThisMonth);
     const debt = calculateCumulativeDebt(resident.id);
-    const paymentSettings = normalizePaymentSettings(state.paymentSettings);
-    const paymentInstructions = Object.entries(INCOME_PAYMENT_METHOD_LABELS)
+    const paymentMethodLabels = typeof INCOME_PAYMENT_METHOD_LABELS !== 'undefined'
+        ? INCOME_PAYMENT_METHOD_LABELS
+        : { cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي' };
+    const paymentSettings = typeof normalizePaymentSettings === 'function'
+        ? normalizePaymentSettings(state.paymentSettings)
+        : (state.paymentSettings || {
+            cash: { enabled: true }, wallet: { enabled: false },
+            instapay: { enabled: false }, bank_transfer: { enabled: false }
+        });
+    const paymentInstructions = Object.entries(paymentMethodLabels)
         .filter(([method]) => paymentSettings[method]?.enabled)
         .map(([method, label]) => {
             const settings = paymentSettings[method] || {};
