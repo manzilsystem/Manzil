@@ -38,7 +38,7 @@ test('settings redesign is included in the service worker cache version', () => 
     assert.match(html, /02:23 UTC/);
     assert.match(html, /04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة/);
     assert.doesNotMatch(html, /نسخة يومية الساعة 04:23 صباحًا بتوقيت مصر/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v63'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v64'/);
     assert.ok(css.includes('max-width:52rem'));
     assert.ok(css.includes('height:min(88dvh,760px)'));
     assert.ok(css.includes('height:94dvh'));
@@ -125,5 +125,52 @@ test('receipt and reminder templates synchronize through building settings', () 
     assert.ok(settings.includes('arrears_reminder_template: reminderTemplate || null'));
     assert.ok(settings.includes('localStorage.removeItem(getReceiptSettingsKey())'));
     assert.ok(settings.includes('localStorage.removeItem(getReminderTemplateKey())'));
-    assert.match(sw, /CACHE_NAME = 'manzil-v63'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v64'/);
+});
+
+
+test('settings tabs support RTL arrow navigation, Home and End keys', () => {
+    const tabs = ['building', 'payments', 'subscriptions', 'appearance', 'backup', 'receipts', 'reminders', 'account'];
+    const elements = new Map();
+    const makeElement = id => {
+        const classes = new Set();
+        return {
+            id,
+            classList: {
+                toggle(name, force) { if (force) classes.add(name); else classes.delete(name); },
+                contains(name) { return classes.has(name); },
+            },
+            attributes: {},
+            setAttribute(name, value) { this.attributes[name] = value; },
+            focus() { document.activeElement = this; },
+        };
+    };
+    for (const name of tabs) {
+        elements.set('settings-tab-' + name, makeElement('settings-tab-' + name));
+        elements.set('settings-panel-' + name, makeElement('settings-panel-' + name));
+    }
+    const document = {
+        activeElement: elements.get('settings-tab-building'),
+        getElementById: id => elements.get(id) || null,
+    };
+    const api = vm.runInNewContext(settings + String.fromCharCode(10) + '({ handleSettingsTabKeydown })', { document });
+
+    const send = key => {
+        let prevented = false;
+        api.handleSettingsTabKeydown({ key, preventDefault() { prevented = true; } });
+        return prevented;
+    };
+
+    assert.equal(send('ArrowLeft'), true);
+    assert.equal(document.activeElement.id, 'settings-tab-payments');
+    assert.equal(elements.get('settings-tab-payments').attributes['aria-selected'], 'true');
+    assert.equal(elements.get('settings-panel-building').classList.contains('hidden'), true);
+
+    assert.equal(send('ArrowRight'), true);
+    assert.equal(document.activeElement.id, 'settings-tab-building');
+    assert.equal(send('End'), true);
+    assert.equal(document.activeElement.id, 'settings-tab-account');
+    assert.equal(send('Home'), true);
+    assert.equal(document.activeElement.id, 'settings-tab-building');
+    assert.equal(send('Tab'), false);
 });
