@@ -84,6 +84,11 @@ jobs:
           }
           NODE
 
+          # GITHUB_ENV applies to later steps; source generated values in this step too.
+          set -a
+          source "$GITHUB_ENV"
+          set +a
+
           docker run --rm --network host \
             -e PGHOST -e PGPORT -e PGDATABASE -e PGUSER -e PGPASSWORD -e PGSSLMODE \
             -v "$RUNNER_TEMP:/backup" postgres:17-alpine \
