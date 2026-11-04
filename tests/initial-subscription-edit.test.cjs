@@ -37,7 +37,8 @@ function createApp() {
         cloneStateSnapshot: () => JSON.parse(JSON.stringify(sandbox.state)),
         saveWithRollback: async () => true,
         logAction() {}, toast() {}, generateId: () => 'new-resident',
-        INCOME_PAYMENT_METHOD_LABELS: {}
+        INCOME_PAYMENT_METHOD_LABELS: {},
+        esc: value => String(value ?? '')
     };
     const app = vm.runInNewContext(crudSource + '\n({ openResidentModal, handleResidentSubmit })', sandbox);
     return { app, sandbox, elements, month };
