@@ -66,3 +66,58 @@ function sendWhatsAppReminder(residentId) {
     const msg = `مرحباً ${r.name}،\nنذكركم بسداد اشتراك شهر ${getCurrentMonth()} للعمارة.\n${d.count>0?`إجمالي المتأخرات: ${fmtNum(d.totalDebt)} ج.م (${d.count} شهر)\n`:''}شكراً لتعاونكم.`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
 }
+
+
+function sendIncomeReceiptOnWhatsApp(incomeId) {
+    if (!requireManager()) return;
+    const payment = state.income.find(item => item.id === incomeId);
+    if (!payment) {
+        toast('تعذر العثور على التحصيل. حدّث السجل ثم حاول مرة أخرى.', 'error');
+        return;
+    }
+    const resident = state.residents.find(item => item.id === payment.residentId);
+    if (!resident) {
+        toast('بيانات الشقة غير متاحة لهذا التحصيل.', 'error');
+        return;
+    }
+    const phone = cleanPhone(resident.phone);
+    if (!phone) {
+        toast('أضف رقم هاتف الساكن أولاً لإرسال الإيصال.', 'error');
+        return;
+    }
+
+    const referenceMatch = String(payment.notes || '').match(/دفعة موزعة\\s+([A-Z0-9]+)/i);
+    const reference = referenceMatch?.[1] || String(payment.id).replace(/[^a-z0-9]/gi, '').slice(0, 12).toUpperCase();
+    const relatedPayments = referenceMatch
+        ? state.income.filter(item =>
+            item.residentId === payment.residentId &&
+            item.date === payment.date &&
+            String(item.notes || '').includes(reference)
+        )
+        : [payment];
+    relatedPayments.sort((a, b) => {
+        const order = item => Number(String(item.notes || '').match(/\\((\\d+)\\/)[1]) || 0;
+        return order(a) - order(b);
+    });
+
+    const total = relatedPayments.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    const details = relatedPayments.map(item =>
+        `• ${item.month}: ${fmtNum(item.amount)} ج.م`
+    ).join('\\n');
+    const message = [
+        `إيصال استلام — ${state.buildingName || 'العمارة'}`,
+        '',
+        `مرحباً ${resident.name || 'بكم'}،`,
+        'نؤكد استلام دفعة الاشتراك بنجاح.',
+        `الشقة: ${resident.apartmentNumber || '—'}`,
+        `المبلغ المستلم: ${fmtNum(total)} ج.م`,
+        'تفاصيل السداد:',
+        details,
+        `تاريخ الاستلام: ${formatDate(payment.date)}`,
+        `رقم الإيصال: ${reference}`,
+        '',
+        'شكراً لالتزامكم، ونسعد دائماً بخدمتكم.'
+    ].join('\\n');
+
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+}
