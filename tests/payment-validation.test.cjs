@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const source = fs.readFileSync(path.join(__dirname, '..', 'js', 'crud.js'), 'utf8');
 
-function loadHandler(residents) {
+function loadHandler(residents, saveWithRollback = async () => true) {
     const values = {
         incomeResident: 'missing-resident',
         incomeAmount: '50',
@@ -28,7 +28,7 @@ function loadHandler(residents) {
         cloneStateSnapshot: () => JSON.parse(JSON.stringify(sandbox.state)),
         generateId: () => 'income-id',
         logAction: (...args) => { sandbox.state.auditLogs.push(args); },
-        saveWithRollback: async () => true,
+        saveWithRollback,
         closeModal() {},
         renderAll() {},
         toast: (...args) => messages.push(args),
@@ -79,4 +79,31 @@ test('income submission rejects an unsupported payment method', async () => {
     await app.handleIncomeSubmit({ preventDefault() {} });
     assert.equal(sandbox.state.income.length, 0);
     assert.match(messages.at(-1)?.[0] || '', /اختر الشقة/);
+});
+
+
+test('rapid duplicate submit while the first income save is pending records only one payment', async () => {
+    let resolveSave;
+    let saveCalls = 0;
+    const pendingSave = new Promise(resolve => { resolveSave = resolve; });
+    const { app, sandbox } = loadHandler(
+        [{ id: 'missing-resident', name: 'شقة 1' }],
+        async () => {
+            saveCalls += 1;
+            return pendingSave;
+        }
+    );
+
+    const firstSubmit = app.handleIncomeSubmit({ preventDefault() {} });
+    const secondSubmit = app.handleIncomeSubmit({ preventDefault() {} });
+
+    assert.equal(saveCalls, 1);
+    assert.equal(sandbox.state.income.length, 1);
+    assert.equal(sandbox.state.income[0].amount, 50);
+
+    resolveSave(true);
+    await Promise.all([firstSubmit, secondSubmit]);
+
+    assert.equal(sandbox.state.income.length, 1);
+    assert.equal(saveCalls, 1);
 });
