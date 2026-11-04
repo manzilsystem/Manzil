@@ -837,3 +837,54 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
   border-radius:0;
   background:transparent;
 }
+
+
+/* Settings overview occupies the entire viewport; cards expand to fill the grid. */
+#settingsModal { inset:0; width:100vw; height:100dvh; padding:0; }
+#settingsModal > .app-card {
+  width:100vw;
+  max-width:none;
+  height:100dvh;
+  max-height:100dvh;
+  min-height:100dvh;
+  border-radius:0;
+}
+#settingsModal .settings-overview {
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  padding:clamp(1.25rem,2.5vw,2.75rem);
+}
+#settingsModal .settings-overview-heading { flex:none; }
+#settingsModal .settings-card-grid {
+  flex:1;
+  min-height:0;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  grid-template-rows:repeat(2,minmax(150px,1fr));
+  align-content:stretch;
+  gap:clamp(.85rem,1.4vw,1.4rem);
+}
+#settingsModal .settings-card {
+  width:100%;
+  height:100%;
+  min-height:0;
+  justify-content:flex-start;
+  padding:clamp(1rem,1.7vw,1.75rem);
+}
+#settingsModal .settings-content { min-height:0; }
+@media (max-width:900px) {
+  #settingsModal .settings-card-grid {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-rows:repeat(4,minmax(130px,1fr));
+  }
+}
+@media (max-width:560px) {
+  #settingsModal .settings-overview { padding:1rem; }
+  #settingsModal .settings-card-grid {
+    flex:none;
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:none;
+    gap:.7rem;
+  }
+  #settingsModal .settings-card { height:auto; min-height:88px; padding:.85rem; }
+}

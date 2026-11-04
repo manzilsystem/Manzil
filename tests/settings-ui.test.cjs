@@ -38,7 +38,7 @@ test('settings use responsive cards and full-page section navigation', () => {
     assert.ok(css.includes('.settings-card-grid { grid-template-columns:1fr;'));
     assert.ok(css.includes('.settings-card { display:flex; align-items:center;'));
     assert.ok(css.includes('.settings-overview { flex:1; min-height:0; overflow-y:auto;'));
-    assert.ok(html.includes('max-w-6xl h-[92dvh]'), 'settings dialog must use the available page area');
+    assert.ok(html.includes('max-w-6xl h-[92dvh]'), 'settings dialog keeps its accessible content wrapper');
     assert.ok(css.includes('grid-template-columns:repeat(4,minmax(0,1fr))'), 'wide screens must show four spacious cards per row');
     assert.ok(css.includes('@media (max-width:900px)') && css.includes('grid-template-columns:repeat(2,minmax(0,1fr))'), 'tablet layout must show two cards per row');
     assert.ok(css.includes('@media (max-width:560px)') && css.includes('grid-template-columns:minmax(0,1fr)'), 'mobile layout must stack cards');
@@ -63,11 +63,11 @@ test('settings redesign is included in the service worker cache version', () => 
     assert.match(html, /02:23 UTC/);
     assert.match(html, /04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة/);
     assert.doesNotMatch(html, /نسخة يومية الساعة 04:23 صباحًا بتوقيت مصر/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v72'/);
-    assert.ok(css.includes('max-width:52rem'));
-    assert.ok(css.includes('height:min(88dvh,760px)'));
-    assert.ok(css.includes('height:94dvh'));
-    assert.ok(css.includes('max-height:min(62vh,600px)'));
+    assert.match(sw, /CACHE_NAME = 'manzil-v73'/);
+    assert.ok(css.includes('width:100vw;') && css.includes('max-width:none;'), 'settings must occupy the full viewport width');
+    assert.ok(css.includes('height:100dvh;') && css.includes('max-height:100dvh;'), 'settings must occupy the full viewport height');
+    assert.ok(css.includes('grid-template-rows:repeat(2,minmax(150px,1fr))'), 'desktop cards must expand into two full-height rows');
+    assert.ok(css.includes('grid-template-columns:repeat(4,minmax(0,1fr))'), 'desktop uses a full-width four-column grid');
     assert.match(sw, /\.\/css\/style\.css/);
     assert.match(sw, /\.\/js\/state\.js/);
     assert.match(sw, /\.\/js\/settings\.js/);
@@ -150,7 +150,7 @@ test('receipt and reminder templates synchronize through building settings', () 
     assert.ok(settings.includes('arrears_reminder_template: reminderTemplate || null'));
     assert.ok(settings.includes('localStorage.removeItem(getReceiptSettingsKey())'));
     assert.ok(settings.includes('localStorage.removeItem(getReminderTemplateKey())'));
-    assert.match(sw, /CACHE_NAME = 'manzil-v72'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v73'/);
 });
 
 
