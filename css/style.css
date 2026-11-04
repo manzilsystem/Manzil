@@ -888,3 +888,49 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
   }
   #settingsModal .settings-card { height:auto; min-height:88px; padding:.85rem; }
 }
+
+
+/* Mobile settings: compact icon tiles in two columns; rows follow card content. */
+@media (max-width:560px) {
+  #settingsModal .settings-overview {
+    padding:1rem .85rem;
+  }
+  #settingsModal .settings-card-grid {
+    display:grid;
+    flex:1 0 auto;
+    min-height:0;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-rows:none;
+    grid-auto-rows:minmax(112px,auto);
+    align-content:start;
+    gap:.7rem;
+  }
+  #settingsModal .settings-card {
+    height:auto;
+    min-height:112px;
+    padding:.8rem .55rem;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    gap:.5rem;
+    text-align:center;
+  }
+  #settingsModal .settings-card-icon {
+    width:2.65rem;
+    height:2.65rem;
+    font-size:1.05rem;
+  }
+  #settingsModal .settings-card-copy {
+    flex:0 0 auto;
+    align-items:center;
+    gap:0;
+  }
+  #settingsModal .settings-card-copy b {
+    font-size:.76rem;
+    line-height:1.5;
+  }
+  #settingsModal .settings-card-copy small,
+  #settingsModal .settings-card-arrow {
+    display:none;
+  }
+}
