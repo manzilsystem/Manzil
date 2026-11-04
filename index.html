@@ -75,6 +75,20 @@
         </div>
     </div>
 
+    <div id="passwordRecoveryModal" role="dialog" aria-modal="true" aria-labelledby="passwordRecoveryTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[80] hidden items-center justify-center p-4">
+        <form onsubmit="submitPasswordRecovery(event)" class="app-card border w-full max-w-sm rounded-3xl shadow-2xl p-6 space-y-4">
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/15 text-indigo-300 flex items-center justify-center"><i class="fa-solid fa-shield-keyhole"></i></div>
+                <h2 id="passwordRecoveryTitle" class="text-lg font-black">تعيين كلمة مرور جديدة</h2>
+                <p class="text-xs text-slate-400 leading-6">أنشئ كلمة مرور جديدة للمدير. بعد الحفظ ستحتاج إلى تسجيل الدخول مرة أخرى.</p>
+            </div>
+            <label class="settings-field" for="recoveryNewPassword"><span>كلمة المرور الجديدة</span><input id="recoveryNewPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" required class="w-full app-input border rounded-xl px-3 py-3 text-left" dir="ltr"></label>
+            <label class="settings-field" for="recoveryConfirmPassword"><span>تأكيد كلمة المرور</span><input id="recoveryConfirmPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" required class="w-full app-input border rounded-xl px-3 py-3 text-left" dir="ltr"></label>
+            <p id="passwordRecoveryError" class="hidden text-xs text-rose-400" role="alert" aria-live="polite"></p>
+            <button id="passwordRecoverySubmit" type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl font-bold">حفظ كلمة المرور</button>
+        </form>
+    </div>
+
     <div id="ownerPinChangeModal" role="dialog" aria-modal="true" aria-labelledby="ownerPinChangeTitle" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[60] hidden items-center justify-center p-4">
         <form onsubmit="submitFirstOwnerPinChange(event)" class="app-card w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center space-y-4 border">
             <div class="w-14 h-14 bg-amber-500/20 text-amber-400 rounded-2xl mx-auto flex items-center justify-center text-xl"><i class="fa-solid fa-key"></i></div>
