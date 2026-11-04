@@ -15,7 +15,7 @@ function runSummary(response) {
         document: { getElementById: id => elements[id] || null },
         requireManager: () => true,
         callBackupConsole: async () => {
-            if (response instanceof Error) throw response;
+            if (response?.throwError) throw new Error(response.throwError);
             return response;
         },
         console: { error() {} }
@@ -43,7 +43,7 @@ test('settings backup summary prioritizes a pending restore operation', async ()
 });
 
 test('settings backup summary never presents stale data when the server request fails', async () => {
-    const elements = await runSummary(new Error('network unavailable'));
+    const elements = await runSummary({ throwError: 'network unavailable' });
     assert.match(elements.settingsBackupSummaryText.textContent, /تعذر جلب حالة النسخ/);
     assert.match(elements.settingsBackupSummaryMeta.textContent, /لم يتم الاعتماد على بيانات محلية قديمة/);
 });
