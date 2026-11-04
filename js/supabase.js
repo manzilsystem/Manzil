@@ -9,6 +9,29 @@ let ownerMustChangePin = false;
 let authLoginMode = 'manager';
 let authGeneration = 0;
 let passwordRecoveryPending = false;
+const PASSWORD_RECOVERY_STORAGE_KEY = 'manzil.passwordRecoveryPending';
+const PASSWORD_RECOVERY_MAX_AGE_MS = 60 * 60 * 1000;
+
+function setPasswordRecoveryPending(pending) {
+    passwordRecoveryPending = Boolean(pending);
+    try {
+        if (passwordRecoveryPending) localStorage.setItem(PASSWORD_RECOVERY_STORAGE_KEY, String(Date.now()));
+        else localStorage.removeItem(PASSWORD_RECOVERY_STORAGE_KEY);
+    } catch {}
+}
+
+function hasPendingPasswordRecovery() {
+    try {
+        const storedAt = Number(localStorage.getItem(PASSWORD_RECOVERY_STORAGE_KEY));
+        if (!Number.isFinite(storedAt) || storedAt <= 0 || storedAt > Date.now() + 60000 || Date.now() - storedAt > PASSWORD_RECOVERY_MAX_AGE_MS) {
+            localStorage.removeItem(PASSWORD_RECOVERY_STORAGE_KEY);
+            return false;
+        }
+        return true;
+    } catch {
+        return passwordRecoveryPending;
+    }
+}
 let persistedAuditLogIds = new Set();
 let activeBuildingVersion = 1;
 let ownerNotificationsChannel = null;
@@ -756,8 +779,7 @@ async function submitPasswordRecovery(event) {
     try {
         const { error } = await supabaseClient.auth.updateUser({ password });
         if (error) throw error;
-        passwordRecoveryPending = false;
-        try { sessionStorage.removeItem('manzil.passwordRecoveryPending'); } catch {}
+        setPasswordRecoveryPending(false);
         hidePasswordRecoveryModal();
         clearAuthenticatedState();
         await signOutLocally();
@@ -1039,17 +1061,55 @@ function handlePinInput() {}
 
 async function initSupabaseApp() {
     try {
-        passwordRecoveryPending = passwordRecoveryPending || sessionStorage.getItem('manzil.passwordRecoveryPending') === '1';
+        passwordRecoveryPending = passwordRecoveryPending || hasPendingPasswordRecovery();
     } catch {}
     document.body.classList.add('session-locked');
+    window.addEventListener?.('storage', event => {
+        if (event.key !== PASSWORD_RECOVERY_STORAGE_KEY) return;
+        if (event.newValue && hasPendingPasswordRecovery()) {
+            passwordRecoveryPending = true;
+            if (activeSession) {
+                const session = activeSession;
+                const modal = document.getElementById('passwordRecoveryModal');
+                if (!modal || modal.classList.contains('hidden')) {
+                    clearAuthenticatedState();
+                    activeSession = session;
+                    showPasswordRecoveryModal();
+                }
+            }
+            return;
+        }
+        if (!event.newValue && passwordRecoveryPending) {
+            passwordRecoveryPending = false;
+            hidePasswordRecoveryModal();
+            if (activeSession) {
+                clearAuthenticatedState();
+                signOutLocally().finally(() => setAuthModal(true, 'انتهت عملية استعادة كلمة المرور. سجّل الدخول مجددًا.'));
+            }
+        }
+    });
     supabaseClient.auth.onAuthStateChange((event, session) => {
         if (event === 'PASSWORD_RECOVERY' && session) {
-            passwordRecoveryPending = true;
-            try { sessionStorage.setItem('manzil.passwordRecoveryPending', '1'); } catch {}
+            setPasswordRecoveryPending(true);
             clearAuthenticatedState();
             activeSession = session;
             showPasswordRecoveryModal();
             return;
+        }
+        if (session && passwordRecoveryPending) {
+            const modal = document.getElementById('passwordRecoveryModal');
+            if (!modal || modal.classList.contains('hidden')) {
+                clearAuthenticatedState();
+                activeSession = session;
+                showPasswordRecoveryModal();
+            } else {
+                activeSession = session;
+            }
+            return;
+        }
+        if (!session && passwordRecoveryPending) {
+            setPasswordRecoveryPending(false);
+            hidePasswordRecoveryModal();
         }
         const previousUserId = activeSession?.user?.id || null;
         const nextUserId = session?.user?.id || null;
@@ -1116,8 +1176,7 @@ async function initSupabaseApp() {
         if (activeSession) {
             showPasswordRecoveryModal();
         } else {
-            passwordRecoveryPending = false;
-            try { sessionStorage.removeItem('manzil.passwordRecoveryPending'); } catch {}
+            setPasswordRecoveryPending(false);
             clearAuthenticatedState();
             setAuthModal(true, 'انتهت صلاحية رابط الاستعادة. اطلب رابطًا جديدًا.');
         }
