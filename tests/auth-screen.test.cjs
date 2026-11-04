@@ -49,17 +49,21 @@ test('the redesigned sign-in shell collapses and prioritizes the form on mobile'
 });
 
 test('Manzil branding uses the supplied logo on sign-in and app header with responsive styling', () => {
-    assert.match(html, /src="icons\/manzil-brand\.svg" alt="شعار منزل \\| Manzil"/);
-    assert.match(html, /class="header-brand-mark"[^>]*>[\s\S]*?src="icons\/manzil-brand\.svg"/);
+    assert.ok(html.includes('class="auth-logo-frame manzil-full-logo" role="img" aria-label="شعار منزل | Manzil"'));
+    for (const strip of [1, 2, 3, 4]) assert.ok(html.includes(`icons/manzil-full-${strip}.png`));
+    assert.ok(html.includes('class="header-brand-mark" aria-hidden="true"><img src="icons/manzil-logo.png"'));
     assert.doesNotMatch(html, /<svg class="w-6 h-6" viewBox="0 0 24 24"/);
-    assert.ok(css.includes('#pinLockModal .auth-logo-frame {') && css.includes('background:#020303'));
-    assert.ok(css.includes('#pinLockModal .auth-logo-frame { width:6.25rem'));
+    assert.ok(css.includes('background:transparent !important'));
+    assert.ok(css.includes('grid-template-columns:minmax(16rem,.72fr) minmax(0,1.28fr)'));
+    assert.ok(css.includes('@media (min-width:701px)'));
+    assert.ok(css.includes('grid-template-rows:repeat(4,minmax(0,1fr))'));
+    assert.ok(css.includes('width:min(100%,15rem)'));
 });
-
-
+ 
 test('Manzil login uses the gold and turquoise visual identity with a mobile-first layout', () => {
     assert.ok(css.includes('linear-gradient(145deg,#02080d 0%,#071c27 54%,#061018 100%)'));
     assert.ok(css.includes('linear-gradient(110deg,#a97827 0%,#f1ce7d 48%,#b78332 100%)'));
     assert.ok(css.includes('#pinLockModal .auth-login-panel { order:2'));
-    assert.ok(html.includes('<h1>منزل <span lang="en">MANZIL</span></h1>'));
+    assert.ok(html.includes('aria-label="شعار منزل | Manzil"'));
+    assert.ok(!html.includes('<h1>منزل <span lang="en">MANZIL</span></h1>'));
 });
