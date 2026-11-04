@@ -1,16 +1,4 @@
 const SETTINGS_TABS = ['building','appearance','backup','receipts','account'];
-const DEFAULT_RECEIPT_THANK_YOU = 'شكراً لالتزامكم، ونسعد دائماً بخدمتكم.';
-function getReceiptSettingsKey() {
-    return `manzil:${activeBuildingId || 'default'}:receipt-thank-you`;
-}
-function getReceiptThankYouMessage() {
-    try {
-        const value = String(localStorage.getItem(getReceiptSettingsKey()) || '').trim();
-        return value.slice(0, 180) || DEFAULT_RECEIPT_THANK_YOU;
-    } catch {
-        return DEFAULT_RECEIPT_THANK_YOU;
-    }
-}
 function renderReceiptPreview() {
     const input = document.getElementById('settingsReceiptThankYou');
     const preview = document.getElementById('settingsReceiptPreview');
