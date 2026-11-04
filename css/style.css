@@ -275,7 +275,7 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 #settingsModal .settings-tabs,#settingsModal .settings-footer { flex:none; }
 @media(max-width:640px) { #settingsModal { padding:.35rem; } #settingsModal > .app-card { height:94dvh; max-height:94dvh; border-radius:1.25rem; } }
 .settings-layout { display:flex; flex-direction:column; min-height:0; }
-.settings-tabs { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:.45rem; padding:.85rem 1rem; border-bottom:1px solid var(--border-color); background:var(--surface-raised); }
+.settings-tabs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.45rem; padding:.85rem 1rem; border-bottom:1px solid var(--border-color); background:var(--surface-raised); }
 .settings-tab { display:flex; align-items:center; justify-content:center; gap:.45rem; min-height:44px; padding:.55rem .4rem; border:1px solid transparent; border-radius:.85rem; color:var(--text-muted); font-size:.76rem; font-weight:800; transition:all .18s ease; }
 .settings-tab i { font-size:.85rem; }
 .settings-tab.active { color:var(--accent-color); background:var(--surface-soft); border-color:color-mix(in srgb,var(--accent-color) 32%,transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent-color) 10%,transparent); }
@@ -313,7 +313,6 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 .theme-preview-emerald { background:#071c18; --preview-accent:#34d399; --preview-card:#285446; --preview-muted:#a0c9b8; }
 .theme-preview-ocean { background:#071827; --preview-accent:#38bdf8; --preview-card:#28485f; --preview-muted:#9ab8ce; }
 .theme-preview-sand { background:#211b16; --preview-accent:#e6a85c; --preview-card:#594735; --preview-muted:#c8b8a5; }
-@media(max-width:420px) { .settings-tabs { grid-template-columns:repeat(3,minmax(0,1fr)); padding:.65rem .55rem; gap:.25rem; } .settings-tab { flex-direction:row; gap:.35rem; font-size:.65rem; } .settings-content { padding:.9rem; } }
 @media(prefers-reduced-motion:reduce) { .settings-panel { animation:none; } .settings-tab,.theme-option { transition:none; } }
 
 /* Theme-aware contrast for common utility classes */
@@ -373,11 +372,6 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
         border-radius:1.25rem;
     }
 }
-@media(max-width:360px) {
-    .settings-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .settings-tab { min-height:44px; font-size:.75rem; }
-}
-
 /* Manager-only owner account controls and searchable activity history. */
 .settings-owner-list { display:flex; flex-direction:column; gap:.65rem; }
 .settings-owner-row { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.8rem; border:1px solid var(--border-color); border-radius:.9rem; min-width:0; }
@@ -391,7 +385,6 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 @media(max-width:420px) { .settings-owner-row { align-items:flex-start; flex-direction:column; } .settings-owner-actions { width:100%; flex-direction:row; flex-wrap:wrap; } .settings-owner-action { flex:1 1 auto; } }
 
 /* Financial settings: compact, touch-friendly controls. */
-.settings-tabs { grid-template-columns:repeat(4,minmax(0,1fr)); }
 .settings-payment-card {
     min-width:0;
     padding:1rem;
@@ -418,12 +411,15 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 .settings-payment-toggle small { color:var(--text-muted); font-size:.68rem; line-height:1.6; }
 .settings-payment-card .settings-field input,
 .settings-payment-card .settings-field select { min-height:46px; }
-@media(max-width:420px) {
-    .settings-tabs { grid-template-columns:repeat(4,minmax(0,1fr)); }
-    .settings-tab { min-width:0; flex-direction:column; gap:.2rem; padding:.45rem .2rem; font-size:.64rem; }
-    .settings-tab span { overflow-wrap:anywhere; }
+
+/* Settings navigation stays readable across small Android screens. */
+@media (max-width: 640px) {
+    .settings-tabs { grid-template-columns:repeat(3,minmax(0,1fr)); padding:.65rem .75rem; gap:.35rem; }
+    .settings-tab { min-width:0; min-height:46px; flex-direction:row; justify-content:flex-start; gap:.4rem; padding:.55rem .5rem; font-size:.75rem; text-align:start; }
+    .settings-content { padding:.9rem; }
 }
-@media(max-width:360px) {
-    .settings-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .settings-tab { flex-direction:row; font-size:.75rem; }
+@media (max-width: 420px) {
+    .settings-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); padding:.65rem .55rem; gap:.35rem; }
+    .settings-tab { min-height:46px; gap:.4rem; padding:.55rem .5rem; font-size:.75rem; }
+    .settings-tab span { overflow-wrap:anywhere; }
 }
