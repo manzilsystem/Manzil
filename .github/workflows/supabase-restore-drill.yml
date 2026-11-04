@@ -40,7 +40,7 @@ jobs:
 
           tag="$BACKUP_TAG_INPUT"
           if [ -z "$tag" ]; then
-            tag="$(gh release list --repo manzilsystem/manzil_backups --limit 1 --json tagName --jq '.[0].tagName')"
+            tag="$(gh release list --repo manzilsystem/manzil_backups --limit 1000 --json tagName --jq '[.[].tagName | select(test("^backup-[0-9]{8}T[0-9]{6}Z$"))] | sort | last')"
           fi
           [[ "$tag" =~ ^backup-[0-9]{8}T[0-9]{6}Z$ ]]
 
