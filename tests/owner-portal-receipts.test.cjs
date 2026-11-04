@@ -11,6 +11,14 @@ const sw = read('sw.js');
 function createOwnerAccess(role = 'owner', phone = '01012345678') {
     const opened = [];
     const messages = [];
+    const printDocument = { html: '', open() {}, write(value) { this.html += value; }, close() {} };
+    const printWindow = {
+        document: printDocument,
+        focus() { this.focused = true; },
+        print() { this.printed = true; },
+        close() { this.closed = true; },
+        opener: {}
+    };
     const state = {
         managerPhone: phone,
         managerName: 'محمد المدير',
@@ -32,15 +40,20 @@ function createOwnerAccess(role = 'owner', phone = '01012345678') {
         document: { addEventListener() {} },
         updateAccessSwitchButton() {},
         toast: (message, type) => messages.push({ message, type }),
-        window: { open: url => opened.push(url) },
+        window: { open: url => { opened.push(url); return printWindow; } },
+        setTimeout: callback => { callback(); return 0; },
+        fmtNum: value => String(value ?? 0),
+        formatDate: () => '04/11/2026',
+        getIncomePaymentMethodLabel: method => method === 'instapay' ? 'InstaPay' : 'نقدًا',
+        getReceiptThankYouMessage: () => 'شكراً لالتزامكم.',
         encodeURIComponent
     };
     const api = vm.runInNewContext(
-        access + String.fromCharCode(10) + '({ groupOwnerPaymentsIntoReceipts, getOwnerManagerWhatsAppPhone, contactOwnerManager })',
+        access + String.fromCharCode(10) + '({ groupOwnerPaymentsIntoReceipts, getOwnerManagerWhatsAppPhone, contactOwnerManager, printOwnerReceipt })',
         sandbox,
         { filename: 'js/access.js' }
     );
-    return { api, opened, messages, state };
+    return { api, opened, messages, state, printDocument, printWindow };
 }
 
 test('owner receipts combine distributed collections into one receipt and remain scoped to the current unit', () => {
@@ -96,6 +109,34 @@ test('manager cannot use the owner-only contact action and missing manager phone
     assert.match(missingPhone.messages[0].message, /رقم مدير العمارة غير مسجل/);
 });
 
+
+test('owner can print a unit-scoped receipt with all distributed months and save it as PDF', () => {
+    const { api, opened, printDocument, printWindow } = createOwnerAccess();
+    const receipt = api.groupOwnerPaymentsIntoReceipts('unit-1').find(item => item.reference === 'ABC123');
+    api.printOwnerReceipt(receipt.id);
+
+    assert.equal(opened[0], '');
+    assert.match(printDocument.html, /إيصال استلام/);
+    assert.match(printDocument.html, /عمارة النور/);
+    assert.match(printDocument.html, /أحمد/);
+    assert.match(printDocument.html, /رقم الشقة/);
+    assert.match(printDocument.html, /أكتوبر 2026/);
+    assert.match(printDocument.html, /نوفمبر 2026/);
+    assert.match(printDocument.html, /المبلغ المستلم/);
+    assert.match(printDocument.html, /150 ج.م/);
+    assert.match(printDocument.html, /window\.print\(\)/);
+    assert.doesNotMatch(printDocument.html, /999/);
+    assert.equal(printWindow.opener, null);
+    assert.equal(printWindow.focused, true);
+    assert.equal(printWindow.printed, true);
+});
+
+test('printing owner receipts is unavailable to the manager role', () => {
+    const { api, opened } = createOwnerAccess('manager');
+    api.printOwnerReceipt('any-receipt');
+    assert.equal(opened.length, 0);
+});
+
 test('owner portal feature refreshes the installed application cache', () => {
-    assert.match(sw, /CACHE_NAME = 'manzil-v67'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v68'/);
 });
