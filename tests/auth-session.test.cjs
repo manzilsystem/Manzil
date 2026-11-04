@@ -531,7 +531,7 @@ test('password recovery validates confirmation, updates password, and requires a
     assert.equal(signOutScope, 'local');
     assert.equal(h.app.getSnapshot().activeSession, null);
     assert.equal(h.elements.get('passwordRecoveryModal').classList.contains('hidden'), true);
-    assert.equal(h.sessionStorage.getItem('manzil.passwordRecoveryPending'), null);
+    assert.equal(h.localStorage.getItem('manzil.passwordRecoveryPending'), null);
     assert.match(h.elements.get('pinErrorMsg').textContent, /تم تغيير كلمة المرور بنجاح/);
 });
 
@@ -548,6 +548,7 @@ test('a recovery lock in another tab closes the active manager session before da
     assert.equal(h.app.getSnapshot().activeSession.user.id, 'manager-1');
 
     const marker = String(Date.now());
+    h.localStorage.setItem('manzil.passwordRecoveryPending', marker);
     h.getStorageListener()({
         key: 'manzil.passwordRecoveryPending',
         oldValue: null,
@@ -563,7 +564,7 @@ test('a recovery lock in another tab closes the active manager session before da
 test('password recovery mode survives a page reload and keeps manager data locked', async () => {
     const h = makeHarness();
     const session = { user: { id: 'manager-1' } };
-    h.sessionStorage.setItem('manzil.passwordRecoveryPending', '1');
+    h.localStorage.setItem('manzil.passwordRecoveryPending', String(Date.now()));
     let loadCount = 0;
     h.client.auth.getSession = async () => ({ data: { session }, error: null });
     h.app.setLoadState(async () => { loadCount += 1; return true; });
@@ -574,18 +575,18 @@ test('password recovery mode survives a page reload and keeps manager data locke
     assert.equal(loadCount, 0);
     assert.equal(h.elements.get('passwordRecoveryModal').classList.contains('hidden'), false);
     assert.equal(h.sandbox.document.body.classList.contains('session-locked'), true);
-    assert.equal(h.sessionStorage.getItem('manzil.passwordRecoveryPending'), '1');
+    assert.notEqual(h.localStorage.getItem('manzil.passwordRecoveryPending'), null);
 });
 
 test('expired recovery session clears the pending marker and keeps the app signed out', async () => {
     const h = makeHarness();
-    h.sessionStorage.setItem('manzil.passwordRecoveryPending', '1');
+    h.localStorage.setItem('manzil.passwordRecoveryPending', '1');
     h.client.auth.getSession = async () => ({ data: { session: null }, error: null });
 
     await h.app.initSupabaseApp();
 
     assert.equal(h.app.getSnapshot().activeSession, null);
-    assert.equal(h.sessionStorage.getItem('manzil.passwordRecoveryPending'), null);
+    assert.equal(h.localStorage.getItem('manzil.passwordRecoveryPending'), null);
     assert.equal(h.elements.get('passwordRecoveryModal').classList.contains('hidden'), true);
     assert.equal(h.sandbox.document.body.classList.contains('session-locked'), true);
 });
