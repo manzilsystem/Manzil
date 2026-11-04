@@ -713,6 +713,7 @@ function showPasswordRecoveryModal() {
     const error = document.getElementById('passwordRecoveryError');
     if (error) { error.textContent = ''; error.classList.add('hidden'); }
     setAuthModal(false);
+    document.body.classList.add('session-locked');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     modal.setAttribute('aria-hidden', 'false');
