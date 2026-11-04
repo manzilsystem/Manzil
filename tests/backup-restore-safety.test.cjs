@@ -142,6 +142,7 @@ test('direct backup downloads require a server-verified digest and a trusted sho
 
 test('client prefers browser-managed direct download and retains checksum-verified proxy fallback', () => {
     assert.match(ui, /action: 'prepare_download'/);
+    assert.match(ui, /'unknown_action'\]/);
     assert.match(ui, /directUrl\.protocol !== 'https:'/);
     assert.match(ui, /directUrl\.hostname/);
     assert.match(ui, /action: 'download_backup'/);
