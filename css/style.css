@@ -464,3 +464,77 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
         border-radius:1.25rem;
     }
 }
+
+
+/* Manzil logo and responsive sign-in. The logo remains on a light plate across themes. */
+[data-theme="turquoise"] { --bg-main:#071f27; --bg-card:#0d3039; --bg-input:#092831; --text-main:#eaffff; --text-muted:#a4cbd0; --border-color:#28545d; --accent-color:#24c4c7; --surface-raised:#123d47; }
+[data-theme="turquoise"] .app-card { background-color:var(--bg-card); border-color:var(--border-color); }
+[data-theme="turquoise"] .app-input { background-color:var(--bg-input); color:var(--text-main); border-color:var(--border-color); }
+.theme-preview-turquoise { --preview-accent:#1bb9c2; --preview-card:#0b5260; background:#082a34; }
+.header-brand-mark { width:2.9rem; height:2.9rem; flex:0 0 auto; display:flex; align-items:center; justify-content:center; padding:.15rem; overflow:hidden; border:1px solid rgba(15,23,42,.12); border-radius:1rem; background:#f8fbfd; box-shadow:0 5px 16px rgba(2,20,35,.12); }
+.header-brand-mark img { width:100%; height:100%; object-fit:contain; display:block; }
+#pinLockModal { background:radial-gradient(ellipse at 14% 18%,color-mix(in srgb,var(--accent-color) 15%,transparent),transparent 42%),color-mix(in srgb,var(--bg-main) 94%,#020617); }
+#pinLockModal > .auth-shell { width:100%; max-width:56rem; max-height:calc(100dvh - 2rem); display:grid; grid-template-columns:minmax(0,.88fr) minmax(0,1.12fr); overflow:auto; overscroll-behavior:contain; background:var(--bg-card); border-color:var(--border-color); box-shadow:0 28px 90px rgba(0,0,0,.35); }
+.auth-brand-panel { min-width:0; min-height:100%; padding:clamp(1.35rem,3vw,2.25rem); display:flex; flex-direction:column; justify-content:space-between; gap:2rem; color:var(--text-main); background:radial-gradient(circle at 12% 10%,color-mix(in srgb,var(--accent-color) 25%,transparent),transparent 40%),linear-gradient(145deg,color-mix(in srgb,var(--accent-color) 13%,var(--bg-card)),var(--bg-main)); border-inline-end:1px solid var(--border-color); }
+.auth-brand-head { display:flex; flex-direction:column; align-items:flex-start; gap:1.25rem; }
+.auth-logo-frame { width:9rem; height:9rem; display:flex; align-items:center; justify-content:center; padding:.45rem; overflow:hidden; border:1px solid #dce7ed; border-radius:1.65rem; background:#fbfdff; box-shadow:0 12px 32px rgba(2,20,35,.18); }
+.auth-logo-frame img { display:block; width:100%; height:100%; object-fit:contain; }
+.auth-brand-overline { color:var(--accent-color); font-size:.72rem; font-weight:900; letter-spacing:.04em; }
+.auth-brand-copy h1 { margin-top:.15rem; font-size:clamp(1.8rem,4vw,2.35rem); line-height:1.2; font-weight:900; letter-spacing:.02em; }
+.auth-brand-description { max-width:22rem; margin-top:.55rem; color:var(--text-muted); font-size:.9rem; line-height:1.9; }
+.auth-brand-benefits { display:grid; gap:.75rem; }
+.auth-brand-benefits p { display:flex; align-items:center; gap:.65rem; color:var(--text-muted); font-size:.78rem; }
+.auth-brand-benefits i { width:1.8rem; height:1.8rem; display:grid; place-items:center; border:1px solid color-mix(in srgb,var(--accent-color) 34%,transparent); border-radius:.65rem; color:var(--accent-color); background:color-mix(in srgb,var(--accent-color) 10%,transparent); }
+.auth-brand-footer { display:grid; gap:.8rem; }
+.auth-trust-note { display:flex; align-items:center; gap:.5rem; color:var(--text-muted); font-size:.72rem; line-height:1.7; }
+.auth-trust-note i { color:var(--accent-color); }
+.auth-rights { color:var(--text-muted); font-size:.62rem; line-height:1.8; }
+.auth-rights a { color:var(--accent-color); text-decoration:underline; text-underline-offset:2px; }
+.auth-login-panel { min-width:0; padding:clamp(1.25rem,3.2vw,2.5rem); background:var(--bg-card); color:var(--text-main); }
+.auth-form-heading { margin-bottom:1.35rem; }
+.auth-kicker { color:var(--accent-color); font-size:.75rem; font-weight:900; }
+.auth-form-heading h2 { margin-top:.45rem; font-size:clamp(1.4rem,3vw,1.8rem); font-weight:900; line-height:1.4; }
+.auth-form-heading > p:last-child { margin-top:.35rem; color:var(--text-muted); font-size:.78rem; line-height:1.8; }
+.auth-section-label { margin-bottom:.55rem; color:var(--text-muted); font-size:.75rem; font-weight:800; }
+.auth-mode-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem; }
+.auth-mode-button { min-width:0; min-height:3.25rem; display:flex; align-items:center; justify-content:center; gap:.55rem; padding:.7rem .65rem; border:1px solid var(--border-color); border-radius:.9rem; background:var(--bg-input); color:var(--text-muted); font-size:.78rem; font-weight:900; transition:background .18s,border-color .18s,color .18s,transform .18s; }
+.auth-mode-button[aria-pressed="true"] { border-color:var(--accent-color); background:color-mix(in srgb,var(--accent-color) 15%,var(--bg-input)); color:var(--text-main); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent-color) 32%,transparent); }
+.auth-mode-button i { color:var(--accent-color); }
+.auth-login-form { display:grid; gap:1rem; margin-top:1.25rem; }
+.auth-field { display:grid; gap:.45rem; min-width:0; }
+.auth-field label { color:var(--text-main); font-size:.74rem; font-weight:800; }
+.auth-field input { min-height:3.15rem; border-radius:.9rem; }
+.auth-field input:focus { outline:2px solid color-mix(in srgb,var(--accent-color) 50%,transparent); outline-offset:1px; border-color:var(--accent-color); }
+.auth-submit { width:100%; min-height:3.2rem; margin-top:.2rem; border:1px solid color-mix(in srgb,var(--accent-color) 75%,#fff); border-radius:.95rem; background:var(--accent-color); color:#06242b; font-size:.9rem; font-weight:900; box-shadow:0 10px 24px color-mix(in srgb,var(--accent-color) 20%,transparent); transition:filter .18s,transform .18s; }
+.auth-submit:hover { filter:brightness(1.07); }
+.auth-submit:active { transform:scale(.99); }
+.auth-link-button { color:var(--accent-color); font-size:.72rem; font-weight:800; text-align:right; line-height:1.8; }
+.auth-owner-help { color:var(--text-main); border-color:var(--border-color); background:var(--bg-input); }
+.auth-owner-help p,.auth-owner-help label,.auth-help-note,.auth-security-note { color:var(--text-muted); }
+.auth-owner-help summary { color:var(--text-main); }
+.auth-whatsapp-button { width:100%; min-height:2.8rem; border:1px solid rgba(16,185,129,.35); border-radius:.8rem; background:rgba(16,185,129,.12); color:#10b981; font-size:.75rem; font-weight:900; }
+.auth-help-note,.auth-security-note { font-size:.63rem; line-height:1.8; }
+.auth-security-note { margin-top:1rem; }
+#managerRecoveryBtn:disabled { opacity:.65; cursor:wait; }
+@media (max-width:700px) {
+  #pinLockModal { padding:.5rem; }
+  #pinLockModal > .auth-shell { grid-template-columns:minmax(0,1fr); max-width:31rem; max-height:calc(100dvh - 1rem); border-radius:1.35rem; }
+  .auth-brand-panel { order:1; min-height:0; padding:.9rem 1rem; display:grid; grid-template-columns:minmax(0,1fr); gap:.55rem; border-inline-end:0; border-bottom:1px solid var(--border-color); }
+  .auth-brand-head { flex-direction:row; align-items:center; gap:.85rem; }
+  .auth-logo-frame { width:4.8rem; height:4.8rem; flex:0 0 auto; padding:.22rem; border-radius:1rem; }
+  .auth-brand-overline { font-size:.61rem; }
+  .auth-brand-copy h1 { font-size:1.45rem; }
+  .auth-brand-description { margin-top:.18rem; font-size:.67rem; line-height:1.5; }
+  .auth-brand-benefits,.auth-trust-note { display:none; }
+  .auth-brand-footer { display:flex; justify-content:flex-end; }
+  .auth-rights { font-size:.55rem; line-height:1.55; text-align:left; }
+  .auth-login-panel { order:2; padding:1rem 1.15rem 1.2rem; }
+  .auth-form-heading { margin-bottom:1rem; }
+  .auth-form-heading h2 { margin-top:.2rem; font-size:1.35rem; }
+  .auth-login-form { gap:.8rem; margin-top:1rem; }
+  .auth-field input { min-height:2.9rem; }
+  .auth-mode-button { min-height:2.9rem; font-size:.72rem; }
+  .auth-security-note { margin-top:.7rem; }
+}
+@media (max-width:360px) { .auth-mode-grid { grid-template-columns:1fr; } .auth-logo-frame { width:4.25rem; height:4.25rem; } .auth-brand-description { font-size:.62rem; } }
+@media (prefers-reduced-motion:reduce) { .auth-mode-button,.auth-submit { transition:none; } }
