@@ -380,6 +380,9 @@ function renderResidentsGrid() {
         const outstanding = getMonthOutstanding(r, cur);
         const paid = outstanding <= 0;
         const partiallyPaid = !paid && getPaidAmountForMonth(r.id, cur) > 0;
+        const receiptPayment = paid ? state.income
+            .filter(payment => payment.residentId === r.id && payment.month === cur)
+            .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))[0] : null;
         return `<div class="app-card p-4 rounded-3xl border space-y-3">
             <div class="flex justify-between items-start">
                 <div class="flex items-center gap-2">
@@ -403,7 +406,9 @@ function renderResidentsGrid() {
             <div class="flex gap-2">
                 ${paid ? '<div class="flex-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 py-2 rounded-xl text-xs font-bold text-center"><i class="fa-solid fa-check ml-1"></i> مدفوع بالكامل</div>'
                     : `<button onclick="quickPayResident('${r.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-xl text-xs font-bold transition"><i class="fa-solid fa-check ml-1"></i> ${partiallyPaid ? `استكمال ${fmtNum(outstanding)}` : 'تسجيل دفع'}</button>`}
-                <button onclick="sendWhatsAppReminder('${r.id}')" aria-label="إرسال تذكير واتساب إلى ${esc(r.name)}" class="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-xl text-xs font-bold"><i class="fa-brands fa-whatsapp"></i></button>
+                ${paid
+                    ? (receiptPayment ? `<button onclick="sendIncomeReceiptOnWhatsApp('${receiptPayment.id}')" aria-label="إرسال إيصال واتساب إلى ${esc(r.name)}" title="إرسال إيصال السداد" class="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-xl text-xs font-bold"><i class="fa-brands fa-whatsapp"></i> إيصال</button>` : '')
+                    : `<button onclick="sendWhatsAppReminder('${r.id}')" aria-label="إرسال تذكير واتساب إلى ${esc(r.name)}" title="إرسال تذكير بالمتأخرات" class="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-xl text-xs font-bold"><i class="fa-brands fa-whatsapp"></i> تذكير</button>`}
             </div>
         </div>`;
     }).join('');
