@@ -41,13 +41,92 @@ const INCOME_PAYMENT_METHOD_LABELS = Object.freeze({
     bank_transfer: 'تحويل بنكي'
 });
 
+const DEFAULT_PAYMENT_SETTINGS = Object.freeze({
+    cash: { enabled: true },
+    wallet: { enabled: true, provider: '', accountName: '', number: '' },
+    instapay: { enabled: true, accountName: '', address: '' },
+    bank_transfer: { enabled: true, bankName: '', accountName: '', accountNumber: '', iban: '' }
+});
+
+function normalizePaymentSettings(value) {
+    const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const text = (input, max = 120) => String(input ?? '').trim().slice(0, max);
+    const method = key => source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])
+        ? source[key]
+        : {};
+    const cash = method('cash');
+    const wallet = method('wallet');
+    const instapay = method('instapay');
+    const bank = method('bank_transfer');
+    return {
+        cash: { enabled: cash.enabled !== false },
+        wallet: {
+            enabled: wallet.enabled !== false,
+            provider: text(wallet.provider, 60),
+            accountName: text(wallet.accountName, 120),
+            number: text(wallet.number, 32)
+        },
+        instapay: {
+            enabled: instapay.enabled !== false,
+            accountName: text(instapay.accountName, 120),
+            address: text(instapay.address, 120)
+        },
+        bank_transfer: {
+            enabled: bank.enabled !== false,
+            bankName: text(bank.bankName, 100),
+            accountName: text(bank.accountName, 120),
+            accountNumber: text(bank.accountNumber, 48),
+            iban: text(bank.iban, 64)
+        }
+    };
+}
+
 function getIncomePaymentMethodLabel(method) {
     return INCOME_PAYMENT_METHOD_LABELS[method] || 'غير محدد';
+}
+
+function isIncomePaymentMethodEnabled(method) {
+    if (!Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, method)) return false;
+    const settings = normalizePaymentSettings(state.paymentSettings);
+    return settings[method]?.enabled === true;
+}
+
+function populatePaymentMethodOptions(select, selectedMethod = '', preserveUnavailable = false) {
+    if (!select) return;
+    const current = String(selectedMethod || '');
+    const settings = normalizePaymentSettings(state.paymentSettings);
+    const options = Object.entries(INCOME_PAYMENT_METHOD_LABELS)
+        .filter(([method]) => settings[method]?.enabled || (preserveUnavailable && method === current))
+        .map(([method, label]) => {
+            const unavailable = !settings[method]?.enabled;
+            const suffix = unavailable ? ' (غير مفعّل حاليًا)' : '';
+            return '<option value="' + esc(method) + '">' + esc(label + suffix) + '</option>';
+        });
+    select.innerHTML = '<option value="">اختر طريقة الدفع</option>' + options.join('');
+    if (current && options.length) select.value = current;
+}
+
+function getSubscriptionDueDeadline(monthLabel) {
+    const key = monthLabelToKey(monthLabel);
+    if (!key) return null;
+    const [year, month] = key.split('-').map(Number);
+    const dueDay = Math.min(28, Math.max(1, Number(state.subscriptionDueDay) || 1));
+    const graceDays = Math.min(31, Math.max(0, Number(state.subscriptionGraceDays) || 0));
+    const deadline = new Date(year, month - 1, dueDay + graceDays + 1, 0, 0, 0, 0);
+    return Number.isNaN(deadline.getTime()) ? null : deadline;
+}
+
+function isSubscriptionMonthOverdue(monthLabel, now = new Date()) {
+    const deadline = getSubscriptionDueDeadline(monthLabel);
+    const current = now instanceof Date ? now : new Date(now);
+    return Boolean(deadline && Number.isFinite(current.getTime()) && current >= deadline);
 }
 
 let state = {
     buildingName:'', managerName:'', managerPhone:'', defaultSubscription:0, startingBalance:0,
     floorCount:0, apartmentsPerFloor:0,
+    paymentSettings: normalizePaymentSettings(DEFAULT_PAYMENT_SETTINGS),
+    subscriptionDueDay:1, subscriptionGraceDays:0, paymentAllocationPolicy:'oldest_first',
     currentTheme:'dark',
     residents:[], income:[], expenses:[], notices:[], ownerNotifications:[], auditLogs:[],
     cashAccountBalances: { main: 0, development: 0, emergency: 0 }, cashTransfers: [], lastUpdated:0
