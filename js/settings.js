@@ -35,6 +35,33 @@ function renderReminderPreview() {
         count: 3, months: 'سبتمبر 2026، أكتوبر 2026، نوفمبر 2026'
     });
 }
+function resetReceiptTemplate() {
+    const input = document.getElementById('settingsReceiptThankYou');
+    if (!input) return;
+    input.value = DEFAULT_RECEIPT_THANK_YOU;
+    renderReceiptPreview();
+}
+
+function resetReminderTemplate() {
+    const input = document.getElementById('settingsReminderTemplate');
+    if (!input) return;
+    input.value = DEFAULT_REMINDER_TEMPLATE.slice(0, 500);
+    renderReminderPreview();
+}
+
+function insertReminderVariable(variable) {
+    const input = document.getElementById('settingsReminderTemplate');
+    if (!input || !variable) return;
+    const value = String(input.value || '');
+    const start = Number.isInteger(input.selectionStart) ? input.selectionStart : value.length;
+    const end = Number.isInteger(input.selectionEnd) ? input.selectionEnd : start;
+    input.value = (value.slice(0, start) + variable + value.slice(end)).slice(0, 500);
+    const caret = Math.min(start + String(variable).length, 500);
+    input.focus?.();
+    try { input.setSelectionRange?.(caret, caret); } catch (error) { /* selection unsupported */ }
+    renderReminderPreview();
+}
+
 const SETTINGS_THEME_NAMES = { dark:'ليلي', light:'نهاري', emerald:'زمردي', ocean:'محيطي', sand:'رملي', turquoise:'فيروزي' };
 const SETTINGS_SECTION_ICONS = {
     building:'fa-building', payments:'fa-wallet', subscriptions:'fa-calendar-check',
@@ -137,6 +164,8 @@ function updateThemeSelection() {
     });
     const label = document.getElementById('settingsCurrentTheme');
     if (label) label.textContent = SETTINGS_THEME_NAMES[theme];
+    const pill = document.getElementById('settingsCurrentThemePill');
+    if (pill) pill.textContent = SETTINGS_THEME_NAMES[theme];
 }
 
 function renderSettingsOwnerAccess() {
@@ -153,6 +182,14 @@ function renderSettingsOwnerAccess() {
     if (summary) {
         summary.textContent = `${residents.length} شقة · ${linkedCount} حساب مرتبط · ${needsAccountCount} يحتاج إنشاء حساب · ${missingPhoneCount} بدون هاتف`;
     }
+    const setStat = (id, value) => {
+        const node = document.getElementById(id);
+        if (node) node.textContent = String(value);
+    };
+    setStat('settingsOwnerStatTotal', residents.length);
+    setStat('settingsOwnerStatLinked', linkedCount);
+    setStat('settingsOwnerStatPending', needsAccountCount);
+    setStat('settingsOwnerStatMissing', missingPhoneCount);
     if (!residents.length) {
         container.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">أضف الشقق أولًا لعرض حسابات الملاك.</p>';
         return;
@@ -178,7 +215,7 @@ function renderSettingsOwnerAccess() {
             : '';
         return `<article class="settings-owner-row">
             <div class="min-w-0"><b>شقة ${esc(resident.apartmentNumber || '—')} · ${esc(resident.name || '—')}</b>
-                <p class="text-[11px] text-slate-500" dir="auto">${esc(resident.phone || 'لا يوجد رقم جوال')}</p>
+                <p class="text-[11px] text-slate-500" dir="auto">${esc(resident.phone || '—')}</p>
                 <p class="text-[11px] font-bold ${statusClass}">${status}</p>
             </div>
             <div class="settings-owner-actions">${provisionButton}
@@ -192,23 +229,36 @@ function syncPaymentMethodDetails() {
     const methods = [
         { toggle: 'settingsPaymentWalletEnabled', details: 'settingsWalletDetails' },
         { toggle: 'settingsPaymentInstapayEnabled', details: 'settingsInstapayDetails' },
-        { toggle: 'settingsPaymentBankEnabled', details: 'settingsBankDetails' }
+        { toggle: 'settingsPaymentBankEnabled', details: 'settingsBankDetails' },
+        { toggle: 'settingsPaymentCashEnabled', details: null }
     ];
+    let enabledCount = 0;
     methods.forEach(({ toggle: toggleId, details: detailsId }) => {
         const toggle = document.getElementById(toggleId);
-        const details = document.getElementById(detailsId);
-        if (!toggle || !details) return;
+        if (!toggle) return;
         const enabled = toggle.checked;
-        details.hidden = !enabled;
-        details.classList.toggle('hidden', !enabled);
-        details.setAttribute('aria-hidden', String(!enabled));
-        toggle.setAttribute('aria-expanded', String(enabled));
-        details.querySelectorAll('input, select, textarea').forEach(field => {
-            field.disabled = !enabled;
-        });
+        if (enabled) enabledCount += 1;
+        const details = detailsId ? document.getElementById(detailsId) : null;
+        if (details) {
+            details.hidden = !enabled;
+            details.classList.toggle('hidden', !enabled);
+            details.setAttribute('aria-hidden', String(!enabled));
+            toggle.setAttribute('aria-expanded', String(enabled));
+            details.querySelectorAll('input, select, textarea').forEach(field => {
+                field.disabled = !enabled;
+            });
+        }
         toggle.onchange = syncPaymentMethodDetails;
-        toggle.closest('.settings-payment-card')?.classList.toggle('is-disabled', !enabled);
+        const card = toggle.closest('.settings-payment-card');
+        card?.classList.toggle('is-disabled', !enabled);
+        const status = card?.querySelector('[data-method-status]');
+        if (status) {
+            status.textContent = enabled ? 'مفعّلة' : 'متوقفة';
+            status.classList.toggle('is-off', !enabled);
+        }
     });
+    const count = document.getElementById('settingsPaymentSummaryCount');
+    if (count) count.textContent = String(enabledCount);
 }
 
 function renderSubscriptionRulePreview() {
@@ -217,10 +267,12 @@ function renderSubscriptionRulePreview() {
     const dueDay = Number(document.getElementById('settingsSubscriptionDueDay')?.value);
     const graceDays = Number(document.getElementById('settingsSubscriptionGraceDays')?.value);
     const policy = document.getElementById('settingsPaymentAllocationPolicy')?.value;
-    const dueLabel = Number.isInteger(dueDay) && dueDay >= 1 && dueDay <= 28
+    const validDue = Number.isInteger(dueDay) && dueDay >= 1 && dueDay <= 28;
+    const validGrace = Number.isInteger(graceDays) && graceDays >= 0 && graceDays <= 31;
+    const dueLabel = validDue
         ? `يوم ${dueDay} من كل شهر`
         : 'لم يتم تحديد يوم الاستحقاق';
-    const graceLabel = Number.isInteger(graceDays) && graceDays >= 0 && graceDays <= 31
+    const graceLabel = validGrace
         ? (graceDays === 0 ? 'بدون فترة سماح' : `${graceDays} يوم`)
         : 'فترة السماح غير صحيحة';
     const policyLabel = policy === 'selected_month_first'
@@ -232,6 +284,25 @@ function renderSubscriptionRulePreview() {
         `توزيع الدفعات: ${policyLabel}`,
         'يبدأ التأخير بعد انتهاء يوم الاستحقاق وفترة السماح.'
     ].join('\n');
+
+    const setText = (id, text) => {
+        const node = document.getElementById(id);
+        if (node) node.textContent = text;
+    };
+    const overdueDay = validDue && validGrace ? dueDay + graceDays + 1 : 0;
+    setText('settingsRuleDueValue', validDue ? `يوم ${dueDay} من الشهر` : '—');
+    setText('settingsRuleGraceValue', validGrace
+        ? (graceDays === 0 ? 'لا توجد مهلة إضافية' : `${graceDays} يوم بعد الاستحقاق`)
+        : '—');
+    setText('settingsRuleOverdueValue', overdueDay
+        ? (overdueDay > 30 ? 'مطلع الشهر التالي' : `من يوم ${overdueDay} من الشهر`)
+        : '—');
+    const example = document.getElementById('settingsRuleExample');
+    if (example) {
+        example.textContent = validDue && validGrace
+            ? `مثال: اشتراك مستحق يوم ${dueDay} وفترة سماح ${graceDays} يوم يعني أن التأخير يُحتسب ${overdueDay > 30 ? 'من مطلع الشهر التالي' : `من يوم ${overdueDay} من الشهر`}.`
+            : 'سيظهر مثال محسوب عند إدخال المواعيد.';
+    }
 }
 
 async function loadSettingsBackupSummary() {
@@ -269,27 +340,85 @@ async function loadSettingsBackupSummary() {
     }
 }
 
+function renderSettingsFloorStack(floors, apartmentsPerFloor, total) {
+    const stack = document.getElementById('settingsFloorStack');
+    if (!stack) return;
+    if (!total) {
+        stack.innerHTML = '';
+        return;
+    }
+    const row = (label, count) => {
+        const dots = Array.from({ length: Math.min(count, 12) }, () => '<i></i>').join('');
+        return `<div class="settings-floor-row"><span class="settings-floor-label">${label}</span><span class="settings-floor-dots">${dots}</span></div>`;
+    };
+    const rows = [];
+    if (floors <= 4) {
+        for (let index = 1; index <= floors; index += 1) {
+            rows.push(row(`الدور ${index}`, apartmentsPerFloor));
+        }
+    } else {
+        rows.push(row('الدور 1', apartmentsPerFloor));
+        rows.push(row('الدور 2', apartmentsPerFloor));
+        rows.push(`<div class="settings-floor-row"><span class="settings-floor-label">…</span><span class="settings-floor-dots"><i></i><i></i><i></i></span></div>`);
+        rows.push(row(`الدور ${floors - 1}`, apartmentsPerFloor));
+        rows.push(row(`الدور ${floors}`, apartmentsPerFloor));
+    }
+    stack.innerHTML = rows.join('');
+}
+
+function renderSettingsBuildingLive() {
+    const value = id => String(document.getElementById(id)?.value ?? '').trim();
+    const floors = Number(value('settingsFloorCount') || state.floorCount || 0);
+    const perFloor = Number(value('settingsApartmentsPerFloor') || state.apartmentsPerFloor || 0);
+    const residents = Array.isArray(state.residents) ? state.residents.length : 0;
+    const total = Number.isInteger(floors) && Number.isInteger(perFloor) && floors > 0 && perFloor > 0
+        ? floors * perFloor
+        : (residents || Number(state.floorCount || 0) * Number(state.apartmentsPerFloor || 0));
+    const setText = (id, text) => {
+        const node = document.getElementById(id);
+        if (node) node.textContent = text;
+    };
+    const money = amount => {
+        const number = Number(amount);
+        if (!Number.isFinite(number) || number <= 0) return '—';
+        const formatted = typeof fmtNum === 'function' ? fmtNum(number) : String(number);
+        return `${formatted} ج.م`;
+    };
+    setText('settingsLiveBuildingName', value('settingsBuildingName') || String(state.buildingName || '').trim() || 'عمارة بدون اسم');
+    setText('settingsLiveManagerName', value('settingsManagerName') || String(state.managerName || '').trim() || 'لم يُحدَّد المدير');
+    setText('settingsLiveFloors', floors > 0 ? floors : '—');
+    setText('settingsLiveApartments', total > 0 ? total : '—');
+    setText('settingsLiveSubscription', money(value('settingsDefaultSub') || state.defaultSubscription));
+    setText('settingsLiveBalance', money(value('settingsStartingBalance') || state.startingBalance));
+}
+
 function renderBuildingLayoutPreview() {
+    renderSettingsBuildingLive();
     const preview = document.getElementById('settingsBuildingLayoutPreview');
     if (!preview) return;
     const floors = Number(document.getElementById('settingsFloorCount')?.value || 0);
     const apartmentsPerFloor = Number(document.getElementById('settingsApartmentsPerFloor')?.value || 0);
     if (floors === 0 && apartmentsPerFloor === 0) {
         preview.textContent = 'حدد عدد الأدوار والشقق لعرض التوزيع.';
+        renderSettingsFloorStack(0, 0, 0);
         return;
     }
     if (!Number.isInteger(floors) || !Number.isInteger(apartmentsPerFloor)
         || floors < 1 || floors > 100 || apartmentsPerFloor < 1 || apartmentsPerFloor > 100) {
         preview.textContent = 'أدخل عدد الأدوار وعدد الشقق معًا، من 1 إلى 100 لكل قيمة.';
+        renderSettingsFloorStack(0, 0, 0);
         return;
     }
     const total = floors * apartmentsPerFloor;
     const lastStart = total - apartmentsPerFloor + 1;
     preview.textContent = [
-        `${floors} دور × ${apartmentsPerFloor} شقة = ${total} شقة`,
+        `عدد الأدوار: ${floors}`,
+        `الشقق في كل دور: ${apartmentsPerFloor}`,
+        `إجمالي الشقق: ${total}`,
         `الدور الأول: الشقق 1–${apartmentsPerFloor}`,
         `الدور الأخير: الشقق ${lastStart}–${total}`
     ].join('\n');
+    renderSettingsFloorStack(floors, apartmentsPerFloor, total);
 }
 
 function openSettingsModal() {
@@ -308,6 +437,10 @@ function openSettingsModal() {
         field.onchange = renderBuildingLayoutPreview;
     });
     renderBuildingLayoutPreview();
+    ['settingsBuildingName', 'settingsManagerName', 'settingsDefaultSub', 'settingsStartingBalance'].forEach(id => {
+        const field = document.getElementById(id);
+        if (field) field.oninput = renderSettingsBuildingLive;
+    });
 
     const paymentSettings = normalizePaymentSettings(state.paymentSettings);
     document.getElementById('settingsPaymentCashEnabled').checked = paymentSettings.cash.enabled;

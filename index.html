@@ -731,140 +731,307 @@
                     </div>
 
                     <section id="settings-panel-building" class="settings-panel hidden" role="tabpanel" aria-labelledby="settings-tab-building">
-                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-building" aria-hidden="true"></i></span><div><h4>بيانات العمارة</h4><p>المعلومات الأساسية وتنظيم الشقق والاشتراكات</p></div></div>
-
-                        <section class="settings-subsection" aria-labelledby="settingsBuildingInfoTitle">
-                            <div class="settings-subsection-heading"><span class="settings-subsection-icon"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></span><div><h5 id="settingsBuildingInfoTitle">المعلومات الأساسية</h5><p>اسم العقار وبيانات المسؤول عنه</p></div></div>
-                            <label class="settings-field"><span>اسم العمارة</span><input type="text" id="settingsBuildingName" autocomplete="organization" class="app-input border rounded-xl px-3 py-2.5"></label>
-                            <div class="settings-fields-grid">
-                                <label class="settings-field"><span>اسم المدير</span><input type="text" id="settingsManagerName" autocomplete="name" class="app-input border rounded-xl px-3 py-2.5"></label>
-                                <label class="settings-field"><span>هاتف المدير</span><input type="tel" id="settingsManagerPhone" inputmode="tel" autocomplete="tel" class="app-input border rounded-xl px-3 py-2.5"></label>
+                        <div class="settings-section-heading">
+                            <span class="settings-section-icon"><i class="fa-solid fa-building" aria-hidden="true"></i></span>
+                            <div class="settings-heading-copy">
+                                <h4>بيانات العمارة</h4>
+                                <p>عرّف العقار، ووزّع الأدوار والشقق، واضبط القيم المالية التي تبدأ منها كل عملية تسجيل.</p>
                             </div>
-                        </section>
-
-                        <section class="settings-subsection" aria-labelledby="settingsBuildingLayoutTitle">
-                            <div class="settings-subsection-heading"><span class="settings-subsection-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span><div><h5 id="settingsBuildingLayoutTitle">توزيع الأدوار والشقق</h5><p>حدد عدد الأدوار وعدد الشقق في كل دور</p></div></div>
-                            <div class="settings-fields-grid">
-                                <label class="settings-field"><span>عدد الأدوار (بدايةً من الدور الأول)</span><input type="number" id="settingsFloorCount" min="1" max="100" step="1" inputmode="numeric" placeholder="مثال: 11" class="app-input border rounded-xl px-3 py-2.5"></label>
-                                <label class="settings-field"><span>عدد الشقق في كل دور</span><input type="number" id="settingsApartmentsPerFloor" min="1" max="100" step="1" inputmode="numeric" placeholder="مثال: 2" class="app-input border rounded-xl px-3 py-2.5"></label>
+                            <div class="settings-heading-meta" aria-label="حالة القسم">
+                                <span class="settings-chip"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> مزامنة سحابية</span>
+                                <span class="settings-chip is-gold"><i class="fa-solid fa-eye" aria-hidden="true"></i> يظهر في بوابة المالك</span>
                             </div>
-                            <div class="settings-building-layout-summary"><h5><i class="fa-solid fa-diagram-project" aria-hidden="true"></i> معاينة التوزيع</h5><output id="settingsBuildingLayoutPreview" aria-live="polite">حدد عدد الأدوار والشقق لعرض التوزيع.</output></div>
-                            <p class="settings-help">يبدأ الترقيم من الدور الأول بشكل متسلسل. مثال: 11 دورًا × شقتين = 22 شقة؛ الشقتان 1 و2 في الأول، و3 و4 في الثاني، حتى 21 و22 في الحادي عشر.</p>
-                        </section>
+                        </div>
 
-                        <section class="settings-subsection" aria-labelledby="settingsBuildingFinanceTitle">
-                            <div class="settings-subsection-heading"><span class="settings-subsection-icon"><i class="fa-solid fa-coins" aria-hidden="true"></i></span><div><h5 id="settingsBuildingFinanceTitle">الإعدادات المالية الأساسية</h5><p>القيم الافتراضية المستخدمة عند تسجيل البيانات</p></div></div>
-                            <div class="settings-fields-grid">
-                                <label class="settings-field"><span>الاشتراك الشهري الافتراضي</span><input type="number" id="settingsDefaultSub" min="0" step="0.01" inputmode="decimal" class="app-input border rounded-xl px-3 py-2.5"></label>
-                                <label class="settings-field"><span>الرصيد الافتتاحي</span><input type="number" id="settingsStartingBalance" step="0.01" inputmode="decimal" class="app-input border rounded-xl px-3 py-2.5"></label>
+                        <div class="settings-workspace">
+                            <div class="settings-workspace-main">
+                                <section class="settings-subsection" aria-labelledby="settingsBuildingInfoTitle">
+                                    <div class="settings-subsection-heading">
+                                        <span class="settings-subsection-icon"><i class="fa-solid fa-address-card" aria-hidden="true"></i></span>
+                                        <div class="settings-subsection-copy">
+                                            <h5 id="settingsBuildingInfoTitle">الهوية الأساسية</h5>
+                                            <p>الاسم الذي يظهر في التقارير والإيصالات وبوابة المالك، وبيانات التواصل مع المدير.</p>
+                                        </div>
+                                    </div>
+                                    <label class="settings-field"><span>اسم العمارة</span><input type="text" id="settingsBuildingName" autocomplete="organization" placeholder="مثال: عمارة النور" class="app-input border rounded-xl px-3 py-2.5"><small class="settings-field-hint">يظهر في رأس التطبيق وفي كل إيصال وتقرير.</small></label>
+                                    <div class="settings-fields-grid">
+                                        <label class="settings-field"><span>اسم المدير</span><input type="text" id="settingsManagerName" autocomplete="name" placeholder="الاسم الكامل" class="app-input border rounded-xl px-3 py-2.5"></label>
+                                        <label class="settings-field"><span>هاتف المدير</span><input type="tel" id="settingsManagerPhone" inputmode="tel" autocomplete="tel" placeholder="01xxxxxxxxx" dir="ltr" class="app-input border rounded-xl px-3 py-2.5"><small class="settings-field-hint">رقم التواصل المعتمد في مراسلات الملاك.</small></label>
+                                    </div>
+                                </section>
+
+                                <section class="settings-subsection" aria-labelledby="settingsBuildingLayoutTitle">
+                                    <div class="settings-subsection-heading">
+                                        <span class="settings-subsection-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span>
+                                        <div class="settings-subsection-copy">
+                                            <h5 id="settingsBuildingLayoutTitle">توزيع الأدوار والشقق</h5>
+                                            <p>رقم متسلسل يبدأ من الدور الأول. يحتاج التغيير إلى تأكيد لأن الشقق تُنشأ أو تُزال فعليًا.</p>
+                                        </div>
+                                    </div>
+                                    <div class="settings-fields-grid">
+                                        <label class="settings-field"><span>عدد الأدوار</span><span class="settings-input-unit"><input type="number" id="settingsFloorCount" min="1" max="100" step="1" inputmode="numeric" placeholder="11" class="app-input border rounded-xl px-3 py-2.5"><b>دور</b></span></label>
+                                        <label class="settings-field"><span>عدد الشقق في كل دور</span><span class="settings-input-unit"><input type="number" id="settingsApartmentsPerFloor" min="1" max="100" step="1" inputmode="numeric" placeholder="2" class="app-input border rounded-xl px-3 py-2.5"><b>شقة</b></span></label>
+                                    </div>
+                                    <p class="settings-help">مثال: 11 دورًا × شقتين = 22 شقة؛ الشقتان 1 و2 في الدور الأول، و3 و4 في الثاني، حتى 21 و22 في الدور الأخير.</p>
+                                </section>
+
+                                <section class="settings-subsection" aria-labelledby="settingsBuildingFinanceTitle">
+                                    <div class="settings-subsection-heading">
+                                        <span class="settings-subsection-icon"><i class="fa-solid fa-coins" aria-hidden="true"></i></span>
+                                        <div class="settings-subsection-copy">
+                                            <h5 id="settingsBuildingFinanceTitle">القيم المالية الافتراضية</h5>
+                                            <p>نقطة البداية عند إنشاء شقة جديدة أو بدء تشغيل الخزنة.</p>
+                                        </div>
+                                    </div>
+                                    <div class="settings-fields-grid">
+                                        <label class="settings-field"><span>الاشتراك الشهري الافتراضي</span><span class="settings-input-unit is-currency"><input type="number" id="settingsDefaultSub" min="0" step="0.01" inputmode="decimal" placeholder="0.00" class="app-input border rounded-xl px-3 py-2.5"><b>ج.م</b></span><small class="settings-field-hint">لا يغيّر اشتراكات الشقق القائمة أو المسجّلة سابقًا.</small></label>
+                                        <label class="settings-field"><span>الرصيد الافتتاحي للخزنة</span><span class="settings-input-unit is-currency"><input type="number" id="settingsStartingBalance" step="0.01" inputmode="decimal" placeholder="0.00" class="app-input border rounded-xl px-3 py-2.5"><b>ج.م</b></span><small class="settings-field-hint">قيمة تأسيسية تُضاف مرة واحدة عند بدء التشغيل.</small></label>
+                                    </div>
+                                </section>
                             </div>
-                            <p class="settings-help">تغيير الاشتراك الافتراضي لا يغيّر الاشتراك المخصص لكل شقة. الرصيد الافتتاحي قيمة تأسيسية للخزنة.</p>
-                        </section>
+
+                            <aside class="settings-workspace-aside" aria-label="بطاقة العقار ومعاينة التوزيع">
+                                <div class="settings-live-card">
+                                    <div class="settings-live-head">
+                                        <span class="settings-live-icon"><i class="fa-solid fa-building" aria-hidden="true"></i></span>
+                                        <div><b>بطاقة العقار</b><small>معاينة فورية للبيانات المحفوظة</small></div>
+                                    </div>
+                                    <p class="settings-live-name" id="settingsLiveBuildingName">عمارة بدون اسم</p>
+                                    <p class="settings-live-manager" id="settingsLiveManagerName">لم يُحدَّد المدير</p>
+                                    <div class="settings-live-stats">
+                                        <div><span>الأدوار</span><b id="settingsLiveFloors">—</b></div>
+                                        <div><span>الشقق</span><b id="settingsLiveApartments">—</b></div>
+                                    </div>
+                                    <dl class="settings-live-list">
+                                        <div><dt>الاشتراك الافتراضي</dt><dd id="settingsLiveSubscription">—</dd></div>
+                                        <div><dt>الرصيد الافتتاحي</dt><dd id="settingsLiveBalance">—</dd></div>
+                                    </dl>
+                                </div>
+
+                                <div class="settings-building-layout-summary">
+                                    <h5><i class="fa-solid fa-diagram-project" aria-hidden="true"></i> معاينة التوزيع</h5>
+                                    <output id="settingsBuildingLayoutPreview" aria-live="polite">حدد عدد الأدوار والشقق لعرض التوزيع.</output>
+                                    <div id="settingsFloorStack" class="settings-floor-stack" aria-hidden="true"></div>
+                                </div>
+                                <p class="settings-aside-note"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> راجع التوزيع جيدًا قبل الحفظ: تقليل عدد الشقق قد يؤثر على الشقق التي تحمل بيانات.</p>
+                            </aside>
+                        </div>
                     </section>
                     <section id="settings-panel-payments" class="settings-panel hidden" role="tabpanel" aria-labelledby="settings-tab-payments">
-                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-wallet" aria-hidden="true"></i></span><div><h4>وسائل التحصيل وبيانات الاستلام</h4><p>حدد الطرق المتاحة وأضف بيانات التحويل التي تظهر للملاك</p></div></div>
-                        <div class="settings-info-card">
-                            <div class="settings-info-card-title"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> بيانات إرشادية</div>
-                            <p>هذه البيانات إرشادية فقط؛ التطبيق لا ينفذ تحويلات مالية ولا يربط المحافظ أو البنوك تلقائيًا. ستظهر تفاصيل الطرق المفعّلة في بوابة المالك.</p>
+                        <div class="settings-section-heading">
+                            <span class="settings-section-icon"><i class="fa-solid fa-wallet" aria-hidden="true"></i></span>
+                            <div class="settings-heading-copy">
+                                <h4>طرق التحصيل وبيانات الاستلام</h4>
+                                <p>فعّل ما يقبله المدير من طرق دفع، وأضف بيانات الاستلام التي تظهر للمالك عند السداد.</p>
+                            </div>
+                            <div class="settings-heading-meta" aria-label="حالة القسم">
+                                <span class="settings-chip is-teal"><b id="settingsPaymentSummaryCount">—</b> طرق مفعّلة</span>
+                                <span class="settings-chip is-gold"><i class="fa-solid fa-eye" aria-hidden="true"></i> تظهر للمالك</span>
+                            </div>
                         </div>
+
+                        <div class="settings-info-card settings-info-card-compact">
+                            <div class="settings-info-card-title"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> بيانات إرشادية فقط</div>
+                            <p>لا ينفذ التطبيق تحويلات مالية ولا يربط المحافظ أو البنوك تلقائيًا. البيانات المفعّلة تُعرض للمالك كمرجع عند التحويل، ويظل تسجيل الدفعة يدويًا بيد المدير.</p>
+                        </div>
+
                         <div class="settings-payment-grid">
-                            <section class="settings-payment-card">
-                                <label class="settings-payment-toggle">
+                            <section class="settings-payment-card" data-payment-card="cash">
+                                <div class="settings-method-head">
                                     <span class="settings-method-icon" aria-hidden="true"><i class="fa-solid fa-money-bill-wave"></i></span>
-                                    <span class="settings-method-copy"><b>نقدًا</b><small>التحصيل المباشر من المدير</small></span>
+                                    <span class="settings-method-copy"><b>نقدًا</b><small>تحصيل مباشر يسجّله المدير</small></span>
+                                    <span class="settings-method-status" data-method-status>مفعّلة</span>
+                                </div>
+                                <ul class="settings-method-points">
+                                    <li>تُسجَّل الدفعة يدويًا في سجل التحصيل.</li>
+                                    <li>تظهر كطريقة الدفع في إيصال واتساب.</li>
+                                </ul>
+                                <label class="settings-payment-toggle settings-payment-toggle-row">
+                                    <span>تفعيل التحصيل النقدي</span>
                                     <input type="checkbox" id="settingsPaymentCashEnabled" checked>
                                 </label>
                             </section>
-                            <section class="settings-payment-card">
-                                <label class="settings-payment-toggle">
+
+                            <section class="settings-payment-card" data-payment-card="wallet">
+                                <div class="settings-method-head">
                                     <span class="settings-method-icon" aria-hidden="true"><i class="fa-solid fa-mobile-screen-button"></i></span>
-                                    <span class="settings-method-copy"><b>محفظة إلكترونية</b><small>مثل Vodafone Cash أو Orange Cash</small></span>
+                                    <span class="settings-method-copy"><b>محفظة إلكترونية</b><small>Vodafone Cash أو Orange Cash وغيرها</small></span>
+                                    <span class="settings-method-status" data-method-status>مفعّلة</span>
+                                </div>
+                                <label class="settings-payment-toggle settings-payment-toggle-row">
+                                    <span>تفعيل المحفظة الإلكترونية</span>
                                     <input type="checkbox" id="settingsPaymentWalletEnabled" aria-controls="settingsWalletDetails" checked>
                                 </label>
                                 <div id="settingsWalletDetails" class="settings-payment-details">
                                     <label class="settings-field"><span>نوع المحفظة</span><select id="settingsWalletProvider" class="app-input border rounded-xl px-3 py-2.5"><option value="">اختر الشركة</option><option value="Vodafone Cash">Vodafone Cash</option><option value="Orange Cash">Orange Cash</option><option value="Etisalat Cash">Etisalat Cash</option><option value="WE Pay">WE Pay</option><option value="أخرى">أخرى</option></select></label>
-                                    <label class="settings-field"><span>اسم صاحب المحفظة</span><input id="settingsWalletAccountName" maxlength="120" autocomplete="off" class="app-input border rounded-xl px-3 py-2.5"></label>
-                                    <label class="settings-field settings-field-full"><span>رقم المحفظة</span><input id="settingsWalletNumber" type="tel" inputmode="tel" maxlength="32" autocomplete="off" placeholder="01xxxxxxxxx" class="app-input border rounded-xl px-3 py-2.5"></label>
+                                    <label class="settings-field"><span>اسم صاحب المحفظة</span><input id="settingsWalletAccountName" maxlength="120" autocomplete="off" placeholder="الاسم كما هو في المحفظة" class="app-input border rounded-xl px-3 py-2.5"></label>
+                                    <label class="settings-field settings-field-full"><span>رقم المحفظة</span><input id="settingsWalletNumber" type="tel" inputmode="tel" maxlength="32" autocomplete="off" placeholder="01xxxxxxxxx" dir="ltr" class="app-input border rounded-xl px-3 py-2.5"></label>
                                 </div>
+                                <p class="settings-payment-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> تظهر هذه البيانات للمالك في بوابة السداد فقط.</p>
                             </section>
-                            <section class="settings-payment-card">
-                                <label class="settings-payment-toggle">
+
+                            <section class="settings-payment-card" data-payment-card="instapay">
+                                <div class="settings-method-head">
                                     <span class="settings-method-icon" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span>
-                                    <span class="settings-method-copy"><b>InstaPay</b><small>عنوان الدفع اللحظي أو IPA</small></span>
+                                    <span class="settings-method-copy"><b>InstaPay</b><small>التحويل اللحظي عبر عنوان IPA</small></span>
+                                    <span class="settings-method-status" data-method-status>مفعّلة</span>
+                                </div>
+                                <label class="settings-payment-toggle settings-payment-toggle-row">
+                                    <span>تفعيل InstaPay</span>
                                     <input type="checkbox" id="settingsPaymentInstapayEnabled" aria-controls="settingsInstapayDetails" checked>
                                 </label>
                                 <div id="settingsInstapayDetails" class="settings-payment-details">
-                                    <label class="settings-field"><span>اسم صاحب الحساب</span><input id="settingsInstapayAccountName" maxlength="120" autocomplete="off" class="app-input border rounded-xl px-3 py-2.5"></label>
+                                    <label class="settings-field"><span>اسم صاحب الحساب</span><input id="settingsInstapayAccountName" maxlength="120" autocomplete="off" placeholder="الاسم الكامل" class="app-input border rounded-xl px-3 py-2.5"></label>
                                     <label class="settings-field"><span>عنوان InstaPay / IPA</span><input id="settingsInstapayAddress" maxlength="120" autocomplete="off" dir="ltr" placeholder="name@instapay" class="app-input border rounded-xl px-3 py-2.5"></label>
                                 </div>
+                                <p class="settings-payment-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> راجع العنوان قبل الحفظ لأنه يُنسخ مباشرة للتحويل.</p>
                             </section>
-                            <section class="settings-payment-card settings-payment-card-wide">
-                                <label class="settings-payment-toggle">
+
+                            <section class="settings-payment-card settings-payment-card-wide" data-payment-card="bank_transfer">
+                                <div class="settings-method-head">
                                     <span class="settings-method-icon" aria-hidden="true"><i class="fa-solid fa-building-columns"></i></span>
                                     <span class="settings-method-copy"><b>تحويل بنكي</b><small>بيانات الحساب البنكي لاستقبال التحويلات</small></span>
+                                    <span class="settings-method-status" data-method-status>مفعّلة</span>
+                                </div>
+                                <label class="settings-payment-toggle settings-payment-toggle-row">
+                                    <span>تفعيل التحويل البنكي</span>
                                     <input type="checkbox" id="settingsPaymentBankEnabled" aria-controls="settingsBankDetails" checked>
                                 </label>
                                 <div id="settingsBankDetails" class="settings-payment-details">
-                                    <label class="settings-field"><span>اسم البنك</span><input id="settingsBankName" maxlength="100" autocomplete="off" class="app-input border rounded-xl px-3 py-2.5"></label>
-                                    <label class="settings-field"><span>اسم صاحب الحساب</span><input id="settingsBankAccountName" maxlength="120" autocomplete="off" class="app-input border rounded-xl px-3 py-2.5"></label>
-                                    <label class="settings-field"><span>رقم الحساب</span><input id="settingsBankAccountNumber" maxlength="48" autocomplete="off" dir="ltr" class="app-input border rounded-xl px-3 py-2.5"></label>
-                                    <label class="settings-field"><span>IBAN</span><input id="settingsBankIban" maxlength="64" autocomplete="off" dir="ltr" class="app-input border rounded-xl px-3 py-2.5"></label>
+                                    <label class="settings-field"><span>اسم البنك</span><input id="settingsBankName" maxlength="100" autocomplete="off" placeholder="مثال: البنك الأهلي المصري" class="app-input border rounded-xl px-3 py-2.5"></label>
+                                    <label class="settings-field"><span>اسم صاحب الحساب</span><input id="settingsBankAccountName" maxlength="120" autocomplete="off" placeholder="الاسم كما هو في البنك" class="app-input border rounded-xl px-3 py-2.5"></label>
+                                    <label class="settings-field"><span>رقم الحساب</span><input id="settingsBankAccountNumber" maxlength="48" autocomplete="off" dir="ltr" placeholder="رقم الحساب" class="app-input border rounded-xl px-3 py-2.5"></label>
+                                    <label class="settings-field"><span>IBAN</span><input id="settingsBankIban" maxlength="64" autocomplete="off" dir="ltr" placeholder="EG00 0000 0000 0000 0000 0000 000" class="app-input border rounded-xl px-3 py-2.5"></label>
                                 </div>
+                                <p class="settings-payment-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> تحقّق من رقم الحساب وIBAN؛ لا يمكن تعديل دفعة مسجّلة بعد حفظها.</p>
                             </section>
                         </div>
                     </section>
                     <section id="settings-panel-subscriptions" class="settings-panel hidden" role="tabpanel" aria-labelledby="settings-tab-subscriptions">
-                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i></span><div><h4>قواعد الاشتراك والتحصيل</h4><p>حدد موعد الاستحقاق وفترة السماح وطريقة توزيع الدفعات</p></div></div>
-                        <section class="settings-subsection" aria-labelledby="settingsSubscriptionTimingTitle">
-                            <div class="settings-subsection-heading"><span class="settings-subsection-icon"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></span><div><h5 id="settingsSubscriptionTimingTitle">مواعيد الاستحقاق</h5><p>يوم التحصيل وفترة السماح قبل اعتبار الشهر متأخرًا</p></div></div>
-                            <div class="settings-fields-grid">
-                                <label class="settings-field"><span>يوم استحقاق الاشتراك</span><input type="number" id="settingsSubscriptionDueDay" min="1" max="28" step="1" inputmode="numeric" class="app-input border rounded-xl px-3 py-2.5"></label>
-                                <label class="settings-field"><span>فترة السماح بعد الاستحقاق (أيام)</span><input type="number" id="settingsSubscriptionGraceDays" min="0" max="31" step="1" inputmode="numeric" class="app-input border rounded-xl px-3 py-2.5"></label>
+                        <div class="settings-section-heading">
+                            <span class="settings-section-icon"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i></span>
+                            <div class="settings-heading-copy">
+                                <h4>قواعد الاشتراك والتحصيل</h4>
+                                <p>حدد متى يستحق الشهر، ومتى يُعد متأخرًا، وكيف تُوزَّع الدفعة الواحدة على الشهور المستحقة.</p>
                             </div>
-                        </section>
-                        <section class="settings-subsection" aria-labelledby="settingsSubscriptionAllocationTitle">
-                            <div class="settings-subsection-heading"><span class="settings-subsection-icon"><i class="fa-solid fa-shuffle" aria-hidden="true"></i></span><div><h5 id="settingsSubscriptionAllocationTitle">توزيع الدفعات</h5><p>كيف تُسوّى الدفعة الواحدة على الشهور المستحقة</p></div></div>
-                            <label class="settings-field"><span>سياسة توزيع الدفعة الواحدة</span>
-                                <select id="settingsPaymentAllocationPolicy" class="app-input border rounded-xl px-3 py-2.5">
-                                    <option value="oldest_first">الأقدم أولًا — تسوية المتأخرات بالترتيب</option>
-                                    <option value="selected_month_first">الشهر المحدد أولًا — ثم الشهور الأقدم</option>
-                                </select>
-                            </label>
-                            <p class="settings-help">تُطبق السياسة على التحصيلات الجديدة فقط. لا يعاد توزيع التحصيلات المسجلة سابقًا.</p>
-                        </section>
-                        <section class="settings-subscription-summary" aria-labelledby="settingsSubscriptionSummaryTitle">
-                            <div class="settings-subscription-summary-title"><span class="settings-subscription-summary-icon" aria-hidden="true"><i class="fa-solid fa-chart-pie"></i></span><div><h5 id="settingsSubscriptionSummaryTitle">ملخص الإعدادات الحالية</h5><p>يتحدّث مباشرة قبل الحفظ</p></div></div>
-                            <output id="settingsSubscriptionRulePreview" class="settings-subscription-summary-output" aria-live="polite"></output>
-                        </section>
-                        <div class="settings-info-card">
-                            <div class="settings-info-card-title"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> طريقة الاحتساب</div>
-                            <ul class="settings-info-list">
-                                <li><b>التأخير:</b> يصبح الشهر متأخرًا بعد انقضاء يوم الاستحقاق وفترة السماح، ويظل الرصيد غير المسدد ظاهرًا حتى السداد.</li>
-                                <li><b>الاشتراكات السابقة:</b> لكل شقة سجل أسعار مستقل، وتغيير الاشتراك لا يعدّل الشهور التي سبق تسجيلها.</li>
-                            </ul>
+                            <div class="settings-heading-meta" aria-label="حالة القسم">
+                                <span class="settings-chip"><i class="fa-solid fa-rotate" aria-hidden="true"></i> تُطبَّق على الدفعات الجديدة</span>
+                            </div>
+                        </div>
+
+                        <div class="settings-workspace">
+                            <div class="settings-workspace-main">
+                                <section class="settings-subsection" aria-labelledby="settingsSubscriptionTimingTitle">
+                                    <div class="settings-subsection-heading">
+                                        <span class="settings-subsection-icon"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></span>
+                                        <div class="settings-subsection-copy">
+                                            <h5 id="settingsSubscriptionTimingTitle">مواعيد الاستحقاق</h5>
+                                            <p>يوم التحصيل الشهري، ومهلة إضافية قبل تصنيف الشهر كمتأخر.</p>
+                                        </div>
+                                    </div>
+                                    <div class="settings-fields-grid">
+                                        <label class="settings-field"><span>يوم استحقاق الاشتراك</span><span class="settings-input-unit"><input type="number" id="settingsSubscriptionDueDay" min="1" max="28" step="1" inputmode="numeric" placeholder="5" class="app-input border rounded-xl px-3 py-2.5"><b>من الشهر</b></span><small class="settings-field-hint">من 1 إلى 28 لضمان وجوده في كل الشهور.</small></label>
+                                        <label class="settings-field"><span>فترة السماح بعد الاستحقاق</span><span class="settings-input-unit"><input type="number" id="settingsSubscriptionGraceDays" min="0" max="31" step="1" inputmode="numeric" placeholder="3" class="app-input border rounded-xl px-3 py-2.5"><b>يوم</b></span><small class="settings-field-hint">صفر يعني اعتبار الشهر متأخرًا فور انتهاء يوم الاستحقاق.</small></label>
+                                    </div>
+                                </section>
+
+                                <section class="settings-subsection" aria-labelledby="settingsSubscriptionAllocationTitle">
+                                    <div class="settings-subsection-heading">
+                                        <span class="settings-subsection-icon"><i class="fa-solid fa-shuffle" aria-hidden="true"></i></span>
+                                        <div class="settings-subsection-copy">
+                                            <h5 id="settingsSubscriptionAllocationTitle">توزيع الدفعة الواحدة</h5>
+                                            <p>عندما يدفع المالك مبلغًا يغطي أكثر من شهر، تحدد السياسة ترتيب التسوية.</p>
+                                        </div>
+                                    </div>
+                                    <label class="settings-field"><span>سياسة التوزيع</span>
+                                        <select id="settingsPaymentAllocationPolicy" class="app-input border rounded-xl px-3 py-2.5">
+                                            <option value="oldest_first">الأقدم أولًا — تسوية المتأخرات بالترتيب</option>
+                                            <option value="selected_month_first">الشهر المحدد أولًا — ثم الشهور الأقدم</option>
+                                        </select>
+                                    </label>
+                                    <p class="settings-help">تُطبَّق السياسة على التحصيلات الجديدة فقط؛ لا يُعاد توزيع أي تحصيل مسجَّل سابقًا.</p>
+                                </section>
+
+                                <div class="settings-info-card">
+                                    <div class="settings-info-card-title"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> طريقة الاحتساب</div>
+                                    <ul class="settings-info-list">
+                                        <li><b>التأخير:</b> يبدأ بعد انقضاء يوم الاستحقاق وفترة السماح، ويظل الرصيد غير المسدد ظاهرًا حتى السداد.</li>
+                                        <li><b>الاشتراكات السابقة:</b> لكل شقة سجل أسعار مستقل، وتغيير الاشتراك لا يعدّل الشهور المسجَّلة.</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <aside class="settings-workspace-aside" aria-label="ملخص قواعد الاشتراك">
+                                <section class="settings-subscription-summary" aria-labelledby="settingsSubscriptionSummaryTitle">
+                                    <div class="settings-subscription-summary-title">
+                                        <span class="settings-subscription-summary-icon" aria-hidden="true"><i class="fa-solid fa-chart-pie"></i></span>
+                                        <div><h5 id="settingsSubscriptionSummaryTitle">ملخص القواعد الحالية</h5><p>معاينة فورية قبل الحفظ</p></div>
+                                    </div>
+                                    <div class="settings-rule-timeline" aria-hidden="true">
+                                        <div class="settings-rule-step">
+                                            <span class="settings-rule-step-icon"><i class="fa-solid fa-calendar-check"></i></span>
+                                            <div><b>الاستحقاق</b><small id="settingsRuleDueValue">—</small></div>
+                                        </div>
+                                        <div class="settings-rule-step">
+                                            <span class="settings-rule-step-icon"><i class="fa-solid fa-hourglass-half"></i></span>
+                                            <div><b>فترة السماح</b><small id="settingsRuleGraceValue">—</small></div>
+                                        </div>
+                                        <div class="settings-rule-step is-late">
+                                            <span class="settings-rule-step-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                                            <div><b>بداية التأخير</b><small id="settingsRuleOverdueValue">—</small></div>
+                                        </div>
+                                    </div>
+                                    <output id="settingsSubscriptionRulePreview" class="settings-subscription-summary-output" aria-live="polite"></output>
+                                    <p class="settings-rule-example" id="settingsRuleExample">سيظهر مثال محسوب عند إدخال المواعيد.</p>
+                                </section>
+                            </aside>
                         </div>
                     </section>
                     <section id="settings-panel-appearance" class="settings-panel hidden" role="tabpanel" aria-labelledby="settings-tab-appearance">
-                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-palette" aria-hidden="true"></i></span><div><h4>المظهر والثيمات</h4><p>اختر ألوانًا مريحة وواضحة لكل أجزاء التطبيق</p></div></div>
+                        <div class="settings-section-heading">
+                            <span class="settings-section-icon"><i class="fa-solid fa-palette" aria-hidden="true"></i></span>
+                            <div class="settings-heading-copy">
+                                <h4>المظهر والثيمات</h4>
+                                <p>هوية بصرية ثابتة، وستة ثيمات مريحة للعين تُطبَّق على كل شاشات التطبيق فور الاختيار.</p>
+                            </div>
+                            <div class="settings-heading-meta" aria-label="حالة القسم">
+                                <span class="settings-brand-approved"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> الهوية الأصلية</span>
+                            </div>
+                        </div>
+
                         <section class="settings-brand-preview" aria-labelledby="settingsBrandPreviewTitle">
                             <div class="settings-brand-preview-heading">
-                                <div><h5 id="settingsBrandPreviewTitle">هوية منزل</h5><p>الشعار وأيقونة التطبيق</p></div>
-                                <span class="settings-brand-approved"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> الهوية الأصلية</span>
+                                <div><h5 id="settingsBrandPreviewTitle">هوية منزل</h5><p>الشعار الكامل وأيقونة التطبيق كما تظهر في الواجهات.</p></div>
+                                <span class="settings-brand-approved"><i class="fa-solid fa-lock" aria-hidden="true"></i> محمية من التغيير</span>
                             </div>
                             <div class="settings-brand-preview-grid">
                                 <div class="settings-brand-preview-card settings-brand-preview-dark">
                                     <img src="icons/manzil-brand.svg" alt="الشعار الكامل لمنزل MANZIL" loading="lazy">
                                     <span>الشعار الرئيسي</span>
+                                    <small>يظهر في شاشة الدخول والتقارير</small>
                                 </div>
                                 <div class="settings-brand-preview-card settings-brand-preview-light">
                                     <img src="icons/manzil-logo.png" alt="أيقونة تطبيق منزل" loading="lazy">
                                     <span>أيقونة التطبيق</span>
+                                    <small>تظهر في رأس التطبيق والتثبيت</small>
                                 </div>
                             </div>
-                            <p class="settings-help">تظهر الهوية نفسها في شاشة الدخول ورأس التطبيق والتقارير. تغيير الثيم لا يغيّر الشعار أو الأيقونة.</p>
+                            <div class="settings-brand-meta" aria-label="خصائص الهوية">
+                                <span><i class="fa-solid fa-font" aria-hidden="true"></i> خط Cairo</span>
+                                <span><i class="fa-solid fa-droplet" aria-hidden="true"></i> ذهبي وفيروزي</span>
+                                <span><i class="fa-solid fa-language" aria-hidden="true"></i> واجهة عربية RTL</span>
+                            </div>
                         </section>
+
                         <section class="settings-subsection" aria-labelledby="settingsThemeTitle">
-                            <div class="settings-subsection-heading"><span class="settings-subsection-icon"><i class="fa-solid fa-swatchbook" aria-hidden="true"></i></span><div><h5 id="settingsThemeTitle">ثيم التطبيق</h5><p>اختر لوحة الألوان التي تناسبك</p></div></div>
+                            <div class="settings-subsection-heading">
+                                <span class="settings-subsection-icon"><i class="fa-solid fa-swatchbook" aria-hidden="true"></i></span>
+                                <div class="settings-subsection-copy">
+                                    <h5 id="settingsThemeTitle">ثيم التطبيق</h5>
+                                    <p>اختر لوحة الألوان الأنسب لبيئة العمل؛ يمكنك التبديل بينها في أي وقت.</p>
+                                </div>
+                                <span class="settings-theme-current-pill">الحالي: <b id="settingsCurrentThemePill">ليلي</b></span>
+                            </div>
                             <div class="theme-grid" role="group" aria-label="اختيار ثيم التطبيق">
                                 <button type="button" class="theme-option" data-theme-option="dark" onclick="setTheme('dark')"><span class="theme-preview theme-preview-dark"><i></i><i></i><i></i></span><span>ليلي</span><small>داكن هادئ</small></button>
                                 <button type="button" class="theme-option" data-theme-option="light" onclick="setTheme('light')"><span class="theme-preview theme-preview-light"><i></i><i></i><i></i></span><span>نهاري</span><small>فاتح ونظيف</small></button>
@@ -873,17 +1040,43 @@
                                 <button type="button" class="theme-option" data-theme-option="sand" onclick="setTheme('sand')"><span class="theme-preview theme-preview-sand"><i></i><i></i><i></i></span><span>رملي</span><small>دافئ ومريح</small></button>
                                 <button type="button" class="theme-option" data-theme-option="turquoise" onclick="setTheme('turquoise')"><span class="theme-preview theme-preview-turquoise"><i></i><i></i><i></i></span><span>فيروزي</span><small>أزرق تركواز هادئ</small></button>
                             </div>
-                            <div class="settings-inline-row"><span>الثيم الحالي</span><strong id="settingsCurrentTheme">ليلي</strong></div>
-                            <p class="settings-help">يتم حفظ اختيار الثيم مع إعدادات العمارة ويُطبّق على الواجهة فورًا.</p>
+                            <div class="settings-inline-row"><span>الثيم المطبّق الآن</span><strong id="settingsCurrentTheme">ليلي</strong></div>
+                            <p class="settings-help">يُحفظ اختيار الثيم مع إعدادات العمارة ويظهر على الأجهزة المرتبطة بعد المزامنة. تغيير الثيم لا يغيّر الشعار أو الأيقونة.</p>
                         </section>
                     </section>
                     <section id="settings-panel-backup" class="settings-panel hidden" role="tabpanel" aria-labelledby="settings-tab-backup">
-                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i></span><div><h4>النسخ الاحتياطي</h4><p>حماية بيانات العمارة وإدارة الاستعادة</p></div></div>
+                        <div class="settings-section-heading">
+                            <span class="settings-section-icon"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i></span>
+                            <div class="settings-heading-copy">
+                                <h4>النسخ الاحتياطي</h4>
+                                <p>نسخ يومي مؤمَّن على الخادم، مع إمكانية التنزيل والاستعادة الكاملة عند الحاجة.</p>
+                            </div>
+                            <div class="settings-heading-meta" aria-label="حالة القسم">
+                                <span class="settings-status"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> الجدولة مفعّلة</span>
+                            </div>
+                        </div>
+
+                        <div class="settings-backup-hero">
+                            <span class="settings-backup-hero-icon" aria-hidden="true"><i class="fa-solid fa-shield-halved"></i></span>
+                            <div>
+                                <h5>بيانات العمارة محمية بنسخ تلقائي</h5>
+                                <p>موعد التشغيل اليومي 02:23 UTC (04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة). يُفحص الأرشيف وتُحفظ آخر 30 نسخة.</p>
+                            </div>
+                            <div class="settings-backup-stats" aria-label="تفاصيل الجدولة">
+                                <div><span>التكرار</span><b>يوميًا</b></div>
+                                <div><span>المحفوظ</span><b>30 نسخة</b></div>
+                                <div><span>التحقق</span><b>SHA-256</b></div>
+                            </div>
+                        </div>
+
                         <div class="settings-backup-grid">
                             <div class="settings-info-card">
-                                <div class="settings-info-card-title"><i class="fa-solid fa-clock" aria-hidden="true"></i> النسخ التلقائي</div>
-                                <p>موعد التشغيل اليومي 02:23 UTC (04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة). يُفحص الأرشيف وتُحفظ آخر 30 نسخة.</p>
-                                <span class="settings-status"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> الجدولة مفعّلة</span>
+                                <div class="settings-info-card-title"><i class="fa-solid fa-box-archive" aria-hidden="true"></i> ماذا تشمل النسخة؟</div>
+                                <ul class="settings-info-list">
+                                    <li>قاعدة البيانات كاملة: الشقق والملاك والتحصيلات والمصروفات.</li>
+                                    <li>إعدادات العمارة وطرق التحصيل وقوالب الرسائل.</li>
+                                    <li>سجلات التدقيق وحسابات الدخول المرتبطة.</li>
+                                </ul>
                             </div>
                             <div class="settings-info-card" id="settingsBackupSummary" aria-live="polite">
                                 <div class="settings-info-card-title settings-info-card-title-split">
@@ -894,64 +1087,178 @@
                                 <p id="settingsBackupSummaryMeta" class="settings-meta-text"></p>
                             </div>
                         </div>
-                        <button type="button" onclick="closeModal('settingsModal'); openModal('backupModal')" class="settings-primary-action"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> فتح إدارة النسخ والاستعادة</button>
-                        <p class="settings-help">الاستعادة تستبدل بيانات قاعدة الإنتاج بالكامل ولا يمكن التراجع عنها إلا باستعادة نسخة أخرى.</p>
+
+                        <div class="settings-backup-actions">
+                            <button type="button" onclick="closeModal('settingsModal'); openModal('backupModal')" class="settings-primary-action"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> فتح إدارة النسخ والاستعادة</button>
+                            <p class="settings-help">الاستعادة تستبدل بيانات قاعدة الإنتاج بالكامل ولا يمكن التراجع عنها إلا باستعادة نسخة أخرى.</p>
+                        </div>
                     </section>
                     <section id="settings-panel-receipts" class="settings-panel hidden" role="tabpanel" aria-labelledby="settings-tab-receipts">
-                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-receipt" aria-hidden="true"></i></span><div><h4>إيصال التحصيل</h4><p>خصص رسالة الشكر التي تظهر في إيصال واتساب</p></div></div>
-                        <div class="settings-editor-grid">
-                            <section class="settings-subsection" aria-labelledby="settingsReceiptEditorTitle">
-                                <div class="settings-subsection-heading"><span class="settings-subsection-icon"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></span><div><h5 id="settingsReceiptEditorTitle">رسالة الشكر</h5><p>تظهر أسفل تفاصيل الإيصال</p></div></div>
-                                <label class="settings-field" for="settingsReceiptThankYou"><span>نص الرسالة</span><textarea id="settingsReceiptThankYou" rows="4" maxlength="180" class="app-input border rounded-xl px-3 py-2.5 resize-y" placeholder="شكراً لالتزامكم، ونسعد دائماً بخدمتكم."></textarea><span id="settingsReceiptCharacterCount" class="settings-character-count" aria-live="polite">0 / 180 حرف</span></label>
-                                <p class="settings-help">اترك الحقل فارغًا لاستخدام الرسالة الافتراضية. تُحفظ الرسالة على إعدادات هذا المبنى في الخادم وتظهر على الأجهزة المرتبطة به، ولا تؤثر على مبالغ التحصيل أو طريقة الدفع.</p>
-                            </section>
-                            <div class="settings-preview-card">
-                                <div class="settings-preview-head">
-                                    <span class="settings-preview-icon" aria-hidden="true"><i class="fa-solid fa-eye"></i></span>
-                                    <div><b>معاينة الإيصال</b><small>معاينة تجريبية — لن يتم إرسال رسالة أو تسجيل تحصيل.</small></div>
-                                </div>
-                                <pre id="settingsReceiptPreview" class="settings-preview-body" dir="auto"></pre>
+                        <div class="settings-section-heading">
+                            <span class="settings-section-icon"><i class="fa-solid fa-receipt" aria-hidden="true"></i></span>
+                            <div class="settings-heading-copy">
+                                <h4>إيصال التحصيل</h4>
+                                <p>خصّص رسالة الشكر التي تُلحق أسفل إيصال واتساب المرسل للمالك بعد تسجيل الدفعة.</p>
                             </div>
+                            <div class="settings-heading-meta" aria-label="حالة القسم">
+                                <span class="settings-chip is-gold"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> إيصال واتساب</span>
+                            </div>
+                        </div>
+
+                        <div class="settings-workspace">
+                            <div class="settings-workspace-main">
+                                <section class="settings-subsection" aria-labelledby="settingsReceiptEditorTitle">
+                                    <div class="settings-subsection-heading">
+                                        <span class="settings-subsection-icon"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></span>
+                                        <div class="settings-subsection-copy">
+                                            <h5 id="settingsReceiptEditorTitle">رسالة الشكر</h5>
+                                            <p>تظهر بعد تفاصيل الدفعة مباشرة. اتركها فارغة لاستخدام الصياغة الافتراضية.</p>
+                                        </div>
+                                    </div>
+                                    <label class="settings-field" for="settingsReceiptThankYou"><span>نص الرسالة</span><textarea id="settingsReceiptThankYou" rows="4" maxlength="180" class="app-input border rounded-xl px-3 py-2.5 resize-y" placeholder="شكراً لالتزامكم، ونسعد دائماً بخدمتكم."></textarea><span id="settingsReceiptCharacterCount" class="settings-character-count" aria-live="polite">0 / 180 حرف</span></label>
+                                    <div class="settings-editor-toolbar">
+                                        <button type="button" onclick="resetReceiptTemplate()" class="settings-mini-button"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> استعادة الافتراضي</button>
+                                        <span class="settings-toolbar-hint"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> تُحفظ مع إعدادات العمارة</span>
+                                    </div>
+                                    <p class="settings-help">الرسالة لا تؤثر على مبالغ التحصيل أو طريقة الدفع، وتظهر على الأجهزة المرتبطة بنفس العمارة بعد المزامنة.</p>
+                                </section>
+
+                                <div class="settings-info-card">
+                                    <div class="settings-info-card-title"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> صياغة أفضل</div>
+                                    <ul class="settings-info-list">
+                                        <li>اجعل الرسالة سطرًا أو سطرين للحدّ من طول الإيصال.</li>
+                                        <li>اذكر الشكر دون تكرار المبلغ أو اسم الشقة، فهما يظهران تلقائيًا.</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <aside class="settings-workspace-aside" aria-label="معاينة الإيصال">
+                                <div class="settings-preview-card settings-phone-card">
+                                    <div class="settings-preview-head">
+                                        <span class="settings-preview-icon" aria-hidden="true"><i class="fa-solid fa-eye"></i></span>
+                                        <div><b>معاينة الإيصال</b><small>معاينة تجريبية — لن يتم إرسال رسالة أو تسجيل تحصيل.</small></div>
+                                    </div>
+                                    <div class="settings-phone">
+                                        <div class="settings-phone-bar"><span class="settings-phone-dot" aria-hidden="true"></span><b>واتساب — إيصال منزل</b></div>
+                                        <pre id="settingsReceiptPreview" class="settings-preview-body settings-message-bubble" dir="auto"></pre>
+                                    </div>
+                                </div>
+                            </aside>
                         </div>
                     </section>
                     <section id="settings-panel-reminders" class="settings-panel hidden" role="tabpanel" aria-labelledby="settings-tab-reminders">
-                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-bell" aria-hidden="true"></i></span><div><h4>تذكيرات المتأخرات</h4><p>خصص رسالة واتساب التي تجهز للساكن قبل الإرسال</p></div></div>
-                        <div class="settings-editor-grid">
-                            <section class="settings-subsection" aria-labelledby="settingsReminderEditorTitle">
-                                <div class="settings-subsection-heading"><span class="settings-subsection-icon"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></span><div><h5 id="settingsReminderEditorTitle">نص التذكير</h5><p>المتغيرات تُستبدل ببيانات الشقة عند الإرسال</p></div></div>
-                                <label class="settings-field" for="settingsReminderTemplate"><span>الرسالة</span><textarea id="settingsReminderTemplate" rows="6" maxlength="500" class="app-input border rounded-xl px-3 py-2.5 resize-y" placeholder="اكتب رسالة التذكير"></textarea><span id="settingsReminderCharacterCount" class="settings-character-count" aria-live="polite">0 / 500 حرف</span></label>
-                                <div class="settings-variable-chips" dir="ltr" aria-label="المتغيرات المتاحة">
-                                    <code>{name}</code><code>{building}</code><code>{apartment}</code><code>{month}</code><code>{amount}</code><code>{count}</code><code>{months}</code>
-                                </div>
-                                <p class="settings-help">اكتب المتغيرات كما هي داخل الأقواس. اترك النص فارغًا لاستخدام الرسالة الافتراضية. الرسالة تُجهز فقط، ولا تُرسل تلقائيًا.</p>
-                            </section>
-                            <div class="settings-preview-card">
-                                <div class="settings-preview-head">
-                                    <span class="settings-preview-icon" aria-hidden="true"><i class="fa-solid fa-eye"></i></span>
-                                    <div><b>معاينة التذكير</b><small>بيانات تجريبية — لن يتم فتح واتساب أو إرسال رسالة.</small></div>
-                                </div>
-                                <pre id="settingsReminderPreview" class="settings-preview-body" dir="auto"></pre>
+                        <div class="settings-section-heading">
+                            <span class="settings-section-icon"><i class="fa-solid fa-bell" aria-hidden="true"></i></span>
+                            <div class="settings-heading-copy">
+                                <h4>تذكيرات المتأخرات</h4>
+                                <p>جهّز رسالة واتساب واضحة تُملأ تلقائيًا ببيانات الشقة قبل إرسالها يدويًا.</p>
                             </div>
+                            <div class="settings-heading-meta" aria-label="حالة القسم">
+                                <span class="settings-chip"><i class="fa-solid fa-hand-pointer" aria-hidden="true"></i> إرسال يدوي فقط</span>
+                            </div>
+                        </div>
+
+                        <div class="settings-workspace">
+                            <div class="settings-workspace-main">
+                                <section class="settings-subsection" aria-labelledby="settingsReminderEditorTitle">
+                                    <div class="settings-subsection-heading">
+                                        <span class="settings-subsection-icon"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></span>
+                                        <div class="settings-subsection-copy">
+                                            <h5 id="settingsReminderEditorTitle">نص التذكير</h5>
+                                            <p>اضغط على أي متغير لإضافته إلى موضع المؤشر داخل الرسالة.</p>
+                                        </div>
+                                    </div>
+                                    <label class="settings-field" for="settingsReminderTemplate"><span>الرسالة</span><textarea id="settingsReminderTemplate" rows="6" maxlength="500" class="app-input border rounded-xl px-3 py-2.5 resize-y" placeholder="اكتب رسالة التذكير"></textarea><span id="settingsReminderCharacterCount" class="settings-character-count" aria-live="polite">0 / 500 حرف</span></label>
+                                    <div class="settings-variable-chips" dir="ltr" aria-label="المتغيرات المتاحة">
+                                        <button type="button" class="settings-variable-chip" onclick="insertReminderVariable('{name}')" title="اسم المالك">{name}</button>
+                                        <button type="button" class="settings-variable-chip" onclick="insertReminderVariable('{building}')" title="اسم العمارة">{building}</button>
+                                        <button type="button" class="settings-variable-chip" onclick="insertReminderVariable('{apartment}')" title="رقم الشقة">{apartment}</button>
+                                        <button type="button" class="settings-variable-chip" onclick="insertReminderVariable('{month}')" title="اسم الشهر الحالي">{month}</button>
+                                        <button type="button" class="settings-variable-chip" onclick="insertReminderVariable('{amount}')" title="إجمالي المتأخرات">{amount}</button>
+                                        <button type="button" class="settings-variable-chip" onclick="insertReminderVariable('{count}')" title="عدد الشهور المتأخرة">{count}</button>
+                                        <button type="button" class="settings-variable-chip" onclick="insertReminderVariable('{months}')" title="قائمة الشهور المتأخرة">{months}</button>
+                                    </div>
+                                    <div class="settings-editor-toolbar">
+                                        <button type="button" onclick="resetReminderTemplate()" class="settings-mini-button"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> استعادة الافتراضي</button>
+                                        <span class="settings-toolbar-hint"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> المتغيرات تُستبدل عند الإرسال</span>
+                                    </div>
+                                    <p class="settings-help">اترك النص فارغًا لاستخدام الرسالة الافتراضية. الرسالة تُجهَّز فقط، ولا تُرسل تلقائيًا، ولا تؤثر على سجل التحصيل.</p>
+                                </section>
+
+                                <div class="settings-info-card">
+                                    <div class="settings-info-card-title"><i class="fa-solid fa-list-check" aria-hidden="true"></i> المتغيرات ومعانيها</div>
+                                    <ul class="settings-info-list settings-variable-legend">
+                                        <li><code>{name}</code> اسم المالك أو الساكن</li>
+                                        <li><code>{apartment}</code> رقم الشقة و<b>{building}</b> اسم العمارة</li>
+                                        <li><code>{amount}</code> إجمالي المتأخرات و<b>{count}</b> عدد الشهور</li>
+                                        <li><code>{month}</code> الشهر الحالي و<b>{months}</b> قائمة الشهور المتأخرة</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <aside class="settings-workspace-aside" aria-label="معاينة التذكير">
+                                <div class="settings-preview-card settings-phone-card">
+                                    <div class="settings-preview-head">
+                                        <span class="settings-preview-icon" aria-hidden="true"><i class="fa-solid fa-eye"></i></span>
+                                        <div><b>معاينة التذكير</b><small>بيانات تجريبية — لن يتم فتح واتساب أو إرسال رسالة.</small></div>
+                                    </div>
+                                    <div class="settings-phone">
+                                        <div class="settings-phone-bar"><span class="settings-phone-dot is-whatsapp" aria-hidden="true"></span><b>واتساب — تذكير منزل</b></div>
+                                        <pre id="settingsReminderPreview" class="settings-preview-body settings-message-bubble" dir="auto"></pre>
+                                    </div>
+                                </div>
+                            </aside>
                         </div>
                     </section>
                     <section id="settings-panel-account" class="settings-panel hidden" role="tabpanel" aria-labelledby="settings-tab-account">
-                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-user-shield" aria-hidden="true"></i></span><div><h4>الحساب والصلاحيات</h4><p>معلومات الجلسة وأمان الوصول</p></div></div>
+                        <div class="settings-section-heading">
+                            <span class="settings-section-icon"><i class="fa-solid fa-user-shield" aria-hidden="true"></i></span>
+                            <div class="settings-heading-copy">
+                                <h4>الحساب والصلاحيات</h4>
+                                <p>راجع جلسة المدير، وأدر حسابات الملاك المرتبطة بالشقق، وتحقّق من حالة الوصول قبل مشاركة بوابة المالك.</p>
+                            </div>
+                            <div class="settings-heading-meta" aria-label="حالة القسم">
+                                <span class="settings-chip"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> حماية RLS</span>
+                            </div>
+                        </div>
+
                         <div class="settings-account-card">
                             <span class="settings-account-avatar" aria-hidden="true"><i class="fa-solid fa-user-shield"></i></span>
                             <div class="settings-account-rows">
                                 <div><span>الحساب</span><b id="settingsAccountEmail" dir="ltr">—</b></div>
                                 <div><span>نوع الصلاحية</span><b id="settingsAccountRole">—</b></div>
                             </div>
+                            <span class="settings-account-badge"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> جلسة نشطة</span>
                         </div>
+
                         <section class="settings-subsection settings-owner-panel" aria-labelledby="settingsOwnerPanelTitle">
-                            <div class="settings-subsection-heading"><span class="settings-subsection-icon"><i class="fa-solid fa-users-gear" aria-hidden="true"></i></span><div><h5 id="settingsOwnerPanelTitle">إدارة حسابات الملاك</h5><p>كل مالك مرتبط بشقة واحدة. أنشئ الحساب أو أعد إصدار PIN مؤقت عند الحاجة؛ صلاحية المالك تظل للعرض فقط.</p></div></div>
+                            <div class="settings-subsection-heading">
+                                <span class="settings-subsection-icon"><i class="fa-solid fa-users-gear" aria-hidden="true"></i></span>
+                                <div class="settings-subsection-copy">
+                                    <h5 id="settingsOwnerPanelTitle">حسابات الملاك</h5>
+                                    <p>إدارة حسابات الملاك: كل مالك مرتبط بشقة واحدة. أنشئ الحساب أو أعد إصدار PIN مؤقت عند الحاجة؛ صلاحية المالك تظل للعرض فقط.</p>
+                                </div>
+                            </div>
+                            <div class="settings-owner-stats" aria-label="ملخص حسابات الملاك">
+                                <div class="is-total"><i class="fa-solid fa-door-open" aria-hidden="true"></i><span>الشقق</span><b id="settingsOwnerStatTotal">—</b></div>
+                                <div class="is-linked"><i class="fa-solid fa-link" aria-hidden="true"></i><span>حساب مرتبط</span><b id="settingsOwnerStatLinked">—</b></div>
+                                <div class="is-pending"><i class="fa-solid fa-user-clock" aria-hidden="true"></i><span>ينتظر الإنشاء</span><b id="settingsOwnerStatPending">—</b></div>
+                                <div class="is-missing"><i class="fa-solid fa-phone-slash" aria-hidden="true"></i><span>بدون هاتف</span><b id="settingsOwnerStatMissing">—</b></div>
+                            </div>
                             <p id="settingsOwnerAccessSummary" class="settings-owner-summary" aria-live="polite">جارٍ تجهيز ملخص الحسابات...</p>
-                            <label class="settings-field" for="settingsOwnerAccessSearch"><span>بحث عن مالك أو شقة</span><input id="settingsOwnerAccessSearch" type="search" oninput="renderSettingsOwnerAccess()" autocomplete="off" placeholder="اكتب اسم المالك أو رقم الشقة أو الهاتف" class="app-input border rounded-xl px-3 py-2.5"></label>
+                            <label class="settings-field" for="settingsOwnerAccessSearch"><span>بحث عن مالك أو شقة</span><span class="settings-search-wrap"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="settingsOwnerAccessSearch" type="search" oninput="renderSettingsOwnerAccess()" autocomplete="off" placeholder="اكتب اسم المالك أو رقم الشقة أو الهاتف" class="app-input border rounded-xl px-3 py-2.5"></span></label>
                             <div id="settingsOwnerAccessList" class="settings-owner-list" aria-live="polite"></div>
                         </section>
-                        <div class="settings-account-actions">
-                            <button id="settingsPasswordResetBtn" type="button" onclick="sendSettingsPasswordReset()" class="settings-secondary-button"><i class="fa-solid fa-envelope" aria-hidden="true"></i> إرسال رابط تغيير كلمة مرور المدير</button>
-                            <button type="button" onclick="lockCurrentSession()" class="settings-secondary-button"><i class="fa-solid fa-lock" aria-hidden="true"></i> قفل الجلسة وتبديل المستخدم</button>
+
+                        <div class="settings-session-card">
+                            <div class="settings-session-copy">
+                                <span class="settings-session-icon" aria-hidden="true"><i class="fa-solid fa-key"></i></span>
+                                <div><b>أمان الجلسة</b><p>غيّر كلمة مرور المدير عبر البريد، أو اقفل الجلسة عند ترك الجهاز لتبديل المستخدم.</p></div>
+                            </div>
+                            <div class="settings-account-actions">
+                                <button id="settingsPasswordResetBtn" type="button" onclick="sendSettingsPasswordReset()" class="settings-secondary-button"><i class="fa-solid fa-envelope" aria-hidden="true"></i> إرسال رابط تغيير كلمة مرور المدير</button>
+                                <button type="button" onclick="lockCurrentSession()" class="settings-secondary-button is-danger"><i class="fa-solid fa-lock" aria-hidden="true"></i> قفل الجلسة وتبديل المستخدم</button>
+                            </div>
                         </div>
                     </section>
                 </div>
