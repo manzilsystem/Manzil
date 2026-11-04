@@ -1,4 +1,4 @@
-const CACHE_NAME = 'manzil-v73';
+const CACHE_NAME = 'manzil-v74';
 const APP_CACHE_PREFIX = 'manzil-';
 const APP_SHELL = [
     './',
@@ -24,7 +24,6 @@ const APP_SHELL = [
     './icons/manzil-full-3.png',
     './icons/manzil-full-4.png',
     './icons/manzil-brand.svg',
-    './icons/manzil-logo.png',
     './icons/icon-192.png',
     './icons/icon-512.png'
 ];
@@ -71,12 +70,12 @@ self.addEventListener('fetch', event => {
     }
 
     event.respondWith(
-        caches.match(request).then(cached => cached || fetch(request).then(response => {
+        fetch(new Request(request, { cache: 'no-cache' })).then(response => {
             if (response.ok && response.type === 'basic') {
                 const copy = response.clone();
                 caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
             }
             return response;
-        }))
+        }).catch(() => caches.match(request))
     );
 });
