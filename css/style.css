@@ -1110,3 +1110,82 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
   #settingsModal .settings-card-icon { width:2.8rem;height:2.8rem;font-size:1.2rem; }
   #settingsModal .settings-card { gap:.2rem;padding:.2rem; }
 }
+
+
+/* Mobile settings: balanced full-screen tiles with prominent, consistent icons. */
+@media (max-width:560px) {
+  #settingsModal .settings-overview {
+    padding:clamp(.55rem,2.2vw,.85rem);
+  }
+  #settingsModal .settings-overview-heading {
+    margin-bottom:clamp(.45rem,1.5vh,.8rem);
+  }
+  #settingsModal .settings-overview-heading h4 {
+    font-size:clamp(1.05rem,4.2vw,1.25rem);
+  }
+  #settingsModal .settings-card-grid {
+    display:grid;
+    flex:1 1 0;
+    min-height:0;
+    width:100%;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-rows:repeat(4,minmax(0,1fr));
+    gap:clamp(.5rem,2vw,.8rem);
+  }
+  #settingsModal .settings-card {
+    display:flex;
+    width:100%;
+    min-width:0;
+    min-height:0;
+    height:100%;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:clamp(.45rem,1.5vh,.75rem);
+    padding:.5rem .35rem;
+    border-radius:1.15rem;
+    text-align:center;
+  }
+  #settingsModal .settings-card-icon {
+    display:grid;
+    place-items:center;
+    width:clamp(3.8rem,18vw,5rem);
+    height:clamp(3.8rem,18vw,5rem);
+    flex:0 0 auto;
+    border-radius:1.15rem;
+    font-size:clamp(1.75rem,8vw,2.35rem);
+  }
+  #settingsModal .settings-card-icon i {
+    line-height:1;
+  }
+  #settingsModal .settings-card-copy {
+    display:flex;
+    flex:0 0 auto;
+    width:100%;
+    align-items:center;
+    justify-content:center;
+    min-width:0;
+  }
+  #settingsModal .settings-card-copy b {
+    max-width:100%;
+    font-size:clamp(.82rem,3.6vw,.98rem);
+    line-height:1.4;
+    overflow-wrap:anywhere;
+  }
+  #settingsModal .settings-card-copy small,
+  #settingsModal .settings-card-arrow {
+    display:none;
+  }
+}
+@media (max-height:650px) and (max-width:560px) {
+  #settingsModal .settings-overview { padding:.35rem .45rem; }
+  #settingsModal .settings-overview-heading { margin-bottom:.25rem; }
+  #settingsModal .settings-card-grid { gap:.35rem; }
+  #settingsModal .settings-card { gap:.25rem;padding:.25rem; }
+  #settingsModal .settings-card-icon {
+    width:clamp(3rem,12vw,3.8rem);
+    height:clamp(3rem,12vw,3.8rem);
+    font-size:clamp(1.4rem,6vw,1.8rem);
+  }
+  #settingsModal .settings-card-copy b { font-size:.78rem; }
+}

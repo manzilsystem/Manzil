@@ -66,7 +66,7 @@ test('settings redesign is included in the service worker cache version', () => 
     assert.match(html, /02:23 UTC/);
     assert.match(html, /04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة/);
     assert.doesNotMatch(html, /نسخة يومية الساعة 04:23 صباحًا بتوقيت مصر/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v74'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v75'/);
     assert.ok(css.includes('width:100vw;') && css.includes('max-width:none;'), 'settings must occupy the full viewport width');
     assert.ok(css.includes('height:100dvh;') && css.includes('max-height:100dvh;'), 'settings must occupy the full viewport height');
     assert.ok(css.includes('grid-template-rows:repeat(2,minmax(150px,1fr))'), 'desktop cards must expand into two full-height rows');
@@ -153,7 +153,7 @@ test('receipt and reminder templates synchronize through building settings', () 
     assert.ok(settings.includes('arrears_reminder_template: reminderTemplate || null'));
     assert.ok(settings.includes('localStorage.removeItem(getReceiptSettingsKey())'));
     assert.ok(settings.includes('localStorage.removeItem(getReminderTemplateKey())'));
-    assert.match(sw, /CACHE_NAME = 'manzil-v74'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v75'/);
 });
 
 
@@ -180,7 +180,7 @@ test('settings cards use larger full-screen tiles and sections remain full-scree
 
 
 test('service worker refreshes cached assets from network and checks for updates automatically', () => {
-    assert.ok(sw.includes("CACHE_NAME = 'manzil-v74'"));
+    assert.ok(sw.includes("CACHE_NAME = 'manzil-v75'"));
     assert.ok(sw.includes("fetch(new Request(request, { cache: 'no-cache' }))"));
     assert.ok(sw.includes('.catch(() => caches.match(request))'));
     assert.ok(read('js/app.js').includes("updateViaCache: 'none'"));
