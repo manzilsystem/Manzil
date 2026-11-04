@@ -326,14 +326,14 @@ async function submitCashTransfer(event) {
             if (!Number.isFinite(availableBalance) || responseVersion === null) {
                 throw new Error('Invalid insufficient-balance response');
             }
+            if (!await refreshCashboxSummary()) {
+                throw new Error('Could not refresh cashbox summary after insufficient balance');
+            }
+            if (activeBuildingId !== transferBuildingId) return;
             activeBuildingVersion = responseVersion;
             clearCashTransferPending(transferBuildingId);
-            state.cashAccountBalances = {
-                ...(state.cashAccountBalances || {}),
-                [fromAccountCode]: availableBalance
-            };
-            renderCashbox();
-            toast(`الرصيد الفعلي المتاح هو ${fmtNum(availableBalance)} ج.م. تم إلغاء التحويل.`, 'error');
+            renderAll();
+            toast(`الرصيد الفعلي المتاح هو ${fmtNum(availableBalance)} ج.م. تم إلغاء التحويل وتحديث أرصدة الصناديق.`, 'error');
             return;
         }
         const responseVersion = parseCashboxVersion(data?.version);
