@@ -32,7 +32,7 @@ function renderCard({ paid, hasReceipt = true, priorDebt = !paid }) {
         esc: value => String(value ?? ''),
         fmtNum: value => String(value ?? 0)
     };
-    vm.runInNewContext(renderResidentsGridSource, sandbox, { filename: 'js/render.js' });
+    vm.runInNewContext(renderResidentsGridSource + String.fromCharCode(10) + 'renderResidentsGrid();', sandbox, { filename: 'js/render.js' });
     return elements.residentsGrid.innerHTML;
 }
 
