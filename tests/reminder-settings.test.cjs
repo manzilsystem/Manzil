@@ -117,7 +117,7 @@ test('reminder template character counter updates live and warns near the limit'
         settingsReminderCharacterCount: { textContent: '', classList: { toggle() {} } },
         settingsReminderPreview: { textContent: '' }
     };
-    const api = vm.runInNewContext(settingsSource + '\\nstate.buildingName = "عمارة النور";\\n({ renderReminderPreview })', {
+    const api = vm.runInNewContext(settingsSource + '\nstate.buildingName = "عمارة النور";\n({ renderReminderPreview })', {
         document: { getElementById: id => elements[id] || null }
     });
     api.renderReminderPreview();
