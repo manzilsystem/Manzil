@@ -128,7 +128,22 @@ async function initApp() {
     await initSupabaseApp();
     document.addEventListener('keydown', handleModalKeyboard);
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-        navigator.serviceWorker.register('./sw.js').catch(error => console.warn('تعذر تسجيل عامل الخدمة:', error));
+        let refreshingAfterUpdate = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshingAfterUpdate) return;
+            refreshingAfterUpdate = true;
+            window.location.reload();
+        });
+
+        navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+            .then(registration => {
+                registration.update().catch(() => {});
+                window.addEventListener('focus', () => registration.update().catch(() => {}));
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') registration.update().catch(() => {});
+                });
+            })
+            .catch(error => console.warn('تعذر تسجيل عامل الخدمة:', error));
     }
 }
 
