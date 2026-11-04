@@ -14,6 +14,7 @@ function createHarness({ income = [], values = {}, saveResult = true } = {}) {
         incomeEditMonth: { value: values.month || 'يناير 2024', innerHTML: '' },
         incomeEditAmount: { value: values.amount || '50' },
         incomeEditPaymentMethod: { value: values.paymentMethod || 'cash' },
+        incomeEditPaymentMethod: { value: values.paymentMethod || 'cash' },
         incomeEditNotes: { value: values.notes || '' },
         incomeEditSubmitButton: { disabled: false, textContent: 'حفظ التعديل' }
     };
@@ -42,6 +43,8 @@ function createHarness({ income = [], values = {}, saveResult = true } = {}) {
         renderAll: () => {},
         toast: (...args) => messages.push(args),
         fmtNum: value => String(value),
+        INCOME_PAYMENT_METHOD_LABELS: { cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي' },
+        getIncomePaymentMethodLabel: method => ({ cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي' })[method] || 'غير محدد',
         INCOME_PAYMENT_METHOD_LABELS: { cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي' },
         getIncomePaymentMethodLabel: method => ({ cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي' })[method] || 'غير محدد',
         esc: value => String(value ?? ''),
@@ -106,7 +109,7 @@ test('editing rejects an amount greater than the remaining monthly subscription'
 
 test('editing rejects payments dated before the apartment creation month', async () => {
     const h = createHarness({
-        income: [{ id: 'i1', residentId: 'r1', amount: 40, month: 'يناير 2024', notes: '', date: '2024-01-15T10:00:00.000Z' }],
+        income: [{ id: 'i1', residentId: 'r1', amount: 40, month: 'يناير 2024', notes: '', paymentMethod: 'cash', date: '2024-01-15T10:00:00.000Z' }],
         values: { amount: '20', month: 'ديسمبر 2023' }
     });
 
@@ -134,4 +137,22 @@ test('editing rejects an invalid month and missing payment without saving', asyn
     h.api.openIncomeEditModal('missing');
     assert.equal(h.calls.save, 0);
     assert.match(h.messages.at(-1)[0], /تعذر العثور على التحصيل/);
+});
+
+
+test('editing one part of a distributed collection preserves its reference and updates the method for every part', async () => {
+    const h = createHarness({
+        income: [
+            { id: 'i1', residentId: 'r1', amount: 40, month: 'يناير 2024', notes: 'دفعة موزعة ABC123 (1/2) · ملاحظة', paymentMethod: 'cash', date: '2024-01-15T10:00:00.000Z' },
+            { id: 'i2', residentId: 'r1', amount: 30, month: 'فبراير 2024', notes: 'دفعة موزعة ABC123 (2/2)', paymentMethod: 'cash', date: '2024-01-15T10:00:00.000Z' }
+        ],
+        values: { amount: '40', month: 'يناير 2024', notes: 'ملاحظة', paymentMethod: 'wallet' }
+    });
+    h.api.openIncomeEditModal('i1');
+    assert.equal(h.elements.incomeEditNotes.value, 'ملاحظة');
+    h.elements.incomeEditPaymentMethod.value = 'wallet';
+    await h.api.handleIncomeEditSubmit({ preventDefault() {} });
+    assert.equal(h.state.income[0].notes, 'دفعة موزعة ABC123 (1/2) · ملاحظة');
+    assert.equal(h.state.income[0].paymentMethod, 'wallet');
+    assert.equal(h.state.income[1].paymentMethod, 'wallet');
 });
