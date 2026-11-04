@@ -34,6 +34,17 @@ function toast(msg, type = 'success') {
 function formatDate(iso) { if (!iso) return ''; try { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('ar-EG',{year:'numeric',month:'short',day:'numeric'}); } catch(e){ return ''; } }
 function getCurrentMonth() { const d = new Date(); return `${monthsNames[d.getMonth()]} ${d.getFullYear()}`; }
 
+const INCOME_PAYMENT_METHOD_LABELS = Object.freeze({
+    cash: 'نقدًا',
+    wallet: 'محفظة إلكترونية',
+    instapay: 'InstaPay',
+    bank_transfer: 'تحويل بنكي'
+});
+
+function getIncomePaymentMethodLabel(method) {
+    return INCOME_PAYMENT_METHOD_LABELS[method] || 'غير محدد';
+}
+
 let state = {
     buildingName:'', managerName:'', managerPhone:'', defaultSubscription:0, startingBalance:0,
     floorCount:0, apartmentsPerFloor:0,

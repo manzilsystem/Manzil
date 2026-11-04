@@ -12,6 +12,7 @@ function loadHandler(residents) {
         incomeAmount: '50',
         incomeMonth: 'يناير 2024',
         incomeNotes: '',
+        incomePaymentMethod: 'instapay',
     };
     const messages = [];
     const sandbox = {
@@ -32,6 +33,8 @@ function loadHandler(residents) {
         renderAll() {},
         toast: (...args) => messages.push(args),
         fmtNum: value => String(value),
+        INCOME_PAYMENT_METHOD_LABELS: { cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي' },
+        getIncomePaymentMethodLabel: method => ({ cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي' })[method] || 'غير محدد',
         calculateIncomeAllocationPreview: (residentId, amount, month) => ({
             invalid: false,
             allocations: [{ month, amount: Number(amount) }],
@@ -63,4 +66,17 @@ test('income submission still accepts a valid resident id', async () => {
     assert.equal(sandbox.state.income.length, 1);
     assert.equal(sandbox.state.income[0].residentId, 'missing-resident');
     assert.equal(sandbox.state.income[0].amount, 50);
+    assert.equal(sandbox.state.income[0].paymentMethod, 'instapay');
+});
+
+
+test('income submission rejects an unsupported payment method', async () => {
+    const { app, sandbox, messages } = loadHandler([{ id: 'missing-resident', name: 'شقة 1' }]);
+    const originalGetElementById = sandbox.document.getElementById;
+    sandbox.document.getElementById = id => id === 'incomePaymentMethod'
+        ? { value: 'crypto' }
+        : originalGetElementById(id);
+    await app.handleIncomeSubmit({ preventDefault() {} });
+    assert.equal(sandbox.state.income.length, 0);
+    assert.match(messages.at(-1)?.[0] || '', /اختر الشقة/);
 });
