@@ -582,7 +582,7 @@
                 <button onclick="closeModal('settingsModal')" aria-label="إغلاق نافذة الإعدادات" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div class="settings-layout">
-                <div class="settings-tabs" role="tablist" aria-label="أقسام الإعدادات">
+                <div class="settings-tabs" role="tablist" aria-label="أقسام الإعدادات" onkeydown="handleSettingsTabKeydown(event)">
                     <button type="button" class="settings-tab active" id="settings-tab-building" role="tab" aria-selected="true" aria-controls="settings-panel-building" onclick="switchSettingsTab('building')"><i class="fa-solid fa-building"></i><span>العمارة</span></button>
                     <button type="button" class="settings-tab" id="settings-tab-payments" role="tab" aria-selected="false" aria-controls="settings-panel-payments" onclick="switchSettingsTab('payments')"><i class="fa-solid fa-wallet"></i><span>التحصيل</span></button>
                     <button type="button" class="settings-tab" id="settings-tab-subscriptions" role="tab" aria-selected="false" aria-controls="settings-panel-subscriptions" onclick="switchSettingsTab('subscriptions')"><i class="fa-solid fa-calendar-check"></i><span>الاشتراكات</span></button>
