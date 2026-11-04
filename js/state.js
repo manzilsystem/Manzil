@@ -261,7 +261,13 @@ function calculateCumulativeDebt(residentId) {
     const now = new Date();
     const allMonths = [];
     while (cursor <= now) { allMonths.push(`${monthsNames[cursor.getMonth()]} ${cursor.getFullYear()}`); cursor.setMonth(cursor.getMonth()+1); }
-    const unpaidMonths = allMonths.map(month => ({ month, amount: getMonthOutstanding(resident, month) })).filter(item => item.amount > 0);
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const unpaidMonths = allMonths
+        .map(month => ({ month, key: monthLabelToKey(month), amount: getMonthOutstanding(resident, month) }))
+        .filter(item => item.amount > 0 && (
+            (item.key || '').slice(0, 7) < currentMonthKey
+            || isSubscriptionMonthOverdue(item.month, now)
+        ));
     const totalDebtCents = unpaidMonths.reduce((sum, item) => sum + Math.round(item.amount * 100), 0);
     return { count: unpaidMonths.length, totalDebt: totalDebtCents / 100, unpaidMonths: unpaidMonths.map(item => item.month) };
 }
