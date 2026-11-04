@@ -286,21 +286,43 @@ function calculateIncomeAllocationPreview(residentId, amount, selectedMonth, max
         .map(month => ({ month, key: monthLabelToKey(month) }))
         .filter(item => item.key && item.key <= selectedKey);
     const startKey = priorUnpaid[0]?.key || selectedKey;
-    const [year, monthNumber] = startKey.split('-').map(Number);
-    const cursor = new Date(Date.UTC(year, monthNumber - 1, 1));
     const allocations = [];
     let remainingCents = amountCents;
     const limit = Number.isInteger(maxMonths) && maxMonths > 0 ? Math.min(maxMonths, 240) : 120;
+    const monthKeys = [];
 
-    for (let offset = 0; offset < limit && remainingCents > 0; offset += 1) {
-        const monthLabel = `${monthsNames[cursor.getUTCMonth()]} ${cursor.getUTCFullYear()}`;
+    if (state.paymentAllocationPolicy === 'selected_month_first') {
+        monthKeys.push(selectedKey);
+        priorUnpaid
+            .filter(item => item.key < selectedKey)
+            .sort((a, b) => a.key.localeCompare(b.key))
+            .forEach(item => monthKeys.push(item.key));
+        const [year, monthNumber] = selectedKey.split('-').map(Number);
+        const cursor = new Date(Date.UTC(year, monthNumber - 1, 1));
+        for (let offset = 0; offset < limit; offset += 1) {
+            const key = `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, '0')}`;
+            if (key !== selectedKey) monthKeys.push(key);
+            cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+        }
+    } else {
+        const [year, monthNumber] = startKey.split('-').map(Number);
+        const cursor = new Date(Date.UTC(year, monthNumber - 1, 1));
+        for (let offset = 0; offset < limit; offset += 1) {
+            monthKeys.push(`${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, '0')}`);
+            cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+        }
+    }
+
+    for (const key of monthKeys) {
+        if (remainingCents <= 0) break;
+        const [year, monthNumber] = key.split('-').map(Number);
+        const monthLabel = `${monthsNames[monthNumber - 1]} ${year}`;
         const outstandingCents = Math.max(0, Math.round(getMonthOutstanding(resident, monthLabel) * 100));
         if (outstandingCents > 0) {
             const allocationCents = Math.min(remainingCents, outstandingCents);
             allocations.push({ month: monthLabel, amount: allocationCents / 100, amountCents: allocationCents });
             remainingCents -= allocationCents;
         }
-        cursor.setUTCMonth(cursor.getUTCMonth() + 1);
     }
 
     return {
