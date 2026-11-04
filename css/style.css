@@ -1386,3 +1386,21 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 #settingsModal .settings-payment-card select:disabled {
   cursor:not-allowed;
 }
+
+
+/* Live summary for subscription rules before saving. */
+#settingsModal .settings-subscription-summary {
+  display:flex;flex-direction:column;gap:.8rem;padding:1rem 1.1rem;
+  border:1px solid rgba(21,158,154,.28);border-radius:1.1rem;
+  background:linear-gradient(120deg,rgba(21,158,154,.12),rgba(21,158,154,.035));
+}
+#settingsModal .settings-subscription-summary-title {
+  display:flex;align-items:center;gap:.55rem;color:#159e9a;
+}
+#settingsModal .settings-subscription-summary-title h5 { color:var(--text-primary,#f8fafc);font-size:.84rem;font-weight:900; }
+#settingsModal .settings-subscription-summary-output {
+  display:block;color:var(--text-secondary,#cbd5e1);font-size:.78rem;line-height:1.9;
+  white-space:pre-line;
+}
+[data-theme="light"] #settingsModal .settings-subscription-summary-title h5 { color:#173b48; }
+[data-theme="light"] #settingsModal .settings-subscription-summary-output { color:#526b73; }

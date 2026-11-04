@@ -133,6 +133,29 @@ function syncPaymentMethodDetails() {
     });
 }
 
+function renderSubscriptionRulePreview() {
+    const preview = document.getElementById('settingsSubscriptionRulePreview');
+    if (!preview) return;
+    const dueDay = Number(document.getElementById('settingsSubscriptionDueDay')?.value);
+    const graceDays = Number(document.getElementById('settingsSubscriptionGraceDays')?.value);
+    const policy = document.getElementById('settingsPaymentAllocationPolicy')?.value;
+    const dueLabel = Number.isInteger(dueDay) && dueDay >= 1 && dueDay <= 28
+        ? `يوم ${dueDay} من كل شهر`
+        : 'لم يتم تحديد يوم الاستحقاق';
+    const graceLabel = Number.isInteger(graceDays) && graceDays >= 0 && graceDays <= 31
+        ? (graceDays === 0 ? 'بدون فترة سماح' : `${graceDays} يوم`)
+        : 'فترة السماح غير صحيحة';
+    const policyLabel = policy === 'selected_month_first'
+        ? 'الشهر المحدد أولًا، ثم الشهور الأقدم'
+        : 'الشهور الأقدم أولًا';
+    preview.textContent = [
+        `موعد الاستحقاق: ${dueLabel}`,
+        `فترة السماح: ${graceLabel}`,
+        `توزيع الدفعات: ${policyLabel}`,
+        'يبدأ التأخير بعد انتهاء يوم الاستحقاق وفترة السماح.'
+    ].join('\n');
+}
+
 function openSettingsModal() {
     if (!requireManager()) return;
     document.getElementById('settingsBuildingName').value = state.buildingName||'';
@@ -164,6 +187,13 @@ function openSettingsModal() {
         ['oldest_first', 'selected_month_first'].includes(state.paymentAllocationPolicy)
             ? state.paymentAllocationPolicy
             : 'oldest_first';
+    ['settingsSubscriptionDueDay', 'settingsSubscriptionGraceDays', 'settingsPaymentAllocationPolicy'].forEach(id => {
+        const field = document.getElementById(id);
+        if (!field) return;
+        field.oninput = renderSubscriptionRulePreview;
+        field.onchange = renderSubscriptionRulePreview;
+    });
+    renderSubscriptionRulePreview();
 
     renderSettingsOwnerAccess();
     const account = document.getElementById('settingsAccountEmail');
