@@ -281,7 +281,10 @@ function mapNotification(row) {
 }
 
 function mapAudit(row) {
-    return { id: row.id, action: row.action, details: row.details || '', date: row.created_at };
+    return {
+        id: row.id, action: row.action, details: row.details || '',
+        actorId: row.actor_id || null, actorName: row.actor?.full_name || '', date: row.created_at
+    };
 }
 
 async function supabaseQuery(table, columns = '*') {
@@ -465,7 +468,7 @@ async function loadState() {
         : 'id,resident_id,amount,month,payment_method,paid_at';
     const expenseColumns = 'id,title,amount,category,month,notes,cash_account_code,spent_at';
     const noticeColumns = 'id,text,created_at';
-    const auditColumns = 'id,action,details,created_at';
+    const auditColumns = 'id,action,details,actor_id,created_at,actor:profiles!audit_logs_actor_id_fkey(full_name)';
     const subscriptionRatesQuery = supabaseClient.from('resident_subscription_rates')
         .select('resident_id,effective_month,monthly_amount')
         .eq('building_id', activeBuildingId)

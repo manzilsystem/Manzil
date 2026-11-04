@@ -1,11 +1,22 @@
 function renderAuditLog() {
-    const c = document.getElementById('auditLogContainer'); if (!c) return;
-    if (!state.auditLogs.length) { c.innerHTML = '<p class="text-slate-500 text-xs text-center py-2">لا يوجد سجل</p>'; return; }
-    c.innerHTML = state.auditLogs.slice(0, 30).map(l => `
-        <div class="text-[10px] text-slate-400 flex justify-between gap-2 border-b border-slate-800 pb-1">
-            <span class="truncate"><strong class="text-slate-300">${esc(l.action)}</strong>: ${esc(l.details)}</span>
-            <span class="shrink-0 text-slate-500">${formatDate(l.date)}</span>
-        </div>`).join('');
+    const container = document.getElementById('auditLogContainer');
+    if (!container) return;
+    const query = String(document.getElementById('auditLogSearch')?.value || '').trim().toLocaleLowerCase('ar');
+    const filtered = (state.auditLogs || []).filter(entry =>
+        !query || [entry.action, entry.details, entry.actorName].some(value =>
+            String(value || '').toLocaleLowerCase('ar').includes(query)
+        )
+    );
+    if (!filtered.length) {
+        container.innerHTML = `<p class="text-slate-500 text-xs text-center py-3">${query ? 'لا توجد نتائج مطابقة.' : 'لا يوجد سجل بعد.'}</p>`;
+        return;
+    }
+    container.innerHTML = filtered.slice(0, 100).map(entry => `
+        <article class="audit-log-row">
+            <div class="min-w-0"><p class="text-xs"><strong class="text-slate-300">${esc(entry.action)}</strong>${entry.details ? ': ' + esc(entry.details) : ''}</p>
+                <p class="text-[10px] text-slate-500 mt-1">بواسطة: ${esc(entry.actorName || 'المدير')} · ${formatDate(entry.date)}</p>
+            </div>
+        </article>`).join('');
 }
 
 function renderAll() {

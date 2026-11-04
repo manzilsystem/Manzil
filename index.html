@@ -510,7 +510,8 @@
                         <p class="text-[10px] text-slate-500 mt-1">يُحفظ تلقائيًا للمراجعة، ولا يمكن مسحه من التطبيق.</p>
                     </div>
                 </div>
-                <div id="auditLogContainer" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
+                <label class="block"><span class="sr-only">البحث في سجل العمليات</span><input id="auditLogSearch" type="search" oninput="renderAuditLog()" placeholder="ابحث بالعملية أو التفاصيل أو اسم المنفذ" class="app-input border rounded-xl px-3 py-2.5 w-full text-xs" /></label>
+                <div id="auditLogContainer" class="space-y-1.5 max-h-64 overflow-y-auto" aria-live="polite"></div>
             </div>
         </section>
         <footer id="appCopyright" class="text-center text-[10px] text-slate-500 leading-5 pt-2 no-print">
@@ -687,6 +688,10 @@
                     <section id="settings-panel-account" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-account">
                         <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-user-shield"></i></span><div><h4>الحساب والصلاحيات</h4><p>معلومات الجلسة وأمان الوصول</p></div></div>
                         <div class="settings-account-card"><div><span>الحساب</span><b id="settingsAccountEmail" dir="ltr">—</b></div><div><span>نوع الصلاحية</span><b id="settingsAccountRole">—</b></div></div>
+                        <section class="settings-info-card space-y-3">
+                            <div><h5 class="font-bold text-sm">إدارة حسابات الملاك</h5><p class="text-[11px] text-slate-500 mt-1">كل مالك مرتبط بشقة واحدة. يمكنك إنشاء حسابه أو إعادة إصدار PIN مؤقت عند الحاجة؛ صلاحية المالك تظل للعرض فقط.</p></div>
+                            <div id="settingsOwnerAccessList" class="settings-owner-list"></div>
+                        </section>
                         <button id="settingsPasswordResetBtn" type="button" onclick="sendSettingsPasswordReset()" class="w-full app-input border py-3 rounded-xl text-sm font-bold">إرسال رابط تغيير كلمة مرور المدير</button>
                         <button type="button" onclick="lockCurrentSession()" class="w-full app-input border py-3 rounded-xl text-sm font-bold"><i class="fa-solid fa-lock ml-2"></i> قفل الجلسة وتبديل المستخدم</button>
                     </section>

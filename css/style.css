@@ -378,6 +378,18 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
     .settings-tab { min-height:44px; font-size:.75rem; }
 }
 
+/* Manager-only owner account controls and searchable activity history. */
+.settings-owner-list { display:flex; flex-direction:column; gap:.65rem; }
+.settings-owner-row { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.8rem; border:1px solid var(--border-color); border-radius:.9rem; min-width:0; }
+.settings-owner-row > div:first-child { min-width:0; }
+.settings-owner-row b { display:block; font-size:.75rem; overflow-wrap:anywhere; }
+.settings-owner-actions { display:flex; flex-direction:column; gap:.4rem; flex:none; }
+.settings-owner-action { min-height:40px; padding:.5rem .7rem; border-radius:.7rem; background:var(--accent-color); color:#fff; font-size:.68rem; font-weight:800; white-space:nowrap; }
+.settings-owner-action.secondary { background:var(--surface-raised); border:1px solid var(--border-color); color:var(--text-main); }
+.audit-log-row { display:flex; padding:.65rem .2rem; border-bottom:1px solid var(--border-color); }
+.audit-log-row:last-child { border-bottom:0; }
+@media(max-width:420px) { .settings-owner-row { align-items:flex-start; flex-direction:column; } .settings-owner-actions { width:100%; flex-direction:row; flex-wrap:wrap; } .settings-owner-action { flex:1 1 auto; } }
+
 /* Financial settings: compact, touch-friendly controls. */
 .settings-tabs { grid-template-columns:repeat(4,minmax(0,1fr)); }
 .settings-payment-card {
