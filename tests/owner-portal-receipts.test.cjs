@@ -37,6 +37,9 @@ function createOwnerAccess(role = 'owner', phone = '01012345678') {
         currentResidentId: 'unit-1',
         activeSession: { user: { id: 'owner-user-1' } },
         activeBuildingId: 'building-1',
+        esc: value => String(value ?? '').replace(/[&<>"']/g, character => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[character]),
         document: { addEventListener() {} },
         updateAccessSwitchButton() {},
         toast: (message, type) => messages.push({ message, type }),
