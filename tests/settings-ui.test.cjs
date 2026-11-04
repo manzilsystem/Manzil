@@ -31,11 +31,11 @@ test('settings use responsive cards and full-page section navigation', () => {
     assert.match(html, /id="settingsSectionToolbar"/);
     assert.match(html, /onclick="showSettingsOverview\\(\\)"/);
     assert.match(html, /id="settingsSaveButton"/);
-    assert.match(css, /\.settings-card-grid\\s*\\{[^}]*grid-template-columns:\\s*repeat\(2/);
-    assert.match(css, /@media \(max-width: 640px\)[\s\S]*settings-card-grid \{ grid-template-columns:1fr/);
-    assert.match(css, /\.settings-card\\s*\\{[^}]*min-height:\s*104px/);
-    assert.match(css, /\.settings-overview\\s*\\{[^}]*overflow-y:\s*auto/);
-    assert.match(css, /\.settings-content\\s*\\{[^}]*overflow-y:\s*auto/);
+    assert.ok(css.includes('.settings-card-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr));'));
+    assert.ok(css.includes('.settings-card-grid { grid-template-columns:1fr;'));
+    assert.ok(css.includes('.settings-card { display:flex; align-items:center;'));
+    assert.ok(css.includes('.settings-overview { flex:1; min-height:0; overflow-y:auto;'));
+    assert.ok(css.includes('.settings-content { padding:1.1rem; min-height:310px; max-height:min(62vh,600px); overflow-y:auto;'));
     assert.match(settings, /function showSettingsOverview\(\)/);
     assert.match(settings, /function switchSettingsTab\(tab\)/);
 });
@@ -149,7 +149,7 @@ test('receipt and reminder templates synchronize through building settings', () 
 test('settings cards open a full-page section and return to the overview', () => {
     assert.match(html, /onclick="switchSettingsTab\\('payments'\\)"/);
     assert.match(html, /onclick="showSettingsOverview\\(\\)"/);
-    assert.match(settings, /settingsOverview'\\)\\?\\.classList\\.add\\('hidden'\\)/);
-    assert.match(settings, /settingsSectionToolbar'\\)\\?\\.classList\\.remove\\('hidden'\\)/);
-    assert.match(settings, /settingsSaveButton'\\)\\?\\.classList\\.remove\\('hidden'\\)/);
+    assert.ok(settings.includes("document.getElementById('settingsOverview')?.classList.add('hidden')"));
+    assert.ok(settings.includes("document.getElementById('settingsSectionToolbar')?.classList.remove('hidden')"));
+    assert.ok(settings.includes("document.getElementById('settingsSaveButton')?.classList.remove('hidden')"));
 });
