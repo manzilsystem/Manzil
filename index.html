@@ -582,18 +582,45 @@
                 <button onclick="closeModal('settingsModal')" aria-label="إغلاق نافذة الإعدادات" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div class="settings-layout">
-                <div class="settings-tabs" role="tablist" aria-label="أقسام الإعدادات" onkeydown="handleSettingsTabKeydown(event)">
-                    <button type="button" class="settings-tab active" id="settings-tab-building" role="tab" aria-selected="true" aria-controls="settings-panel-building" onclick="switchSettingsTab('building')"><i class="fa-solid fa-building"></i><span>العمارة</span></button>
-                    <button type="button" class="settings-tab" id="settings-tab-payments" role="tab" aria-selected="false" aria-controls="settings-panel-payments" onclick="switchSettingsTab('payments')"><i class="fa-solid fa-wallet"></i><span>التحصيل</span></button>
-                    <button type="button" class="settings-tab" id="settings-tab-subscriptions" role="tab" aria-selected="false" aria-controls="settings-panel-subscriptions" onclick="switchSettingsTab('subscriptions')"><i class="fa-solid fa-calendar-check"></i><span>الاشتراكات</span></button>
-                    <button type="button" class="settings-tab" id="settings-tab-appearance" role="tab" aria-selected="false" aria-controls="settings-panel-appearance" onclick="switchSettingsTab('appearance')"><i class="fa-solid fa-palette"></i><span>المظهر</span></button>
-                    <button type="button" class="settings-tab" id="settings-tab-backup" role="tab" aria-selected="false" aria-controls="settings-panel-backup" onclick="switchSettingsTab('backup')"><i class="fa-solid fa-cloud-arrow-up"></i><span>النسخ</span></button>
-                    <button type="button" class="settings-tab" id="settings-tab-receipts" role="tab" aria-selected="false" aria-controls="settings-panel-receipts" onclick="switchSettingsTab('receipts')"><i class="fa-solid fa-receipt"></i><span>الإيصالات</span></button>
-                    <button type="button" class="settings-tab" id="settings-tab-reminders" role="tab" aria-selected="false" aria-controls="settings-panel-reminders" onclick="switchSettingsTab('reminders')"><i class="fa-solid fa-bell"></i><span>التذكيرات</span></button>
-                    <button type="button" class="settings-tab" id="settings-tab-account" role="tab" aria-selected="false" aria-controls="settings-panel-account" onclick="switchSettingsTab('account')"><i class="fa-solid fa-user-shield"></i><span>الحساب</span></button>
+                <div id="settingsOverview" class="settings-overview" aria-label="أقسام الإعدادات">
+                    <div class="settings-overview-heading">
+                        <h4>إعدادات العمارة والتطبيق</h4>
+                        <p>اختار القسم اللي عايز تعدّل بياناته</p>
+                    </div>
+                    <div class="settings-card-grid">
+                        <button type="button" class="settings-card" id="settings-tab-building" aria-controls="settings-panel-building" onclick="switchSettingsTab('building')">
+                            <span class="settings-card-icon"><i class="fa-solid fa-building"></i></span><span class="settings-card-copy"><b>بيانات العمارة</b><small>اسم العمارة والمدير وعدد الأدوار والشقق</small></span><i class="fa-solid fa-chevron-left settings-card-arrow"></i>
+                        </button>
+                        <button type="button" class="settings-card" id="settings-tab-payments" aria-controls="settings-panel-payments" onclick="switchSettingsTab('payments')">
+                            <span class="settings-card-icon"><i class="fa-solid fa-wallet"></i></span><span class="settings-card-copy"><b>طرق التحصيل</b><small>نقدي ومحفظة وInstaPay وتحويل بنكي</small></span><i class="fa-solid fa-chevron-left settings-card-arrow"></i>
+                        </button>
+                        <button type="button" class="settings-card" id="settings-tab-subscriptions" aria-controls="settings-panel-subscriptions" onclick="switchSettingsTab('subscriptions')">
+                            <span class="settings-card-icon"><i class="fa-solid fa-calendar-check"></i></span><span class="settings-card-copy"><b>الاشتراكات</b><small>ميعاد الاستحقاق وفترة السماح وتوزيع الدفعات</small></span><i class="fa-solid fa-chevron-left settings-card-arrow"></i>
+                        </button>
+                        <button type="button" class="settings-card" id="settings-tab-appearance" aria-controls="settings-panel-appearance" onclick="switchSettingsTab('appearance')">
+                            <span class="settings-card-icon"><i class="fa-solid fa-palette"></i></span><span class="settings-card-copy"><b>المظهر والثيمات</b><small>شكل التطبيق والألوان وطريقة العرض</small></span><i class="fa-solid fa-chevron-left settings-card-arrow"></i>
+                        </button>
+                        <button type="button" class="settings-card" id="settings-tab-backup" aria-controls="settings-panel-backup" onclick="switchSettingsTab('backup')">
+                            <span class="settings-card-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span><span class="settings-card-copy"><b>النسخ الاحتياطي</b><small>إنشاء نسخة وحفظها واستعادة البيانات</small></span><i class="fa-solid fa-chevron-left settings-card-arrow"></i>
+                        </button>
+                        <button type="button" class="settings-card" id="settings-tab-receipts" aria-controls="settings-panel-receipts" onclick="switchSettingsTab('receipts')">
+                            <span class="settings-card-icon"><i class="fa-solid fa-receipt"></i></span><span class="settings-card-copy"><b>الإيصالات</b><small>رسالة الشكر وشكل بيانات الإيصال</small></span><i class="fa-solid fa-chevron-left settings-card-arrow"></i>
+                        </button>
+                        <button type="button" class="settings-card" id="settings-tab-reminders" aria-controls="settings-panel-reminders" onclick="switchSettingsTab('reminders')">
+                            <span class="settings-card-icon"><i class="fa-solid fa-bell"></i></span><span class="settings-card-copy"><b>التذكيرات</b><small>رسائل تذكير الاشتراكات والمتأخرات</small></span><i class="fa-solid fa-chevron-left settings-card-arrow"></i>
+                        </button>
+                        <button type="button" class="settings-card" id="settings-tab-account" aria-controls="settings-panel-account" onclick="switchSettingsTab('account')">
+                            <span class="settings-card-icon"><i class="fa-solid fa-user-shield"></i></span><span class="settings-card-copy"><b>الحساب والصلاحيات</b><small>حساب المدير وإدارة دخول الملاك</small></span><i class="fa-solid fa-chevron-left settings-card-arrow"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="settings-content">
-                    <section id="settings-panel-building" class="settings-panel space-y-4" role="tabpanel" aria-labelledby="settings-tab-building">
+                <div id="settings-content" class="settings-content">
+                    <div id="settingsSectionToolbar" class="settings-section-toolbar hidden">
+                        <button type="button" onclick="showSettingsOverview()" class="settings-back-button"><i class="fa-solid fa-arrow-right"></i> كل الإعدادات</button>
+                        <div><h4 id="settingsCurrentSectionTitle">الإعدادات</h4><p>عدّل البيانات ثم اضغط حفظ الإعدادات</p></div>
+                    </div>
+
+                    <section id="settings-panel-building" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-building">
                         <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-building"></i></span><div><h4>بيانات العمارة</h4><p>المعلومات الأساسية والاشتراكات الافتراضية</p></div></div>
                         <label class="settings-field"><span>اسم العمارة</span><input type="text" id="settingsBuildingName" class="app-input border rounded-xl px-3 py-2.5"></label>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -711,7 +738,7 @@
                         <button type="button" onclick="lockCurrentSession()" class="w-full app-input border py-3 rounded-xl text-sm font-bold"><i class="fa-solid fa-lock ml-2"></i> قفل الجلسة وتبديل المستخدم</button>
                     </section>
                 </div>
-                <div class="settings-footer"><button type="button" onclick="closeModal('settingsModal')" class="app-input border py-3 rounded-xl font-bold">إغلاق</button><button type="button" onclick="saveSettings()" class="settings-save-button py-3 rounded-xl font-bold">حفظ الإعدادات</button></div>
+                <div class="settings-footer"><button type="button" onclick="closeModal('settingsModal')" class="app-input border py-3 rounded-xl font-bold">إغلاق</button><button id="settingsSaveButton" type="button" onclick="saveSettings()" class="settings-save-button hidden py-3 rounded-xl font-bold">حفظ الإعدادات</button></div>
             </div>
         </div>
     </div>
