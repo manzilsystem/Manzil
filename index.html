@@ -14,11 +14,14 @@
     (() => {
         if (!('serviceWorker' in navigator) || !location.protocol.startsWith('http')) return;
         let reloading = false;
+        let controllerChanges = 0;
         const hadController = Boolean(navigator.serviceWorker.controller);
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-            // Only reload when an update replaces a controller we were already using;
-            // the first install already served this page from the network.
-            if (!hadController || reloading) return;
+            controllerChanges += 1;
+            // The first install has no controller and already served this page
+            // from the network; any later change means an update replaced a
+            // worker this page was using.
+            if (reloading || (!hadController && controllerChanges === 1)) return;
             reloading = true;
             location.reload();
         });
@@ -31,6 +34,11 @@
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') refreshWorker();
         });
+        // Installed PWAs can stay open for days without a navigation, which is
+        // the only other moment the browser checks for a new worker.
+        setInterval(() => {
+            if (document.visibilityState === 'visible') refreshWorker();
+        }, 15 * 60 * 1000);
     })();
     </script>
     <link rel="manifest" href="manifest.json">
