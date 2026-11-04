@@ -96,8 +96,10 @@ function sendIncomeReceiptOnWhatsApp(incomeId) {
         )
         : [payment];
     relatedPayments.sort((a, b) => {
-        const match = String(item.notes || '').match(/\\((\\d+)\\//);
-        return Number(match?.[1] || 0);
+        const order = item => {
+            const match = String(item.notes || '').match(/\\((\\d+)\\//);
+            return Number(match?.[1] || 0);
+        };
         return order(a) - order(b);
     });
 
