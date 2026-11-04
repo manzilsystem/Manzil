@@ -20,7 +20,7 @@ test('manager load selects only fields consumed by application state', () => {
         "const residentColumns = isManager\n        ? 'id,user_id,name,apartment_number,floor,phone,monthly_amount,created_at'"
     ));
     assert.ok(loadState.includes(
-        "const incomeColumns = isManager\n        ? 'id,resident_id,amount,month,notes,paid_at'"
+        "const incomeColumns = isManager\n        ? 'id,resident_id,amount,month,notes,payment_method,paid_at'"
     ));
     assert.ok(loadState.includes(
         "const expenseColumns = 'id,title,amount,category,month,notes,cash_account_code,spent_at'"
