@@ -1404,3 +1404,19 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 }
 [data-theme="light"] #settingsModal .settings-subscription-summary-title h5 { color:#173b48; }
 [data-theme="light"] #settingsModal .settings-subscription-summary-output { color:#526b73; }
+
+
+/* Live apartment numbering preview in Building settings. */
+#settingsModal .settings-building-layout-summary {
+  display:flex;flex-direction:column;gap:.65rem;padding:1rem 1.1rem;
+  border:1px solid rgba(21,158,154,.28);border-radius:1.1rem;
+  background:linear-gradient(120deg,rgba(21,158,154,.12),rgba(21,158,154,.035));
+}
+#settingsModal .settings-building-layout-summary h5 {
+  color:var(--text-primary,#f8fafc);font-size:.84rem;font-weight:900;
+}
+#settingsModal .settings-building-layout-summary output {
+  display:block;color:var(--text-secondary,#cbd5e1);font-size:.78rem;line-height:1.9;white-space:pre-line;
+}
+[data-theme="light"] #settingsModal .settings-building-layout-summary h5 { color:#173b48; }
+[data-theme="light"] #settingsModal .settings-building-layout-summary output { color:#526b73; }
