@@ -333,7 +333,10 @@ function renderResidentsGrid() {
         const paid = getPaidAmountForMonth(resident.id, getCurrentMonth());
         if (outstanding <= 0) return { key: 'paid', label: 'مسدد بالكامل', className: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' };
         if (paid > 0) return { key: 'partial', label: 'دفع جزئي', className: 'text-amber-400 bg-amber-500/10 border-amber-500/20' };
-        return { key: 'overdue', label: 'غير مسدد', className: 'text-rose-400 bg-rose-500/10 border-rose-500/20' };
+        if (!isSubscriptionMonthOverdue(getCurrentMonth())) {
+            return { key: 'due', label: 'لم يتأخر بعد', className: 'text-sky-400 bg-sky-500/10 border-sky-500/20' };
+        }
+        return { key: 'overdue', label: 'متأخر', className: 'text-rose-400 bg-rose-500/10 border-rose-500/20' };
     };
     let list = state.residents.map(r => ({ r, status: getStatus(r), debt: calculateCumulativeDebt(r.id) }));
     if (s) list = list.filter(item => String(item.r.name||'').toLocaleLowerCase('ar-EG').includes(s) || String(item.r.apartmentNumber||'').toLocaleLowerCase('ar-EG').includes(s) || String(item.r.floor||'').toLocaleLowerCase('ar-EG').includes(s));
