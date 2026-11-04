@@ -630,7 +630,8 @@ function openIncomeEditModal(id) {
     monthSelect.value = payment.month;
     document.getElementById('incomeEditAmount').value = payment.amount;
     document.getElementById('incomeEditPaymentMethod').value = payment.paymentMethod || '';
-    document.getElementById('incomeEditNotes').value = payment.notes || '';
+    const distributionNote = String(payment.notes || '').match(/^(دفعة موزعة\\s+[A-Z0-9]+\\s+\\(\\d+\\/\\d+\\))(?:\\s+·\\s+([\\s\\S]*))?$/i);
+    document.getElementById('incomeEditNotes').value = distributionNote ? (distributionNote[2] || '') : (payment.notes || '');
     openModal('incomeEditModal');
 }
 
@@ -690,10 +691,18 @@ async function handleIncomeEditSubmit(event) {
     const previousState = cloneStateSnapshot();
     const previousAmount = Number(payment.amount) || 0;
     const previousMonth = payment.month;
+    const distributionMatch = String(payment.notes || '').match(/^(دفعة موزعة\\s+([A-Z0-9]+)\\s+\\(\\d+\\/\\d+\\))(?:\\s+·\\s+[\\s\\S]*)?$/i);
+    const relatedPayments = distributionMatch
+        ? state.income.filter(item => item.residentId === payment.residentId
+            && item.date === payment.date
+            && String(item.notes || '').includes(distributionMatch[2]))
+        : [payment];
     payment.amount = amountCents / 100;
     payment.month = month;
-    payment.paymentMethod = paymentMethod;
-    payment.notes = notes;
+    relatedPayments.forEach(item => { item.paymentMethod = paymentMethod; });
+    payment.notes = distributionMatch
+        ? distributionMatch[1] + (notes ? ' · ' + notes : '')
+        : notes;
     logAction('تعديل تحصيل', resident.name + ' - ' + previousMonth + ' إلى ' + month
         + ' - طريقة الدفع: ' + getIncomePaymentMethodLabel(paymentMethod)
         + ' - ' + fmtNum(previousAmount) + ' إلى ' + fmtNum(payment.amount));
