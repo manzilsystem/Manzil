@@ -798,6 +798,33 @@
         </div>
     </div>
 
+
+    <!-- Edit Income Modal -->
+    <div id="incomeEditModal" role="dialog" aria-modal="true" aria-labelledby="incomeEditModalTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+            <div class="bg-indigo-700 text-white px-5 py-4 flex justify-between items-center">
+                <div>
+                    <h3 id="incomeEditModalTitle" class="font-bold text-sm">تعديل التحصيل</h3>
+                    <p id="incomeEditResidentSummary" class="text-[11px] text-white/75 mt-1"></p>
+                </div>
+                <button type="button" onclick="closeModal('incomeEditModal')" aria-label="إغلاق تعديل التحصيل" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="incomeEditForm" onsubmit="handleIncomeEditSubmit(event)" class="p-5 space-y-3">
+                <label class="block text-xs space-y-1">
+                    <span class="text-slate-400">الشهر</span>
+                    <select id="incomeEditMonth" aria-label="شهر التحصيل" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm"></select>
+                </label>
+                <label class="block text-xs space-y-1">
+                    <span class="text-slate-400">المبلغ</span>
+                    <input type="number" id="incomeEditAmount" min="0.01" step="0.01" inputmode="decimal" aria-label="مبلغ التحصيل" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm">
+                </label>
+                <textarea id="incomeEditNotes" aria-label="ملاحظات التحصيل" rows="2" placeholder="ملاحظات التحصيل" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm"></textarea>
+                <p class="text-[10px] text-slate-500">لا يمكن أن يتجاوز المبلغ المتبقي من اشتراك الشهر. تاريخ تسجيل التحصيل الأصلي لا يتغير.</p>
+                <button type="submit" id="incomeEditSubmitButton" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">حفظ التعديل</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Expense Modal -->
     <div id="expenseModal" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
         <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
