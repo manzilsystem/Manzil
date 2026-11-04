@@ -10,7 +10,6 @@ let authLoginMode = 'manager';
 let authGeneration = 0;
 let passwordRecoveryPending = false;
 const PASSWORD_RECOVERY_STORAGE_KEY = 'manzil.passwordRecoveryPending';
-const PASSWORD_RECOVERY_MAX_AGE_MS = 60 * 60 * 1000;
 
 function setPasswordRecoveryPending(pending) {
     passwordRecoveryPending = Boolean(pending);
@@ -23,7 +22,7 @@ function setPasswordRecoveryPending(pending) {
 function hasPendingPasswordRecovery() {
     try {
         const storedAt = Number(localStorage.getItem(PASSWORD_RECOVERY_STORAGE_KEY));
-        if (!Number.isFinite(storedAt) || storedAt <= 0 || storedAt > Date.now() + 60000 || Date.now() - storedAt > PASSWORD_RECOVERY_MAX_AGE_MS) {
+        if (!Number.isFinite(storedAt) || storedAt <= 0 || storedAt > Date.now() + 60000) {
             localStorage.removeItem(PASSWORD_RECOVERY_STORAGE_KEY);
             return false;
         }
@@ -753,6 +752,14 @@ function hidePasswordRecoveryModal() {
     document.body.classList.remove('modal-open');
 }
 
+async function cancelPasswordRecovery() {
+    setPasswordRecoveryPending(false);
+    hidePasswordRecoveryModal();
+    clearAuthenticatedState();
+    await signOutLocally();
+    setAuthModal(true, 'تم إلغاء استعادة كلمة المرور. سجّل الدخول أو اطلب رابط استعادة جديدًا.');
+}
+
 async function submitPasswordRecovery(event) {
     event.preventDefault();
     if (!passwordRecoveryPending || !activeSession) {
@@ -1166,7 +1173,11 @@ async function initSupabaseApp() {
     try {
         ({ data, error } = await supabaseClient.auth.getSession());
     } catch {
-        if (passwordRecoveryPending) return;
+        if (passwordRecoveryPending) {
+            if (activeSession) showPasswordRecoveryModal();
+            else showSupabaseError('تعذر التحقق من رابط الاستعادة بسبب الاتصال. أعد المحاولة بعد عودة الاتصال.');
+            return;
+        }
         clearAuthenticatedState();
         showSupabaseError('تعذر الاتصال بخدمة المصادقة. تحقق من الاتصال ثم أعد المحاولة.');
         return;
