@@ -218,4 +218,4 @@ test('settings layout adapts eight tabs and payment details to mobile screens', 
     assert.match(css, /\.settings-tabs \{[^}]*grid-template-columns:repeat\(4,minmax\(0,1fr\)\);/);
     assert.match(css, /\.settings-payment-card/);
     assert.match(css, /@media \(max-width: 420px\) \{\s*\.settings-tabs \{ grid-template-columns:repeat\(2,minmax\(0,1fr\)\);/);
-});;
+});;;
