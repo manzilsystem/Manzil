@@ -127,3 +127,50 @@ test('receipt and reminder templates synchronize through building settings', () 
     assert.ok(settings.includes('localStorage.removeItem(getReminderTemplateKey())'));
     assert.match(sw, /CACHE_NAME = 'manzil-v63'/);
 });
+
+
+test('settings tabs support RTL arrow navigation, Home and End keys', () => {
+    const tabs = ['building', 'payments', 'subscriptions', 'appearance', 'backup', 'receipts', 'reminders', 'account'];
+    const elements = new Map();
+    const makeElement = id => {
+        const classes = new Set();
+        return {
+            id,
+            classList: {
+                toggle(name, force) { if (force) classes.add(name); else classes.delete(name); },
+                contains(name) { return classes.has(name); },
+            },
+            attributes: {},
+            setAttribute(name, value) { this.attributes[name] = value; },
+            focus() { document.activeElement = this; },
+        };
+    };
+    for (const name of tabs) {
+        elements.set('settings-tab-' + name, makeElement('settings-tab-' + name));
+        elements.set('settings-panel-' + name, makeElement('settings-panel-' + name));
+    }
+    const document = {
+        activeElement: elements.get('settings-tab-building'),
+        getElementById: id => elements.get(id) || null,
+    };
+    const api = vm.runInNewContext(settings + String.fromCharCode(10) + '({ handleSettingsTabKeydown })', { document });
+
+    const send = key => {
+        let prevented = false;
+        api.handleSettingsTabKeydown({ key, preventDefault() { prevented = true; } });
+        return prevented;
+    };
+
+    assert.equal(send('ArrowLeft'), true);
+    assert.equal(document.activeElement.id, 'settings-tab-payments');
+    assert.equal(elements.get('settings-tab-payments').attributes['aria-selected'], 'true');
+    assert.equal(elements.get('settings-panel-building').classList.contains('hidden'), true);
+
+    assert.equal(send('ArrowRight'), true);
+    assert.equal(document.activeElement.id, 'settings-tab-building');
+    assert.equal(send('End'), true);
+    assert.equal(document.activeElement.id, 'settings-tab-account');
+    assert.equal(send('Home'), true);
+    assert.equal(document.activeElement.id, 'settings-tab-building');
+    assert.equal(send('Tab'), false);
+});
