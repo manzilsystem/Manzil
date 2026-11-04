@@ -2,6 +2,7 @@ let ownerProvisionRequested = false;
 let incomeSaving = false;
 let editingIncomeId = null;
 let expenseSaving = false;
+let editingExpenseId = null;
 const quickPaySavingResidents = new Set();
 
 function normalizeApartmentDigits(value) {
@@ -732,7 +733,9 @@ function previewExpense() {
     const month = document.getElementById('expenseMonth')?.value || '';
     const notes = document.getElementById('expenseNotes')?.value.trim() || '';
     const cashAccountCode = document.getElementById('expenseCashAccount')?.value || 'main';
-    const accountBalance = getCashAccountBalance(cashAccountCode);
+    const editingExpense = editingExpenseId ? state.expenses.find(item => item.id === editingExpenseId) : null;
+    const accountBalance = getCashAccountBalance(cashAccountCode) +
+        (editingExpense && (editingExpense.cashAccountCode || 'main') === cashAccountCode ? (Number(editingExpense.amount) || 0) : 0);
     const balanceAfter = accountBalance - (Number.isFinite(amount) ? amount : 0);
     const fundInsufficient = cashAccountCode !== 'main' && Number.isFinite(amount) && amount > accountBalance + 0.000001;
     if (!title || !Number.isFinite(amount) || amount <= 0 || !month) {
@@ -753,6 +756,38 @@ function previewExpense() {
     preview.classList.remove('hidden');
 }
 
+function openExpenseModal() {
+    if (!requireManager()) return;
+    editingExpenseId = null;
+    document.getElementById('expenseForm')?.reset();
+    document.getElementById('expenseTitle').value = '';
+    document.getElementById('expenseAmount').value = '';
+    document.getElementById('expenseNotes').value = '';
+    document.getElementById('expenseMonth').value = getCurrentMonth();
+    document.getElementById('expenseCashAccount').value = 'main';
+    document.getElementById('expenseModalTitle').textContent = 'مصروف جديد';
+    document.getElementById('expenseSubmitButton').textContent = 'حفظ المصروف';
+    document.getElementById('expensePreview')?.classList.add('hidden');
+    openModal('expenseModal');
+}
+
+function openExpenseEditModal(id) {
+    if (!requireManager()) return;
+    const expense = state.expenses.find(item => item.id === id);
+    if (!expense) { toast('تعذر العثور على المصروف. حدّث السجل ثم حاول مرة أخرى.', 'error'); return; }
+    editingExpenseId = id;
+    document.getElementById('expenseTitle').value = expense.title || '';
+    document.getElementById('expenseAmount').value = String(expense.amount ?? '');
+    document.getElementById('expenseCategory').value = expense.category || 'أخرى';
+    document.getElementById('expenseMonth').value = expense.month || getCurrentMonth();
+    document.getElementById('expenseCashAccount').value = expense.cashAccountCode || 'main';
+    document.getElementById('expenseNotes').value = expense.notes || '';
+    document.getElementById('expenseModalTitle').textContent = 'تعديل المصروف';
+    document.getElementById('expenseSubmitButton').textContent = 'حفظ التعديل';
+    openModal('expenseModal');
+    previewExpense();
+}
+
 async function handleExpenseSubmit(e) {
     if (!requireManager() || expenseSaving) return;
     e.preventDefault();
@@ -762,40 +797,48 @@ async function handleExpenseSubmit(e) {
     const month = document.getElementById('expenseMonth').value;
     const notes = document.getElementById('expenseNotes').value.trim();
     const cashAccountCode = document.getElementById('expenseCashAccount')?.value || 'main';
+    const existingExpense = editingExpenseId ? state.expenses.find(item => item.id === editingExpenseId) : null;
+    if (editingExpenseId && !existingExpense) {
+        toast('المصروف المراد تعديله لم يعد موجوداً. حدّث السجل ثم حاول مجدداً.', 'error');
+        editingExpenseId = null;
+        return;
+    }
     if (!title || !Number.isFinite(amount) || amount <= 0 || !month ||
         !['main', 'development', 'emergency'].includes(cashAccountCode)) {
         toast('أدخل وصفاً ومبلغاً أكبر من صفر واختر الشهر والصندوق', 'error');
         return;
     }
-    const availableBalance = getCashAccountBalance(cashAccountCode);
+    const availableBalance = getCashAccountBalance(cashAccountCode) +
+        (existingExpense && (existingExpense.cashAccountCode || 'main') === cashAccountCode ? (Number(existingExpense.amount) || 0) : 0);
     if (cashAccountCode !== 'main' && amount > availableBalance + 0.000001) {
-        toast(`الرصيد المتاح في ${getCashAccountLabel(cashAccountCode)} غير كافٍ.`, 'error');
+        toast('الرصيد المتاح في ' + getCashAccountLabel(cashAccountCode) + ' غير كافٍ.', 'error');
         previewExpense();
         return;
     }
-
     expenseSaving = true;
     const submit = document.getElementById('expenseSubmitButton');
-    if (submit) {
-        submit.disabled = true;
-        submit.textContent = 'جارٍ الحفظ...';
-    }
+    if (submit) { submit.disabled = true; submit.textContent = 'جارٍ الحفظ...'; }
     const previousState = cloneStateSnapshot();
-    state.expenses.push({ id: generateId(), title, amount, category, month, notes, cashAccountCode, date: new Date().toISOString() });
-    logAction('مصروف', `${title} - ${fmtNum(amount)}`);
+    if (existingExpense) {
+        state.expenses = state.expenses.map(item => item.id === editingExpenseId
+            ? { ...item, title, amount, category, month, notes, cashAccountCode } : item);
+        logAction('تعديل مصروف', existingExpense.title + ' ← ' + title + ' - ' + fmtNum(amount));
+    } else {
+        state.expenses.push({ id: generateId(), title, amount, category, month, notes, cashAccountCode, date: new Date().toISOString() });
+        logAction('مصروف', title + ' - ' + fmtNum(amount));
+    }
     try {
         if (!await saveWithRollback(previousState)) return;
+        editingExpenseId = null;
         closeModal('expenseModal');
         document.getElementById('expenseForm').reset();
         document.getElementById('expensePreview')?.classList.add('hidden');
+        document.getElementById('expenseModalTitle').textContent = 'مصروف جديد';
         renderAll();
-        toast('تم تسجيل المصروف', 'success');
+        toast(existingExpense ? 'تم تعديل المصروف بنجاح.' : 'تم تسجيل المصروف', 'success');
     } finally {
         expenseSaving = false;
-        if (submit) {
-            submit.disabled = false;
-            submit.textContent = 'حفظ المصروف';
-        }
+        if (submit) { submit.disabled = false; submit.textContent = 'حفظ المصروف'; }
     }
 }
 
