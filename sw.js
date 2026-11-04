@@ -1,4 +1,4 @@
-const CACHE_NAME = 'manzil-v95';
+const CACHE_NAME = 'manzil-v96';
 const APP_CACHE_PREFIX = 'manzil-';
 const APP_SHELL = [
     './',
@@ -30,9 +30,14 @@ const APP_SHELL = [
 ];
 
 self.addEventListener('install', event => {
+    // Atomic pre-caching aborts the whole install when a single asset 404s,
+    // which silently pins clients to the previous release. Store what is
+    // reachable and let the next update retry the rest.
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then(cache => cache.addAll(APP_SHELL))
+            .then(cache => Promise.all(APP_SHELL.map(url => fetch(url, { cache: 'reload' })
+                .then(response => (response.ok ? cache.put(url, response) : undefined))
+                .catch(() => undefined))))
             .then(() => self.skipWaiting())
     );
 });
@@ -58,8 +63,10 @@ self.addEventListener('fetch', event => {
     }
 
     if (request.mode === 'navigate') {
+        // GitHub Pages serves HTML with a short max-age; revalidate so a release
+        // is visible on the next open instead of after the HTTP cache expires.
         event.respondWith(
-            fetch(request).then(response => {
+            fetch(new Request(request, { cache: 'no-cache' })).then(response => {
                 if (response.ok) {
                     const copy = response.clone();
                     caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy));

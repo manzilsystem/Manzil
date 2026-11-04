@@ -11,7 +11,7 @@ const app = fs.readFileSync(path.join(root, 'js', 'app.js'), 'utf8');
 
 test('service worker is valid JavaScript and bumps the app cache', () => {
     assert.doesNotThrow(() => new vm.Script(sw, { filename: 'sw.js' }));
-    assert.match(sw, /const CACHE_NAME = 'manzil-v95'/);
+    assert.match(sw, /const CACHE_NAME = 'manzil-v96'/);
 });
 
 test('all runtime modules are pre-cached with the application shell', () => {
@@ -33,7 +33,24 @@ test('all runtime modules are pre-cached with the application shell', () => {
     }
 });
 
-test('the shell reloads for worker updates only when a controller already existed', () => {
+test('the shell reloads for worker updates but not for the first install', () => {
     assert.match(html, /const hadController = Boolean\(navigator\.serviceWorker\.controller\)/);
-    assert.match(html, /if \(!hadController \|\| reloading\) return;/);
+    assert.match(html, /controllerChanges \+= 1;/);
+    assert.match(html, /if \(reloading \|\| \(!hadController && controllerChanges === 1\)\) return;/);
+});
+
+test('pre-caching tolerates a single missing asset instead of blocking the update', () => {
+    assert.ok(!sw.includes('cache.addAll'), 'cache.addAll aborts the whole install on one 404');
+    assert.match(sw, /APP_SHELL\.map\(url => fetch\(url, \{ cache: 'reload' \}\)/);
+    assert.match(sw, /\.catch\(\(\) => undefined\)/);
+});
+
+test('navigations revalidate the shell so a release lands without clearing the cache', () => {
+    assert.match(sw, /request\.mode === 'navigate'/);
+    assert.match(sw, /fetch\(new Request\(request, \{ cache: 'no-cache' \}\)\)/);
+});
+
+test('the page re-checks for a new worker while it stays open', () => {
+    assert.match(html, /updateViaCache: 'none'/);
+    assert.match(html, /setInterval\(\(\) => \{[\s\S]*?refreshWorker\(\);[\s\S]*?\}, 15 \* 60 \* 1000\);/);
 });
