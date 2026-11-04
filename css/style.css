@@ -769,12 +769,12 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     width: 2.85rem;
     height: 2.85rem;
     flex: 0 0 auto;
-    padding: .2rem;
+    padding: 0;
     object-fit: contain;
-    border: 1px solid rgba(255, 255, 255, .35);
+    border: 1px solid rgba(240, 204, 126, .4);
     border-radius: .9rem;
-    background: rgba(255, 255, 255, .94);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, .24);
+    background: transparent;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .28);
 }
 #settingsModal .settings-brand-copy {
     display: grid;
@@ -1736,6 +1736,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-brand-preview-light img {
     width: 4.6rem;
     height: 4.6rem;
+    border-radius: 1rem;
+    box-shadow: 0 6px 16px rgba(2, 20, 35, .18);
 }
 #settingsModal .settings-brand-preview-card span {
     color: #e7f3f1;

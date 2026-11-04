@@ -64,7 +64,7 @@ test('settings redesign is included in the service worker cache version', () => 
     assert.match(html, /02:23 UTC/);
     assert.match(html, /04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة/);
     assert.doesNotMatch(html, /نسخة يومية الساعة 04:23 صباحًا بتوقيت مصر/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v91'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v92'/);
     assert.match(css, /#settingsModal > \.settings-shell \{\s*width: min\(100%, 86rem\);[\s\S]*?height: min\(94dvh, 61rem\);/, 'settings workspace uses a generous centered shell');
     assert.match(css, /@media \(max-width: 560px\)[\s\S]*?width: 100vw;[\s\S]*?height: 100dvh;/, 'mobile settings fill the viewport');
     assert.match(css, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/, 'desktop uses a four-column card grid');
@@ -150,7 +150,7 @@ test('receipt and reminder templates synchronize through building settings', () 
     assert.ok(settings.includes('arrears_reminder_template: reminderTemplate || null'));
     assert.ok(settings.includes('localStorage.removeItem(getReceiptSettingsKey())'));
     assert.ok(settings.includes('localStorage.removeItem(getReminderTemplateKey())'));
-    assert.match(sw, /CACHE_NAME = 'manzil-v91'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v92'/);
 });
 
 
@@ -178,7 +178,7 @@ test('settings cards use a sidebar workspace with spacious scrollable section pa
 
 
 test('service worker refreshes cached assets from network and checks for updates automatically', () => {
-    assert.ok(sw.includes("CACHE_NAME = 'manzil-v91'"));
+    assert.ok(sw.includes("CACHE_NAME = 'manzil-v92'"));
     assert.ok(sw.includes("fetch(new Request(request, { cache: 'no-cache' }))"));
     assert.ok(sw.includes('.catch(() => caches.match(request))'));
     assert.ok(html.includes("updateViaCache: 'none'"), 'service worker registration must start in the document head before app initialization');
@@ -210,7 +210,7 @@ test('appearance settings preview the original Manzil wordmark and app icon', ()
     assert.match(appearance, /الشعار الرئيسي/);
     assert.match(appearance, /أيقونة التطبيق/);
     assert.ok(css.includes('#settingsModal .settings-brand-preview-grid'));
-    assert.match(sw, /CACHE_NAME = 'manzil-v91'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v92'/);
 });
 
 
@@ -228,7 +228,7 @@ test('payment method detail fields collapse when disabled and retain their value
     assert.match(settings, /details\.classList\.toggle\('hidden', !enabled\)/);
     assert.match(settings, /field\.disabled = !enabled/);
     assert.match(settings, /syncPaymentMethodDetails\(\);/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v91'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v92'/);
 });
 
 
@@ -241,7 +241,7 @@ test('subscription settings show a live summary of due date, grace period, and a
     assert.match(settings, /فترة السماح/);
     assert.match(settings, /توزيع الدفعات/);
     assert.ok(css.includes('#settingsModal .settings-subscription-summary'));
-    assert.match(sw, /CACHE_NAME = 'manzil-v91'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v92'/);
 });
 
 
@@ -254,7 +254,7 @@ test('building settings preview apartment totals and first/last floor numbering 
     assert.match(settings, /الدور الأول/);
     assert.match(settings, /الدور الأخير/);
     assert.ok(css.includes('#settingsModal .settings-building-layout-summary'));
-    assert.match(sw, /CACHE_NAME = 'manzil-v91'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v92'/);
 });
 
 
@@ -271,5 +271,5 @@ test('building settings are grouped into clear responsive sections without chang
     assert.ok(css.includes('#settingsModal .settings-subsection'));
     assert.ok(css.includes('#settingsModal .settings-fields-grid'));
     assert.match(css, /@media \(max-width: 640px\)[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/, 'grouped fields stack on narrow screens');
-    assert.match(sw, /CACHE_NAME = 'manzil-v91'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v92'/);
 });
