@@ -542,7 +542,7 @@ async function handleIncomeSubmit(e) {
     const paymentMethod = document.getElementById('incomePaymentMethod').value;
     if (!residentId || !Number.isFinite(amount) || amount <= 0 || !month
         || !Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod)) {
-        toast('اختر الشقة والشهر وأدخل مبلغاً أكبر من صفر', 'error');
+        toast('اختر الشقة وطريقة الدفع والشهر، وأدخل مبلغاً أكبر من صفر.', 'error');
         return;
     }
     const resident = state.residents.find(item => item.id === residentId);
