@@ -53,6 +53,8 @@ test('Manzil branding uses the supplied logo on sign-in and app header with resp
     assert.match(html, /class="header-brand-mark"[^>]*>[\s\S]*?src="icons\/manzil-logo\.png"/);
     assert.doesNotMatch(html, /<svg class="w-6 h-6" viewBox="0 0 24 24"/);
     assert.ok(css.includes('background:transparent !important'));
+    assert.match(css, /grid-template-columns:minmax\\(16rem,\\.72fr\\) minmax\\(0,1\\.28fr\\)/);
+    assert.match(css, /@media \\(max-width:700px\\)[\\s\\S]*?#pinLockModal > \\.auth-shell \\{[^{]*grid-template-columns:minmax\\(0,1fr\\)/);
     assert.ok(css.includes('#pinLockModal .auth-logo-frame { width:6.25rem') || css.includes('width:min(100%,15rem)'));
 });
 
