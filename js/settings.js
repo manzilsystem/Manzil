@@ -47,6 +47,36 @@ function updateThemeSelection() {
     if (label) label.textContent = SETTINGS_THEME_NAMES[theme];
 }
 
+function renderSettingsOwnerAccess() {
+    const container = document.getElementById('settingsOwnerAccessList');
+    if (!container) return;
+    const residents = [...(state.residents || [])].sort((a, b) =>
+        String(a.apartmentNumber || '').localeCompare(String(b.apartmentNumber || ''), 'ar', { numeric: true })
+    );
+    if (!residents.length) {
+        container.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">أضف الشقق أولًا لعرض حسابات الملاك.</p>';
+        return;
+    }
+    container.innerHTML = residents.map(resident => {
+        const linked = Boolean(resident.userId);
+        const hasPhone = Boolean(String(resident.phone || '').trim());
+        const status = linked ? 'حساب مرتبط' : hasPhone ? 'لم يُنشأ حساب' : 'لا يوجد رقم جوال';
+        const statusClass = linked ? 'text-emerald-500' : hasPhone ? 'text-amber-500' : 'text-slate-500';
+        const provisionButton = hasPhone
+            ? `<button type="button" class="settings-owner-action" onclick="provisionOwnerAccess('${esc(resident.id)}')">${linked ? 'إعادة إصدار PIN' : 'إنشاء حساب المالك'}</button>`
+            : '';
+        return `<article class="settings-owner-row">
+            <div class="min-w-0"><b>شقة ${esc(resident.apartmentNumber || '—')} · ${esc(resident.name || '—')}</b>
+                <p class="text-[11px] text-slate-500" dir="auto">${esc(resident.phone || 'لا يوجد رقم جوال')}</p>
+                <p class="text-[11px] font-bold ${statusClass}">${status}</p>
+            </div>
+            <div class="settings-owner-actions">${provisionButton}
+                <button type="button" class="settings-owner-action secondary" onclick="editResident('${esc(resident.id)}')">تعديل الشقة</button>
+            </div>
+        </article>`;
+    }).join('');
+}
+
 function openSettingsModal() {
     if (!requireManager()) return;
     document.getElementById('settingsBuildingName').value = state.buildingName||'';
@@ -78,6 +108,7 @@ function openSettingsModal() {
             ? state.paymentAllocationPolicy
             : 'oldest_first';
 
+    renderSettingsOwnerAccess();
     const account = document.getElementById('settingsAccountEmail');
     if (account) account.textContent = currentUserRole === 'manager'
         ? (activeSession?.user?.email || '—')
