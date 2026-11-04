@@ -55,3 +55,11 @@ test('Manzil branding uses the supplied logo on sign-in and app header with resp
     assert.match(css, /\.auth-logo-frame[\s\S]*?background:#fbfdff/);
     assert.match(css, /@media \(max-width:700px\)[\s\S]*?\.auth-logo-frame \{ width:4\.8rem/);
 });
+
+
+test('Manzil login uses the gold and turquoise visual identity with a mobile-first layout', () => {
+    assert.match(css, /linear-gradient\\(145deg,#02080d 0%,#071c27 54%,#061018 100%\\)/);
+    assert.match(css, /linear-gradient\\(110deg,#a97827 0%,#f1ce7d 48%,#b78332 100%\\)/);
+    assert.match(css, /@media \\(max-width:700px\\)[\\s\\S]*?#pinLockModal \\.auth-login-panel \\{ order:2/);
+    assert.match(html, /<h1>منزل <span lang="en">MANZIL<\\/span><\\/h1>/);
+});
