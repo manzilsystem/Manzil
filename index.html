@@ -658,19 +658,35 @@
                     </div>
 
                     <section id="settings-panel-building" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-building">
-                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-building"></i></span><div><h4>بيانات العمارة</h4><p>المعلومات الأساسية والاشتراكات الافتراضية</p></div></div>
-                        <label class="settings-field"><span>اسم العمارة</span><input type="text" id="settingsBuildingName" class="app-input border rounded-xl px-3 py-2.5"></label>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <label class="settings-field"><span>اسم المدير</span><input type="text" id="settingsManagerName" class="app-input border rounded-xl px-3 py-2.5"></label>
-                            <label class="settings-field"><span>هاتف المدير</span><input type="tel" id="settingsManagerPhone" inputmode="tel" class="app-input border rounded-xl px-3 py-2.5"></label>
-                            <label class="settings-field"><span>الاشتراك الشهري الافتراضي</span><input type="number" id="settingsDefaultSub" min="0" step="0.01" class="app-input border rounded-xl px-3 py-2.5"></label>
-                            <label class="settings-field"><span>الرصيد الافتتاحي</span><input type="number" id="settingsStartingBalance" step="0.01" class="app-input border rounded-xl px-3 py-2.5"></label>
-                            <label class="settings-field"><span>عدد الأدوار (من الأول)</span><input type="number" id="settingsFloorCount" min="1" max="100" step="1" inputmode="numeric" placeholder="مثال: 11" class="app-input border rounded-xl px-3 py-2.5"></label>
-                            <label class="settings-field"><span>عدد الشقق في كل دور</span><input type="number" id="settingsApartmentsPerFloor" min="1" max="100" step="1" inputmode="numeric" placeholder="مثال: 2" class="app-input border rounded-xl px-3 py-2.5"></label>
-                        </div>
-                        <section class="settings-building-layout-summary"><h5>معاينة توزيع الشقق</h5><output id="settingsBuildingLayoutPreview" aria-live="polite">حدد عدد الأدوار والشقق لعرض التوزيع.</output></section>
-                        <p class="settings-help">تغيير الاشتراك الافتراضي يؤثر على الشقق التي لا تملك قيمة اشتراك مخصصة.</p>
-                        <p class="settings-help">ترقيم الشقق مسلسل من الدور الأول. مثال: 11 دورًا × شقتين = الشقق 1–2 في الأول، 3–4 في الثاني، حتى 21–22 في الحادي عشر. الإعدادات مستقلة لكل عقار.</p>
+                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-building"></i></span><div><h4>بيانات العمارة</h4><p>المعلومات الأساسية وتنظيم الشقق والاشتراكات</p></div></div>
+
+                        <section class="settings-subsection" aria-labelledby="settingsBuildingInfoTitle">
+                            <div class="settings-subsection-heading"><span class="settings-subsection-icon"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></span><div><h5 id="settingsBuildingInfoTitle">المعلومات الأساسية</h5><p>اسم العقار وبيانات المسؤول عنه</p></div></div>
+                            <label class="settings-field"><span>اسم العمارة</span><input type="text" id="settingsBuildingName" autocomplete="organization" class="app-input border rounded-xl px-3 py-2.5"></label>
+                            <div class="settings-fields-grid">
+                                <label class="settings-field"><span>اسم المدير</span><input type="text" id="settingsManagerName" autocomplete="name" class="app-input border rounded-xl px-3 py-2.5"></label>
+                                <label class="settings-field"><span>هاتف المدير</span><input type="tel" id="settingsManagerPhone" inputmode="tel" autocomplete="tel" class="app-input border rounded-xl px-3 py-2.5"></label>
+                            </div>
+                        </section>
+
+                        <section class="settings-subsection" aria-labelledby="settingsBuildingLayoutTitle">
+                            <div class="settings-subsection-heading"><span class="settings-subsection-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span><div><h5 id="settingsBuildingLayoutTitle">توزيع الأدوار والشقق</h5><p>حدد عدد الأدوار وعدد الشقق في كل دور</p></div></div>
+                            <div class="settings-fields-grid">
+                                <label class="settings-field"><span>عدد الأدوار (بدايةً من الدور الأول)</span><input type="number" id="settingsFloorCount" min="1" max="100" step="1" inputmode="numeric" placeholder="مثال: 11" class="app-input border rounded-xl px-3 py-2.5"></label>
+                                <label class="settings-field"><span>عدد الشقق في كل دور</span><input type="number" id="settingsApartmentsPerFloor" min="1" max="100" step="1" inputmode="numeric" placeholder="مثال: 2" class="app-input border rounded-xl px-3 py-2.5"></label>
+                            </div>
+                            <div class="settings-building-layout-summary"><h5>معاينة التوزيع</h5><output id="settingsBuildingLayoutPreview" aria-live="polite">حدد عدد الأدوار والشقق لعرض التوزيع.</output></div>
+                            <p class="settings-help">يبدأ الترقيم من الدور الأول بشكل متسلسل. مثال: 11 دورًا × شقتين = 22 شقة؛ الشقتان 1 و2 في الأول، و3 و4 في الثاني، حتى 21 و22 في الحادي عشر.</p>
+                        </section>
+
+                        <section class="settings-subsection" aria-labelledby="settingsBuildingFinanceTitle">
+                            <div class="settings-subsection-heading"><span class="settings-subsection-icon"><i class="fa-solid fa-coins" aria-hidden="true"></i></span><div><h5 id="settingsBuildingFinanceTitle">الإعدادات المالية الأساسية</h5><p>القيم الافتراضية المستخدمة عند تسجيل البيانات</p></div></div>
+                            <div class="settings-fields-grid">
+                                <label class="settings-field"><span>الاشتراك الشهري الافتراضي</span><input type="number" id="settingsDefaultSub" min="0" step="0.01" inputmode="decimal" class="app-input border rounded-xl px-3 py-2.5"></label>
+                                <label class="settings-field"><span>الرصيد الافتتاحي</span><input type="number" id="settingsStartingBalance" step="0.01" inputmode="decimal" class="app-input border rounded-xl px-3 py-2.5"></label>
+                            </div>
+                            <p class="settings-help">تغيير الاشتراك الافتراضي لا يغيّر الاشتراك المخصص لكل شقة. الرصيد الافتتاحي قيمة تأسيسية للخزنة.</p>
+                        </section>
                     </section>
                     <section id="settings-panel-payments" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-payments">
                         <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-wallet"></i></span><div><h4>وسائل التحصيل وبيانات الاستلام</h4><p>حدد الطرق المتاحة وأضف بيانات التحويل التي تظهر للملاك</p></div></div>
