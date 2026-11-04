@@ -38,7 +38,7 @@ test('settings redesign is included in the service worker cache version', () => 
     assert.match(html, /02:23 UTC/);
     assert.match(html, /04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة/);
     assert.doesNotMatch(html, /نسخة يومية الساعة 04:23 صباحًا بتوقيت مصر/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v63'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v64'/);
     assert.ok(css.includes('max-width:52rem'));
     assert.ok(css.includes('height:min(88dvh,760px)'));
     assert.ok(css.includes('height:94dvh'));
@@ -125,7 +125,7 @@ test('receipt and reminder templates synchronize through building settings', () 
     assert.ok(settings.includes('arrears_reminder_template: reminderTemplate || null'));
     assert.ok(settings.includes('localStorage.removeItem(getReceiptSettingsKey())'));
     assert.ok(settings.includes('localStorage.removeItem(getReminderTemplateKey())'));
-    assert.match(sw, /CACHE_NAME = 'manzil-v63'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v64'/);
 });
 
 
