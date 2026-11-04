@@ -1,4 +1,17 @@
-const SETTINGS_TABS = ['building','appearance','backup','account'];
+const SETTINGS_TABS = ['building','appearance','backup','receipts','account'];
+function renderReceiptPreview() {
+    const input = document.getElementById('settingsReceiptThankYou');
+    const preview = document.getElementById('settingsReceiptPreview');
+    if (!preview) return;
+    const thankYou = String(input?.value || '').trim() || DEFAULT_RECEIPT_THANK_YOU;
+    preview.textContent = [
+        `إيصال استلام — ${state.buildingName || 'العمارة'}`,
+        '', 'مرحباً أحمد،', 'نؤكد استلام دفعة الاشتراك بنجاح.',
+        'الشقة: 12', 'المبلغ المستلم: 500 ج.م', 'طريقة الدفع: نقدًا',
+        'تفاصيل السداد:', '• نوفمبر 2026: 500 ج.م',
+        'تاريخ الاستلام: 04/11/2026', 'رقم الإيصال: SAMPLE-001', '', thankYou
+    ].join('\n');
+}
 const SETTINGS_THEME_NAMES = { dark:'ليلي', light:'نهاري', emerald:'زمردي', ocean:'محيطي', sand:'رملي' };
 function switchSettingsTab(tab) {
     if (!SETTINGS_TABS.includes(tab)) return;
@@ -39,6 +52,13 @@ function openSettingsModal() {
     const role = document.getElementById('settingsAccountRole');
     if (role) role.textContent = currentUserRole === 'manager' ? 'مدير المبنى' : 'مالك الشقة';
     document.getElementById('settingsPasswordResetBtn')?.classList.toggle('hidden', currentUserRole !== 'manager');
+    const receiptInput = document.getElementById('settingsReceiptThankYou');
+    if (receiptInput) {
+        try { receiptInput.value = localStorage.getItem(getReceiptSettingsKey()) || ''; }
+        catch { receiptInput.value = ''; }
+        receiptInput.oninput = renderReceiptPreview;
+    }
+    renderReceiptPreview();
     switchSettingsTab('building');
     updateThemeSelection();
     openModal('settingsModal');
@@ -86,7 +106,18 @@ async function saveSettings() {
         if (rollback.error || !rollback.data?.ok) toast('فشل حفظ الإعدادات، وتعذر التراجع عن إعدادات الأدوار. أعد تحميل المبنى للتحقق.', 'error');
         return;
     }
-    renderAll(); updateAccessSwitchButton(); closeModal('settingsModal'); toast('تم حفظ إعدادات العقار', 'success');
+    try {
+        const receiptInput = document.getElementById('settingsReceiptThankYou');
+        const thankYou = String(receiptInput?.value || '').trim();
+        if (thankYou.length > 180) { toast('رسالة الشكر يجب ألا تتجاوز 180 حرفًا.', 'error'); return; }
+        if (thankYou) localStorage.setItem(getReceiptSettingsKey(), thankYou);
+        else localStorage.removeItem(getReceiptSettingsKey());
+    } catch (error) {
+        console.error('Could not save receipt preferences:', error);
+        toast('تعذر حفظ رسالة الإيصال على هذا الجهاز.', 'error');
+        return;
+    }
+    renderAll(); updateAccessSwitchButton(); closeModal('settingsModal'); toast('تم حفظ إعدادات العقار والإيصال', 'success');
 }
 
 async function sendSettingsPasswordReset() {

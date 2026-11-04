@@ -120,7 +120,7 @@ function sendIncomeReceiptOnWhatsApp(incomeId) {
         `تاريخ الاستلام: ${formatDate(payment.date)}`,
         `رقم الإيصال: ${reference}`,
         '',
-        'شكراً لالتزامكم، ونسعد دائماً بخدمتكم.'
+        getReceiptThankYouMessage()
     ].join('\n');
 
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');

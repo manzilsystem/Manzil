@@ -12,6 +12,7 @@ function loadReceiptApp(phone = '01012345678') {
     const opened = [];
     const messages = [];
     const sandbox = {
+        getReceiptThankYouMessage: () => 'شكراً لالتزامكم، ونسعد دائماً بخدمتكم.',
         state: {
             buildingName: 'عمارة النور',
             residents: [{ id: 'resident-1', name: 'أحمد', apartmentNumber: '3', phone }],
