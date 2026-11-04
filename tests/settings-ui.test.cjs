@@ -153,7 +153,7 @@ test('receipt and reminder templates synchronize through building settings', () 
     assert.ok(settings.includes('arrears_reminder_template: reminderTemplate || null'));
     assert.ok(settings.includes('localStorage.removeItem(getReceiptSettingsKey())'));
     assert.ok(settings.includes('localStorage.removeItem(getReminderTemplateKey())'));
-    assert.match(sw, /CACHE_NAME = 'manzil-v75'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v76'/);
 });
 
 
@@ -180,7 +180,7 @@ test('settings cards use larger full-screen tiles and sections remain full-scree
 
 
 test('service worker refreshes cached assets from network and checks for updates automatically', () => {
-    assert.ok(sw.includes("CACHE_NAME = 'manzil-v75'"));
+    assert.ok(sw.includes("CACHE_NAME = 'manzil-v76'"));
     assert.ok(sw.includes("fetch(new Request(request, { cache: 'no-cache' }))"));
     assert.ok(sw.includes('.catch(() => caches.match(request))'));
     assert.ok(html.includes("updateViaCache: 'none'"), 'service worker registration must start in the document head before app initialization');
