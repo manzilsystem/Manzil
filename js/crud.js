@@ -3,7 +3,6 @@ let incomeSaving = false;
 let editingIncomeId = null;
 let expenseSaving = false;
 let editingExpenseId = null;
-const quickPaySavingResidents = new Set();
 
 function normalizeApartmentDigits(value) {
     return String(value ?? '').replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632))
