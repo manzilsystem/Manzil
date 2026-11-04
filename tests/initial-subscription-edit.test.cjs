@@ -26,6 +26,7 @@ function createApp() {
         removeAttribute() {}, setAttribute() {}
     }]));
     elements.residentAmountHelp = { textContent: '', classList: { add() {}, remove() {} } };
+    elements.residentModalTitle = { textContent: '' };
     elements.manageSubscriptionRatesBtn = { classList: { add() {}, remove() {} } };
     const sandbox = {
         state: { residents: [resident], floorCount: 1, apartmentsPerFloor: 1, defaultSubscription: 100 },
