@@ -569,6 +569,7 @@
                     <button type="button" class="settings-tab active" id="settings-tab-building" role="tab" aria-selected="true" aria-controls="settings-panel-building" onclick="switchSettingsTab('building')"><i class="fa-solid fa-building"></i><span>العمارة</span></button>
                     <button type="button" class="settings-tab" id="settings-tab-appearance" role="tab" aria-selected="false" aria-controls="settings-panel-appearance" onclick="switchSettingsTab('appearance')"><i class="fa-solid fa-palette"></i><span>المظهر</span></button>
                     <button type="button" class="settings-tab" id="settings-tab-backup" role="tab" aria-selected="false" aria-controls="settings-panel-backup" onclick="switchSettingsTab('backup')"><i class="fa-solid fa-cloud-arrow-up"></i><span>النسخ</span></button>
+                    <button type="button" class="settings-tab" id="settings-tab-receipts" role="tab" aria-selected="false" aria-controls="settings-panel-receipts" onclick="switchSettingsTab('receipts')"><i class="fa-solid fa-receipt"></i><span>الإيصالات</span></button>
                     <button type="button" class="settings-tab" id="settings-tab-account" role="tab" aria-selected="false" aria-controls="settings-panel-account" onclick="switchSettingsTab('account')"><i class="fa-solid fa-user-shield"></i><span>الحساب</span></button>
                 </div>
                 <div class="settings-content">
@@ -603,6 +604,16 @@
                         <div class="settings-info-card"><div class="flex items-center gap-2 font-bold text-sm"><i class="fa-solid fa-clock text-emerald-400"></i> النسخ التلقائي</div><p>موعد التشغيل اليومي 02:23 UTC (04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة). يُفحص الأرشيف وتُحفظ آخر 30 نسخة.</p><span class="settings-status"><i class="fa-solid fa-circle-check"></i> الجدولة مفعّلة</span></div>
                         <button type="button" onclick="closeModal('settingsModal'); openModal('backupModal')" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold"><i class="fa-solid fa-arrow-up-right-from-square ml-2"></i> فتح إدارة النسخ والاستعادة</button>
                         <p class="settings-help">الاستعادة تستبدل بيانات قاعدة الإنتاج بالكامل ولا يمكن التراجع عنها إلا باستعادة نسخة أخرى.</p>
+                    </section>
+                    <section id="settings-panel-receipts" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-receipts">
+                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-receipt"></i></span><div><h4>إيصال التحصيل</h4><p>خصص رسالة الشكر التي تظهر في إيصال واتساب</p></div></div>
+                        <label class="settings-field" for="settingsReceiptThankYou"><span>رسالة الشكر</span><textarea id="settingsReceiptThankYou" rows="3" maxlength="180" class="app-input border rounded-xl px-3 py-2.5 resize-y" placeholder="شكراً لالتزامكم، ونسعد دائماً بخدمتكم."></textarea></label>
+                        <p class="settings-help">اترك الحقل فارغًا لاستخدام الرسالة الافتراضية. تُحفظ هذه الرسالة على هذا الجهاز لهذا المبنى فقط، ولا تؤثر على مبالغ التحصيل أو طريقة الدفع.</p>
+                        <div class="settings-info-card space-y-2">
+                            <div class="font-bold text-sm"><i class="fa-solid fa-eye ml-1"></i> معاينة الإيصال</div>
+                            <p class="text-[10px]">معاينة تجريبية — لن يتم إرسال رسالة أو تسجيل تحصيل.</p>
+                            <pre id="settingsReceiptPreview" class="whitespace-pre-wrap break-words text-xs leading-7 font-sans" dir="auto"></pre>
+                        </div>
                     </section>
                     <section id="settings-panel-account" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-account">
                         <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-user-shield"></i></span><div><h4>الحساب والصلاحيات</h4><p>معلومات الجلسة وأمان الوصول</p></div></div>
