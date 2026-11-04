@@ -177,12 +177,47 @@ async function downloadDatabaseBackup() {
     const tag = select?.value || '';
     const button = document.getElementById('backupDownloadButton');
     const status = document.getElementById('backupDownloadStatus');
-    if (!button || button.disabled || !/^backup-\d{8}T\d{6}Z$/.test(tag)) return;
+    if (!button || button.disabled || !/^backup-\\d{8}T\\d{6}Z$/.test(tag)) return;
 
     backupDownloadInProgress = true;
     updateBackupDownloadButton();
-    if (status) status.textContent = 'جارٍ تنزيل النسخة والتحقق من سلامتها...';
+    if (status) status.textContent = 'جارٍ تجهيز تنزيل النسخة والتحقق من مصدرها...';
     try {
+        const prepared = await supabaseClient.functions.invoke('backup-console', {
+            body: { action: 'prepare_download', backup_tag: tag }
+        });
+        if (prepared.error) {
+            let code = prepared.error.message || 'backup_download_failed';
+            try { code = (await prepared.error.context?.json())?.error || code; } catch { /* Keep the generic error. */ }
+            if (!['provider_digest_unavailable', 'direct_download_unavailable'].includes(code)) {
+                throw new Error(code);
+            }
+        } else {
+            const direct = prepared.data;
+            const directUrl = new URL(direct?.downloadUrl || '');
+            const expectedFilename = `manzil-db-${tag.slice('backup-'.length)}.dump`;
+            if (direct.filename !== expectedFilename
+                || !/^[a-f0-9]{64}$/i.test(String(direct.sha256 || ''))
+                || !Number.isSafeInteger(Number(direct.sizeBytes)) || Number(direct.sizeBytes) <= 0
+                || directUrl.protocol !== 'https:'
+                || !['release-assets.githubusercontent.com', 'objects.githubusercontent.com'].includes(directUrl.hostname)) {
+                throw new Error('invalid_direct_backup_download');
+            }
+            const link = document.createElement('a');
+            link.href = directUrl.toString();
+            link.download = direct.filename;
+            link.rel = 'noopener noreferrer';
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            if (status) status.textContent = 'تم بدء التنزيل المباشر. تم التحقق من بصمة النسخة من مستودع النسخ؛ تابع التقدم في مدير التنزيلات.';
+            return;
+        }
+
+        // Compatibility fallback for providers that do not expose an asset digest
+        // or do not issue a short-lived redirect.
+        if (status) status.textContent = 'التنزيل المباشر غير متاح لهذه النسخة؛ جارٍ التنزيل عبر الخادم والتحقق من SHA-256...';
         const { data, error, response } = await supabaseClient.functions.invoke('backup-console', {
             body: { action: 'download_backup', backup_tag: tag }
         });
