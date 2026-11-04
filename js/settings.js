@@ -176,7 +176,7 @@ function renderBuildingLayoutPreview() {
         `${floors} دور × ${apartmentsPerFloor} شقة = ${total} شقة`,
         `الدور الأول: الشقق 1–${apartmentsPerFloor}`,
         `الدور الأخير: الشقق ${lastStart}–${total}`
-    ].join('\\n');
+    ].join('\n');
 }
 
 function openSettingsModal() {
