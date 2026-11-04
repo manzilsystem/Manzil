@@ -33,7 +33,11 @@ function loadReceiptApp(phone = '01012345678', extraIncome = []) {
     return { app, opened, messages };
 }
 
-function loadReceiptAppWithCollision() {\n    return loadReceiptApp('01012345678', [{ id: 'other-payment', residentId: 'resident-1', amount: 999, month: 'ديسمبر 2026', date: '2026-11-04T00:00:00.000Z', paymentMethod: 'cash', notes: 'ملاحظة خارجية ABC123 ليست دفعة موزعة' }]);\n}\n\ntest('WhatsApp receipt combines all months from one distributed payment', () => {
+function loadReceiptAppWithCollision() {
+    return loadReceiptApp('01012345678', [{ id: 'other-payment', residentId: 'resident-1', amount: 999, month: 'ديسمبر 2026', date: '2026-11-04T00:00:00.000Z', paymentMethod: 'cash', notes: 'ملاحظة خارجية ABC123 ليست دفعة موزعة' }]);
+}
+
+test('WhatsApp receipt combines all months from one distributed payment', () => {
     const { app, opened } = loadReceiptApp();
 
     app.sendIncomeReceiptOnWhatsApp('payment-2');
