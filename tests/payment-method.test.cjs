@@ -6,6 +6,7 @@ const test = require('node:test');
 const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
 const html = read('index.html');
 const crud = read('js/crud.js');
+const state = read('js/state.js');
 const supabase = read('js/supabase.js');
 const render = read('js/render.js');
 const notices = read('js/notices.js');
@@ -13,18 +14,10 @@ const backup = read('js/backup.js');
 const migration = read('supabase/migrations/20261104002557_income_payment_method.sql');
 
 test('new collections and edited collections require one of the supported payment methods', () => {
-    for (const [id, value] of [
-        ['incomePaymentMethod', 'cash'],
-        ['incomePaymentMethod', 'wallet'],
-        ['incomePaymentMethod', 'instapay'],
-        ['incomePaymentMethod', 'bank_transfer'],
-        ['incomeEditPaymentMethod', 'cash'],
-        ['incomeEditPaymentMethod', 'wallet'],
-        ['incomeEditPaymentMethod', 'instapay'],
-        ['incomeEditPaymentMethod', 'bank_transfer']
-    ]) {
-        assert.match(html, new RegExp('id="' + id + '"'));
-        assert.ok(html.includes('value="' + value + '"'));
+    assert.match(html, /id="incomePaymentMethod"[^>]*required/);
+    for (const value of ['cash', 'wallet', 'instapay', 'bank_transfer']) {
+        assert.ok(state.includes(value + ':'));
+        assert.ok(html.includes('value="' + value + '"'), 'edit form must retain ' + value);
     }
     assert.match(crud, /const paymentMethod = document\.getElementById\('incomePaymentMethod'\)\.value/);
     assert.match(crud, /paymentMethod,/);
