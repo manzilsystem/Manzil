@@ -96,14 +96,33 @@ function updateThemeSelection() {
 function renderSettingsOwnerAccess() {
     const container = document.getElementById('settingsOwnerAccessList');
     if (!container) return;
+    const summary = document.getElementById('settingsOwnerAccessSummary');
+    const search = document.getElementById('settingsOwnerAccessSearch');
     const residents = [...(state.residents || [])].sort((a, b) =>
         String(a.apartmentNumber || '').localeCompare(String(b.apartmentNumber || ''), 'ar', { numeric: true })
     );
+    const linkedCount = residents.filter(resident => Boolean(resident.userId)).length;
+    const needsAccountCount = residents.filter(resident => !resident.userId && Boolean(String(resident.phone || '').trim())).length;
+    const missingPhoneCount = residents.filter(resident => !String(resident.phone || '').trim()).length;
+    if (summary) {
+        summary.textContent = `${residents.length} شقة · ${linkedCount} حساب مرتبط · ${needsAccountCount} يحتاج إنشاء حساب · ${missingPhoneCount} بدون هاتف`;
+    }
     if (!residents.length) {
         container.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">أضف الشقق أولًا لعرض حسابات الملاك.</p>';
         return;
     }
-    container.innerHTML = residents.map(resident => {
+    const normalize = value => String(value || '').toLocaleLowerCase('ar')
+        .replace(/[\u064B-\u065F\u0670\u0640]/g, '').trim();
+    const query = normalize(search?.value);
+    const filtered = residents.filter(resident => [
+        resident.name, resident.apartmentNumber, resident.phone,
+        resident.userId ? 'حساب مرتبط' : resident.phone ? 'لم ينشأ حساب' : 'بدون هاتف'
+    ].some(value => normalize(value).includes(query)));
+    if (!filtered.length) {
+        container.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">لا توجد نتائج مطابقة للبحث.</p>';
+        return;
+    }
+    container.innerHTML = filtered.map(resident => {
         const linked = Boolean(resident.userId);
         const hasPhone = Boolean(String(resident.phone || '').trim());
         const status = linked ? 'حساب مرتبط' : hasPhone ? 'لم يُنشأ حساب' : 'لا يوجد رقم جوال';
