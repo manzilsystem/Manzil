@@ -48,6 +48,19 @@ The SQL integration check also verifies owner RLS: each owner sees only their ow
 
 Stop the stack with `supabase stop`. Use `supabase stop --no-backup` only when intending to discard local Docker volumes.
 
+## Browser tests
+
+The Playwright suite serves the static app on `http://127.0.0.1:8123` and covers the shell, the service worker handshake, the Content Security Policy, local error capture, and all eight settings sections on desktop and mobile viewports.
+
+```sh
+npm ci
+npm run e2e:install
+npm run e2e
+```
+
+Run a single file with `npx playwright test e2e/settings.spec.js --project=mobile`. Failure traces are written to `test-results/`, which is not committed.
+
+
 ## Production safety
 
 - Never run `supabase db reset --linked`, `supabase db reset --remote`, or a reset with a hosted `--db-url`.

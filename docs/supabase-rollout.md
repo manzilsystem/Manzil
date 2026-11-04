@@ -46,6 +46,24 @@ from new_building;
 
 الواجهة تستخدم Supabase Auth لتسجيل دخول المدير بالبريد والمالك بالجوال والـPIN، وتحدد الدور من `building_members`، وتحمّل وتكتب البيانات عبر المفتاح العام وسياسات RLS. تُخزّن حالة فرض تغيير PIN في `profiles.must_change_pin` بينما تبقى كلمة المرور محفوظة بتجزئة Supabase Auth. لم يعد مسار التشغيل يعتمد على `localStorage` أو GitHub Gist.
 
+## رصد أخطاء الواجهة
+
+يرسل `js/telemetry.js` أخطاء JavaScript وأخطاء الوعود غير المعالجة إلى جدول `public.client_errors` باستخدام مفتاح publishable. طبّق الترحيل `supabase/migrations/20261104220000_client_error_reports.sql` قبل الاعتماد عليه.
+
+- الجدول إلحاقي فقط: دورَا `anon` و`authenticated` يملكان `insert` دون `select`، ولا يوجد تعديل أو حذف عبر API.
+- يتوقف الإدخال تلقائياً عند 5000 صف حتى لا يتضخم التخزين.
+- لا تُرسل قيم الحقول أو بيانات شخصية: الرسالة والمسار والملف ورقم السطر والدور وإصدار الواجهة فقط، والمكدس محدود بـ1200 حرف.
+- لا يُرسل شيء من `localhost` أو `127.0.0.1`؛ تُحفظ آخر 20 خطأ محلياً في `localStorage` تحت `manzil-error-log`، ويمكن قراءتها من الكونسول عبر `manzilErrorLog()`.
+
+لقرار أخطاء الإنتاج نفّذ من SQL Editor:
+
+```sql
+select created_at, release, kind, role, message, source, line, path
+from public.client_errors
+order by created_at desc
+limit 50;
+```
+
 ## اختبار الخصوصية قبل الإطلاق
 
 1. سجّل دخول المدير وتأكد من رؤية كل الشقق والتحصيلات والمصروفات.

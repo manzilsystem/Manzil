@@ -1,6 +1,7 @@
 const SUPABASE_URL = 'https://musvcrkljccubwbcrtjs.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_' + 'ysHOFQfwUFZDlqT6RrOqHA_vGSHrNZs';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+window.manzilSupabaseConfig = { url: SUPABASE_URL, key: SUPABASE_PUBLISHABLE_KEY };
 let activeSession = null;
 let activeBuildingId = null;
 let supabaseStateLoaded = false;
