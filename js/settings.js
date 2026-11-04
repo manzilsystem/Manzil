@@ -156,6 +156,29 @@ function renderSubscriptionRulePreview() {
     ].join('\n');
 }
 
+function renderBuildingLayoutPreview() {
+    const preview = document.getElementById('settingsBuildingLayoutPreview');
+    if (!preview) return;
+    const floors = Number(document.getElementById('settingsFloorCount')?.value || 0);
+    const apartmentsPerFloor = Number(document.getElementById('settingsApartmentsPerFloor')?.value || 0);
+    if (floors === 0 && apartmentsPerFloor === 0) {
+        preview.textContent = 'حدد عدد الأدوار والشقق لعرض التوزيع.';
+        return;
+    }
+    if (!Number.isInteger(floors) || !Number.isInteger(apartmentsPerFloor)
+        || floors < 1 || floors > 100 || apartmentsPerFloor < 1 || apartmentsPerFloor > 100) {
+        preview.textContent = 'أدخل عدد الأدوار وعدد الشقق معًا، من 1 إلى 100 لكل قيمة.';
+        return;
+    }
+    const total = floors * apartmentsPerFloor;
+    const lastStart = total - apartmentsPerFloor + 1;
+    preview.textContent = [
+        `${floors} دور × ${apartmentsPerFloor} شقة = ${total} شقة`,
+        `الدور الأول: الشقق 1–${apartmentsPerFloor}`,
+        `الدور الأخير: الشقق ${lastStart}–${total}`
+    ].join('\\n');
+}
+
 function openSettingsModal() {
     if (!requireManager()) return;
     document.getElementById('settingsBuildingName').value = state.buildingName||'';
@@ -165,6 +188,13 @@ function openSettingsModal() {
     document.getElementById('settingsStartingBalance').value = state.startingBalance ?? '';
     document.getElementById('settingsFloorCount').value = state.floorCount || '';
     document.getElementById('settingsApartmentsPerFloor').value = state.apartmentsPerFloor || '';
+    ['settingsFloorCount', 'settingsApartmentsPerFloor'].forEach(id => {
+        const field = document.getElementById(id);
+        if (!field) return;
+        field.oninput = renderBuildingLayoutPreview;
+        field.onchange = renderBuildingLayoutPreview;
+    });
+    renderBuildingLayoutPreview();
 
     const paymentSettings = normalizePaymentSettings(state.paymentSettings);
     document.getElementById('settingsPaymentCashEnabled').checked = paymentSettings.cash.enabled;
