@@ -48,7 +48,9 @@ from new_building;
 
 ## رصد أخطاء الواجهة
 
-يرسل `js/telemetry.js` أخطاء JavaScript وأخطاء الوعود غير المعالجة إلى جدول `public.client_errors` باستخدام مفتاح publishable. طبّق الترحيل `supabase/migrations/20261104220000_client_error_reports.sql` قبل الاعتماد عليه.
+**الحالة: مطبَّق ومفعَّل في الإصدار `manzil-v96` (2026-11-05).** أُسند الترحيل `supabase/migrations/20261104220000_client_error_reports.sql` إلى المشروع المستضاف عبر مهمة `workflow_dispatch` مؤقتة تستخدم السر `SUPABASE_DB_URL` مع `psql` داخل معاملة واحدة، ثم حُذفت المهمة بعد التحقق. النتيجة: الجدول وRLS والسياسة الإلحاقية ومُشغّل الحد الأقصى مثبّتة، وإدراج فعلي عبر REST أعاد `201` بينما أعادت القراءة `401`. لا يستخدم المشروع `supabase db push` لعدم وجود ربط CLI محلي؛ أي ترحيل لاحق يُطبَّق بنفس الطريقة أو من SQL Editor.
+
+يرسل `js/telemetry.js` أخطاء JavaScript وأخطاء الوعود غير المعالجة إلى جدول `public.client_errors` باستخدام مفتاح publishable.
 
 - الجدول إلحاقي فقط: دورَا `anon` و`authenticated` يملكان `insert` دون `select`، ولا يوجد تعديل أو حذف عبر API.
 - يتوقف الإدخال تلقائياً عند 5000 صف حتى لا يتضخم التخزين.
