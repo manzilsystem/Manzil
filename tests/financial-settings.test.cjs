@@ -15,7 +15,7 @@ const crudSource = read('js/crud.js');
 const accessSource = read('js/access.js');
 const html = read('index.html');
 const css = read('css/style.css');
-const migration = read('supabase/migrations/20261104040000_building_payment_subscription_settings.sql');
+const migration = read('supabase/migrations/20261104034317_building_payment_subscription_settings.sql');
 
 const fixedNow = new Date('2026-11-04T12:00:00+02:00');
 class FixedDate extends Date {
