@@ -86,7 +86,7 @@ function sendIncomeReceiptOnWhatsApp(incomeId) {
         return;
     }
 
-    const referenceMatch = String(payment.notes || '').match(/دفعة موزعة\\s+([A-Z0-9]+)/i);
+    const referenceMatch = String(payment.notes || '').match(/دفعة موزعة\s+([A-Z0-9]+)/i);
     const reference = referenceMatch?.[1] || String(payment.id).replace(/[^a-z0-9]/gi, '').slice(0, 12).toUpperCase();
     const relatedPayments = referenceMatch
         ? state.income.filter(item =>
@@ -97,7 +97,7 @@ function sendIncomeReceiptOnWhatsApp(incomeId) {
         : [payment];
     relatedPayments.sort((a, b) => {
         const order = item => {
-            const match = String(item.notes || '').match(/\\((\\d+)\\//);
+            const match = String(item.notes || '').match(/\((\d+)\/);
             return Number(match?.[1] || 0);
         };
         return order(a) - order(b);
@@ -106,7 +106,7 @@ function sendIncomeReceiptOnWhatsApp(incomeId) {
     const total = relatedPayments.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
     const details = relatedPayments.map(item =>
         `• ${item.month}: ${fmtNum(item.amount)} ج.م`
-    ).join('\\n');
+    ).join('\n');
     const message = [
         `إيصال استلام — ${state.buildingName || 'العمارة'}`,
         '',
@@ -120,7 +120,7 @@ function sendIncomeReceiptOnWhatsApp(incomeId) {
         `رقم الإيصال: ${reference}`,
         '',
         'شكراً لالتزامكم، ونسعد دائماً بخدمتكم.'
-    ].join('\\n');
+    ].join('\n');
 
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
 }
