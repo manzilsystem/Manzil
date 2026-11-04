@@ -1420,3 +1420,9 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 }
 [data-theme="light"] #settingsModal .settings-building-layout-summary h5 { color:#173b48; }
 [data-theme="light"] #settingsModal .settings-building-layout-summary output { color:#526b73; }
+
+
+/* Live character counts for receipt and reminder templates */
+#settingsModal .settings-character-count { align-self:flex-end; color:var(--text-muted); font-size:.68rem; font-weight:700; direction:rtl; }
+#settingsModal .settings-character-count.is-near-limit { color:#d97706; }
+#settingsModal .settings-character-count.is-at-limit { color:#dc2626; }

@@ -109,3 +109,25 @@ test('reminder is not opened for a resident without outstanding debt', () => {
     assert.equal(opened.length, 0);
     assert.match(messages[0].message, /لا توجد متأخرات/);
 });
+
+
+test('reminder template character counter updates live and warns near the limit', () => {
+    const elements = {
+        settingsReminderTemplate: { value: 'رسالة تجريبية' },
+        settingsReminderCharacterCount: { textContent: '', classList: { toggle() {} } },
+        settingsReminderPreview: { textContent: '' }
+    };
+    const api = vm.runInNewContext(settingsSource + '\nstate.buildingName = "عمارة النور";\n({ renderReminderPreview })', {
+        document: { getElementById: id => elements[id] || null }
+    });
+    api.renderReminderPreview();
+    assert.equal(elements.settingsReminderCharacterCount.textContent, '13 / 500 حرف');
+    elements.settingsReminderTemplate.value = 'أ'.repeat(450);
+    let nearLimit = false;
+    elements.settingsReminderCharacterCount.classList.toggle = (name, enabled) => {
+        if (name === 'is-near-limit') nearLimit = enabled;
+    };
+    api.renderReminderPreview();
+    assert.equal(elements.settingsReminderCharacterCount.textContent, '450 / 500 حرف');
+    assert.equal(nearLimit, true);
+});

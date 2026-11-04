@@ -765,7 +765,7 @@
                     </section>
                     <section id="settings-panel-receipts" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-receipts">
                         <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-receipt"></i></span><div><h4>إيصال التحصيل</h4><p>خصص رسالة الشكر التي تظهر في إيصال واتساب</p></div></div>
-                        <label class="settings-field" for="settingsReceiptThankYou"><span>رسالة الشكر</span><textarea id="settingsReceiptThankYou" rows="3" maxlength="180" class="app-input border rounded-xl px-3 py-2.5 resize-y" placeholder="شكراً لالتزامكم، ونسعد دائماً بخدمتكم."></textarea></label>
+                        <label class="settings-field" for="settingsReceiptThankYou"><span>رسالة الشكر</span><textarea id="settingsReceiptThankYou" rows="3" maxlength="180" class="app-input border rounded-xl px-3 py-2.5 resize-y" placeholder="شكراً لالتزامكم، ونسعد دائماً بخدمتكم."></textarea><span id="settingsReceiptCharacterCount" class="settings-character-count" aria-live="polite">0 / 180 حرف</span></label>
                         <p class="settings-help">اترك الحقل فارغًا لاستخدام الرسالة الافتراضية. تُحفظ الرسالة على إعدادات هذا المبنى في الخادم وتظهر على الأجهزة المرتبطة به، ولا تؤثر على مبالغ التحصيل أو طريقة الدفع.</p>
                         <div class="settings-info-card space-y-2">
                             <div class="font-bold text-sm"><i class="fa-solid fa-eye ml-1"></i> معاينة الإيصال</div>
@@ -775,7 +775,7 @@
                     </section>
                     <section id="settings-panel-reminders" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-reminders">
                         <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-bell"></i></span><div><h4>تذكيرات المتأخرات</h4><p>خصص رسالة واتساب التي تجهز للساكن قبل الإرسال</p></div></div>
-                        <label class="settings-field" for="settingsReminderTemplate"><span>نص التذكير</span><textarea id="settingsReminderTemplate" rows="5" maxlength="500" class="app-input border rounded-xl px-3 py-2.5 resize-y" placeholder="اكتب رسالة التذكير"></textarea></label>
+                        <label class="settings-field" for="settingsReminderTemplate"><span>نص التذكير</span><textarea id="settingsReminderTemplate" rows="5" maxlength="500" class="app-input border rounded-xl px-3 py-2.5 resize-y" placeholder="اكتب رسالة التذكير"></textarea><span id="settingsReminderCharacterCount" class="settings-character-count" aria-live="polite">0 / 500 حرف</span></label>
                         <div class="settings-help space-y-1">
                             <p>المتغيرات المتاحة — اكتبها كما هي داخل الأقواس:</p>
                             <p dir="ltr" class="text-left">{name} · {building} · {apartment} · {month} · {amount} · {count} · {months}</p>
