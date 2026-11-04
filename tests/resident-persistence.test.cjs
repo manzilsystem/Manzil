@@ -64,7 +64,7 @@ test('atomic save converts a legacy millisecond createdAt into a timestamptz ISO
 });
 
 test('apartment floor is optional and supported by the atomic database snapshot', () => {
-    const migration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103213000_add_resident_floor.sql'), 'utf8');
+    const migration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103214929_add_resident_floor.sql'), 'utf8');
     assert.match(migration, /ADD COLUMN IF NOT EXISTS floor text/);
     assert.match(migration, /apartment_number, floor, phone/);
     assert.match(migration, /floor text, phone text/);
