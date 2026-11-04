@@ -23,10 +23,14 @@ class FixedDate extends Date {
     static now() { return fixedNow.getTime(); }
 }
 
-function loadStateHelpers() {
+function loadStateHelpers(now = fixedNow) {
+    class TestDate extends Date {
+        constructor(...args) { super(...(args.length ? args : [now])); }
+        static now() { return new Date(now).getTime(); }
+    }
     return vm.runInNewContext(
-        stateSource + '\n({ state, normalizePaymentSettings, populatePaymentMethodOptions, getSubscriptionDueDeadline, isSubscriptionMonthOverdue, calculateIncomeAllocationPreview })',
-        { Date: FixedDate },
+        stateSource + '\n({ state, normalizePaymentSettings, populatePaymentMethodOptions, getSubscriptionDueDeadline, isSubscriptionMonthOverdue, calculateIncomeAllocationPreview, calculateCumulativeDebt })',
+        { Date: TestDate },
         { filename: 'js/state.js' }
     );
 }
@@ -96,6 +100,44 @@ test('due day and grace period classify the current monthly balance without rewr
     assert.equal(app.isSubscriptionMonthOverdue('نوفمبر 2026', beforeGraceEnds), false);
     assert.equal(app.isSubscriptionMonthOverdue('نوفمبر 2026', afterGraceEnds), true);
     assert.equal(app.isSubscriptionMonthOverdue('invalid-month', afterGraceEnds), false);
+});
+
+test('current-month dues are excluded from arrears until the grace period ends', () => {
+    const beforeGrace = loadStateHelpers('2026-11-08T23:59:59+02:00');
+    beforeGrace.state.subscriptionDueDay = 5;
+    beforeGrace.state.subscriptionGraceDays = 3;
+    beforeGrace.state.residents = [{
+        id: 'resident-1',
+        createdAt: '2026-11-01T00:00:00+02:00',
+        monthlyAmount: 100
+    }];
+    const before = beforeGrace.calculateCumulativeDebt('resident-1');
+    assert.equal(before.totalDebt, 0);
+    assert.deepEqual(JSON.parse(JSON.stringify(before.unpaidMonths)), []);
+
+    const afterGrace = loadStateHelpers('2026-11-09T00:00:00+02:00');
+    afterGrace.state.subscriptionDueDay = 5;
+    afterGrace.state.subscriptionGraceDays = 3;
+    afterGrace.state.residents = [{
+        id: 'resident-1',
+        createdAt: '2026-10-01T00:00:00+02:00',
+        monthlyAmount: 100
+    }];
+    const after = afterGrace.calculateCumulativeDebt('resident-1');
+    assert.equal(after.totalDebt, 200);
+    assert.deepEqual(JSON.parse(JSON.stringify(after.unpaidMonths)), ['أكتوبر 2026', 'نوفمبر 2026']);
+
+    const beforeWithPreviousArrears = loadStateHelpers('2026-11-08T23:59:59+02:00');
+    beforeWithPreviousArrears.state.subscriptionDueDay = 5;
+    beforeWithPreviousArrears.state.subscriptionGraceDays = 3;
+    beforeWithPreviousArrears.state.residents = [{
+        id: 'resident-1',
+        createdAt: '2026-10-01T00:00:00+02:00',
+        monthlyAmount: 100
+    }];
+    const previousOnly = beforeWithPreviousArrears.calculateCumulativeDebt('resident-1');
+    assert.equal(previousOnly.totalDebt, 100);
+    assert.deepEqual(JSON.parse(JSON.stringify(previousOnly.unpaidMonths)), ['أكتوبر 2026']);
 });
 
 test('oldest-first remains the default allocation order and selected-month-first is configurable', () => {
