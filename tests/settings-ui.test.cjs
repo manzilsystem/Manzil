@@ -180,8 +180,8 @@ test('settings cards use larger full-screen tiles and sections remain full-scree
 
 
 test('service worker refreshes cached assets from network and checks for updates automatically', () => {
-    assert.match(sw, /CACHE_NAME = 'manzil-v74'/);
-    assert.match(sw, /fetch\\(new Request\\(request, \\{ cache: 'no-cache' \\}\\)\\)/);
-    assert.match(sw, /\\.catch\\(\\(\\) => caches\\.match\\(request\\)\\)/);
-    assert.match(read('js/app.js'), /updateViaCache: 'none'/);
+    assert.ok(sw.includes("CACHE_NAME = 'manzil-v74'"));
+    assert.ok(sw.includes("fetch(new Request(request, { cache: 'no-cache' }))"));
+    assert.ok(sw.includes('.catch(() => caches.match(request))'));
+    assert.ok(read('js/app.js').includes("updateViaCache: 'none'"));
 });
