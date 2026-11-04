@@ -316,6 +316,7 @@ function renderExpenseTable() {
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <span class="text-sm font-black text-rose-400">${fmtNum(e.amount)}</span>
+                <button onclick="openExpenseEditModal('${e.id}')" aria-label="تعديل المصروف ${esc(e.title)}" class="text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-pen text-xs"></i></button>
                 <button onclick="deleteExpense('${e.id}')" class="text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash text-xs"></i></button>
             </div>
         </div>`).join('');

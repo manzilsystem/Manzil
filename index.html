@@ -180,7 +180,7 @@
                     <button onclick="openModal('incomeModal')" class="quick-action quick-action-income" aria-label="تسجيل تحصيل جديد">
                         <i class="fa-solid fa-hand-holding-dollar"></i><span>تحصيل جديد</span>
                     </button>
-                    <button onclick="openModal('expenseModal')" class="quick-action quick-action-expense" aria-label="تسجيل مصروف جديد">
+                    <button onclick="openExpenseModal()" class="quick-action quick-action-expense" aria-label="تسجيل مصروف جديد">
                         <i class="fa-solid fa-receipt"></i><span>مصروف جديد</span>
                     </button>
                     <button onclick="openResidentModal('add')" class="quick-action quick-action-resident" aria-label="إضافة شقة جديدة">
@@ -306,7 +306,7 @@
         <section id="tab-expenses" class="hidden space-y-4">
             <div class="section-toolbar flex justify-between items-center app-card p-4 rounded-3xl border no-print">
                 <div><h2 class="font-bold text-base">مصروفات العمارة</h2><p class="text-[11px] text-slate-400">فواتير وصيانة</p></div>
-                <button onclick="openModal('expenseModal')" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-rose-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> مصروف جديد</button>
+                <button onclick="openExpenseModal()" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-rose-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> مصروف جديد</button>
             </div>
             <div class="list-filters app-card p-3 rounded-3xl border flex flex-wrap gap-2 no-print">
                 <input type="search" id="searchExpenseInput" aria-label="البحث في المصروفات" oninput="renderExpenseTable()" placeholder="ابحث في المصروفات..." class="flex-grow app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
