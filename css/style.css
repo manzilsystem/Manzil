@@ -546,3 +546,35 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 [data-theme="ocean"] .auth-submit,
 [data-theme="sand"] .auth-submit,
 [data-theme="turquoise"] .auth-submit { color:#06242b; }
+
+
+/* Full-page settings: spacious overview and focused section view. */
+#settingsModal { padding:1rem; }
+#settingsModal > .app-card { width:min(96vw, 90rem); height:92dvh; max-height:94dvh; display:flex; flex-direction:column; overflow:hidden; }
+#settingsModal > .app-card > .settings-layout { flex:1; width:100%; min-height:0; overflow:hidden; }
+#settingsModal .settings-overview { width:100%; padding:clamp(1.25rem, 3vw, 2.5rem); }
+#settingsModal .settings-overview-heading { margin-bottom:1.5rem; }
+#settingsModal .settings-overview-heading h4 { font-size:1.25rem; }
+#settingsModal .settings-overview-heading p { font-size:.9rem; }
+#settingsModal .settings-card-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:1.1rem; }
+#settingsModal .settings-card { min-height:clamp(130px, 19vh, 190px); padding:1.25rem; border-radius:1.25rem; }
+#settingsModal .settings-card-icon { width:3.5rem; height:3.5rem; font-size:1.25rem; }
+#settingsModal .settings-card-copy b { font-size:.95rem; }
+#settingsModal .settings-card-copy small { font-size:.78rem; }
+#settingsModal .settings-content { width:100%; flex:1; min-height:0; max-height:none; padding:clamp(1.25rem, 3vw, 2.5rem); overflow-y:auto; }
+#settingsModal .settings-panel { width:100%; }
+#settingsModal .settings-footer { flex:none; padding:1rem clamp(1.25rem, 3vw, 2.5rem); }
+@media (max-width:900px) {
+  #settingsModal .settings-card-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #settingsModal .settings-card { min-height:125px; }
+}
+@media (max-width:560px) {
+  #settingsModal { padding:.35rem; }
+  #settingsModal > .app-card { width:100%; height:94dvh; max-height:94dvh; border-radius:1.1rem; }
+  #settingsModal .settings-overview { padding:1rem; }
+  #settingsModal .settings-card-grid { grid-template-columns:minmax(0,1fr); gap:.7rem; }
+  #settingsModal .settings-card { min-height:88px; padding:.85rem; }
+  #settingsModal .settings-card-icon { width:2.8rem; height:2.8rem; }
+  #settingsModal .settings-content { padding:1rem; }
+  #settingsModal .settings-footer { padding:.8rem 1rem; }
+}
