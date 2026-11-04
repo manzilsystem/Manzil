@@ -429,11 +429,11 @@ function getActiveBuildingMonths() {
 
 async function setTheme(theme) {
     if (currentUserRole !== 'manager') { toast('تغيير الإعدادات متاح للمدير فقط','error'); return; }
-    if (!['dark','light','emerald','ocean','sand'].includes(theme)) theme = 'dark';
+    if (!['dark','light','emerald','ocean','sand','turquoise'].includes(theme)) theme = 'dark';
     const previousState = cloneStateSnapshot();
     state.currentTheme = theme;
     document.body.setAttribute('data-theme', theme);
-    const themeColors = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16' };
+    const themeColors = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16', turquoise:'#071f27' };
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[theme]);
     updateThemeSelection();
     if (!await saveWithRollback(previousState)) {

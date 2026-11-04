@@ -8,6 +8,7 @@
 \ir ../supabase/migrations/20261103030212_drop_legacy_subscription_rate_rpc.sql
 \ir ../supabase/migrations/20261103031121_restrict_subscription_rate_visibility.sql
 \ir ../supabase/migrations/20261103050000_allow_all_five_themes.sql
+\ir ../supabase/migrations/20261104110000_add_turquoise_theme.sql
 \ir ../supabase/migrations/20261103062659_manager_only_resident_notes.sql
 \ir ../supabase/migrations/20261103063455_owner_login_rate_limit.sql
 \ir ../supabase/migrations/20261103064001_subscription_rate_change_history.sql
@@ -360,7 +361,7 @@ DO $$
 DECLARE
     v_theme text;
 BEGIN
-    FOREACH v_theme IN ARRAY ARRAY['dark', 'light', 'emerald', 'ocean', 'sand'] LOOP
+    FOREACH v_theme IN ARRAY ARRAY['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise'] LOOP
         UPDATE public.buildings
         SET current_theme = v_theme
         WHERE id = '20000000-0000-4000-8000-000000000001';

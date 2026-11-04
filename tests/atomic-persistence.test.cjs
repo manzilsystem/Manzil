@@ -10,6 +10,7 @@ const supabaseSource = fs.readFileSync(path.join(root, 'js', 'supabase.js'), 'ut
 const stateSource = fs.readFileSync(path.join(root, 'js', 'state.js'), 'utf8');
 
 const themeMigration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103050000_allow_all_five_themes.sql'), 'utf8');
+const turquoiseThemeMigration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261104110000_add_turquoise_theme.sql'), 'utf8');
 
 test('snapshot writes are atomic and guarded by a per-building optimistic version', () => {
     assert.match(migration, /ADD COLUMN IF NOT EXISTS state_version bigint NOT NULL DEFAULT 1/);
@@ -61,11 +62,10 @@ test('snapshot payload construction is guarded against invalid timestamps and fi
     assert.ok(supabaseSource.includes('تعذر تجهيز البيانات للحفظ'));
 });
 
-test('database constraint accepts all five themes supported by the UI', () => {
-    for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand']) {
-        assert.ok(themeMigration.includes(`'${theme}'`));
-    }
-    assert.match(supabaseSource, /\['dark', 'light', 'emerald', 'ocean', 'sand'\]\.includes\(building\.current_theme\)/);
+test('database constraint accepts all six themes supported by the UI', () => {
+    for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand']) assert.ok(themeMigration.includes(`'${theme}'`));
+    for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise']) assert.ok(turquoiseThemeMigration.includes(`'${theme}'`));
+    assert.match(supabaseSource, /\['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise'\]\.includes\(building\.current_theme\)/);
 });
 
 test('subscription rate RLS caches auth identity and indexes created_by foreign key', () => {

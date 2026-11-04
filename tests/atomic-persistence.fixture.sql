@@ -19,7 +19,7 @@ CREATE TABLE public.buildings (
     manager_phone text,
     default_subscription numeric(12,2) NOT NULL DEFAULT 0 CHECK (default_subscription >= 0),
     starting_balance numeric(12,2) NOT NULL DEFAULT 0,
-    current_theme text NOT NULL DEFAULT 'dark' CHECK (current_theme IN ('dark', 'light', 'emerald', 'ocean', 'sand')),
+    current_theme text NOT NULL DEFAULT 'dark' CHECK (current_theme IN ('dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise')),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE public.building_members (

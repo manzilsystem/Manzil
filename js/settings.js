@@ -23,7 +23,7 @@ function renderReminderPreview() {
         count: 3, months: 'سبتمبر 2026، أكتوبر 2026، نوفمبر 2026'
     });
 }
-const SETTINGS_THEME_NAMES = { dark:'ليلي', light:'نهاري', emerald:'زمردي', ocean:'محيطي', sand:'رملي' };
+const SETTINGS_THEME_NAMES = { dark:'ليلي', light:'نهاري', emerald:'زمردي', ocean:'محيطي', sand:'رملي', turquoise:'فيروزي' };
 function showSettingsOverview() {
     document.getElementById('settingsOverview')?.classList.remove('hidden');
     document.getElementById('settingsSectionToolbar')?.classList.add('hidden');
