@@ -100,6 +100,7 @@ function populateSelects() {
         rs.innerHTML = '<option value="">اختر الشقة</option>' + state.residents.map(r => `<option value="${r.id}">${esc(r.name)} - شقة ${esc(r.apartmentNumber)}</option>`).join('');
         rs.value = v;
     }
+    populatePaymentMethodOptions(document.getElementById('incomePaymentMethod'));
 }
 
 function getDashboardPeriod() {
