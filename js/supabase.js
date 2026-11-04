@@ -191,13 +191,25 @@ function attachResidentSubscriptionHistory(residents, rateRows = [], changeRows 
         changesByResident.set(row.resident_id, changes);
     }
 
-    return residents.map(resident => ({
-        ...resident,
-        subscriptionRates: (ratesByResident.get(resident.id) || [])
-            .sort((a, b) => a.effectiveMonth.localeCompare(b.effectiveMonth)),
-        subscriptionRateHistory: (changesByResident.get(resident.id) || [])
-            .sort((a, b) => String(b.changedAt).localeCompare(String(a.changedAt)))
-    }));
+    const now = new Date();
+    const currentMonthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+
+    return residents.map(resident => {
+        const subscriptionRates = (ratesByResident.get(resident.id) || [])
+            .sort((a, b) => a.effectiveMonth.localeCompare(b.effectiveMonth));
+        let currentRate = null;
+        for (const rate of subscriptionRates) {
+            if (rate.effectiveMonth > currentMonthStart) break;
+            currentRate = rate;
+        }
+        return {
+            ...resident,
+            monthlyAmount: currentRate ? currentRate.monthlyAmount : resident.monthlyAmount,
+            subscriptionRates,
+            subscriptionRateHistory: (changesByResident.get(resident.id) || [])
+                .sort((a, b) => String(b.changedAt).localeCompare(String(a.changedAt)))
+        };
+    });
 }
 
 function mapIncome(row) {
