@@ -75,6 +75,91 @@ function contactOwnerManager() {
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
 }
 
+
+function printOwnerReceipt(receiptId) {
+    if (currentUserRole !== 'owner' || !activeSession || !activeBuildingId || !currentResidentId) return;
+    const resident = state.residents.find(item => item.id === currentResidentId);
+    if (!resident) return;
+    const receipt = groupOwnerPaymentsIntoReceipts(resident.id).find(item => item.id === receiptId);
+    if (!receipt) {
+        toast('تعذر العثور على الإيصال. حدّث الصفحة وحاول مرة أخرى.', 'error');
+        return;
+    }
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        toast('اسمح بفتح نافذة الإيصال من المتصفح، ثم حاول مرة أخرى.', 'error');
+        return;
+    }
+    const rows = receipt.payments.map(payment => `
+        <tr>
+            <td>${esc(payment.month || '—')}</td>
+            <td>${fmtNum(payment.amount)} ج.م</td>
+        </tr>`).join('');
+    const thankYou = typeof getReceiptThankYouMessage === 'function'
+        ? getReceiptThankYouMessage()
+        : 'شكراً لالتزامكم، ونسعد دائماً بخدمتكم.';
+    const documentHtml = `<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>إيصال ${esc(receipt.reference)} - Manzil</title>
+    <style>
+        * { box-sizing:border-box; }
+        body { margin:0; padding:24px; background:#f1f5f9; color:#0f172a; font-family:Tahoma,Arial,sans-serif; }
+        .receipt { max-width:720px; margin:0 auto; padding:28px; background:#fff; border:1px solid #cbd5e1; border-radius:16px; }
+        header { display:flex; justify-content:space-between; align-items:center; gap:16px; padding-bottom:18px; border-bottom:2px solid #334155; }
+        h1 { margin:0; font-size:22px; } .brand { font-size:18px; font-weight:900; }
+        .number { margin-top:8px; color:#475569; font-size:12px; }
+        .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:22px 0; }
+        .field { padding:11px; border:1px solid #e2e8f0; border-radius:10px; min-width:0; }
+        .label { color:#64748b; font-size:11px; } .value { margin-top:6px; font-size:13px; font-weight:700; overflow-wrap:anywhere; }
+        table { width:100%; border-collapse:collapse; margin-top:16px; }
+        th,td { padding:12px 10px; text-align:right; border-bottom:1px solid #e2e8f0; font-size:12px; }
+        th { color:#475569; background:#f8fafc; }
+        .total { display:flex; justify-content:space-between; gap:12px; margin-top:18px; padding:16px; border-radius:10px; background:#ecfdf5; color:#065f46; font-weight:900; }
+        footer { margin-top:24px; padding-top:16px; border-top:1px solid #e2e8f0; text-align:center; color:#475569; font-size:12px; line-height:1.8; }
+        .actions { margin-top:20px; text-align:center; }
+        .actions button { min-height:46px; padding:10px 22px; border:0; border-radius:10px; background:#4f46e5; color:#fff; font-size:14px; font-weight:700; cursor:pointer; }
+        @media(max-width:480px) { body { padding:10px; } .receipt { padding:16px; } h1 { font-size:18px; } .grid { gap:8px; } .field { padding:9px; } }
+        @media print { body { padding:0; background:#fff; } .receipt { max-width:none; border:0; border-radius:0; padding:0; } .actions { display:none; } }
+    </style>
+</head>
+<body>
+    <main class="receipt">
+        <header>
+            <div><div class="brand">${esc(state.buildingName || 'Manzil')}</div><p class="number">رقم الإيصال: ${esc(receipt.reference)}</p></div>
+            <h1>إيصال استلام</h1>
+        </header>
+        <section class="grid">
+            <div class="field"><div class="label">اسم المالك</div><div class="value">${esc(resident.name || '—')}</div></div>
+            <div class="field"><div class="label">رقم الشقة</div><div class="value">${esc(resident.apartmentNumber || '—')}</div></div>
+            <div class="field"><div class="label">تاريخ الاستلام</div><div class="value">${esc(formatDate(receipt.date) || '—')}</div></div>
+            <div class="field"><div class="label">طريقة الدفع</div><div class="value">${esc(getIncomePaymentMethodLabel(receipt.paymentMethod))}</div></div>
+        </section>
+        <h2 style="font-size:14px;margin:0">تفاصيل السداد</h2>
+        <table><thead><tr><th>شهر الاشتراك</th><th>المبلغ</th></tr></thead><tbody>${rows}</tbody></table>
+        <div class="total"><span>إجمالي المبلغ المستلم</span><span>${fmtNum(receipt.totalAmount)} ج.م</span></div>
+        <footer>${esc(thankYou)}<br>تم إصدار هذا الإيصال من بوابة المالك في Manzil.</footer>
+        <div class="actions"><button type="button" onclick="window.print()">طباعة / حفظ PDF</button></div>
+    </main>
+</body>
+</html>`;
+    try {
+        printWindow.document.open();
+        printWindow.document.write(documentHtml);
+        printWindow.document.close();
+        printWindow.opener = null;
+        printWindow.focus();
+        setTimeout(() => {
+            try { printWindow.print(); } catch {}
+        }, 250);
+    } catch {
+        try { printWindow.close(); } catch {}
+        toast('تعذر تجهيز الإيصال للطباعة. حاول مرة أخرى.', 'error');
+    }
+}
+
 function renderOwnerPortal() {
     const portal = document.getElementById('ownerPortal');
     if (!portal) return;
@@ -161,6 +246,7 @@ function renderOwnerPortal() {
                         ${allocationRows}
                     </div>
                     <p class="text-[10px] text-slate-500">${esc(typeof getReceiptThankYouMessage === 'function' ? getReceiptThankYouMessage() : 'تم تسجيل عملية السداد بنجاح.')}</p>
+                    <button type="button" onclick="printOwnerReceipt(${esc(JSON.stringify(String(receipt.id)))})" class="w-full min-h-11 border border-indigo-500/30 text-indigo-300 rounded-xl px-3 py-2.5 text-xs font-bold"><i class="fa-solid fa-print ml-1"></i> طباعة الإيصال / حفظ PDF</button>
                 </div>
             </details>`;
     }).join('') : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إيصالات مسجلة لهذا الحساب حتى الآن.</p>';
