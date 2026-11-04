@@ -267,14 +267,20 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 [data-theme] .app-card { background-color:var(--bg-card); border-color:var(--border-color); }
 [data-theme] .app-input { background-color:var(--bg-input); color:var(--text-main); border-color:var(--border-color); }
 [data-theme] .text-slate-400,[data-theme] .text-slate-500 { color:var(--text-muted) !important; }
-#settingsModal > .app-card { max-width:40rem; width:min(100%,40rem); }
+#settingsModal { padding:.65rem; }
+#settingsModal > .app-card { max-width:52rem; width:min(100%,52rem); height:min(88dvh,760px); max-height:88dvh; overflow:hidden; display:flex; flex-direction:column; }
+#settingsModal > .app-card > .bg-indigo-700 { flex:none; }
+#settingsModal .settings-layout { flex:1; overflow:hidden; }
+#settingsModal .settings-content { flex:1; max-height:none; min-height:0; }
+#settingsModal .settings-tabs,#settingsModal .settings-footer { flex:none; }
+@media(max-width:640px) { #settingsModal { padding:.35rem; } #settingsModal > .app-card { height:94dvh; max-height:94dvh; border-radius:1.25rem; } }
 .settings-layout { display:flex; flex-direction:column; min-height:0; }
 .settings-tabs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.45rem; padding:.85rem 1rem; border-bottom:1px solid var(--border-color); background:var(--surface-raised); }
 .settings-tab { display:flex; align-items:center; justify-content:center; gap:.45rem; min-height:44px; padding:.55rem .4rem; border:1px solid transparent; border-radius:.85rem; color:var(--text-muted); font-size:.76rem; font-weight:800; transition:all .18s ease; }
 .settings-tab i { font-size:.85rem; }
 .settings-tab.active { color:var(--accent-color); background:var(--surface-soft); border-color:color-mix(in srgb,var(--accent-color) 32%,transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent-color) 10%,transparent); }
 .settings-tab:focus-visible,.theme-option:focus-visible { outline:3px solid var(--accent-color); outline-offset:2px; }
-.settings-content { padding:1.1rem; min-height:310px; max-height:min(54vh,490px); overflow-y:auto; overscroll-behavior:contain; }
+.settings-content { padding:1.1rem; min-height:310px; max-height:min(62vh,600px); overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; }
 .settings-panel { animation:settingsPanelIn .18s ease; }
 @keyframes settingsPanelIn { from { opacity:.4; transform:translateY(4px) } to { opacity:1; transform:translateY(0) } }
 .settings-section-heading { display:flex; align-items:center; gap:.75rem; margin-bottom:.35rem; }
