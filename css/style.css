@@ -750,3 +750,26 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
   #pinLockModal .auth-logo-frame { width:5rem;height:5rem;flex-basis:5rem; }
   #pinLockModal .auth-brand-copy h1 { font-size:1.25rem; }
 }
+
+
+/* Transparent Manzil identity: clear M monogram, compatible with every theme. */
+#pinLockModal .auth-logo-frame {
+  background:transparent !important;
+  border-color:transparent !important;
+  box-shadow:none !important;
+}
+#pinLockModal .auth-logo-frame img,
+.header-brand-mark img {
+  content:url("../icons/manzil-brand.svg");
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  background:transparent;
+  border-radius:0;
+}
+.header-brand-mark {
+  background:transparent !important;
+  border-color:transparent !important;
+  box-shadow:none !important;
+}
