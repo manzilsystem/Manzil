@@ -55,6 +55,7 @@ function switchSettingsTab(tab) {
         appearance: 'المظهر والثيمات', backup: 'النسخ الاحتياطي', receipts: 'الإيصالات',
         reminders: 'التذكيرات', account: 'الحساب والصلاحيات'
     };
+    if (tab === 'backup') loadSettingsBackupSummary();
     const title = titles[tab];
     const titleNode = document.getElementById('settingsCurrentSectionTitle');
     if (titleNode) titleNode.textContent = title;
@@ -166,6 +167,41 @@ function renderSubscriptionRulePreview() {
         `توزيع الدفعات: ${policyLabel}`,
         'يبدأ التأخير بعد انتهاء يوم الاستحقاق وفترة السماح.'
     ].join('\n');
+}
+
+async function loadSettingsBackupSummary() {
+    const summary = document.getElementById('settingsBackupSummaryText');
+    const meta = document.getElementById('settingsBackupSummaryMeta');
+    if (!summary || typeof callBackupConsole !== 'function') return;
+    if (typeof requireManager === 'function' && !requireManager()) return;
+    summary.textContent = 'جارٍ التحقق من حالة النسخ على الخادم...';
+    if (meta) meta.textContent = '';
+    try {
+        const data = await callBackupConsole({ action: 'list' });
+        const backups = Array.isArray(data.backups) ? data.backups : [];
+        const restoreRequests = Array.isArray(data.restoreRequests) ? data.restoreRequests : [];
+        const backupRequests = Array.isArray(data.backupRequests) ? data.backupRequests : [];
+        const pendingRestore = restoreRequests.some(item => ['queued', 'running'].includes(item.status));
+        const pendingBackup = backupRequests.some(item => ['queued', 'dispatched'].includes(item.status));
+        if (pendingRestore) {
+            summary.textContent = 'توجد عملية استعادة قيد التنفيذ. لا تبدأ عملية أخرى حتى تنتهي.';
+        } else if (pendingBackup) {
+            summary.textContent = 'طلب إنشاء نسخة احتياطية قيد التنفيذ.';
+        } else if (backups.length) {
+            const latest = new Date(backups[0].created_at);
+            summary.textContent = Number.isNaN(latest.getTime())
+                ? 'تم العثور على نسخ احتياطية محفوظة على الخادم.'
+                : 'آخر نسخة ناجحة: ' + latest.toLocaleString('ar-EG');
+        } else {
+            summary.textContent = 'لا توجد نسخ مسجلة على الخادم حتى الآن.';
+        }
+        if (meta) meta.textContent = backups.length + ' نسخة متاحة للاستعادة أو التنزيل.'
+            + (data.canDownload === true ? ' التنزيل الكامل متاح لهذا الحساب.' : ' التنزيل الكامل غير متاح لهذا الحساب.');
+    } catch (error) {
+        summary.textContent = 'تعذر جلب حالة النسخ من الخادم. استخدم زر التحديث أو افتح إدارة النسخ للمحاولة مرة أخرى.';
+        if (meta) meta.textContent = 'لم يتم الاعتماد على بيانات محلية قديمة في هذا الملخص.';
+        console.error('Settings backup summary error:', error);
+    }
 }
 
 function renderBuildingLayoutPreview() {

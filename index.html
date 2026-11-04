@@ -760,6 +760,14 @@
                     <section id="settings-panel-backup" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-backup">
                         <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span><div><h4>النسخ الاحتياطي</h4><p>حماية بيانات العمارة وإدارة الاستعادة</p></div></div>
                         <div class="settings-info-card"><div class="flex items-center gap-2 font-bold text-sm"><i class="fa-solid fa-clock text-emerald-400"></i> النسخ التلقائي</div><p>موعد التشغيل اليومي 02:23 UTC (04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة). يُفحص الأرشيف وتُحفظ آخر 30 نسخة.</p><span class="settings-status"><i class="fa-solid fa-circle-check"></i> الجدولة مفعّلة</span></div>
+                        <div class="settings-info-card space-y-2" id="settingsBackupSummary" aria-live="polite">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="font-bold text-sm"><i class="fa-solid fa-database ml-1"></i> حالة النسخ من الخادم</div>
+                                <button type="button" onclick="loadSettingsBackupSummary()" class="text-xs font-bold text-emerald-400 hover:underline">تحديث</button>
+                            </div>
+                            <p id="settingsBackupSummaryText" class="text-xs">افتح القسم لعرض آخر حالة مؤكدة من الخادم.</p>
+                            <p id="settingsBackupSummaryMeta" class="text-[11px] text-slate-500"></p>
+                        </div>
                         <button type="button" onclick="closeModal('settingsModal'); openModal('backupModal')" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold"><i class="fa-solid fa-arrow-up-right-from-square ml-2"></i> فتح إدارة النسخ والاستعادة</button>
                         <p class="settings-help">الاستعادة تستبدل بيانات قاعدة الإنتاج بالكامل ولا يمكن التراجع عنها إلا باستعادة نسخة أخرى.</p>
                     </section>
