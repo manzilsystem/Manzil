@@ -1,4 +1,16 @@
 const SETTINGS_TABS = ['building','appearance','backup','receipts','account'];
+const DEFAULT_RECEIPT_THANK_YOU = 'شكراً لالتزامكم، ونسعد دائماً بخدمتكم.';
+function getReceiptSettingsKey() {
+    return `manzil:${activeBuildingId || 'default'}:receipt-thank-you`;
+}
+function getReceiptThankYouMessage() {
+    try {
+        const value = String(localStorage.getItem(getReceiptSettingsKey()) || '').trim();
+        return value.slice(0, 180) || DEFAULT_RECEIPT_THANK_YOU;
+    } catch {
+        return DEFAULT_RECEIPT_THANK_YOU;
+    }
+}
 function renderReceiptPreview() {
     const input = document.getElementById('settingsReceiptThankYou');
     const preview = document.getElementById('settingsReceiptPreview');
@@ -78,6 +90,12 @@ async function saveSettings() {
         toast('تحقق من قيم الاشتراك والرصيد وعدد الأدوار والشقق (من 1 إلى 100).', 'error');
         return;
     }
+    const receiptInput = document.getElementById('settingsReceiptThankYou');
+    const receiptThankYou = String(receiptInput?.value || '').trim();
+    if (receiptThankYou.length > 180) {
+        toast('رسالة الشكر يجب ألا تتجاوز 180 حرفًا.', 'error');
+        return;
+    }
     const previousState = cloneStateSnapshot();
     state.buildingName = document.getElementById('settingsBuildingName').value.trim();
     state.managerName = document.getElementById('settingsManagerName').value.trim();
@@ -107,10 +125,7 @@ async function saveSettings() {
         return;
     }
     try {
-        const receiptInput = document.getElementById('settingsReceiptThankYou');
-        const thankYou = String(receiptInput?.value || '').trim();
-        if (thankYou.length > 180) { toast('رسالة الشكر يجب ألا تتجاوز 180 حرفًا.', 'error'); return; }
-        if (thankYou) localStorage.setItem(getReceiptSettingsKey(), thankYou);
+        if (receiptThankYou) localStorage.setItem(getReceiptSettingsKey(), receiptThankYou);
         else localStorage.removeItem(getReceiptSettingsKey());
     } catch (error) {
         console.error('Could not save receipt preferences:', error);
