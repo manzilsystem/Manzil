@@ -123,7 +123,7 @@ test('effective rate helper returns the latest rate effective in the selected mo
 
 test('JSON backup validation accepts all supported application themes', () => {
     const app = loadCrudHelpers();
-    for (const currentTheme of ['dark', 'light', 'emerald', 'ocean', 'sand']) {
+    for (const currentTheme of ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise']) {
         assert.equal(app.isValidBackup({
             residents: [],
             income: [],

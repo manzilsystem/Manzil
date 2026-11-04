@@ -350,7 +350,7 @@ function isValidBackup(data) {
     if (!data.notices.every(n => n && typeof n === 'object' && validId(n.id) && typeof n.text === 'string')) return false;
     if (!hasUnique(data.notices.map(n => n.id))) return false;
     if (data.auditLogs !== undefined && !Array.isArray(data.auditLogs)) return false;
-    if (data.currentTheme !== undefined && !['dark','light','emerald','ocean','sand'].includes(data.currentTheme)) return false;
+    if (data.currentTheme !== undefined && !['dark','light','emerald','ocean','sand','turquoise'].includes(data.currentTheme)) return false;
     if (data.defaultSubscription !== undefined && !validAmount(data.defaultSubscription)) return false;
     if (data.startingBalance !== undefined && !validNumber(data.startingBalance)) return false;
     const floorCount = data.floorCount ?? 0;
@@ -390,7 +390,7 @@ function importJSON(ev) {
             }
             const importedTheme = state.currentTheme || 'dark';
             document.body.setAttribute('data-theme', importedTheme);
-            const themeColors = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16' };
+            const themeColors = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16', turquoise:'#071f27' };
             document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[importedTheme] || themeColors.dark);
             renderAll();
             toast('تم الاستيراد','success'); closeModal('backupModal');

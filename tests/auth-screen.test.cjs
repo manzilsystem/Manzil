@@ -42,13 +42,16 @@ test('company ownership and contact details appear on sign-in and in the app', (
 });
 
 test('the redesigned sign-in shell collapses and prioritizes the form on mobile', () => {
-    assert.match(css, /#pinLockModal > \.auth-shell\s*\{[^}]*grid-template-columns: minmax\(0, \.8fr\)/s);
-    const mobileMediaIndex = css.indexOf('@media (max-width: 640px) {');
-    const mobileAuthRuleIndex = css.indexOf('#pinLockModal > .auth-shell { grid-template-columns: minmax(0, 1fr);', mobileMediaIndex);
-    const brandOrderIndex = css.indexOf('.auth-brand-panel { order: 2;', mobileMediaIndex);
-    const loginOrderIndex = css.indexOf('.auth-login-panel { order: 1;', mobileMediaIndex);
-    const nextMediaIndex = css.indexOf('@media (max-width: 360px)', mobileMediaIndex);
-    assert.ok(mobileMediaIndex >= 0 && mobileAuthRuleIndex > mobileMediaIndex && mobileAuthRuleIndex < nextMediaIndex);
-    assert.ok(brandOrderIndex > mobileMediaIndex && brandOrderIndex < nextMediaIndex);
-    assert.ok(loginOrderIndex > mobileMediaIndex && loginOrderIndex < nextMediaIndex);
+    assert.match(css, /#pinLockModal > \.auth-shell\s*\{[^}]*grid-template-columns:minmax\(0,\.88fr\) minmax\(0,1\.12fr\)/s);
+    assert.match(css, /@media \(max-width:700px\)[\s\S]*?#pinLockModal > \.auth-shell \{ grid-template-columns:minmax\(0,1fr\)/);
+    assert.match(css, /@media \(max-width:700px\)[\s\S]*?\.auth-brand-panel \{ order:1/);
+    assert.match(css, /@media \(max-width:700px\)[\s\S]*?\.auth-login-panel \{ order:2/);
+});
+
+test('Manzil branding uses the supplied logo on sign-in and app header with responsive styling', () => {
+    assert.match(html, /src="icons\/manzil-logo\.png" alt="شعار Manzil"/);
+    assert.match(html, /class="header-brand-mark"[^>]*>[\s\S]*?src="icons\/manzil-logo\.png"/);
+    assert.doesNotMatch(html, /<svg class="w-6 h-6" viewBox="0 0 24 24"/);
+    assert.match(css, /\.auth-logo-frame[\s\S]*?background:#fbfdff/);
+    assert.match(css, /@media \(max-width:700px\)[\s\S]*?\.auth-logo-frame \{ width:4\.8rem/);
 });
