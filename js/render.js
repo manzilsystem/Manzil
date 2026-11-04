@@ -387,7 +387,7 @@ function renderResidentsGrid() {
                     <div class="min-w-0"><p class="text-sm font-bold truncate">${esc(r.name)}</p><p class="text-[10px] text-slate-500 truncate">${r.floor ? `الدور ${esc(r.floor)} · ` : ''}${esc(r.phone||'')}</p></div>
                 </div>
                 <div class="flex gap-1">
-                    <button onclick="openResidentProfile('${esc(r.id)}')" aria-label="عرض ملف ${esc(r.name)}" title="تفاصيل الشقة" class="text-sky-400 hover:text-sky-300 p-1.5"><i class="fa-solid fa-circle-info text-xs"></i></button>
+                    <button onclick="openResidentProfile(${esc(JSON.stringify(String(r.id)))})" aria-label="عرض ملف ${esc(r.name)}" title="تفاصيل الشقة" class="text-sky-400 hover:text-sky-300 p-1.5"><i class="fa-solid fa-circle-info text-xs"></i></button>
                     <button onclick="editResident('${r.id}')" aria-label="تعديل بيانات ${esc(r.name)}" class="text-indigo-400 hover:text-indigo-300 p-1.5"><i class="fa-solid fa-pen text-xs"></i></button>
                     <button onclick="deleteResident('${r.id}')" aria-label="حذف الشقة ${esc(r.apartmentNumber)}" class="text-rose-400 hover:text-rose-300 p-1.5"><i class="fa-solid fa-trash text-xs"></i></button>
                 </div>
