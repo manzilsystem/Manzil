@@ -10,7 +10,7 @@ const end = source.indexOf('\\nfunction clearResidentFilters()', start);
 assert.ok(start >= 0 && end > start, 'renderResidentsGrid source must exist');
 const renderResidentsGridSource = source.slice(start, end);
 
-function renderCard({ paid, hasReceipt = true }) {
+function renderCard({ paid, hasReceipt = true, priorDebt = !paid }) {
     const elements = {
         residentsGrid: { innerHTML: '' },
         searchResidentsInput: { value: '' },
@@ -26,7 +26,7 @@ function renderCard({ paid, hasReceipt = true }) {
         document: { getElementById: id => elements[id] || null },
         getMonthOutstanding: () => paid ? 0 : 100,
         getPaidAmountForMonth: () => paid ? 100 : 0,
-        calculateCumulativeDebt: () => ({ totalDebt: paid ? 0 : 100, count: paid ? 0 : 1 }),
+        calculateCumulativeDebt: () => ({ totalDebt: priorDebt ? 100 : 0, count: priorDebt ? 1 : 0 }),
         getCurrentMonth: () => 'نوفمبر 2026',
         isSubscriptionMonthOverdue: () => true,
         esc: value => String(value ?? ''),
@@ -52,5 +52,11 @@ test('unpaid apartment keeps the WhatsApp arrears reminder action', () => {
     const html = renderCard({ paid: false });
     assert.match(html, /sendWhatsAppReminder\\('resident-1'\\)/);
     assert.match(html, /إرسال تذكير واتساب/);
+    assert.doesNotMatch(html, /sendIncomeReceiptOnWhatsApp/);
+});
+
+test('paid current month keeps arrears reminder when older months remain unpaid', () => {
+    const html = renderCard({ paid: true, priorDebt: true });
+    assert.match(html, /sendWhatsAppReminder\\('resident-1'\\)/);
     assert.doesNotMatch(html, /sendIncomeReceiptOnWhatsApp/);
 });
