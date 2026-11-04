@@ -35,7 +35,7 @@ function makeHarness() {
     });
     for (const id of [
         'pinLockModal', 'pinErrorMsg', 'authIdentifier', 'authPassword', 'accessSwitchBtn',
-        'ownerPortal', 'ownerPinChangeModal', 'ownerTempPinModal', 'ownerTempPinValue',
+        'ownerPortal', 'ownerPinChangeModal', 'ownerTempPinModal', 'ownerTempPinValue', 'passwordRecoveryModal', 'passwordRecoveryError', 'recoveryNewPassword', 'recoveryConfirmPassword', 'passwordRecoverySubmit',
         'currentOwnerPin', 'newOwnerPin', 'confirmOwnerPin', 'syncStatus',
     ]) elements.set(id, makeElement());
 
@@ -46,6 +46,7 @@ function makeHarness() {
             signInWithPassword: async () => ({ data: { session: { user: { id: 'user-1' } } }, error: null }),
             setSession: async tokens => ({ data: { session: { user: { id: 'user-1' }, ...tokens } }, error: null }),
             signOut: async () => ({ error: null }),
+            updateUser: async () => ({ error: null }),
             getSession: async () => ({ data: { session: null }, error: null }),
             onAuthStateChange: callback => { authListener = callback; return { data: { subscription: { unsubscribe() {} } } }; },
         },
@@ -75,7 +76,7 @@ function makeHarness() {
     };
     const app = vm.runInNewContext(
         `${supabaseSource}\n({\n` +
-        'submitSupabaseLogin, setLoginMode, lockCurrentSession, initSupabaseApp, ' +
+        'submitSupabaseLogin, submitPasswordRecovery, setLoginMode, lockCurrentSession, initSupabaseApp, ' +
         'setLoadState(fn) { loadState = fn; }, ' +
         'setOpenAuthenticatedApp(fn) { openAuthenticatedApp = fn; }, ' +
         'getSnapshot() { return { activeSession, activeBuildingId, supabaseStateLoaded, authLoading, ownerMustChangePin, state, currentUserRole, currentResidentId }; }, ' +
@@ -474,4 +475,48 @@ test('a temporary getSession failure still leaves the auth listener available fo
 
     assert.equal(h.app.getSnapshot().activeSession, null);
     assert.deepEqual(Array.from(h.app.getSnapshot().state.residents), []);
+});
+
+
+test('PASSWORD_RECOVERY opens the password form without loading manager data', async () => {
+    const h = makeHarness();
+    let loadCount = 0;
+    h.client.auth.getSession = async () => ({ data: { session: null }, error: null });
+    h.app.setLoadState(async () => { loadCount += 1; return true; });
+    await h.app.initSupabaseApp();
+
+    const session = { user: { id: 'manager-1' } };
+    h.getAuthListener()('PASSWORD_RECOVERY', session);
+    await h.flushTimers();
+
+    assert.equal(h.app.getSnapshot().activeSession.user.id, 'manager-1');
+    assert.equal(loadCount, 0);
+    assert.equal(h.elements.get('passwordRecoveryModal').classList.contains('hidden'), false);
+    assert.equal(h.elements.get('passwordRecoveryModal').attributes['aria-hidden'], 'false');
+});
+
+test('password recovery validates confirmation, updates password, and requires a fresh login', async () => {
+    const h = makeHarness();
+    const session = { user: { id: 'manager-1' } };
+    h.client.auth.getSession = async () => ({ data: { session: null }, error: null });
+    await h.app.initSupabaseApp();
+    h.getAuthListener()('PASSWORD_RECOVERY', session);
+    h.elements.get('recoveryNewPassword').value = 'new-secure-password';
+    h.elements.get('recoveryConfirmPassword').value = 'different-password';
+
+    await h.app.submitPasswordRecovery({ preventDefault() {} });
+    assert.match(h.elements.get('passwordRecoveryError').textContent, /غير متطابقتين/);
+
+    h.elements.get('recoveryConfirmPassword').value = 'new-secure-password';
+    let updatedPassword = null;
+    let signOutScope = null;
+    h.client.auth.updateUser = async ({ password }) => { updatedPassword = password; return { error: null }; };
+    h.client.auth.signOut = async ({ scope }) => { signOutScope = scope; return { error: null }; };
+    await h.app.submitPasswordRecovery({ preventDefault() {} });
+
+    assert.equal(updatedPassword, 'new-secure-password');
+    assert.equal(signOutScope, 'local');
+    assert.equal(h.app.getSnapshot().activeSession, null);
+    assert.equal(h.elements.get('passwordRecoveryModal').classList.contains('hidden'), true);
+    assert.match(h.elements.get('pinErrorMsg').textContent, /تم تغيير كلمة المرور بنجاح/);
 });
