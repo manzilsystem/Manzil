@@ -1,0 +1,119 @@
+name: Disposable backup restore drill
+
+on:
+  workflow_dispatch:
+    inputs:
+      backup_tag:
+        description: "Optional backup tag; leave empty to test the latest backup"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  restore-drill:
+    name: Restore a real backup into disposable local Supabase
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: 2.122.1
+
+      - name: Download and verify private backup
+        env:
+          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+          BACKUP_TAG_INPUT: ${{ inputs.backup_tag }}
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN"
+
+          tag="$BACKUP_TAG_INPUT"
+          if [ -z "$tag" ]; then
+            tag="$(gh release list --repo manzilsystem/manzil_backups --limit 1 --json tagName --jq '.[0].tagName')"
+          fi
+          [[ "$tag" =~ ^backup-[0-9]{8}T[0-9]{6}Z$ ]]
+
+          filename="manzil-db-${tag#backup-}.dump"
+          gh release download "$tag" --repo manzilsystem/manzil_backups \
+            --pattern "$filename" --pattern "$filename.sha256" --dir "$RUNNER_TEMP"
+
+          (cd "$RUNNER_TEMP" && sha256sum --check "$filename.sha256")
+          docker run --rm -v "$RUNNER_TEMP:/backup" postgres:17-alpine \
+            pg_restore --list "/backup/$filename" >/dev/null
+
+          echo "BACKUP_TAG=$tag" >> "$GITHUB_ENV"
+          echo "BACKUP_FILE=$filename" >> "$GITHUB_ENV"
+          echo "Verified backup archive: $tag"
+
+      - name: Start disposable local Supabase
+        run: |
+          set -euo pipefail
+          supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: Restore archive into local database
+        run: |
+          set -euo pipefail
+          db_url="$(supabase status -o env | sed -n 's/^DB_URL=//p' | tr -d '"')"
+          test -n "$db_url"
+          export DB_URL="$db_url"
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const url = new URL(process.env.DB_URL);
+          const values = {
+            PGHOST: url.hostname,
+            PGPORT: url.port || '5432',
+            PGDATABASE: decodeURIComponent(url.pathname.slice(1)),
+            PGUSER: decodeURIComponent(url.username),
+            PGPASSWORD: decodeURIComponent(url.password),
+            PGSSLMODE: 'disable'
+          };
+          for (const [key, value] of Object.entries(values)) {
+            fs.appendFileSync(process.env.GITHUB_ENV, `${key}=${value}\n`);
+          }
+          NODE
+
+          docker run --rm --network host \
+            -e PGHOST -e PGPORT -e PGDATABASE -e PGUSER -e PGPASSWORD -e PGSSLMODE \
+            -v "$RUNNER_TEMP:/backup" postgres:17-alpine \
+            pg_restore --host="$PGHOST" --port="$PGPORT" \
+              --username="$PGUSER" --dbname="$PGDATABASE" \
+              --no-password --clean --if-exists --single-transaction --exit-on-error \
+              --no-owner --no-acl "/backup/$BACKUP_FILE"
+
+          echo "The production backup restored successfully into the disposable local database."
+
+      - name: Verify restored manager account and core data
+        run: |
+          set -euo pipefail
+          result="$(docker run --rm --network host \
+            -e PGHOST -e PGPORT -e PGDATABASE -e PGUSER -e PGPASSWORD -e PGSSLMODE \
+            postgres:17-alpine psql --no-password --quiet --tuples-only --no-align \
+              --host="$PGHOST" --port="$PGPORT" --username="$PGUSER" --dbname="$PGDATABASE" \
+              -v ON_ERROR_STOP=1 -F '|' \
+              -c "SELECT
+                    (SELECT count(*) FROM auth.users),
+                    (SELECT count(*) FROM public.profiles),
+                    (SELECT count(*) FROM public.buildings),
+                    (SELECT count(*) FROM public.building_members bm
+                       JOIN auth.users u ON u.id = bm.user_id
+                     WHERE bm.role = 'manager')")"
+
+          IFS='|' read -r auth_users profiles buildings managers <<< "$result"
+          printf 'Restored counts: auth.users=%s profiles=%s buildings=%s manager_accounts=%s\n' \
+            "$auth_users" "$profiles" "$buildings" "$managers"
+
+          test "$auth_users" -gt 0
+          test "$profiles" -gt 0
+          test "$buildings" -gt 0
+          test "$managers" -gt 0
+
+      - name: Stop disposable local Supabase
+        if: always()
+        run: if command -v supabase >/dev/null 2>&1; then supabase stop --no-backup; fi
