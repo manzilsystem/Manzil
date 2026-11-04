@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const root = path.join(__dirname, '..');
 const crudSource = fs.readFileSync(path.join(root, 'js', 'crud.js'), 'utf8');
-const migration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103230000_building_apartment_numbering.sql'), 'utf8');
+const migration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103220550_building_apartment_numbering.sql'), 'utf8');
 
 function createLayoutHarness({ floorCount = 11, apartmentsPerFloor = 2, residents = [], editingResidentId = null } = {}) {
     const elements = {
