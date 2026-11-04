@@ -332,6 +332,10 @@ function renderResidentsGrid() {
     const getStatus = resident => {
         const outstanding = getMonthOutstanding(resident, getCurrentMonth());
         const paid = getPaidAmountForMonth(resident.id, getCurrentMonth());
+        const previousArrears = calculateCumulativeDebt(resident.id);
+        if (previousArrears.totalDebt > 0) {
+            return { key: 'overdue', label: 'متأخر', className: 'text-rose-400 bg-rose-500/10 border-rose-500/20' };
+        }
         if (outstanding <= 0) return { key: 'paid', label: 'مسدد بالكامل', className: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' };
         if (paid > 0) return { key: 'partial', label: 'دفع جزئي', className: 'text-amber-400 bg-amber-500/10 border-amber-500/20' };
         if (!isSubscriptionMonthOverdue(getCurrentMonth())) {
