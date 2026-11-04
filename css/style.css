@@ -1540,3 +1540,33 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   #settingsModal .settings-overview { overflow-y:auto; }
   #settingsModal .settings-card-grid { grid-auto-rows:minmax(125px,auto);grid-template-rows:none; }
 }
+
+
+/* Building settings: grouped sections with consistent responsive spacing. */
+#settingsModal .settings-subsection {
+  display:flex;flex-direction:column;gap:.9rem;min-width:0;
+  padding:1rem;border:1px solid var(--border-color,rgba(148,163,184,.2));
+  border-radius:1rem;background:var(--surface-secondary,rgba(148,163,184,.045));
+}
+#settingsModal .settings-subsection-heading {
+  display:flex;align-items:center;gap:.7rem;min-width:0;
+}
+#settingsModal .settings-subsection-icon {
+  display:grid;place-items:center;flex:0 0 2.35rem;width:2.35rem;height:2.35rem;
+  border-radius:.75rem;color:#159e9a;background:rgba(21,158,154,.12);font-size:1rem;
+}
+#settingsModal .settings-subsection-heading h5 {
+  color:var(--text-primary,#f8fafc);font-size:.86rem;font-weight:900;line-height:1.5;
+}
+#settingsModal .settings-subsection-heading p {
+  margin-top:.12rem;color:var(--text-muted,#94a3b8);font-size:.7rem;line-height:1.6;
+}
+#settingsModal .settings-fields-grid {
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem 1rem;min-width:0;
+}
+#settingsModal .settings-subsection .settings-building-layout-summary { margin-top:0; }
+#settingsModal .settings-subsection .settings-help { margin:0;line-height:1.8; }
+@media (max-width:640px) {
+  #settingsModal .settings-subsection { padding:.85rem;gap:.8rem; }
+  #settingsModal .settings-fields-grid { grid-template-columns:minmax(0,1fr);gap:.75rem; }
+}
