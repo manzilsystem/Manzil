@@ -216,6 +216,6 @@ test('database stores settings with validated constraints and preserves them in 
 
 test('settings card layout and payment details adapt to mobile screens', () => {
     assert.ok(css.includes('.settings-card-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr));'));
-    assert.match(css, /\\.settings-payment-card/);
+    assert.ok(html.includes('class=\"settings-payment-card space-y-3\"'));
     assert.ok(css.includes('.settings-card-grid { grid-template-columns:1fr;'));
 });
