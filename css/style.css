@@ -470,7 +470,7 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 [data-theme="turquoise"] { --bg-main:#071f27; --bg-card:#0d3039; --bg-input:#092831; --text-main:#eaffff; --text-muted:#a4cbd0; --border-color:#28545d; --accent-color:#24c4c7; --surface-raised:#123d47; }
 [data-theme="turquoise"] .app-card { background-color:var(--bg-card); border-color:var(--border-color); }
 [data-theme="turquoise"] .app-input { background-color:var(--bg-input); color:var(--text-main); border-color:var(--border-color); }
-.theme-preview-turquoise { --preview-accent:#1bb9c2; --preview-card:#0b5260; background:#082a34; }
+.theme-preview-turquoise { --preview-accent:#1bb9c2; --preview-card:#0b5260; --preview-muted:#9bd4d4; background:#082a34; }
 .header-brand-mark { width:2.9rem; height:2.9rem; flex:0 0 auto; display:flex; align-items:center; justify-content:center; padding:.15rem; overflow:hidden; border:1px solid rgba(15,23,42,.12); border-radius:1rem; background:#f8fbfd; box-shadow:0 5px 16px rgba(2,20,35,.12); }
 .header-brand-mark img { width:100%; height:100%; object-fit:contain; display:block; }
 #pinLockModal { background:radial-gradient(ellipse at 14% 18%,color-mix(in srgb,var(--accent-color) 15%,transparent),transparent 42%),color-mix(in srgb,var(--bg-main) 94%,#020617); }
