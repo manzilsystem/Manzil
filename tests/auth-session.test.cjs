@@ -38,9 +38,11 @@ function makeHarness() {
         'ownerPortal', 'ownerPinChangeModal', 'ownerTempPinModal', 'ownerTempPinValue', 'passwordRecoveryModal', 'passwordRecoveryError', 'recoveryNewPassword', 'recoveryConfirmPassword', 'passwordRecoverySubmit',
         'currentOwnerPin', 'newOwnerPin', 'confirmOwnerPin', 'syncStatus',
     ]) elements.set(id, makeElement());
+    elements.get('passwordRecoveryModal').classList.add('hidden');
 
     const button = makeElement();
     let authListener = null;
+    let storageListener = null;
     const client = {
         auth: {
             signInWithPassword: async () => ({ data: { session: { user: { id: 'user-1' } } }, error: null }),
@@ -55,7 +57,15 @@ function makeHarness() {
         },
     };
     const sandbox = {
-        window: { supabase: { createClient: () => client } },
+        window: { supabase: { createClient: () => client }, addEventListener(type, callback) { if (type === 'storage') storageListener = callback; } },
+        localStorage: (() => {
+            const values = new Map();
+            return {
+                getItem(key) { return values.has(key) ? values.get(key) : null; },
+                setItem(key, value) { values.set(key, String(value)); },
+                removeItem(key) { values.delete(key); },
+            };
+        })(),
         document: {
             body: { classList: makeClassList(), attributes: {}, setAttribute(name, value) { this.attributes[name] = value; } },
             getElementById: id => elements.get(id) || null,
@@ -76,7 +86,7 @@ function makeHarness() {
     };
     const app = vm.runInNewContext(
         `${supabaseSource}\n({\n` +
-        'submitSupabaseLogin, submitPasswordRecovery, setLoginMode, lockCurrentSession, initSupabaseApp, ' +
+        'submitSupabaseLogin, submitPasswordRecovery, cancelPasswordRecovery, setLoginMode, lockCurrentSession, initSupabaseApp, ' +
         'setLoadState(fn) { loadState = fn; }, ' +
         'setOpenAuthenticatedApp(fn) { openAuthenticatedApp = fn; }, ' +
         'getSnapshot() { return { activeSession, activeBuildingId, supabaseStateLoaded, authLoading, ownerMustChangePin, state, currentUserRole, currentResidentId }; }, ' +
@@ -95,6 +105,8 @@ function makeHarness() {
 
     return {
         app, sandbox, client, button, elements, queuedTimers,
+        localStorage: sandbox.localStorage,
+        getStorageListener: () => storageListener,
         makeSubmitEvent() {
             return {
                 preventDefault() {},
@@ -494,6 +506,7 @@ test('PASSWORD_RECOVERY opens the password form without loading manager data', a
     assert.equal(h.elements.get('passwordRecoveryModal').classList.contains('hidden'), false);
     assert.equal(h.elements.get('passwordRecoveryModal').attributes['aria-hidden'], 'false');
     assert.equal(h.sandbox.document.body.classList.contains('session-locked'), true);
+    assert.notEqual(h.localStorage.getItem('manzil.passwordRecoveryPending'), null);
 });
 
 test('password recovery validates confirmation, updates password, and requires a fresh login', async () => {
@@ -519,5 +532,82 @@ test('password recovery validates confirmation, updates password, and requires a
     assert.equal(signOutScope, 'local');
     assert.equal(h.app.getSnapshot().activeSession, null);
     assert.equal(h.elements.get('passwordRecoveryModal').classList.contains('hidden'), true);
+    assert.equal(h.localStorage.getItem('manzil.passwordRecoveryPending'), null);
     assert.match(h.elements.get('pinErrorMsg').textContent, /تم تغيير كلمة المرور بنجاح/);
+});
+
+
+test('a recovery lock in another tab closes the active manager session before data remains visible', async () => {
+    const h = makeHarness();
+    const session = { user: { id: 'manager-1' } };
+    let loadCount = 0;
+    h.client.auth.getSession = async () => ({ data: { session }, error: null });
+    h.app.setLoadState(async () => { loadCount += 1; return true; });
+    h.app.setOpenAuthenticatedApp(async () => {});
+    await h.app.initSupabaseApp();
+    assert.equal(loadCount, 1);
+    assert.equal(h.app.getSnapshot().activeSession.user.id, 'manager-1');
+
+    const marker = String(Date.now());
+    h.localStorage.setItem('manzil.passwordRecoveryPending', marker);
+    h.getStorageListener()({
+        key: 'manzil.passwordRecoveryPending',
+        oldValue: null,
+        newValue: marker,
+    });
+
+    assert.equal(loadCount, 1);
+    assert.equal(h.app.getSnapshot().activeSession.user.id, 'manager-1');
+    assert.equal(h.elements.get('passwordRecoveryModal').classList.contains('hidden'), false);
+    assert.equal(h.sandbox.document.body.classList.contains('session-locked'), true);
+});
+
+test('password recovery mode survives a page reload and keeps manager data locked', async () => {
+    const h = makeHarness();
+    const session = { user: { id: 'manager-1' } };
+    h.localStorage.setItem('manzil.passwordRecoveryPending', String(Date.now()));
+    let loadCount = 0;
+    h.client.auth.getSession = async () => ({ data: { session }, error: null });
+    h.app.setLoadState(async () => { loadCount += 1; return true; });
+
+    await h.app.initSupabaseApp();
+
+    assert.equal(h.app.getSnapshot().activeSession.user.id, 'manager-1');
+    assert.equal(loadCount, 0);
+    assert.equal(h.elements.get('passwordRecoveryModal').classList.contains('hidden'), false);
+    assert.equal(h.sandbox.document.body.classList.contains('session-locked'), true);
+    assert.notEqual(h.localStorage.getItem('manzil.passwordRecoveryPending'), null);
+});
+
+test('expired recovery session clears the pending marker and keeps the app signed out', async () => {
+    const h = makeHarness();
+    h.localStorage.setItem('manzil.passwordRecoveryPending', '1');
+    h.client.auth.getSession = async () => ({ data: { session: null }, error: null });
+
+    await h.app.initSupabaseApp();
+
+    assert.equal(h.app.getSnapshot().activeSession, null);
+    assert.equal(h.localStorage.getItem('manzil.passwordRecoveryPending'), null);
+    assert.equal(h.elements.get('passwordRecoveryModal').classList.contains('hidden'), true);
+    assert.equal(h.sandbox.document.body.classList.contains('session-locked'), true);
+});
+
+
+test('canceling password recovery clears the shared lock and signs out locally', async () => {
+    const h = makeHarness();
+    const session = { user: { id: 'manager-1' } };
+    h.client.auth.getSession = async () => ({ data: { session: null }, error: null });
+    await h.app.initSupabaseApp();
+    h.getAuthListener()('PASSWORD_RECOVERY', session);
+    assert.notEqual(h.localStorage.getItem('manzil.passwordRecoveryPending'), null);
+
+    let signOutScope = null;
+    h.client.auth.signOut = async ({ scope }) => { signOutScope = scope; return { error: null }; };
+    await h.app.cancelPasswordRecovery();
+
+    assert.equal(signOutScope, 'local');
+    assert.equal(h.localStorage.getItem('manzil.passwordRecoveryPending'), null);
+    assert.equal(h.app.getSnapshot().activeSession, null);
+    assert.equal(h.elements.get('passwordRecoveryModal').classList.contains('hidden'), true);
+    assert.match(h.elements.get('pinErrorMsg').textContent, /تم إلغاء استعادة كلمة المرور/);
 });
