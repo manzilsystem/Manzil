@@ -1,5 +1,6 @@
 let ownerProvisionRequested = false;
 let incomeSaving = false;
+let editingIncomeId = null;
 let expenseSaving = false;
 const quickPaySavingResidents = new Set();
 
@@ -607,6 +608,104 @@ async function handleIncomeSubmit(e) {
         if (submit) {
             submit.disabled = false;
             submit.textContent = 'حفظ التحصيل وتوزيعه';
+        }
+    }
+}
+
+
+function openIncomeEditModal(id) {
+    if (!requireManager()) return;
+    const payment = state.income.find(item => item.id === id);
+    if (!payment) {
+        toast('تعذر العثور على التحصيل. حدّث السجل ثم حاول مرة أخرى.', 'error');
+        return;
+    }
+    const resident = state.residents.find(item => item.id === payment.residentId);
+    if (!resident) {
+        toast('الشقة المرتبطة بالتحصيل غير موجودة.', 'error');
+        return;
+    }
+    editingIncomeId = payment.id;
+    document.getElementById('incomeEditResidentSummary').textContent =
+        resident.name + ' · شقة ' + resident.apartmentNumber;
+    const monthSelect = document.getElementById('incomeEditMonth');
+    monthSelect.innerHTML = getActiveBuildingMonths()
+        .map(month => '<option value="' + esc(month) + '">' + esc(month) + '</option>').join('');
+    monthSelect.value = payment.month;
+    document.getElementById('incomeEditAmount').value = payment.amount;
+    document.getElementById('incomeEditNotes').value = payment.notes || '';
+    openModal('incomeEditModal');
+}
+
+async function handleIncomeEditSubmit(event) {
+    if (!requireManager() || incomeSaving) return;
+    event.preventDefault();
+    const payment = state.income.find(item => item.id === editingIncomeId);
+    if (!payment) {
+        toast('تعذر العثور على التحصيل. أعد فتح سجل التحصيلات.', 'error');
+        return;
+    }
+    const resident = state.residents.find(item => item.id === payment.residentId);
+    if (!resident) {
+        toast('الشقة المرتبطة بالتحصيل غير موجودة.', 'error');
+        return;
+    }
+    const amount = Number(document.getElementById('incomeEditAmount').value);
+    const amountCents = Number.isFinite(amount) ? Math.round(amount * 100) : 0;
+    const month = document.getElementById('incomeEditMonth').value;
+    const monthKey = monthLabelToKey(month);
+    const notes = document.getElementById('incomeEditNotes').value.trim();
+    if (!monthKey || amountCents <= 0) {
+        toast('اختر شهرًا صحيحًا وأدخل مبلغًا أكبر من صفر.', 'error');
+        return;
+    }
+    const createdMonth = getLocalMonthKey(resident.createdAt);
+    if (createdMonth && monthKey.slice(0, 7) < createdMonth) {
+        toast('لا يمكن تسجيل تحصيل قبل تاريخ إنشاء الشقة.', 'error');
+        return;
+    }
+    const dueCents = Math.max(0, Math.round(getSubscriptionAmountForMonth(resident, month) * 100));
+    const paidByOthersCents = state.income.reduce((sum, item) => {
+        if (item.id === payment.id || item.residentId !== payment.residentId || item.month !== month) return sum;
+        const value = Number(item.amount);
+        return sum + (Number.isFinite(value) && value > 0 ? Math.round(value * 100) : 0);
+    }, 0);
+    const availableCents = Math.max(0, dueCents - paidByOthersCents);
+    if (amountCents > availableCents) {
+        toast('المبلغ أكبر من المتبقي لهذا الشهر (' + fmtNum(availableCents / 100) + ' ج.م).', 'error');
+        return;
+    }
+    if (amountCents === Math.round(Number(payment.amount) * 100)
+        && month === payment.month && notes === (payment.notes || '')) {
+        toast('لم يتم تغيير بيانات التحصيل.', 'info');
+        return;
+    }
+
+    incomeSaving = true;
+    const submit = document.getElementById('incomeEditSubmitButton');
+    if (submit) {
+        submit.disabled = true;
+        submit.textContent = 'جارٍ الحفظ...';
+    }
+    const previousState = cloneStateSnapshot();
+    const previousAmount = Number(payment.amount) || 0;
+    const previousMonth = payment.month;
+    payment.amount = amountCents / 100;
+    payment.month = month;
+    payment.notes = notes;
+    logAction('تعديل تحصيل', resident.name + ' - ' + previousMonth + ' إلى ' + month
+        + ' - ' + fmtNum(previousAmount) + ' إلى ' + fmtNum(payment.amount));
+    try {
+        if (!await saveWithRollback(previousState)) return;
+        closeModal('incomeEditModal');
+        editingIncomeId = null;
+        renderAll();
+        toast('تم تعديل التحصيل بنجاح.', 'success');
+    } finally {
+        incomeSaving = false;
+        if (submit) {
+            submit.disabled = false;
+            submit.textContent = 'حفظ التعديل';
         }
     }
 }
