@@ -130,3 +130,20 @@ test('full backup download UI verifies the SHA-256 digest before saving the file
     assert.match(ui, /actualSha !== expectedSha\.toLowerCase\(\)/);
     assert.match(ui, /backupDownloadInProgress/);
 });
+
+
+test('direct backup downloads require a server-verified digest and a trusted short-lived asset redirect', () => {
+    assert.match(edge, /body\.action === 'download_backup' \|\| body\.action === 'prepare_download'/);
+    assert.match(edge, /if \(!dumpAsset\.digest\) return json\(409, \{ error: 'provider_digest_unavailable' \}\)/);
+    assert.match(edge, /redirect: 'manual'/);
+    assert.match(edge, /release-assets\.githubusercontent\.com', 'objects\.githubusercontent\.com'/);
+    assert.match(edge, /downloadUrl: directUrl\.toString\(\)/);
+});
+
+test('client prefers browser-managed direct download and retains checksum-verified proxy fallback', () => {
+    assert.match(ui, /action: 'prepare_download'/);
+    assert.match(ui, /directUrl\.protocol !== 'https:'/);
+    assert.match(ui, /directUrl\.hostname/);
+    assert.match(ui, /action: 'download_backup'/);
+    assert.match(ui, /crypto\.subtle\.digest\('SHA-256'/);
+});
