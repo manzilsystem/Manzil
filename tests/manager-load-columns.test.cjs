@@ -35,6 +35,6 @@ test('manager load selects only fields consumed by application state', () => {
 });
 
 test('manager load keeps private resident notes and income notes available', () => {
-    assert.ok(loadState.includes("'id,resident_id,amount,month,notes,paid_at'"));
+    assert.ok(loadState.includes("'id,resident_id,amount,month,notes,payment_method,paid_at'"));
     assert.ok(loadState.includes("resident.notes = notesByResident.get(resident.id) || ''"));
 });
