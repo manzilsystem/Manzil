@@ -164,3 +164,16 @@ test('settings cards open a full-page section and return to the overview', () =>
     assert.ok(settings.includes("document.getElementById('settingsSectionToolbar')?.classList.remove('hidden')"));
     assert.ok(settings.includes("document.getElementById('settingsSaveButton')?.classList.remove('hidden')"));
 });
+
+
+test('settings cards use larger full-screen tiles and sections remain full-screen scrollable pages', () => {
+    assert.ok(css.includes('width:100vw;') && css.includes('height:100dvh;'), 'settings dialog fills the viewport');
+    assert.ok(css.includes('grid-template-rows:repeat(2,minmax(0,1fr))'), 'desktop cards fill two rows');
+    assert.ok(css.includes('grid-template-rows:repeat(4,minmax(0,1fr))'), 'mobile cards fill four rows');
+    assert.ok(css.includes('width:clamp(3.8rem,6vw,5.2rem)'), 'desktop setting icons are enlarged');
+    assert.ok(css.includes('width:clamp(3.15rem,14vw,4.25rem)'), 'mobile setting icons are enlarged');
+    assert.ok(css.includes('overscroll-behavior:contain'), 'section content scrolls independently');
+    assert.ok(css.includes('flex-direction:column;') && css.includes('.settings-section-toolbar { flex:0 0 auto; }'));
+    assert.ok(settings.includes("document.getElementById('settingsOverview')?.classList.add('hidden')"));
+    assert.ok(settings.includes("document.getElementById('settingsSectionToolbar')?.classList.remove('hidden')"));
+});
