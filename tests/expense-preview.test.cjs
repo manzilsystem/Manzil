@@ -25,3 +25,13 @@ test('expense submit prevents concurrent duplicate submissions and resets previe
     assert.match(crud, /expenseSaving = false/);
     assert.match(crud, /expensePreview.*classList\.add\('hidden'\)/);
 });
+
+
+test('expense records can be edited and the previous account amount is credited during validation', () => {
+    assert.match(crud, /function openExpenseModal\(\)/);
+    assert.match(crud, /function openExpenseEditModal\(id\)/);
+    assert.match(crud, /state\.expenses = state\.expenses\.map\(item => item\.id === editingExpenseId/);
+    assert.match(crud, /getCashAccountBalance\(cashAccountCode\) \+\s*\(existingExpense && \(existingExpense\.cashAccountCode \|\| 'main'\) === cashAccountCode/);
+    assert.match(html, /onclick="openExpenseModal\(\)"/);
+    assert.match(html, /تعديل المصروف/);
+});
