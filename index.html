@@ -607,10 +607,17 @@
     <!-- Settings Modal -->
     <div id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
         <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn max-h-[90vh] overflow-y-auto">
-            <div class="bg-indigo-700 text-white px-5 py-4 flex justify-between items-center">
-                <h3 id="settingsModalTitle" class="font-bold text-sm"><i class="fa-solid fa-gear ml-2"></i> الإعدادات</h3>
-                <button onclick="closeModal('settingsModal')" aria-label="إغلاق نافذة الإعدادات" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
+            <header class="settings-topbar">
+                <div class="settings-brand-lockup" aria-label="منزل MANZIL">
+                    <img class="settings-brand-mark" src="icons/manzil-logo.png" alt="أيقونة منزل" width="48" height="48">
+                    <div class="settings-brand-copy"><strong>منزل</strong><span>MANZIL</span><small>إدارة العقارات</small></div>
+                </div>
+                <div class="settings-topbar-title">
+                    <h3 id="settingsModalTitle">الإعدادات</h3>
+                    <p>إدارة التطبيق وبيانات العقار</p>
+                </div>
+                <button type="button" onclick="closeModal('settingsModal')" aria-label="إغلاق نافذة الإعدادات" class="settings-close-button"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            </header>
             <div class="settings-layout">
                 <div id="settingsOverview" class="settings-overview" aria-label="أقسام الإعدادات">
                     <div class="settings-overview-heading">
