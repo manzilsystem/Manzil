@@ -68,6 +68,8 @@ test('editing a payment preserves its original timestamp and updates amount, mon
     const h = createHarness({ income: [payment], values: { amount: '60', month: 'يناير 2024', notes: 'معدل' } });
 
     h.api.openIncomeEditModal('i1');
+    h.elements.incomeEditAmount.value = '60';
+    h.elements.incomeEditNotes.value = 'معدل';
     await h.api.handleIncomeEditSubmit({ preventDefault() {} });
 
     assert.equal(h.state.income[0].amount, 60);
@@ -89,6 +91,7 @@ test('editing rejects an amount greater than the remaining monthly subscription'
     });
 
     h.api.openIncomeEditModal('i1');
+    h.elements.incomeEditAmount.value = '60';
     await h.api.handleIncomeEditSubmit({ preventDefault() {} });
 
     assert.equal(h.calls.save, 0);
@@ -103,6 +106,8 @@ test('editing rejects payments dated before the apartment creation month', async
     });
 
     h.api.openIncomeEditModal('i1');
+    h.elements.incomeEditAmount.value = '20';
+    h.elements.incomeEditMonth.value = 'ديسمبر 2023';
     await h.api.handleIncomeEditSubmit({ preventDefault() {} });
 
     assert.equal(h.calls.save, 0);
@@ -117,6 +122,7 @@ test('editing rejects an invalid month and missing payment without saving', asyn
     });
 
     h.api.openIncomeEditModal('i1');
+    h.elements.incomeEditMonth.value = 'شهر غير صحيح';
     await h.api.handleIncomeEditSubmit({ preventDefault() {} });
     assert.equal(h.calls.save, 0);
 
