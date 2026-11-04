@@ -1,4 +1,4 @@
-const SETTINGS_TABS = ['building','appearance','backup','receipts','reminders','account'];
+const SETTINGS_TABS = ['building','payments','subscriptions','appearance','backup','receipts','reminders','account'];
 function renderReceiptPreview() {
     const input = document.getElementById('settingsReceiptThankYou');
     const preview = document.getElementById('settingsReceiptPreview');
@@ -56,6 +56,28 @@ function openSettingsModal() {
     document.getElementById('settingsStartingBalance').value = state.startingBalance ?? '';
     document.getElementById('settingsFloorCount').value = state.floorCount || '';
     document.getElementById('settingsApartmentsPerFloor').value = state.apartmentsPerFloor || '';
+
+    const paymentSettings = normalizePaymentSettings(state.paymentSettings);
+    document.getElementById('settingsPaymentCashEnabled').checked = paymentSettings.cash.enabled;
+    document.getElementById('settingsPaymentWalletEnabled').checked = paymentSettings.wallet.enabled;
+    document.getElementById('settingsWalletProvider').value = paymentSettings.wallet.provider;
+    document.getElementById('settingsWalletAccountName').value = paymentSettings.wallet.accountName;
+    document.getElementById('settingsWalletNumber').value = paymentSettings.wallet.number;
+    document.getElementById('settingsPaymentInstapayEnabled').checked = paymentSettings.instapay.enabled;
+    document.getElementById('settingsInstapayAccountName').value = paymentSettings.instapay.accountName;
+    document.getElementById('settingsInstapayAddress').value = paymentSettings.instapay.address;
+    document.getElementById('settingsPaymentBankEnabled').checked = paymentSettings.bank_transfer.enabled;
+    document.getElementById('settingsBankName').value = paymentSettings.bank_transfer.bankName;
+    document.getElementById('settingsBankAccountName').value = paymentSettings.bank_transfer.accountName;
+    document.getElementById('settingsBankAccountNumber').value = paymentSettings.bank_transfer.accountNumber;
+    document.getElementById('settingsBankIban').value = paymentSettings.bank_transfer.iban;
+    document.getElementById('settingsSubscriptionDueDay').value = Number(state.subscriptionDueDay) || 1;
+    document.getElementById('settingsSubscriptionGraceDays').value = Number(state.subscriptionGraceDays) || 0;
+    document.getElementById('settingsPaymentAllocationPolicy').value =
+        ['oldest_first', 'selected_month_first'].includes(state.paymentAllocationPolicy)
+            ? state.paymentAllocationPolicy
+            : 'oldest_first';
+
     const account = document.getElementById('settingsAccountEmail');
     if (account) account.textContent = currentUserRole === 'manager'
         ? (activeSession?.user?.email || '—')
@@ -91,9 +113,45 @@ async function saveSettings() {
     const validLayout = (floorCount === 0 && apartmentsPerFloor === 0)
         || (Number.isInteger(floorCount) && floorCount >= 1 && floorCount <= 100
             && Number.isInteger(apartmentsPerFloor) && apartmentsPerFloor >= 1 && apartmentsPerFloor <= 100);
+    const subscriptionDueDay = Number(document.getElementById('settingsSubscriptionDueDay').value);
+    const subscriptionGraceDays = Number(document.getElementById('settingsSubscriptionGraceDays').value);
+    const paymentAllocationPolicy = document.getElementById('settingsPaymentAllocationPolicy').value;
+    const validSubscriptionRules = Number.isInteger(subscriptionDueDay) && subscriptionDueDay >= 1 && subscriptionDueDay <= 28
+        && Number.isInteger(subscriptionGraceDays) && subscriptionGraceDays >= 0 && subscriptionGraceDays <= 31
+        && ['oldest_first', 'selected_month_first'].includes(paymentAllocationPolicy);
+    const paymentSettings = normalizePaymentSettings({
+        cash: { enabled: document.getElementById('settingsPaymentCashEnabled').checked },
+        wallet: {
+            enabled: document.getElementById('settingsPaymentWalletEnabled').checked,
+            provider: document.getElementById('settingsWalletProvider').value,
+            accountName: document.getElementById('settingsWalletAccountName').value,
+            number: document.getElementById('settingsWalletNumber').value
+        },
+        instapay: {
+            enabled: document.getElementById('settingsPaymentInstapayEnabled').checked,
+            accountName: document.getElementById('settingsInstapayAccountName').value,
+            address: document.getElementById('settingsInstapayAddress').value
+        },
+        bank_transfer: {
+            enabled: document.getElementById('settingsPaymentBankEnabled').checked,
+            bankName: document.getElementById('settingsBankName').value,
+            accountName: document.getElementById('settingsBankAccountName').value,
+            accountNumber: document.getElementById('settingsBankAccountNumber').value,
+            iban: document.getElementById('settingsBankIban').value
+        }
+    });
+    const hasEnabledPaymentMethod = Object.values(paymentSettings).some(method => method.enabled);
     if (!Number.isFinite(defaultSubscription) || defaultSubscription < 0
         || !Number.isFinite(startingBalance) || !validLayout) {
         toast('تحقق من قيم الاشتراك والرصيد وعدد الأدوار والشقق (من 1 إلى 100).', 'error');
+        return;
+    }
+    if (!validSubscriptionRules) {
+        toast('يجب أن يكون يوم الاستحقاق من 1 إلى 28، وفترة السماح من 0 إلى 31 يومًا.', 'error');
+        return;
+    }
+    if (!hasEnabledPaymentMethod) {
+        toast('فعّل وسيلة دفع واحدة على الأقل قبل حفظ الإعدادات.', 'error');
         return;
     }
     const receiptInput = document.getElementById('settingsReceiptThankYou');
@@ -112,6 +170,13 @@ async function saveSettings() {
     state.startingBalance = startingBalance;
     state.floorCount = floorCount;
     state.apartmentsPerFloor = apartmentsPerFloor;
+    state.paymentSettings = paymentSettings;
+    state.subscriptionDueDay = subscriptionDueDay;
+    state.subscriptionGraceDays = subscriptionGraceDays;
+    state.paymentAllocationPolicy = paymentAllocationPolicy;
+
+    logAction('تعديل إعدادات التحصيل والاشتراك',
+        `طرق الدفع المفعّلة: ${Object.entries(paymentSettings).filter(([, method]) => method.enabled).map(([key]) => getIncomePaymentMethodLabel(key)).join('، ')} · الاستحقاق يوم ${subscriptionDueDay} · السماح ${subscriptionGraceDays} يوم`);
 
     const { data: layoutResult, error: layoutError } = await supabaseClient.rpc('set_building_apartment_layout', {
         p_building_id: activeBuildingId,
@@ -146,7 +211,7 @@ async function saveSettings() {
     updateAccessSwitchButton();
     closeModal('settingsModal');
     toast(messagePreferencesSaved
-        ? 'تم حفظ إعدادات العقار والرسائل'
+        ? 'تم حفظ إعدادات العقار والتحصيل والاشتراكات والرسائل'
         : 'تم حفظ بيانات العمارة، لكن تعذر حفظ نصوص الرسائل على هذا الجهاز.',
     messagePreferencesSaved ? 'success' : 'error');
 }
