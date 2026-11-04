@@ -428,16 +428,15 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 .settings-payment-card .settings-field input,
 .settings-payment-card .settings-field select { min-height:46px; }
 
-/* Settings navigation stays readable across small Android screens. */
+/* Settings cards adapt to compact Android screens. */
 @media (max-width: 640px) {
-    .settings-tabs { grid-template-columns:repeat(3,minmax(0,1fr)); padding:.65rem .75rem; gap:.35rem; }
-    .settings-tab { min-width:0; min-height:46px; flex-direction:row; justify-content:flex-start; gap:.4rem; padding:.55rem .5rem; font-size:.75rem; text-align:start; }
-    .settings-content { padding:.9rem; }
+    .settings-overview,.settings-content { padding:.9rem; }
+    .settings-card-grid { grid-template-columns:1fr; gap:.65rem; }
+    .settings-card { min-height:88px; padding:.85rem; }
+    .settings-card-icon { width:2.6rem; height:2.6rem; }
 }
-@media (max-width: 420px) {
-    .settings-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); padding:.65rem .55rem; gap:.35rem; }
-    .settings-tab { min-height:46px; gap:.4rem; padding:.55rem .5rem; font-size:.75rem; }
-    .settings-tab span { overflow-wrap:anywhere; }
+@media (min-width: 641px) {
+    .settings-card-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 
 /* Manager unit profile: fixed header with a scrollable detail body. */
