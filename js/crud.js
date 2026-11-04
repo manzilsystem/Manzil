@@ -499,6 +499,12 @@ function quickPayResident(residentId) {
 }
 
 function previewIncomeAllocation() {
+    const policyHelp = document.getElementById('incomeAllocationPolicyHelp');
+    if (policyHelp) {
+        policyHelp.textContent = state.paymentAllocationPolicy === 'selected_month_first'
+            ? 'سيُسدد الشهر المحدد أولًا، ثم تُسوّى الشهور الأقدم، وبعدها الشهور التالية. راجع المعاينة قبل الحفظ.'
+            : 'سيُسدد أقدم شهر غير مسدد أولًا، ثم الأشهر التالية بالترتيب. راجع المعاينة قبل الحفظ.';
+    }
     const preview = document.getElementById('incomeAllocationPreview');
     const summary = document.getElementById('incomeAllocationSummary');
     const rows = document.getElementById('incomeAllocationRows');
