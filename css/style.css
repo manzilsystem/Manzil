@@ -1343,3 +1343,31 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
   #settingsModal .settings-close-button { transition:none; }
   #settingsModal .settings-card:hover { transform:none; }
 }
+
+
+/* Responsive preview of the official Manzil identity in Appearance settings. */
+#settingsModal .settings-brand-preview {
+  display:flex;flex-direction:column;gap:1rem;padding:clamp(.9rem,2vw,1.25rem);
+  border:1px solid rgba(21,158,154,.24);border-radius:1.2rem;
+  background:linear-gradient(135deg,rgba(21,158,154,.09),rgba(201,151,61,.045));
+}
+#settingsModal .settings-brand-preview-heading { display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap; }
+#settingsModal .settings-brand-preview-heading h5 { color:var(--text-primary,#f8fafc);font-size:.95rem;font-weight:900; }
+#settingsModal .settings-brand-preview-heading p { color:var(--text-secondary,#94a3b8);font-size:.72rem;margin-top:.2rem; }
+#settingsModal .settings-brand-approved { display:inline-flex;align-items:center;padding:.35rem .65rem;border-radius:999px;color:#159e9a;background:rgba(21,158,154,.12);font-size:.65rem;font-weight:800; }
+#settingsModal .settings-brand-preview-grid { display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:.8rem; }
+#settingsModal .settings-brand-preview-card { display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.65rem;min-height:10rem;padding:1rem;border-radius:1rem;border:1px solid rgba(148,163,184,.2); }
+#settingsModal .settings-brand-preview-dark { background:linear-gradient(135deg,#0b2633,#123b50); }
+#settingsModal .settings-brand-preview-light { background:#f2f7f6; }
+#settingsModal .settings-brand-preview-card img { display:block;width:100%;height:7.25rem;object-fit:contain; }
+#settingsModal .settings-brand-preview-light img { width:5rem;height:5rem; }
+#settingsModal .settings-brand-preview-card span { color:#e7f3f1;font-size:.7rem;font-weight:800; }
+#settingsModal .settings-brand-preview-light span { color:#173b48; }
+[data-theme="light"] #settingsModal .settings-brand-preview-heading h5 { color:#173b48; }
+[data-theme="light"] #settingsModal .settings-brand-preview-heading p { color:#647b83; }
+@media (max-width:560px) {
+  #settingsModal .settings-brand-preview-grid { grid-template-columns:minmax(0,1fr) minmax(0,.8fr);gap:.55rem; }
+  #settingsModal .settings-brand-preview-card { min-height:8.5rem;padding:.65rem; }
+  #settingsModal .settings-brand-preview-card img { height:5.8rem; }
+  #settingsModal .settings-brand-preview-light img { width:4.2rem;height:4.2rem; }
+}
