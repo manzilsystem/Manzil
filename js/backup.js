@@ -189,7 +189,7 @@ async function downloadDatabaseBackup() {
         if (prepared.error) {
             let code = prepared.error.message || 'backup_download_failed';
             try { code = (await prepared.error.context?.json())?.error || code; } catch { /* Keep the generic error. */ }
-            if (!['provider_digest_unavailable', 'direct_download_unavailable'].includes(code)) {
+            if (!['provider_digest_unavailable', 'direct_download_unavailable', 'unknown_action'].includes(code)) {
                 throw new Error(code);
             }
         } else {
