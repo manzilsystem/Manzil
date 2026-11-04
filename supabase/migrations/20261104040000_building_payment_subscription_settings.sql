@@ -409,4 +409,4 @@ BEGIN
 
     RETURN jsonb_build_object('ok', true, 'duplicate', false, 'version', v_next_version);
 END;
-$function$
+$function$;
