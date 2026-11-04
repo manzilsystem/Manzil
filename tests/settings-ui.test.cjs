@@ -14,7 +14,7 @@ const settings = read('js/settings.js');
 const sw = read('sw.js');
 
 test('settings are divided into accessible functional tabs', () => {
-    for (const tab of ['building', 'appearance', 'backup', 'receipts', 'reminders', 'account']) {
+    for (const tab of ['building', 'payments', 'subscriptions', 'appearance', 'backup', 'receipts', 'reminders', 'account']) {
         assert.match(html, new RegExp('id="settings-tab-' + tab + '"'));
         assert.match(html, new RegExp('id="settings-panel-' + tab + '"'));
         assert.match(html, new RegExp('aria-controls="settings-panel-' + tab + '"'));
@@ -38,7 +38,7 @@ test('settings redesign is included in the service worker cache version', () => 
     assert.match(html, /02:23 UTC/);
     assert.match(html, /04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة/);
     assert.doesNotMatch(html, /نسخة يومية الساعة 04:23 صباحًا بتوقيت مصر/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v58'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v59'/);
     assert.ok(css.includes('max-width:52rem'));
     assert.ok(css.includes('height:min(88dvh,760px)'));
     assert.ok(css.includes('height:94dvh'));
@@ -63,12 +63,33 @@ test('settings report a failed layout rollback even when the RPC has no transpor
         settingsApartmentsPerFloor: { value: '4' },
         settingsBuildingName: { value: 'Building' },
         settingsManagerName: { value: 'Manager' },
-        settingsManagerPhone: { value: '01000000000' }
+        settingsManagerPhone: { value: '01000000000' },
+        settingsSubscriptionDueDay: { value: '1' },
+        settingsSubscriptionGraceDays: { value: '0' },
+        settingsPaymentAllocationPolicy: { value: 'oldest_first' },
+        settingsPaymentCashEnabled: { checked: true },
+        settingsPaymentWalletEnabled: { checked: true },
+        settingsWalletProvider: { value: '' },
+        settingsWalletAccountName: { value: '' },
+        settingsWalletNumber: { value: '' },
+        settingsPaymentInstapayEnabled: { checked: true },
+        settingsInstapayAccountName: { value: '' },
+        settingsInstapayAddress: { value: '' },
+        settingsPaymentBankEnabled: { checked: true },
+        settingsBankName: { value: '' },
+        settingsBankAccountName: { value: '' },
+        settingsBankAccountNumber: { value: '' },
+        settingsBankIban: { value: '' },
+        settingsReceiptThankYou: { value: '' },
+        settingsReminderTemplate: { value: '' }
     };
     const sandbox = {
         state: {},
         activeBuildingId: 'building-1',
         requireManager: () => true,
+        normalizePaymentSettings: value => value,
+        logAction() {},
+        getIncomePaymentMethodLabel: value => value,
         document: { getElementById: id => elements[id] || null },
         cloneStateSnapshot: () => ({ floorCount: 2, apartmentsPerFloor: 4 }),
         supabaseClient: {

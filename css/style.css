@@ -377,3 +377,41 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
     .settings-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); }
     .settings-tab { min-height:44px; font-size:.75rem; }
 }
+
+/* Financial settings: compact, touch-friendly controls. */
+.settings-tabs { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.settings-payment-card {
+    min-width:0;
+    padding:1rem;
+    border:1px solid var(--border-color);
+    border-radius:1rem;
+    background:var(--surface-raised);
+}
+.settings-payment-toggle {
+    display:flex;
+    align-items:center;
+    gap:.75rem;
+    min-height:44px;
+    color:var(--text-main);
+    cursor:pointer;
+}
+.settings-payment-toggle input {
+    width:1.15rem;
+    height:1.15rem;
+    flex:none;
+    accent-color:var(--accent-color);
+}
+.settings-payment-toggle span { display:flex; flex-direction:column; gap:.15rem; min-width:0; }
+.settings-payment-toggle b { font-size:.8rem; font-weight:900; }
+.settings-payment-toggle small { color:var(--text-muted); font-size:.68rem; line-height:1.6; }
+.settings-payment-card .settings-field input,
+.settings-payment-card .settings-field select { min-height:46px; }
+@media(max-width:420px) {
+    .settings-tabs { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    .settings-tab { min-width:0; flex-direction:column; gap:.2rem; padding:.45rem .2rem; font-size:.64rem; }
+    .settings-tab span { overflow-wrap:anywhere; }
+}
+@media(max-width:360px) {
+    .settings-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .settings-tab { flex-direction:row; font-size:.75rem; }
+}

@@ -499,6 +499,12 @@ function quickPayResident(residentId) {
 }
 
 function previewIncomeAllocation() {
+    const policyHelp = document.getElementById('incomeAllocationPolicyHelp');
+    if (policyHelp) {
+        policyHelp.textContent = state.paymentAllocationPolicy === 'selected_month_first'
+            ? 'سيُسدد الشهر المحدد أولًا، ثم تُسوّى الشهور الأقدم، وبعدها الشهور التالية. راجع المعاينة قبل الحفظ.'
+            : 'سيُسدد أقدم شهر غير مسدد أولًا، ثم الأشهر التالية بالترتيب. راجع المعاينة قبل الحفظ.';
+    }
     const preview = document.getElementById('incomeAllocationPreview');
     const summary = document.getElementById('incomeAllocationSummary');
     const rows = document.getElementById('incomeAllocationRows');
@@ -547,8 +553,12 @@ async function handleIncomeSubmit(e) {
     const month = document.getElementById('incomeMonth').value;
     const notes = document.getElementById('incomeNotes').value.trim();
     const paymentMethod = document.getElementById('incomePaymentMethod').value;
+    const paymentMethodEnabled = typeof isIncomePaymentMethodEnabled === 'function'
+        ? isIncomePaymentMethodEnabled(paymentMethod)
+        : Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod);
     if (!residentId || !Number.isFinite(amount) || amount <= 0 || !month
-        || !Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod)) {
+        || !Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod)
+        || !paymentMethodEnabled) {
         toast('اختر الشقة وطريقة الدفع والشهر، وأدخل مبلغاً أكبر من صفر.', 'error');
         return;
     }
@@ -636,7 +646,11 @@ function openIncomeEditModal(id) {
         .map(month => '<option value="' + esc(month) + '">' + esc(month) + '</option>').join('');
     monthSelect.value = payment.month;
     document.getElementById('incomeEditAmount').value = payment.amount;
-    document.getElementById('incomeEditPaymentMethod').value = payment.paymentMethod || '';
+    const paymentMethodSelect = document.getElementById('incomeEditPaymentMethod');
+    if (typeof populatePaymentMethodOptions === 'function') {
+        populatePaymentMethodOptions(paymentMethodSelect, payment.paymentMethod || '', true);
+    }
+    if (paymentMethodSelect) paymentMethodSelect.value = payment.paymentMethod || '';
     const distributionNote = String(payment.notes || '').match(/^(دفعة موزعة\s+[A-Z0-9]+\s+\(\d+\/\d+\))(?:\s+·\s+([\s\S]*))?$/i);
     document.getElementById('incomeEditNotes').value = distributionNote ? (distributionNote[2] || '') : (payment.notes || '');
     openModal('incomeEditModal');
@@ -661,8 +675,12 @@ async function handleIncomeEditSubmit(event) {
     const monthKey = monthLabelToKey(month);
     const notes = document.getElementById('incomeEditNotes').value.trim();
     const paymentMethod = document.getElementById('incomeEditPaymentMethod').value;
+    const paymentMethodEnabled = typeof isIncomePaymentMethodEnabled === 'function'
+        ? isIncomePaymentMethodEnabled(paymentMethod)
+        : Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod);
     if (!monthKey || amountCents <= 0
-        || !Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod)) {
+        || !Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod)
+        || (!paymentMethodEnabled && paymentMethod !== (payment.paymentMethod || ''))) {
         toast('اختر شهرًا صحيحًا وطريقة الدفع وأدخل مبلغًا أكبر من صفر.', 'error');
         return;
     }

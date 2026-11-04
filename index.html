@@ -331,7 +331,8 @@
                         <option value="all">كل الحالات</option>
                         <option value="paid">مسدد بالكامل</option>
                         <option value="partial">دفع جزئي</option>
-                        <option value="overdue">غير مسدد</option>
+                        <option value="due">لم يتأخر بعد</option>
+                        <option value="overdue">متأخر</option>
                     </select>
                     <select id="residentSort" aria-label="ترتيب قائمة الشقق" onchange="renderResidentsGrid()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold">
                         <option value="apartment">ترتيب حسب الشقة</option>
@@ -567,6 +568,8 @@
             <div class="settings-layout">
                 <div class="settings-tabs" role="tablist" aria-label="أقسام الإعدادات">
                     <button type="button" class="settings-tab active" id="settings-tab-building" role="tab" aria-selected="true" aria-controls="settings-panel-building" onclick="switchSettingsTab('building')"><i class="fa-solid fa-building"></i><span>العمارة</span></button>
+                    <button type="button" class="settings-tab" id="settings-tab-payments" role="tab" aria-selected="false" aria-controls="settings-panel-payments" onclick="switchSettingsTab('payments')"><i class="fa-solid fa-wallet"></i><span>التحصيل</span></button>
+                    <button type="button" class="settings-tab" id="settings-tab-subscriptions" role="tab" aria-selected="false" aria-controls="settings-panel-subscriptions" onclick="switchSettingsTab('subscriptions')"><i class="fa-solid fa-calendar-check"></i><span>الاشتراكات</span></button>
                     <button type="button" class="settings-tab" id="settings-tab-appearance" role="tab" aria-selected="false" aria-controls="settings-panel-appearance" onclick="switchSettingsTab('appearance')"><i class="fa-solid fa-palette"></i><span>المظهر</span></button>
                     <button type="button" class="settings-tab" id="settings-tab-backup" role="tab" aria-selected="false" aria-controls="settings-panel-backup" onclick="switchSettingsTab('backup')"><i class="fa-solid fa-cloud-arrow-up"></i><span>النسخ</span></button>
                     <button type="button" class="settings-tab" id="settings-tab-receipts" role="tab" aria-selected="false" aria-controls="settings-panel-receipts" onclick="switchSettingsTab('receipts')"><i class="fa-solid fa-receipt"></i><span>الإيصالات</span></button>
@@ -587,6 +590,57 @@
                         </div>
                         <p class="settings-help">تغيير الاشتراك الافتراضي يؤثر على الشقق التي لا تملك قيمة اشتراك مخصصة.</p>
                         <p class="settings-help">ترقيم الشقق مسلسل من الدور الأول. مثال: 11 دورًا × شقتين = الشقق 1–2 في الأول، 3–4 في الثاني، حتى 21–22 في الحادي عشر. الإعدادات مستقلة لكل عقار.</p>
+                    </section>
+                    <section id="settings-panel-payments" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-payments">
+                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-wallet"></i></span><div><h4>وسائل التحصيل وبيانات الاستلام</h4><p>حدد الطرق المتاحة وأضف بيانات التحويل التي تظهر للملاك</p></div></div>
+                        <div class="settings-info-card"><p>هذه البيانات إرشادية فقط؛ التطبيق لا ينفذ تحويلات مالية ولا يربط المحافظ أو البنوك تلقائيًا. ستظهر تفاصيل الطرق المفعّلة في بوابة المالك.</p></div>
+                        <section class="settings-payment-card space-y-3">
+                            <label class="settings-payment-toggle"><input type="checkbox" id="settingsPaymentCashEnabled" checked><span><b>نقدًا</b><small>التحصيل المباشر من المدير</small></span></label>
+                        </section>
+                        <section class="settings-payment-card space-y-3">
+                            <label class="settings-payment-toggle"><input type="checkbox" id="settingsPaymentWalletEnabled" checked><span><b>محفظة إلكترونية</b><small>مثل Vodafone Cash أو Orange Cash</small></span></label>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <label class="settings-field"><span>نوع المحفظة</span><select id="settingsWalletProvider" class="app-input border rounded-xl px-3 py-2.5"><option value="">اختر الشركة</option><option value="Vodafone Cash">Vodafone Cash</option><option value="Orange Cash">Orange Cash</option><option value="Etisalat Cash">Etisalat Cash</option><option value="WE Pay">WE Pay</option><option value="أخرى">أخرى</option></select></label>
+                                <label class="settings-field"><span>اسم صاحب المحفظة</span><input id="settingsWalletAccountName" maxlength="120" autocomplete="off" class="app-input border rounded-xl px-3 py-2.5"></label>
+                                <label class="settings-field sm:col-span-2"><span>رقم المحفظة</span><input id="settingsWalletNumber" type="tel" inputmode="tel" maxlength="32" autocomplete="off" placeholder="01xxxxxxxxx" class="app-input border rounded-xl px-3 py-2.5"></label>
+                            </div>
+                        </section>
+                        <section class="settings-payment-card space-y-3">
+                            <label class="settings-payment-toggle"><input type="checkbox" id="settingsPaymentInstapayEnabled" checked><span><b>InstaPay</b><small>عنوان الدفع اللحظي أو IPA</small></span></label>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <label class="settings-field"><span>اسم صاحب الحساب</span><input id="settingsInstapayAccountName" maxlength="120" autocomplete="off" class="app-input border rounded-xl px-3 py-2.5"></label>
+                                <label class="settings-field"><span>عنوان InstaPay / IPA</span><input id="settingsInstapayAddress" maxlength="120" autocomplete="off" dir="ltr" placeholder="name@instapay" class="app-input border rounded-xl px-3 py-2.5"></label>
+                            </div>
+                        </section>
+                        <section class="settings-payment-card space-y-3">
+                            <label class="settings-payment-toggle"><input type="checkbox" id="settingsPaymentBankEnabled" checked><span><b>تحويل بنكي</b><small>بيانات الحساب البنكي لاستقبال التحويلات</small></span></label>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <label class="settings-field"><span>اسم البنك</span><input id="settingsBankName" maxlength="100" autocomplete="off" class="app-input border rounded-xl px-3 py-2.5"></label>
+                                <label class="settings-field"><span>اسم صاحب الحساب</span><input id="settingsBankAccountName" maxlength="120" autocomplete="off" class="app-input border rounded-xl px-3 py-2.5"></label>
+                                <label class="settings-field"><span>رقم الحساب</span><input id="settingsBankAccountNumber" maxlength="48" autocomplete="off" dir="ltr" class="app-input border rounded-xl px-3 py-2.5"></label>
+                                <label class="settings-field"><span>IBAN</span><input id="settingsBankIban" maxlength="64" autocomplete="off" dir="ltr" class="app-input border rounded-xl px-3 py-2.5"></label>
+                            </div>
+                        </section>
+                    </section>
+                    <section id="settings-panel-subscriptions" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-subscriptions">
+                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-calendar-check"></i></span><div><h4>قواعد الاشتراك والتحصيل</h4><p>حدد موعد الاستحقاق وفترة السماح وطريقة توزيع الدفعات</p></div></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label class="settings-field"><span>يوم استحقاق الاشتراك</span><input type="number" id="settingsSubscriptionDueDay" min="1" max="28" step="1" inputmode="numeric" class="app-input border rounded-xl px-3 py-2.5"></label>
+                            <label class="settings-field"><span>فترة السماح بعد الاستحقاق (أيام)</span><input type="number" id="settingsSubscriptionGraceDays" min="0" max="31" step="1" inputmode="numeric" class="app-input border rounded-xl px-3 py-2.5"></label>
+                        </div>
+                        <div class="settings-payment-card space-y-2">
+                            <label class="settings-field"><span>سياسة توزيع الدفعة الواحدة</span>
+                                <select id="settingsPaymentAllocationPolicy" class="app-input border rounded-xl px-3 py-2.5">
+                                    <option value="oldest_first">الأقدم أولًا — تسوية المتأخرات بالترتيب</option>
+                                    <option value="selected_month_first">الشهر المحدد أولًا — ثم الشهور الأقدم</option>
+                                </select>
+                            </label>
+                            <p class="settings-help">تُطبق السياسة على التحصيلات الجديدة فقط. لا يعاد توزيع التحصيلات المسجلة سابقًا.</p>
+                        </div>
+                        <div class="settings-info-card space-y-1">
+                            <p><b>طريقة احتساب التأخير:</b> يصبح الشهر متأخرًا بعد انقضاء يوم الاستحقاق وفترة السماح. يظل الرصيد غير المسدد ظاهرًا حتى السداد.</p>
+                            <p><b>الاشتراكات السابقة:</b> لكل شقة سجل أسعار مستقل، وتغيير الاشتراك لا يعدّل الشهور التي سبق تسجيلها.</p>
+                        </div>
                     </section>
                     <section id="settings-panel-appearance" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-appearance">
                         <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-palette"></i></span><div><h4>المظهر والثيمات</h4><p>اختر ألوانًا مريحة وواضحة لكل أجزاء التطبيق</p></div></div>
@@ -813,17 +867,13 @@
                     <span class="text-slate-400">طريقة الدفع</span>
                     <select id="incomePaymentMethod" aria-label="طريقة الدفع" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                         <option value="" disabled selected>اختر طريقة الدفع</option>
-                        <option value="cash">نقدًا</option>
-                        <option value="wallet">محفظة إلكترونية</option>
-                        <option value="instapay">InstaPay</option>
-                        <option value="bank_transfer">تحويل بنكي</option>
                     </select>
                 </label>
                 <label class="block text-xs space-y-1">
                     <span class="text-slate-400">شهر بداية التوزيع</span>
                     <select id="incomeMonth" aria-label="شهر بداية التوزيع" onchange="previewIncomeAllocation()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
                 </label>
-                <p class="text-[10px] text-slate-500">يُخصم المبلغ من أقدم المتأخرات أولًا، ثم يُوزع على الأشهر القادمة. راجع المعاينة قبل الحفظ.</p>
+                <p id="incomeAllocationPolicyHelp" class="text-[10px] text-slate-500">يُوزّع المبلغ وفق سياسة العمارة. راجع المعاينة قبل الحفظ.</p>
                 <div id="incomeAllocationPreview" aria-live="polite" class="hidden app-input border rounded-2xl p-3 space-y-2">
                     <p id="incomeAllocationSummary" class="text-xs font-bold"></p>
                     <div id="incomeAllocationRows" class="space-y-1"></div>
