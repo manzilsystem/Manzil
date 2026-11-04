@@ -423,3 +423,29 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
     .settings-tab { min-height:46px; gap:.4rem; padding:.55rem .5rem; font-size:.75rem; }
     .settings-tab span { overflow-wrap:anywhere; }
 }
+
+/* Manager unit profile: fixed header with a scrollable detail body. */
+#residentProfileModal > .app-card {
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    max-height:calc(100dvh - 2rem);
+}
+#residentProfileContent {
+    flex:1 1 auto;
+    min-height:0;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    scrollbar-gutter:stable;
+    padding-bottom:max(1.25rem,env(safe-area-inset-bottom));
+}
+@media(max-width:640px) {
+    #residentProfileModal {
+        padding-top:max(.5rem,env(safe-area-inset-top));
+        padding-bottom:max(.5rem,env(safe-area-inset-bottom));
+    }
+    #residentProfileModal > .app-card {
+        max-height:calc(100dvh - max(1rem,env(safe-area-inset-top)) - max(1rem,env(safe-area-inset-bottom)));
+        border-radius:1.25rem;
+    }
+}
