@@ -1,4 +1,4 @@
-const SETTINGS_TABS = ['building','appearance','backup','receipts','account'];
+const SETTINGS_TABS = ['building','appearance','backup','receipts','reminders','account'];
 function renderReceiptPreview() {
     const input = document.getElementById('settingsReceiptThankYou');
     const preview = document.getElementById('settingsReceiptPreview');
@@ -11,6 +11,17 @@ function renderReceiptPreview() {
         'تفاصيل السداد:', '• نوفمبر 2026: 500 ج.م',
         'تاريخ الاستلام: 04/11/2026', 'رقم الإيصال: SAMPLE-001', '', thankYou
     ].join('\n');
+}
+function renderReminderPreview() {
+    const input = document.getElementById('settingsReminderTemplate');
+    const preview = document.getElementById('settingsReminderPreview');
+    if (!preview) return;
+    const template = String(input?.value || '').trim() || DEFAULT_REMINDER_TEMPLATE;
+    preview.textContent = renderReminderTemplate(template, {
+        name: 'أحمد', building: state.buildingName || 'عمارة النور',
+        apartment: '12', month: 'نوفمبر 2026', amount: '1,250',
+        count: 3, months: 'سبتمبر 2026، أكتوبر 2026، نوفمبر 2026'
+    });
 }
 const SETTINGS_THEME_NAMES = { dark:'ليلي', light:'نهاري', emerald:'زمردي', ocean:'محيطي', sand:'رملي' };
 function switchSettingsTab(tab) {
@@ -59,6 +70,13 @@ function openSettingsModal() {
         receiptInput.oninput = renderReceiptPreview;
     }
     renderReceiptPreview();
+    const reminderInput = document.getElementById('settingsReminderTemplate');
+    if (reminderInput) {
+        try { reminderInput.value = localStorage.getItem(getReminderTemplateKey()) || ''; }
+        catch { reminderInput.value = ''; }
+        reminderInput.oninput = renderReminderPreview;
+    }
+    renderReminderPreview();
     switchSettingsTab('building');
     updateThemeSelection();
     openModal('settingsModal');
@@ -76,6 +94,14 @@ async function saveSettings() {
     if (!Number.isFinite(defaultSubscription) || defaultSubscription < 0
         || !Number.isFinite(startingBalance) || !validLayout) {
         toast('تحقق من قيم الاشتراك والرصيد وعدد الأدوار والشقق (من 1 إلى 100).', 'error');
+        return;
+    }
+    const receiptInput = document.getElementById('settingsReceiptThankYou');
+    const receiptThankYou = String(receiptInput?.value || '').trim();
+    const reminderInput = document.getElementById('settingsReminderTemplate');
+    const reminderTemplate = String(reminderInput?.value || '').trim();
+    if (receiptThankYou.length > 180 || reminderTemplate.length > 500) {
+        toast('تحقق من طول رسالة الإيصال أو التذكير.', 'error');
         return;
     }
     const previousState = cloneStateSnapshot();
@@ -106,18 +132,23 @@ async function saveSettings() {
         if (rollback.error || !rollback.data?.ok) toast('فشل حفظ الإعدادات، وتعذر التراجع عن إعدادات الأدوار. أعد تحميل المبنى للتحقق.', 'error');
         return;
     }
+    let messagePreferencesSaved = true;
     try {
-        const receiptInput = document.getElementById('settingsReceiptThankYou');
-        const thankYou = String(receiptInput?.value || '').trim();
-        if (thankYou.length > 180) { toast('رسالة الشكر يجب ألا تتجاوز 180 حرفًا.', 'error'); return; }
-        if (thankYou) localStorage.setItem(getReceiptSettingsKey(), thankYou);
+        if (receiptThankYou) localStorage.setItem(getReceiptSettingsKey(), receiptThankYou);
         else localStorage.removeItem(getReceiptSettingsKey());
+        if (reminderTemplate) localStorage.setItem(getReminderTemplateKey(), reminderTemplate);
+        else localStorage.removeItem(getReminderTemplateKey());
     } catch (error) {
-        console.error('Could not save receipt preferences:', error);
-        toast('تعذر حفظ رسالة الإيصال على هذا الجهاز.', 'error');
-        return;
+        messagePreferencesSaved = false;
+        console.error('Could not save message preferences:', error);
     }
-    renderAll(); updateAccessSwitchButton(); closeModal('settingsModal'); toast('تم حفظ إعدادات العقار والإيصال', 'success');
+    renderAll();
+    updateAccessSwitchButton();
+    closeModal('settingsModal');
+    toast(messagePreferencesSaved
+        ? 'تم حفظ إعدادات العقار والرسائل'
+        : 'تم حفظ بيانات العمارة، لكن تعذر حفظ نصوص الرسائل على هذا الجهاز.',
+    messagePreferencesSaved ? 'success' : 'error');
 }
 
 async function sendSettingsPasswordReset() {

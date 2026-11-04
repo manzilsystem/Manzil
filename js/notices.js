@@ -59,12 +59,28 @@ function cleanPhone(p) {
 
 function sendWhatsAppReminder(residentId) {
     if (!requireManager()) return;
-    const r = state.residents.find(x => x.id === residentId); if (!r) return;
-    const d = calculateCumulativeDebt(residentId);
-    const phone = cleanPhone(r.phone);
-    if (!phone) { toast('أضف رقم هاتف الساكن أولاً لإرسال التذكير','error'); return; }
-    const msg = `مرحباً ${r.name}،\nنذكركم بسداد اشتراك شهر ${getCurrentMonth()} للعمارة.\n${d.count>0?`إجمالي المتأخرات: ${fmtNum(d.totalDebt)} ج.م (${d.count} شهر)\n`:''}شكراً لتعاونكم.`;
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+    const resident = state.residents.find(item => item.id === residentId);
+    if (!resident) return;
+    const debt = calculateCumulativeDebt(residentId);
+    if (!debt.count || !(Number(debt.totalDebt) > 0)) {
+        toast('لا توجد متأخرات مستحقة لهذا الساكن.', 'info');
+        return;
+    }
+    const phone = cleanPhone(resident.phone);
+    if (!phone) {
+        toast('أضف رقم هاتف الساكن أولاً لإرسال التذكير', 'error');
+        return;
+    }
+    const message = renderReminderTemplate(getReminderMessageTemplate(), {
+        name: resident.name || 'بكم',
+        building: state.buildingName || 'العمارة',
+        apartment: resident.apartmentNumber || '—',
+        month: getCurrentMonth(),
+        amount: fmtNum(debt.totalDebt),
+        count: debt.count,
+        months: Array.isArray(debt.unpaidMonths) ? debt.unpaidMonths.join('، ') : ''
+    });
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
 }
 
 

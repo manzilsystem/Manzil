@@ -570,6 +570,7 @@
                     <button type="button" class="settings-tab" id="settings-tab-appearance" role="tab" aria-selected="false" aria-controls="settings-panel-appearance" onclick="switchSettingsTab('appearance')"><i class="fa-solid fa-palette"></i><span>المظهر</span></button>
                     <button type="button" class="settings-tab" id="settings-tab-backup" role="tab" aria-selected="false" aria-controls="settings-panel-backup" onclick="switchSettingsTab('backup')"><i class="fa-solid fa-cloud-arrow-up"></i><span>النسخ</span></button>
                     <button type="button" class="settings-tab" id="settings-tab-receipts" role="tab" aria-selected="false" aria-controls="settings-panel-receipts" onclick="switchSettingsTab('receipts')"><i class="fa-solid fa-receipt"></i><span>الإيصالات</span></button>
+                    <button type="button" class="settings-tab" id="settings-tab-reminders" role="tab" aria-selected="false" aria-controls="settings-panel-reminders" onclick="switchSettingsTab('reminders')"><i class="fa-solid fa-bell"></i><span>التذكيرات</span></button>
                     <button type="button" class="settings-tab" id="settings-tab-account" role="tab" aria-selected="false" aria-controls="settings-panel-account" onclick="switchSettingsTab('account')"><i class="fa-solid fa-user-shield"></i><span>الحساب</span></button>
                 </div>
                 <div class="settings-content">
@@ -613,6 +614,20 @@
                             <div class="font-bold text-sm"><i class="fa-solid fa-eye ml-1"></i> معاينة الإيصال</div>
                             <p class="text-[10px]">معاينة تجريبية — لن يتم إرسال رسالة أو تسجيل تحصيل.</p>
                             <pre id="settingsReceiptPreview" class="whitespace-pre-wrap break-words text-xs leading-7 font-sans" dir="auto"></pre>
+                        </div>
+                    </section>
+                    <section id="settings-panel-reminders" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-reminders">
+                        <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-bell"></i></span><div><h4>تذكيرات المتأخرات</h4><p>خصص رسالة واتساب التي تجهز للساكن قبل الإرسال</p></div></div>
+                        <label class="settings-field" for="settingsReminderTemplate"><span>نص التذكير</span><textarea id="settingsReminderTemplate" rows="5" maxlength="500" class="app-input border rounded-xl px-3 py-2.5 resize-y" placeholder="اكتب رسالة التذكير"></textarea></label>
+                        <div class="settings-help space-y-1">
+                            <p>المتغيرات المتاحة — اكتبها كما هي داخل الأقواس:</p>
+                            <p dir="ltr" class="text-left">{name} · {building} · {apartment} · {month} · {amount} · {count} · {months}</p>
+                            <p>اترك النص فارغًا لاستخدام الرسالة الافتراضية. الرسالة تُجهز فقط، ولا تُرسل تلقائيًا.</p>
+                        </div>
+                        <div class="settings-info-card space-y-2">
+                            <div class="font-bold text-sm"><i class="fa-solid fa-eye ml-1"></i> معاينة التذكير</div>
+                            <p class="text-[10px]">بيانات تجريبية — لن يتم فتح واتساب أو إرسال رسالة.</p>
+                            <pre id="settingsReminderPreview" class="whitespace-pre-wrap break-words text-xs leading-7 font-sans" dir="auto"></pre>
                         </div>
                     </section>
                     <section id="settings-panel-account" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-account">
