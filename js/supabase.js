@@ -144,6 +144,18 @@ function toSupabaseTimestamp(value) {
     return date.toISOString();
 }
 
+function getBuildingPaymentSettings(value) {
+    if (typeof normalizePaymentSettings === 'function') {
+        return normalizePaymentSettings(value);
+    }
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {
+        cash: { enabled: true },
+        wallet: { enabled: true, provider: '', accountName: '', number: '' },
+        instapay: { enabled: true, accountName: '', address: '' },
+        bank_transfer: { enabled: true, bankName: '', accountName: '', accountNumber: '', iban: '' }
+    };
+}
+
 function mapResident(row) {
     return {
         id: row.id,
@@ -420,7 +432,7 @@ async function loadState() {
             startingBalance: 0, floorCount: 0, apartmentsPerFloor: 0,
             residents: [], income: [], expenses: [], notices: [], ownerNotifications: [], auditLogs: [],
             cashAccountBalances: { main: 0, development: 0, emergency: 0 }, cashTransfers: [],
-            currentTheme: 'dark', paymentSettings: normalizePaymentSettings(DEFAULT_PAYMENT_SETTINGS), subscriptionDueDay: 1, subscriptionGraceDays: 0, paymentAllocationPolicy: 'oldest_first', lastUpdated: Date.now()
+            currentTheme: 'dark', paymentSettings: getBuildingPaymentSettings(null), subscriptionDueDay: 1, subscriptionGraceDays: 0, paymentAllocationPolicy: 'oldest_first', lastUpdated: Date.now()
         };
         persistedAuditLogIds = new Set();
         currentResidentId = null;
@@ -496,7 +508,7 @@ async function loadState() {
         defaultSubscription: Number(building.default_subscription) || 0,
         startingBalance: Number(building.starting_balance) || 0,
         currentTheme: ['dark', 'light', 'emerald', 'ocean', 'sand'].includes(building.current_theme) ? building.current_theme : 'dark',
-        paymentSettings: normalizePaymentSettings(building.payment_settings),
+        paymentSettings: getBuildingPaymentSettings(building.payment_settings),
         subscriptionDueDay: Math.min(28, Math.max(1, Number(building.subscription_due_day) || 1)),
         subscriptionGraceDays: Math.min(31, Math.max(0, Number(building.subscription_grace_days) || 0)),
         paymentAllocationPolicy: ['oldest_first', 'selected_month_first'].includes(building.payment_allocation_policy) ? building.payment_allocation_policy : 'oldest_first',
@@ -544,7 +556,7 @@ async function saveState() {
             default_subscription: Number(state.defaultSubscription) || 0,
             starting_balance: Number(state.startingBalance) || 0,
             current_theme: state.currentTheme || 'dark',
-            payment_settings: normalizePaymentSettings(state.paymentSettings),
+            payment_settings: getBuildingPaymentSettings(state.paymentSettings),
             subscription_due_day: Math.min(28, Math.max(1, Number(state.subscriptionDueDay) || 1)),
             subscription_grace_days: Math.min(31, Math.max(0, Number(state.subscriptionGraceDays) || 0)),
             payment_allocation_policy: ['oldest_first', 'selected_month_first'].includes(state.paymentAllocationPolicy) ? state.paymentAllocationPolicy : 'oldest_first'
@@ -648,7 +660,7 @@ function clearAuthenticatedState() {
         startingBalance: 0, floorCount: 0, apartmentsPerFloor: 0,
         residents: [], income: [], expenses: [], notices: [], ownerNotifications: [], auditLogs: [],
         cashAccountBalances: { main: 0, development: 0, emergency: 0 }, cashTransfers: [],
-        currentTheme: 'dark', paymentSettings: normalizePaymentSettings(DEFAULT_PAYMENT_SETTINGS), subscriptionDueDay: 1, subscriptionGraceDays: 0, paymentAllocationPolicy: 'oldest_first', lastUpdated: 0
+        currentTheme: 'dark', paymentSettings: getBuildingPaymentSettings(null), subscriptionDueDay: 1, subscriptionGraceDays: 0, paymentAllocationPolicy: 'oldest_first', lastUpdated: 0
     };
     document.body.classList.remove('owner-mode');
     clearOwnerPortal();
