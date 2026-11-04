@@ -106,6 +106,197 @@ function openResidentModal(mode, id) {
 
 function editResident(id) { openResidentModal('edit', id); }
 
+function buildResidentProfileHtml(resident) {
+    const currentMonth = getCurrentMonth();
+    const currentAmount = getSubscriptionAmountForMonth(resident, currentMonth);
+    const currentPaid = getPaidAmountForMonth(resident.id, currentMonth);
+    const currentOutstanding = getMonthOutstanding(resident, currentMonth);
+    const isOverdue = currentOutstanding > 0 && isSubscriptionMonthOverdue(currentMonth);
+    const paymentStatus = currentOutstanding <= 0
+        ? { label: 'مسدد بالكامل', className: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' }
+        : isOverdue
+            ? { label: 'متأخر عن السداد', className: 'text-rose-400 bg-rose-500/10 border-rose-500/20' }
+            : { label: 'داخل مهلة السداد', className: 'text-sky-400 bg-sky-500/10 border-sky-500/20' };
+    const debt = calculateCumulativeDebt(resident.id);
+    const unpaidMonths = (debt.unpaidMonths || []).map(month => ({
+        month,
+        amount: getMonthOutstanding(resident, month)
+    }));
+    const recentPayments = state.income
+        .filter(payment => payment.residentId === resident.id)
+        .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+        .slice(0, 10);
+    const rateHistory = (Array.isArray(resident.subscriptionRateHistory) ? resident.subscriptionRateHistory : [])
+        .slice()
+        .sort((a, b) => String(b.changedAt || '').localeCompare(String(a.changedAt || '')))
+        .slice(0, 6);
+    const phone = String(resident.phone || '').replace(/[^0-9+]/g, '');
+    const residentArg = esc(JSON.stringify(String(resident.id)));
+    const arrearsHtml = unpaidMonths.length
+        ? unpaidMonths.slice(0, 12).map(item => `
+            <div class="flex items-center justify-between gap-3 py-2 border-b border-slate-700/40 last:border-0">
+                <span class="text-xs">${esc(item.month)}</span>
+                <strong class="text-xs text-rose-400 shrink-0">${fmtNum(item.amount)} ج.م</strong>
+            </div>`).join('') + (unpaidMonths.length > 12
+                ? `<p class="text-[10px] text-slate-500 pt-2">تم عرض أقدم 12 شهرًا من أصل ${fmtNum(unpaidMonths.length)} شهر.</p>`
+                : '')
+        : '<p class="text-xs text-emerald-400 text-center py-3">لا توجد متأخرات مستحقة.</p>';
+    const paymentsHtml = recentPayments.length
+        ? recentPayments.map(payment => `
+            <article class="app-input border rounded-xl p-3 space-y-1">
+                <div class="flex justify-between items-start gap-3">
+                    <div class="min-w-0">
+                        <p class="text-xs font-bold">${esc(payment.month || '—')}</p>
+                        <p class="text-[10px] text-slate-500">${esc(getIncomePaymentMethodLabel(payment.paymentMethod))} · ${esc(formatDate(payment.date) || '—')}</p>
+                    </div>
+                    <strong class="text-xs text-emerald-400 shrink-0">${fmtNum(payment.amount)} ج.م</strong>
+                </div>
+                ${payment.notes ? `<p class="text-[10px] text-slate-500 break-words">${esc(payment.notes)}</p>` : ''}
+            </article>`).join('')
+        : '<p class="text-xs text-slate-500 text-center py-3">لا توجد تحصيلات مسجلة للشقة.</p>';
+    const ratesHtml = rateHistory.length
+        ? rateHistory.map(change => `
+            <div class="flex items-center justify-between gap-3 py-2 border-b border-slate-700/40 last:border-0">
+                <div class="min-w-0">
+                    <p class="text-xs font-bold">${esc(String(change.effectiveMonth || '').slice(0, 7) || '—')}</p>
+                    <p class="text-[10px] text-slate-500">${esc(formatDate(change.changedAt) || '—')}</p>
+                </div>
+                <div class="text-left shrink-0">
+                    <p class="text-xs font-bold">${formatSubscriptionAmount(change.newMonthlyAmount)} ج.م</p>
+                    <p class="text-[10px] text-slate-500">${change.previousMonthlyAmount == null ? 'قيمة تأسيسية' : 'بدلًا من ' + formatSubscriptionAmount(change.previousMonthlyAmount) + ' ج.م'}</p>
+                </div>
+            </div>`).join('')
+        : '<p class="text-xs text-slate-500 text-center py-3">لا توجد تغييرات تاريخية مسجلة.</p>';
+
+    return `
+        <div class="space-y-4">
+            <section class="app-input border rounded-2xl p-4 space-y-3">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="text-[10px] text-slate-500">بيانات الوحدة</p>
+                        <h4 class="text-base font-black mt-1">${esc(resident.name || 'بدون اسم')}</h4>
+                        <p class="text-xs text-slate-400 mt-1">شقة ${esc(resident.apartmentNumber || '—')}${resident.floor ? ' · ' + 'الدور ' + esc(resident.floor) : ''}</p>
+                    </div>
+                    ${phone ? `<a href="tel:${esc(phone)}" class="inline-flex items-center justify-center gap-2 min-h-11 px-3 rounded-xl bg-indigo-600/15 border border-indigo-500/25 text-indigo-300 text-xs font-bold shrink-0"><i class="fa-solid fa-phone"></i> اتصال</a>` : ''}
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="bg-slate-900/30 rounded-xl p-3 min-w-0">
+                        <p class="text-[10px] text-slate-500">رقم الهاتف</p>
+                        <p class="text-xs font-bold mt-1 break-words">${esc(resident.phone || 'غير مسجل')}</p>
+                    </div>
+                    <div class="bg-slate-900/30 rounded-xl p-3 min-w-0">
+                        <p class="text-[10px] text-slate-500">تاريخ إضافة الشقة</p>
+                        <p class="text-xs font-bold mt-1">${esc(formatDate(resident.createdAt) || '—')}</p>
+                    </div>
+                </div>
+                ${resident.notes ? `<p class="text-xs text-slate-400 border-t border-slate-700/40 pt-2 break-words"><strong>ملاحظات:</strong> ${esc(resident.notes)}</p>` : ''}
+            </section>
+
+            <section class="space-y-2">
+                <h4 class="text-xs font-black">حساب الاشتراك — ${esc(currentMonth)}</h4>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div class="app-card border rounded-xl p-3 min-w-0"><p class="text-[10px] text-slate-500">قيمة الاشتراك</p><p class="text-sm font-black mt-1">${formatSubscriptionAmount(currentAmount)}</p></div>
+                    <div class="app-card border rounded-xl p-3 min-w-0"><p class="text-[10px] text-slate-500">المدفوع</p><p class="text-sm font-black text-emerald-400 mt-1">${formatSubscriptionAmount(currentPaid)}</p></div>
+                    <div class="app-card border rounded-xl p-3 min-w-0"><p class="text-[10px] text-slate-500">المتبقي</p><p class="text-sm font-black mt-1">${formatSubscriptionAmount(currentOutstanding)}</p></div>
+                    <div class="app-card border rounded-xl p-3 min-w-0"><p class="text-[10px] text-slate-500">إجمالي المتأخرات</p><p class="text-sm font-black text-rose-400 mt-1">${formatSubscriptionAmount(debt.totalDebt)}</p><p class="text-[10px] text-slate-500">${fmtNum(debt.count)} شهر</p></div>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-[10px] font-bold border rounded-full px-3 py-1 ${paymentStatus.className}">${paymentStatus.label}</span>
+                    <span class="text-[10px] text-slate-500">حالة الشهر الحالي</span>
+                </div>
+            </section>
+
+            <section class="app-input border rounded-2xl p-4">
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <h4 class="text-xs font-black">الشهور المتأخرة</h4>
+                    <strong class="text-xs text-rose-400">${fmtNum(debt.totalDebt)} ج.م</strong>
+                </div>
+                ${arrearsHtml}
+            </section>
+
+            <section class="app-input border rounded-2xl p-4 space-y-2">
+                <h4 class="text-xs font-black">آخر 10 تحصيلات</h4>
+                ${paymentsHtml}
+            </section>
+
+            <section class="app-input border rounded-2xl p-4">
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <h4 class="text-xs font-black">سجل تغييرات الاشتراك</h4>
+                    <span class="text-[10px] text-slate-500">آخر 6 تغييرات</span>
+                </div>
+                ${ratesHtml}
+            </section>
+
+            <section class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                <button type="button" onclick="openResidentIncomeFromProfile(${residentArg})" class="min-h-11 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-hand-holding-dollar ml-1"></i> تسجيل تحصيل</button>
+                <button type="button" onclick="editResidentFromProfile(${residentArg})" class="min-h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-pen ml-1"></i> تعديل بيانات الشقة</button>
+                <button type="button" onclick="openSubscriptionRatesFromProfile(${residentArg})" class="min-h-11 app-input border rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-clock-rotate-left ml-1"></i> إدارة سجل الاشتراك</button>
+                ${phone && debt.totalDebt > 0 ? `<button type="button" onclick="sendWhatsAppReminderFromProfile(${residentArg})" class="min-h-11 bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-brands fa-whatsapp ml-1"></i> تذكير بالمتأخرات</button>` : ''}
+            </section>
+        </div>`;
+}
+
+function openResidentProfile(residentId) {
+    if (!requireManager()) return;
+    const resident = state.residents.find(item => item.id === residentId);
+    if (!resident) {
+        toast('تعذر العثور على الشقة. حدّث البيانات ثم حاول مرة أخرى.', 'error');
+        return;
+    }
+    const content = document.getElementById('residentProfileContent');
+    if (!content) {
+        toast('تعذر فتح ملف الشقة. أعد تحميل الصفحة وحاول مرة أخرى.', 'error');
+        return;
+    }
+    content.innerHTML = buildResidentProfileHtml(resident);
+    openModal('residentProfileModal');
+}
+
+function openResidentIncomeFromProfile(residentId) {
+    if (!requireManager()) return;
+    const resident = state.residents.find(item => item.id === residentId);
+    if (!resident) {
+        toast('تعذر العثور على الشقة. حدّث البيانات ثم حاول مرة أخرى.', 'error');
+        return;
+    }
+    if (typeof populateSelects === 'function') populateSelects();
+    const residentSelect = document.getElementById('incomeResident');
+    const amountInput = document.getElementById('incomeAmount');
+    const monthSelect = document.getElementById('incomeMonth');
+    const paymentMethodSelect = document.getElementById('incomePaymentMethod');
+    const notesInput = document.getElementById('incomeNotes');
+    if (!residentSelect || !amountInput || !monthSelect || !paymentMethodSelect) {
+        toast('تعذر تجهيز نموذج التحصيل. أعد تحميل الصفحة وحاول مرة أخرى.', 'error');
+        return;
+    }
+    residentSelect.value = residentId;
+    amountInput.value = '';
+    monthSelect.value = getCurrentMonth();
+    paymentMethodSelect.value = '';
+    if (notesInput) notesInput.value = '';
+    if (typeof previewIncomeAllocation === 'function') previewIncomeAllocation();
+    closeModal('residentProfileModal');
+    openModal('incomeModal');
+}
+
+function editResidentFromProfile(residentId) {
+    if (!requireManager()) return;
+    closeModal('residentProfileModal');
+    editResident(residentId);
+}
+
+function openSubscriptionRatesFromProfile(residentId) {
+    if (!requireManager()) return;
+    closeModal('residentProfileModal');
+    openSubscriptionRateModal(residentId);
+}
+
+function sendWhatsAppReminderFromProfile(residentId) {
+    if (!requireManager()) return;
+    closeModal('residentProfileModal');
+    sendWhatsAppReminder(residentId);
+}
+
 function saveResidentAndProvisionOwner() {
     if (!requireManager()) return;
     const form = document.getElementById('residentForm');
