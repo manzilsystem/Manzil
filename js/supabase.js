@@ -154,8 +154,62 @@ function mapResident(row) {
         phone: row.phone || '',
         monthlyAmount: Number(row.monthly_amount) || 0,
         notes: row.notes || '',
-        createdAt: row.created_at
+        createdAt: row.created_at,
+        subscriptionRates: [],
+        subscriptionRateHistory: []
     };
+}
+
+function attachResidentSubscriptionHistory(residents, rateRows = [], changeRows = []) {
+    const ratesByResident = new Map();
+    const changesByResident = new Map();
+
+    for (const row of rateRows) {
+        if (!row?.resident_id || !row.effective_month) continue;
+        const rates = ratesByResident.get(row.resident_id) || [];
+        rates.push({
+            effectiveMonth: row.effective_month,
+            monthlyAmount: Number(row.monthly_amount) || 0
+        });
+        ratesByResident.set(row.resident_id, rates);
+    }
+
+    for (const row of changeRows) {
+        if (!row?.resident_id || !row.changed_at) continue;
+        const changes = changesByResident.get(row.resident_id) || [];
+        changes.push({
+            id: row.id,
+            effectiveMonth: row.effective_month,
+            previousMonthlyAmount: row.previous_monthly_amount == null
+                ? null
+                : Number(row.previous_monthly_amount),
+            newMonthlyAmount: Number(row.new_monthly_amount) || 0,
+            changeType: row.change_type,
+            changedAt: row.changed_at,
+            changedBy: row.changed_by || null
+        });
+        changesByResident.set(row.resident_id, changes);
+    }
+
+    const now = new Date();
+    const currentMonthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+
+    return residents.map(resident => {
+        const subscriptionRates = (ratesByResident.get(resident.id) || [])
+            .sort((a, b) => a.effectiveMonth.localeCompare(b.effectiveMonth));
+        let currentRate = null;
+        for (const rate of subscriptionRates) {
+            if (rate.effectiveMonth > currentMonthStart) break;
+            currentRate = rate;
+        }
+        return {
+            ...resident,
+            monthlyAmount: currentRate ? currentRate.monthlyAmount : resident.monthlyAmount,
+            subscriptionRates,
+            subscriptionRateHistory: (changesByResident.get(resident.id) || [])
+                .sort((a, b) => String(b.changedAt).localeCompare(String(a.changedAt)))
+        };
+    });
 }
 
 function mapIncome(row) {
@@ -400,7 +454,21 @@ async function loadState() {
     const expenseColumns = 'id,title,amount,category,month,notes,cash_account_code,spent_at';
     const noticeColumns = 'id,text,created_at';
     const auditColumns = 'id,action,details,created_at';
-    const [residents, income, expenses, notices, auditLogs, residentNotes, ownerNotificationsResult, cashboxSummaryResult] = await Promise.all([
+    const subscriptionRatesQuery = supabaseClient.from('resident_subscription_rates')
+        .select('resident_id,effective_month,monthly_amount')
+        .eq('building_id', activeBuildingId)
+        .order('effective_month', { ascending: true });
+    const subscriptionRateHistoryQuery = isManager
+        ? supabaseClient.from('resident_subscription_rate_changes')
+            .select('id,resident_id,effective_month,previous_monthly_amount,new_monthly_amount,change_type,changed_at,changed_by')
+            .eq('building_id', activeBuildingId)
+            .order('changed_at', { ascending: false })
+        : Promise.resolve({ data: [], error: null });
+    const [
+        residents, income, expenses, notices, auditLogs, residentNotes,
+        ownerNotificationsResult, cashboxSummaryResult,
+        subscriptionRatesResult, subscriptionRateHistoryResult
+    ] = await Promise.all([
         supabaseQuery('residents', residentColumns),
         supabaseQuery('income', incomeColumns),
         isManager ? supabaseQuery('expenses', expenseColumns) : Promise.resolve([]),
@@ -408,11 +476,15 @@ async function loadState() {
         isManager ? supabaseQuery('audit_logs', auditColumns) : Promise.resolve([]),
         currentUserRole === 'manager' ? supabaseQuery('resident_internal_notes', 'resident_id,notes') : Promise.resolve([]),
         ownerNotificationsQuery,
-        cashboxSummaryQuery
+        cashboxSummaryQuery,
+        subscriptionRatesQuery,
+        subscriptionRateHistoryQuery
     ]);
     if (!isCurrentAuthSession(session, generation)) return false;
     if (ownerNotificationsResult.error) throw ownerNotificationsResult.error;
     if (cashboxSummaryResult.error) throw cashboxSummaryResult.error;
+    if (subscriptionRatesResult.error) throw subscriptionRatesResult.error;
+    if (subscriptionRateHistoryResult.error) throw subscriptionRateHistoryResult.error;
     const cashboxSummary = currentUserRole === 'manager'
         ? normalizeCashboxSummary(cashboxSummaryResult.data)
         : { balances: { main: 0, development: 0, emergency: 0 }, transfers: [] };
@@ -426,7 +498,8 @@ async function loadState() {
         currentTheme: ['dark', 'light', 'emerald', 'ocean', 'sand'].includes(building.current_theme) ? building.current_theme : 'dark',
         floorCount: Number(building.floor_count) || 0,
         apartmentsPerFloor: Number(building.apartments_per_floor) || 0,
-        residents: residents.map(mapResident), income: income.map(mapIncome), expenses: expenses.map(mapExpense),
+        residents: attachResidentSubscriptionHistory(residents.map(mapResident), subscriptionRatesResult.data || [], subscriptionRateHistoryResult.data || []),
+        income: income.map(mapIncome), expenses: expenses.map(mapExpense),
         notices: notices.map(mapNotice), ownerNotifications: (ownerNotificationsResult.data || []).map(mapNotification),
         auditLogs: auditLogs.map(mapAudit),
         cashAccountBalances: cashboxSummary.balances,

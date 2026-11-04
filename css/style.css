@@ -330,3 +330,50 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 .settings-save-button { background:var(--accent-color); color:#fff; transition:filter .18s ease; }
 .settings-save-button:hover { filter:brightness(1.08); }
 [data-theme="sand"] .settings-modal-header,[data-theme="sand"] .settings-save-button { color:#211b16; }
+
+/* Keep data-entry dialogs usable on short screens and small phones. */
+#residentModal > .app-card,
+#subscriptionRateModal > .app-card,
+#incomeModal > .app-card,
+#incomeEditModal > .app-card,
+#expenseModal > .app-card {
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    max-height:calc(100dvh - 2rem);
+}
+#residentModal > .app-card > .bg-indigo-700,
+#subscriptionRateModal > .app-card > .bg-indigo-800,
+#incomeModal > .app-card > .bg-emerald-700,
+#incomeEditModal > .app-card > .bg-indigo-700,
+#expenseModal > .app-card > .bg-rose-700 { flex:none; }
+#residentModal form,
+#incomeModal form,
+#incomeEditModal form,
+#expenseModal form,
+#subscriptionRateModal > .app-card > .p-5 {
+    flex:1 1 auto;
+    min-height:0;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    scrollbar-gutter:stable;
+    padding-bottom:max(1.25rem,env(safe-area-inset-bottom));
+}
+@media(max-width:640px) {
+    #residentModal,#subscriptionRateModal,#incomeModal,#incomeEditModal,#expenseModal {
+        padding-top:max(.5rem,env(safe-area-inset-top));
+        padding-bottom:max(.5rem,env(safe-area-inset-bottom));
+    }
+    #residentModal > .app-card,
+    #subscriptionRateModal > .app-card,
+    #incomeModal > .app-card,
+    #incomeEditModal > .app-card,
+    #expenseModal > .app-card {
+        max-height:calc(100dvh - max(1rem,env(safe-area-inset-top)) - max(1rem,env(safe-area-inset-bottom)));
+        border-radius:1.25rem;
+    }
+}
+@media(max-width:360px) {
+    .settings-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .settings-tab { min-height:44px; font-size:.75rem; }
+}
