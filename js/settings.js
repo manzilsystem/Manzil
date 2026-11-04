@@ -118,15 +118,15 @@ function openSettingsModal() {
     document.getElementById('settingsPasswordResetBtn')?.classList.toggle('hidden', currentUserRole !== 'manager');
     const receiptInput = document.getElementById('settingsReceiptThankYou');
     if (receiptInput) {
-        try { receiptInput.value = localStorage.getItem(getReceiptSettingsKey()) || ''; }
-        catch { receiptInput.value = ''; }
+        try { receiptInput.value = state.receiptThankYouTemplate ?? (localStorage.getItem(getReceiptSettingsKey()) || ''); }
+        catch { receiptInput.value = state.receiptThankYouTemplate || ''; }
         receiptInput.oninput = renderReceiptPreview;
     }
     renderReceiptPreview();
     const reminderInput = document.getElementById('settingsReminderTemplate');
     if (reminderInput) {
-        try { reminderInput.value = localStorage.getItem(getReminderTemplateKey()) || ''; }
-        catch { reminderInput.value = ''; }
+        try { reminderInput.value = state.reminderMessageTemplate ?? (localStorage.getItem(getReminderTemplateKey()) || ''); }
+        catch { reminderInput.value = state.reminderMessageTemplate || ''; }
         reminderInput.oninput = renderReminderPreview;
     }
     renderReminderPreview();
