@@ -647,7 +647,7 @@ async function handleIncomeEditSubmit(event) {
     const paymentMethod = document.getElementById('incomeEditPaymentMethod').value;
     if (!monthKey || amountCents <= 0
         || !Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod)) {
-        toast('اختر شهرًا صحيحًا وأدخل مبلغًا أكبر من صفر.', 'error');
+        toast('اختر شهرًا صحيحًا وطريقة الدفع وأدخل مبلغًا أكبر من صفر.', 'error');
         return;
     }
     const createdMonth = getLocalMonthKey(resident.createdAt);
