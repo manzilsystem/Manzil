@@ -66,7 +66,7 @@ test('settings redesign is included in the service worker cache version', () => 
     assert.match(html, /02:23 UTC/);
     assert.match(html, /04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة/);
     assert.doesNotMatch(html, /نسخة يومية الساعة 04:23 صباحًا بتوقيت مصر/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v75'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v76'/);
     assert.ok(css.includes('width:100vw;') && css.includes('max-width:none;'), 'settings must occupy the full viewport width');
     assert.ok(css.includes('height:100dvh;') && css.includes('max-height:100dvh;'), 'settings must occupy the full viewport height');
     assert.ok(css.includes('grid-template-rows:repeat(2,minmax(150px,1fr))'), 'desktop cards must expand into two full-height rows');
@@ -187,4 +187,18 @@ test('service worker refreshes cached assets from network and checks for updates
     assert.ok(html.includes("addEventListener('controllerchange'"), 'controller changes must be observed before app initialization');
     assert.ok(html.includes("addEventListener('pageshow'") && html.includes("addEventListener('focus'") && html.includes("addEventListener('visibilitychange'"), 'updates must be rechecked when the page becomes active');
     assert.doesNotMatch(read('js/app.js'), /serviceWorker\.register\(/, 'app initialization must not register a second service worker');
+});
+
+
+test('settings header uses the original Manzil app identity and unified visual system', () => {
+    assert.match(html, /class="settings-topbar"/);
+    assert.match(html, /class="settings-brand-lockup"/);
+    assert.match(html, /src="icons\/manzil-logo\.png"/);
+    assert.match(html, /منزل/);
+    assert.match(html, /MANZIL/);
+    assert.ok(css.includes('#settingsModal .settings-topbar'));
+    assert.ok(css.includes('#159e9a'));
+    assert.ok(css.includes('#123b50'));
+    assert.ok(css.includes('#settingsModal .settings-section-heading'));
+    assert.ok(css.includes('prefers-reduced-motion:reduce'));
 });
