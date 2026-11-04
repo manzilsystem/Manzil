@@ -85,7 +85,7 @@ function makeHarness() {
     };
     const app = vm.runInNewContext(
         `${supabaseSource}\n({\n` +
-        'submitSupabaseLogin, submitPasswordRecovery, setLoginMode, lockCurrentSession, initSupabaseApp, ' +
+        'submitSupabaseLogin, submitPasswordRecovery, cancelPasswordRecovery, setLoginMode, lockCurrentSession, initSupabaseApp, ' +
         'setLoadState(fn) { loadState = fn; }, ' +
         'setOpenAuthenticatedApp(fn) { openAuthenticatedApp = fn; }, ' +
         'getSnapshot() { return { activeSession, activeBuildingId, supabaseStateLoaded, authLoading, ownerMustChangePin, state, currentUserRole, currentResidentId }; }, ' +
@@ -589,4 +589,24 @@ test('expired recovery session clears the pending marker and keeps the app signe
     assert.equal(h.localStorage.getItem('manzil.passwordRecoveryPending'), null);
     assert.equal(h.elements.get('passwordRecoveryModal').classList.contains('hidden'), true);
     assert.equal(h.sandbox.document.body.classList.contains('session-locked'), true);
+});
+
+
+test('canceling password recovery clears the shared lock and signs out locally', async () => {
+    const h = makeHarness();
+    const session = { user: { id: 'manager-1' } };
+    h.client.auth.getSession = async () => ({ data: { session: null }, error: null });
+    await h.app.initSupabaseApp();
+    h.getAuthListener()('PASSWORD_RECOVERY', session);
+    assert.notEqual(h.localStorage.getItem('manzil.passwordRecoveryPending'), null);
+
+    let signOutScope = null;
+    h.client.auth.signOut = async ({ scope }) => { signOutScope = scope; return { error: null }; };
+    await h.app.cancelPasswordRecovery();
+
+    assert.equal(signOutScope, 'local');
+    assert.equal(h.localStorage.getItem('manzil.passwordRecoveryPending'), null);
+    assert.equal(h.app.getSnapshot().activeSession, null);
+    assert.equal(h.elements.get('passwordRecoveryModal').classList.contains('hidden'), true);
+    assert.match(h.elements.get('pinErrorMsg').textContent, /تم إلغاء استعادة كلمة المرور/);
 });
