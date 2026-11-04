@@ -32,6 +32,7 @@ function createProfileHarness(isManager = true) {
         incomeSubmitButton: { disabled: false, textContent: '' }
     };
     const opened = [];
+    const closed = [];
     const calls = [];
     const resident = {
         id: 'resident-1',
@@ -72,15 +73,16 @@ function createProfileHarness(isManager = true) {
         esc: escapeHtml,
         document: { getElementById: id => controls[id] || null },
         openModal: id => opened.push(id),
+        closeModal: id => closed.push(id),
         toast: (...args) => calls.push(args),
         populateSelects() { calls.push(['populateSelects']); }
     };
     const api = vm.runInNewContext(
-        crud + String.fromCharCode(10) + '({ buildResidentProfileHtml, openResidentProfile, openResidentIncomeFromProfile })',
+        crud + String.fromCharCode(10) + '({ buildResidentProfileHtml, openResidentProfile, openResidentIncomeFromProfile, editResidentFromProfile, openSubscriptionRatesFromProfile, sendWhatsAppReminderFromProfile })',
         sandbox,
         { filename: 'js/crud.js' }
     );
-    return { api, content, controls, opened, calls, state };
+    return { api, content, controls, opened, closed, calls, state };
 }
 
 test('resident cards expose a separate manager unit profile action', () => {
@@ -90,6 +92,9 @@ test('resident cards expose a separate manager unit profile action', () => {
     assert.match(html, /aria-labelledby="residentProfileModalTitle"/);
     assert.match(css, /#residentProfileContent\s*\{[^}]*overflow-y:auto/);
     assert.match(css, /#residentProfileModal > \.app-card\s*\{[^}]*max-height:calc\(100dvh - 2rem\)/);
+    assert.match(crud, /function editResidentFromProfile\(residentId\)[\s\S]*?closeModal\('residentProfileModal'\);[\s\S]*?editResident\(residentId\)/);
+    assert.match(crud, /function openSubscriptionRatesFromProfile\(residentId\)[\s\S]*?closeModal\('residentProfileModal'\);[\s\S]*?openSubscriptionRateModal\(residentId\)/);
+    assert.match(crud, /function sendWhatsAppReminderFromProfile\(residentId\)[\s\S]*?closeModal\('residentProfileModal'\);[\s\S]*?sendWhatsAppReminder\(residentId\)/);
 });
 
 test('profile shows only the selected unit balance, arrears, payments and rate history safely', () => {
@@ -136,13 +141,14 @@ test('opening a unit profile is manager-only and opens the accessible profile di
 });
 
 test('profile collection action opens the existing income form for its unit without preselecting payment method', () => {
-    const { api, controls, opened, calls } = createProfileHarness();
+    const { api, controls, opened, closed } = createProfileHarness();
     api.openResidentIncomeFromProfile('resident-1');
     assert.equal(controls.incomeResident.value, 'resident-1');
     assert.equal(controls.incomeAmount.value, '');
     assert.equal(controls.incomeMonth.value, 'نوفمبر 2026');
     assert.equal(controls.incomePaymentMethod.value, '');
     assert.equal(controls.incomeNotes.value, '');
+    assert.equal(closed.at(-1), 'residentProfileModal');
     assert.equal(opened.at(-1), 'incomeModal');
     assert.ok(controls.incomeAllocationPreview.classList.added.includes('hidden'));
 });
