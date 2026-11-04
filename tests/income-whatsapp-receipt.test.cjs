@@ -8,7 +8,7 @@ const root = path.join(__dirname, '..');
 const notices = fs.readFileSync(path.join(root, 'js', 'notices.js'), 'utf8');
 const render = fs.readFileSync(path.join(root, 'js', 'render.js'), 'utf8');
 
-function loadReceiptApp(phone = '01012345678') {
+function loadReceiptApp(phone = '01012345678', extraIncome = []) {
     const opened = [];
     const messages = [];
     const sandbox = {
@@ -31,6 +31,10 @@ function loadReceiptApp(phone = '01012345678') {
     };
     const app = vm.runInNewContext(`${notices}\n({ sendIncomeReceiptOnWhatsApp })`, sandbox);
     return { app, opened, messages };
+}
+
+function loadReceiptAppWithCollision() {
+    return loadReceiptApp('01012345678', [{ id: 'other-payment', residentId: 'resident-1', amount: 999, month: 'ديسمبر 2026', date: '2026-11-04T00:00:00.000Z', paymentMethod: 'cash', notes: 'ملاحظة خارجية ABC123 ليست دفعة موزعة' }]);
 }
 
 test('WhatsApp receipt combines all months from one distributed payment', () => {
@@ -64,4 +68,16 @@ test('WhatsApp receipt requires a resident phone number', () => {
 test('income cards expose a WhatsApp receipt action for each payment', () => {
     assert.match(render, /sendIncomeReceiptOnWhatsApp\('\$\{i\.id\}'\)/);
     assert.match(render, /إرسال إيصال واتساب/);
+});
+
+
+test('WhatsApp receipt excludes unrelated notes that merely contain the payment reference', () => {
+    const { app, opened } = loadReceiptApp();
+    const sandboxState = app; // Keep the public handler isolated; add the collision through the shared fixture below.
+    void sandboxState;
+    const fixture = loadReceiptAppWithCollision();
+    fixture.app.sendIncomeReceiptOnWhatsApp('payment-1');
+    const message = new URL(fixture.opened[0]).searchParams.get('text');
+    assert.match(message, /المبلغ المستلم: 150 ج.م/);
+    assert.doesNotMatch(message, /ملاحظة خارجية/);
 });

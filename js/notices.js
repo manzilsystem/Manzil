@@ -108,7 +108,7 @@ function sendIncomeReceiptOnWhatsApp(incomeId) {
         ? state.income.filter(item =>
             item.residentId === payment.residentId &&
             item.date === payment.date &&
-            String(item.notes || '').includes(reference)
+            String(item.notes || '').startsWith('دفعة موزعة ' + reference + ' (')
         )
         : [payment];
     relatedPayments.sort((a, b) => {
