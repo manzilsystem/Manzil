@@ -19,6 +19,7 @@ const APP_SHELL = [
     './js/backup.js',
     './manifest.json',
     './icons/manzil-logo.png',
+    './icons/manzil-brand.svg',
     './icons/icon-192.png',
     './icons/icon-512.png'
 ];
