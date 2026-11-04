@@ -131,6 +131,7 @@ function buildResidentProfileHtml(resident) {
         .sort((a, b) => String(b.changedAt || '').localeCompare(String(a.changedAt || '')))
         .slice(0, 6);
     const phone = String(resident.phone || '').replace(/[^0-9+]/g, '');
+    const residentArg = esc(JSON.stringify(String(resident.id)));
     const arrearsHtml = unpaidMonths.length
         ? unpaidMonths.slice(0, 12).map(item => `
             <div class="flex items-center justify-between gap-3 py-2 border-b border-slate-700/40 last:border-0">
@@ -227,10 +228,10 @@ function buildResidentProfileHtml(resident) {
             </section>
 
             <section class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                <button type="button" onclick="openResidentIncomeFromProfile('${esc(resident.id)}')" class="min-h-11 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-hand-holding-dollar ml-1"></i> تسجيل تحصيل</button>
-                <button type="button" onclick="editResident('${esc(resident.id)}')" class="min-h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-pen ml-1"></i> تعديل بيانات الشقة</button>
-                <button type="button" onclick="openSubscriptionRateModal('${esc(resident.id)}')" class="min-h-11 app-input border rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-clock-rotate-left ml-1"></i> إدارة سجل الاشتراك</button>
-                ${phone && debt.totalDebt > 0 ? `<button type="button" onclick="sendWhatsAppReminder('${esc(resident.id)}')" class="min-h-11 bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-brands fa-whatsapp ml-1"></i> تذكير بالمتأخرات</button>` : ''}
+                <button type="button" onclick="openResidentIncomeFromProfile(${residentArg})" class="min-h-11 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-hand-holding-dollar ml-1"></i> تسجيل تحصيل</button>
+                <button type="button" onclick="editResident(${residentArg})" class="min-h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-pen ml-1"></i> تعديل بيانات الشقة</button>
+                <button type="button" onclick="openSubscriptionRateModal(${residentArg})" class="min-h-11 app-input border rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-clock-rotate-left ml-1"></i> إدارة سجل الاشتراك</button>
+                ${phone && debt.totalDebt > 0 ? `<button type="button" onclick="sendWhatsAppReminder(${residentArg})" class="min-h-11 bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-brands fa-whatsapp ml-1"></i> تذكير بالمتأخرات</button>` : ''}
             </section>
         </div>`;
 }
