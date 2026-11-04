@@ -65,7 +65,7 @@ function getReceiptThankYouMessage() {
 const DEFAULT_REMINDER_TEMPLATE = 'مرحباً {name}،\nنذكركم بسداد مستحقات العمارة {building}.\nإجمالي المتأخرات: {amount} ج.م ({count} شهر).\nالشهور المستحقة: {months}\nشكراً لتعاونكم.';
 function getReminderTemplateKey() {
     const buildingId = typeof activeBuildingId === 'undefined' ? 'default' : (activeBuildingId || 'default');
-    return \`manzil:\${buildingId}:arrears-reminder-template\`;
+    return 'manzil:' + buildingId + ':arrears-reminder-template';
 }
 function getReminderMessageTemplate() {
     try {
