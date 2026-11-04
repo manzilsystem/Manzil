@@ -25,6 +25,7 @@ function createApp() {
         classList: { add() {}, remove() {} },
         removeAttribute() {}, setAttribute() {}
     }]));
+    elements.residentAmountHelp = { textContent: '', classList: { add() {}, remove() {} } };
     elements.manageSubscriptionRatesBtn = { classList: { add() {}, remove() {} } };
     const sandbox = {
         state: { residents: [resident], floorCount: 1, apartmentsPerFloor: 1, defaultSubscription: 100 },
@@ -46,7 +47,8 @@ test('active subscription amount stays editable in the apartment form', () => {
     app.openResidentModal('edit', 'resident-1');
     assert.equal(elements.residentAmount.readOnly, false);
     assert.match(elements.residentAmountHelp.textContent, /تعديل الاشتراك مباشرة/);
-    assert.match(elements.manageSubscriptionRatesBtn ? 'سجل' : '', /سجل/);
+    assert.ok(html.includes('id="manageSubscriptionRatesBtn"'));
+    assert.ok(html.includes('تحديد / تعديل الاشتراك وسجله التاريخي'));
 });
 
 test('changing the apartment amount records a new current-month rate and preserves historical rates', async () => {
