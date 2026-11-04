@@ -165,7 +165,7 @@ function renderDashboard() {
     netEl.textContent = fmtNum(net)+' ج.م';
     netEl.className = `text-2xl sm:text-3xl font-black mt-0.5 ${net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
     const currentMonth = getCurrentMonth();
-    const currentMonthDue = state.residents.reduce((sum, resident) => sum + (Number(resident.monthlyAmount ?? state.defaultSubscription) || 0), 0);
+    const currentMonthDue = state.residents.reduce((sum, resident) => sum + getSubscriptionAmountForMonth(resident, currentMonth), 0);
     const currentMonthPaid = state.residents.reduce((sum, resident) => sum + getPaidAmountForMonth(resident.id, currentMonth), 0);
     const partialPayments = state.residents.filter(resident => {
         const paid = getPaidAmountForMonth(resident.id, currentMonth);
