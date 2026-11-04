@@ -1,7 +1,18 @@
 const SETTINGS_TABS = ['building','payments','subscriptions','appearance','backup','receipts','reminders','account'];
+function updateSettingsMessageCounter(inputId, counterId, maxLength) {
+    const input = document.getElementById(inputId);
+    const counter = document.getElementById(counterId);
+    if (!input || !counter) return;
+    const length = String(input.value || '').length;
+    counter.textContent = `${length} / ${maxLength} حرف`;
+    counter.classList.toggle('is-near-limit', length >= Math.ceil(maxLength * 0.9));
+    counter.classList.toggle('is-at-limit', length >= maxLength);
+}
+
 function renderReceiptPreview() {
     const input = document.getElementById('settingsReceiptThankYou');
     const preview = document.getElementById('settingsReceiptPreview');
+    updateSettingsMessageCounter('settingsReceiptThankYou', 'settingsReceiptCharacterCount', 180);
     if (!preview) return;
     const thankYou = String(input?.value || '').trim() || DEFAULT_RECEIPT_THANK_YOU;
     preview.textContent = [
@@ -15,6 +26,7 @@ function renderReceiptPreview() {
 function renderReminderPreview() {
     const input = document.getElementById('settingsReminderTemplate');
     const preview = document.getElementById('settingsReminderPreview');
+    updateSettingsMessageCounter('settingsReminderTemplate', 'settingsReminderCharacterCount', 500);
     if (!preview) return;
     const template = String(input?.value || '').trim() || DEFAULT_REMINDER_TEMPLATE;
     preview.textContent = renderReminderTemplate(template, {

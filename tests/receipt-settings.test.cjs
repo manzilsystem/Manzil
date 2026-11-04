@@ -76,3 +76,28 @@ test('WhatsApp receipt uses the saved custom thank-you message', () => {
     assert.match(message, /شكراً مخصصاً من الإعدادات/);
     assert.match(message, /طريقة الدفع: نقدًا/);
 });
+
+
+test('receipt template character counter updates live and marks the limit', () => {
+    const elements = {
+        settingsReceiptThankYou: { value: 'شكراً' },
+        settingsReceiptCharacterCount: { textContent: '', classList: { toggle() {} } },
+        settingsReceiptPreview: { textContent: '' }
+    };
+    const api = vm.runInNewContext(settingsSource + '\n({ renderReceiptPreview })', {
+        document: { getElementById: id => elements[id] || null },
+        state: { buildingName: 'عمارة الاختبار' }
+    });
+    api.renderReceiptPreview();
+    assert.equal(elements.settingsReceiptCharacterCount.textContent, '5 / 180 حرف');
+    elements.settingsReceiptThankYou.value = 'أ'.repeat(180);
+    let nearLimit = false, atLimit = false;
+    elements.settingsReceiptCharacterCount.classList.toggle = (name, enabled) => {
+        if (name === 'is-near-limit') nearLimit = enabled;
+        if (name === 'is-at-limit') atLimit = enabled;
+    };
+    api.renderReceiptPreview();
+    assert.equal(elements.settingsReceiptCharacterCount.textContent, '180 / 180 حرف');
+    assert.equal(nearLimit, true);
+    assert.equal(atLimit, true);
+});
