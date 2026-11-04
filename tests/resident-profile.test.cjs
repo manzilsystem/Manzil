@@ -25,7 +25,11 @@ function createProfileHarness(isManager = true) {
         incomeAmount: { value: '' },
         incomeMonth: { value: '' },
         incomePaymentMethod: { value: 'cash' },
-        incomeNotes: { value: 'old note' }
+        incomeNotes: { value: 'old note' },
+        incomeAllocationPreview: { classList: { added: [], add(value) { this.added.push(value); }, remove() {} } },
+        incomeAllocationSummary: { textContent: '' },
+        incomeAllocationRows: { innerHTML: '' },
+        incomeSubmitButton: { disabled: false, textContent: '' }
     };
     const opened = [];
     const calls = [];
@@ -69,8 +73,7 @@ function createProfileHarness(isManager = true) {
         document: { getElementById: id => controls[id] || null },
         openModal: id => opened.push(id),
         toast: (...args) => calls.push(args),
-        populateSelects() { calls.push(['populateSelects']); },
-        previewIncomeAllocation() { calls.push(['previewIncomeAllocation']); }
+        populateSelects() { calls.push(['populateSelects']); }
     };
     const api = vm.runInNewContext(
         crud + String.fromCharCode(10) + '({ buildResidentProfileHtml, openResidentProfile, openResidentIncomeFromProfile })',
@@ -141,7 +144,7 @@ test('profile collection action opens the existing income form for its unit with
     assert.equal(controls.incomePaymentMethod.value, '');
     assert.equal(controls.incomeNotes.value, '');
     assert.equal(opened.at(-1), 'incomeModal');
-    assert.ok(calls.some(call => call[0] === 'previewIncomeAllocation'));
+    assert.ok(controls.incomeAllocationPreview.classList.added.includes('hidden'));
 });
 
 test('profile feature refreshes the installed application cache', () => {
