@@ -42,7 +42,9 @@ test('settings use responsive cards and full-page section navigation', () => {
     assert.ok(css.includes('grid-template-columns:repeat(4,minmax(0,1fr))'), 'wide screens must show four spacious cards per row');
     assert.ok(css.includes('@media (max-width:900px)') && css.includes('grid-template-columns:repeat(2,minmax(0,1fr))'), 'tablet layout must show two cards per row');
     assert.ok(css.includes('@media (max-width:560px)') && css.includes('grid-template-columns:repeat(2,minmax(0,1fr))'), 'mobile layout must show icon cards in two columns');
-    assert.ok(css.includes('grid-auto-rows:minmax(112px,auto)'), 'mobile rows must size naturally to card content');
+    assert.ok(css.includes('grid-auto-rows:minmax(112px,auto)'), 'mobile base rows retain natural sizing');
+    assert.ok(css.includes('grid-template-rows:repeat(4,minmax(0,1fr))'), 'mobile must fit all eight cards in four visible rows');
+    assert.ok(css.includes('flex:1 1 0;') && css.includes('overflow:hidden;'), 'mobile overview must fit the viewport without scrolling');
     assert.ok(css.includes('#settingsModal .settings-content { width:100%; flex:1; min-height:0; max-height:none;'), 'selected sections must use the full settings content area');
     assert.ok(css.includes('.settings-content { padding:1.1rem; min-height:310px; max-height:min(62vh,600px); overflow-y:auto;'));
     assert.match(settings, /function showSettingsOverview\(\)/);
