@@ -22,55 +22,65 @@
     <div id="toastContainer" role="status" aria-live="polite" aria-atomic="true" class="fixed top-20 left-1/2 -translate-x-1/2 z-[100] space-y-2 pointer-events-none" style="max-width:90vw;"></div>
 
     <!-- Secure sign-in and owner PIN onboarding -->
-    <div id="pinLockModal" role="dialog" aria-modal="true" aria-labelledby="pinLockTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div id="pinLockModal" role="dialog" aria-modal="true" aria-labelledby="pinLockTitle" aria-hidden="true" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
         <div class="auth-shell app-card rounded-3xl shadow-2xl border">
-            <aside class="auth-brand-panel flex flex-col justify-between gap-7 p-5 sm:p-8" aria-label="عن نظام Manzil">
-                <div>
-                    <div class="auth-brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 12h3v8h14v-8h3L12 2zm0 3.8l5 5V18h-3v-5H10v5H7v-7.2l5-5z"/></svg></div>
-                    <p class="text-xs font-bold tracking-wide text-indigo-200 mt-5">منظومة إدارة العقارات</p>
-                    <h1 class="text-3xl sm:text-4xl font-black mt-1">Manzil</h1>
-                    <h2 class="text-lg sm:text-xl font-extrabold leading-relaxed mt-4">إدارة مبناك… بصورة أوضح</h2>
-                    <p class="text-sm text-slate-300 leading-7 mt-2">تابع الشقق والتحصيلات والمصروفات والمتأخرات من مكان واحد، مع بوابة خاصة لكل مالك.</p>
+            <aside class="auth-brand-panel" aria-label="عن نظام Manzil">
+                <div class="auth-brand-head">
+                    <div class="auth-logo-frame"><img src="icons/manzil-logo.png" alt="شعار Manzil" width="128" height="128" decoding="async"></div>
+                    <div class="auth-brand-copy">
+                        <p class="auth-brand-overline">منظومة إدارة العقارات</p>
+                        <h1>Manzil</h1>
+                        <p class="auth-brand-description">إدارة مبناك أسهل، ومتابعة التفاصيل أوضح.</p>
+                    </div>
                 </div>
-                <p class="auth-trust-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> دخول آمن، وصلاحيات واضحة لكل نوع حساب.</p>
-                <div class="auth-rights text-[10px] leading-6">
-                    <p>حقوق الملكية الفكرية © 2026 شركة سنا للبرمجيات. جميع الحقوق محفوظة.</p>
-                    <p>محمد عادل · <a href="tel:+201027767039" dir="ltr">01027767039</a></p>
+                <div class="auth-brand-benefits">
+                    <p><i class="fa-solid fa-building" aria-hidden="true"></i> الشقق والاشتراكات في مكان واحد</p>
+                    <p><i class="fa-solid fa-wallet" aria-hidden="true"></i> التحصيلات والمصروفات بوضوح</p>
+                    <p><i class="fa-solid fa-users" aria-hidden="true"></i> لكل مالك حسابه وصلاحياته</p>
+                </div>
+                <div class="auth-brand-footer">
+                    <p class="auth-trust-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> دخول آمن وصلاحيات واضحة لكل حساب.</p>
+                    <div class="auth-rights">
+                        <p>حقوق الملكية الفكرية © 2026 شركة سنا للبرمجيات. جميع الحقوق محفوظة.</p>
+                        <p>محمد عادل · <a href="tel:+201027767039" dir="ltr">01027767039</a></p>
+                    </div>
                 </div>
             </aside>
-            <section class="auth-login-panel p-5 sm:p-8">
-                <p class="text-xs font-bold text-indigo-300">دخول Manzil</p>
-                <p class="text-xs font-bold text-slate-300 mt-4">اختر نوع حسابك</p>
-                <div role="group" aria-label="نوع الحساب" class="grid grid-cols-2 gap-2 mt-2">
-                    <button id="loginModeManager" type="button" aria-pressed="true" onclick="setLoginMode('manager')" class="w-full border rounded-xl px-3 py-3 text-sm font-bold transition flex items-center justify-center gap-2 bg-indigo-600 text-white border-indigo-400 shadow-lg"><i class="fa-solid fa-building-user" aria-hidden="true"></i> مدير المبنى</button>
-                    <button id="loginModeOwner" type="button" aria-pressed="false" onclick="setLoginMode('owner')" class="w-full app-input border border-slate-700 rounded-xl px-3 py-3 text-sm font-bold text-slate-300 transition flex items-center justify-center gap-2 hover:border-indigo-400"><i class="fa-solid fa-house-user" aria-hidden="true"></i> مالك الشقة</button>
+            <section class="auth-login-panel">
+                <div class="auth-form-heading">
+                    <p class="auth-kicker">أهلاً بيك في Manzil</p>
+                    <h2 id="pinLockTitle">دخول مدير المبنى</h2>
+                    <p id="pinLockHint">استخدم البريد الإلكتروني وكلمة مرور الحساب الإداري.</p>
                 </div>
-                <h2 id="pinLockTitle" class="text-2xl font-black mt-4">دخول مدير المبنى</h2>
-                <p id="pinLockHint" class="text-sm text-slate-400 mt-2">استخدم البريد الإلكتروني وكلمة مرور الحساب الإداري.</p>
+                <div class="auth-section-label">اختر نوع الحساب</div>
+                <div role="group" aria-label="نوع الحساب" class="auth-mode-grid">
+                    <button id="loginModeManager" type="button" aria-pressed="true" onclick="setLoginMode('manager')" class="auth-mode-button"><i class="fa-solid fa-building-user" aria-hidden="true"></i> مدير المبنى</button>
+                    <button id="loginModeOwner" type="button" aria-pressed="false" onclick="setLoginMode('owner')" class="auth-mode-button"><i class="fa-solid fa-house-user" aria-hidden="true"></i> مالك الشقة</button>
+                </div>
                 <p id="pinErrorMsg" class="text-sm text-rose-400 mt-3 hidden font-bold" role="alert"></p>
-                <form onsubmit="submitSupabaseLogin(event)" class="space-y-4 mt-6">
-                    <div class="space-y-2">
-                        <label id="authIdentifierLabel" for="authIdentifier" class="block text-xs font-bold">البريد الإلكتروني للمدير</label>
-                        <input type="text" id="authIdentifier" autocomplete="username" required placeholder="name@example.com" aria-label="البريد الإلكتروني للمدير" inputmode="email" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left focus:outline-none focus:border-indigo-500" dir="ltr">
+                <form onsubmit="submitSupabaseLogin(event)" class="auth-login-form">
+                    <div class="auth-field">
+                        <label id="authIdentifierLabel" for="authIdentifier">البريد الإلكتروني للمدير</label>
+                        <input type="text" id="authIdentifier" autocomplete="username" required placeholder="name@example.com" aria-label="البريد الإلكتروني للمدير" inputmode="email" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left" dir="ltr">
                     </div>
-                    <div class="space-y-2">
-                        <label id="authPasswordLabel" for="authPassword" class="block text-xs font-bold">كلمة مرور المدير</label>
-                        <input type="password" id="authPassword" autocomplete="current-password" required placeholder="أدخل كلمة مرور المدير" aria-label="كلمة مرور المدير" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left focus:outline-none focus:border-indigo-500" dir="ltr">
+                    <div class="auth-field">
+                        <label id="authPasswordLabel" for="authPassword">كلمة مرور المدير</label>
+                        <input type="password" id="authPassword" autocomplete="current-password" required placeholder="أدخل كلمة مرور المدير" aria-label="كلمة مرور المدير" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left" dir="ltr">
                     </div>
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-2xl shadow-lg transition">تسجيل الدخول</button>
+                    <button type="submit" class="auth-submit">تسجيل الدخول</button>
                 </form>
-                <button id="managerRecoveryBtn" type="button" onclick="requestManagerPasswordReset()" class="text-xs text-indigo-300 hover:text-indigo-200 hover:underline mt-3 hidden">نسيت كلمة مرور المدير؟ أرسل رابط استعادة إلى البريد</button>
+                <button id="managerRecoveryBtn" type="button" onclick="requestManagerPasswordReset()" class="auth-link-button mt-3 hidden">نسيت كلمة مرور المدير؟ أرسل رابط استعادة إلى البريد</button>
                 <details id="ownerLoginHelp" class="auth-owner-help hidden mt-5 p-4 rounded-2xl border" aria-labelledby="ownerPinHelpTitle">
                     <summary id="ownerPinHelpTitle" class="cursor-pointer list-none text-sm font-black"><i class="fa-solid fa-key ml-1 text-amber-300" aria-hidden="true"></i> مالك الشقة ولا تملك PIN؟ <i class="fa-solid fa-chevron-down mr-1 text-[10px] text-slate-400" aria-hidden="true"></i></summary>
-                    <p class="text-xs text-slate-300 leading-6 mt-3">حساب المالك لا يُنشأ من شاشة الدخول؛ يجب أن يرتبط بالشقة الصحيحة. اطلب من مدير المبنى تسجيل رقم جوالك في بيانات الشقة ثم اختيار «حفظ الشقة وإنشاء / إعادة ضبط PIN المالك».</p>
-                    <p class="text-xs text-slate-400 leading-6 mt-2">الرمز المؤقت 8 أرقام. بعد أول دخول، اختر PIN دائمًا من 6 أرقام. إذا لم يصلك الرمز، تواصل مع مدير المبنى.</p>
-                    <label for="ownerApartmentRequestNumber" class="block text-xs font-bold text-slate-300 mt-3">رقم الشقة (لرسالة واتساب فقط)</label>
-                    <input type="text" id="ownerApartmentRequestNumber" maxlength="30" autocomplete="off" placeholder="اكتب رقم شقتك" aria-label="رقم الشقة لرسالة واتساب فقط" class="w-full app-input border rounded-xl px-3 py-2.5 mt-2 text-sm focus:outline-none focus:border-emerald-500" dir="auto">
-                    <button type="button" onclick="requestOwnerPinOnWhatsApp()" class="mt-3 w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 px-4 py-3 rounded-xl text-xs font-bold transition"><i class="fa-brands fa-whatsapp ml-1" aria-hidden="true"></i> اطلب الرقم السري عبر واتساب</button>
-                    <p class="text-[10px] text-slate-500 leading-5 mt-2">يفتح الزر رسالة جاهزة إلى الإدارة فقط؛ لا يتم إرسال PIN تلقائيًا ولا يُنصح بمشاركته في مجموعة.</p>
+                    <p class="text-xs leading-6 mt-3">حساب المالك لا يُنشأ من شاشة الدخول؛ يجب أن يرتبط بالشقة الصحيحة. اطلب من مدير المبنى تسجيل رقم جوالك في بيانات الشقة ثم اختيار «حفظ الشقة وإنشاء / إعادة ضبط PIN المالك».</p>
+                    <p class="text-xs leading-6 mt-2">الرمز المؤقت 8 أرقام. بعد أول دخول، اختر PIN دائمًا من 6 أرقام. إذا لم يصلك الرمز، تواصل مع مدير المبنى.</p>
+                    <label for="ownerApartmentRequestNumber" class="block text-xs font-bold mt-3">رقم الشقة (لرسالة واتساب فقط)</label>
+                    <input type="text" id="ownerApartmentRequestNumber" maxlength="30" autocomplete="off" placeholder="اكتب رقم شقتك" aria-label="رقم الشقة لرسالة واتساب فقط" class="w-full app-input border rounded-xl px-3 py-2.5 mt-2 text-sm" dir="auto">
+                    <button type="button" onclick="requestOwnerPinOnWhatsApp()" class="auth-whatsapp-button mt-3"><i class="fa-brands fa-whatsapp ml-1" aria-hidden="true"></i> اطلب الرقم السري عبر واتساب</button>
+                    <p class="auth-help-note mt-2">يفتح الزر رسالة جاهزة إلى الإدارة فقط؛ لا يتم إرسال PIN تلقائيًا ولا يُنصح بمشاركته في مجموعة.</p>
                     <p id="pinRequestNotice" class="hidden text-xs text-emerald-300 leading-6 mt-2" role="status" aria-live="polite">تم تجهيز طلبك في واتساب. اضغط «إرسال» لإبلاغ مدير المبنى، وسيُراجع طلبك ويرسل لك الرقم السري في أقرب وقت.</p>
                 </details>
-                <p class="text-[10px] text-slate-500 leading-5 mt-4">تُعرض بيانات المبنى بعد التحقق من الحساب، وتُحدد الصلاحيات بحسب دور المستخدم.</p>
+                <p class="auth-security-note">تُعرض بيانات المبنى بعد التحقق من الحساب، وتُحدد الصلاحيات بحسب دور المستخدم.</p>
             </section>
         </div>
     </div>
@@ -132,11 +142,7 @@
     <header class="app-card sticky top-0 z-30 border-b no-print">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center max-w-4xl">
             <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-400 p-0.5 shadow-lg shadow-indigo-500/20 flex items-center justify-center">
-                    <div class="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-indigo-400">
-                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 12h3v8h14v-8h3L12 2zm0 3.8l5 5V18h-3v-5H10v5H7v-7.2l5-5z"/></svg>
-                    </div>
-                </div>
+                <div class="header-brand-mark" aria-hidden="true"><img src="icons/manzil-logo.png" alt="" width="44" height="44" decoding="async"></div>
                 <div>
                     <h1 id="headerBuildingTitle" class="text-base font-extrabold leading-tight tracking-wide">Manzil</h1>
                     <p class="text-[10px] text-slate-400 flex items-center gap-1">
@@ -693,6 +699,7 @@
                             <button type="button" class="theme-option" data-theme-option="emerald" onclick="setTheme('emerald')"><span class="theme-preview theme-preview-emerald"><i></i><i></i><i></i></span><span>زمردي</span><small>أخضر متوازن</small></button>
                             <button type="button" class="theme-option" data-theme-option="ocean" onclick="setTheme('ocean')"><span class="theme-preview theme-preview-ocean"><i></i><i></i><i></i></span><span>محيطي</span><small>أزرق هادئ</small></button>
                             <button type="button" class="theme-option" data-theme-option="sand" onclick="setTheme('sand')"><span class="theme-preview theme-preview-sand"><i></i><i></i><i></i></span><span>رملي</span><small>دافئ ومريح</small></button>
+                            <button type="button" class="theme-option" data-theme-option="turquoise" onclick="setTheme('turquoise')"><span class="theme-preview theme-preview-turquoise"><i></i><i></i><i></i></span><span>فيروزي</span><small>أزرق تركواز هادئ</small></button>
                         </div>
                         <div class="settings-inline-row"><span>الثيم الحالي</span><strong id="settingsCurrentTheme">ليلي</strong></div>
                         <p class="settings-help">يتم حفظ اختيار الثيم مع إعدادات العمارة ويُطبّق على الواجهة فورًا.</p>
