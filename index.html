@@ -724,6 +724,23 @@
                     </section>
                     <section id="settings-panel-appearance" class="settings-panel hidden space-y-4" role="tabpanel" aria-labelledby="settings-tab-appearance">
                         <div class="settings-section-heading"><span class="settings-section-icon"><i class="fa-solid fa-palette"></i></span><div><h4>المظهر والثيمات</h4><p>اختر ألوانًا مريحة وواضحة لكل أجزاء التطبيق</p></div></div>
+                        <section class="settings-brand-preview" aria-labelledby="settingsBrandPreviewTitle">
+                            <div class="settings-brand-preview-heading">
+                                <div><h5 id="settingsBrandPreviewTitle">هوية منزل</h5><p>الشعار وأيقونة التطبيق</p></div>
+                                <span class="settings-brand-approved">الهوية الأصلية</span>
+                            </div>
+                            <div class="settings-brand-preview-grid">
+                                <div class="settings-brand-preview-card settings-brand-preview-dark">
+                                    <img src="icons/manzil-brand.svg" alt="الشعار الكامل لمنزل MANZIL" loading="lazy">
+                                    <span>الشعار الرئيسي</span>
+                                </div>
+                                <div class="settings-brand-preview-card settings-brand-preview-light">
+                                    <img src="icons/manzil-logo.png" alt="أيقونة تطبيق منزل" loading="lazy">
+                                    <span>أيقونة التطبيق</span>
+                                </div>
+                            </div>
+                            <p class="settings-help">تظهر الهوية نفسها في شاشة الدخول ورأس التطبيق والتقارير. تغيير الثيم لا يغيّر الشعار أو الأيقونة.</p>
+                        </section>
                         <div class="theme-grid" role="group" aria-label="اختيار ثيم التطبيق">
                             <button type="button" class="theme-option" data-theme-option="dark" onclick="setTheme('dark')"><span class="theme-preview theme-preview-dark"><i></i><i></i><i></i></span><span>ليلي</span><small>داكن هادئ</small></button>
                             <button type="button" class="theme-option" data-theme-option="light" onclick="setTheme('light')"><span class="theme-preview theme-preview-light"><i></i><i></i><i></i></span><span>نهاري</span><small>فاتح ونظيف</small></button>
