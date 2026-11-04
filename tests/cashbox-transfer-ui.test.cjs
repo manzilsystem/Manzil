@@ -60,6 +60,7 @@ function createTransferHarness(options = {}) {
         refreshCashboxSummary: async () => {
             calls.refreshes += 1;
             if (options.refreshThrows) throw options.refreshThrows;
+            if (options.summaryAfterRefresh) sandbox.state.cashAccountBalances = options.summaryAfterRefresh;
             return options.refreshResult ?? true;
         },
         loadState: async () => {
@@ -186,7 +187,7 @@ test('cash transfer preserves the pending request and local balances after an un
     );
 });
 
-test('cash transfer applies the authoritative insufficient-balance response without reporting success', async () => {
+test('cash transfer refreshes every authoritative balance after insufficient funds', async () => {
     const harness = createTransferHarness({
         rpcResult: {
             data: {
@@ -196,17 +197,23 @@ test('cash transfer applies the authoritative insufficient-balance response with
                 version: 4
             },
             error: null
-        }
+        },
+        summaryAfterRefresh: { main: 7.25, development: 35, emergency: 12 }
     });
 
     await harness.api.submitCashTransfer(harness.event);
 
     assert.equal(harness.calls.rpc.length, 1);
-    assert.equal(harness.sandbox.state.cashAccountBalances.main, 7.25);
-    assert.equal(harness.sandbox.state.cashAccountBalances.development, 20);
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(harness.sandbox.state.cashAccountBalances)),
+        { main: 7.25, development: 35, emergency: 12 }
+    );
+    assert.equal(harness.sandbox.activeBuildingVersion, 4);
+    assert.equal(harness.calls.refreshes, 1);
     assert.equal(harness.calls.reset, undefined);
-    assert.equal(harness.calls.renders, 0);
+    assert.equal(harness.calls.renders, 1);
     assert.equal(harness.calls.toasts.at(-1).type, 'error');
+    assert.match(harness.calls.toasts.at(-1).message, /تحديث أرصدة الصناديق/);
     assert.notEqual(harness.calls.toasts.at(-1).type, 'success');
 });
 
