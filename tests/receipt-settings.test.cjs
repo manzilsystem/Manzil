@@ -42,7 +42,7 @@ test('receipt preview updates as plain text and never triggers a send', () => {
         state: { buildingName: 'عمارة الاختبار' },
         window: { open: () => { opened = true; } }
     };
-    const api = vm.runInNewContext(settingsSource + '\n({ renderReceiptPreview })', sandbox);
+    const api = vm.runInNewContext(settingsSource + '\nstate.buildingName = \'عمارة الاختبار\';\n({ renderReceiptPreview })', sandbox);
     api.renderReceiptPreview();
     assert.match(elements.settingsReceiptPreview.textContent, /عمارة الاختبار/);
     assert.match(elements.settingsReceiptPreview.textContent, /نشكركم على السداد/);
