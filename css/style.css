@@ -1189,3 +1189,157 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
   }
   #settingsModal .settings-card-copy b { font-size:.78rem; }
 }
+
+
+/* Manzil settings identity system: consistent brand, controls and touch targets. */
+#settingsModal .settings-topbar {
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:clamp(.75rem,2vw,1.5rem);
+  flex:0 0 auto;
+  min-height:5.5rem;
+  padding:.8rem clamp(1rem,2.5vw,2rem);
+  color:#f7fbfa;
+  background:linear-gradient(112deg,#0b2633 0%,#123b50 58%,#15545c 100%);
+  border-bottom:1px solid rgba(255,255,255,.1);
+}
+#settingsModal .settings-brand-lockup { display:flex;align-items:center;gap:.7rem;min-width:0; }
+#settingsModal .settings-brand-mark {
+  display:block;width:clamp(2.65rem,5vw,3.25rem);height:clamp(2.65rem,5vw,3.25rem);
+  flex:0 0 auto;object-fit:contain;background:transparent;
+}
+#settingsModal .settings-brand-copy { display:flex;flex-direction:column;line-height:1.05; }
+#settingsModal .settings-brand-copy strong { color:#fff;font-size:1.12rem;font-weight:900;letter-spacing:.01em; }
+#settingsModal .settings-brand-copy span { color:#75d6cf;font-size:.62rem;font-weight:800;letter-spacing:.2em;margin-top:.2rem; }
+#settingsModal .settings-brand-copy small { color:#b8cbd0;font-size:.58rem;margin-top:.28rem; }
+#settingsModal .settings-topbar-title { min-width:0;text-align:center; }
+#settingsModal .settings-topbar-title h3 { color:#fff;font-size:clamp(1rem,1.5vw,1.25rem);font-weight:900;line-height:1.35; }
+#settingsModal .settings-topbar-title p { color:#b9cdd0;font-size:.7rem;margin-top:.2rem; }
+#settingsModal .settings-close-button {
+  display:grid;place-items:center;width:2.65rem;height:2.65rem;flex:0 0 auto;
+  border:1px solid rgba(255,255,255,.2);border-radius:.9rem;
+  color:#e8f4f2;background:rgba(255,255,255,.07);transition:background .18s ease,border-color .18s ease;
+}
+#settingsModal .settings-close-button:hover { background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4); }
+#settingsModal .settings-overview-heading h4 { color:var(--text-primary,#fff);font-size:clamp(1.1rem,1.7vw,1.45rem);font-weight:900; }
+#settingsModal .settings-overview-heading p { color:var(--text-secondary,#94a3b8);font-size:.82rem;margin-top:.3rem; }
+#settingsModal .settings-card {
+  position:relative;isolation:isolate;
+  border:1px solid var(--border-color,rgba(148,163,184,.2));
+  border-radius:1.35rem;
+  background:linear-gradient(145deg,rgba(21,158,154,.075),rgba(255,255,255,.025));
+  box-shadow:0 8px 24px rgba(0,0,0,.08);
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease;
+}
+#settingsModal .settings-card:hover {
+  transform:translateY(-2px);border-color:rgba(21,158,154,.55);
+  box-shadow:0 14px 30px rgba(0,0,0,.14);
+  background:linear-gradient(145deg,rgba(21,158,154,.15),rgba(255,255,255,.04));
+}
+#settingsModal .settings-card:focus-visible,
+#settingsModal .settings-close-button:focus-visible,
+#settingsModal .settings-back-button:focus-visible,
+#settingsModal .settings-save-button:focus-visible {
+  outline:3px solid #36c6bd;outline-offset:3px;
+}
+#settingsModal .settings-card-icon {
+  color:#159e9a;
+  background:linear-gradient(145deg,rgba(21,158,154,.2),rgba(21,158,154,.08));
+  border:1px solid rgba(21,158,154,.2);
+  border-radius:1.2rem;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+}
+#settingsModal .settings-card-copy b { color:var(--text-primary,#f8fafc);font-weight:900; }
+#settingsModal .settings-section-toolbar {
+  display:flex;align-items:center;gap:1rem;
+  padding:0 0 1rem;margin-bottom:1.25rem;
+  border-bottom:1px solid var(--border-color,rgba(148,163,184,.2));
+}
+#settingsModal .settings-back-button {
+  display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+  min-height:2.75rem;padding:.65rem 1rem;border-radius:.9rem;
+  border:1px solid rgba(21,158,154,.3);color:#159e9a;font-weight:800;
+  background:rgba(21,158,154,.09);white-space:nowrap;
+}
+#settingsModal .settings-section-toolbar h4 { color:var(--text-primary,#fff);font-size:1.1rem;font-weight:900; }
+#settingsModal .settings-section-toolbar p { color:var(--text-secondary,#94a3b8);font-size:.72rem;margin-top:.2rem; }
+#settingsModal .settings-section-heading {
+  display:flex;align-items:center;gap:.9rem;
+  padding:1rem 1.1rem;border:1px solid rgba(21,158,154,.2);
+  border-radius:1.1rem;background:linear-gradient(110deg,rgba(21,158,154,.12),rgba(255,255,255,.025));
+}
+#settingsModal .settings-section-heading h4 { color:var(--text-primary,#fff);font-weight:900;font-size:1rem; }
+#settingsModal .settings-section-heading p { color:var(--text-secondary,#94a3b8);font-size:.72rem;margin-top:.25rem; }
+#settingsModal .settings-section-icon {
+  display:grid;place-items:center;width:3rem;height:3rem;flex:0 0 auto;
+  border-radius:1rem;color:#159e9a;background:rgba(21,158,154,.15);font-size:1.15rem;
+}
+#settingsModal .settings-field { display:flex;flex-direction:column;gap:.45rem;min-width:0; }
+#settingsModal .settings-field > span { color:var(--text-primary,#e2e8f0);font-size:.78rem;font-weight:800; }
+#settingsModal .settings-field input,
+#settingsModal .settings-field select,
+#settingsModal .settings-field textarea {
+  width:100%;min-height:2.85rem;border-radius:.85rem;
+  border-color:var(--border-color,rgba(148,163,184,.25));
+  transition:border-color .15s ease,box-shadow .15s ease;
+}
+#settingsModal .settings-field input:focus,
+#settingsModal .settings-field select:focus,
+#settingsModal .settings-field textarea:focus {
+  border-color:#159e9a;outline:none;box-shadow:0 0 0 3px rgba(21,158,154,.15);
+}
+#settingsModal .settings-info-card,
+#settingsModal .settings-payment-card,
+#settingsModal .settings-account-card {
+  border:1px solid var(--border-color,rgba(148,163,184,.2));
+  border-radius:1rem;padding:1rem;background:rgba(148,163,184,.055);
+}
+#settingsModal .settings-help { color:var(--text-secondary,#94a3b8);font-size:.72rem;line-height:1.8; }
+#settingsModal .settings-footer {
+  display:flex;align-items:center;justify-content:flex-end;gap:.75rem;
+  flex:0 0 auto;padding:1rem clamp(1rem,2.5vw,2rem);
+  border-top:1px solid var(--border-color,rgba(148,163,184,.2));
+  background:var(--surface-color,rgba(15,23,42,.94));
+}
+#settingsModal .settings-footer > button { min-height:2.9rem;padding:.7rem 1.25rem; }
+#settingsModal .settings-save-button {
+  color:#062d2c;background:linear-gradient(110deg,#159e9a,#55c9bd);
+  box-shadow:0 6px 18px rgba(21,158,154,.2);
+}
+#settingsModal .settings-footer-overview { justify-content:flex-end; }
+[data-theme="light"] #settingsModal .settings-card,
+[data-theme="light"] #settingsModal .settings-info-card,
+[data-theme="light"] #settingsModal .settings-payment-card,
+[data-theme="light"] #settingsModal .settings-account-card {
+  background:#fff;border-color:#dce7e8;box-shadow:0 5px 18px rgba(15,55,65,.05);
+}
+[data-theme="light"] #settingsModal .settings-card-copy b,
+[data-theme="light"] #settingsModal .settings-overview-heading h4,
+[data-theme="light"] #settingsModal .settings-section-heading h4,
+[data-theme="light"] #settingsModal .settings-section-toolbar h4,
+[data-theme="light"] #settingsModal .settings-field > span { color:#173b48; }
+[data-theme="light"] #settingsModal .settings-overview-heading p,
+[data-theme="light"] #settingsModal .settings-section-heading p,
+[data-theme="light"] #settingsModal .settings-section-toolbar p,
+[data-theme="light"] #settingsModal .settings-help { color:#647b83; }
+@media (max-width:560px) {
+  #settingsModal .settings-topbar { min-height:4.45rem;grid-template-columns:auto minmax(0,1fr) auto;gap:.45rem;padding:.55rem .7rem; }
+  #settingsModal .settings-brand-lockup { gap:.35rem; }
+  #settingsModal .settings-brand-mark { width:2.25rem;height:2.25rem; }
+  #settingsModal .settings-brand-copy strong { font-size:.9rem; }
+  #settingsModal .settings-brand-copy span { font-size:.52rem; }
+  #settingsModal .settings-brand-copy small { display:none; }
+  #settingsModal .settings-topbar-title { text-align:right; }
+  #settingsModal .settings-topbar-title h3 { font-size:.92rem; }
+  #settingsModal .settings-topbar-title p { font-size:.59rem; }
+  #settingsModal .settings-close-button { width:2.35rem;height:2.35rem; }
+  #settingsModal .settings-section-toolbar { align-items:flex-start;flex-direction:column;gap:.65rem; }
+  #settingsModal .settings-back-button { min-height:2.5rem; }
+  #settingsModal .settings-footer { padding:.65rem .8rem; }
+}
+@media (prefers-reduced-motion:reduce) {
+  #settingsModal .settings-card,
+  #settingsModal .settings-close-button { transition:none; }
+  #settingsModal .settings-card:hover { transform:none; }
+}
