@@ -43,8 +43,8 @@ test('settings use responsive cards and full-page section navigation', () => {
     assert.match(settings, /function switchSettingsTab\(tab\)/);
 });
  
-test('all five themes are selectable, persisted and restored after authentication', () => {
-    for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand']) {
+test('all six themes are selectable, persisted and restored after authentication', () => {
+    for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise']) {
         assert.match(html, new RegExp('data-theme-option="' + theme + '"'));
         assert.match(css, new RegExp('\\[data-theme="' + theme + '"\\]'));
         assert.ok(state.includes("'" + theme + "'"), 'state.js must support ' + theme);
@@ -58,7 +58,7 @@ test('settings redesign is included in the service worker cache version', () => 
     assert.match(html, /02:23 UTC/);
     assert.match(html, /04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة/);
     assert.doesNotMatch(html, /نسخة يومية الساعة 04:23 صباحًا بتوقيت مصر/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v69'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v70'/);
     assert.ok(css.includes('max-width:52rem'));
     assert.ok(css.includes('height:min(88dvh,760px)'));
     assert.ok(css.includes('height:94dvh'));
@@ -145,7 +145,7 @@ test('receipt and reminder templates synchronize through building settings', () 
     assert.ok(settings.includes('arrears_reminder_template: reminderTemplate || null'));
     assert.ok(settings.includes('localStorage.removeItem(getReceiptSettingsKey())'));
     assert.ok(settings.includes('localStorage.removeItem(getReminderTemplateKey())'));
-    assert.match(sw, /CACHE_NAME = 'manzil-v69'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v70'/);
 });
 
 
