@@ -1426,3 +1426,7 @@ body.owner-mode #accessSwitchBtn { display: block !important; }
 #settingsModal .settings-character-count { align-self:flex-end; color:var(--text-muted); font-size:.68rem; font-weight:700; direction:rtl; }
 #settingsModal .settings-character-count.is-near-limit { color:#d97706; }
 #settingsModal .settings-character-count.is-at-limit { color:#dc2626; }
+
+
+#settingsBackupSummary { border-color:rgba(16,185,129,.28); }
+#settingsBackupSummary button { min-height:36px; padding:.35rem .65rem; border-radius:.6rem; }
