@@ -132,11 +132,17 @@ let state = {
     cashAccountBalances: { main: 0, development: 0, emergency: 0 }, cashTransfers: [], lastUpdated:0
 };
 const DEFAULT_RECEIPT_THANK_YOU = 'شكراً لالتزامكم، ونسعد دائماً بخدمتكم.';
+// NULL means the building has not migrated its legacy device-only value yet.
+state.receiptThankYouTemplate = state.receiptThankYouTemplate ?? null;
+state.reminderMessageTemplate = state.reminderMessageTemplate ?? null;
 function getReceiptSettingsKey() {
     const buildingId = typeof activeBuildingId === 'undefined' ? 'default' : (activeBuildingId || 'default');
     return `manzil:${buildingId}:receipt-thank-you`;
 }
 function getReceiptThankYouMessage() {
+    if (state.receiptThankYouTemplate !== null && state.receiptThankYouTemplate !== undefined) {
+        return String(state.receiptThankYouTemplate).trim() || DEFAULT_RECEIPT_THANK_YOU;
+    }
     try { return String(localStorage.getItem(getReceiptSettingsKey()) || '').trim() || DEFAULT_RECEIPT_THANK_YOU; }
     catch { return DEFAULT_RECEIPT_THANK_YOU; }
 }
@@ -147,6 +153,9 @@ function getReminderTemplateKey() {
     return 'manzil:' + buildingId + ':arrears-reminder-template';
 }
 function getReminderMessageTemplate() {
+    if (state.reminderMessageTemplate !== null && state.reminderMessageTemplate !== undefined) {
+        return String(state.reminderMessageTemplate).trim().slice(0, 500) || DEFAULT_REMINDER_TEMPLATE;
+    }
     try {
         const value = String(localStorage.getItem(getReminderTemplateKey()) || '').trim();
         return value.slice(0, 500) || DEFAULT_REMINDER_TEMPLATE;
