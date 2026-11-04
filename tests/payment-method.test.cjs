@@ -10,7 +10,7 @@ const supabase = read('js/supabase.js');
 const render = read('js/render.js');
 const notices = read('js/notices.js');
 const backup = read('js/backup.js');
-const migration = read('supabase/migrations/20261104010000_income_payment_method.sql');
+const migration = read('supabase/migrations/20261104002557_income_payment_method.sql');
 
 test('new collections and edited collections require one of the supported payment methods', () => {
     for (const [id, value] of [
