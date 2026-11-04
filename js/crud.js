@@ -911,7 +911,7 @@ async function handleIncomeEditSubmit(event) {
     const relatedPayments = distributionMatch
         ? state.income.filter(item => item.residentId === payment.residentId
             && item.date === payment.date
-            && String(item.notes || '').includes(distributionMatch[2]))
+            && String(item.notes || '').startsWith('دفعة موزعة ' + distributionMatch[2] + ' ('))
         : [payment];
     payment.amount = amountCents / 100;
     payment.month = month;
