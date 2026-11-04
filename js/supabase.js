@@ -1034,7 +1034,7 @@ async function openAuthenticatedApp() {
     }
     setAuthModal(false);
     document.body.classList.remove('owner-mode');
-    const theme = ['dark', 'light', 'emerald', 'ocean', 'sand'].includes(state.currentTheme) ? state.currentTheme : 'dark';
+    const theme = ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise'].includes(state.currentTheme) ? state.currentTheme : 'dark';
     const themeColors = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16', turquoise:'#071f27' };
     document.body.setAttribute('data-theme', theme);
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[theme]);
