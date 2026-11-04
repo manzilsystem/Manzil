@@ -14,7 +14,7 @@ const settings = read('js/settings.js');
 const sw = read('sw.js');
 
 test('settings are divided into accessible functional tabs', () => {
-    for (const tab of ['building', 'appearance', 'backup', 'receipts', 'account']) {
+    for (const tab of ['building', 'appearance', 'backup', 'receipts', 'reminders', 'account']) {
         assert.match(html, new RegExp('id="settings-tab-' + tab + '"'));
         assert.match(html, new RegExp('id="settings-panel-' + tab + '"'));
         assert.match(html, new RegExp('aria-controls="settings-panel-' + tab + '"'));
@@ -38,7 +38,7 @@ test('settings redesign is included in the service worker cache version', () => 
     assert.match(html, /02:23 UTC/);
     assert.match(html, /04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة/);
     assert.doesNotMatch(html, /نسخة يومية الساعة 04:23 صباحًا بتوقيت مصر/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v57'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v58'/);
     assert.ok(css.includes('max-width:52rem'));
     assert.ok(css.includes('height:min(88dvh,760px)'));
     assert.ok(css.includes('height:94dvh'));
