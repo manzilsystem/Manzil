@@ -193,7 +193,7 @@ test('enabled payment details are rendered in the read-only owner portal', () =>
 
 test('collection submission rejects payment methods that the manager has disabled', () => {
     assert.match(renderSource, /populatePaymentMethodOptions\(paymentMethodSelect/);
-    assert.match(crudSource, /!isIncomePaymentMethodEnabled\(paymentMethod\)/);
+    assert.match(crudSource, /typeof isIncomePaymentMethodEnabled === 'function'[\s\S]*?isIncomePaymentMethodEnabled\(paymentMethod\)/);
     assert.match(crudSource, /paymentMethodSelect, payment\.paymentMethod \|\| '', true/);
 });
 
