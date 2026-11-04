@@ -16,13 +16,14 @@ function loadReceiptApp(phone = '01012345678') {
             buildingName: 'عمارة النور',
             residents: [{ id: 'resident-1', name: 'أحمد', apartmentNumber: '3', phone }],
             income: [
-                { id: 'payment-1', residentId: 'resident-1', amount: 100, month: 'أكتوبر 2026', date: '2026-11-04T00:00:00.000Z', notes: 'دفعة موزعة ABC123 (1/2)' },
-                { id: 'payment-2', residentId: 'resident-1', amount: 50, month: 'نوفمبر 2026', date: '2026-11-04T00:00:00.000Z', notes: 'دفعة موزعة ABC123 (2/2)' }
+                { id: 'payment-1', residentId: 'resident-1', amount: 100, month: 'أكتوبر 2026', date: '2026-11-04T00:00:00.000Z', paymentMethod: 'instapay', notes: 'دفعة موزعة ABC123 (1/2)' },
+                { id: 'payment-2', residentId: 'resident-1', amount: 50, month: 'نوفمبر 2026', date: '2026-11-04T00:00:00.000Z', paymentMethod: 'instapay', notes: 'دفعة موزعة ABC123 (2/2)' }
             ]
         },
         requireManager: () => true,
         toast: (message, type) => messages.push({ message, type }),
         fmtNum: value => String(value),
+        getIncomePaymentMethodLabel: method => method === 'instapay' ? 'InstaPay' : 'غير محدد',
         formatDate: () => '04/11/2026',
         window: { open: url => opened.push(url) },
         encodeURIComponent
@@ -44,6 +45,7 @@ test('WhatsApp receipt combines all months from one distributed payment', () => 
     assert.match(message, /أحمد/);
     assert.match(message, /الشقة: 3/);
     assert.match(message, /المبلغ المستلم: 150 ج.م/);
+    assert.match(message, /طريقة الدفع: InstaPay/);
     assert.ok(message.indexOf('أكتوبر 2026: 100 ج.م') < message.indexOf('نوفمبر 2026: 50 ج.م'));
     assert.match(message, /رقم الإيصال: ABC123/);
     assert.match(message, /شكراً لالتزامكم/);
