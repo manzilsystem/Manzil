@@ -34,6 +34,7 @@ function loadHandler(residents) {
         toast: (...args) => messages.push(args),
         fmtNum: value => String(value),
         INCOME_PAYMENT_METHOD_LABELS: { cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي' },
+        getIncomePaymentMethodLabel: method => ({ cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي' })[method] || 'غير محدد',
         calculateIncomeAllocationPreview: (residentId, amount, month) => ({
             invalid: false,
             allocations: [{ month, amount: Number(amount) }],
