@@ -33,5 +33,5 @@ test('expense records can be edited and the previous account amount is credited 
     assert.match(crud, /state\.expenses = state\.expenses\.map\(item => item\.id === editingExpenseId/);
     assert.match(crud, /getCashAccountBalance\(cashAccountCode\) \+\s*\(existingExpense && \(existingExpense\.cashAccountCode \|\| 'main'\) === cashAccountCode/);
     assert.match(html, /onclick="openExpenseModal\(\)"/);
-    assert.match(html, /تعديل المصروف/);
+    assert.match(crud, /تعديل المصروف/);
 });
