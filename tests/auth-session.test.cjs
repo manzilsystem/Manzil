@@ -56,7 +56,14 @@ function makeHarness() {
     };
     const sandbox = {
         window: { supabase: { createClient: () => client } },
-        sessionStorage: new Map(),
+        sessionStorage: (() => {
+            const values = new Map();
+            return {
+                getItem(key) { return values.has(key) ? values.get(key) : null; },
+                setItem(key, value) { values.set(key, String(value)); },
+                removeItem(key) { values.delete(key); },
+            };
+        })(),
         document: {
             body: { classList: makeClassList(), attributes: {}, setAttribute(name, value) { this.attributes[name] = value; } },
             getElementById: id => elements.get(id) || null,
@@ -96,11 +103,7 @@ function makeHarness() {
 
     return {
         app, sandbox, client, button, elements, queuedTimers,
-        sessionStorage: {
-            getItem(key) { return sandbox.sessionStorage.has(key) ? sandbox.sessionStorage.get(key) : null; },
-            setItem(key, value) { sandbox.sessionStorage.set(key, String(value)); },
-            removeItem(key) { sandbox.sessionStorage.delete(key); },
-        },
+        sessionStorage: sandbox.sessionStorage,
         makeSubmitEvent() {
             return {
                 preventDefault() {},
