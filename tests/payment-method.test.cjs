@@ -39,6 +39,12 @@ test('payment method is loaded, persisted, displayed and included in WhatsApp re
     assert.match(notices, /طريقة الدفع: \$\{getIncomePaymentMethodLabel\(payment\.paymentMethod\)\}/);
 });
 
+test('quick pay requires the same explicit payment method as manual collections', () => {
+    assert.match(crud, /paymentMethodSelect\.value = ''/);
+    assert.match(crud, /openModal\('incomeModal'\)/);
+    assert.match(html, /id="incomePaymentMethod"[\s\S]*required/);
+});
+
 test('database migration keeps legacy payment methods unknown and validates new values', () => {
     assert.match(migration, /ADD COLUMN payment_method text/);
     assert.match(migration, /payment_method IS NULL OR payment_method IN \('cash', 'wallet', 'instapay', 'bank_transfer'\)/);
