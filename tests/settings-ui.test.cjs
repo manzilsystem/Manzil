@@ -34,19 +34,17 @@ test('settings use responsive cards and full-page section navigation', () => {
     assert.match(html, /id="settingsSectionToolbar"/);
     assert.ok(html.includes('onclick="showSettingsOverview()"'));
     assert.match(html, /id="settingsSaveButton"/);
-    assert.ok(css.includes('.settings-card-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr));'));
-    assert.ok(css.includes('.settings-card-grid { grid-template-columns:1fr;'));
-    assert.ok(css.includes('.settings-card { display:flex; align-items:center;'));
-    assert.ok(css.includes('.settings-overview { flex:1; min-height:0; overflow-y:auto;'));
-    assert.ok(html.includes('max-w-6xl h-[92dvh]'), 'settings dialog keeps its accessible content wrapper');
-    assert.ok(css.includes('grid-template-columns:repeat(4,minmax(0,1fr))'), 'wide screens must show four spacious cards per row');
-    assert.ok(css.includes('@media (max-width:900px)') && css.includes('grid-template-columns:repeat(2,minmax(0,1fr))'), 'tablet layout must show two cards per row');
-    assert.ok(css.includes('@media (max-width:560px)') && css.includes('grid-template-columns:repeat(2,minmax(0,1fr))'), 'mobile layout must show icon cards in two columns');
-    assert.ok(css.includes('grid-auto-rows:minmax(112px,auto)'), 'mobile base rows retain natural sizing');
-    assert.ok(css.includes('grid-template-rows:repeat(4,minmax(0,1fr))'), 'mobile must fit all eight cards in four visible rows');
-    assert.ok(css.includes('flex:1 1 0;') && css.includes('overflow:hidden;'), 'mobile overview must fit the viewport without scrolling');
-    assert.ok(css.includes('#settingsModal .settings-content { width:100%; flex:1; min-height:0; max-height:none;'), 'selected sections must use the full settings content area');
-    assert.ok(css.includes('.settings-content { padding:1.1rem; min-height:310px; max-height:min(62vh,600px); overflow-y:auto;'));
+    assert.ok(html.includes('settings-shell'), 'settings workspace keeps its dedicated shell');
+    assert.ok(html.includes('id="settingsLayout"'), 'settings workspace exposes its view state');
+    assert.ok(html.includes('class="settings-sidebar"'), 'settings navigation is grouped in a sidebar');
+    assert.match(css, /\.settings-card-grid \{\s*display: grid;\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+    assert.match(css, /\.settings-card \{\s*[\s\S]*?display: flex;\s*align-items: center;/);
+    assert.match(css, /\.settings-overview \{\s*flex: 1 1 auto;\s*min-height: 0;[\s\S]*?overflow-y: auto;/);
+    assert.match(css, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/, 'wide screens show four spacious cards per row');
+    assert.match(css, /@media \(max-width: 900px\)[\s\S]*?\.settings-sidebar \{\s*display: none;/, 'tablet and mobile collapse the sidebar');
+    assert.match(css, /@media \(max-width: 560px\)[\s\S]*?\.settings-card-grid \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/, 'mobile keeps icon cards in two columns');
+    assert.match(css, /\.settings-layout \{\s*[\s\S]*?grid-template-columns: minmax\(15rem, 18\.5rem\) minmax\(0, 1fr\);/, 'desktop uses a navigation column beside the content');
+    assert.match(css, /\.settings-content \{[\s\S]*?overflow-y: auto;/, 'selected sections scroll independently');
     assert.match(settings, /function showSettingsOverview\(\)/);
     assert.match(settings, /function switchSettingsTab\(tab\)/);
 });
@@ -66,11 +64,10 @@ test('settings redesign is included in the service worker cache version', () => 
     assert.match(html, /02:23 UTC/);
     assert.match(html, /04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة/);
     assert.doesNotMatch(html, /نسخة يومية الساعة 04:23 صباحًا بتوقيت مصر/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v90'/);
-    assert.ok(css.includes('width:100vw;') && css.includes('max-width:none;'), 'settings must occupy the full viewport width');
-    assert.ok(css.includes('height:100dvh;') && css.includes('max-height:100dvh;'), 'settings must occupy the full viewport height');
-    assert.ok(css.includes('grid-template-rows:repeat(2,minmax(150px,1fr))'), 'desktop cards must expand into two full-height rows');
-    assert.ok(css.includes('grid-template-columns:repeat(4,minmax(0,1fr))'), 'desktop uses a full-width four-column grid');
+    assert.match(sw, /CACHE_NAME = 'manzil-v91'/);
+    assert.match(css, /#settingsModal > \.settings-shell \{\s*width: min\(100%, 86rem\);[\s\S]*?height: min\(94dvh, 61rem\);/, 'settings workspace uses a generous centered shell');
+    assert.match(css, /@media \(max-width: 560px\)[\s\S]*?width: 100vw;[\s\S]*?height: 100dvh;/, 'mobile settings fill the viewport');
+    assert.match(css, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/, 'desktop uses a four-column card grid');
     assert.match(sw, /\.\/css\/style\.css/);
     assert.match(sw, /\.\/js\/state\.js/);
     assert.match(sw, /\.\/js\/settings\.js/);
@@ -153,7 +150,7 @@ test('receipt and reminder templates synchronize through building settings', () 
     assert.ok(settings.includes('arrears_reminder_template: reminderTemplate || null'));
     assert.ok(settings.includes('localStorage.removeItem(getReceiptSettingsKey())'));
     assert.ok(settings.includes('localStorage.removeItem(getReminderTemplateKey())'));
-    assert.match(sw, /CACHE_NAME = 'manzil-v90'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v91'/);
 });
 
 
@@ -166,21 +163,22 @@ test('settings cards open a full-page section and return to the overview', () =>
 });
 
 
-test('settings cards use larger full-screen tiles and sections remain full-screen scrollable pages', () => {
-    assert.ok(css.includes('width:100vw;') && css.includes('height:100dvh;'), 'settings dialog fills the viewport');
-    assert.ok(css.includes('grid-template-rows:repeat(2,minmax(0,1fr))'), 'desktop cards fill two rows');
-    assert.ok(css.includes('grid-template-rows:repeat(4,minmax(0,1fr))'), 'mobile cards fill four rows');
-    assert.ok(css.includes('width:clamp(3.8rem,6vw,5.2rem)'), 'desktop setting icons are enlarged');
-    assert.ok(css.includes('width:clamp(3.15rem,14vw,4.25rem)'), 'mobile setting icons are enlarged');
-    assert.ok(css.includes('overscroll-behavior:contain'), 'section content scrolls independently');
-    assert.ok(css.includes('flex-direction:column;') && css.includes('.settings-section-toolbar { flex:0 0 auto; }'));
+test('settings cards use a sidebar workspace with spacious scrollable section pages', () => {
+    assert.ok(css.includes('grid-template-columns: minmax(15rem, 18.5rem) minmax(0, 1fr);'), 'desktop reserves a navigation column');
+    assert.ok(css.includes('grid-template-columns: repeat(4, minmax(0, 1fr));'), 'desktop cards fill a four-column grid');
+    assert.ok(css.includes('min-height: 8.6rem;'), 'desktop cards are large enough to read comfortably');
+    assert.ok(css.includes('width: 3rem;') && css.includes('font-size: 1.2rem;'), 'desktop setting icons are enlarged');
+    assert.ok(css.includes('width: 2.5rem;') && css.includes('font-size: 1rem;'), 'mobile setting icons stay clear');
+    assert.ok(css.includes('overscroll-behavior: contain'), 'section content scrolls independently');
+    assert.ok(css.includes('position: sticky;'), 'section toolbar and previews stay in view');
+    assert.ok(css.includes('backdrop-filter: blur(14px);'), 'the section toolbar floats above the content');
     assert.ok(settings.includes("document.getElementById('settingsOverview')?.classList.add('hidden')"));
     assert.ok(settings.includes("document.getElementById('settingsSectionToolbar')?.classList.remove('hidden')"));
 });
 
 
 test('service worker refreshes cached assets from network and checks for updates automatically', () => {
-    assert.ok(sw.includes("CACHE_NAME = 'manzil-v90'"));
+    assert.ok(sw.includes("CACHE_NAME = 'manzil-v91'"));
     assert.ok(sw.includes("fetch(new Request(request, { cache: 'no-cache' }))"));
     assert.ok(sw.includes('.catch(() => caches.match(request))'));
     assert.ok(html.includes("updateViaCache: 'none'"), 'service worker registration must start in the document head before app initialization');
@@ -212,7 +210,7 @@ test('appearance settings preview the original Manzil wordmark and app icon', ()
     assert.match(appearance, /الشعار الرئيسي/);
     assert.match(appearance, /أيقونة التطبيق/);
     assert.ok(css.includes('#settingsModal .settings-brand-preview-grid'));
-    assert.match(sw, /CACHE_NAME = 'manzil-v90'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v91'/);
 });
 
 
@@ -230,7 +228,7 @@ test('payment method detail fields collapse when disabled and retain their value
     assert.match(settings, /details\.classList\.toggle\('hidden', !enabled\)/);
     assert.match(settings, /field\.disabled = !enabled/);
     assert.match(settings, /syncPaymentMethodDetails\(\);/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v90'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v91'/);
 });
 
 
@@ -243,7 +241,7 @@ test('subscription settings show a live summary of due date, grace period, and a
     assert.match(settings, /فترة السماح/);
     assert.match(settings, /توزيع الدفعات/);
     assert.ok(css.includes('#settingsModal .settings-subscription-summary'));
-    assert.match(sw, /CACHE_NAME = 'manzil-v90'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v91'/);
 });
 
 
@@ -256,7 +254,7 @@ test('building settings preview apartment totals and first/last floor numbering 
     assert.match(settings, /الدور الأول/);
     assert.match(settings, /الدور الأخير/);
     assert.ok(css.includes('#settingsModal .settings-building-layout-summary'));
-    assert.match(sw, /CACHE_NAME = 'manzil-v90'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v91'/);
 });
 
 
@@ -272,6 +270,6 @@ test('building settings are grouped into clear responsive sections without chang
     assert.equal((building.match(/id="settingsApartmentsPerFloor"/g) || []).length, 1);
     assert.ok(css.includes('#settingsModal .settings-subsection'));
     assert.ok(css.includes('#settingsModal .settings-fields-grid'));
-    assert.ok(css.includes('@media (max-width:640px)'));
-    assert.match(sw, /CACHE_NAME = 'manzil-v90'/);
+    assert.match(css, /@media \(max-width: 640px\)[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/, 'grouped fields stack on narrow screens');
+    assert.match(sw, /CACHE_NAME = 'manzil-v91'/);
 });

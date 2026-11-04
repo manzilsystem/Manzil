@@ -36,6 +36,49 @@ function renderReminderPreview() {
     });
 }
 const SETTINGS_THEME_NAMES = { dark:'ليلي', light:'نهاري', emerald:'زمردي', ocean:'محيطي', sand:'رملي', turquoise:'فيروزي' };
+const SETTINGS_SECTION_ICONS = {
+    building:'fa-building', payments:'fa-wallet', subscriptions:'fa-calendar-check',
+    appearance:'fa-palette', backup:'fa-cloud-arrow-up', receipts:'fa-receipt',
+    reminders:'fa-bell', account:'fa-user-shield'
+};
+
+function syncSettingsWorkspace(tab) {
+    const activeTab = SETTINGS_TABS.includes(tab) ? tab : null;
+    document.querySelectorAll('[data-settings-nav]').forEach(item => {
+        const active = item.dataset.settingsNav === (activeTab || 'overview');
+        item.classList.toggle('is-active', active);
+        if (active) item.setAttribute('aria-current', 'page');
+        else item.removeAttribute('aria-current');
+    });
+    document.querySelectorAll('.settings-card[aria-controls]').forEach(card => {
+        card.classList.toggle('is-active', card.getAttribute('aria-controls') === 'settings-panel-' + activeTab);
+    });
+    const layout = document.getElementById('settingsLayout');
+    if (layout) layout.dataset.settingsView = activeTab ? 'section' : 'overview';
+    const toolbarIcon = document.getElementById('settingsCurrentSectionIcon');
+    if (toolbarIcon) toolbarIcon.innerHTML = `<i class="fa-solid ${SETTINGS_SECTION_ICONS[activeTab] || 'fa-sliders'}" aria-hidden="true"></i>`;
+}
+
+function renderSettingsWorkspaceSummary() {
+    const residents = Array.isArray(state.residents) ? state.residents : [];
+    const floors = Math.max(0, Number(state.floorCount) || 0);
+    const perFloor = Math.max(0, Number(state.apartmentsPerFloor) || 0);
+    const apartments = residents.length || floors * perFloor;
+    const methods = Object.values(normalizePaymentSettings(state.paymentSettings))
+        .filter(method => method.enabled).length;
+    const setText = (id, value) => {
+        const node = document.getElementById(id);
+        if (node) node.textContent = value;
+    };
+    setText('settingsSidebarBuilding', String(state.buildingName || '').trim() || 'عمارة بدون اسم');
+    setText('settingsSidebarManager', String(state.managerName || '').trim() || 'لم يُحدَّد المدير');
+    setText('settingsSidebarFloors', floors || '—');
+    setText('settingsSidebarApartments', apartments || '—');
+    setText('settingsOverviewFloors', floors || '—');
+    setText('settingsOverviewApartments', apartments || '—');
+    setText('settingsOverviewMethods', methods || '—');
+}
+
 function showSettingsOverview() {
     document.getElementById('settingsOverview')?.classList.remove('hidden');
     document.getElementById('settingsSectionToolbar')?.classList.add('hidden');
@@ -43,6 +86,7 @@ function showSettingsOverview() {
     document.getElementById('settingsSaveButton')?.classList.add('hidden');
     document.querySelector('.settings-footer')?.classList.add('settings-footer-overview');
     document.getElementById('settingsModalTitle').innerHTML = '<i class="fa-solid fa-gear ml-2"></i> الإعدادات';
+    syncSettingsWorkspace(null);
 }
 function switchSettingsTab(tab) {
     if (!SETTINGS_TABS.includes(tab)) return;
@@ -59,28 +103,30 @@ function switchSettingsTab(tab) {
     const title = titles[tab];
     const titleNode = document.getElementById('settingsCurrentSectionTitle');
     if (titleNode) titleNode.textContent = title;
-    const modalTitle = document.getElementById('settingsModalTitle');
-    if (modalTitle) modalTitle.textContent = title;
     SETTINGS_TABS.forEach(name => {
         document.getElementById('settings-panel-' + name)?.classList.toggle('hidden', name !== tab);
     });
+    syncSettingsWorkspace(tab);
     document.getElementById('settings-content')?.scrollTo?.({ top: 0, behavior: 'auto' });
-    document.getElementById('settingsSectionToolbar')?.scrollIntoView?.({ block: 'start' });
 }
 
 function handleSettingsTabKeydown(event) {
     if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
-    const currentIndex = SETTINGS_TABS.findIndex(name => document.activeElement?.id === 'settings-tab-' + name);
+    const items = [...document.querySelectorAll('[data-settings-nav]')];
+    const current = document.activeElement?.closest?.('[data-settings-nav]');
+    const currentIndex = items.indexOf(current);
     if (currentIndex < 0) return;
     event.preventDefault();
     const nextIndex = event.key === 'Home'
         ? 0
         : event.key === 'End'
-            ? SETTINGS_TABS.length - 1
-            : (currentIndex + (event.key === 'ArrowLeft' ? 1 : -1) + SETTINGS_TABS.length) % SETTINGS_TABS.length;
-    const nextTab = SETTINGS_TABS[nextIndex];
-    switchSettingsTab(nextTab);
-    document.getElementById('settings-tab-' + nextTab)?.focus();
+            ? items.length - 1
+            : (currentIndex + (event.key === 'ArrowLeft' ? 1 : -1) + items.length) % items.length;
+    const next = items[nextIndex];
+    const nextTab = next.dataset.settingsNav;
+    if (nextTab === 'overview') showSettingsOverview();
+    else switchSettingsTab(nextTab);
+    next.focus();
 }
 function updateThemeSelection() {
     const theme = SETTINGS_THEME_NAMES[state.currentTheme] ? state.currentTheme : 'dark';
@@ -314,6 +360,7 @@ function openSettingsModal() {
         reminderInput.oninput = renderReminderPreview;
     }
     renderReminderPreview();
+    renderSettingsWorkspaceSummary();
     showSettingsOverview();
     updateThemeSelection();
     openModal('settingsModal');

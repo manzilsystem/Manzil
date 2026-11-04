@@ -215,7 +215,9 @@ test('database stores settings with validated constraints and preserves them in 
 });
 
 test('settings card layout and payment details adapt to mobile screens', () => {
-    assert.ok(css.includes('.settings-card-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr));'));
-    assert.ok(html.includes('class=\"settings-payment-card space-y-3\"'));
-    assert.ok(css.includes('.settings-card-grid { grid-template-columns:1fr;'));
+    assert.match(css, /\.settings-card-grid \{\s*display: grid;\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+    assert.ok(html.includes('class="settings-payment-card"'));
+    assert.ok(html.includes('class="settings-payment-card settings-payment-card-wide"'));
+    assert.match(css, /@media \(max-width: 640px\)[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/, 'payment details stack on phones');
+    assert.match(css, /\.settings-card-grid \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/, 'mobile keeps a compact two-column grid');
 });
