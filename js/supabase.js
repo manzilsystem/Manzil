@@ -103,9 +103,7 @@ function setLoginMode(mode) {
         const button = document.getElementById(id);
         if (!button) continue;
         button.setAttribute('aria-pressed', String(selected));
-        button.className = selected
-            ? 'w-full border rounded-xl px-3 py-3 text-sm font-bold transition flex items-center justify-center gap-2 bg-indigo-600 text-white border-indigo-400 shadow-lg'
-            : 'w-full app-input border border-slate-700 rounded-xl px-3 py-3 text-sm font-bold text-slate-300 transition flex items-center justify-center gap-2 hover:border-indigo-400';
+        button.className = 'auth-mode-button';
     }
 
     if (changed) {
@@ -533,7 +531,7 @@ async function loadState() {
         managerPhone: building.manager_phone || '',
         defaultSubscription: Number(building.default_subscription) || 0,
         startingBalance: Number(building.starting_balance) || 0,
-        currentTheme: ['dark', 'light', 'emerald', 'ocean', 'sand'].includes(building.current_theme) ? building.current_theme : 'dark',
+        currentTheme: ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise'].includes(building.current_theme) ? building.current_theme : 'dark',
         paymentSettings: getBuildingPaymentSettings(building.payment_settings),
         subscriptionDueDay: Math.min(28, Math.max(1, Number(building.subscription_due_day) || 1)),
         subscriptionGraceDays: Math.min(31, Math.max(0, Number(building.subscription_grace_days) || 0)),
@@ -1037,7 +1035,7 @@ async function openAuthenticatedApp() {
     setAuthModal(false);
     document.body.classList.remove('owner-mode');
     const theme = ['dark', 'light', 'emerald', 'ocean', 'sand'].includes(state.currentTheme) ? state.currentTheme : 'dark';
-    const themeColors = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16' };
+    const themeColors = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16', turquoise:'#071f27' };
     document.body.setAttribute('data-theme', theme);
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[theme]);
     renderAll();
