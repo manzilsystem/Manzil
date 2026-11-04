@@ -44,7 +44,7 @@ Deno.serve(async (req: Request) => {
     if (be || re || bre) return json(500, { error: 'query_failed' })
     return json(200, { backups: backups || [], restoreRequests: restoreRequests || [], backupRequests: backupRequests || [], canDownload: globalAccess })
   }
-  if (body.action === 'download_backup') {
+  if (body.action === 'download_backup' || body.action === 'prepare_download') {
     const globalAccess = await hasGlobalRestoreAccess()
     if (globalAccess === null) return json(500, { error: 'download_authorization_check_failed' })
     if (!globalAccess) return json(403, { error: 'global_manager_only' })
@@ -110,6 +110,31 @@ Deno.serve(async (req: Request) => {
       const checksumMatch = checksumText.trim().match(/^([a-f0-9]{64})\s+\*?(.+)$/i)
       if (!checksumMatch || checksumMatch[1].toLowerCase() !== String(backup.sha256).toLowerCase() || checksumMatch[2].split('/').pop() !== filename) {
         return json(409, { error: 'backup_checksum_mismatch' })
+      }
+
+      // Prefer a short-lived GitHub asset redirect so the browser streams the
+      // dump directly to its download manager instead of buffering it in Edge.
+      if (body.action === 'prepare_download') {
+        if (!dumpAsset.digest) return json(409, { error: 'provider_digest_unavailable' })
+        const redirectResponse = await fetch(dumpAsset.url, {
+          headers: { ...githubHeaders, 'Accept': 'application/octet-stream' },
+          redirect: 'manual'
+        })
+        const location = redirectResponse.headers.get('location')
+        if (![301, 302, 303, 307, 308].includes(redirectResponse.status) || !location) {
+          return json(409, { error: 'direct_download_unavailable' })
+        }
+        const directUrl = new URL(location)
+        if (directUrl.protocol !== 'https:' || directUrl.username || directUrl.password
+          || !['release-assets.githubusercontent.com', 'objects.githubusercontent.com'].includes(directUrl.hostname)) {
+          return json(502, { error: 'backup_direct_url_invalid' })
+        }
+        return json(200, {
+          downloadUrl: directUrl.toString(),
+          filename,
+          sha256: String(backup.sha256).toLowerCase(),
+          sizeBytes: Number(backup.size_bytes)
+        })
       }
 
       const assetResponse = await fetch(dumpAsset.url, {
