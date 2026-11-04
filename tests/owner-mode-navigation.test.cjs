@@ -10,6 +10,7 @@ test('owner portal does not expose manager-only bottom navigation', () => {
     assert.match(html, /<nav aria-label="التنقل الرئيسي"/);
     assert.match(html, /<section id="ownerPortal"/);
     assert.match(css, /body\.owner-mode nav\[aria-label="التنقل الرئيسي"\]\s*\{\s*display:\s*none\s*!important;\s*\}/);
+    assert.match(css, /body\.owner-mode #accessSwitchBtn \{ display: block !important; \}/, 'owner account switch control must remain available');
 });
 
 test('owner mode removes unused mobile bottom padding after hiding manager navigation', () => {
