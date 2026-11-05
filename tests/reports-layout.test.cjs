@@ -67,7 +67,34 @@ test('reports surface shares card headers, stat tiles, and tabular numerals', ()
     assert.equal((reports.match(/class="report-stat"/g) || []).length, 10);
     assert.equal((render.match(/class="report-stat"/g) || []).length, 4);
     assert.match(reports, /text-emerald-400 report-amount/);
-    assert.match(render, /text-rose-400 shrink-0 report-amount/);
+    assert.match(render, /text-rose-400 report-amount/);
+});
+
+test('reports section has a header, quick jump chips, and unified actions', () => {
+    assert.match(reportTab, /class="report-section-head no-print"/);
+    assert.match(reportTab, /class="report-jump-chips"/);
+    assert.match(reports, /function jumpToReportPanel\(panelId\)/);
+    assert.equal((reportTab.match(/class="report-card-icon /g) || []).length, 5);
+    assert.equal((reportTab.match(/class="report-card-badge /g) || []).length, 3);
+    assert.match(reportTab, /class="report-actions report-actions-4/);
+    assert.match(reportTab, /class="report-toolbar no-print"/);
+    assert.match(reportTab, /class="report-preview text-xs/);
+    assert.match(css, /\.report-action:disabled \{/);
+    assert.match(css, /\.report-action-primary \{/);
+    assert.match(css, /\.report-preview-empty \{/);
+    assert.match(css, /\.report-list-row \{/);
+    assert.match(css, /\.arrears-card, \.report-surface \{/);
+    assert.match(css, /\.audit-log-row::before/);
+});
+
+test('generated previews use the shared report blocks and theme-safe styles', () => {
+    assert.doesNotMatch(reports, /border-slate-800 py-1/);
+    assert.match(reports, /class="report-preview-header"/);
+    assert.match(reports, /class="report-stats report-stats-4"/);
+    assert.match(reports, /class="report-block-title"/);
+    assert.match(render, /class="arrears-card" open/);
+    assert.match(render, /class="arrears-badge"/);
+    assert.match(render, /class="audit-log-meta"/);
 });
 
 test('landlord report compares expected dues with collections', () => {

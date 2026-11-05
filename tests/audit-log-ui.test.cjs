@@ -22,5 +22,5 @@ test('audit history keeps the existing bounded retention behavior', () => {
 });
 
 test('service worker cache is refreshed for the updated audit section', () => {
-    assert.match(sw, /CACHE_NAME = 'manzil-v100'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v101'/);
 });
