@@ -156,12 +156,16 @@ jobs:
           docker run --rm -v "$RUNNER_TEMP:/backup" postgres:17-alpine \
             pg_restore --list "/backup/$filename" >/dev/null
 
+          # Supabase-owned schemas and event triggers cannot be dropped or created by
+          # the postgres role; restore only the application schemas.
           docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \
             -v "$RUNNER_TEMP:/backup" postgres:17-alpine \
             pg_restore --host="$PGHOST" --port="$PGPORT" \
               --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" \
               --no-password --clean --if-exists --single-transaction --exit-on-error \
-              --no-owner --no-acl "/backup/$filename"
+              --no-owner --no-acl \
+              --schema=public --schema=private --schema=supabase_migrations \
+              "/backup/$filename"
 
           trap - ERR
           psql_db -c "UPDATE public.restore_requests SET status='succeeded',finished_at=now(),result_message='تمت استعادة النسخة بنجاح. قد تحتاج إلى تسجيل الدخول مرة أخرى.' WHERE id='$request_id' AND status='running'"

@@ -20,9 +20,9 @@ BEGIN
     WHERE table_schema = 'public'
       AND table_name IN (
         'buildings', 'residents', 'income', 'expenses', 'notices',
-        'audit_logs', 'owner_notifications', 'client_errors',
-        'building_mutations', 'subscription_rates',
-        'payment_method_settings', 'cash_account_balances', 'cash_transfers'
+        'audit_logs', 'client_errors', 'building_mutations',
+        'cash_transfers', 'notifications', 'profiles',
+        'resident_subscription_rates', 'resident_subscription_rate_changes'
       );
     
     IF table_count < 13 THEN
@@ -37,11 +37,16 @@ DO $$
 DECLARE
     rls_disabled text[];
 BEGIN
-    SELECT array_agg(table_name) INTO rls_disabled
+    SELECT array_agg(tablename) INTO rls_disabled
     FROM pg_tables
     WHERE schemaname = 'public'
-      AND table_name IN ('buildings', 'residents', 'income', 'expenses', 'notices', 'owner_notifications')
-      AND relrowsecurity = false;
+      AND tablename IN (
+        'buildings', 'residents', 'income', 'expenses', 'notices',
+        'audit_logs', 'client_errors', 'building_mutations',
+        'cash_transfers', 'notifications', 'profiles',
+        'resident_subscription_rates', 'resident_subscription_rate_changes'
+      )
+      AND rowsecurity = false;
     
     IF array_length(rls_disabled, 1) > 0 THEN
         RAISE EXCEPTION 'RLS disabled on tables: %', rls_disabled;
@@ -67,55 +72,55 @@ BEGIN
     RAISE NOTICE 'Atomic persistence table verified';
 END $$;
 
--- Verify subscription_rates table exists (effective-dated rates)
+-- Verify resident_subscription_rates table exists (effective-dated rates)
 DO $$
 DECLARE
     rates_exist boolean;
 BEGIN
     SELECT EXISTS (
         SELECT 1 FROM information_schema.tables
-        WHERE table_schema = 'public' AND table_name = 'subscription_rates'
+        WHERE table_schema = 'public' AND table_name = 'resident_subscription_rates'
     ) INTO rates_exist;
-    
+
     IF NOT rates_exist THEN
-        RAISE EXCEPTION 'subscription_rates table missing (effective-dated rates)';
+        RAISE EXCEPTION 'resident_subscription_rates table missing (effective-dated rates)';
     END IF;
-    
+
     RAISE NOTICE 'Subscription rates table verified';
 END $$;
 
--- Verify cashbox tables exist
+-- Verify cash transfer ledger table exists
 DO $$
 DECLARE
-    cashbox_tables integer;
+    cash_transfers_exist boolean;
 BEGIN
-    SELECT count(*) INTO cashbox_tables
-    FROM information_schema.tables
-    WHERE table_schema = 'public'
-      AND table_name IN ('cash_account_balances', 'cash_transfers');
-    
-    IF cashbox_tables < 2 THEN
-        RAISE EXCEPTION 'Cashbox tables missing: found %, expected 2', cashbox_tables;
+    SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'cash_transfers'
+    ) INTO cash_transfers_exist;
+
+    IF NOT cash_transfers_exist THEN
+        RAISE EXCEPTION 'cash_transfers table missing';
     END IF;
-    
-    RAISE NOTICE 'Cashbox tables verified';
+
+    RAISE NOTICE 'Cash transfer ledger verified';
 END $$;
 
--- Verify owner_notifications table exists
+-- Verify notifications table exists
 DO $$
 DECLARE
     notifications_exist boolean;
 BEGIN
     SELECT EXISTS (
         SELECT 1 FROM information_schema.tables
-        WHERE table_schema = 'public' AND table_name = 'owner_notifications'
+        WHERE table_schema = 'public' AND table_name = 'notifications'
     ) INTO notifications_exist;
-    
+
     IF NOT notifications_exist THEN
-        RAISE EXCEPTION 'owner_notifications table missing';
+        RAISE EXCEPTION 'notifications table missing';
     END IF;
-    
-    RAISE NOTICE 'Owner notifications table verified';
+
+    RAISE NOTICE 'Notifications table verified';
 END $$;
 
 -- Verify at least one building exists (for seeded data)
@@ -135,29 +140,30 @@ END $$;
 -- Verify foreign key indexes exist (from migrations)
 DO $$
 DECLARE
+    expected_indexes text[] := ARRAY[
+        'building_mutations_request_unique',
+        'resident_subscription_rates_lookup_idx',
+        'resident_subscription_rates_resident_id_effective_month_key',
+        'resident_subscription_rate_changes_lookup_idx',
+        'cash_transfers_building_transferred_idx',
+        'cash_transfers_request_unique',
+        'notifications_dedupe_scope_unique',
+        'notifications_target_user_id_idx'
+    ];
     missing_indexes text[];
 BEGIN
-    -- Check for known FK indexes
-    SELECT array_agg(indexname) INTO missing_indexes
-    FROM pg_indexes
-    WHERE schemaname = 'public'
-      AND indexname IN (
-        'idx_building_mutations_building_id',
-        'idx_building_mutations_request_id',
-        'idx_subscription_rates_building_id',
-        'idx_subscription_rates_effective_month',
-        'idx_cash_transfers_from_cashbox',
-        'idx_cash_transfers_to_cashbox',
-        'idx_cash_transfers_created_at',
-        'idx_cash_transfer_request_idempotency_payload'
-      )
-      AND indexname IS NULL;
-    
+    SELECT array_agg(expected.name) INTO missing_indexes
+    FROM unnest(expected_indexes) AS expected(name)
+    WHERE NOT EXISTS (
+        SELECT 1 FROM pg_indexes
+        WHERE schemaname = 'public' AND indexname = expected.name
+    );
+
     IF array_length(missing_indexes, 1) > 0 THEN
-        RAISE NOTICE 'WARNING: Missing expected FK indexes: %', missing_indexes;
-    ELSE
-        RAISE NOTICE 'Foreign key indexes verified';
+        RAISE EXCEPTION 'Missing expected indexes: %', missing_indexes;
     END IF;
+
+    RAISE NOTICE 'Foreign key indexes verified';
 END $$;
 
 -- Verify no orphaned data (foreign key violations)
@@ -183,6 +189,26 @@ BEGIN
     
     IF orphan_count > 0 THEN
         RAISE EXCEPTION 'Orphaned expense records found: %', orphan_count;
+    END IF;
+
+    -- Check residents without building
+    SELECT count(*) INTO orphan_count
+    FROM public.residents r
+    LEFT JOIN public.buildings b ON b.id = r.building_id
+    WHERE b.id IS NULL;
+
+    IF orphan_count > 0 THEN
+        RAISE EXCEPTION 'Orphaned resident records found: %', orphan_count;
+    END IF;
+
+    -- Check cash transfers without building
+    SELECT count(*) INTO orphan_count
+    FROM public.cash_transfers c
+    LEFT JOIN public.buildings b ON b.id = c.building_id
+    WHERE b.id IS NULL;
+
+    IF orphan_count > 0 THEN
+        RAISE EXCEPTION 'Orphaned cash transfer records found: %', orphan_count;
     END IF;
     
     RAISE NOTICE 'Referential integrity verified';
