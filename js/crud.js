@@ -306,8 +306,6 @@ function openResidentStatementFromProfile(residentId) {
     const select = document.getElementById('statementResidentSelect');
     if (select) select.value = residentId;
     generateResidentStatement();
-    const card = document.getElementById('residentStatementCard');
-    if (card) requestAnimationFrame(() => card.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 
 function saveResidentAndProvisionOwner() {

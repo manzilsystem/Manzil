@@ -475,7 +475,7 @@
         </section>
 
         <!-- REPORTS -->
-        <section id="tab-reports" class="hidden space-y-4">
+        <section id="tab-reports" class="hidden space-y-4" data-report-view="grid">
             <div class="report-section-head no-print">
                 <div>
                     <p class="report-section-eyebrow"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> مركز التقارير</p>
@@ -483,33 +483,42 @@
                     <p class="report-section-subtitle">تقرير شهري للملاك، كشف حساب لكل ساكن، تقرير وحدة، إقفال شهري، ومتأخرات — وكل الأرقام تُحسب من نفس بيانات التطبيق.</p>
                 </div>
                 <nav class="report-nav no-print" aria-label="أنواع التقارير" onkeydown="handleReportTabKeydown(event)">
-                    <button type="button" class="report-nav-item is-active" data-report-nav="landlord" aria-controls="landlordReportPrint" aria-current="page" onclick="switchReportTab('landlord')">
-                        <span class="report-nav-icon report-tone-indigo" aria-hidden="true"><i class="fa-solid fa-file-invoice-dollar"></i></span>
+                    <button type="button" class="report-nav-item report-tone-indigo" data-report-nav="landlord" aria-controls="landlordReportPrint" onclick="switchReportTab('landlord')">
+                        <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-file-invoice-dollar"></i></span>
                         <span class="report-nav-copy"><b>تقرير الملاك</b><small>شهري · PDF وCSV</small></span>
                     </button>
-                    <button type="button" class="report-nav-item" data-report-nav="period" aria-controls="periodReportCard" onclick="switchReportTab('period')">
-                        <span class="report-nav-icon report-tone-sky" aria-hidden="true"><i class="fa-solid fa-chart-column"></i></span>
+                    <button type="button" class="report-nav-item report-tone-sky" data-report-nav="period" aria-controls="periodReportCard" onclick="switchReportTab('period')">
+                        <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-chart-column"></i></span>
                         <span class="report-nav-copy"><b>تقرير الفترة</b><small>عدة أشهر · PDF وCSV</small></span>
                     </button>
-                    <button type="button" class="report-nav-item" data-report-nav="statement" aria-controls="residentStatementCard" onclick="switchReportTab('statement')">
-                        <span class="report-nav-icon report-tone-emerald" aria-hidden="true"><i class="fa-solid fa-user-check"></i></span>
+                    <button type="button" class="report-nav-item report-tone-emerald" data-report-nav="statement" aria-controls="residentStatementCard" onclick="switchReportTab('statement')">
+                        <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-user-check"></i></span>
                         <span class="report-nav-copy"><b>كشف حساب ساكن</b><small>لكل ساكن · كشف ووحدة</small></span>
                     </button>
-                    <button type="button" class="report-nav-item" data-report-nav="monthlyClose" aria-controls="monthlyClosePanel" onclick="switchReportTab('monthlyClose')">
-                        <span class="report-nav-icon report-tone-emerald" aria-hidden="true"><i class="fa-solid fa-scale-balanced"></i></span>
+                    <button type="button" class="report-nav-item report-tone-emerald" data-report-nav="monthlyClose" aria-controls="monthlyClosePanel" onclick="switchReportTab('monthlyClose')">
+                        <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-scale-balanced"></i></span>
                         <span class="report-nav-copy"><b>الإقفال الشهري</b><small>مراجعة ومطابقة نقدية</small></span>
                     </button>
-                    <button type="button" class="report-nav-item" data-report-nav="arrears" aria-controls="arrearsPanel" onclick="switchReportTab('arrears')">
-                        <span class="report-nav-icon report-tone-amber" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                    <button type="button" class="report-nav-item report-tone-amber" data-report-nav="arrears" aria-controls="arrearsPanel" onclick="switchReportTab('arrears')">
+                        <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span>
                         <span class="report-nav-copy"><b>المتأخرات</b><small>تصفية وتصدير CSV</small></span>
                     </button>
-                    <button type="button" class="report-nav-item" data-report-nav="audit" aria-controls="auditLogPanel" onclick="switchReportTab('audit')">
-                        <span class="report-nav-icon report-tone-sky" aria-hidden="true"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                    <button type="button" class="report-nav-item report-tone-sky" data-report-nav="audit" aria-controls="auditLogPanel" onclick="switchReportTab('audit')">
+                        <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-clock-rotate-left"></i></span>
                         <span class="report-nav-copy"><b>سجل العمليات</b><small>مراجعة ما تغيّر</small></span>
                     </button>
                 </nav>
             </div>
-            <div id="landlordReportPrint" class="report-panel app-card p-5 rounded-3xl border space-y-4">
+            <div id="reportViewBar" class="report-view-bar no-print" role="group" aria-labelledby="reportViewTitle">
+                <button type="button" class="report-view-back" onclick="showReportGrid()" aria-label="رجوع إلى شبكة التقارير"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+                <span class="report-view-icon" id="reportViewIcon" aria-hidden="true"></span>
+                <span class="report-view-copy">
+                    <b id="reportViewTitle">تقرير</b>
+                    <small id="reportViewMeta"></small>
+                </span>
+                <span class="report-view-hint" aria-hidden="true">Esc للرجوع</span>
+            </div>
+            <div id="landlordReportPrint" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
                 <div class="no-print report-card-head">
                     <div class="report-card-heading">
                         <span class="report-card-icon report-tone-indigo" aria-hidden="true"><i class="fa-solid fa-file-invoice-dollar"></i></span>

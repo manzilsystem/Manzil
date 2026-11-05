@@ -2,6 +2,8 @@ function switchTab(tab) {
     if (!requireManager()) return;
     const tabs = ['dashboard','income','expenses','cashbox','residents','reports'];
     if (!tabs.includes(tab)) return;
+    // read before the loop unhides the tab: printResidentStatement() re-enters switchTab('reports') while its own panel is open
+    const reportsOpen = !document.getElementById('tab-reports')?.classList.contains('hidden');
     tabs.forEach(t => {
         document.getElementById('tab-' + t)?.classList.toggle('hidden', t !== tab);
         const button = document.getElementById('btn-' + t);
@@ -11,6 +13,7 @@ function switchTab(tab) {
             else button.removeAttribute('aria-current');
         }
     });
+    if (tab === 'reports' && !reportsOpen && typeof resetReportView === 'function') resetReportView();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -151,6 +154,7 @@ async function initApp() {
     await loadSubscriptionRateAdapter();
     await initSupabaseApp();
     document.addEventListener('keydown', handleModalKeyboard);
+    document.addEventListener('keydown', handleReportViewKeydown);
 }
 
 document.addEventListener('DOMContentLoaded', initApp);
