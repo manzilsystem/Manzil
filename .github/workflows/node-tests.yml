@@ -86,3 +86,5 @@ jobs:
           for fn in supabase/functions/*/index.ts; do
             deno check "$fn"
           done
+      - name: Run Edge Function tests
+        run: deno test --allow-env --allow-net supabase/functions/*/index_test.ts
