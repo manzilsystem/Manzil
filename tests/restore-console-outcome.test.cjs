@@ -24,8 +24,11 @@ test('restore interface warns that production database data will be replaced', (
 });
 
 test('restore confirmation identifies the exact selected backup before submission', () => {
-    assert.match(backupUi, /const selectedLabel = select\.options\[select\.selectedIndex\]/);
-    assert.match(backupUi, /النسخة المحددة:/);
-    assert.match(backupUi, /معرّف النسخة:/);
-    assert.match(backupUi, /if \(!confirm\(warning\)\) return/);
+    assert.match(backupUi, /const backup = backups\.find\(item => item\.tag === tag\)/);
+    assert.match(backupUi, /pendingRestoreTag = tag/);
+    assert.match(backupUi, /openModal\('restoreConfirmModal'\)/);
+    assert.match(html, /id="restoreConfirmSummary"/);
+    assert.match(html, /id="restoreConfirmInput"/);
+    assert.match(backupUi, /confirmation !== 'RESTORE'/);
+    assert.match(backupUi, /<span>النسخة<\/span>/);
 });

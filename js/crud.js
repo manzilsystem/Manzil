@@ -717,6 +717,21 @@ function previewIncomeAllocation() {
     const residentId = /** @type {any} */ (document.getElementById('incomeResident'))?.value || '';
     const amount = Number(/** @type {any} */ (document.getElementById('incomeAmount'))?.value);
     const month = /** @type {any} */ (document.getElementById('incomeMonth'))?.value || '';
+    const outstandingHint = document.getElementById('incomeOutstandingHint');
+    if (outstandingHint) {
+        const resident = state.residents.find(item => item.id === residentId);
+        if (!resident || !month) {
+            outstandingHint.textContent = '';
+        } else {
+            const outstanding = getMonthOutstanding(resident, month);
+            const debt = calculateCumulativeDebt(resident.id);
+            const parts = [outstanding > 0
+                ? `المتبقي على ${resident.name} في ${month}: ${fmtNum(outstanding)} ج.م`
+                : `لا يوجد متبقٍ على ${resident.name} في ${month}`];
+            if (debt.count > 0) parts.push(`متأخرات سابقة: ${fmtNum(debt.totalDebt)} ج.م (${debt.count} شهر)`);
+            outstandingHint.textContent = parts.join(' · ');
+        }
+    }
     const ready = Boolean(residentId && month && Number.isFinite(amount) && amount > 0);
     if (!ready) {
         preview.classList.add('hidden');
@@ -987,6 +1002,9 @@ function previewExpense() {
     const editingExpense = editingExpenseId ? state.expenses.find(item => item.id === editingExpenseId) : null;
     const accountBalance = getCashAccountBalance(cashAccountCode) +
         (editingExpense && (editingExpense.cashAccountCode || 'main') === cashAccountCode ? (Number(editingExpense.amount) || 0) : 0);
+    const monthFundExpenses = state.expenses
+        .filter(item => item.month === month && (item.cashAccountCode || 'main') === cashAccountCode && item.id !== editingExpenseId)
+        .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
     const balanceAfter = accountBalance - (Number.isFinite(amount) ? amount : 0);
     const fundInsufficient = cashAccountCode !== 'main' && Number.isFinite(amount) && amount > accountBalance + 0.000001;
     if (!title || !Number.isFinite(amount) || amount <= 0 || !month) {
@@ -999,6 +1017,7 @@ function previewExpense() {
     details.innerHTML = [
         `<div class="flex justify-between gap-3"><span>الفئة</span><strong>${esc(category || 'أخرى')}</strong></div>`,
         `<div class="flex justify-between gap-3"><span>الصندوق</span><strong>${esc(getCashAccountLabel(cashAccountCode))}</strong></div>`,
+        `<div class="flex justify-between gap-3"><span>مصروفات الشهر من الصندوق</span><strong>${fmtNum(monthFundExpenses)} ج.م</strong></div>`,
         `<div class="flex justify-between gap-3"><span>الرصيد قبل الصرف</span><strong>${fmtNum(accountBalance)} ج.م</strong></div>`,
         `<div class="flex justify-between gap-3"><span>الرصيد بعد الصرف</span><strong class="${fundInsufficient ? 'text-rose-400' : ''}">${fmtNum(balanceAfter)} ج.م</strong></div>`,
         `<div class="flex justify-between gap-3"><span>الشهر</span><strong>${esc(month)}</strong></div>`,

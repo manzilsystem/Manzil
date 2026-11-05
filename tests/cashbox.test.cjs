@@ -70,6 +70,25 @@ test('cashbox screens and summaries are manager-only in the application', () => 
     assert.match(html, /src="js\/cashbox\.js"/);
 });
 
+test('cashbox exposes per-fund monthly income, expenses and net transfers', () => {
+    assert.match(html, /id="cashboxSummaryMonth"/);
+    assert.match(html, /id="cashboxSummaryRows"/);
+    assert.match(render, /'cashboxSummaryMonth'/);
+    assert.match(cashbox, /function calculateFundMovement\(month\)/);
+    assert.match(cashbox, /function renderCashboxMovementSummary\(\)/);
+    assert.match(cashbox, /transfersIn/);
+    assert.match(cashbox, /transfersOut/);
+    assert.match(cashbox, /cashMonthLabelFromIso\(item\.transferredAt\) !== month/);
+    assert.match(cashbox, /renderCashboxMovementSummary\(\);/);
+});
+
+test('income form shows the selected resident outstanding balance before saving', () => {
+    assert.match(html, /id="incomeOutstandingHint"/);
+    assert.match(crud, /getMonthOutstanding\(resident, month\)/);
+    assert.match(crud, /calculateCumulativeDebt\(resident\.id\)/);
+    assert.match(crud, /متأخرات سابقة/);
+});
+
 test('hasValidCashboxBalances validates all required cash accounts', () => {
     const sandbox = { module: { exports: {} } };
     const src = cashbox.replace('// @ts-check', '');

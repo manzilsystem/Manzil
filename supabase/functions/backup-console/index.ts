@@ -36,13 +36,13 @@ Deno.serve(async (req: Request) => {
   if (body.action === 'list') {
     const [globalAccess, { data: backups, error: be }, { data: restoreRequests, error: re }, { data: backupRequests, error: bre }] = await Promise.all([
       hasGlobalRestoreAccess(),
-      admin.from('backup_catalog').select('tag,file_name,size_bytes,created_at').order('created_at', { ascending: false }).limit(30),
+      admin.from('backup_catalog').select('tag,file_name,size_bytes,sha256,created_at').order('created_at', { ascending: false }).limit(30),
       admin.from('restore_requests').select('id,backup_tag,status,result_message,created_at,started_at,finished_at').eq('building_id', membership.building_id).order('created_at', { ascending: false }).limit(8),
       admin.from('backup_requests').select('id,status,result_message,created_at,dispatched_at,finished_at').eq('building_id', membership.building_id).order('created_at', { ascending: false }).limit(5)
     ])
     if (globalAccess === null) return json(500, { error: 'download_authorization_check_failed' })
     if (be || re || bre) return json(500, { error: 'query_failed' })
-    return json(200, { backups: backups || [], restoreRequests: restoreRequests || [], backupRequests: backupRequests || [], canDownload: globalAccess })
+    return json(200, { backups: backups || [], restoreRequests: restoreRequests || [], backupRequests: backupRequests || [], canDownload: globalAccess, canRestore: globalAccess })
   }
   if (body.action === 'download_backup' || body.action === 'prepare_download') {
     const globalAccess = await hasGlobalRestoreAccess()
