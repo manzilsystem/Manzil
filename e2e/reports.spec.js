@@ -47,6 +47,21 @@ test('report output stays disabled until a fresh preview exists', async ({ page 
     await expect(exportButton).toBeDisabled();
 });
 
+test('quick jump chips open collapsed report panels', async ({ page }) => {
+    await openReports(page);
+    const arrears = page.locator('#arrearsPanel');
+    const monthlyClose = page.locator('#monthlyClosePanel');
+
+    await expect(arrears).toHaveJSProperty('open', false);
+    await expect(monthlyClose).toHaveJSProperty('open', false);
+
+    await page.locator('.report-jump-chip', { hasText: 'المتأخرات' }).click();
+    await expect(arrears).toHaveJSProperty('open', true);
+
+    await page.locator('.report-jump-chip', { hasText: 'الإقفال الشهري' }).click();
+    await expect(monthlyClose).toHaveJSProperty('open', true);
+});
+
 test('editing report data invalidates the generated preview', async ({ page }) => {
     await openReports(page);
     await previewMonth(page, 'يناير 2024');

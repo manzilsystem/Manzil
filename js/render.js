@@ -18,20 +18,19 @@ function renderAuditLog(options) {
         )
     );
     if (!filtered.length) {
-        container.innerHTML = `<p class="text-slate-500 text-xs text-center py-3">${query ? 'لا توجد نتائج مطابقة.' : 'لا يوجد سجل بعد.'}</p>`;
+        container.innerHTML = `<p class="report-preview-empty">${query ? 'لا توجد نتائج مطابقة.' : 'لا يوجد سجل بعد.'}</p>`;
         return;
     }
     const visible = filtered.slice(0, auditLogVisibleCount);
     const remaining = filtered.length - visible.length;
     container.innerHTML = visible.map(entry => `
         <article class="audit-log-row">
-            <div class="min-w-0"><p class="text-xs"><strong class="text-slate-300">${esc(entry.action)}</strong>${entry.details ? ': ' + esc(entry.details) : ''}</p>
-                <p class="text-[10px] text-slate-500 mt-1">بواسطة: ${esc(entry.actorName || 'المدير')} · ${formatDate(entry.date)}</p>
-            </div>
+            <p class="text-xs"><strong class="audit-log-action">${esc(entry.action)}</strong>${entry.details ? ': ' + esc(entry.details) : ''}</p>
+            <p class="audit-log-meta">بواسطة: ${esc(entry.actorName || 'المدير')} · ${formatDate(entry.date)}</p>
         </article>`).join('') + `
-        <div class="pt-2 text-center text-[10px] text-slate-500">
+        <div class="audit-log-footer">
             عرض ${fmtNum(visible.length)} من ${fmtNum(filtered.length)}
-            ${remaining > 0 ? `<button type="button" onclick="renderAuditLog({ more: true })" class="text-indigo-300 hover:text-indigo-200 underline mr-2">عرض المزيد (${fmtNum(remaining)})</button>` : ''}
+            ${remaining > 0 ? `<button type="button" onclick="renderAuditLog({ more: true })" class="audit-log-more">عرض المزيد (${fmtNum(remaining)})</button>` : ''}
         </div>`;
 }
 
@@ -90,22 +89,29 @@ function renderArrearsReport() {
             : (filters.residentId || filters.fromMonth || filters.toMonth || filters.status !== 'all')
                 ? 'لا توجد متأخرات تطابق الفلاتر المحددة.'
                 : 'لا توجد متأخرات مستحقة حالياً.';
-        c.innerHTML = `<p class="text-slate-400 text-xs text-center py-4">${message}</p>`;
+        c.innerHTML = `<p class="report-preview-empty">${message}</p>`;
         return;
     }
     const cards = report.residents.map(item => `
-        <details class="app-input border rounded-2xl p-3" open>
-            <summary class="cursor-pointer list-none flex items-center justify-between gap-3">
-                <span class="min-w-0"><strong class="text-xs">شقة ${esc(item.resident.apartmentNumber)}</strong><span class="text-[11px] text-slate-400 mr-2">${esc(item.resident.name)}</span></span>
-                <span class="text-xs font-black text-rose-400 shrink-0 report-amount">${fmtNum(item.totalDebt)} ج.م</span>
+        <details class="arrears-card" open>
+            <summary class="arrears-summary">
+                <span class="arrears-identity">
+                    <span class="arrears-badge" aria-hidden="true">${esc(item.resident.apartmentNumber)}</span>
+                    <span class="min-w-0">
+                        <span class="arrears-name">${esc(item.resident.name)}</span>
+                        <span class="arrears-sub">${esc(item.bucket)} · ${fmtNum(item.count)} شهر غير مسدد</span>
+                    </span>
+                </span>
+                <span class="arrears-amount report-amount">${fmtNum(item.totalDebt)} ج.م</span>
             </summary>
-            <div class="mt-3 pt-2 border-t border-slate-700/50 space-y-1">
-                <p class="text-[10px] text-amber-400">${esc(item.bucket)} • ${item.count} شهر غير مسدد</p>
-                ${item.unpaidMonths.map(month => `<div class="flex justify-between text-[11px]"><span>${esc(month.month)}</span><span class="text-rose-400 report-amount">${fmtNum(month.amount)} ج.م</span></div>`).join('')}
+            <div class="arrears-body">
+                <div class="report-list">
+                    ${item.unpaidMonths.map(month => `<div class="report-list-row"><span class="report-list-title">${esc(month.month)}</span><span class="report-list-value text-rose-400 report-amount">${fmtNum(month.amount)} ج.م</span></div>`).join('')}
+                </div>
             </div>
         </details>`).join('');
     c.innerHTML = `
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div class="report-stats report-stats-4">
             <div class="report-stat"><p class="report-stat-label">إجمالي المديونية</p><p class="report-stat-value text-rose-400">${fmtNum(report.totalDebt)} ج.م</p></div>
             <div class="report-stat"><p class="report-stat-label">الشقق المتأخرة</p><p class="report-stat-value">${fmtNum(report.overdueResidents)}</p></div>
             <div class="report-stat"><p class="report-stat-label">الأشهر</p><p class="report-stat-value">${fmtNum(report.overdueMonths)}</p></div>

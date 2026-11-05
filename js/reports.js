@@ -1,6 +1,14 @@
 let landlordReportMonth = '';
 let landlordReportSignature = '';
 
+function jumpToReportPanel(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+    const wrapper = panel.closest('details');
+    if (wrapper) wrapper.open = true;
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function getLandlordReportData(month) {
     return {
         income: state.income.filter(i => i.month === month),
@@ -72,7 +80,7 @@ function clearLandlordReportPreview(message) {
     landlordReportSignature = '';
     setLandlordReportActionsEnabled(false);
     const preview = document.getElementById('landlordReportPreview');
-    if (preview) preview.innerHTML = `<p class="text-slate-400 text-center py-4">${esc(message)}</p>`;
+    if (preview) preview.innerHTML = `<p class="report-preview-empty">${esc(message)}</p>`;
 }
 
 function invalidateLandlordReportPreview() {
@@ -98,10 +106,11 @@ function generateLandlordReport() {
     const netCents = totalIncCents - totalExpCents;
     const { expectedCents, outstandingCents } = getMonthlyBillingTotals(m);
     const collectionRate = expectedCents > 0 ? Math.round((totalIncCents / expectedCents) * 100) : null;
-    const expenseCategorySummary = getExpenseCategoryTotals(exp).map(([label, totals]) =>
-        '<div class="flex justify-between text-[11px] border-b border-slate-800 py-1"><span>' +
-        esc(label) + ' <span class="text-slate-500">(' + totals.count + ')</span></span>' +
-        '<span class="text-rose-400 report-amount">' + fmtMoney(totals.cents / 100) + '</span></div>'
+    const expenseCategories = getExpenseCategoryTotals(exp);
+    const expenseCategorySummary = expenseCategories.map(([label, totals]) =>
+        '<div class="report-list-row"><span class="report-list-title">' +
+        esc(label) + ' <span class="report-list-meta">(' + totals.count + ')</span></span>' +
+        '<span class="report-list-value text-rose-400 report-amount">' + fmtMoney(totals.cents / 100) + '</span></div>'
     ).join('');
     const paymentMethodTotals = new Map();
     inc.forEach(payment => {
@@ -112,36 +121,41 @@ function generateLandlordReport() {
         paymentMethodTotals.set(label, totals);
     });
     const paymentMethodSummary = Array.from(paymentMethodTotals.entries()).map(([label, totals]) =>
-        '<div class="flex justify-between text-[11px] border-b border-slate-800 py-1"><span>' +
-        esc(label) + ' <span class="text-slate-500">(' + totals.count + ')</span></span>' +
-        '<span class="text-emerald-400 report-amount">' + fmtMoney(totals.cents / 100) + '</span></div>'
+        '<div class="report-list-row"><span class="report-list-title">' +
+        esc(label) + ' <span class="report-list-meta">(' + totals.count + ')</span></span>' +
+        '<span class="report-list-value text-emerald-400 report-amount">' + fmtMoney(totals.cents / 100) + '</span></div>'
     ).join('');
     document.getElementById('landlordReportPreview').innerHTML = `
         <div class="space-y-3">
-            <div class="text-center border-b border-slate-700 pb-2"><h3 class="font-black text-sm">${esc(state.buildingName||'العمارة')}</h3><p class="text-[10px] text-slate-400">تقرير ${esc(m)}</p></div>
-            <div class="grid grid-cols-3 gap-2">
+            <header class="report-preview-header">
+                <h3 class="report-preview-title">${esc(state.buildingName||'العمارة')}</h3>
+                <p class="report-preview-meta">تقرير ${esc(m)} • تم الإنشاء ${formatDate(new Date().toISOString())}</p>
+            </header>
+            <div class="report-stats">
                 <div class="report-stat"><p class="report-stat-label">تحصيل</p><p class="report-stat-value text-emerald-400">${fmtMoney(totalIncCents / 100)}</p></div>
                 <div class="report-stat"><p class="report-stat-label">مصروف</p><p class="report-stat-value text-rose-400">${fmtMoney(totalExpCents / 100)}</p></div>
                 <div class="report-stat"><p class="report-stat-label">صافي</p><p class="report-stat-value ${netCents>=0?'text-emerald-400':'text-rose-400'}">${fmtMoney(netCents / 100)}</p></div>
-            </div>
-            <div class="grid grid-cols-3 gap-2">
                 <div class="report-stat"><p class="report-stat-label">المستحق</p><p class="report-stat-value">${fmtMoney(expectedCents / 100)}</p></div>
                 <div class="report-stat"><p class="report-stat-label">غير المحصّل</p><p class="report-stat-value ${outstandingCents > 0 ? 'text-amber-400' : 'text-emerald-400'}">${fmtMoney(outstandingCents / 100)}</p></div>
                 <div class="report-stat"><p class="report-stat-label">نسبة التحصيل</p><p class="report-stat-value">${collectionRate === null ? '—' : fmtNum(collectionRate) + '%'}</p></div>
             </div>
-            <div><p class="text-[10px] font-bold text-slate-400 mb-1">توزيع طرق الدفع:</p>
-                ${paymentMethodSummary || '<p class="text-slate-500 text-[10px]">لا يوجد</p>'}
+            <div class="report-block">
+                <p class="report-block-title"><span>توزيع طرق الدفع</span><span class="report-block-count">${fmtNum(paymentMethodTotals.size)}</span></p>
+                ${paymentMethodSummary ? '<div class="report-list">' + paymentMethodSummary + '</div>' : '<p class="report-note">لا يوجد</p>'}
             </div>
-            <div><p class="text-[10px] font-bold text-slate-400 mb-1">تصنيفات المصروفات:</p>
-                ${expenseCategorySummary || '<p class="text-slate-500 text-[10px]">لا يوجد</p>'}
+            <div class="report-block">
+                <p class="report-block-title"><span>تصنيفات المصروفات</span><span class="report-block-count">${fmtNum(expenseCategories.length)}</span></p>
+                ${expenseCategorySummary ? '<div class="report-list">' + expenseCategorySummary + '</div>' : '<p class="report-note">لا يوجد</p>'}
             </div>
-            <div><p class="text-[10px] font-bold text-slate-400 mb-1">تفاصيل التحصيلات (${inc.length}):</p>
-                ${inc.length ? inc.map(i => { const r = residentsById.get(i.residentId); return '<div class="flex justify-between text-[11px] border-b border-slate-800 py-1 gap-2"><span>' + esc(r?.name || '—') + ' <span class="text-slate-500">· ' + esc(getIncomePaymentMethodLabel(i.paymentMethod)) + '</span></span><span class="text-emerald-400 shrink-0 report-amount">' + fmtMoney(toCents(i.amount) / 100) + '</span></div>'; }).join('') : '<p class="text-slate-500 text-[10px]">لا يوجد</p>'}
+            <div class="report-block">
+                <p class="report-block-title"><span>تفاصيل التحصيلات</span><span class="report-block-count">${fmtNum(inc.length)}</span></p>
+                ${inc.length ? '<div class="report-list">' + inc.map(i => { const r = residentsById.get(i.residentId); return '<div class="report-list-row"><span class="report-list-title">' + esc(r?.name || '—') + ' <span class="report-list-meta">· ' + esc(getIncomePaymentMethodLabel(i.paymentMethod)) + '</span></span><span class="report-list-value text-emerald-400 report-amount">' + fmtMoney(toCents(i.amount) / 100) + '</span></div>'; }).join('') + '</div>' : '<p class="report-note">لا يوجد</p>'}
             </div>
-            <div><p class="text-[10px] font-bold text-slate-400 mb-1">تفاصيل المصروفات (${exp.length}):</p>
-                ${exp.length?exp.map(e => `<div class="flex justify-between text-[11px] border-b border-slate-800 py-1"><span>${esc(e.title)}</span><span class="text-rose-400 report-amount">${fmtMoney(toCents(e.amount) / 100)}</span></div>`).join(''):'<p class="text-slate-500 text-[10px]">لا يوجد</p>'}
+            <div class="report-block">
+                <p class="report-block-title"><span>تفاصيل المصروفات</span><span class="report-block-count">${fmtNum(exp.length)}</span></p>
+                ${exp.length ? '<div class="report-list">' + exp.map(e => '<div class="report-list-row"><span class="report-list-title">' + esc(e.title) + '</span><span class="report-list-value text-rose-400 report-amount">' + fmtMoney(toCents(e.amount) / 100) + '</span></div>').join('') + '</div>' : '<p class="report-note">لا يوجد</p>'}
             </div>
-            <div class="text-[10px] text-slate-500 text-center pt-2 border-t border-slate-700 space-y-1"><p>المستحق محسوب بقيمة الاشتراك السارية في شهر التقرير.</p><p>تم الإنشاء: ${formatDate(new Date().toISOString())}</p></div>
+            <div class="report-note report-divider text-center"><p>المستحق محسوب بقيمة الاشتراك السارية في شهر التقرير.</p></div>
         </div>`;
     landlordReportMonth = m;
     landlordReportSignature = getLandlordReportSignature(m);
@@ -361,7 +375,7 @@ function clearResidentStatement(message) {
     residentStatementSignature = '';
     setResidentStatementActionsEnabled(false);
     const preview = document.getElementById('residentStatementPreview');
-    if (preview) preview.innerHTML = `<p class="text-slate-400 text-center py-4">${esc(message)}</p>`;
+    if (preview) preview.innerHTML = `<p class="report-preview-empty">${esc(message)}</p>`;
 }
 
 function invalidateResidentStatementPreview() {
@@ -411,42 +425,42 @@ function renderResidentStatementHtml(statement) {
         </tr>`).join('');
     const paymentRows = statement.payments.length
         ? statement.payments.map(payment => `
-            <div class="flex justify-between items-start gap-3 border-b border-slate-800 py-1.5 last:border-0">
+            <div class="report-list-row items-start">
                 <div class="min-w-0">
-                    <p class="font-bold">${esc(payment.month)}</p>
-                    <p class="text-[10px] text-slate-500">${esc(payment.method)} · ${esc(formatDate(payment.date) || '—')}</p>
-                    ${payment.notes ? `<p class="text-[10px] text-slate-500 break-words">${esc(payment.notes)}</p>` : ''}
+                    <p class="report-list-title">${esc(payment.month)}</p>
+                    <p class="report-list-meta">${esc(payment.method)} · ${esc(formatDate(payment.date) || '—')}</p>
+                    ${payment.notes ? `<p class="report-list-meta break-words">${esc(payment.notes)}</p>` : ''}
                 </div>
-                <strong class="text-emerald-400 shrink-0 report-amount">${fmtMoney(payment.amountCents / 100)}</strong>
+                <strong class="report-list-value text-emerald-400 report-amount">${fmtMoney(payment.amountCents / 100)}</strong>
             </div>`).join('')
-        : '<p class="text-slate-500 text-[10px]">لا توجد حركات مسجلة.</p>';
+        : '<p class="report-note">لا توجد حركات مسجلة.</p>';
     const unassignedNote = statement.totals.unassignedPaidCents > 0
         ? `<p>مدفوعات بدون شهر استحقاق قابل للقراءة: ${fmtMoney(statement.totals.unassignedPaidCents / 100)}</p>`
         : '';
     return `
         <div class="space-y-3">
-            <div class="text-center border-b border-slate-700 pb-2">
-                <h3 class="font-black text-sm">${esc(state.buildingName || 'العمارة')}</h3>
-                <p class="text-[10px] text-slate-400">كشف حساب ساكن · ${esc(resident.name)} · شقة ${esc(resident.apartmentNumber || '—')}${resident.floor ? ' · الدور ' + esc(resident.floor) : ''}</p>
-                <p class="text-[10px] text-slate-400">الفترة: ${esc(statement.rangeLabel)}</p>
-            </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <header class="report-preview-header">
+                <h3 class="report-preview-title">${esc(state.buildingName || 'العمارة')}</h3>
+                <p class="report-preview-meta">كشف حساب ساكن · ${esc(resident.name)} · شقة ${esc(resident.apartmentNumber || '—')}${resident.floor ? ' · الدور ' + esc(resident.floor) : ''}</p>
+                <p class="report-preview-meta">الفترة: ${esc(statement.rangeLabel)}</p>
+            </header>
+            <div class="report-stats report-stats-4">
                 <div class="report-stat"><p class="report-stat-label">إجمالي المستحق</p><p class="report-stat-value">${fmtMoney(statement.totals.dueCents / 100)}</p></div>
                 <div class="report-stat"><p class="report-stat-label">إجمالي المدفوع</p><p class="report-stat-value text-emerald-400">${fmtMoney(statement.totals.paidCents / 100)}</p></div>
                 <div class="report-stat"><p class="report-stat-label">إجمالي المتبقي</p><p class="report-stat-value ${statement.totals.remainingCents ? 'text-rose-400' : 'text-emerald-400'}">${fmtMoney(statement.totals.remainingCents / 100)}</p></div>
                 <div class="report-stat"><p class="report-stat-label">أشهر متأخرة</p><p class="report-stat-value ${statement.totals.arrearsMonths ? 'text-amber-400' : 'text-emerald-400'}">${fmtNum(statement.totals.arrearsMonths)}</p></div>
             </div>
-            <div class="overflow-x-auto">
+            <div class="report-table-wrap">
                 <table class="statement-table">
                     <thead><tr><th>الشهر</th><th>المستحق</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th></tr></thead>
                     <tbody>${monthRows}</tbody>
                 </table>
             </div>
-            <div>
-                <p class="text-[10px] font-bold text-slate-400 mb-1">حركات الساكن (${fmtNum(statement.payments.length)}):</p>
-                ${paymentRows}
+            <div class="report-block">
+                <p class="report-block-title"><span>حركات الساكن</span><span class="report-block-count">${fmtNum(statement.payments.length)}</span></p>
+                <div class="report-list">${paymentRows}</div>
             </div>
-            <div class="text-[10px] text-slate-500 text-center pt-2 border-t border-slate-700 space-y-1">
+            <div class="report-note report-divider text-center">
                 <p>كل شهر محسوب بقيمة الاشتراك السارية فيه، والمدفوع هو المسجل على الشهر نفسه.</p>
                 ${unassignedNote}
                 <p>تم الإنشاء: ${esc(formatDate(statement.generatedAt))}</p>
