@@ -70,6 +70,48 @@ test('cashbox screens and summaries are manager-only in the application', () => 
     assert.match(html, /src="js\/cashbox\.js"/);
 });
 
+test('hasValidCashboxBalances validates all required cash accounts', () => {
+    const sandbox = { module: { exports: {} } };
+    const src = cashbox.replace('// @ts-check', '');
+    vm.createContext(sandbox);
+    vm.runInContext(src, sandbox);
+    const fn = vm.runInContext('hasValidCashboxBalances', sandbox);
+
+    assert.equal(fn(null), false);
+    assert.equal(fn({}), false);
+    assert.equal(fn({ main: 0 }), false);
+    assert.equal(fn({ main: 0, development: 0, emergency: 0 }), true);
+    assert.equal(fn({ main: -100, development: 0, emergency: 0 }), true);
+    assert.equal(fn({ main: 0, development: -50, emergency: 0 }), false);
+    assert.equal(fn({ main: 0, development: 0, emergency: -1 }), false);
+    assert.equal(fn({ main: 0, development: '100', emergency: 0 }), false);
+    assert.equal(fn({ main: 0, development: NaN, emergency: 0 }), false);
+    assert.equal(fn({ main: 0, development: 0, emergency: 0, extra: 100 }), false);
+});
+
+test('normalizeCashboxSummary validates structure and converts amounts', () => {
+    const sandbox = { module: { exports: {} } };
+    const src = cashbox.replace('// @ts-check', '');
+    vm.createContext(sandbox);
+    vm.runInContext(src, sandbox);
+    const fn = vm.runInContext('normalizeCashboxSummary', sandbox);
+
+    const valid = {
+        balances: { main: 1000, development: 200, emergency: 50 },
+        transfers: [{
+            id: 't1', from_account_code: 'main', to_account_code: 'development',
+            amount: '150.50', transferred_at: '2026-11-01T10:00:00Z', notes: null
+        }]
+    };
+    const result = fn(valid);
+    assert.equal(result.balances.main, 1000);
+    assert.equal(result.transfers[0].amount, 150.5);
+
+    assert.throws(() => fn(null), /Invalid cashbox summary/);
+    assert.throws(() => fn({ balances: { main: 0, development: 0, emergency: 0 }, transfers: 'not-array' }), /Invalid cashbox summary/);
+    assert.throws(() => fn({ balances: { main: 0, development: -1, emergency: 0 }, transfers: [] }), /Invalid cashbox summary/);
+});
+
 test('collections route into the cash account chosen at collection time', () => {
     const incomeMigration = read('supabase/migrations/20261105090000_income_cash_account_allocation.sql');
     assert.match(incomeMigration, /ALTER TABLE public\.income\s+ADD COLUMN IF NOT EXISTS cash_account_code text NOT NULL DEFAULT 'main'/);
