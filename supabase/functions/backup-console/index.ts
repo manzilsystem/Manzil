@@ -202,6 +202,6 @@ export async function handleRequest(req: Request): Promise<Response> {
   return json(400, { error: 'unknown_action' })
 }
 
-if (Deno.mainModule === import.meta.url) {
+if (import.meta.main) {
   Deno.serve(handleRequest)
 }

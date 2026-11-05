@@ -180,6 +180,6 @@ export async function handleRequest(request: Request): Promise<Response> {
   return json(200, { ok: true })
 }
 
-if (Deno.mainModule === import.meta.url) {
+if (import.meta.main) {
   Deno.serve(handleRequest)
 }

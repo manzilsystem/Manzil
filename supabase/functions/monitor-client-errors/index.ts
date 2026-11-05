@@ -74,6 +74,6 @@ export async function handleRequest(request: Request): Promise<Response> {
   }
 }
 
-if (Deno.mainModule === import.meta.url) {
+if (import.meta.main) {
   Deno.serve(handleRequest)
 }
