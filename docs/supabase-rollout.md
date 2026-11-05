@@ -46,6 +46,18 @@ from new_building;
 
 الواجهة تستخدم Supabase Auth لتسجيل دخول المدير بالبريد والمالك بالجوال والـPIN، وتحدد الدور من `building_members`، وتحمّل وتكتب البيانات عبر المفتاح العام وسياسات RLS. تُخزّن حالة فرض تغيير PIN في `profiles.must_change_pin` بينما تبقى كلمة المرور محفوظة بتجزئة Supabase Auth. لم يعد مسار التشغيل يعتمد على `localStorage` أو GitHub Gist.
 
+## نشر دوال Edge
+
+الدوال الخمس في `supabase/functions/` تُنشر يدويًا من لوحة Supabase لأن موصل MCP الرسمي قد لا يملك نطاق `projects:read`/`database:read` المطلوب لأدوات الإدارة:
+
+1. اختر المشروع `musvcrkljccubwbcrtjs` ← **Edge Functions** ← الدالة المطلوبة.
+2. تبويب **Code** ← استبدل `index.ts` بنسخة المستودع، ثم **Deploy updates** وأكّد.
+3. تأكد أن **Settings → Verify JWT with legacy secret** مفعّل (ما عدا `owner-login`)، وأن **Overview** يعرض «Last deployed a few seconds ago».
+4. للتحقق من التطابق: احسب `sha256sum supabase/functions/<name>/index.ts` وقارنه ببصمة محتوى المحرر.
+5. اختبار سريع: طلب `POST` بدون توثيق يجب أن يعيد `401` بصيغة الدالة `{"error":"unauthorized"}`.
+
+بديل عند توفر `SUPABASE_ACCESS_TOKEN`: `npx supabase functions deploy <name> --project-ref musvcrkljccubwbcrtjs`. لا ترفع ملفات تجريبية مع الدالة، ولا تضع `BACKUP_REPO_TOKEN` أو `service_role` في المتصفح أو الريبو.
+
 ## رصد أخطاء الواجهة
 
 **الحالة: مطبَّق ومفعَّل في الإصدار `manzil-v96` (2026-11-05).** أُسند الترحيل `supabase/migrations/20261104220000_client_error_reports.sql` إلى المشروع المستضاف عبر مهمة `workflow_dispatch` مؤقتة تستخدم السر `SUPABASE_DB_URL` مع `psql` داخل معاملة واحدة، ثم حُذفت المهمة بعد التحقق. النتيجة: الجدول وRLS والسياسة الإلحاقية ومُشغّل الحد الأقصى مثبّتة، وإدراج فعلي عبر REST أعاد `201` بينما أعادت القراءة `401`. لا يستخدم المشروع `supabase db push` لعدم وجود ربط CLI محلي؛ أي ترحيل لاحق يُطبَّق بنفس الطريقة أو من SQL Editor.
