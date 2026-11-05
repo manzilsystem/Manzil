@@ -11,7 +11,7 @@ const app = fs.readFileSync(path.join(root, 'js', 'app.js'), 'utf8');
 
 test('service worker is valid JavaScript and bumps the app cache', () => {
     assert.doesNotThrow(() => new vm.Script(sw, { filename: 'sw.js' }));
-    assert.match(sw, /const CACHE_NAME = 'manzil-v96'/);
+    assert.match(sw, /const CACHE_NAME = 'manzil-v97'/);
 });
 
 test('all runtime modules are pre-cached with the application shell', () => {

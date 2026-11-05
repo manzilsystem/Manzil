@@ -1,7 +1,17 @@
-function renderAuditLog() {
+const AUDIT_LOG_PAGE_SIZE = 50;
+let auditLogVisibleCount = AUDIT_LOG_PAGE_SIZE;
+let auditLogLastQuery = null;
+
+function renderAuditLog(options) {
     const container = document.getElementById('auditLogContainer');
     if (!container) return;
     const query = String(document.getElementById('auditLogSearch')?.value || '').trim().toLocaleLowerCase('ar');
+    if (query !== auditLogLastQuery) {
+        auditLogLastQuery = query;
+        auditLogVisibleCount = AUDIT_LOG_PAGE_SIZE;
+    } else if (options && options.more) {
+        auditLogVisibleCount += AUDIT_LOG_PAGE_SIZE;
+    }
     const filtered = (state.auditLogs || []).filter(entry =>
         !query || [entry.action, entry.details, entry.actorName].some(value =>
             String(value || '').toLocaleLowerCase('ar').includes(query)
@@ -11,12 +21,18 @@ function renderAuditLog() {
         container.innerHTML = `<p class="text-slate-500 text-xs text-center py-3">${query ? 'لا توجد نتائج مطابقة.' : 'لا يوجد سجل بعد.'}</p>`;
         return;
     }
-    container.innerHTML = filtered.slice(0, 100).map(entry => `
+    const visible = filtered.slice(0, auditLogVisibleCount);
+    const remaining = filtered.length - visible.length;
+    container.innerHTML = visible.map(entry => `
         <article class="audit-log-row">
             <div class="min-w-0"><p class="text-xs"><strong class="text-slate-300">${esc(entry.action)}</strong>${entry.details ? ': ' + esc(entry.details) : ''}</p>
                 <p class="text-[10px] text-slate-500 mt-1">بواسطة: ${esc(entry.actorName || 'المدير')} · ${formatDate(entry.date)}</p>
             </div>
-        </article>`).join('');
+        </article>`).join('') + `
+        <div class="pt-2 text-center text-[10px] text-slate-500">
+            عرض ${fmtNum(visible.length)} من ${fmtNum(filtered.length)}
+            ${remaining > 0 ? `<button type="button" onclick="renderAuditLog({ more: true })" class="text-indigo-300 hover:text-indigo-200 underline mr-2">عرض المزيد (${fmtNum(remaining)})</button>` : ''}
+        </div>`;
 }
 
 function renderAll() {
@@ -25,6 +41,7 @@ function renderAll() {
     document.getElementById('printBuildingMeta').textContent = `المدير: ${state.managerName || '—'} • ${getCurrentMonth()}`;
     renderDashboard(); renderIncomeTable(); renderExpenseTable(); renderResidentsGrid();
     renderNotices(); renderAuditLog(); renderArrearsReport(); populateSelects();
+    invalidateLandlordReportIfStale();
     renderCashbox();
 }
 
@@ -79,19 +96,19 @@ function renderArrearsReport() {
         <details class="app-input border rounded-2xl p-3" open>
             <summary class="cursor-pointer list-none flex items-center justify-between gap-3">
                 <span class="min-w-0"><strong class="text-xs">شقة ${esc(item.resident.apartmentNumber)}</strong><span class="text-[11px] text-slate-400 mr-2">${esc(item.resident.name)}</span></span>
-                <span class="text-xs font-black text-rose-400 shrink-0">${fmtNum(item.totalDebt)} ج.م</span>
+                <span class="text-xs font-black text-rose-400 shrink-0 report-amount">${fmtNum(item.totalDebt)} ج.م</span>
             </summary>
             <div class="mt-3 pt-2 border-t border-slate-700/50 space-y-1">
                 <p class="text-[10px] text-amber-400">${esc(item.bucket)} • ${item.count} شهر غير مسدد</p>
-                ${item.unpaidMonths.map(month => `<div class="flex justify-between text-[11px]"><span>${esc(month.month)}</span><span class="text-rose-400">${fmtNum(month.amount)} ج.م</span></div>`).join('')}
+                ${item.unpaidMonths.map(month => `<div class="flex justify-between text-[11px]"><span>${esc(month.month)}</span><span class="text-rose-400 report-amount">${fmtNum(month.amount)} ج.م</span></div>`).join('')}
             </div>
         </details>`).join('');
     c.innerHTML = `
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-            <div class="app-input border rounded-xl p-2 text-center"><p class="text-[10px] text-slate-500">إجمالي المديونية</p><p class="text-xs font-black text-rose-400">${fmtNum(report.totalDebt)} ج.م</p></div>
-            <div class="app-input border rounded-xl p-2 text-center"><p class="text-[10px] text-slate-500">الشقق المتأخرة</p><p class="text-xs font-black">${fmtNum(report.overdueResidents)}</p></div>
-            <div class="app-input border rounded-xl p-2 text-center"><p class="text-[10px] text-slate-500">الأشهر</p><p class="text-xs font-black">${fmtNum(report.overdueMonths)}</p></div>
-            <div class="app-input border rounded-xl p-2 text-center"><p class="text-[10px] text-slate-500">4+ أشهر</p><p class="text-xs font-black text-amber-400">${fmtNum(report.buckets['4 أشهر فأكثر'])}</p></div>
+            <div class="report-stat"><p class="report-stat-label">إجمالي المديونية</p><p class="report-stat-value text-rose-400">${fmtNum(report.totalDebt)} ج.م</p></div>
+            <div class="report-stat"><p class="report-stat-label">الشقق المتأخرة</p><p class="report-stat-value">${fmtNum(report.overdueResidents)}</p></div>
+            <div class="report-stat"><p class="report-stat-label">الأشهر</p><p class="report-stat-value">${fmtNum(report.overdueMonths)}</p></div>
+            <div class="report-stat"><p class="report-stat-label">4+ أشهر</p><p class="report-stat-value text-amber-400">${fmtNum(report.buckets['4 أشهر فأكثر'])}</p></div>
         </div>
         <div class="space-y-2">${cards}</div>`;
 }
