@@ -43,6 +43,190 @@ function crudCashAccountLabel(code) {
     return typeof getCashAccountLabel === 'function' ? getCashAccountLabel(code || 'main') : 'الخزنة الرئيسية';
 }
 
+const CRUD_EXTRA_INCOME_PURPOSES = ['services', 'development', 'emergency', 'penalty', 'donation', 'other'];
+
+function incomeExtraLineElements() {
+    const container = document.getElementById('incomeExtraLines');
+    if (!container || typeof container.querySelectorAll !== 'function') return [];
+    return Array.from(container.querySelectorAll('[data-income-line]'));
+}
+
+function incomeExtraLineMarkup(index = 1) {
+    const purposeOptions = CRUD_EXTRA_INCOME_PURPOSES.map(purpose =>
+        `<option value="${purpose}">${esc(crudIncomePurposeLabel(purpose))}</option>`
+    ).join('');
+    return `<div data-income-line class="income-extra-line rounded-xl border border-slate-700/50 p-2.5 space-y-2">
+        <div class="flex items-center gap-2">
+            <select class="income-line-purpose flex-1 app-input border rounded-xl px-2.5 py-2 text-xs" aria-label="غرض البند الإضافي ${index}" onchange="handleIncomeLinePurposeChange(this)">${purposeOptions}</select>
+            <button type="button" onclick="removeIncomeLine(this)" aria-label="حذف البند الإضافي ${index}" class="min-h-11 min-w-11 border border-rose-500/40 text-rose-300 rounded-xl px-2 text-xs font-bold"><i class="fa-solid fa-trash"></i></button>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+            <input type="number" class="income-line-amount app-input border rounded-xl px-2.5 py-2 text-xs" min="0.01" step="0.01" inputmode="decimal" placeholder="مبلغ البند" aria-label="مبلغ البند الإضافي ${index}" oninput="previewIncomeAllocation()" required>
+            <select class="income-line-cash-account app-input border rounded-xl px-2.5 py-2 text-xs" aria-label="صندوق البند الإضافي ${index}" onchange="previewIncomeAllocation()">
+                <option value="main">الخزنة الرئيسية</option>
+                <option value="development">صندوق التطوير</option>
+                <option value="emergency">صندوق الصيانة الطارئة</option>
+            </select>
+        </div>
+        <p class="income-line-hint text-[10px] text-slate-500"></p>
+    </div>`;
+}
+
+function addIncomeLine(purpose = 'services') {
+    const container = document.getElementById('incomeExtraLines');
+    if (!container || typeof document.createElement !== 'function') return null;
+    const index = incomeExtraLineElements().length + 1;
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = incomeExtraLineMarkup(index);
+    const line = wrapper.firstElementChild;
+    if (!line) return null;
+    const purposeSelect = /** @type {any} */ (line.querySelector('.income-line-purpose'));
+    if (purposeSelect && CRUD_EXTRA_INCOME_PURPOSES.includes(purpose)) purposeSelect.value = purpose;
+    container.appendChild(line);
+    syncIncomeLineCashAccount(line);
+    previewIncomeAllocation();
+    return line;
+}
+
+function removeIncomeLine(button) {
+    const line = button?.closest?.('[data-income-line]');
+    if (!line) return;
+    line.remove();
+    renumberIncomeLines();
+    previewIncomeAllocation();
+}
+
+function renumberIncomeLines() {
+    incomeExtraLineElements().forEach((line, index) => {
+        const number = index + 1;
+        const purposeSelect = line.querySelector('.income-line-purpose');
+        const amountInput = line.querySelector('.income-line-amount');
+        const cashAccountSelect = line.querySelector('.income-line-cash-account');
+        const removeButton = line.querySelector('button');
+        if (purposeSelect) purposeSelect.setAttribute('aria-label', `غرض البند الإضافي ${number}`);
+        if (amountInput) amountInput.setAttribute('aria-label', `مبلغ البند الإضافي ${number}`);
+        if (cashAccountSelect) cashAccountSelect.setAttribute('aria-label', `صندوق البند الإضافي ${number}`);
+        if (removeButton) removeButton.setAttribute('aria-label', `حذف البند الإضافي ${number}`);
+    });
+}
+
+function syncIncomeLineCashAccount(line) {
+    const element = line?.closest?.('[data-income-line]') || (line?.querySelector ? line : null);
+    if (!element) return 'services';
+    const purpose = String(element.querySelector('.income-line-purpose')?.value || 'services');
+    const cashAccountSelect = element.querySelector('.income-line-cash-account');
+    const hint = element.querySelector('.income-line-hint');
+    if (cashAccountSelect) {
+        const locked = purpose === 'development' || purpose === 'emergency' || crudIncomePurposeLocked(purpose);
+        if (locked) cashAccountSelect.value = crudIncomePurposeCashAccount(purpose);
+        cashAccountSelect.disabled = locked;
+        if (typeof cashAccountSelect.setAttribute === 'function') {
+            cashAccountSelect.setAttribute('aria-disabled', locked ? 'true' : 'false');
+        }
+    }
+    if (hint) hint.textContent = getIncomePurposeCashHint(purpose, false);
+    return purpose;
+}
+
+function handleIncomeLinePurposeChange(select) {
+    syncIncomeLineCashAccount(select);
+    previewIncomeAllocation();
+}
+
+function getIncomeExtraLines() {
+    return incomeExtraLineElements().map(line => ({
+        purpose: String(/** @type {any} */ (line.querySelector('.income-line-purpose'))?.value || ''),
+        amount: Number(/** @type {any} */ (line.querySelector('.income-line-amount'))?.value),
+        cashAccountCode: String(/** @type {any} */ (line.querySelector('.income-line-cash-account'))?.value || 'main')
+    }));
+}
+
+function validateIncomeExtraLines(lines) {
+    for (const line of lines) {
+        if (!CRUD_EXTRA_INCOME_PURPOSES.includes(line.purpose)) {
+            return { valid: false, message: 'اختر غرضًا صحيحًا لكل بند إضافي؛ الاشتراك يُسجل في البند الأساسي.', totalCents: 0 };
+        }
+        if (!Number.isFinite(line.amount) || line.amount <= 0) {
+            return { valid: false, message: 'أدخل مبلغًا أكبر من صفر لكل بند إضافي أو احذفه.', totalCents: 0 };
+        }
+        if (!['main', 'development', 'emergency'].includes(line.cashAccountCode)) {
+            return { valid: false, message: 'اختر صندوقًا صحيحًا لكل بند إضافي.', totalCents: 0 };
+        }
+        if ((line.purpose === 'development' && line.cashAccountCode !== 'development')
+            || (line.purpose === 'emergency' && line.cashAccountCode !== 'emergency')) {
+            return { valid: false, message: 'بند التطوير أو الصيانة الطارئة يتطلب صندوقه الخاص.', totalCents: 0 };
+        }
+    }
+    const totalCents = lines.reduce((sum, line) => sum + Math.round(line.amount * 100), 0);
+    return { valid: true, message: '', totalCents };
+}
+
+function clearIncomeExtraLines() {
+    const container = document.getElementById('incomeExtraLines');
+    if (container) container.innerHTML = '';
+    const total = document.getElementById('incomeMixedTotal');
+    if (total) {
+        total.textContent = '';
+        total.classList.add('hidden');
+    }
+}
+
+function buildIncomePaymentRows(options) {
+    const rows = [];
+    const appendRow = (amount, month, purposeCode, cashAccountCode) => {
+        rows.push({ amount, month, purposeCode, cashAccountCode });
+    };
+    if (options.isSubscription && options.allocation) {
+        options.allocation.allocations.forEach(item => {
+            appendRow(item.amount, item.month, 'subscription', options.cashAccountCode);
+        });
+    } else {
+        appendRow(options.amount, options.month, options.purpose, options.cashAccountCode);
+    }
+    (options.extraLines || []).forEach(line => {
+        appendRow(line.amount, options.month, line.purpose, line.cashAccountCode);
+    });
+
+    const usesBatchReference = options.isSubscription || (options.extraLines || []).length > 0;
+    const paymentReference = options.paymentReference;
+    return rows.map((row, index) => {
+        const batchNote = `دفعة موزعة ${paymentReference} (${index + 1}/${rows.length})`;
+        const note = usesBatchReference
+            ? [batchNote, options.notes].filter(Boolean).join(' · ')
+            : options.notes;
+        return {
+            id: generateId(),
+            residentId: options.residentId,
+            amount: row.amount,
+            month: row.month,
+            date: options.paidAt,
+            paymentMethod: options.paymentMethod,
+            cashAccountCode: row.cashAccountCode,
+            purposeCode: row.purposeCode,
+            notes: note
+        };
+    });
+}
+
+function getIncomeBatchReference(payment) {
+    return String(payment?.notes || '').match(/^دفعة موزعة\s+([A-Z0-9]+)\s+\(\d+\/\d+\)/i)?.[1] || '';
+}
+
+function getIncomeBatchPayments(payment) {
+    const reference = getIncomeBatchReference(payment);
+    if (!reference) return [payment];
+    return state.income.filter(item =>
+        item.residentId === payment.residentId &&
+        item.date === payment.date &&
+        String(item.notes || '').startsWith('دفعة موزعة ' + reference + ' (')
+    );
+}
+
+function isMixedIncomeBatch(payment) {
+    const purposes = new Set(getIncomeBatchPayments(payment).map(item => crudIncomePurpose(item.purposeCode)));
+    return purposes.size > 1;
+}
+
 function normalizeApartmentDigits(value) {
     return String(value ?? '').replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632))
         .replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776)).trim();
@@ -748,6 +932,7 @@ function quickPayResident(residentId) {
             hintId: 'incomePurposeCashHint'
         });
     }
+    clearIncomeExtraLines();
 
     previewIncomeAllocation();
     openModal('incomeModal');
@@ -811,6 +996,7 @@ function resetIncomeFormFields() {
         resetUnlocked: true,
         hintId: 'incomePurposeCashHint'
     });
+    clearIncomeExtraLines();
     /** @type {HTMLElement} */ (document.getElementById('incomeAllocationPreview'))?.classList.add('hidden');
 }
 
@@ -864,20 +1050,56 @@ function previewIncomeAllocation() {
             outstandingHint.textContent = parts.join(' · ');
         }
     }
+    const extraLines = getIncomeExtraLines();
+    const extraValidation = validateIncomeExtraLines(extraLines);
+    const hasExtras = extraLines.length > 0;
+    const mixedTotal = document.getElementById('incomeMixedTotal');
     const ready = Boolean(residentId && month && Number.isFinite(amount) && amount > 0);
+    const baseCents = Number.isFinite(amount) ? Math.round(amount * 100) : 0;
+    const collectedCents = ready && extraValidation.valid ? baseCents + extraValidation.totalCents : 0;
+    const setSubmitLabel = label => {
+        if (submit && !incomeSaving) submit.textContent = label;
+    };
+    if (mixedTotal) {
+        if (ready && hasExtras) {
+            mixedTotal.textContent = extraValidation.valid
+                ? `إجمالي الدفعة: ${fmtNum(collectedCents / 100)} ج.م`
+                : extraValidation.message;
+            mixedTotal.classList.remove('hidden');
+        } else {
+            mixedTotal.textContent = '';
+            mixedTotal.classList.add('hidden');
+        }
+    }
     if (!ready) {
         preview.classList.add('hidden');
         if (submit) submit.disabled = false;
+        setSubmitLabel('حفظ التحصيل وتوزيعه');
         return;
     }
+    setSubmitLabel(hasExtras ? 'حفظ الدفعة المختلطة' : 'حفظ التحصيل وتوزيعه');
+
+    const extraRowsHtml = extraLines.map(line => {
+        const label = CRUD_EXTRA_INCOME_PURPOSES.includes(line.purpose)
+            ? crudIncomePurposeLabel(line.purpose)
+            : 'غرض غير صالح';
+        const validAmount = Number.isFinite(line.amount) && line.amount > 0;
+        return `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${esc(label)} · ${esc(crudCashAccountLabel(line.cashAccountCode))}</span><strong class="${validAmount ? 'text-emerald-400' : 'text-rose-400'}">${fmtNum(line.amount)} ج.م</strong></div>`;
+    }).join('');
+    const totalRowsHtml = hasExtras && extraValidation.valid
+        ? `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/60 pt-1.5"><span>إجمالي الدفعة</span><strong>${fmtNum(collectedCents / 100)} ج.م</strong></div>`
+        : '';
 
     const cashAccountCode = /** @type {any} */ (document.getElementById('incomeCashAccount'))?.value || 'main';
     if (!isSubscription) {
         preview.classList.remove('hidden');
-        summary.textContent = `سيُسجل تحصيل «${crudIncomePurposeLabel(purpose)}» بمبلغ ${fmtNum(amount)} ج.م في ${crudCashAccountLabel(cashAccountCode)} دون توزيعه على أشهر الاشتراك.`;
+        summary.textContent = hasExtras
+            ? `بند أساسي «${crudIncomePurposeLabel(purpose)}» بمبلغ ${fmtNum(amount)} ج.م في ${crudCashAccountLabel(cashAccountCode)}، مع ${extraLines.length} بند إضافي. إجمالي الدفعة ${fmtNum(collectedCents / 100)} ج.م.`
+            : `سيُسجل تحصيل «${crudIncomePurposeLabel(purpose)}» بمبلغ ${fmtNum(amount)} ج.م في ${crudCashAccountLabel(cashAccountCode)} دون توزيعه على أشهر الاشتراك.`;
         rows.innerHTML = `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الغرض</span><strong>${esc(crudIncomePurposeLabel(purpose))}</strong></div>`
-            + `<div class="flex justify-between items-center gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`;
-        if (submit) submit.disabled = false;
+            + `<div class="flex justify-between items-center gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`
+            + extraRowsHtml + totalRowsHtml;
+        if (submit) submit.disabled = hasExtras && !extraValidation.valid;
         return;
     }
 
@@ -898,11 +1120,14 @@ function previewIncomeAllocation() {
 
     summary.textContent = result.remainingCents > 0
         ? `تم توزيع ${fmtNum(result.totalAllocated)} من ${fmtNum(amount)} ج.م. المتبقي ${fmtNum(result.remainingAmount)} ج.م خارج نطاق التوزيع؛ قلّل المبلغ.`
-        : `سيتم توزيع ${fmtNum(result.totalAllocated)} ج.م على ${result.allocations.length} شهر، بدءًا من أقدم شهر غير مسدد.`;
+        : `سيتم توزيع ${fmtNum(result.totalAllocated)} ج.م على ${result.allocations.length} شهر، بدءًا من أقدم شهر غير مسدد.`
+            + (hasExtras ? ` إجمالي الدفعة ${fmtNum(collectedCents / 100)} ج.م.` : '');
     rows.innerHTML = result.allocations.map(item =>
         `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${esc(item.month)}</span><strong class="text-emerald-400">${fmtNum(item.amount)} ج.م</strong></div>`
-    ).join('') + `<div class="flex justify-between items-center gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`;
-    if (submit) submit.disabled = result.remainingCents > 0;
+    ).join('') + extraRowsHtml
+        + `<div class="flex justify-between items-center gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`
+        + totalRowsHtml;
+    if (submit) submit.disabled = result.remainingCents > 0 || (hasExtras && !extraValidation.valid);
 }
 
 async function handleIncomeSubmit(e) {
@@ -946,6 +1171,13 @@ async function handleIncomeSubmit(e) {
         toast('تعذر توزيع كامل المبلغ على فترات الاشتراك. راجع المعاينة أو قلّل المبلغ.', 'error');
         return;
     }
+    const extraLines = getIncomeExtraLines();
+    const extraValidation = validateIncomeExtraLines(extraLines);
+    if (!extraValidation.valid) {
+        toast(extraValidation.message, 'error');
+        return;
+    }
+    const hasExtras = extraLines.length > 0;
     const allocatedCount = allocation ? allocation.allocations.length : 1;
 
     incomeSaving = true;
@@ -957,40 +1189,37 @@ async function handleIncomeSubmit(e) {
     const previousState = cloneStateSnapshot();
     const paidAt = new Date().toISOString();
     const paymentReference = generateId().replace(/-/g, '').slice(0, 12).toUpperCase();
-    if (isSubscription && allocation) {
-        allocation.allocations.forEach((item, index) => {
-            const allocationNote = [
-                `دفعة موزعة ${paymentReference} (${index + 1}/${allocation.allocations.length})`,
-                notes
-            ].filter(Boolean).join(' · ');
-            state.income.push({
-                id: generateId(),
-                residentId,
-                amount: item.amount,
-                month: item.month,
-                date: paidAt,
-                paymentMethod,
-                cashAccountCode,
-                purposeCode: 'subscription',
-                notes: allocationNote
-            });
-        });
+    const rows = buildIncomePaymentRows({
+        residentId,
+        amount,
+        month,
+        notes,
+        paymentMethod,
+        purpose,
+        cashAccountCode,
+        isSubscription,
+        allocation,
+        extraLines,
+        paidAt,
+        paymentReference
+    });
+    rows.forEach(row => state.income.push(row));
+
+    const collectedTotal = rows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+    if (hasExtras) {
+        const breakdown = rows.map(row =>
+            `${crudIncomePurposeLabel(row.purposeCode)} ${fmtNum(row.amount)} ج.م (${crudCashAccountLabel(row.cashAccountCode)})`
+        ).join(' + ');
+        logAction(
+            'تحصيل مختلط',
+            `${resident.name} - ${fmtNum(collectedTotal)} ج.م - ${getIncomePaymentMethodLabel(paymentMethod)} - ${rows.length} بند - ${breakdown} - ${paymentReference}`
+        );
+    } else if (isSubscription && allocation) {
         logAction(
             'تحصيل موزع',
             `${resident.name} - ${fmtNum(amount)} ج.م - ${getIncomePaymentMethodLabel(paymentMethod)} - ${crudCashAccountLabel(cashAccountCode)} - ${allocation.allocations.length} شهر - ${paymentReference}`
         );
     } else {
-        state.income.push({
-            id: generateId(),
-            residentId,
-            amount,
-            month,
-            date: paidAt,
-            paymentMethod,
-            cashAccountCode,
-            purposeCode: purpose,
-            notes
-        });
         logAction(
             'تحصيل ' + crudIncomePurposeLabel(purpose),
             `${resident.name} - ${fmtNum(amount)} ج.م - ${getIncomePaymentMethodLabel(paymentMethod)} - ${crudCashAccountLabel(cashAccountCode)} - ${month}`
@@ -1003,16 +1232,18 @@ async function handleIncomeSubmit(e) {
         resetIncomeFormFields();
         renderAll();
         toast(
-            allocatedCount > 1
-                ? `تم توزيع التحصيل على ${allocatedCount} أشهر`
-                : 'تم تسجيل التحصيل',
+            hasExtras
+                ? `تم تسجيل دفعة مختلطة من ${rows.length} بندًا`
+                : allocatedCount > 1
+                    ? `تم توزيع التحصيل على ${allocatedCount} أشهر`
+                    : 'تم تسجيل التحصيل',
             'success'
         );
     } finally {
         incomeSaving = false;
         if (submit) {
             submit.disabled = false;
-            submit.textContent = 'حفظ التحصيل وتوزيعه';
+            submit.textContent = hasExtras ? 'حفظ الدفعة المختلطة' : 'حفظ التحصيل وتوزيعه';
         }
     }
 }
@@ -1054,12 +1285,21 @@ function openIncomeEditModal(id) {
         hintId: 'incomeEditPurposeHint'
     });
     const distributionNote = String(payment.notes || '').match(/^(دفعة موزعة\s+[A-Z0-9]+\s+\(\d+\/\d+\))(?:\s+·\s+([\s\S]*))?$/i);
+    const mixedBatch = isMixedIncomeBatch(payment);
     if (purposeSelect) {
         purposeSelect.disabled = Boolean(distributionNote);
         if (distributionNote) {
             purposeSelect.value = crudIncomePurpose(payment.purposeCode);
             const hint = document.getElementById('incomeEditPurposeHint');
-            if (hint) hint.textContent = 'هذه دفعة موزعة على أشهر الاشتراك؛ لا يمكن تغيير غرضها من هنا.';
+            if (hint) hint.textContent = mixedBatch
+                ? 'هذه دفعة مختلطة؛ لا يمكن تغيير غرض البند أو صندوقه من هنا.'
+                : 'هذه دفعة موزعة على أشهر الاشتراك؛ لا يمكن تغيير غرضها من هنا.';
+        }
+    }
+    if (mixedBatch && cashAccountSelect) {
+        cashAccountSelect.disabled = true;
+        if (typeof cashAccountSelect.setAttribute === 'function') {
+            cashAccountSelect.setAttribute('aria-disabled', 'true');
         }
     }
     /** @type {any} */ (document.getElementById('incomeEditNotes')).value = distributionNote ? (distributionNote[2] || '') : (payment.notes || '');
@@ -1089,8 +1329,16 @@ async function handleIncomeEditSubmit(event) {
         forEdit: true,
         hintId: 'incomeEditPurposeHint'
     });
-    const cashAccountCode = /** @type {any} */ (document.getElementById('incomeEditCashAccount'))?.value || 'main';
+    const cashAccountSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeEditCashAccount'));
+    const cashAccountCode = cashAccountSelect?.value || 'main';
     const distributionMatch = String(payment.notes || '').match(/^(دفعة موزعة\s+([A-Z0-9]+)\s+\(\d+\/\d+\))(?:\s+·\s+[\s\S]*)?$/i);
+    const mixedBatch = isMixedIncomeBatch(payment);
+    if (mixedBatch && cashAccountSelect) {
+        cashAccountSelect.disabled = true;
+        if (typeof cashAccountSelect.setAttribute === 'function') {
+            cashAccountSelect.setAttribute('aria-disabled', 'true');
+        }
+    }
     const paymentMethodEnabled = typeof isIncomePaymentMethodEnabled === 'function'
         ? isIncomePaymentMethodEnabled(paymentMethod)
         : Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod);
@@ -1108,7 +1356,13 @@ async function handleIncomeEditSubmit(event) {
         return;
     }
     if (distributionMatch && purpose !== crudIncomePurpose(payment.purposeCode)) {
-        toast('لا يمكن تغيير غرض دفعة موزعة على أشهر الاشتراك.', 'error');
+        toast(mixedBatch
+            ? 'لا يمكن تغيير غرض بند داخل دفعة مختلطة؛ احذف البند وأعد تسجيله إن لزم.'
+            : 'لا يمكن تغيير غرض دفعة موزعة على أشهر الاشتراك.', 'error');
+        return;
+    }
+    if (mixedBatch && cashAccountCode !== (payment.cashAccountCode || 'main')) {
+        toast('لا يمكن تغيير صندوق بند داخل دفعة مختلطة؛ احذف البند وأعد تسجيله إن لزم.', 'error');
         return;
     }
     const createdMonth = getLocalMonthKey(resident.createdAt);
@@ -1157,8 +1411,10 @@ async function handleIncomeEditSubmit(event) {
     payment.month = month;
     relatedPayments.forEach(item => {
         item.paymentMethod = paymentMethod;
-        item.cashAccountCode = cashAccountCode;
-        item.purposeCode = purpose;
+        if (!mixedBatch) {
+            item.cashAccountCode = cashAccountCode;
+            item.purposeCode = purpose;
+        }
     });
     payment.notes = distributionMatch
         ? distributionMatch[1] + (notes ? ' · ' + notes : '')

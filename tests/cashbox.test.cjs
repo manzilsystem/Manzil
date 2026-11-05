@@ -151,8 +151,9 @@ test('income forms, snapshots and accounting carry the destination cash account'
     assert.match(html, /id="incomeCashAccount"/);
     assert.match(html, /id="incomeEditCashAccount"/);
     assert.match(crud, /cashAccountCode = (?:\/\*\* @type \{any\} \*\/ \()?document\.getElementById\('incomeCashAccount'\)/);
-    assert.match(crud, /cashAccountCode = (?:\/\*\* @type \{any\} \*\/ \()?document\.getElementById\('incomeEditCashAccount'\)/);
-    assert.match(crud, /paymentMethod,\s+cashAccountCode,\s+purposeCode: 'subscription',\s+notes: allocationNote/);
+    assert.match(crud, /cashAccountSelect = \/\*\* @type \{HTMLSelectElement\} \*\/ \(document\.getElementById\('incomeEditCashAccount'\)\)/);
+    assert.match(crud, /cashAccountCode = cashAccountSelect\?\.value \|\| 'main'/);
+    assert.match(crud, /appendRow\(item\.amount, item\.month, 'subscription', options\.cashAccountCode\)/);
     assert.match(supabase, /cash_account_code: i\.cashAccountCode \|\| 'main'/);
     assert.match(supabase, /id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,paid_at/);
     assert.match(cashbox, /income: byAccount\(\)/);
