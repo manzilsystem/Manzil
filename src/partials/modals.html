@@ -911,7 +911,8 @@
                 <button onclick="closeModal('incomeModal')" aria-label="إغلاق نافذة التحصيل" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <form id="incomeForm" onsubmit="handleIncomeSubmit(event)" class="p-5 space-y-3">
-                <select id="incomeResident" aria-label="الشقة" onchange="previewIncomeAllocation()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر الشقة</option></select>
+                <select id="incomeResident" aria-label="الشقة" onchange="handleIncomeResidentChange()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر الشقة</option></select>
+                <div id="incomeResidentSummary" class="hidden rounded-2xl border border-slate-700/60 p-3 space-y-1 text-[11px]" role="status" aria-live="polite"></div>
                 <label class="block text-xs space-y-1">
                     <span class="text-slate-400">غرض التحصيل</span>
                     <select id="incomePurpose" aria-label="غرض التحصيل" onchange="handleIncomePurposeChange()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
@@ -945,6 +946,14 @@
                     <select id="incomeMonth" aria-label="شهر بداية التوزيع" onchange="previewIncomeAllocation()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
                 </label>
                 <p id="incomeOutstandingHint" role="status" aria-live="polite" class="text-[10px] text-slate-500"></p>
+                <label id="incomeAllocationModeWrap" class="hidden block text-xs space-y-1">
+                    <span class="text-slate-400">طريقة التوزيع</span>
+                    <select id="incomeAllocationMode" aria-label="طريقة توزيع التحصيل" onchange="previewIncomeAllocation()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                        <option value="policy">حسب سياسة العمارة</option>
+                        <option value="selected">ابدأ بالشهر المحدد</option>
+                    </select>
+                    <span class="text-[10px] text-slate-500">اختر «ابدأ بالشهر المحدد» إذا كان العميل يسدد شهرًا متأخرًا بعينه.</span>
+                </label>
                 <p id="incomeAllocationPolicyHelp" class="text-[10px] text-slate-500">يُوزّع المبلغ وفق سياسة العمارة. راجع المعاينة قبل الحفظ.</p>
                 <div class="rounded-2xl border border-slate-700/60 p-3 space-y-2">
                     <div class="flex items-start justify-between gap-3">
@@ -961,7 +970,13 @@
                     <p id="incomeAllocationSummary" class="text-xs font-bold"></p>
                     <div id="incomeAllocationRows" class="space-y-1"></div>
                 </div>
-                <textarea id="incomeNotes" aria-label="ملاحظات التحصيل" rows="2" placeholder="ملاحظات التحصيل" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
+                <div class="flex flex-wrap gap-1.5" aria-label="اقتراحات ملاحظات الدفع">
+                    <button type="button" onclick="setIncomeNoteSuggestion('سداد متأخرات')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">سداد متأخرات</button>
+                    <button type="button" onclick="setIncomeNoteSuggestion('دفعة مقدمة')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">دفعة مقدمة</button>
+                    <button type="button" onclick="setIncomeNoteSuggestion('تسوية حساب')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">تسوية حساب</button>
+                    <button type="button" onclick="setIncomeNoteSuggestion('إيصال بدل فاقد')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">إيصال بدل فاقد</button>
+                </div>
+                <textarea id="incomeNotes" aria-label="ملاحظات التحصيل" rows="2" placeholder="ملاحظات التحصيل" oninput="previewIncomeAllocation()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
                 <button type="submit" id="incomeSubmitButton" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-2xl font-bold transition">حفظ التحصيل وتوزيعه</button>
             </form>
         </div>
@@ -1022,6 +1037,24 @@
                 <p class="text-[10px] text-slate-500">لا يمكن أن يتجاوز المبلغ المتبقي من اشتراك الشهر عند اختيار غرض «اشتراك شهري». تاريخ تسجيل التحصيل الأصلي لا يتغير.</p>
                 <button type="submit" id="incomeEditSubmitButton" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">حفظ التعديل</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Income Receipt Modal -->
+    <div id="incomeReceiptModal" role="dialog" aria-modal="true" aria-labelledby="incomeReceiptTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="app-card border w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+            <div class="bg-emerald-700 text-white px-5 py-4 flex justify-between items-center">
+                <div>
+                    <h3 id="incomeReceiptTitle" class="font-bold text-sm">إيصال استلام</h3>
+                    <p id="incomeReceiptSubtitle" class="text-[11px] text-white/75 mt-1"></p>
+                </div>
+                <button type="button" onclick="closeModal('incomeReceiptModal')" aria-label="إغلاق الإيصال" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="incomeReceiptContent" class="p-5 space-y-3 max-h-[65vh] overflow-y-auto"></div>
+            <div class="p-5 pt-0 grid grid-cols-2 gap-2">
+                <button type="button" onclick="printActiveIncomeReceipt()" class="min-h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-3 py-2.5 text-xs font-bold"><i class="fa-solid fa-print ml-1"></i> طباعة / PDF</button>
+                <button type="button" onclick="sendActiveIncomeReceiptOnWhatsApp()" class="min-h-11 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-3 py-2.5 text-xs font-bold"><i class="fa-brands fa-whatsapp ml-1"></i> واتساب</button>
+            </div>
         </div>
     </div>
 

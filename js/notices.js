@@ -133,17 +133,33 @@ function sendIncomeReceiptOnWhatsApp(incomeId) {
     const details = relatedPayments.map(item =>
         `• ${purposeLabelFor(item)} · ${item.month}: ${fmtNum(item.amount)} ج.م`
     ).join('\n');
+    const apartmentLabel = typeof formatApartmentLabel === 'function'
+        ? formatApartmentLabel(resident.apartmentNumber)
+        : (() => {
+            const raw = String(resident.apartmentNumber ?? '').trim();
+            if (!raw) return 'شقة —';
+            return /^شقة(?:\s|$)/.test(raw) ? raw : `شقة ${raw}`;
+        })();
+    const notes = Array.from(new Set(relatedPayments
+        .map(item => {
+            if (typeof stripIncomeBatchNote === 'function') return stripIncomeBatchNote(item.notes);
+            const text = String(item.notes || '').trim();
+            const match = text.match(/^دفعة موزعة\s+[A-Z0-9]+\s+\(\d+\/\d+\)(?:\s*·\s*([\s\S]*))?$/i);
+            return match ? String(match[1] || '').trim() : text;
+        })
+        .filter(Boolean)));
     const message = [
         `إيصال استلام — ${state.buildingName || 'العمارة'}`,
         '',
         `مرحباً ${resident.name || 'بكم'}،`,
         `نؤكد استلام تحصيل «${purposeLabel}» بنجاح.`,
-        `الشقة: ${resident.apartmentNumber || '—'}`,
+        `الشقة: ${apartmentLabel}`,
         `المبلغ المستلم: ${fmtNum(total)} ج.م`,
         `طريقة الدفع: ${getIncomePaymentMethodLabel(payment.paymentMethod)}`,
         ...(cashAccountLabels.length ? [`الصندوق: ${cashAccountLabels.join('، ')}`] : []),
         'تفاصيل التحصيل:',
         details,
+        ...(notes.length ? [`ملاحظات الدفع: ${notes.join(' · ')}`] : []),
         `تاريخ الاستلام: ${formatDate(payment.date)}`,
         `رقم الإيصال: ${reference}`,
         '',

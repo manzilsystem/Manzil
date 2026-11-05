@@ -48,7 +48,7 @@ test('WhatsApp receipt combines all months from one distributed payment', () => 
     const message = url.searchParams.get('text');
     assert.match(message, /إيصال استلام — عمارة النور/);
     assert.match(message, /أحمد/);
-    assert.match(message, /الشقة: 3/);
+    assert.match(message, /الشقة: شقة 3/);
     assert.match(message, /المبلغ المستلم: 150 ج.م/);
     assert.match(message, /طريقة الدفع: InstaPay/);
     assert.ok(message.indexOf('أكتوبر 2026: 100 ج.م') < message.indexOf('نوفمبر 2026: 50 ج.م'));

@@ -187,7 +187,7 @@ test('period report gates print and csv on the previewed range', async ({ page }
     await expect(printButton).toBeEnabled();
     await expect(exportButton).toBeEnabled();
 
-    await page.locator('#periodReportTo').selectOption('مارس 2024');
+    await page.locator('#periodReportTo').selectOption('يناير 2024');
     await expect(preview).toContainText('تغيّرت الفترة أو البيانات');
     await expect(printButton).toBeDisabled();
     await expect(exportButton).toBeDisabled();

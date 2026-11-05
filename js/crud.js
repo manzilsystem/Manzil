@@ -494,9 +494,12 @@ function openResidentIncomeFromProfile(residentId) {
         return;
     }
     residentSelect.value = residentId;
+    refreshIncomeMonthOptions(residentId, getCurrentMonth());
     amountInput.value = '';
     monthSelect.value = getCurrentMonth();
     paymentMethodSelect.value = '';
+    const modeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeAllocationMode'));
+    if (modeSelect) modeSelect.value = 'policy';
     const purposeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomePurpose'));
     if (purposeSelect) purposeSelect.value = 'subscription';
     if (notesInput) notesInput.value = '';
@@ -504,6 +507,7 @@ function openResidentIncomeFromProfile(residentId) {
         resetUnlocked: true,
         hintId: 'incomePurposeCashHint'
     });
+    renderIncomeResidentSummary();
     if (typeof previewIncomeAllocation === 'function') previewIncomeAllocation();
     closeModal('residentProfileModal');
     openModal('incomeModal');
@@ -920,9 +924,12 @@ function quickPayResident(residentId) {
     }
 
     residentSelect.value = residentId;
+    refreshIncomeMonthOptions(residentId, month);
     amountInput.value = amount.toFixed(2);
     monthSelect.value = month;
     paymentMethodSelect.value = '';
+    const modeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeAllocationMode'));
+    if (modeSelect) modeSelect.value = 'policy';
     const purposeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomePurpose'));
     if (purposeSelect) purposeSelect.value = 'subscription';
     if (notesInput) notesInput.value = 'دفع سريع';
@@ -933,6 +940,7 @@ function quickPayResident(residentId) {
         });
     }
     clearIncomeExtraLines();
+    renderIncomeResidentSummary();
 
     previewIncomeAllocation();
     openModal('incomeModal');
@@ -983,10 +991,107 @@ function handleIncomeEditPurposeChange() {
     });
 }
 
+function crudIncomeMonthLabels(resident, includeMonths = []) {
+    if (typeof getIncomeMonthLabels === 'function') return getIncomeMonthLabels(resident, includeMonths);
+    if (typeof getActiveBuildingMonths === 'function') return getActiveBuildingMonths();
+    return [getCurrentMonth()];
+}
+
+function crudApartmentLabel(value) {
+    if (typeof formatApartmentLabel === 'function') return formatApartmentLabel(value);
+    const raw = String(value ?? '').trim();
+    if (!raw) return 'شقة —';
+    return /^شقة(?:\s|$)/.test(raw) ? raw : `شقة ${raw}`;
+}
+
+function crudHtmlEscape(value) {
+    return typeof esc === 'function' ? esc(value) : String(value ?? '');
+}
+
+function crudIncomeMonthOptionLabel(resident, month) {
+    return typeof getIncomeMonthOptionLabel === 'function' ? getIncomeMonthOptionLabel(resident, month) : month;
+}
+
+function refreshIncomeMonthOptions(residentId, preferredMonth = '') {
+    const select = /** @type {HTMLSelectElement} */ (document.getElementById('incomeMonth'));
+    if (!select) return;
+    const resident = state.residents.find(item => item.id === residentId) || null;
+    const currentMonth = getCurrentMonth();
+    const previous = preferredMonth || select.value || currentMonth;
+    const labels = crudIncomeMonthLabels(resident, [previous]);
+    select.innerHTML = labels
+        .map(month => `<option value="${crudHtmlEscape(month)}">${crudHtmlEscape(crudIncomeMonthOptionLabel(resident, month))}</option>`)
+        .join('');
+    if (labels.includes(previous)) select.value = previous;
+    else if (labels.includes(currentMonth)) select.value = currentMonth;
+    else if (labels.length) select.value = labels[labels.length - 1];
+}
+
+function getIncomeAllocationPolicyOverride() {
+    const mode = /** @type {HTMLSelectElement} */ (document.getElementById('incomeAllocationMode'))?.value || 'policy';
+    return mode === 'selected' ? 'selected_month_first' : '';
+}
+
+function renderIncomeResidentSummary() {
+    const box = document.getElementById('incomeResidentSummary');
+    if (!box) return;
+    const residentId = /** @type {HTMLSelectElement} */ (document.getElementById('incomeResident'))?.value || '';
+    const resident = state.residents.find(item => item.id === residentId);
+    if (!resident) {
+        box.innerHTML = '';
+        box.classList.add('hidden');
+        return;
+    }
+    const summary = typeof getResidentCollectionSummary === 'function' ? getResidentCollectionSummary(resident) : null;
+    const debt = summary?.debt || { count: 0, totalDebt: 0 };
+    const purpose = crudIncomePurpose(/** @type {HTMLSelectElement} */ (document.getElementById('incomePurpose'))?.value);
+    const cashAccountCode = /** @type {HTMLSelectElement} */ (document.getElementById('incomeCashAccount'))?.value || 'main';
+    const lastPayment = summary?.lastPayment;
+    const lastPaymentText = lastPayment
+        ? `${formatDate(lastPayment.date)} · ${fmtNum(lastPayment.amount)} ج.م · ${crudIncomePurposeLabel(lastPayment.purposeCode)}`
+        : 'لا توجد دفعات سابقة';
+    const statusClass = debt.count > 0
+        ? 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+        : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30';
+    const statusText = debt.count > 0 ? `متأخر ${fmtNum(debt.totalDebt)} ج.م` : 'منتظم';
+    box.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+            <p class="font-bold text-slate-200">${crudHtmlEscape(crudApartmentLabel(resident.apartmentNumber))} · ${crudHtmlEscape(resident.name || '—')}</p>
+            <span class="rounded-full border px-2 py-0.5 text-[10px] font-bold ${statusClass}">${statusText}</span>
+        </div>
+        <p class="text-slate-400">الاشتراك الحالي: ${fmtNum(summary?.currentSubscription || 0)} ج.م · مستحق هذا الشهر: ${fmtNum(summary?.currentOutstanding || 0)} ج.م</p>
+        <p class="text-slate-400">المتأخرات: ${fmtNum(debt.totalDebt)} ج.م (${fmtNum(debt.count)} شهر) · آخر دفعة: ${crudHtmlEscape(lastPaymentText)}</p>
+        <p class="text-emerald-300">الغرض: ${crudHtmlEscape(crudIncomePurposeLabel(purpose))} · الصندوق: ${crudHtmlEscape(crudCashAccountLabel(cashAccountCode))}</p>`;
+    box.classList.remove('hidden');
+}
+
+function handleIncomeResidentChange() {
+    const residentId = /** @type {HTMLSelectElement} */ (document.getElementById('incomeResident'))?.value || '';
+    const mode = /** @type {HTMLSelectElement} */ (document.getElementById('incomeAllocationMode'));
+    if (mode) mode.value = 'policy';
+    refreshIncomeMonthOptions(residentId, getCurrentMonth());
+    renderIncomeResidentSummary();
+    previewIncomeAllocation();
+}
+
+function setIncomeNoteSuggestion(text) {
+    const input = /** @type {HTMLTextAreaElement} */ (document.getElementById('incomeNotes'));
+    if (!input) return;
+    const current = String(input.value || '').trim();
+    input.value = current ? `${current} · ${text}` : text;
+    if (typeof input.focus === 'function') input.focus();
+    previewIncomeAllocation();
+}
+
 function resetIncomeFormFields() {
     /** @type {HTMLFormElement} */ (document.getElementById('incomeForm'))?.reset();
+    const residentSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeResident'));
+    if (residentSelect) residentSelect.value = '';
     const purposeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomePurpose'));
     if (purposeSelect) purposeSelect.value = 'subscription';
+    const modeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeAllocationMode'));
+    if (modeSelect) modeSelect.value = 'policy';
+    refreshIncomeMonthOptions('', getCurrentMonth());
     const monthSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeMonth'));
     const currentMonth = getCurrentMonth();
     if (monthSelect?.options && Array.from(monthSelect.options).some(option => option.value === currentMonth)) {
@@ -997,6 +1102,7 @@ function resetIncomeFormFields() {
         hintId: 'incomePurposeCashHint'
     });
     clearIncomeExtraLines();
+    renderIncomeResidentSummary();
     /** @type {HTMLElement} */ (document.getElementById('incomeAllocationPreview'))?.classList.add('hidden');
 }
 
@@ -1012,8 +1118,12 @@ function previewIncomeAllocation() {
         hintId: 'incomePurposeCashHint'
     });
     const isSubscription = purpose === 'subscription';
+    const policyOverride = getIncomeAllocationPolicyOverride();
+    const effectivePolicy = policyOverride || state.paymentAllocationPolicy;
     const monthLabel = document.getElementById('incomeMonthLabel');
     const monthSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeMonth'));
+    const modeWrap = document.getElementById('incomeAllocationModeWrap');
+    if (modeWrap) modeWrap.classList.toggle('hidden', !isSubscription);
     if (monthLabel) monthLabel.textContent = isSubscription ? 'شهر بداية التوزيع' : 'شهر تسجيل التحصيل';
     if (monthSelect && typeof monthSelect.setAttribute === 'function') {
         monthSelect.setAttribute('aria-label', isSubscription ? 'شهر بداية التوزيع' : 'شهر تسجيل التحصيل');
@@ -1021,7 +1131,7 @@ function previewIncomeAllocation() {
     const policyHelp = /** @type {any} */ (document.getElementById('incomeAllocationPolicyHelp'));
     if (policyHelp) {
         policyHelp.textContent = isSubscription
-            ? (state.paymentAllocationPolicy === 'selected_month_first'
+            ? (effectivePolicy === 'selected_month_first'
                 ? 'سيُسدد الشهر المحدد أولًا، ثم تُسوّى الشهور الأقدم، وبعدها الشهور التالية. راجع المعاينة قبل الحفظ.'
                 : 'سيُسدد أقدم شهر غير مسدد أولًا، ثم الأشهر التالية بالترتيب. راجع المعاينة قبل الحفظ.')
             : 'هذا الغرض لا يُوزَّع على أشهر الاشتراك؛ يُسجل كمبلغ مستقل في الصندوق المحدد.';
@@ -1035,17 +1145,24 @@ function previewIncomeAllocation() {
     const residentId = /** @type {any} */ (document.getElementById('incomeResident'))?.value || '';
     const amount = Number(/** @type {any} */ (document.getElementById('incomeAmount'))?.value);
     const month = /** @type {any} */ (document.getElementById('incomeMonth'))?.value || '';
+    const notes = String(/** @type {any} */ (document.getElementById('incomeNotes'))?.value || '').trim();
+    const resident = state.residents.find(item => item.id === residentId) || null;
+    const monthKey = typeof monthLabelToKey === 'function' ? monthLabelToKey(month) : null;
+    const currentKey = typeof monthLabelToKey === 'function' ? monthLabelToKey(getCurrentMonth()) : null;
+    const selectedMonthLate = Boolean(monthKey && currentKey && monthKey < currentKey);
     const outstandingHint = document.getElementById('incomeOutstandingHint');
     if (outstandingHint) {
-        const resident = state.residents.find(item => item.id === residentId);
         if (!resident || !month || !isSubscription) {
             outstandingHint.textContent = '';
         } else {
             const outstanding = getMonthOutstanding(resident, month);
             const debt = calculateCumulativeDebt(resident.id);
-            const parts = [outstanding > 0
-                ? `المتبقي على ${resident.name} في ${month}: ${fmtNum(outstanding)} ج.م`
-                : `لا يوجد متبقٍ على ${resident.name} في ${month}`];
+            const parts = [];
+            if (outstanding > 0) {
+                parts.push(`${selectedMonthLate ? 'شهر متأخر — ' : ''}المتبقي على ${resident.name} في ${month}: ${fmtNum(outstanding)} ج.م`);
+            } else {
+                parts.push(`لا يوجد متبقٍ على ${resident.name} في ${month}`);
+            }
             if (debt.count > 0) parts.push(`متأخرات سابقة: ${fmtNum(debt.totalDebt)} ج.م (${debt.count} شهر)`);
             outstandingHint.textContent = parts.join(' · ');
         }
@@ -1071,6 +1188,7 @@ function previewIncomeAllocation() {
             mixedTotal.classList.add('hidden');
         }
     }
+    renderIncomeResidentSummary();
     if (!ready) {
         preview.classList.add('hidden');
         if (submit) submit.disabled = false;
@@ -1091,6 +1209,12 @@ function previewIncomeAllocation() {
         : '';
 
     const cashAccountCode = /** @type {any} */ (document.getElementById('incomeCashAccount'))?.value || 'main';
+    const accountBalance = typeof getCashAccountBalance === 'function' ? getCashAccountBalance(cashAccountCode) : 0;
+    const balanceAfter = accountBalance + (Number.isFinite(amount) ? amount : 0);
+    const cashRowsHtml = `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>رصيد ${esc(crudCashAccountLabel(cashAccountCode))} قبل التحصيل</span><strong>${fmtNum(accountBalance)} ج.م</strong></div>`
+        + `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${hasExtras ? 'الرصيد بعد إضافة البند الأساسي' : 'الرصيد بعد التحصيل'}</span><strong class="text-emerald-400">${fmtNum(balanceAfter)} ج.م</strong></div>`;
+    const notesRowHtml = `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>ملاحظات الدفع</span><strong class="text-left">${esc(notes || '—')}</strong></div>`;
+
     if (!isSubscription) {
         preview.classList.remove('hidden');
         summary.textContent = hasExtras
@@ -1098,36 +1222,59 @@ function previewIncomeAllocation() {
             : `سيُسجل تحصيل «${crudIncomePurposeLabel(purpose)}» بمبلغ ${fmtNum(amount)} ج.م في ${crudCashAccountLabel(cashAccountCode)} دون توزيعه على أشهر الاشتراك.`;
         rows.innerHTML = `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الغرض</span><strong>${esc(crudIncomePurposeLabel(purpose))}</strong></div>`
             + `<div class="flex justify-between items-center gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`
-            + extraRowsHtml + totalRowsHtml;
+            + extraRowsHtml + cashRowsHtml + notesRowHtml + totalRowsHtml;
         if (submit) submit.disabled = hasExtras && !extraValidation.valid;
         return;
     }
 
-    const result = calculateIncomeAllocationPreview(residentId, amount, month);
+    const allocation = typeof calculateIncomeAllocationPreview === 'function'
+        ? calculateIncomeAllocationPreview(residentId, amount, month, 120, policyOverride)
+        : null;
     preview.classList.remove('hidden');
-    if (result.invalidStart) {
+    if (!allocation) {
+        summary.textContent = 'تعذر حساب توزيع المبلغ. أعد تحميل الصفحة وحاول مرة أخرى.';
+        rows.innerHTML = '';
+        if (submit) submit.disabled = true;
+        return;
+    }
+    const debtBefore = resident && typeof calculateCumulativeDebt === 'function'
+        ? calculateCumulativeDebt(resident.id).totalDebt
+        : 0;
+    const overduePaid = /** @type {Array<{ month: string, amount: number, amountCents: number }>} */ (allocation.allocations).reduce((sum, item) => {
+        const key = typeof monthLabelToKey === 'function' ? monthLabelToKey(item.month) : null;
+        const overdue = (typeof isSubscriptionMonthOverdue === 'function' && isSubscriptionMonthOverdue(item.month))
+            || Boolean(key && currentKey && key < currentKey);
+        return sum + (overdue ? item.amount : 0);
+    }, 0);
+    const debtAfter = Math.max(0, debtBefore - overduePaid);
+    const debtRowsHtml = `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${selectedMonthLate || overduePaid > 0 ? 'المتأخرات بعد الدفعة' : 'المتأخرات الحالية'}</span><strong class="${debtAfter > 0 ? 'text-amber-300' : 'text-emerald-400'}">${fmtNum(Math.max(0, debtAfter))} ج.م</strong></div>`;
+    if (allocation.invalidStart) {
         summary.textContent = 'لا يمكن توزيع التحصيل قبل تاريخ إنشاء الشقة.';
         rows.innerHTML = '';
         if (submit) submit.disabled = true;
         return;
     }
-    if (result.invalid || !result.allocations.length) {
+    if (allocation.invalid || !allocation.allocations.length) {
         summary.textContent = 'لا توجد اشتراكات مستحقة يمكن توزيع المبلغ عليها من هذا الشهر.';
         rows.innerHTML = '';
         if (submit) submit.disabled = true;
         return;
     }
 
-    summary.textContent = result.remainingCents > 0
-        ? `تم توزيع ${fmtNum(result.totalAllocated)} من ${fmtNum(amount)} ج.م. المتبقي ${fmtNum(result.remainingAmount)} ج.م خارج نطاق التوزيع؛ قلّل المبلغ.`
-        : `سيتم توزيع ${fmtNum(result.totalAllocated)} ج.م على ${result.allocations.length} شهر، بدءًا من أقدم شهر غير مسدد.`
+    const startDescription = effectivePolicy === 'selected_month_first' ? 'بدءًا من الشهر المحدد' : 'بدءًا من أقدم شهر غير مسدد';
+    summary.textContent = allocation.remainingCents > 0
+        ? `تم توزيع ${fmtNum(allocation.totalAllocated)} من ${fmtNum(amount)} ج.م. المتبقي ${fmtNum(allocation.remainingAmount)} ج.م خارج نطاق التوزيع؛ قلّل المبلغ.`
+        : `سيتم توزيع ${fmtNum(allocation.totalAllocated)} ج.م على ${allocation.allocations.length} شهر، ${startDescription}.`
+            + (selectedMonthLate ? ' الدفعة ستُسدد شهرًا متأخرًا.' : '')
             + (hasExtras ? ` إجمالي الدفعة ${fmtNum(collectedCents / 100)} ج.م.` : '');
-    rows.innerHTML = result.allocations.map(item =>
-        `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${esc(item.month)}</span><strong class="text-emerald-400">${fmtNum(item.amount)} ج.م</strong></div>`
-    ).join('') + extraRowsHtml
+    rows.innerHTML = allocation.allocations.map(item => {
+        const key = typeof monthLabelToKey === 'function' ? monthLabelToKey(item.month) : null;
+        const late = Boolean(key && currentKey && key < currentKey);
+        return `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${esc(item.month)}${late ? ' <span class="text-amber-300">· متأخر</span>' : ''}</span><strong class="text-emerald-400">${fmtNum(item.amount)} ج.م</strong></div>`;
+    }).join('') + extraRowsHtml
         + `<div class="flex justify-between items-center gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`
-        + totalRowsHtml;
-    if (submit) submit.disabled = result.remainingCents > 0 || (hasExtras && !extraValidation.valid);
+        + cashRowsHtml + debtRowsHtml + notesRowHtml + totalRowsHtml;
+    if (submit) submit.disabled = allocation.remainingCents > 0 || (hasExtras && !extraValidation.valid);
 }
 
 async function handleIncomeSubmit(e) {
@@ -1165,7 +1312,8 @@ async function handleIncomeSubmit(e) {
     }
 
     const isSubscription = purpose === 'subscription';
-    const allocation = isSubscription ? calculateIncomeAllocationPreview(residentId, amount, month) : null;
+    const policyOverride = isSubscription ? getIncomeAllocationPolicyOverride() : '';
+    const allocation = isSubscription ? calculateIncomeAllocationPreview(residentId, amount, month, 120, policyOverride) : null;
     if (isSubscription && (!allocation || allocation.invalid || !allocation.allocations.length || allocation.remainingCents > 0)) {
         previewIncomeAllocation();
         toast('تعذر توزيع كامل المبلغ على فترات الاشتراك. راجع المعاينة أو قلّل المبلغ.', 'error');
@@ -1217,7 +1365,7 @@ async function handleIncomeSubmit(e) {
     } else if (isSubscription && allocation) {
         logAction(
             'تحصيل موزع',
-            `${resident.name} - ${fmtNum(amount)} ج.م - ${getIncomePaymentMethodLabel(paymentMethod)} - ${crudCashAccountLabel(cashAccountCode)} - ${allocation.allocations.length} شهر - ${paymentReference}`
+            `${resident.name} - ${fmtNum(amount)} ج.م - ${getIncomePaymentMethodLabel(paymentMethod)} - ${crudCashAccountLabel(cashAccountCode)} - ${allocation.allocations.length} شهر${policyOverride === 'selected_month_first' ? ' - الشهر المحدد أولًا' : ''} - ${paymentReference}`
         );
     } else {
         logAction(
@@ -1239,6 +1387,7 @@ async function handleIncomeSubmit(e) {
                     : 'تم تسجيل التحصيل',
             'success'
         );
+        if (typeof openIncomeReceiptModal === 'function' && rows.length) openIncomeReceiptModal(rows[0].id);
     } finally {
         incomeSaving = false;
         if (submit) {
@@ -1263,10 +1412,10 @@ function openIncomeEditModal(id) {
     }
     editingIncomeId = payment.id;
     /** @type {any} */ (document.getElementById('incomeEditResidentSummary')).textContent =
-        resident.name + ' · شقة ' + resident.apartmentNumber;
+        crudApartmentLabel(resident.apartmentNumber) + ' · ' + resident.name;
     const monthSelect = /** @type {any} */ (document.getElementById('incomeEditMonth'));
-    monthSelect.innerHTML = getActiveBuildingMonths()
-        .map(month => '<option value="' + esc(month) + '">' + esc(month) + '</option>').join('');
+    monthSelect.innerHTML = crudIncomeMonthLabels(resident, [payment.month])
+        .map(month => '<option value="' + crudHtmlEscape(month) + '">' + crudHtmlEscape(crudIncomeMonthOptionLabel(resident, month)) + '</option>').join('');
     monthSelect.value = payment.month;
     /** @type {any} */ (document.getElementById('incomeEditAmount')).value = payment.amount;
     const paymentMethodSelect = /** @type {any} */ (document.getElementById('incomeEditPaymentMethod'));
