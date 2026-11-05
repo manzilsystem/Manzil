@@ -21,11 +21,11 @@ test('landlord report card exposes a gated real-PDF download action', () => {
 test('landlord report PDF export is manager-only, preview-gated, and validates the blob', () => {
     assert.match(reports, /async function exportLandlordReportPdf\(\)[\s\S]*?requireManager\(\)/);
     assert.match(reports, /selected && selected !== landlordReportMonth/);
-    assert.match(reports, /getLandlordReportSignature\(landlordReportMonth\) !== landlordReportSignature/);
+    assert.match(reports, /getLandlordReportSignature\(landlordReportMonth, landlordReportPurposeFilter\) !== landlordReportSignature/);
     assert.match(reports, /await ensurePdfLibrary\(\)/);
     assert.match(reports, /outputPdf\('blob'\)/);
     assert.match(reports, /pdfBlob\.type !== 'application\/pdf'/);
-    assert.match(reports, /manzil_landlord_report_\$\{monthKey \? monthKey\.slice\(0, 7\) : 'report'\}\.pdf/);
+    assert.match(reports, /manzil_landlord_report_\$\{monthKey \? monthKey\.slice\(0, 7\) : 'report'\}\$\{purposeSuffix\}\.pdf/);
     assert.match(reports, /landlord_report_pdf_generation_failed/);
 });
 

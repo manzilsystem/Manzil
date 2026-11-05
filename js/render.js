@@ -158,6 +158,7 @@ function populateSelects() {
     if (typeof populateIncomePurposeOptions === 'function') populateIncomePurposeOptions(purposeSelect, purposeSelect?.value || 'subscription');
     populateStatementResidentSelect();
     populatePeriodReportSelects(months, current);
+    if (typeof populateReportPurposeFilters === 'function') populateReportPurposeFilters();
 }
 
 function populatePeriodReportSelects(months, current = getCurrentMonth()) {
