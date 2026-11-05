@@ -382,5 +382,5 @@ test('owner receipts summarize mixed purposes and cashboxes', () => {
     assert.equal(receipts[0].purposeSummary, 'دفعة مختلطة');
     assert.equal(receipts[0].cashboxSummary, 'الخزنة الرئيسية، صندوق التطوير');
     assert.equal(receipts[0].reference, 'AB12CD34');
-    assert.match(accessSource, /<th>الغرض<\/th><th>شهر \/ بند<\/th><th>المبلغ<\/th>/);
+    assert.match(accessSource, /<th>الغرض<\/th><th>شهر \/ بند<\/th><th>الصندوق<\/th><th>المبلغ<\/th>/);
 });
