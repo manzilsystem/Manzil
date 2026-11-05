@@ -1,0 +1,121 @@
+    <!-- Secure sign-in and owner PIN onboarding -->
+    <div id="pinLockModal" role="dialog" aria-modal="true" aria-labelledby="pinLockTitle" aria-hidden="true" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="auth-shell app-card rounded-3xl shadow-2xl border">
+            <aside class="auth-brand-panel" aria-label="عن نظام Manzil">
+                <div class="auth-brand-head">
+                    <div class="auth-logo-frame manzil-full-logo" role="img" aria-label="شعار منزل | Manzil">
+                        <img src="icons/manzil-full-1.png" alt="" aria-hidden="true" width="256" height="64" decoding="async">
+                        <img src="icons/manzil-full-2.png" alt="" aria-hidden="true" width="256" height="64" decoding="async">
+                        <img src="icons/manzil-full-3.png" alt="" aria-hidden="true" width="256" height="64" decoding="async">
+                        <img src="icons/manzil-full-4.png" alt="" aria-hidden="true" width="256" height="64" decoding="async">
+                    </div>
+                    <div class="auth-brand-copy">
+                        <p class="auth-brand-overline">منظومة إدارة العقارات</p>
+                        <p class="auth-brand-description">إدارة عقارك ومتابعة مبناك… في مكان واحد.</p>
+                    </div>
+                </div>
+                <div class="auth-brand-benefits">
+                    <p><i class="fa-solid fa-building" aria-hidden="true"></i> الشقق والاشتراكات في مكان واحد</p>
+                    <p><i class="fa-solid fa-wallet" aria-hidden="true"></i> التحصيلات والمصروفات بوضوح</p>
+                    <p><i class="fa-solid fa-users" aria-hidden="true"></i> لكل مالك حسابه وصلاحياته</p>
+                </div>
+                <div class="auth-brand-footer">
+                    <p class="auth-trust-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> دخول آمن وصلاحيات واضحة لكل حساب.</p>
+                    <div class="auth-rights">
+                        <p>حقوق الملكية الفكرية © 2026 شركة سنا للبرمجيات. جميع الحقوق محفوظة.</p>
+                        <p>محمد عادل · <a href="tel:+201027767039" dir="ltr">01027767039</a></p>
+                    </div>
+                </div>
+            </aside>
+            <section class="auth-login-panel">
+                <div class="auth-form-heading">
+                    <p class="auth-kicker">أهلاً بيك في Manzil</p>
+                    <h2 id="pinLockTitle">دخول مدير المبنى</h2>
+                    <p id="pinLockHint">استخدم البريد الإلكتروني وكلمة مرور الحساب الإداري.</p>
+                </div>
+                <div class="auth-section-label">اختر نوع الحساب</div>
+                <div role="group" aria-label="نوع الحساب" class="auth-mode-grid">
+                    <button id="loginModeManager" type="button" aria-pressed="true" onclick="setLoginMode('manager')" class="auth-mode-button"><i class="fa-solid fa-building-user" aria-hidden="true"></i> مدير المبنى</button>
+                    <button id="loginModeOwner" type="button" aria-pressed="false" onclick="setLoginMode('owner')" class="auth-mode-button"><i class="fa-solid fa-house-user" aria-hidden="true"></i> مالك الشقة</button>
+                </div>
+                <p id="pinErrorMsg" class="text-sm text-rose-400 mt-3 hidden font-bold" role="alert"></p>
+                <form onsubmit="submitSupabaseLogin(event)" class="auth-login-form">
+                    <div class="auth-field">
+                        <label id="authIdentifierLabel" for="authIdentifier">البريد الإلكتروني للمدير</label>
+                        <input type="text" id="authIdentifier" autocomplete="username" required placeholder="name@example.com" aria-label="البريد الإلكتروني للمدير" inputmode="email" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left" dir="ltr">
+                    </div>
+                    <div class="auth-field">
+                        <label id="authPasswordLabel" for="authPassword">كلمة مرور المدير</label>
+                        <input type="password" id="authPassword" autocomplete="current-password" required placeholder="أدخل كلمة مرور المدير" aria-label="كلمة مرور المدير" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left" dir="ltr">
+                    </div>
+                    <button type="submit" class="auth-submit">تسجيل الدخول</button>
+                </form>
+                <button id="managerRecoveryBtn" type="button" onclick="requestManagerPasswordReset()" class="auth-link-button mt-3 hidden">نسيت كلمة مرور المدير؟ أرسل رابط استعادة إلى البريد</button>
+                <details id="ownerLoginHelp" class="auth-owner-help hidden mt-5 p-4 rounded-2xl border" aria-labelledby="ownerPinHelpTitle">
+                    <summary id="ownerPinHelpTitle" class="cursor-pointer list-none text-sm font-black"><i class="fa-solid fa-key ml-1 text-amber-300" aria-hidden="true"></i> مالك الشقة ولا تملك PIN؟ <i class="fa-solid fa-chevron-down mr-1 text-[10px] text-slate-400" aria-hidden="true"></i></summary>
+                    <p class="text-xs leading-6 mt-3">حساب المالك لا يُنشأ من شاشة الدخول؛ يجب أن يرتبط بالشقة الصحيحة. اطلب من مدير المبنى تسجيل رقم جوالك في بيانات الشقة ثم اختيار «حفظ الشقة وإنشاء / إعادة ضبط PIN المالك».</p>
+                    <p class="text-xs leading-6 mt-2">الرمز المؤقت 8 أرقام. بعد أول دخول، اختر PIN دائمًا من 6 أرقام. إذا لم يصلك الرمز، تواصل مع مدير المبنى.</p>
+                    <label for="ownerApartmentRequestNumber" class="block text-xs font-bold mt-3">رقم الشقة (لرسالة واتساب فقط)</label>
+                    <input type="text" id="ownerApartmentRequestNumber" maxlength="30" autocomplete="off" placeholder="اكتب رقم شقتك" aria-label="رقم الشقة لرسالة واتساب فقط" class="w-full app-input border rounded-xl px-3 py-2.5 mt-2 text-sm" dir="auto">
+                    <button type="button" onclick="requestOwnerPinOnWhatsApp()" class="auth-whatsapp-button mt-3"><i class="fa-brands fa-whatsapp ml-1" aria-hidden="true"></i> اطلب الرقم السري عبر واتساب</button>
+                    <p class="auth-help-note mt-2">يفتح الزر رسالة جاهزة إلى الإدارة فقط؛ لا يتم إرسال PIN تلقائيًا ولا يُنصح بمشاركته في مجموعة.</p>
+                    <p id="pinRequestNotice" class="hidden text-xs text-emerald-300 leading-6 mt-2" role="status" aria-live="polite">تم تجهيز طلبك في واتساب. اضغط «إرسال» لإبلاغ مدير المبنى، وسيُراجع طلبك ويرسل لك الرقم السري في أقرب وقت.</p>
+                </details>
+                <p class="auth-security-note">تُعرض بيانات المبنى بعد التحقق من الحساب، وتُحدد الصلاحيات بحسب دور المستخدم.</p>
+            </section>
+        </div>
+    </div>
+
+    <div id="passwordRecoveryModal" role="dialog" aria-modal="true" aria-labelledby="passwordRecoveryTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[80] hidden items-center justify-center p-4">
+        <form onsubmit="submitPasswordRecovery(event)" class="app-card border w-full max-w-sm rounded-3xl shadow-2xl p-6 space-y-4">
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/15 text-indigo-300 flex items-center justify-center"><i class="fa-solid fa-shield-keyhole"></i></div>
+                <h2 id="passwordRecoveryTitle" class="text-lg font-black">تعيين كلمة مرور جديدة</h2>
+                <p class="text-xs text-slate-400 leading-6">أنشئ كلمة مرور جديدة للمدير. بعد الحفظ ستحتاج إلى تسجيل الدخول مرة أخرى.</p>
+            </div>
+            <label class="settings-field" for="recoveryNewPassword"><span>كلمة المرور الجديدة</span><input id="recoveryNewPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" required class="w-full app-input border rounded-xl px-3 py-3 text-left" dir="ltr"></label>
+            <label class="settings-field" for="recoveryConfirmPassword"><span>تأكيد كلمة المرور</span><input id="recoveryConfirmPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" required class="w-full app-input border rounded-xl px-3 py-3 text-left" dir="ltr"></label>
+            <p id="passwordRecoveryError" class="hidden text-xs text-rose-400" role="alert" aria-live="polite"></p>
+            <button id="passwordRecoverySubmit" type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl font-bold">حفظ كلمة المرور</button>
+            <button type="button" onclick="cancelPasswordRecovery()" class="w-full app-input border rounded-xl py-3 text-sm font-bold text-slate-300">إلغاء والعودة لتسجيل الدخول</button>
+        </form>
+    </div>
+
+    <div id="ownerPinChangeModal" role="dialog" aria-modal="true" aria-labelledby="ownerPinChangeTitle" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[60] hidden items-center justify-center p-4">
+        <form onsubmit="submitFirstOwnerPinChange(event)" class="app-card w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center space-y-4 border">
+            <div class="w-14 h-14 bg-amber-500/20 text-amber-400 rounded-2xl mx-auto flex items-center justify-center text-xl"><i class="fa-solid fa-key"></i></div>
+            <h3 id="ownerPinChangeTitle" class="text-lg font-black">غيّر الرمز المؤقت</h3>
+            <p class="text-xs text-slate-400">أدخل PIN الحالي (6 أرقام للحسابات الحالية أو 8 أرقام إذا كان مؤقتًا)، ثم اختر PIN جديدًا من 6 أرقام ولا تشاركه مع أحد.</p>
+            <input type="password" id="currentOwnerPin" inputmode="numeric" minlength="6" maxlength="8" autocomplete="current-password" required placeholder="PIN الحالي — 6 أو 8 أرقام" aria-label="PIN الحالي من 6 أو 8 أرقام" class="w-full app-input border rounded-2xl px-3 py-3 text-center text-lg tracking-[0.5em] focus:outline-none focus:border-indigo-500" dir="ltr">
+            <input type="password" id="newOwnerPin" inputmode="numeric" minlength="6" maxlength="6" autocomplete="new-password" required placeholder="PIN جديد — 6 أرقام" aria-label="PIN جديد من 6 أرقام" class="w-full app-input border rounded-2xl px-3 py-3 text-center text-lg tracking-[0.5em] focus:outline-none focus:border-indigo-500" dir="ltr">
+            <input type="password" id="confirmOwnerPin" inputmode="numeric" minlength="6" maxlength="6" autocomplete="new-password" required placeholder="أعد كتابة PIN" aria-label="تأكيد PIN الجديد" class="w-full app-input border rounded-2xl px-3 py-3 text-center text-lg tracking-[0.5em] focus:outline-none focus:border-indigo-500" dir="ltr">
+            <p id="ownerPinChangeError" class="text-xs text-rose-400 hidden" role="alert"></p>
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-2xl">حفظ الرمز والدخول</button>
+        </form>
+    </div>
+
+    <div id="ownerTempPinModal" role="dialog" aria-modal="true" aria-labelledby="ownerTempPinTitle" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[60] hidden items-center justify-center p-4">
+        <div class="app-card w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center space-y-4 border">
+            <h3 id="ownerTempPinTitle" class="text-lg font-black">رمز الدخول المؤقت</h3>
+            <p id="ownerTempPinPhone" class="text-xs text-slate-400"></p>
+            <input id="ownerTempPinValue" readonly aria-label="PIN مؤقت للمالك" class="w-full app-input border rounded-2xl px-3 py-4 text-center text-3xl tracking-[0.6em] font-black" dir="ltr">
+            <p class="text-xs text-amber-300">سيفتح واتساب على رقم المالك المسجل برسالة خاصة. راجع الرقم والرسالة ثم اضغط «إرسال». لا ترسله في مجموعة؛ سيُطلب من المالك تغييره عند أول دخول.</p>
+            <button type="button" onclick="sendOwnerTempPinOnWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-2xl"><i class="fa-brands fa-whatsapp ml-1" aria-hidden="true"></i> إرسال للمالك عبر واتساب</button>
+            <button type="button" onclick="copyOwnerTempPin()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-2xl">نسخ الرمز</button>
+            <button type="button" onclick="closeOwnerTempPinModal()" class="w-full app-input border font-bold py-3 rounded-2xl">إغلاق</button>
+        </div>
+    </div>
+
+    <div id="buildingContextModal" role="dialog" aria-modal="true" aria-labelledby="buildingContextTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[70] hidden items-center justify-center p-4">
+        <section class="app-card border w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-4">
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/15 text-indigo-300 flex items-center justify-center"><i class="fa-solid fa-building"></i></div>
+                <h2 id="buildingContextTitle" class="text-xl font-black">اختر المبنى</h2>
+                <p class="text-xs text-slate-400 leading-6">هذا الحساب مرتبط بأكثر من مبنى أو دور. اختر سياق العمل قبل تحميل البيانات.</p>
+            </div>
+            <label for="buildingContextSelect" class="block text-xs font-bold">المبنى والدور</label>
+            <select id="buildingContextSelect" class="w-full app-input border rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-indigo-500"></select>
+            <button type="button" onclick="confirmBuildingSelection()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl text-sm font-bold">متابعة بهذا المبنى</button>
+        </section>
+    </div>
+
