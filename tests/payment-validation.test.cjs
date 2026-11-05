@@ -35,6 +35,7 @@ function loadHandler(residents, saveWithRollback = async () => true) {
         fmtNum: value => String(value),
         INCOME_PAYMENT_METHOD_LABELS: { cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي' },
         getIncomePaymentMethodLabel: method => ({ cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي' })[method] || 'غير محدد',
+        getCashAccountLabel: code => ({ main: 'الخزنة الرئيسية', development: 'صندوق التطوير', emergency: 'صندوق الصيانة الطارئة' })[code] || 'الخزنة الرئيسية',
         calculateIncomeAllocationPreview: (residentId, amount, month) => ({
             invalid: false,
             allocations: [{ month, amount: Number(amount) }],

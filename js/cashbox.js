@@ -102,15 +102,21 @@ function calculateCashboxAccountingTotals() {
         const amount = Number(value);
         return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
     };
+    const byAccount = () => Object.keys(CASH_ACCOUNTS).reduce((totals, code) => {
+        totals[code] = 0;
+        return totals;
+    }, {});
     const totals = {
         startingBalance: cents(state.startingBalance),
-        income: state.income.reduce((sum, row) => sum + cents(row.amount), 0),
-        expenses: { main: 0, development: 0, emergency: 0 }
+        income: byAccount(),
+        expenses: byAccount()
     };
-    state.expenses.forEach(expense => {
-        const code = CASH_ACCOUNTS[expense.cashAccountCode] ? expense.cashAccountCode : 'main';
-        totals.expenses[code] += cents(expense.amount);
-    });
+    const addToAccount = (buckets, row) => {
+        const code = CASH_ACCOUNTS[row.cashAccountCode] ? row.cashAccountCode : 'main';
+        buckets[code] += cents(row.amount);
+    };
+    state.income.forEach(income => addToAccount(totals.income, income));
+    state.expenses.forEach(expense => addToAccount(totals.expenses, expense));
     return totals;
 }
 
@@ -127,14 +133,13 @@ function syncCashboxBalancesAfterSnapshot() {
 
     const previous = persistedCashTotals;
     const balances = state.cashAccountBalances || { main: 0, development: 0, emergency: 0 };
-    balances.main = (Math.round((Number(balances.main) || 0) * 100)
-        + next.startingBalance - previous.startingBalance
-        + next.income - previous.income
-        - next.expenses.main + previous.expenses.main) / 100;
-    balances.development = (Math.round((Number(balances.development) || 0) * 100)
-        - next.expenses.development + previous.expenses.development) / 100;
-    balances.emergency = (Math.round((Number(balances.emergency) || 0) * 100)
-        - next.expenses.emergency + previous.expenses.emergency) / 100;
+    for (const code of Object.keys(CASH_ACCOUNTS)) {
+        const startingDelta = code === 'main' ? next.startingBalance - previous.startingBalance : 0;
+        balances[code] = (Math.round((Number(balances[code]) || 0) * 100)
+            + startingDelta
+            + next.income[code] - previous.income[code]
+            - next.expenses[code] + previous.expenses[code]) / 100;
+    }
     state.cashAccountBalances = balances;
     persistedCashTotals = next;
     return true;

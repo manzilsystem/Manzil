@@ -21,7 +21,7 @@ test('new collections and edited collections require one of the supported paymen
     }
     assert.match(crud, /const paymentMethod = document\.getElementById\('incomePaymentMethod'\)\.value/);
     assert.match(crud, /paymentMethod,/);
-    assert.match(crud, /relatedPayments\.forEach\(item => \{ item\.paymentMethod = paymentMethod; \}\)/);
+    assert.match(crud, /relatedPayments\.forEach\(item => \{\s+item\.paymentMethod = paymentMethod;/);
 });
 
 test('payment method is loaded, persisted, displayed and included in WhatsApp receipts', () => {

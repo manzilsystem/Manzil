@@ -64,6 +64,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .app-input { background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-color); }
 .app-input:user-invalid:not(:focus) { border-color: #fb7185; box-shadow: 0 0 0 1px rgba(251, 113, 133, .18); }
+.cash-account-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .12rem .5rem;
+    border-radius: .65rem;
+    border: 1px solid color-mix(in srgb, var(--accent-color) 38%, transparent);
+    background: color-mix(in srgb, var(--accent-color) 12%, transparent);
+    color: var(--text-main);
+    font-size: .62rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.cash-account-tag i { color: var(--accent-color); font-size: .6rem; }
 .report-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; min-width: 0; }
 .report-card-heading { display: flex; align-items: flex-start; gap: .65rem; min-width: 0; }
 .report-card-icon {

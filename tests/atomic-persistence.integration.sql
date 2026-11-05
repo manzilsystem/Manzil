@@ -573,6 +573,63 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'cash transfer audit record is missing';
     END IF;
+
+    -- A collection can be deposited straight into a fund account instead of the main box.
+    v_payload := '{
+      "building":{"name":"Cashbox test","manager_name":"Manager","manager_phone":null,"default_subscription":100,"starting_balance":0,"current_theme":"dark"},
+      "residents":[{"id":"30000000-0000-4000-8000-000000000001","user_id":"10000000-0000-4000-8000-000000000002","name":"Owner A","apartment_number":"A1","monthly_amount":100,"notes":null,"created_at":"2026-11-02T10:00:00Z"}],
+      "income":[
+        {"id":"50000000-0000-4000-8000-000000000001","resident_id":"30000000-0000-4000-8000-000000000001","amount":100,"month":"2026-11","paid_at":"2026-11-02T10:00:00Z","cash_account_code":"main"},
+        {"id":"50000000-0000-4000-8000-000000000002","resident_id":"30000000-0000-4000-8000-000000000001","amount":25,"month":"2026-11","paid_at":"2026-11-02T11:00:00Z","cash_account_code":"emergency"}
+      ],
+      "expenses":[{"id":"60000000-0000-4000-8000-000000000010","title":"Development expense","amount":20,"category":"تطوير","month":"2026-11","cash_account_code":"development"}],
+      "notices":[],"audit_logs":[],
+      "subscription_rates":[{"resident_id":"30000000-0000-4000-8000-000000000001","effective_month":"2026-11-01","monthly_amount":125}]
+    }'::jsonb;
+
+    v_result := public.persist_building_snapshot(
+        v_building,
+        (v_result->>'version')::bigint,
+        '40000000-0000-4000-8000-000000000015',
+        v_payload
+    );
+    IF v_result->>'ok' <> 'true'
+       OR (SELECT cash_account_code FROM public.income
+           WHERE id = '50000000-0000-4000-8000-000000000002') <> 'emergency' THEN
+        RAISE EXCEPTION 'income cash account persistence failed: %', v_result;
+    END IF;
+
+    v_summary := public.get_cashbox_summary(v_building);
+    IF (v_summary#>>'{balances,main}')::numeric <> 70
+       OR (v_summary#>>'{balances,development}')::numeric <> 10
+       OR (v_summary#>>'{balances,emergency}')::numeric <> 25 THEN
+        RAISE EXCEPTION 'collection did not route into the chosen cash account: %', v_summary;
+    END IF;
+
+    BEGIN
+        PERFORM public.persist_building_snapshot(
+            v_building,
+            (v_result->>'version')::bigint,
+            '40000000-0000-4000-8000-000000000016',
+            jsonb_set(v_payload, '{income,1,cash_account_code}', '"vault"'::jsonb)
+        );
+        RAISE EXCEPTION 'unknown income cash account unexpectedly committed';
+    EXCEPTION WHEN SQLSTATE '22023' THEN
+        NULL;
+    END;
+
+    -- A writer that predates the column must not move an allocated collection back.
+    v_result := public.persist_building_snapshot(
+        v_building,
+        (v_result->>'version')::bigint,
+        '40000000-0000-4000-8000-000000000017',
+        jsonb_set(v_payload, '{income,1}', (v_payload->'income'->1) - 'cash_account_code')
+    );
+    IF v_result->>'ok' <> 'true'
+       OR (SELECT cash_account_code FROM public.income
+           WHERE id = '50000000-0000-4000-8000-000000000002') <> 'emergency' THEN
+        RAISE EXCEPTION 'legacy snapshot reset an allocated collection: %', v_result;
+    END IF;
 END;
 $cashbox$;
 
