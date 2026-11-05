@@ -1,3 +1,4 @@
+// @ts-check
 let monthlyCloseLastReport = null;
 
 const monthlyCloseAccounts = [
@@ -8,7 +9,7 @@ const monthlyCloseAccounts = [
 
 function invalidateMonthlyClosePreview() {
     monthlyCloseLastReport = null;
-    const exportButton = document.getElementById('monthlyClosePdfButton');
+    const exportButton = /** @type {HTMLButtonElement} */ (document.getElementById('monthlyClosePdfButton'));
     if (exportButton) exportButton.disabled = true;
     const status = document.getElementById('monthlyCloseReportStatus');
     if (status) status.textContent = 'تغيّر الشهر المحدد. أنشئ معاينة جديدة قبل التصدير.';
@@ -74,11 +75,11 @@ async function loadMonthlyCloseReport() {
         return;
     }
 
-    const monthSelect = document.getElementById('monthlyCloseMonthSelect');
+    const monthSelect = /** @type {HTMLSelectElement} */ (document.getElementById('monthlyCloseMonthSelect'));
     const preview = document.getElementById('monthlyClosePreview');
     const status = document.getElementById('monthlyCloseReportStatus');
-    const reviewButton = document.getElementById('monthlyCloseReviewButton');
-    const exportButton = document.getElementById('monthlyClosePdfButton');
+    const reviewButton = /** @type {HTMLButtonElement} */ (document.getElementById('monthlyCloseReviewButton'));
+    const exportButton = /** @type {HTMLButtonElement} */ (document.getElementById('monthlyClosePdfButton'));
     const monthKey = monthLabelToKey(monthSelect && monthSelect.value);
 
     if (!monthKey || !preview || !status) {
@@ -180,7 +181,7 @@ async function exportMonthlyClosePdf() {
     }
 
     let root = null;
-    const button = document.getElementById('monthlyClosePdfButton');
+    const button = /** @type {HTMLButtonElement} */ (document.getElementById('monthlyClosePdfButton'));
     if (button) button.disabled = true;
 
     try {
@@ -194,7 +195,7 @@ async function exportMonthlyClosePdf() {
         root.innerHTML = renderMonthlyClosePdfHtml(report.data);
         document.body.appendChild(root);
 
-        const pdfBlob = await window.html2pdf().set({
+        const pdfBlob = await /** @type {any} */ (window.html2pdf)().set({
             margin: 8,
             filename: 'manzil_monthly_close_' + report.monthKey.slice(0, 7) + '.pdf',
             image: { type: 'jpeg', quality: 0.98 },
