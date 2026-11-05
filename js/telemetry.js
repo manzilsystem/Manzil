@@ -1,5 +1,5 @@
 (() => {
-    const RELEASE = 'manzil-v102';
+    const RELEASE = 'manzil-v103';
     const STORAGE_KEY = 'manzil-error-log';
     const MAX_STORED = 20;
     const MAX_SENT = 10;
@@ -33,7 +33,7 @@
             message: trim(errorSummary(payload), MAX_MESSAGE),
             source: trim(String(payload?.filename || '').split('/').pop(), 80),
             line: Number(payload?.lineno) || null,
-            column: Number(payload?.colno) || null,
+            column_number: Number(payload?.colno) || null,
             stack: trim(error?.stack || payload?.reason?.stack || '', MAX_STACK),
             role: trim(window.currentUserRole || 'anonymous', 20),
             release: RELEASE,

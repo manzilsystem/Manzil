@@ -81,7 +81,7 @@ test('reported fields are sanitized and contain no request payload data', () => 
 
     const body = JSON.parse(requests[0].init.body);
     assert.deepEqual(Object.keys(body).sort(), [
-        'column', 'created_at', 'kind', 'line', 'message', 'path', 'release', 'role', 'source', 'stack'
+        'column_number', 'created_at', 'kind', 'line', 'message', 'path', 'release', 'role', 'source', 'stack'
     ]);
     assert.equal(body.source, 'app.js');
     assert.equal(body.role, 'manager');
@@ -124,4 +124,19 @@ test('client_errors table is append-only for anonymous and authenticated clients
     assert.match(migration, /raise exception 'client_errors_capacity_reached'/);
     assert.doesNotMatch(migration, /grant select/i);
     assert.doesNotMatch(migration, /grant update/i);
+});
+
+test('every reported field is a real client_errors column', () => {
+    const tableBlock = /create table if not exists public\.client_errors \(([\s\S]*?)\n\);/.exec(migration)[1];
+    const columns = tableBlock.split('\n')
+        .map(line => /^\s*([a-z_]+)\s+[a-z]/.exec(line.trim()))
+        .filter(Boolean)
+        .map(match => match[1]);
+
+    const { listeners, requests } = makeHarness();
+    dispatchError(listeners);
+
+    Object.keys(JSON.parse(requests[0].init.body)).forEach(key => {
+        assert.ok(columns.includes(key), `${key} is not a column of client_errors`);
+    });
 });
