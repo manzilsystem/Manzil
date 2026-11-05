@@ -32,6 +32,10 @@ test('mobile action bars and filters can wrap without horizontal overflow', () =
 });
 
 
+test('footer contact link keeps a usable touch height', () => {
+    assert.match(css, /#appCopyright a \{ display: inline-flex; align-items: center; min-height: 24px; padding-inline: \.2rem; \}/);
+});
+
 test('form controls expose accessible names for assistive technology', () => {
     const controlIds = [
         'filterIncomeMonth',

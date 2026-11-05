@@ -399,6 +399,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 .auth-trust-note i { color: #a5b4fc; }
 .auth-rights { color: #94a3b8; }
 .auth-rights a, #appCopyright a { color: #c7d2fe; text-decoration: underline; text-underline-offset: 2px; }
+#appCopyright a { display: inline-flex; align-items: center; min-height: 24px; padding-inline: .2rem; }
 .auth-owner-help {
     border-color: color-mix(in srgb, var(--accent-color) 40%, var(--border-color));
     background: color-mix(in srgb, var(--accent-color) 9%, var(--bg-input));
