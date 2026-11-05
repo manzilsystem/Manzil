@@ -4,6 +4,10 @@ const path = require('node:path');
 const test = require('node:test');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+const css = fs.readFileSync(path.join(__dirname, '..', 'css', 'style.css'), 'utf8');
+const reports = fs.readFileSync(path.join(__dirname, '..', 'js', 'reports.js'), 'utf8');
+const render = fs.readFileSync(path.join(__dirname, '..', 'js', 'render.js'), 'utf8');
+const stateSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'state.js'), 'utf8');
 const reportTab = html.slice(html.indexOf('id="tab-reports"'), html.indexOf('id="appCopyright"'));
 
 test('landlord report remains immediately visible in the reports tab', () => {
@@ -25,4 +29,57 @@ test('report disclosure summaries do not contain interactive buttons', () => {
     for (const summary of reportTab.matchAll(/<summary[\s\S]*?<\/summary>/g)) {
         assert.doesNotMatch(summary[0], /<button\b/);
     }
+});
+
+test('changing the report month invalidates the preview and output actions', () => {
+    assert.match(reportTab, /id="reportMonthSelect"[^>]*onchange="invalidateLandlordReportPreview\(\)"/);
+    assert.match(reportTab, /id="landlordReportPreview"[^>]*aria-live="polite"/);
+    assert.match(reportTab, /id="reportPrintBtn"[^>]*onclick="printLandlordReport\(\)"[^>]*disabled/);
+    assert.match(reportTab, /id="reportExportBtn"[^>]*onclick="exportToCSV\(\)"[^>]*disabled/);
+    assert.match(reports, /function invalidateLandlordReportIfStale\(\)/);
+    assert.match(render, /invalidateLandlordReportIfStale\(\)/);
+});
+
+test('export is scoped to the previewed month and uses a month-based filename', () => {
+    assert.match(reports, /function exportToCSV\(month = landlordReportMonth\)/);
+    assert.match(reports, /const \{ income: inc, expenses: exp \} = getLandlordReportData\(reportMonth\)/);
+    assert.match(reports, /manzil_report_\$\{monthKey \? monthKey\.slice\(0, 7\) : Date\.now\(\)\}\.csv/);
+    assert.doesNotMatch(reports, /state\.income\.forEach\(i =>/);
+});
+
+test('landlord report aggregates money in cents and formats with fmtMoney', () => {
+    assert.match(stateSource, /function toCents\(value\)/);
+    assert.match(stateSource, /function fmtMoney\(value\)/);
+    assert.match(reports, /const totalIncCents = inc\.reduce\(\(sum, i\) => sum \+ toCents\(i\.amount\), 0\)/);
+    assert.match(reports, /const totalExpCents = exp\.reduce\(\(sum, e\) => sum \+ toCents\(e\.amount\), 0\)/);
+    assert.match(reports, /totals\.cents \+= toCents\(payment\.amount\)/);
+    assert.match(reports, /fmtMoney\(netCents \/ 100\)/);
+    assert.doesNotMatch(reports, /parseFloat\(i\.amount\)/);
+});
+
+test('reports surface shares card headers, stat tiles, and tabular numerals', () => {
+    assert.match(css, /\.report-card-head \{/);
+    assert.match(css, /\.report-card-title \{/);
+    assert.match(css, /\.report-stat-value \{[^}]*font-variant-numeric: tabular-nums/);
+    assert.match(css, /\.report-amount \{ font-variant-numeric: tabular-nums/);
+    assert.match(css, /#printableArea \.app-card, #printableArea \.app-input, #printableArea \.report-stat \{/);
+    assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 4);
+    assert.equal((reports.match(/class="report-stat"/g) || []).length, 3);
+    assert.equal((render.match(/class="report-stat"/g) || []).length, 4);
+    assert.match(reports, /text-emerald-400 report-amount/);
+    assert.match(render, /text-rose-400 shrink-0 report-amount/);
+});
+
+test('printing a landlord report hides the rest of the reports tab', () => {
+    assert.match(reports, /function printLandlordReport\(\)/);
+    assert.match(reports, /document\.body\.classList\.add\('print-landlord'\)/);
+    assert.match(reports, /meta\.textContent = `تقرير \$\{landlordReportMonth\}/);
+    assert.match(css, /body\.print-landlord #tab-reports > :not\(#landlordReportPrint\) \{ display: none !important; \}/);
+    assert.match(css, /body\.print-landlord #landlordReportPrint \{/);
+});
+
+test('audit log reports how many entries are shown and offers load more', () => {
+    assert.match(render, /عرض \$\{fmtNum\(visible\.length\)\} من \$\{fmtNum\(filtered\.length\)\}/);
+    assert.match(render, /renderAuditLog\(\{ more: true \}\)/);
+    assert.doesNotMatch(render, /filtered\.slice\(0, 100\)/);
 });

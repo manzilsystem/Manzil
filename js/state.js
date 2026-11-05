@@ -2,6 +2,13 @@ const monthsNames = ['يناير','فبراير','مارس','أبريل','ماي
 
 function fmtNum(n) { return (Number(n) || 0).toLocaleString('en-US'); }
 
+function toCents(value) {
+    const amount = Number(value);
+    return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
+}
+
+function fmtMoney(value) { return `${fmtNum(value)} ج.م`; }
+
 function esc(s) {
     if (s === null || s === undefined) return '';
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

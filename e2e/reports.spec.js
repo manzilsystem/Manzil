@@ -1,0 +1,135 @@
+const { test, expect } = require('@playwright/test');
+const { loadShell } = require('./helpers');
+
+async function openReports(page) {
+    await loadShell(page);
+    await page.waitForFunction(() => typeof window.switchTab === 'function' && typeof renderAll === 'function');
+    await page.evaluate(() => {
+        window.currentUserRole = 'manager';
+        document.body.classList.remove('session-locked', 'modal-open', 'owner-mode');
+        document.getElementById('pinLockModal').classList.add('hidden');
+        state.buildingName = 'عمارة الاختبار';
+        state.managerName = 'مدير الاختبار';
+        state.residents = [{ id: 'r1', name: 'أحمد', apartmentNumber: '3', monthlyAmount: 100, createdAt: '2024-01-01T00:00:00.000Z' }];
+        state.income = [
+            { id: 'i1', residentId: 'r1', month: 'يناير 2024', amount: 100, paymentMethod: 'cash' },
+            { id: 'i2', residentId: 'r1', month: 'فبراير 2024', amount: 900, paymentMethod: 'cash' }
+        ];
+        state.expenses = [];
+        renderAll();
+        switchTab('reports');
+    });
+    await expect(page.locator('#tab-reports')).toBeVisible();
+}
+
+async function previewMonth(page, month) {
+    await page.locator('#reportMonthSelect').selectOption(month);
+    await page.getByRole('button', { name: 'معاينة', exact: true }).click();
+}
+
+test('report output stays disabled until a fresh preview exists', async ({ page }) => {
+    await openReports(page);
+    const printButton = page.locator('#reportPrintBtn');
+    const exportButton = page.locator('#reportExportBtn');
+
+    await expect(printButton).toBeDisabled();
+    await expect(exportButton).toBeDisabled();
+
+    await previewMonth(page, 'يناير 2024');
+    await expect(page.locator('#landlordReportPreview')).toContainText('تقرير يناير 2024');
+    await expect(printButton).toBeEnabled();
+    await expect(exportButton).toBeEnabled();
+
+    await page.locator('#reportMonthSelect').selectOption('فبراير 2024');
+    await expect(page.locator('#landlordReportPreview')).toContainText('تغيّر الشهر أو البيانات');
+    await expect(printButton).toBeDisabled();
+    await expect(exportButton).toBeDisabled();
+});
+
+test('editing report data invalidates the generated preview', async ({ page }) => {
+    await openReports(page);
+    await previewMonth(page, 'يناير 2024');
+    await expect(page.locator('#reportExportBtn')).toBeEnabled();
+
+    await page.evaluate(() => {
+        state.income.push({ id: 'i3', residentId: 'r1', month: 'يناير 2024', amount: 50, paymentMethod: 'cash' });
+        renderAll();
+    });
+
+    await expect(page.locator('#landlordReportPreview')).toContainText('تغيّرت البيانات');
+    await expect(page.locator('#reportPrintBtn')).toBeDisabled();
+    await expect(page.locator('#reportExportBtn')).toBeDisabled();
+});
+
+test('CSV export downloads only the previewed month', async ({ page }) => {
+    await openReports(page);
+    await previewMonth(page, 'يناير 2024');
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#reportExportBtn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('manzil_report_2024-01.csv');
+
+    const stream = await download.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const csv = Buffer.concat(chunks).toString('utf8');
+    expect(csv).toContain('يناير 2024');
+    expect(csv).not.toContain('فبراير 2024');
+});
+
+test('printing a report hides every other reports card', async ({ page }) => {
+    await openReports(page);
+    await previewMonth(page, 'يناير 2024');
+    await page.evaluate(() => { window.print = () => { window.__printCalls = (window.__printCalls || 0) + 1; }; });
+
+    await page.locator('#reportPrintBtn').click();
+    const printed = await page.evaluate(() => ({
+        calls: window.__printCalls,
+        scoped: document.body.classList.contains('print-landlord'),
+        title: document.getElementById('printBuildingTitle').textContent,
+        meta: document.getElementById('printBuildingMeta').textContent
+    }));
+    expect(printed.calls).toBe(1);
+    expect(printed.scoped).toBe(true);
+    expect(printed.title).toContain('تقرير الملاك');
+    expect(printed.meta).toContain('يناير 2024');
+
+    await page.emulateMedia({ media: 'print' });
+    const scopedStyles = await page.evaluate(() => ({
+        preview: getComputedStyle(document.getElementById('landlordReportPrint')).display,
+        monthlyClose: getComputedStyle(document.querySelector('#tab-reports > details')).display,
+        controls: getComputedStyle(document.querySelector('#landlordReportPrint .no-print')).display
+    }));
+    expect(scopedStyles.preview).not.toBe('none');
+    expect(scopedStyles.monthlyClose).toBe('none');
+    expect(scopedStyles.controls).toBe('none');
+
+    await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+    const restored = await page.evaluate(() => ({
+        scoped: document.body.classList.contains('print-landlord'),
+        title: document.getElementById('printBuildingTitle').textContent
+    }));
+    expect(restored.scoped).toBe(false);
+    expect(restored.title).toContain('كشف حساب مالي');
+});
+
+test('audit log reports the visible count and loads more entries', async ({ page }) => {
+    await openReports(page);
+    await page.evaluate(() => {
+        state.auditLogs = Array.from({ length: 60 }, (_, index) => ({
+            id: `audit-${index}`,
+            action: 'إضافة تحصيل',
+            details: `عملية ${index}`,
+            actorName: 'المدير',
+            date: new Date().toISOString()
+        }));
+        renderAuditLog();
+    });
+
+    const container = page.locator('#auditLogContainer');
+    await expect(container).toContainText('عرض 50 من 60');
+    await container.getByRole('button', { name: /عرض المزيد/ }).click();
+    await expect(container).toContainText('عرض 60 من 60');
+    await expect(container.getByRole('button', { name: /عرض المزيد/ })).toHaveCount(0);
+});
