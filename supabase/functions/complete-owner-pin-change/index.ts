@@ -44,7 +44,7 @@ async function hashPhone(phone: string, secret: string): Promise<string> {
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
 }
 
-Deno.serve(async (request: Request) => {
+export async function handleRequest(request: Request): Promise<Response> {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (request.method !== 'POST') return json(405, { error: 'method_not_allowed' })
 
@@ -178,4 +178,8 @@ Deno.serve(async (request: Request) => {
   }
 
   return json(200, { ok: true })
-})
+}
+
+if (import.meta.main) {
+  Deno.serve(handleRequest)
+}
