@@ -64,10 +64,22 @@ test('reports surface shares card headers, stat tiles, and tabular numerals', ()
     assert.match(css, /\.report-amount \{ font-variant-numeric: tabular-nums/);
     assert.match(css, /#printableArea \.app-card, #printableArea \.app-input, #printableArea \.report-stat \{/);
     assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 4);
-    assert.equal((reports.match(/class="report-stat"/g) || []).length, 3);
+    assert.equal((reports.match(/class="report-stat"/g) || []).length, 6);
     assert.equal((render.match(/class="report-stat"/g) || []).length, 4);
     assert.match(reports, /text-emerald-400 report-amount/);
     assert.match(render, /text-rose-400 shrink-0 report-amount/);
+});
+
+test('landlord report compares expected dues with collections', () => {
+    assert.match(reports, /function getMonthlyBillingTotals\(month\)/);
+    assert.match(reports, /getSubscriptionAmountForMonth\(resident, month\)/);
+    assert.match(reports, /getMonthOutstanding\(resident, month\)/);
+    assert.match(reports, /const \{ expectedCents, outstandingCents \} = getMonthlyBillingTotals\(m\)/);
+    assert.match(reports, /collectionRate/);
+    assert.match(reports, /isResidentActiveInMonth/);
+    assert.match(reports, /function getExpenseCategoryTotals\(expenses\)/);
+    assert.match(reports, /state\.defaultSubscription \?\? ''/);
+    assert.match(reports, /state\.residents \|\| \[\]/);
 });
 
 test('printing a landlord report hides the rest of the reports tab', () => {

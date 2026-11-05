@@ -37,6 +37,7 @@ test('report output stays disabled until a fresh preview exists', async ({ page 
 
     await previewMonth(page, 'يناير 2024');
     await expect(page.locator('#landlordReportPreview')).toContainText('تقرير يناير 2024');
+    await expect(page.locator('#landlordReportPreview')).toContainText('المستحق');
     await expect(printButton).toBeEnabled();
     await expect(exportButton).toBeEnabled();
 
@@ -53,6 +54,21 @@ test('editing report data invalidates the generated preview', async ({ page }) =
 
     await page.evaluate(() => {
         state.income.push({ id: 'i3', residentId: 'r1', month: 'يناير 2024', amount: 50, paymentMethod: 'cash' });
+        renderAll();
+    });
+
+    await expect(page.locator('#landlordReportPreview')).toContainText('تغيّرت البيانات');
+    await expect(page.locator('#reportPrintBtn')).toBeDisabled();
+    await expect(page.locator('#reportExportBtn')).toBeDisabled();
+});
+
+test('editing a subscription invalidates the generated preview', async ({ page }) => {
+    await openReports(page);
+    await previewMonth(page, 'يناير 2024');
+    await expect(page.locator('#reportExportBtn')).toBeEnabled();
+
+    await page.evaluate(() => {
+        state.residents[0].monthlyAmount = 150;
         renderAll();
     });
 

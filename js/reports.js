@@ -12,13 +12,52 @@ function buildResidentIndex() {
     return new Map((state.residents || []).map(resident => [resident.id, resident]));
 }
 
+function isResidentActiveInMonth(resident, monthKey) {
+    if (!resident || !monthKey) return false;
+    if (!resident.createdAt) return true;
+    const createdAt = new Date(resident.createdAt);
+    if (Number.isNaN(createdAt.getTime())) return true;
+    const createdKey = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}-01`;
+    return createdKey <= monthKey;
+}
+
+function getMonthlyBillingTotals(month) {
+    const monthKey = monthLabelToKey(month);
+    const totals = { expectedCents: 0, outstandingCents: 0 };
+    (state.residents || []).forEach(resident => {
+        if (!isResidentActiveInMonth(resident, monthKey)) return;
+        totals.expectedCents += toCents(getSubscriptionAmountForMonth(resident, month));
+        totals.outstandingCents += toCents(getMonthOutstanding(resident, month));
+    });
+    return totals;
+}
+
+function getExpenseCategoryTotals(expenses) {
+    const totals = new Map();
+    expenses.forEach(expense => {
+        const label = String(expense.category || '').trim() || 'غير مصنف';
+        const current = totals.get(label) || { count: 0, cents: 0 };
+        current.count += 1;
+        current.cents += toCents(expense.amount);
+        totals.set(label, current);
+    });
+    return Array.from(totals.entries()).sort((a, b) => b[1].cents - a[1].cents);
+}
+
 function getSelectedReportMonth() {
     return String(document.getElementById('reportMonthSelect')?.value || '');
 }
 
 function getLandlordReportSignature(month) {
     const { income, expenses } = getLandlordReportData(month);
-    return JSON.stringify([state.buildingName || '', state.managerName || '', income, expenses]);
+    return JSON.stringify([
+        state.buildingName || '',
+        state.managerName || '',
+        state.defaultSubscription ?? '',
+        state.residents || [],
+        income,
+        expenses
+    ]);
 }
 
 function setLandlordReportActionsEnabled(enabled) {
@@ -57,6 +96,13 @@ function generateLandlordReport() {
     const totalIncCents = inc.reduce((sum, i) => sum + toCents(i.amount), 0);
     const totalExpCents = exp.reduce((sum, e) => sum + toCents(e.amount), 0);
     const netCents = totalIncCents - totalExpCents;
+    const { expectedCents, outstandingCents } = getMonthlyBillingTotals(m);
+    const collectionRate = expectedCents > 0 ? Math.round((totalIncCents / expectedCents) * 100) : null;
+    const expenseCategorySummary = getExpenseCategoryTotals(exp).map(([label, totals]) =>
+        '<div class="flex justify-between text-[11px] border-b border-slate-800 py-1"><span>' +
+        esc(label) + ' <span class="text-slate-500">(' + totals.count + ')</span></span>' +
+        '<span class="text-rose-400 report-amount">' + fmtMoney(totals.cents / 100) + '</span></div>'
+    ).join('');
     const paymentMethodTotals = new Map();
     inc.forEach(payment => {
         const label = getIncomePaymentMethodLabel(payment.paymentMethod);
@@ -78,8 +124,16 @@ function generateLandlordReport() {
                 <div class="report-stat"><p class="report-stat-label">مصروف</p><p class="report-stat-value text-rose-400">${fmtMoney(totalExpCents / 100)}</p></div>
                 <div class="report-stat"><p class="report-stat-label">صافي</p><p class="report-stat-value ${netCents>=0?'text-emerald-400':'text-rose-400'}">${fmtMoney(netCents / 100)}</p></div>
             </div>
+            <div class="grid grid-cols-3 gap-2">
+                <div class="report-stat"><p class="report-stat-label">المستحق</p><p class="report-stat-value">${fmtMoney(expectedCents / 100)}</p></div>
+                <div class="report-stat"><p class="report-stat-label">غير المحصّل</p><p class="report-stat-value ${outstandingCents > 0 ? 'text-amber-400' : 'text-emerald-400'}">${fmtMoney(outstandingCents / 100)}</p></div>
+                <div class="report-stat"><p class="report-stat-label">نسبة التحصيل</p><p class="report-stat-value">${collectionRate === null ? '—' : fmtNum(collectionRate) + '%'}</p></div>
+            </div>
             <div><p class="text-[10px] font-bold text-slate-400 mb-1">توزيع طرق الدفع:</p>
                 ${paymentMethodSummary || '<p class="text-slate-500 text-[10px]">لا يوجد</p>'}
+            </div>
+            <div><p class="text-[10px] font-bold text-slate-400 mb-1">تصنيفات المصروفات:</p>
+                ${expenseCategorySummary || '<p class="text-slate-500 text-[10px]">لا يوجد</p>'}
             </div>
             <div><p class="text-[10px] font-bold text-slate-400 mb-1">تفاصيل التحصيلات (${inc.length}):</p>
                 ${inc.length ? inc.map(i => { const r = residentsById.get(i.residentId); return '<div class="flex justify-between text-[11px] border-b border-slate-800 py-1 gap-2"><span>' + esc(r?.name || '—') + ' <span class="text-slate-500">· ' + esc(getIncomePaymentMethodLabel(i.paymentMethod)) + '</span></span><span class="text-emerald-400 shrink-0 report-amount">' + fmtMoney(toCents(i.amount) / 100) + '</span></div>'; }).join('') : '<p class="text-slate-500 text-[10px]">لا يوجد</p>'}
@@ -87,7 +141,7 @@ function generateLandlordReport() {
             <div><p class="text-[10px] font-bold text-slate-400 mb-1">تفاصيل المصروفات (${exp.length}):</p>
                 ${exp.length?exp.map(e => `<div class="flex justify-between text-[11px] border-b border-slate-800 py-1"><span>${esc(e.title)}</span><span class="text-rose-400 report-amount">${fmtMoney(toCents(e.amount) / 100)}</span></div>`).join(''):'<p class="text-slate-500 text-[10px]">لا يوجد</p>'}
             </div>
-            <div class="text-[10px] text-slate-500 text-center pt-2 border-t border-slate-700">تم الإنشاء: ${formatDate(new Date().toISOString())}</div>
+            <div class="text-[10px] text-slate-500 text-center pt-2 border-t border-slate-700 space-y-1"><p>المستحق محسوب بقيمة الاشتراك السارية في شهر التقرير.</p><p>تم الإنشاء: ${formatDate(new Date().toISOString())}</p></div>
         </div>`;
     landlordReportMonth = m;
     landlordReportSignature = getLandlordReportSignature(m);
