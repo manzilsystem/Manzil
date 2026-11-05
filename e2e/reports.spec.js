@@ -85,7 +85,7 @@ test('report output stays disabled until a fresh preview exists', async ({ page 
     await expect(page.locator('[data-report-nav="landlord"]')).toHaveClass(/is-ready/);
 
     await page.locator('#reportMonthSelect').selectOption('فبراير 2024');
-    await expect(page.locator('#landlordReportPreview')).toContainText('تغيّر الشهر أو البيانات');
+    await expect(page.locator('#landlordReportPreview')).toContainText('تغيّر الشهر أو الغرض أو البيانات');
     await expect(printButton).toBeDisabled();
     await expect(pdfButton).toBeDisabled();
     await expect(exportButton).toBeDisabled();
@@ -188,7 +188,7 @@ test('period report gates print and csv on the previewed range', async ({ page }
     await expect(exportButton).toBeEnabled();
 
     await page.locator('#periodReportTo').selectOption('يناير 2024');
-    await expect(preview).toContainText('تغيّرت الفترة أو البيانات');
+    await expect(preview).toContainText('تغيّرت الفترة أو الغرض أو البيانات');
     await expect(printButton).toBeDisabled();
     await expect(exportButton).toBeDisabled();
 
@@ -476,6 +476,118 @@ test('resident profile opens the statement for the same resident', async ({ page
     await expect(page.locator('#statementResidentSelect')).toHaveValue('r1');
     await expect(page.locator('#residentStatementPreview')).toContainText('كشف حساب ساكن');
     await expect(page.locator('#residentStatementPreview')).toContainText('أحمد');
+});
+
+test('landlord purpose filter scopes collections and replaces dues with purpose totals', async ({ page }) => {
+    await openReports(page);
+    await page.evaluate(() => {
+        state.income.push({ id: 'i3', residentId: 'r1', month: 'يناير 2024', amount: 50, paymentMethod: 'instapay', purposeCode: 'development' });
+        renderAll();
+    });
+
+    await openReportPanel(page, 'landlord');
+    await page.locator('#reportMonthSelect').selectOption('يناير 2024');
+    await page.locator('#landlordReportPurpose').selectOption('development');
+    await page.locator('#landlordReportPrint').getByRole('button', { name: 'معاينة', exact: true }).click();
+
+    const preview = page.locator('#landlordReportPreview');
+    await expect(preview).toContainText('الغرض: تطوير');
+    await expect(preview.locator('.report-stat', { hasText: 'تحصيل الغرض' })).toContainText('50 ج.م');
+    await expect(preview.locator('.report-stat', { hasText: 'عدد الحركات' })).toContainText('1');
+    await expect(preview.locator('.report-stat-label', { hasText: 'المستحق' })).toHaveCount(0);
+    await expect(preview.locator('.report-stat-label', { hasText: 'نسبة التحصيل' })).toHaveCount(0);
+    await expect(page.locator('#reportExportBtn')).toBeEnabled();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#reportExportBtn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('manzil_report_2024-01_development.csv');
+    const stream = await download.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const csv = Buffer.concat(chunks).toString('utf8');
+    expect(csv).toContain('"تطوير"');
+    expect(csv).toContain('"50"');
+    expect(csv).not.toContain('"اشتراك شهري"');
+
+    await page.locator('#landlordReportPurpose').selectOption('subscription');
+    await expect(preview).toContainText('تغيّر الشهر أو الغرض أو البيانات');
+    await expect(page.locator('#reportExportBtn')).toBeDisabled();
+});
+
+test('period purpose filter switches to purpose columns and scopes its csv', async ({ page }) => {
+    await openReports(page);
+    await page.evaluate(() => {
+        state.income.push(
+            { id: 'i3', residentId: 'r1', month: 'يناير 2024', amount: 50, paymentMethod: 'instapay', purposeCode: 'development' },
+            { id: 'i4', residentId: 'r1', month: 'فبراير 2024', amount: 70, paymentMethod: 'cash', purposeCode: 'development' }
+        );
+        renderAll();
+    });
+
+    await openReportPanel(page, 'period');
+    await page.locator('#periodReportPreset').selectOption('custom');
+    await page.locator('#periodReportFrom').selectOption('يناير 2024');
+    await page.locator('#periodReportTo').selectOption('فبراير 2024');
+    await page.locator('#periodReportPurpose').selectOption('development');
+    await page.locator('#periodReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+
+    const preview = page.locator('#periodReportPreview');
+    await expect(preview).toContainText('الغرض: تطوير');
+    await expect(preview.locator('.report-stat-label', { hasText: 'تحصيل الغرض' })).toBeVisible();
+    await expect(preview.locator('table thead')).toContainText('تحصيل الغرض');
+    await expect(preview.locator('table thead')).not.toContainText('غير المحصّل');
+    await expect(preview).toContainText('لا يظهران عند تصفية غرض آخر');
+    await expect(page.locator('#periodReportExportBtn')).toBeEnabled();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#periodReportExportBtn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('manzil_period_2024-01_2024-02_development.csv');
+    const stream = await download.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const csv = Buffer.concat(chunks).toString('utf8');
+    expect(csv).toContain('"الشهر","تحصيل الغرض","عدد الحركات","المصروف","الصافي"');
+    expect(csv).not.toContain('"المستحق"');
+    expect(csv).toContain('"تطوير"');
+});
+
+test('statement purpose filter scopes movements and hides the dues ledger', async ({ page }) => {
+    await openReports(page);
+    await page.evaluate(() => {
+        state.income.push({ id: 'i3', residentId: 'r1', month: 'يناير 2024', amount: 50, paymentMethod: 'instapay', purposeCode: 'development' });
+        renderAll();
+    });
+
+    await openReportPanel(page, 'statement');
+    await page.locator('#statementResidentSelect').selectOption('r1');
+    await page.locator('#statementPurpose').selectOption('development');
+    await page.locator('#residentStatementCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+
+    const preview = page.locator('#residentStatementPreview');
+    await expect(preview).toContainText('الغرض: تطوير');
+    await expect(preview.locator('.report-stat', { hasText: 'مدفوع الغرض' })).toContainText('50 ج.م');
+    await expect(preview.locator('.report-stat-label', { hasText: 'إجمالي المستحق' })).toHaveCount(0);
+    await expect(preview.locator('.statement-table')).toHaveCount(0);
+    await expect(preview).toContainText('حركات غرض «تطوير» دون جدول المستحقات');
+    await expect(page.locator('#statementCsvBtn')).toBeEnabled();
+    await expect(page.locator('#unitReportPdfBtn')).toBeEnabled();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#statementCsvBtn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/^manzil_statement_3_\d{4}-\d{2}_development\.csv$/);
+    const stream = await download.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const csv = Buffer.concat(chunks).toString('utf8');
+    expect(csv).toContain('"الغرض","تطوير"');
+    expect(csv).not.toContain('"الشهر","المستحق","المدفوع","المتبقي","الحالة"');
+
+    await page.locator('#statementPurpose').selectOption('');
+    await expect(preview).toContainText('تغيّر الساكن أو الغرض');
+    await expect(page.locator('#statementCsvBtn')).toBeDisabled();
 });
 
 test('audit log reports the visible count and loads more entries', async ({ page }) => {
