@@ -31,3 +31,6 @@ declare var renderNotices: () => void;
 declare var loadState: () => Promise<boolean>;
 declare var markReportPreviewStale: (id: string, stale: boolean) => void;
 declare var syncReportNavStatus: () => void;
+declare var activeBuildingVersion: number;
+declare var refreshCashboxSummary: () => Promise<boolean>;
+declare var persistedAuditLogIds: Set<string>;

@@ -1,3 +1,4 @@
+// @ts-check
 const CASH_ACCOUNTS = Object.freeze({
     main: { label: 'الخزنة الرئيسية', shortLabel: 'الرئيسية' },
     development: { label: 'صندوق التطوير', shortLabel: 'التطوير' },
@@ -184,10 +185,10 @@ function renderCashbox() {
 function previewCashTransfer() {
     const preview = document.getElementById('cashTransferPreview');
     const summary = document.getElementById('cashTransferPreviewText');
-    const submit = document.getElementById('cashTransferSubmitButton');
-    const from = document.getElementById('cashTransferFrom')?.value || '';
-    const to = document.getElementById('cashTransferTo')?.value || '';
-    const amount = Number(document.getElementById('cashTransferAmount')?.value);
+    const submit = /** @type {HTMLButtonElement} */ (document.getElementById('cashTransferSubmitButton'));
+    const from = /** @type {HTMLSelectElement} */ (document.getElementById('cashTransferFrom'))?.value || '';
+    const to = /** @type {HTMLSelectElement} */ (document.getElementById('cashTransferTo'))?.value || '';
+    const amount = Number(/** @type {HTMLInputElement} */ (document.getElementById('cashTransferAmount'))?.value);
     const validAmount = Number.isFinite(amount) && amount > 0;
     const validAccounts = Boolean(CASH_ACCOUNTS[from] && CASH_ACCOUNTS[to] && from !== to);
     const available = getCashAccountBalance(from);
@@ -250,18 +251,18 @@ async function submitCashTransfer(event) {
             }
         } catch { /* Fall back to the in-memory retry key if storage is unavailable. */ }
     }
-    const fromAccountCode = document.getElementById('cashTransferFrom')?.value || '';
-    const toAccountCode = document.getElementById('cashTransferTo')?.value || '';
-    const amount = Number(document.getElementById('cashTransferAmount')?.value);
-    const notes = document.getElementById('cashTransferNotes')?.value.trim() || '';
+    const fromAccountCode = /** @type {HTMLSelectElement} */ (document.getElementById('cashTransferFrom'))?.value || '';
+    const toAccountCode = /** @type {HTMLSelectElement} */ (document.getElementById('cashTransferTo'))?.value || '';
+    const amount = Number(/** @type {HTMLInputElement} */ (document.getElementById('cashTransferAmount'))?.value);
+    const notes = /** @type {HTMLTextAreaElement} */ (document.getElementById('cashTransferNotes'))?.value.trim() || '';
     const available = getCashAccountBalance(fromAccountCode);
 
     const requestPayload = { fromAccountCode, toAccountCode, amount, notes };
     if (cashTransferPendingRequestId && JSON.stringify(requestPayload) !== JSON.stringify(cashTransferPendingPayload)) {
-        const fromInput = document.getElementById('cashTransferFrom');
-        const toInput = document.getElementById('cashTransferTo');
-        const amountInput = document.getElementById('cashTransferAmount');
-        const notesInput = document.getElementById('cashTransferNotes');
+        const fromInput = /** @type {HTMLSelectElement} */ (document.getElementById('cashTransferFrom'));
+        const toInput = /** @type {HTMLSelectElement} */ (document.getElementById('cashTransferTo'));
+        const amountInput = /** @type {HTMLInputElement} */ (document.getElementById('cashTransferAmount'));
+        const notesInput = /** @type {HTMLTextAreaElement} */ (document.getElementById('cashTransferNotes'));
         if (fromInput) fromInput.value = cashTransferPendingPayload.fromAccountCode;
         if (toInput) toInput.value = cashTransferPendingPayload.toAccountCode;
         if (amountInput) amountInput.value = String(cashTransferPendingPayload.amount);
@@ -293,7 +294,7 @@ async function submitCashTransfer(event) {
             }));
         } catch { /* The in-memory retry key remains available if storage is unavailable. */ }
     }
-    const submit = document.getElementById('cashTransferSubmitButton');
+    const submit = /** @type {HTMLButtonElement} */ (document.getElementById('cashTransferSubmitButton'));
     if (submit) {
         submit.disabled = true;
         submit.textContent = 'جارٍ تنفيذ التحويل...';
@@ -352,7 +353,7 @@ async function submitCashTransfer(event) {
         if (data.duplicate) {
             if (!await loadState()) throw new Error('Could not reload after an idempotent cash transfer retry');
             clearCashTransferPending(transferBuildingId);
-            document.getElementById('cashTransferForm')?.reset();
+            /** @type {HTMLFormElement} */ (document.getElementById('cashTransferForm'))?.reset();
             document.getElementById('cashTransferPreview')?.classList.add('hidden');
             renderAll();
             toast('التحويل كان قد نُفذ مسبقًا. تم تحديث البيانات دون تكراره.', 'success');
@@ -395,7 +396,7 @@ async function submitCashTransfer(event) {
         }
 
         clearCashTransferPending(transferBuildingId);
-        document.getElementById('cashTransferForm')?.reset();
+        /** @type {HTMLFormElement} */ (document.getElementById('cashTransferForm'))?.reset();
         document.getElementById('cashTransferPreview')?.classList.add('hidden');
         renderAll();
         toast('تم التحويل بين الصناديق بنجاح.', 'success');
