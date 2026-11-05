@@ -4,6 +4,7 @@ const fs = require('node:fs');
 
 const css = fs.readFileSync('css/style.css', 'utf8');
 const html = fs.readFileSync('index.html', 'utf8');
+const render = fs.readFileSync('js/render.js', 'utf8');
 
 test('narrow mobile header keeps its content inside the available width', () => {
     assert.match(css, /@media \(max-width: 360px\)/);
@@ -34,6 +35,11 @@ test('mobile action bars and filters can wrap without horizontal overflow', () =
 
 test('footer contact link keeps a usable touch height', () => {
     assert.match(css, /#appCopyright a \{ display: inline-flex; align-items: center; min-height: 24px; padding-inline: \.2rem; \}/);
+});
+
+test('financial list icon actions keep a usable touch width', () => {
+    assert.match(css, /\.icon-action \{ display: inline-flex; align-items: center; justify-content: center; min-width: 32px; min-height: 32px; \}/);
+    assert.equal((render.match(/class="icon-action /g) || []).length, 4);
 });
 
 test('form controls expose accessible names for assistive technology', () => {
