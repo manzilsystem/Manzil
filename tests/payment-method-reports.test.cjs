@@ -9,7 +9,7 @@ const access = fs.readFileSync(path.join(__dirname, '..', 'js', 'access.js'), 'u
 const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
 function loadReport(overrides = {}) {
-    const preview = { innerHTML: '' };
+    const preview = { innerHTML: '', dataset: {} };
     const sandbox = {
         state: {
             buildingName: 'عمارة النور',
@@ -23,6 +23,8 @@ function loadReport(overrides = {}) {
             ...overrides
         },
         document: {
+            querySelector: () => null,
+            querySelectorAll: () => [],
             getElementById: id => id === 'reportMonthSelect'
                 ? { value: 'يناير 2024' }
                 : id === 'landlordReportPreview' ? preview : null

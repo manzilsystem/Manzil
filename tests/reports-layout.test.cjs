@@ -10,25 +10,28 @@ const render = fs.readFileSync(path.join(__dirname, '..', 'js', 'render.js'), 'u
 const stateSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'state.js'), 'utf8');
 const reportTab = html.slice(html.indexOf('id="tab-reports"'), html.indexOf('id="appCopyright"'));
 
-test('landlord report remains immediately visible in the reports tab', () => {
-    const landlord = reportTab.indexOf('id="landlordReportPreview"');
-    const firstDisclosure = reportTab.indexOf('<details');
-    assert.ok(landlord >= 0 && (firstDisclosure < 0 || landlord < firstDisclosure));
+test('the landlord panel is the single panel shown when the tab opens', () => {
+    const panels = [...reportTab.matchAll(/<(?:div) id="(landlordReportPrint|periodReportCard|residentStatementCard|monthlyClosePanel|arrearsPanel|auditLogPanel)"([^>]*)>/g)];
+    assert.deepEqual(panels.map(match => match[1]), ['landlordReportPrint', 'periodReportCard', 'residentStatementCard', 'monthlyClosePanel', 'arrearsPanel', 'auditLogPanel']);
+    assert.doesNotMatch(panels[0][2], /hidden/, 'landlord panel must start visible');
+    panels.slice(1).forEach(match => assert.match(match[2], /hidden/, match[1] + ' must start hidden'));
 });
 
-test('monthly close and arrears are collapsed disclosures with their controls preserved', () => {
-    assert.match(reportTab, /<details class="app-card[^>]*>[\s\S]*?id="monthlyCloseTitle"/);
-    assert.match(reportTab, /<details class="app-card[^>]*>[\s\S]*?كشف المتأخرات/);
-    for (const id of ['monthlyCloseMonthSelect', 'monthlyCloseReviewButton', 'monthlyClosePdfButton', 'monthlyClosePreview', 'arrearsApartmentFilter', 'arrearsStatusFilter', 'arrearsFromMonth', 'arrearsToMonth', 'arrearsReportContainer']) {
+test('monthly close and arrears are panels with their controls preserved', () => {
+    for (const id of ['monthlyCloseTitle', 'monthlyCloseMonthSelect', 'monthlyCloseReviewButton', 'monthlyClosePdfButton', 'monthlyClosePreview', 'arrearsApartmentFilter', 'arrearsStatusFilter', 'arrearsFromMonth', 'arrearsToMonth', 'arrearsReportContainer']) {
         assert.ok(reportTab.includes('id="' + id + '"'), 'missing ' + id);
     }
     assert.match(reportTab, /exportArrearsCSV\(\)/);
+    assert.doesNotMatch(reportTab, /<details\b/, 'the reports tab no longer mixes disclosure panels');
 });
 
-test('report disclosure summaries do not contain interactive buttons', () => {
-    for (const summary of reportTab.matchAll(/<summary[\s\S]*?<\/summary>/g)) {
-        assert.doesNotMatch(summary[0], /<button\b/);
-    }
+test('the reports nav offers one entry per panel and marks the active one', () => {
+    const entries = [...reportTab.matchAll(/data-report-nav="([a-zA-Z]+)" aria-controls="([a-zA-Z]+)"/g)];
+    assert.deepEqual(entries.map(match => match[1]), ['landlord', 'period', 'statement', 'monthlyClose', 'arrears', 'audit']);
+    assert.deepEqual(entries.map(match => match[2]), ['landlordReportPrint', 'periodReportCard', 'residentStatementCard', 'monthlyClosePanel', 'arrearsPanel', 'auditLogPanel']);
+    entries.forEach(match => assert.ok(reportTab.includes('id="' + match[2] + '"'), match[2] + ' has no panel'));
+    assert.equal((reportTab.match(/class="report-nav-item is-active"/g) || []).length, 1);
+    assert.equal((reportTab.match(/aria-current="page"/g) || []).length, 1);
 });
 
 test('changing the report month invalidates the preview and output actions', () => {
@@ -64,27 +67,52 @@ test('reports surface shares card headers, stat tiles, and tabular numerals', ()
     assert.match(css, /\.report-amount \{ font-variant-numeric: tabular-nums/);
     assert.match(css, /#printableArea \.app-card, #printableArea \.app-input, #printableArea \.report-stat \{/);
     assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 6);
+    assert.equal((reportTab.match(/class="report-card-badge /g) || []).length, 6);
     assert.equal((reports.match(/class="report-stat"/g) || []).length, 16);
     assert.equal((render.match(/class="report-stat"/g) || []).length, 4);
     assert.match(reports, /text-emerald-400 report-amount/);
     assert.match(render, /text-rose-400 report-amount/);
 });
 
-test('reports section has a header, quick jump chips, and unified actions', () => {
+test('reports section has a header, an icon nav, and unified actions', () => {
     assert.match(reportTab, /class="report-section-head no-print"/);
-    assert.match(reportTab, /class="report-jump-chips"/);
+    assert.match(reportTab, /class="report-nav no-print" aria-label="أنواع التقارير" onkeydown="handleReportTabKeydown\(event\)"/);
+    assert.doesNotMatch(reportTab, /report-jump-chip/, 'the chip row is gone now that the nav switches panels');
+    assert.match(reports, /function switchReportTab\(tab\)/);
+    assert.match(reports, /function handleReportTabKeydown\(event\)/);
     assert.match(reports, /function jumpToReportPanel\(panelId\)/);
     assert.equal((reportTab.match(/class="report-card-icon /g) || []).length, 6);
-    assert.equal((reportTab.match(/class="report-card-badge /g) || []).length, 4);
+    assert.equal((reportTab.match(/class="report-nav-icon /g) || []).length, 6);
     assert.match(reportTab, /class="report-actions report-actions-4/);
     assert.match(reportTab, /class="report-toolbar no-print"/);
     assert.match(reportTab, /class="report-preview text-xs/);
+    assert.match(css, /\.report-nav \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)/);
+    assert.match(css, /@media \(min-width: 1280px\) \{[\s\S]*?repeat\(6, minmax\(0, 1fr\)\); \}\s*\.report-nav-item \{ flex-direction: column/, 'six across only on wide screens, where each item stacks icon over full-width copy');
+    assert.match(css, /\.report-nav-item\.is-active \{/);
+    assert.match(css, /\.report-nav-item\.is-ready::after/);
+    assert.match(css, /\.report-nav-item\.is-stale::after/);
     assert.match(css, /\.report-action:disabled \{/);
     assert.match(css, /\.report-action-primary \{/);
-    assert.match(css, /\.report-preview-empty \{/);
+    assert.match(css, /\.report-preview:has\(> \.report-preview-empty:only-child\) \{/);
     assert.match(css, /\.report-list-row \{/);
     assert.match(css, /\.arrears-card, \.report-surface \{/);
     assert.match(css, /\.audit-log-row::before/);
+});
+
+test('the nav marker follows the same freshness gate as the output buttons', () => {
+    assert.match(reports, /const REPORT_OUTPUT_BUTTON_IDS = \{[\s\S]*landlord: 'reportPrintBtn'[\s\S]*period: 'periodReportPrintBtn'[\s\S]*statement: 'statementPrintBtn'[\s\S]*monthlyClose: 'monthlyClosePdfButton'/);
+    assert.match(reports, /function syncReportNavStatus\(\)/);
+    assert.match(reports, /item\.classList\.toggle\('is-ready', ready\)/);
+    assert.match(reports, /function markReportPreviewStale\(previewId, stale\)/);
+    ['setLandlordReportActionsEnabled', 'setPeriodReportActionsEnabled', 'setResidentStatementActionsEnabled'].forEach(name => {
+        const body = new RegExp('function ' + name + '\\(enabled\\) \\{[\\s\\S]*?\\n\\}').exec(reports)[0];
+        assert.match(body, /markReportPreviewStale\('[a-zA-Z]+Preview', !enabled\)/);
+        assert.match(body, /syncReportNavStatus\(\)/);
+    });
+    assert.match(render, /invalidatePeriodReportIfStale\(\);\n\s*syncReportNavStatus\(\);/);
+    const monthlyClose = fs.readFileSync(path.join(__dirname, '..', 'js', 'monthly-close.js'), 'utf8');
+    assert.match(monthlyClose, /markReportPreviewStale\('monthlyClosePreview', true\)/);
+    assert.equal((monthlyClose.match(/syncReportNavStatus\(\)/g) || []).length, 3);
 });
 
 test('generated previews use the shared report blocks and theme-safe styles', () => {
@@ -151,7 +179,7 @@ test('resident statement scopes a monthly ledger to one resident with gated outp
 
 test('period report rolls the monthly landlord figures across a range with gated outputs', () => {
     assert.ok(reportTab.includes('id="periodReportCard"'));
-    assert.match(reportTab, /jumpToReportPanel\('periodReportCard'\)/);
+    assert.match(reportTab, /switchReportTab\('period'\)/);
     assert.match(reportTab, /id="periodReportPreset"[^>]*onchange="applyPeriodReportPreset\(\)"/);
     for (const id of ['periodReportFrom', 'periodReportTo']) {
         assert.match(reportTab, new RegExp('id="' + id + '"[^>]*onchange="onPeriodReportRangeChange\\(\\)"'));
@@ -182,6 +210,7 @@ test('resident statement entry is reachable from the resident profile', () => {
     assert.match(crud, /onclick="openResidentStatementFromProfile/);
     assert.match(crud, /function openResidentStatementFromProfile\(residentId\)/);
     assert.match(crud, /switchTab\('reports'\)/);
+    assert.match(crud, /jumpToReportPanel\('residentStatementCard'\)/);
     assert.match(crud, /generateResidentStatement\(\)/);
     assert.match(app, /function ensurePdfLibrary\(\)/);
 });

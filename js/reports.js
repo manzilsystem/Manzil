@@ -1,12 +1,78 @@
 let landlordReportMonth = '';
 let landlordReportSignature = '';
 
+const REPORT_TABS = ['landlord', 'period', 'statement', 'monthlyClose', 'arrears', 'audit'];
+const REPORT_PANEL_IDS = {
+    landlord: 'landlordReportPrint',
+    period: 'periodReportCard',
+    statement: 'residentStatementCard',
+    monthlyClose: 'monthlyClosePanel',
+    arrears: 'arrearsPanel',
+    audit: 'auditLogPanel'
+};
+const REPORT_OUTPUT_BUTTON_IDS = {
+    landlord: 'reportPrintBtn',
+    period: 'periodReportPrintBtn',
+    statement: 'statementPrintBtn',
+    monthlyClose: 'monthlyClosePdfButton'
+};
+
+function switchReportTab(tab) {
+    if (!REPORT_PANEL_IDS[tab]) return false;
+    REPORT_TABS.forEach(name => {
+        const panel = document.getElementById(REPORT_PANEL_IDS[name]);
+        if (panel) panel.classList.toggle('hidden', name !== tab);
+    });
+    document.querySelectorAll('[data-report-nav]').forEach(item => {
+        const active = item.dataset.reportNav === tab;
+        item.classList.toggle('is-active', active);
+        if (active) item.setAttribute('aria-current', 'page');
+        else item.removeAttribute('aria-current');
+    });
+    syncReportNavStatus();
+    return true;
+}
+
 function jumpToReportPanel(panelId) {
+    const tab = REPORT_TABS.find(name => REPORT_PANEL_IDS[name] === panelId);
+    if (!tab) return;
+    switchReportTab(tab);
     const panel = document.getElementById(panelId);
-    if (!panel) return;
-    const wrapper = panel.closest('details');
-    if (wrapper) wrapper.open = true;
-    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (panel) requestAnimationFrame(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+}
+
+function handleReportTabKeydown(event) {
+    if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+    const items = [...document.querySelectorAll('[data-report-nav]')];
+    const current = document.activeElement?.closest?.('[data-report-nav]');
+    const currentIndex = items.indexOf(current);
+    if (currentIndex < 0) return;
+    event.preventDefault();
+    const nextIndex = event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+            ? items.length - 1
+            : (currentIndex + (event.key === 'ArrowLeft' ? 1 : -1) + items.length) % items.length;
+    const next = items[nextIndex];
+    switchReportTab(next.dataset.reportNav);
+    next.focus();
+}
+
+function markReportPreviewStale(previewId, stale) {
+    const preview = document.getElementById(previewId);
+    if (preview) preview.dataset.stale = stale ? 'true' : 'false';
+}
+
+function syncReportNavStatus() {
+    Object.keys(REPORT_OUTPUT_BUTTON_IDS).forEach(tab => {
+        const item = document.querySelector(`[data-report-nav="${tab}"]`);
+        if (!item) return;
+        const button = document.getElementById(REPORT_OUTPUT_BUTTON_IDS[tab]);
+        const preview = document.querySelector(`#${REPORT_PANEL_IDS[tab]} [id$="Preview"]`);
+        const ready = Boolean(button) && !button.disabled;
+        item.classList.toggle('is-ready', ready);
+        item.classList.toggle('is-stale', !ready && preview?.dataset.stale === 'true');
+    });
 }
 
 function getLandlordReportData(month) {
@@ -73,6 +139,8 @@ function setLandlordReportActionsEnabled(enabled) {
         const button = document.getElementById(id);
         if (button) button.disabled = !enabled;
     });
+    markReportPreviewStale('landlordReportPreview', !enabled);
+    syncReportNavStatus();
 }
 
 function clearLandlordReportPreview(message) {
@@ -359,6 +427,8 @@ function setPeriodReportActionsEnabled(enabled) {
         const button = document.getElementById(id);
         if (button) button.disabled = !enabled;
     });
+    markReportPreviewStale('periodReportPreview', !enabled);
+    syncReportNavStatus();
 }
 
 function clearPeriodReportPreview(message) {
@@ -649,6 +719,8 @@ function setResidentStatementActionsEnabled(enabled) {
         const button = document.getElementById(id);
         if (button) button.disabled = !enabled;
     });
+    markReportPreviewStale('residentStatementPreview', !enabled);
+    syncReportNavStatus();
 }
 
 function clearResidentStatement(message) {

@@ -43,7 +43,7 @@ function getSubscriptionAmountForMonth(state, resident, month) {
 }
 
 function loadStatement(options = {}) {
-    const preview = { innerHTML: '' };
+    const preview = { innerHTML: '', dataset: {} };
     const state = {
         buildingName: 'عمارة النور',
         residents: [{
@@ -83,6 +83,8 @@ function loadStatement(options = {}) {
     const select = { value: options.residentId ?? 'r1' };
     const buttons = {};
     sandbox.document = {
+        querySelector: () => null,
+        querySelectorAll: () => [],
         getElementById: id => {
             if (id === 'statementResidentSelect') return select;
             if (id === 'residentStatementPreview') return preview;

@@ -302,6 +302,7 @@ function openResidentStatementFromProfile(residentId) {
     if (!requireManager()) return;
     closeModal('residentProfileModal');
     switchTab('reports');
+    jumpToReportPanel('residentStatementCard');
     const select = document.getElementById('statementResidentSelect');
     if (select) select.value = residentId;
     generateResidentStatement();
