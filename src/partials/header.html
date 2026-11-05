@@ -1,0 +1,22 @@
+    <!-- Header -->
+    <header class="app-card sticky top-0 z-30 border-b no-print">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center max-w-4xl">
+            <div class="flex items-center gap-3">
+                <div class="header-brand-mark" aria-hidden="true"><img src="icons/manzil-logo.png" alt="" width="44" height="44" decoding="async"></div>
+                <div>
+                    <h1 id="headerBuildingTitle" class="text-base font-extrabold leading-tight tracking-wide">Manzil</h1>
+                    <p class="text-[10px] text-slate-400 flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                        <span id="syncStatus" role="status" aria-live="polite">جاري التحقق...</span>
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <button onclick="openSettingsModal()" aria-label="فتح الإعدادات" class="app-card border p-2.5 rounded-xl text-xs transition" title="الإعدادات"><i class="fa-solid fa-gear text-sm"></i></button>
+                
+                <button onclick="openModal('guideModal')" aria-label="فتح دليل الاستخدام" class="app-card border p-2.5 rounded-xl text-xs transition" title="دليل الاستخدام"><i class="fa-solid fa-book-open text-sm"></i></button>
+                <button onclick="printCurrentView()" aria-label="طباعة التقرير" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 p-2.5 rounded-xl text-xs transition hidden sm:flex" title="طباعة"><i class="fa-solid fa-print text-sm"></i></button>
+                <button id="accessSwitchBtn" onclick="lockCurrentSession()" aria-label="تبديل المستخدم أو قفل التطبيق" class="app-card border p-2.5 rounded-xl text-xs transition hidden" title="خروج / تبديل المستخدم"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
+            </div>
+        </div>
+    </header>

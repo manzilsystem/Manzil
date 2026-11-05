@@ -1,0 +1,525 @@
+    <main id="printableArea" class="container mx-auto px-3 sm:px-4 py-4 flex-grow max-w-4xl space-y-5">
+        <div class="hidden print:block text-center border-b pb-4 mb-4" style="border-color:#cbd5e1;">
+            <h2 id="printBuildingTitle" class="text-2xl font-black text-slate-900">كشف حساب مالي - Manzil</h2>
+            <p id="printBuildingMeta" class="text-sm text-slate-600 mt-1">تقرير رسمي معتمد للإدارة والملاك</p>
+        </div>
+
+        <section id="ownerPortal" class="hidden space-y-4" aria-labelledby="ownerPortalTitle"></section>
+
+        <!-- DASHBOARD -->
+        <section id="tab-dashboard" class="space-y-4">
+            <details class="app-card rounded-3xl border overflow-hidden">
+                <summary class="p-4 cursor-pointer flex items-center justify-between gap-3 text-sm font-bold">
+                    <span class="flex items-center gap-2"><span class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">📢</span> إعلانات العمارة</span>
+                    <i class="fa-solid fa-chevron-down text-xs text-slate-400" aria-hidden="true"></i>
+                </summary>
+                <div class="p-4 pt-0 space-y-3 bg-gradient-to-r from-indigo-950/20 via-slate-900/20 to-indigo-950/20">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">📢</span>
+                        <h3 class="font-bold text-xs">لوحة إعلانات العمارة</h3>
+                    </div>
+                    <div class="flex gap-1.5 no-print">
+                        <button onclick="openNoticeModal()" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-xl text-[11px] font-bold transition">إعلان</button>
+                        <button onclick="shareNoticeToWhatsApp()" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-[11px] font-bold transition flex items-center gap-1"><i class="fa-brands fa-whatsapp"></i> نشر</button>
+                        <button onclick="copyNoticeToClipboard()" class="bg-slate-700/30 hover:bg-slate-700/50 text-slate-300 border border-slate-600/30 px-3 py-1.5 rounded-xl text-[11px] font-bold transition" title="نسخ"><i class="fa-solid fa-copy"></i></button>
+                    </div>
+                </div>
+                <div id="noticeBoardContent" class="space-y-2"></div>
+                </div>
+            </details>
+
+            <section class="app-card p-4 rounded-3xl border space-y-3" aria-labelledby="quickActionsTitle">
+                <div class="flex items-center justify-between">
+                    <h2 id="quickActionsTitle" class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-bolt text-amber-400"></i> إجراءات سريعة</h2>
+                    <span class="text-[10px] text-slate-500">اختصارات الإدارة اليومية</span>
+                </div>
+                <div class="quick-actions-grid grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button onclick="openModal('incomeModal')" class="quick-action quick-action-income" aria-label="تسجيل تحصيل جديد">
+                        <i class="fa-solid fa-hand-holding-dollar"></i><span>تحصيل جديد</span>
+                    </button>
+                    <button onclick="openExpenseModal()" class="quick-action quick-action-expense" aria-label="تسجيل مصروف جديد">
+                        <i class="fa-solid fa-receipt"></i><span>مصروف جديد</span>
+                    </button>
+                    <button onclick="openResidentModal('add')" class="quick-action quick-action-resident" aria-label="إضافة شقة جديدة">
+                        <i class="fa-solid fa-user-plus"></i><span>إضافة شقة</span>
+                    </button>
+                    <button onclick="switchTab('reports')" class="quick-action quick-action-report" aria-label="فتح التقارير">
+                        <i class="fa-solid fa-chart-column"></i><span>عرض التقارير</span>
+                    </button>
+                </div>
+            </section>
+
+            <div class="app-card p-3 rounded-2xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <label for="dashboardPeriodFilter" class="text-xs font-bold text-slate-400">نطاق مؤشرات التحصيل والمصروفات</label>
+                <select id="dashboardPeriodFilter" onchange="renderDashboard()" class="app-input border rounded-xl px-3 py-2 text-xs font-semibold sm:min-w-44" aria-label="تصفية مؤشرات لوحة التحكم حسب الفترة">
+                    <option value="all">كل السجل</option>
+                    <option value="current">الشهر الحالي</option>
+                    <option value="last6">آخر 6 أشهر</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="app-card p-4 rounded-3xl border flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-slate-400 font-bold">التحصيلات</span>
+                        <div class="w-8 h-8 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center text-xs border border-emerald-500/20"><i class="fa-solid fa-arrow-trend-up"></i></div>
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-black text-emerald-400" id="totalIncomeDisplay">0 ج.م</h3>
+                    <p id="incomePeriodLabel" class="text-[10px] text-slate-500 mt-1">إجمالي التحصيلات المسجلة منذ بدء التسجيل</p>
+                </div>
+                <div class="app-card p-4 rounded-3xl border flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-slate-400 font-bold">المصروفات</span>
+                        <div class="w-8 h-8 bg-rose-500/10 text-rose-400 rounded-xl flex items-center justify-center text-xs border border-rose-500/20"><i class="fa-solid fa-arrow-trend-down"></i></div>
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-black text-rose-400" id="totalExpenseDisplay">0 ج.م</h3>
+                    <p id="expensePeriodLabel" class="text-[10px] text-slate-500 mt-1">إجمالي المصروفات المسجلة منذ بدء التسجيل</p>
+                </div>
+            </div>
+
+            <div class="app-card p-5 rounded-3xl border shadow-xl flex items-center justify-between bg-gradient-to-r from-indigo-950/40 via-slate-900/40 to-slate-950/40">
+                <div>
+                    <p class="text-xs text-slate-400 font-medium">الرصيد الحالي بالخزنة</p>
+                    <h3 class="text-2xl sm:text-3xl font-black mt-0.5" id="netBalanceDisplay">0 ج.م</h3>
+                    <p class="text-[10px] text-slate-500 mt-1">الرصيد الافتتاحي + التحصيلات − المصروفات المسجلة منذ بدء التسجيل</p>
+                </div>
+                <div class="w-12 h-12 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center text-2xl text-amber-300"><i class="fa-solid fa-wallet"></i></div>
+            </div>
+
+            <section class="app-card p-4 sm:p-5 rounded-3xl border space-y-3" aria-labelledby="monthSummaryTitle">
+                <div class="flex items-center justify-between gap-2">
+                    <h2 id="monthSummaryTitle" class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-calendar-check text-emerald-400"></i> ملخص الشهر الحالي</h2>
+                    <span id="currentMonthSummaryLabel" class="text-[10px] text-slate-500"></span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
+                    <div class="app-input border rounded-2xl p-2"><p class="text-[10px] text-slate-500">نسبة التحصيل</p><p id="collectionRateDisplay" class="text-base font-black text-emerald-400">0%</p></div>
+                    <div class="app-input border rounded-2xl p-2"><p class="text-[10px] text-slate-500">المدفوع</p><p id="currentMonthPaidDisplay" class="text-xs font-black">0 ج.م</p></div>
+                    <div class="app-input border rounded-2xl p-2 col-span-2 sm:col-span-1"><p class="text-[10px] text-slate-500">دفع جزئي</p><p id="partialPaymentsDisplay" class="text-xs font-black text-amber-400">0</p></div>
+                </div>
+                <div class="h-2 rounded-full bg-slate-800 overflow-hidden" role="progressbar" aria-label="نسبة تحصيل الشهر الحالي" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <div id="collectionRateBar" class="h-full rounded-full bg-gradient-to-l from-emerald-400 to-indigo-500 transition-all" style="width:0%"></div>
+                </div>
+            </section>
+
+            <details class="app-card rounded-3xl border overflow-hidden">
+                <summary class="p-4 cursor-pointer flex items-center justify-between gap-3 text-sm font-bold">
+                    <span><i class="fa-solid fa-chart-column text-indigo-400 ml-2" aria-hidden="true"></i> التحليلات والتفاصيل المالية</span>
+                    <i class="fa-solid fa-chevron-down text-xs text-slate-400" aria-hidden="true"></i>
+                </summary>
+                <div class="p-4 pt-0 space-y-4">
+            <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
+                <div class="flex flex-wrap items-baseline justify-between gap-2"><h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-chart-line text-indigo-400"></i> التدفق النقدي البصري</h3><span id="cashFlowPeriodLabel" class="text-[10px] text-slate-500"></span></div>
+                <div id="cashFlowChartContainer" class="w-full h-32 flex items-end justify-between gap-2 pt-4 px-2 border-b border-slate-700/50 pb-2"></div>
+                <div class="flex justify-center gap-4 text-[10px] text-slate-400 pt-1">
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> التحصيلات</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> المصروفات</span>
+                </div>
+            </div>
+
+            <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
+                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-amber-400"></i> متأخرات السكان</h3>
+                <div id="unpaidResidentsContainer" class="space-y-2"></div>
+            </div>
+
+            <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
+                <div class="flex flex-wrap items-baseline justify-between gap-2"><h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-chart-pie text-indigo-400"></i> توزيع المصروفات</h3><span id="expenseBreakdownPeriodLabel" class="text-[10px] text-slate-500"></span></div>
+                <div id="expenseCategoriesBreakdown" class="space-y-3"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="app-card p-4 rounded-3xl border space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-bold text-xs flex items-center gap-1.5"><i class="fa-solid fa-money-bill-transfer text-emerald-400"></i> آخر التحصيلات</h4>
+                        <button onclick="switchTab('income')" class="text-xs text-indigo-400 font-bold hover:underline">الكل</button>
+                    </div>
+                    <div id="recentIncomeList" class="space-y-2"></div>
+                </div>
+                <div class="app-card p-4 rounded-3xl border space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-bold text-xs flex items-center gap-1.5"><i class="fa-solid fa-file-invoice-dollar text-rose-400"></i> آخر المصروفات</h4>
+                        <button onclick="switchTab('expenses')" class="text-xs text-indigo-400 font-bold hover:underline">الكل</button>
+                    </div>
+                    <div id="recentExpenseList" class="space-y-2"></div>
+                </div>
+            </div>
+                </div>
+            </details>
+        </section>
+
+        <!-- INCOME -->
+        <section id="tab-income" class="hidden space-y-4">
+            <div class="section-toolbar flex justify-between items-center app-card p-4 rounded-3xl border no-print">
+                <div><h2 class="font-bold text-base">سجل التحصيلات</h2><p class="text-[11px] text-slate-400">اشتراكات السكان</p></div>
+                <button onclick="openModal('incomeModal')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-emerald-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> تحصيل جديد</button>
+            </div>
+            <div class="list-filters app-card p-3 rounded-3xl border flex gap-2 no-print">
+                <input type="search" id="searchIncomeInput" aria-label="البحث في التحصيلات" oninput="renderIncomeTable()" placeholder="ابحث في التحصيلات..." class="flex-grow app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
+                <select id="filterIncomeMonth" aria-label="تصفية التحصيلات حسب الشهر" onchange="renderIncomeTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold"><option value="">كل الشهور</option></select>
+            </div>
+            <div id="incomeCardsList" class="space-y-3"></div>
+        </section>
+
+        <!-- EXPENSES -->
+        <section id="tab-expenses" class="hidden space-y-4">
+            <div class="section-toolbar flex justify-between items-center app-card p-4 rounded-3xl border no-print">
+                <div><h2 class="font-bold text-base">مصروفات العمارة</h2><p class="text-[11px] text-slate-400">فواتير وصيانة</p></div>
+                <button onclick="openExpenseModal()" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-rose-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> مصروف جديد</button>
+            </div>
+            <div class="list-filters app-card p-3 rounded-3xl border flex flex-wrap gap-2 no-print">
+                <input type="search" id="searchExpenseInput" aria-label="البحث في المصروفات" oninput="renderExpenseTable()" placeholder="ابحث في المصروفات..." class="flex-grow app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
+                <select id="filterExpenseCategory" aria-label="تصفية المصروفات حسب الفئة" onchange="renderExpenseTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold">
+                    <option value="">كل الفئات</option><option value="كهرباء">كهرباء</option><option value="صيانة أسانسير">صيانة أسانسير</option><option value="نظافة">نظافة</option><option value="أعمال سباكة وصنايعي">أعمال سباكة وصنايعي</option><option value="أخرى">أخرى</option>
+                </select>
+                <select id="filterExpenseMonth" aria-label="تصفية المصروفات حسب الشهر" onchange="renderExpenseTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold"><option value="">كل الشهور</option></select>
+            </div>
+            <div id="expenseCardsList" class="space-y-3"></div>
+        </section>
+
+        <!-- RESIDENTS -->
+        <section id="tab-residents" class="hidden space-y-4">
+            <div class="section-toolbar flex justify-between items-center app-card p-4 rounded-3xl border no-print">
+                <div><h2 class="font-bold text-base">قائمة الشقق</h2><p class="text-[11px] text-slate-400">الاشتراكات الشهرية</p></div>
+                <button onclick="openResidentModal('add')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-indigo-600/20 transition flex items-center gap-2"><i class="fa-solid fa-user-plus text-sm"></i> شقة جديدة</button>
+            </div>
+            <div class="app-card p-3 rounded-3xl border space-y-2 no-print">
+                <input type="search" id="searchResidentsInput" aria-label="البحث بالاسم أو رقم الشقة أو الدور" oninput="renderResidentsGrid()" placeholder="ابحث بالاسم أو رقم الشقة أو الدور..." class="w-full app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
+                <div class="resident-filters-grid grid grid-cols-2 gap-2">
+                    <select id="residentStatusFilter" aria-label="تصفية الشقق حسب حالة السداد" onchange="renderResidentsGrid()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold">
+                        <option value="all">كل الحالات</option>
+                        <option value="paid">مسدد بالكامل</option>
+                        <option value="partial">دفع جزئي</option>
+                        <option value="due">لم يتأخر بعد</option>
+                        <option value="overdue">متأخر</option>
+                    </select>
+                    <select id="residentSort" aria-label="ترتيب قائمة الشقق" onchange="renderResidentsGrid()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold">
+                        <option value="apartment">ترتيب حسب الشقة</option>
+                        <option value="debt">الأعلى متأخرات</option>
+                        <option value="name">الاسم أبجديًا</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="residentsGrid"></div>
+        </section>
+
+        <!-- CASHBOX -->
+        <section id="tab-cashbox" class="hidden space-y-4">
+            <div class="app-card p-5 rounded-3xl border space-y-2">
+                <h2 class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-vault text-indigo-400"></i> الخزنة والصناديق</h2>
+                <p class="text-xs text-slate-400">رصيد كل صندوق مستقل. اختر الصندوق وقت التحصيل ليصل المبلغ إليه مباشرة، والتحويلات الداخلية لا تُحسب إيرادًا أو مصروفًا.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                <article class="app-card border rounded-3xl p-4 space-y-2">
+                    <p class="text-xs text-slate-400">إجمالي النقدية في الصناديق</p>
+                    <p id="cashBalance-total" class="text-2xl font-black">0 ج.م</p>
+                    <p class="text-[10px] text-slate-500">مجموع أرصدة الخزنة والتطوير والطوارئ</p>
+                </article>
+                <article class="app-card border rounded-3xl p-4 space-y-2">
+                    <p class="text-xs text-slate-400">الخزنة الرئيسية</p>
+                    <p id="cashBalance-main" class="text-2xl font-black text-emerald-400">0 ج.م</p>
+                    <p class="text-[10px] text-slate-500">تحصيلات الخزنة + رصيد البداية − المصروفات والتحويلات</p>
+                </article>
+                <article class="app-card border rounded-3xl p-4 space-y-2">
+                    <p class="text-xs text-slate-400">صندوق التطوير</p>
+                    <p id="cashBalance-development" class="text-2xl font-black text-indigo-300">0 ج.م</p>
+                    <p class="text-[10px] text-slate-500">تحصيلات موجهة إليه + تحويلات واردة − مصروفاته</p>
+                </article>
+                <article class="app-card border rounded-3xl p-4 space-y-2">
+                    <p class="text-xs text-slate-400">صندوق الصيانة الطارئة</p>
+                    <p id="cashBalance-emergency" class="text-2xl font-black text-amber-300">0 ج.م</p>
+                    <p class="text-[10px] text-slate-500">تحصيلات موجهة إليه + تحويلات واردة − مصروفاته</p>
+                </article>
+            </div>
+
+            <div class="app-card p-5 rounded-3xl border space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h3 class="font-bold text-sm">حركة الصناديق الشهرية</h3>
+                        <p class="text-[10px] text-slate-500 mt-1">التحصيلات والمصروفات وصافي التحويلات لكل صندوق في الشهر المختار، من نفس سجلات الخزنة.</p>
+                    </div>
+                    <select id="cashboxSummaryMonth" onchange="renderCashbox()" aria-label="شهر حركة الصناديق" class="app-input border rounded-xl px-3 py-2 text-xs"></select>
+                </div>
+                <div id="cashboxSummaryRows" class="space-y-2"></div>
+            </div>
+
+            <div class="app-card p-5 rounded-3xl border space-y-4">
+                <div>
+                    <h3 class="font-bold text-sm">تحويل بين الصناديق</h3>
+                    <p class="text-[11px] text-slate-500 mt-1">لا يُسمح بتحويل مبلغ أكبر من الرصيد المتاح في الصندوق المصدر.</p>
+                </div>
+                <form id="cashTransferForm" onsubmit="submitCashTransfer(event)" class="space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label class="block text-xs space-y-1">
+                            <span class="text-slate-400">من صندوق</span>
+                            <select id="cashTransferFrom" onchange="previewCashTransfer()" required class="w-full app-input border rounded-xl px-3 py-2.5">
+                                <option value="main">الخزنة الرئيسية</option>
+                                <option value="development">صندوق التطوير</option>
+                                <option value="emergency">صندوق الصيانة الطارئة</option>
+                            </select>
+                        </label>
+                        <label class="block text-xs space-y-1">
+                            <span class="text-slate-400">إلى صندوق</span>
+                            <select id="cashTransferTo" onchange="previewCashTransfer()" required class="w-full app-input border rounded-xl px-3 py-2.5">
+                                <option value="development">صندوق التطوير</option>
+                                <option value="emergency">صندوق الصيانة الطارئة</option>
+                                <option value="main">الخزنة الرئيسية</option>
+                            </select>
+                        </label>
+                    </div>
+                    <input type="number" id="cashTransferAmount" min="0.01" step="0.01" inputmode="decimal" oninput="previewCashTransfer()" required aria-label="مبلغ التحويل" placeholder="مبلغ التحويل" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
+                    <textarea id="cashTransferNotes" rows="2" maxlength="500" oninput="previewCashTransfer()" aria-label="ملاحظات التحويل" placeholder="سبب التحويل (اختياري)" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm"></textarea>
+                    <div id="cashTransferPreview" aria-live="polite" class="hidden app-input border rounded-xl p-3">
+                        <p id="cashTransferPreviewText" class="text-xs font-bold"></p>
+                    </div>
+                    <button type="submit" id="cashTransferSubmitButton" class="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white py-3 rounded-2xl font-bold transition" disabled>تنفيذ التحويل</button>
+                </form>
+            </div>
+
+            <div class="app-card p-5 rounded-3xl border space-y-3">
+                <div class="flex items-center justify-between gap-3">
+                    <h3 class="font-bold text-sm">سجل التحويلات الداخلية</h3>
+                    <span class="text-[10px] text-slate-500">أحدث 100 تحويل</span>
+                </div>
+                <div id="cashTransfersList" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <!-- REPORTS -->
+        <section id="tab-reports" class="hidden space-y-4" data-report-view="grid">
+            <div class="report-section-head no-print">
+                <div>
+                    <p class="report-section-eyebrow"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> مركز التقارير</p>
+                    <h2 class="report-section-title">التقارير والكشوفات</h2>
+                    <p class="report-section-subtitle">تقرير شهري للملاك، كشف حساب لكل ساكن، تقرير وحدة، إقفال شهري، ومتأخرات — وكل الأرقام تُحسب من نفس بيانات التطبيق.</p>
+                </div>
+                <nav class="report-nav no-print" aria-label="أنواع التقارير" onkeydown="handleReportTabKeydown(event)">
+                    <button type="button" class="report-nav-item report-tone-indigo" data-report-nav="landlord" aria-controls="landlordReportPrint" onclick="switchReportTab('landlord')">
+                        <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-file-invoice-dollar"></i></span>
+                        <span class="report-nav-copy"><b>تقرير الملاك</b><small>شهري · PDF وCSV</small></span>
+                    </button>
+                    <button type="button" class="report-nav-item report-tone-sky" data-report-nav="period" aria-controls="periodReportCard" onclick="switchReportTab('period')">
+                        <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-chart-column"></i></span>
+                        <span class="report-nav-copy"><b>تقرير الفترة</b><small>عدة أشهر · PDF وCSV</small></span>
+                    </button>
+                    <button type="button" class="report-nav-item report-tone-emerald" data-report-nav="statement" aria-controls="residentStatementCard" onclick="switchReportTab('statement')">
+                        <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-user-check"></i></span>
+                        <span class="report-nav-copy"><b>كشف حساب ساكن</b><small>لكل ساكن · كشف ووحدة</small></span>
+                    </button>
+                    <button type="button" class="report-nav-item report-tone-emerald" data-report-nav="monthlyClose" aria-controls="monthlyClosePanel" onclick="switchReportTab('monthlyClose')">
+                        <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-scale-balanced"></i></span>
+                        <span class="report-nav-copy"><b>الإقفال الشهري</b><small>مراجعة ومطابقة نقدية</small></span>
+                    </button>
+                    <button type="button" class="report-nav-item report-tone-amber" data-report-nav="arrears" aria-controls="arrearsPanel" onclick="switchReportTab('arrears')">
+                        <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                        <span class="report-nav-copy"><b>المتأخرات</b><small>تصفية وتصدير CSV</small></span>
+                    </button>
+                    <button type="button" class="report-nav-item report-tone-sky" data-report-nav="audit" aria-controls="auditLogPanel" onclick="switchReportTab('audit')">
+                        <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                        <span class="report-nav-copy"><b>سجل العمليات</b><small>مراجعة ما تغيّر</small></span>
+                    </button>
+                </nav>
+            </div>
+            <div id="reportViewBar" class="report-view-bar no-print" role="group" aria-labelledby="reportViewTitle">
+                <button type="button" class="report-view-back" onclick="showReportGrid()" aria-label="رجوع إلى شبكة التقارير"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+                <span class="report-view-icon" id="reportViewIcon" aria-hidden="true"></span>
+                <span class="report-view-copy">
+                    <b id="reportViewTitle">تقرير</b>
+                    <small id="reportViewMeta"></small>
+                </span>
+                <span class="report-view-hint" aria-hidden="true">Esc للرجوع</span>
+            </div>
+            <div id="landlordReportPrint" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
+                <div class="no-print report-card-head">
+                    <div class="report-card-heading">
+                        <span class="report-card-icon report-tone-indigo" aria-hidden="true"><i class="fa-solid fa-file-invoice-dollar"></i></span>
+                        <div class="min-w-0">
+                            <h2 class="report-card-title">تقارير الملاك</h2>
+                            <p class="report-card-subtitle">تحصيل ومصروف وصافي، مع المستحق وغير المحصّل ونسبة التحصيل.</p>
+                        </div>
+                    </div>
+                    <span class="report-card-badge report-tone-indigo">شهري</span>
+                </div>
+                <div class="report-toolbar no-print">
+                    <label class="report-field" for="reportMonthSelect">
+                        <span class="report-field-label">شهر التقرير</span>
+                        <select id="reportMonthSelect" aria-label="شهر التقرير" onchange="invalidateLandlordReportPreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <button type="button" onclick="generateLandlordReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
+                </div>
+                <div id="landlordReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
+                    <p class="report-preview-empty">اضغط «معاينة» لعرض تقرير الشهر المحدد.</p>
+                </div>
+                <div class="report-actions report-actions-3 no-print">
+                    <button type="button" id="reportPrintBtn" onclick="printLandlordReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة PDF</button>
+                    <button type="button" id="reportPdfBtn" onclick="exportLandlordReportPdf()" disabled class="report-action report-tone-indigo"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
+                    <button type="button" id="reportExportBtn" onclick="exportToCSV()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
+                </div>
+                <p class="report-hint no-print">الطباعة تشمل الملخص والتفاصيل، وتصدير CSV يضم حركات شهر التقرير فقط.</p>
+            </div>
+            <div id="periodReportCard" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
+                <div class="report-card-head no-print">
+                    <div class="report-card-heading">
+                        <span class="report-card-icon report-tone-sky" aria-hidden="true"><i class="fa-solid fa-chart-column"></i></span>
+                        <div class="min-w-0">
+                            <h2 class="report-card-title">تقرير الفترة</h2>
+                            <p class="report-card-subtitle">مستحق ومحصّل ومتبقٍّ شهرًا بشهر عبر فترة كاملة، مع المصروف والصافي.</p>
+                        </div>
+                    </div>
+                    <span class="report-card-badge report-tone-sky">فترة</span>
+                </div>
+                <div class="report-toolbar no-print">
+                    <label class="report-field report-field-narrow" for="periodReportPreset">
+                        <span class="report-field-label">فترة سريعة</span>
+                        <select id="periodReportPreset" aria-label="فترة سريعة" onchange="applyPeriodReportPreset()" class="report-control app-input border focus:outline-none">
+                            <option value="3">آخر 3 أشهر</option>
+                            <option value="6" selected>آخر 6 أشهر</option>
+                            <option value="12">آخر 12 شهرًا</option>
+                            <option value="ytd">من أول السنة</option>
+                            <option value="custom">فترة مخصصة</option>
+                        </select>
+                    </label>
+                    <label class="report-field" for="periodReportFrom">
+                        <span class="report-field-label">من شهر</span>
+                        <select id="periodReportFrom" aria-label="من شهر" onchange="onPeriodReportRangeChange()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field" for="periodReportTo">
+                        <span class="report-field-label">إلى شهر</span>
+                        <select id="periodReportTo" aria-label="إلى شهر" onchange="onPeriodReportRangeChange()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <button type="button" onclick="generatePeriodReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
+                </div>
+                <div id="periodReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
+                    <p class="report-preview-empty">اضغط «معاينة» لعرض تقرير الفترة المحددة.</p>
+                </div>
+                <div class="report-actions report-actions-2 no-print">
+                    <button type="button" id="periodReportPrintBtn" onclick="printPeriodReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة PDF</button>
+                    <button type="button" id="periodReportExportBtn" onclick="exportPeriodReportCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
+                </div>
+                <p class="report-hint no-print">تغيير الفترة أو البيانات يعطّل الطباعة والتصدير حتى معاينة جديدة، والأرقام تطابق تقرير الملاك لكل شهر.</p>
+            </div>
+            <div id="residentStatementCard" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
+                <div class="report-card-head no-print">
+                    <div class="report-card-heading">
+                        <span class="report-card-icon report-tone-emerald" aria-hidden="true"><i class="fa-solid fa-user-check"></i></span>
+                        <div class="min-w-0">
+                            <h2 class="report-card-title">كشف حساب ساكن</h2>
+                            <p class="report-card-subtitle">مستحق ومدفوع ومتبقٍ لكل شهر، مع سجل حركات الساكن.</p>
+                        </div>
+                    </div>
+                    <span class="report-card-badge report-tone-emerald">لكل ساكن</span>
+                </div>
+                <div class="report-toolbar no-print">
+                    <label class="report-field" for="statementResidentSelect">
+                        <span class="report-field-label">الساكن</span>
+                        <select id="statementResidentSelect" onchange="invalidateResidentStatementPreview()" class="report-control app-input border">
+                            <option value="">اختر الساكن</option>
+                        </select>
+                    </label>
+                    <button type="button" onclick="generateResidentStatement()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
+                </div>
+                <div id="residentStatementPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
+                    <p class="report-preview-empty">اختر ساكنًا ثم اضغط «معاينة» لعرض كشف الحساب.</p>
+                </div>
+                <div class="report-actions report-actions-4 no-print">
+                    <button type="button" id="statementPrintBtn" onclick="printResidentStatement()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة / حفظ PDF</button>
+                    <button type="button" id="statementPdfBtn" onclick="exportResidentStatementPdf()" disabled class="report-action report-tone-indigo"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> كشف الحساب PDF</button>
+                    <button type="button" id="unitReportPdfBtn" onclick="exportUnitReportPdf()" disabled class="report-action report-tone-sky"><i class="fa-solid fa-building-user" aria-hidden="true"></i> تقرير الوحدة PDF</button>
+                    <button type="button" id="statementCsvBtn" onclick="exportResidentStatementCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
+                </div>
+                <p class="report-hint no-print">الكشف يغطي كل شهر من إضافة الساكن حتى الشهر الحالي، والمخرجات تعرض نفس الأرقام المعروضة هنا.</p>
+            </div>
+            <div id="monthlyClosePanel" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
+                <div class="report-card-head no-print">
+                    <div class="report-card-heading">
+                        <span class="report-card-icon report-tone-emerald" aria-hidden="true"><i class="fa-solid fa-scale-balanced"></i></span>
+                        <div class="min-w-0">
+                            <span id="monthlyCloseTitle" class="report-card-title">المراجعة والإقفال الشهري</span>
+                            <p class="report-card-subtitle">الرصيد الافتتاحي وحركة كل صندوق والرصيد الختامي بالتوقيت المحلي للقاهرة.</p>
+                        </div>
+                    </div>
+                    <span class="report-card-badge report-tone-emerald">إقفال</span>
+                </div>
+                <section class="space-y-3">
+                    <div class="report-toolbar report-toolbar-split">
+                        <label class="report-field" for="monthlyCloseMonthSelect">
+                            <span class="report-field-label">شهر الإقفال</span>
+                            <select id="monthlyCloseMonthSelect" onchange="invalidateMonthlyClosePreview()" class="report-control app-input border"></select>
+                        </label>
+                        <button type="button" id="monthlyCloseReviewButton" onclick="loadMonthlyCloseReport()" class="report-action report-action-primary"><i class="fa-solid fa-list-check" aria-hidden="true"></i> مراجعة الإقفال</button>
+                        <button type="button" id="monthlyClosePdfButton" onclick="exportMonthlyClosePdf()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
+                    </div>
+                    <p id="monthlyCloseReportStatus" class="report-note" role="status" aria-live="polite">اختر الشهر ثم اضغط «مراجعة الإقفال».</p>
+                    <div id="monthlyClosePreview" class="report-preview" aria-live="polite">
+                        <p class="report-preview-empty">اختر الشهر ثم اضغط «مراجعة الإقفال».</p>
+                    </div>
+                </section>
+            </div>
+            <div id="arrearsPanel" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
+                <div class="report-card-head no-print">
+                    <div class="report-card-heading">
+                        <span class="report-card-icon report-tone-amber" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                        <div class="min-w-0">
+                            <span class="report-card-title">كشف المتأخرات</span>
+                            <p class="report-card-subtitle">إجمالي المديونية وتصنيف الفترات غير المسددة لكل شقة.</p>
+                        </div>
+                    </div>
+                    <span class="report-card-badge report-tone-amber">مديونية</span>
+                </div>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="report-note">صفِّ النتائج ثم صدّرها كما هي معروضة.</p>
+                        <button type="button" onclick="exportArrearsCSV()" class="report-action report-action-compact report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
+                    </div>
+                    <div class="app-input border rounded-2xl p-3 space-y-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                            <label class="report-field">
+                                <span class="report-field-label">الشقة</span>
+                                <select id="arrearsApartmentFilter" onchange="renderArrearsReport()" class="report-control app-input border">
+                                    <option value="">كل الشقق</option>
+                                </select>
+                            </label>
+                            <label class="report-field">
+                                <span class="report-field-label">حالة التأخير</span>
+                                <select id="arrearsStatusFilter" onchange="renderArrearsReport()" class="report-control app-input border">
+                                    <option value="all">كل الحالات</option>
+                                    <option value="one">شهر واحد</option>
+                                    <option value="two_three">2–3 أشهر</option>
+                                    <option value="four_plus">4 أشهر فأكثر</option>
+                                </select>
+                            </label>
+                            <label class="report-field">
+                                <span class="report-field-label">من شهر</span>
+                                <input type="month" id="arrearsFromMonth" onchange="renderArrearsReport()" class="report-control app-input border">
+                            </label>
+                            <label class="report-field">
+                                <span class="report-field-label">إلى شهر</span>
+                                <input type="month" id="arrearsToMonth" onchange="renderArrearsReport()" class="report-control app-input border">
+                            </label>
+                        </div>
+                        <button type="button" onclick="resetArrearsFilters()" class="text-[11px] text-indigo-300 hover:text-indigo-200 underline">مسح الفلاتر</button>
+                    </div>
+                    <div id="arrearsReportContainer" class="report-preview space-y-3"></div>
+                    <p class="report-note">تُحسب كل فترة بسعر الاشتراك المسجل بتاريخ سريانه، وليس بالسعر الحالي فقط.</p>
+                </div>
+            </div>
+            <div id="auditLogPanel" class="report-panel app-card p-5 rounded-3xl border space-y-3 hidden">
+                <div class="report-card-head">
+                    <div class="report-card-heading">
+                        <span class="report-card-icon report-tone-sky" aria-hidden="true"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                        <div class="min-w-0">
+                            <h3 class="report-card-title">سجل العمليات</h3>
+                            <p class="report-card-subtitle">يُحفظ تلقائيًا للمراجعة، ولا يمكن مسحه من التطبيق.</p>
+                        </div>
+                    </div>
+                    <span class="report-card-badge report-tone-sky">سجل</span>
+                </div>
+                <label class="block"><span class="sr-only">البحث في سجل العمليات</span><input id="auditLogSearch" type="search" oninput="renderAuditLog()" placeholder="ابحث بالعملية أو التفاصيل أو اسم المنفذ" class="report-control app-input border w-full" /></label>
+                <div id="auditLogContainer" class="space-y-1.5 max-h-[32rem] overflow-y-auto pr-1" aria-live="polite"></div>
+            </div>
+        </section>
+        <footer id="appCopyright" class="text-center text-[10px] text-slate-500 leading-5 pt-2 no-print">
+            <p>حقوق الملكية الفكرية © 2026 شركة سنا للبرمجيات. جميع الحقوق محفوظة.</p>
+            <p>محمد عادل · <a href="tel:+201027767039" dir="ltr" class="text-indigo-300 hover:text-indigo-200">01027767039</a></p>
+        </footer>
+    </main>

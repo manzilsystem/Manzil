@@ -14,6 +14,17 @@ Disposable local credentials:
 
 These credentials and `.invalid` addresses are test-only. Never reuse them in a hosted environment.
 
+## Editing the page shell
+
+`index.html` is generated from `src/index.template.html` and the partials in `src/partials/`. Edit those sources, then rebuild:
+
+```sh
+npm run build:index
+npm run check:index
+```
+
+CI fails when the committed `index.html` does not match the template, so do not edit `index.html` directly.
+
 ## Run the local database
 
 Requirements: Docker-compatible runtime, Supabase CLI, and Node.js 22+.

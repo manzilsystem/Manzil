@@ -29,5 +29,7 @@ jobs:
         run: npm ci
       - name: Type-check opted-in modules
         run: npm run typecheck
+      - name: Verify generated index.html is current
+        run: npm run check:index
       - name: Run regression tests
         run: node --test tests/*.test.cjs

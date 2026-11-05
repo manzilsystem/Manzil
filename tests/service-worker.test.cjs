@@ -7,6 +7,7 @@ const test = require('node:test');
 const root = path.join(__dirname, '..');
 const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const swRegister = fs.readFileSync(path.join(root, 'js', 'sw-register.js'), 'utf8');
 const app = fs.readFileSync(path.join(root, 'js', 'app.js'), 'utf8');
 
 test('service worker is valid JavaScript and bumps the app cache', () => {
@@ -19,6 +20,7 @@ test('all runtime modules are pre-cached with the application shell', () => {
     assert.ok(shell, 'APP_SHELL must exist');
 
     for (const module of [
+        'sw-register.js',
         'telemetry.js',
         'cashbox.js',
         'monthly-close.js',
@@ -34,9 +36,10 @@ test('all runtime modules are pre-cached with the application shell', () => {
 });
 
 test('the shell reloads for worker updates but not for the first install', () => {
-    assert.match(html, /const hadController = Boolean\(navigator\.serviceWorker\.controller\)/);
-    assert.match(html, /controllerChanges \+= 1;/);
-    assert.match(html, /if \(reloading \|\| \(!hadController && controllerChanges === 1\)\) return;/);
+    assert.ok(html.includes('<script src="js/sw-register.js"></script>'), 'index.html must load the registration script');
+    assert.match(swRegister, /const hadController = Boolean\(navigator\.serviceWorker\.controller\)/);
+    assert.match(swRegister, /controllerChanges \+= 1;/);
+    assert.match(swRegister, /if \(reloading \|\| \(!hadController && controllerChanges === 1\)\) return;/);
 });
 
 test('pre-caching tolerates a single missing asset instead of blocking the update', () => {
@@ -51,16 +54,16 @@ test('navigations revalidate the shell so a release lands without clearing the c
 });
 
 test('the page re-checks for a new worker while it stays open', () => {
-    assert.match(html, /updateViaCache: 'none'/);
-    assert.match(html, /setInterval\(\(\) => \{[\s\S]*?refreshWorker\(\);[\s\S]*?\}, 15 \* 60 \* 1000\);/);
+    assert.match(swRegister, /updateViaCache: 'none'/);
+    assert.match(swRegister, /setInterval\(\(\) => \{[\s\S]*?refreshWorker\(\);[\s\S]*?\}, 15 \* 60 \* 1000\);/);
 });
 
 test('new deployments apply automatically once the user is idle, without a cache clear', () => {
-    assert.match(html, /let updatePending = false/);
-    assert.match(html, /const appIsBusy = \(\) =>/);
-    assert.match(html, /document\.querySelector\('\[role="dialog"\]:not\(\.hidden\)'\)/);
-    assert.match(html, /if \(appIsBusy\(\)\) \{ showUpdateBanner\(\); return; \}/);
-    assert.match(html, /updatePending = true;\s*applyPendingUpdate\(\);/);
-    assert.match(html, /setInterval\(\(\) => \{ if \(updatePending\) applyPendingUpdate\(\); \}, 5000\)/);
-    assert.match(html, /سيُطبّق تلقائيًا فور إنهاء النافذة أو الحقل المفتوح/);
+    assert.match(swRegister, /let updatePending = false/);
+    assert.match(swRegister, /const appIsBusy = \(\) =>/);
+    assert.match(swRegister, /document\.querySelector\('\[role="dialog"\]:not\(\.hidden\)'\)/);
+    assert.match(swRegister, /if \(appIsBusy\(\)\) \{ showUpdateBanner\(\); return; \}/);
+    assert.match(swRegister, /updatePending = true;\s*applyPendingUpdate\(\);/);
+    assert.match(swRegister, /setInterval\(\(\) => \{ if \(updatePending\) applyPendingUpdate\(\); \}, 5000\)/);
+    assert.match(swRegister, /سيُطبّق تلقائيًا فور إنهاء النافذة أو الحقل المفتوح/);
 });

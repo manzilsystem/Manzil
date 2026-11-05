@@ -4,6 +4,7 @@ const APP_SHELL = [
     './',
     './index.html',
     './css/style.css',
+    './js/sw-register.js',
     './js/telemetry.js',
     './js/state.js',
     './js/access.js',

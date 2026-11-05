@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manzil - نظام إدارة العقارات</title>
+    <meta name="description" content="إدارة تحصيلات ومصروفات العمارة ومتابعة الشقق والمتأخرات والتقارير من مكان واحد.">
+    <meta name="author" content="شركة سنا للبرمجيات — محمد عادل">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#071f27">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; connect-src 'self' https://musvcrkljccubwbcrtjs.supabase.co wss://musvcrkljccubwbcrtjs.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self'; manifest-src 'self'">
+    <script src="js/sw-register.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
+
+    <div id="toastContainer" role="status" aria-live="polite" aria-atomic="true" class="fixed top-20 left-1/2 -translate-x-1/2 z-[100] space-y-2 pointer-events-none" style="max-width:90vw;"></div>
+
+    <!-- @include auth-modals.html -->
+    <!-- @include header.html -->
+
+    <!-- @include main-tabs.html -->
+
+    <!-- @include bottom-nav.html -->
+
+    <!-- @include modals.html -->
+
+    <!-- Scripts -->
+    <script src="js/telemetry.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/access.js"></script>
+    <script src="js/render.js"></script>
+    <script src="js/crud.js"></script>
+    <script src="js/notices.js"></script>
+    <script src="js/reports.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/cashbox.js"></script>
+    <script src="js/monthly-close.js"></script>
+    <script src="js/backup.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
