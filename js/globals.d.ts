@@ -28,3 +28,4 @@ declare var loadBackupConsole: () => void;
 declare var initSupabaseApp: () => Promise<void>;
 declare var handleReportViewKeydown: (event: KeyboardEvent) => void;
 declare var renderNotices: () => void;
+declare var loadState: () => Promise<boolean>;

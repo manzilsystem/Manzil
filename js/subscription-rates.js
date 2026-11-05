@@ -1,3 +1,4 @@
+// @ts-check
 function mapSubscriptionRateChange(row) {
     return {
         effectiveMonth: String(row.effective_month).slice(0, 10),
