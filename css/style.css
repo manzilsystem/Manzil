@@ -118,6 +118,7 @@ details[open] > .report-card-summary .report-card-chevron { transform: rotate(18
 .report-jump-chip:hover i { color: var(--accent-color); }
 .report-toolbar { display: flex; align-items: flex-end; flex-wrap: wrap; gap: .5rem; }
 .report-toolbar > .report-field { flex: 1 1 12rem; min-width: 0; }
+.report-toolbar > .report-field-narrow { flex: 0 1 9.5rem; }
 .report-field { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
 .report-field-label { color: var(--text-muted); font-size: .65rem; font-weight: 800; }
 .report-control { width: 100%; border-radius: .9rem; padding: .6rem .75rem; font-size: .72rem; font-weight: 600; }
@@ -169,6 +170,7 @@ details[open] > .report-card-summary .report-card-chevron { transform: rotate(18
 .statement-table thead th { background: color-mix(in srgb, var(--bg-card) 55%, transparent); color: var(--text-muted); font-size: .62rem; font-weight: 700; }
 .statement-table td { font-variant-numeric: tabular-nums; }
 .statement-table tbody tr:last-child td { border-bottom: 0; }
+.statement-table tfoot td { border-top: 1px solid var(--border-color); border-bottom: 0; font-weight: 800; }
 .report-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: .5rem; }
 @media (min-width: 640px) { .report-actions-2, .report-actions-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 1024px) { .report-actions-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
@@ -399,7 +401,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     #printableArea .text-rose-400 { color: #be123c !important; }
     #printableArea .text-indigo-400 { color: #4338ca !important; }
     #printableArea .border-slate-700, #printableArea .border-slate-800 { border-color: #cbd5e1 !important; }
-    .no-print, nav, header, #toastContainer { display: none !important; }
+    .no-print, nav, #toastContainer { display: none !important; }
     #printableArea > .print\:block { display: block !important; }
     #printableArea > section.hidden { display: none !important; }
     #landlordReportPreview { break-inside: avoid; }
@@ -412,6 +414,13 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     body.print-statement #residentStatementCard .statement-table th,
     body.print-statement #residentStatementCard .statement-table td { border-color: #cbd5e1 !important; }
     body.print-statement #residentStatementCard .report-table-wrap { overflow: visible !important; }
+    body.print-period #printableArea > section:not(#tab-reports) { display: none !important; }
+    body.print-period #tab-reports > :not(#periodReportCard) { display: none !important; }
+    body.print-period #periodReportCard { padding: 0 !important; border: 0 !important; background: #fff !important; box-shadow: none !important; }
+    body.print-period #periodReportCard .statement-table th,
+    body.print-period #periodReportCard .statement-table td { border-color: #cbd5e1 !important; }
+    body.print-period #periodReportCard .report-table-wrap { overflow: visible !important; }
+    #periodReportPreview { break-inside: avoid; }
     button { display: none !important; }
 }
 

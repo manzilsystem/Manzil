@@ -233,6 +233,257 @@ function exportToCSV(month = landlordReportMonth) {
     toast(`تم تصدير تقرير ${reportMonth}`,'success');
 }
 
+let periodReportSnapshot = null;
+let periodReportSignature = '';
+
+function getPeriodReportSelection() {
+    return {
+        from: String(document.getElementById('periodReportFrom')?.value || ''),
+        to: String(document.getElementById('periodReportTo')?.value || '')
+    };
+}
+
+function setPeriodReportMonthValue(id, monthKey) {
+    const select = document.getElementById(id);
+    const label = getStatementMonthLabel(monthKey);
+    if (!select || !label) return;
+    select.value = label;
+}
+
+function applyPeriodReportPreset() {
+    const preset = String(document.getElementById('periodReportPreset')?.value || '');
+    if (!preset || preset === 'custom') return;
+    const currentKey = monthLabelToKey(getCurrentMonth());
+    if (!currentKey) return;
+    const count = preset === 'ytd'
+        ? Math.max(1, Number(currentKey.slice(5, 7)) || 1)
+        : Math.max(1, Number(preset) || 6);
+    setPeriodReportMonthValue('periodReportFrom', shiftStatementMonthKey(currentKey, -(count - 1)));
+    setPeriodReportMonthValue('periodReportTo', currentKey);
+    invalidatePeriodReportPreview();
+}
+
+function onPeriodReportRangeChange() {
+    const preset = document.getElementById('periodReportPreset');
+    if (preset) preset.value = 'custom';
+    invalidatePeriodReportPreview();
+}
+
+function buildPeriodMonthKeys(fromMonth, toMonth) {
+    const fromKey = monthLabelToKey(fromMonth);
+    const toKey = monthLabelToKey(toMonth);
+    if (!fromKey || !toKey || fromKey > toKey) return null;
+    const keys = [];
+    for (let key = fromKey; key <= toKey && keys.length < 60; key = shiftStatementMonthKey(key, 1)) keys.push(key);
+    return keys.length ? keys : null;
+}
+
+function getPeriodCollectionRate(expectedCents, collectedCents) {
+    return expectedCents > 0 ? Math.round((collectedCents / expectedCents) * 100) : null;
+}
+
+function buildPeriodReport(fromMonth, toMonth) {
+    const keys = buildPeriodMonthKeys(fromMonth, toMonth);
+    if (!keys) return null;
+    const months = keys.map(key => {
+        const month = getStatementMonthLabel(key);
+        const collectedCents = (state.income || [])
+            .filter(item => item.month === month)
+            .reduce((sum, item) => sum + toCents(item.amount), 0);
+        const expenseCents = (state.expenses || [])
+            .filter(item => item.month === month)
+            .reduce((sum, item) => sum + toCents(item.amount), 0);
+        const { expectedCents, outstandingCents } = getMonthlyBillingTotals(month);
+        return {
+            key,
+            month,
+            expectedCents,
+            collectedCents,
+            outstandingCents,
+            expenseCents,
+            netCents: collectedCents - expenseCents,
+            rate: getPeriodCollectionRate(expectedCents, collectedCents)
+        };
+    });
+    const totals = months.reduce((acc, row) => {
+        acc.expectedCents += row.expectedCents;
+        acc.collectedCents += row.collectedCents;
+        acc.outstandingCents += row.outstandingCents;
+        acc.expenseCents += row.expenseCents;
+        if (row.outstandingCents > 0) acc.unpaidMonths += 1;
+        return acc;
+    }, { expectedCents: 0, collectedCents: 0, outstandingCents: 0, expenseCents: 0, unpaidMonths: 0 });
+    totals.netCents = totals.collectedCents - totals.expenseCents;
+    totals.rate = getPeriodCollectionRate(totals.expectedCents, totals.collectedCents);
+    return {
+        fromMonth,
+        toMonth,
+        months,
+        totals,
+        rangeLabel: `${fromMonth} – ${toMonth}`,
+        generatedAt: new Date().toISOString()
+    };
+}
+
+function getPeriodReportSignature(fromMonth, toMonth) {
+    const labels = new Set([fromMonth, toMonth]);
+    (buildPeriodMonthKeys(fromMonth, toMonth) || []).forEach(key => labels.add(getStatementMonthLabel(key)));
+    return JSON.stringify([
+        state.buildingName || '',
+        state.managerName || '',
+        state.defaultSubscription ?? '',
+        state.residents || [],
+        (state.income || []).filter(item => labels.has(item.month)),
+        (state.expenses || []).filter(item => labels.has(item.month))
+    ]);
+}
+
+function setPeriodReportActionsEnabled(enabled) {
+    ['periodReportPrintBtn', 'periodReportExportBtn'].forEach(id => {
+        const button = document.getElementById(id);
+        if (button) button.disabled = !enabled;
+    });
+}
+
+function clearPeriodReportPreview(message) {
+    periodReportSnapshot = null;
+    periodReportSignature = '';
+    setPeriodReportActionsEnabled(false);
+    const preview = document.getElementById('periodReportPreview');
+    if (preview) preview.innerHTML = `<p class="report-preview-empty">${esc(message)}</p>`;
+}
+
+function invalidatePeriodReportPreview() {
+    if (!periodReportSnapshot) return;
+    clearPeriodReportPreview('تغيّرت الفترة أو البيانات — اضغط «معاينة» لتحديث التقرير.');
+}
+
+function invalidatePeriodReportIfStale() {
+    if (!periodReportSnapshot) return;
+    if (getPeriodReportSignature(periodReportSnapshot.fromMonth, periodReportSnapshot.toMonth) !== periodReportSignature) {
+        clearPeriodReportPreview('تغيّرت البيانات — اضغط «معاينة» لتحديث التقرير.');
+    }
+}
+
+function getSelectedPeriodReportSnapshot() {
+    if (!periodReportSnapshot) {
+        toast('اعرض معاينة الفترة أولًا','error');
+        return null;
+    }
+    const selected = getPeriodReportSelection();
+    if ((selected.from && selected.from !== periodReportSnapshot.fromMonth) ||
+        (selected.to && selected.to !== periodReportSnapshot.toMonth)) {
+        toast('اعرض معاينة الفترة المحددة أولًا','error');
+        return null;
+    }
+    return periodReportSnapshot;
+}
+
+function renderPeriodReportHtml(report) {
+    const monthRows = report.months.map(row => `
+        <tr>
+            <td>${esc(row.month)}</td>
+            <td>${fmtMoney(row.expectedCents / 100)}</td>
+            <td class="text-emerald-400">${fmtMoney(row.collectedCents / 100)}</td>
+            <td class="${row.outstandingCents ? 'text-rose-400' : ''}">${fmtMoney(row.outstandingCents / 100)}</td>
+            <td>${row.rate === null ? '—' : fmtNum(row.rate) + '%'}</td>
+            <td class="${row.expenseCents ? 'text-rose-400' : ''}">${fmtMoney(row.expenseCents / 100)}</td>
+            <td class="${row.netCents >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${fmtMoney(row.netCents / 100)}</td>
+        </tr>`).join('');
+    const totals = report.totals;
+    const unpaidNote = totals.unpaidMonths > 0
+        ? `<p>${fmtNum(totals.unpaidMonths)} شهر من الفترة فيه متبقٍّ غير محصّل.</p>`
+        : '';
+    return `
+        <div class="space-y-3">
+            <header class="report-preview-header">
+                <h3 class="report-preview-title">${esc(state.buildingName || 'العمارة')}</h3>
+                <p class="report-preview-meta">تقرير الفترة ${esc(report.rangeLabel)} • تم الإنشاء ${esc(formatDate(report.generatedAt))}</p>
+            </header>
+            <div class="report-stats">
+                <div class="report-stat"><p class="report-stat-label">المستحق</p><p class="report-stat-value">${fmtMoney(totals.expectedCents / 100)}</p></div>
+                <div class="report-stat"><p class="report-stat-label">المحصّل</p><p class="report-stat-value text-emerald-400">${fmtMoney(totals.collectedCents / 100)}</p></div>
+                <div class="report-stat"><p class="report-stat-label">غير المحصّل</p><p class="report-stat-value ${totals.outstandingCents > 0 ? 'text-amber-400' : 'text-emerald-400'}">${fmtMoney(totals.outstandingCents / 100)}</p></div>
+                <div class="report-stat"><p class="report-stat-label">نسبة التحصيل</p><p class="report-stat-value">${totals.rate === null ? '—' : fmtNum(totals.rate) + '%'}</p></div>
+                <div class="report-stat"><p class="report-stat-label">المصروف</p><p class="report-stat-value text-rose-400">${fmtMoney(totals.expenseCents / 100)}</p></div>
+                <div class="report-stat"><p class="report-stat-label">الصافي</p><p class="report-stat-value ${totals.netCents >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${fmtMoney(totals.netCents / 100)}</p></div>
+            </div>
+            <div class="report-table-wrap">
+                <table class="statement-table">
+                    <thead><tr><th>الشهر</th><th>المستحق</th><th>المحصّل</th><th>غير المحصّل</th><th>نسبة التحصيل</th><th>المصروف</th><th>الصافي</th></tr></thead>
+                    <tbody>${monthRows}</tbody>
+                    <tfoot><tr><td>الإجمالي</td><td>${fmtMoney(totals.expectedCents / 100)}</td><td>${fmtMoney(totals.collectedCents / 100)}</td><td>${fmtMoney(totals.outstandingCents / 100)}</td><td>${totals.rate === null ? '—' : fmtNum(totals.rate) + '%'}</td><td>${fmtMoney(totals.expenseCents / 100)}</td><td>${fmtMoney(totals.netCents / 100)}</td></tr></tfoot>
+                </table>
+            </div>
+            <div class="report-note report-divider text-center">
+                <p>كل شهر محسوب بسعر الاشتراك السارية فيه وحصيلته من حركات الشهر نفسه، مثل تقرير الملاك الشهري.</p>
+                <p>نسبة تزيد على 100% تعني تحصيلًا أعلى من مستحق الشهر (مقدمة أو متأخرات مسددة).</p>
+                ${unpaidNote}
+            </div>
+        </div>`;
+}
+
+function generatePeriodReport() {
+    if (!requireManager()) return;
+    const { from, to } = getPeriodReportSelection();
+    if (!from || !to) { toast('اختر شهر البداية والنهاية','error'); return; }
+    const report = buildPeriodReport(from, to);
+    if (!report) {
+        clearPeriodReportPreview('الفترة غير صحيحة: شهر البداية بعد شهر النهاية.');
+        toast('شهر البداية بعد شهر النهاية','error');
+        return;
+    }
+    const preview = document.getElementById('periodReportPreview');
+    if (!preview) return;
+    preview.innerHTML = renderPeriodReportHtml(report);
+    periodReportSnapshot = report;
+    periodReportSignature = getPeriodReportSignature(from, to);
+    setPeriodReportActionsEnabled(true);
+}
+
+function printPeriodReport() {
+    if (!requireManager()) return;
+    const report = getSelectedPeriodReportSnapshot();
+    if (!report) return;
+    const title = document.getElementById('printBuildingTitle');
+    const meta = document.getElementById('printBuildingMeta');
+    const previousTitle = title ? title.textContent : '';
+    const previousMeta = meta ? meta.textContent : '';
+    if (title) title.textContent = `تقرير الفترة - ${state.buildingName || 'Manzil'}`;
+    if (meta) meta.textContent = `الفترة ${report.rangeLabel} • المدير: ${state.managerName || '—'}`;
+    document.body.classList.remove('print-landlord', 'print-statement');
+    document.body.classList.add('print-period');
+    const restore = () => {
+        document.body.classList.remove('print-period');
+        if (title) title.textContent = previousTitle;
+        if (meta) meta.textContent = previousMeta;
+    };
+    window.addEventListener('afterprint', restore, { once: true });
+    window.print();
+}
+
+function getPeriodReportFileSlug(report) {
+    const fromKey = monthLabelToKey(report.fromMonth) || String(Date.now());
+    const toKey = monthLabelToKey(report.toMonth) || String(Date.now());
+    return `${fromKey.slice(0, 7)}_${toKey.slice(0, 7)}`;
+}
+
+function exportPeriodReportCsv() {
+    if (!requireManager()) return;
+    const report = getSelectedPeriodReportSnapshot();
+    if (!report) return;
+    const totals = report.totals;
+    const rows = [['الشهر','المستحق','المحصّل','غير المحصّل','نسبة التحصيل %','المصروف','الصافي']];
+    report.months.forEach(row => {
+        rows.push([row.month, row.expectedCents / 100, row.collectedCents / 100, row.outstandingCents / 100,
+            row.rate ?? '', row.expenseCents / 100, row.netCents / 100]);
+    });
+    rows.push(['الإجمالي', totals.expectedCents / 100, totals.collectedCents / 100, totals.outstandingCents / 100,
+        totals.rate ?? '', totals.expenseCents / 100, totals.netCents / 100]);
+    downloadCsv(`manzil_period_${getPeriodReportFileSlug(report)}.csv`, rows);
+    toast('تم تصدير تقرير الفترة','success');
+}
+
 function exportArrearsCSV() {
     if (!requireManager()) return;
     const report = buildArrearsReport(getArrearsReportFilters());

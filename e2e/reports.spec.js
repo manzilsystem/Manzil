@@ -27,6 +27,13 @@ async function previewMonth(page, month) {
     await page.locator('#landlordReportPrint').getByRole('button', { name: 'معاينة', exact: true }).click();
 }
 
+async function previewPeriod(page, from, to) {
+    await page.locator('#periodReportPreset').selectOption('custom');
+    await page.locator('#periodReportFrom').selectOption(from);
+    await page.locator('#periodReportTo').selectOption(to);
+    await page.locator('#periodReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+}
+
 test('report output stays disabled until a fresh preview exists', async ({ page }) => {
     await openReports(page);
     const printButton = page.locator('#reportPrintBtn');
@@ -60,6 +67,97 @@ test('quick jump chips open collapsed report panels', async ({ page }) => {
 
     await page.locator('.report-jump-chip', { hasText: 'الإقفال الشهري' }).click();
     await expect(monthlyClose).toHaveJSProperty('open', true);
+});
+
+test('period report gates print and csv on the previewed range', async ({ page }) => {
+    await openReports(page);
+    const printButton = page.locator('#periodReportPrintBtn');
+    const exportButton = page.locator('#periodReportExportBtn');
+    const preview = page.locator('#periodReportPreview');
+
+    await expect(printButton).toBeDisabled();
+    await expect(exportButton).toBeDisabled();
+
+    await previewPeriod(page, 'يناير 2024', 'فبراير 2024');
+    await expect(preview).toContainText('تقرير الفترة يناير 2024 – فبراير 2024');
+    await expect(preview).toContainText('الإجمالي');
+    await expect(preview.locator('.statement-table tbody tr')).toHaveCount(2);
+    await expect(printButton).toBeEnabled();
+    await expect(exportButton).toBeEnabled();
+
+    await page.locator('#periodReportTo').selectOption('مارس 2024');
+    await expect(preview).toContainText('تغيّرت الفترة أو البيانات');
+    await expect(printButton).toBeDisabled();
+    await expect(exportButton).toBeDisabled();
+
+    await previewPeriod(page, 'يناير 2024', 'فبراير 2024');
+    await expect(printButton).toBeEnabled();
+
+    await page.evaluate(() => {
+        state.expenses.push({ id: 'e3', month: 'فبراير 2024', title: 'سباك', amount: 120, category: 'صيانة' });
+        renderAll();
+    });
+    await expect(preview).toContainText('تغيّرت البيانات');
+    await expect(printButton).toBeDisabled();
+});
+
+test('printing a period report isolates its card', async ({ page }) => {
+    await openReports(page);
+    await previewPeriod(page, 'يناير 2024', 'فبراير 2024');
+    await page.evaluate(() => { window.print = () => { window.__printCalls = (window.__printCalls || 0) + 1; }; });
+
+    await page.locator('#periodReportPrintBtn').click();
+    const printed = await page.evaluate(() => ({
+        calls: window.__printCalls,
+        scoped: document.body.classList.contains('print-period'),
+        title: document.getElementById('printBuildingTitle').textContent,
+        meta: document.getElementById('printBuildingMeta').textContent
+    }));
+    expect(printed.calls).toBe(1);
+    expect(printed.scoped).toBe(true);
+    expect(printed.title).toContain('تقرير الفترة');
+    expect(printed.meta).toContain('يناير 2024 – فبراير 2024');
+
+    await page.emulateMedia({ media: 'print' });
+    const scopedStyles = await page.evaluate(() => ({
+        period: getComputedStyle(document.getElementById('periodReportCard')).display,
+        landlord: getComputedStyle(document.getElementById('landlordReportPrint')).display,
+        statement: getComputedStyle(document.getElementById('residentStatementCard')).display,
+        monthlyClose: getComputedStyle(document.querySelector('#tab-reports > details')).display
+    }));
+    expect(scopedStyles.period).not.toBe('none');
+    expect(scopedStyles.landlord).toBe('none');
+    expect(scopedStyles.statement).toBe('none');
+    expect(scopedStyles.monthlyClose).toBe('none');
+});
+
+test('period report CSV downloads the range with a totals row', async ({ page }) => {
+    await openReports(page);
+    await previewPeriod(page, 'يناير 2024', 'فبراير 2024');
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#periodReportExportBtn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('manzil_period_2024-01_2024-02.csv');
+
+    const stream = await download.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const csv = Buffer.concat(chunks).toString('utf8');
+    expect(csv).toContain('"يناير 2024","100","100","0","100","0","100"');
+    expect(csv).toContain('"الإجمالي","200","1000","0","500","0","1000"');
+});
+
+test('period quick preset fills both month selects', async ({ page }) => {
+    await openReports(page);
+    await page.locator('#periodReportPreset').selectOption('3');
+    const range = await page.evaluate(() => ({
+        from: document.getElementById('periodReportFrom').value,
+        to: document.getElementById('periodReportTo').value,
+        current: getCurrentMonth()
+    }));
+    expect(range.to).toBe(range.current);
+    expect(range.from).toBeTruthy();
 });
 
 test('editing report data invalidates the generated preview', async ({ page }) => {
@@ -130,11 +228,13 @@ test('printing a report hides every other reports card', async ({ page }) => {
     const scopedStyles = await page.evaluate(() => ({
         preview: getComputedStyle(document.getElementById('landlordReportPrint')).display,
         monthlyClose: getComputedStyle(document.querySelector('#tab-reports > details')).display,
-        controls: getComputedStyle(document.querySelector('#landlordReportPrint .no-print')).display
+        controls: getComputedStyle(document.querySelector('#landlordReportPrint .no-print')).display,
+        previewHeader: getComputedStyle(document.querySelector('#landlordReportPreview .report-preview-header')).display
     }));
     expect(scopedStyles.preview).not.toBe('none');
     expect(scopedStyles.monthlyClose).toBe('none');
     expect(scopedStyles.controls).toBe('none');
+    expect(scopedStyles.previewHeader).not.toBe('none');
 
     await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
     const restored = await page.evaluate(() => ({

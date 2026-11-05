@@ -63,8 +63,8 @@ test('reports surface shares card headers, stat tiles, and tabular numerals', ()
     assert.match(css, /\.report-stat-value \{[^}]*font-variant-numeric: tabular-nums/);
     assert.match(css, /\.report-amount \{ font-variant-numeric: tabular-nums/);
     assert.match(css, /#printableArea \.app-card, #printableArea \.app-input, #printableArea \.report-stat \{/);
-    assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 5);
-    assert.equal((reports.match(/class="report-stat"/g) || []).length, 10);
+    assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 6);
+    assert.equal((reports.match(/class="report-stat"/g) || []).length, 16);
     assert.equal((render.match(/class="report-stat"/g) || []).length, 4);
     assert.match(reports, /text-emerald-400 report-amount/);
     assert.match(render, /text-rose-400 report-amount/);
@@ -74,8 +74,8 @@ test('reports section has a header, quick jump chips, and unified actions', () =
     assert.match(reportTab, /class="report-section-head no-print"/);
     assert.match(reportTab, /class="report-jump-chips"/);
     assert.match(reports, /function jumpToReportPanel\(panelId\)/);
-    assert.equal((reportTab.match(/class="report-card-icon /g) || []).length, 5);
-    assert.equal((reportTab.match(/class="report-card-badge /g) || []).length, 3);
+    assert.equal((reportTab.match(/class="report-card-icon /g) || []).length, 6);
+    assert.equal((reportTab.match(/class="report-card-badge /g) || []).length, 4);
     assert.match(reportTab, /class="report-actions report-actions-4/);
     assert.match(reportTab, /class="report-toolbar no-print"/);
     assert.match(reportTab, /class="report-preview text-xs/);
@@ -147,6 +147,33 @@ test('resident statement scopes a monthly ledger to one resident with gated outp
     assert.match(reports, /manzil_unit_\$\{getStatementFileSlug\(statement\)\}\.pdf/);
     assert.match(reports, /function renderUnitReportPdfHtml\(statement\)/);
     assert.match(reports, /بيانات الوحدة/);
+});
+
+test('period report rolls the monthly landlord figures across a range with gated outputs', () => {
+    assert.ok(reportTab.includes('id="periodReportCard"'));
+    assert.match(reportTab, /jumpToReportPanel\('periodReportCard'\)/);
+    assert.match(reportTab, /id="periodReportPreset"[^>]*onchange="applyPeriodReportPreset\(\)"/);
+    for (const id of ['periodReportFrom', 'periodReportTo']) {
+        assert.match(reportTab, new RegExp('id="' + id + '"[^>]*onchange="onPeriodReportRangeChange\\(\\)"'));
+    }
+    assert.match(reportTab, /id="periodReportPreview"[^>]*aria-live="polite"/);
+    for (const id of ['periodReportPrintBtn', 'periodReportExportBtn']) {
+        assert.match(reportTab, new RegExp('id="' + id + '"[^>]*disabled'));
+    }
+    assert.match(reports, /function buildPeriodReport\(fromMonth, toMonth\)/);
+    assert.match(reports, /const \{ expectedCents, outstandingCents \} = getMonthlyBillingTotals\(month\)/);
+    assert.match(reports, /function getPeriodReportSignature\(fromMonth, toMonth\)/);
+    assert.match(reports, /function invalidatePeriodReportIfStale\(\)/);
+    assert.match(render, /invalidatePeriodReportIfStale\(\)/);
+    assert.match(render, /function populatePeriodReportSelects\(months/);
+    assert.match(reports, /manzil_period_\$\{getPeriodReportFileSlug\(report\)\}\.csv/);
+    assert.match(reports, /document\.body\.classList\.add\('print-period'\)/);
+    assert.match(css, /body\.print-period #tab-reports > :not\(#periodReportCard\) \{ display: none !important; \}/);
+    assert.match(css, /body\.print-period #periodReportCard \{/);
+    assert.match(css, /\.statement-table tfoot td \{/);
+    assert.match(css, /\.report-toolbar > \.report-field-narrow \{/);
+    assert.match(css, /\.no-print, nav, #toastContainer \{ display: none !important; \}/);
+    assert.doesNotMatch(css, /\.no-print, nav, header,/);
 });
 
 test('resident statement entry is reachable from the resident profile', () => {

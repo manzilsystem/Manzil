@@ -42,6 +42,7 @@ function renderAll() {
     renderNotices(); renderAuditLog(); renderArrearsReport(); populateSelects();
     invalidateLandlordReportIfStale();
     invalidateResidentStatementIfStale();
+    invalidatePeriodReportIfStale();
     renderCashbox();
 }
 
@@ -138,6 +139,20 @@ function populateSelects() {
     const paymentMethodSelect = document.getElementById('incomePaymentMethod');
     populatePaymentMethodOptions(paymentMethodSelect, paymentMethodSelect?.value || '');
     populateStatementResidentSelect();
+    populatePeriodReportSelects(months, current);
+}
+
+function populatePeriodReportSelects(months, current = getCurrentMonth()) {
+    const currentKey = monthLabelToKey(current) || '';
+    const defaultFrom = currentKey ? (getStatementMonthLabel(shiftStatementMonthKey(currentKey, -5)) || current) : current;
+    const defaults = { periodReportFrom: defaultFrom, periodReportTo: current };
+    ['periodReportFrom', 'periodReportTo'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.innerHTML = months.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+        const v = el.value || defaults[id];
+        el.value = months.includes(v) ? v : defaults[id];
+    });
 }
 
 function populateStatementResidentSelect() {
