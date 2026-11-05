@@ -58,3 +58,10 @@ test('integration test covers timezone boundaries, all three funds, and role res
     assert.match(integration, /emergency fund close mismatch/);
     assert.match(integration, /non-manager user accessed monthly cashbox close/);
 });
+
+test('reconciliation flag compares closing balance against expected movement', () => {
+    assert.match(migration, /v_reconciled := ABS\(\s*v_total_closing - \(v_total_opening \+ v_total_income - v_total_expenses\)\s*\) < 0\.01/);
+    assert.match(migration, /'reconciled', v_reconciled/);
+    assert.match(migration, /'net_movement', ROUND\(v_total_income - v_total_expenses, 2\)/);
+    assert.match(migration, /'closing_balance', ROUND\(v_total_closing, 2\)/);
+});
