@@ -1,3 +1,4 @@
+// @ts-check
 const SUPABASE_URL = 'https://musvcrkljccubwbcrtjs.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_' + 'ysHOFQfwUFZDlqT6RrOqHA_vGSHrNZs';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
@@ -68,8 +69,8 @@ function setLoginMode(mode) {
     const isOwner = authLoginMode === 'owner';
     const identifierLabel = document.getElementById('authIdentifierLabel');
     const passwordLabel = document.getElementById('authPasswordLabel');
-    const identifier = document.getElementById('authIdentifier');
-    const password = document.getElementById('authPassword');
+    const identifier = /** @type {HTMLInputElement | null} */ (document.getElementById('authIdentifier'));
+    const password = /** @type {HTMLInputElement | null} */ (document.getElementById('authPassword'));
     const title = document.getElementById('pinLockTitle');
     const hint = document.getElementById('pinLockHint');
     const ownerHelp = document.getElementById('ownerLoginHelp');
@@ -100,7 +101,7 @@ function setLoginMode(mode) {
     if (ownerHelp) ownerHelp.classList.toggle('hidden', !isOwner);
     if (managerRecovery) managerRecovery.classList.toggle('hidden', isOwner);
 
-    for (const [id, selected] of [['loginModeManager', !isOwner], ['loginModeOwner', isOwner]]) {
+    for (const [id, selected] of /** @type {[string, boolean][]} */ ([['loginModeManager', !isOwner], ['loginModeOwner', isOwner]])) {
         const button = document.getElementById(id);
         if (!button) continue;
         button.setAttribute('aria-pressed', String(selected));
@@ -120,14 +121,14 @@ function setLoginMode(mode) {
 }
 
 async function requestManagerPasswordReset() {
-    const identifier = document.getElementById('authIdentifier');
+    const identifier = /** @type {HTMLInputElement | null} */ (document.getElementById('authIdentifier'));
     const email = identifier?.value.trim() || '';
     if (!/^\S+@\S+\.\S+$/.test(email)) {
         showSupabaseError('اكتب بريد المدير أولًا ثم اختر «نسيت كلمة مرور المدير؟».');
         identifier?.focus();
         return;
     }
-    const button = document.getElementById('managerRecoveryBtn');
+    const button = /** @type {HTMLButtonElement | null} */ (document.getElementById('managerRecoveryBtn'));
     if (button) { button.disabled = true; button.textContent = 'جاري إرسال رابط الاستعادة...'; }
     try {
         const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
@@ -418,7 +419,7 @@ function confirmBuildingSelection() {
         pending.resolve(null);
         return false;
     }
-    const selectedId = document.getElementById('buildingContextSelect')?.value;
+    const selectedId = /** @type {HTMLSelectElement | null} */ (document.getElementById('buildingContextSelect'))?.value;
     const membership = pending.memberships.find(item => item.building_id === selectedId);
     if (!membership) return false;
 
@@ -703,7 +704,7 @@ function clearAuthenticatedState() {
         tempPinModal.classList.remove('flex');
     }
     for (const id of ['authIdentifier', 'authPassword', 'currentOwnerPin', 'newOwnerPin', 'confirmOwnerPin', 'ownerTempPinValue']) {
-        const input = document.getElementById(id);
+        const input = /** @type {HTMLInputElement | null} */ (document.getElementById(id));
         if (input) input.value = '';
     }
     setLoginMode('manager');
@@ -729,7 +730,7 @@ function showPasswordRecoveryModal() {
         return;
     }
     for (const id of ['recoveryNewPassword', 'recoveryConfirmPassword']) {
-        const input = document.getElementById(id);
+        const input = /** @type {HTMLInputElement | null} */ (document.getElementById(id));
         if (input) input.value = '';
     }
     const error = document.getElementById('passwordRecoveryError');
@@ -767,10 +768,10 @@ async function submitPasswordRecovery(event) {
         hidePasswordRecoveryModal();
         return;
     }
-    const password = document.getElementById('recoveryNewPassword')?.value || '';
-    const confirmation = document.getElementById('recoveryConfirmPassword')?.value || '';
+    const password = /** @type {HTMLInputElement | null} */ (document.getElementById('recoveryNewPassword'))?.value || '';
+    const confirmation = /** @type {HTMLInputElement | null} */ (document.getElementById('recoveryConfirmPassword'))?.value || '';
     const errorElement = document.getElementById('passwordRecoveryError');
-    const button = document.getElementById('passwordRecoverySubmit');
+    const button = /** @type {HTMLButtonElement | null} */ (document.getElementById('passwordRecoverySubmit'));
     const showError = message => {
         if (errorElement) { errorElement.textContent = message; errorElement.classList.remove('hidden'); }
     };
@@ -809,8 +810,8 @@ async function submitSupabaseLogin(event) {
     setAuthModal(true, 'جاري التحقق...');
     let authRequestFailed = false;
     try {
-        const identifier = document.getElementById('authIdentifier').value.trim();
-        let password = document.getElementById('authPassword').value;
+        const identifier = /** @type {HTMLInputElement} */ (document.getElementById('authIdentifier')).value.trim();
+        let password = /** @type {HTMLInputElement} */ (document.getElementById('authPassword')).value;
         const isManagerEmail = identifier.includes('@');
         if (authLoginMode === 'manager' && !isManagerEmail) {
             showSupabaseError('دخول المدير يحتاج البريد الإلكتروني وكلمة المرور. اختر «مالك الشقة» إذا كان لديك رقم جوال وPIN.');
@@ -929,9 +930,9 @@ function showFirstOwnerPinChange(message = '') {
 
 async function submitFirstOwnerPinChange(event) {
     event.preventDefault();
-    const currentPin = normalizePinDigits(document.getElementById('currentOwnerPin').value);
-    const pin = normalizePinDigits(document.getElementById('newOwnerPin').value);
-    const confirmPin = normalizePinDigits(document.getElementById('confirmOwnerPin').value);
+    const currentPin = normalizePinDigits(/** @type {HTMLInputElement} */ (document.getElementById('currentOwnerPin')).value);
+    const pin = normalizePinDigits(/** @type {HTMLInputElement} */ (document.getElementById('newOwnerPin')).value);
+    const confirmPin = normalizePinDigits(/** @type {HTMLInputElement} */ (document.getElementById('confirmOwnerPin')).value);
     if (!/^(?:\d{6}|\d{8})$/.test(currentPin)) return showFirstOwnerPinChange('أدخل PIN الحالي من 6 أرقام أو 8 أرقام إذا كان مؤقتًا.');
     if (!/^\d{6}$/.test(pin)) return showFirstOwnerPinChange('PIN يجب أن يتكون من 6 أرقام.');
     if (pin !== confirmPin) return showFirstOwnerPinChange('الرمزان غير متطابقين.');
@@ -983,16 +984,16 @@ async function submitFirstOwnerPinChange(event) {
             } catch (stateError) {
                 console.warn('Could not verify owner PIN completion state:', stateError);
             }
-            document.getElementById('currentOwnerPin').value = pin;
-            document.getElementById('newOwnerPin').value = '';
-            document.getElementById('confirmOwnerPin').value = '';
+            /** @type {HTMLInputElement} */ (document.getElementById('currentOwnerPin')).value = pin;
+            /** @type {HTMLInputElement} */ (document.getElementById('newOwnerPin')).value = '';
+            /** @type {HTMLInputElement} */ (document.getElementById('confirmOwnerPin')).value = '';
             showFirstOwnerPinChange('تم تحديث PIN، لكن تعذر تأكيد فتح الحساب. جرّب إكمال الدخول باستخدام PIN الجديد.');
             return;
         }
         if (errorCode === 'pin_update_status_unknown') {
-            document.getElementById('currentOwnerPin').value = pin;
-            document.getElementById('newOwnerPin').value = '';
-            document.getElementById('confirmOwnerPin').value = '';
+            /** @type {HTMLInputElement} */ (document.getElementById('currentOwnerPin')).value = pin;
+            /** @type {HTMLInputElement} */ (document.getElementById('newOwnerPin')).value = '';
+            /** @type {HTMLInputElement} */ (document.getElementById('confirmOwnerPin')).value = '';
             showFirstOwnerPinChange('تعذر التأكد من نتيجة تحديث PIN. جرّب PIN الجديد كرمز حالي؛ وإذا لم يقبله النظام، أدخل PIN السابق. لن تُفتح البيانات قبل اكتمال التحقق.');
             return;
         }

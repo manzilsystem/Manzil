@@ -27,7 +27,8 @@ async function reloadResidentSubscriptionRateHistory(residentId) {
 
 (function installSubscriptionRatePersistence() {
     const originalLoadState = loadState;
-    loadState = async function loadStateWithSubscriptionRates() {
+    const globalScope = /** @type {any} */ (globalThis);
+    globalScope.loadState = async function loadStateWithSubscriptionRates() {
         const loaded = await originalLoadState();
         if (!loaded || !activeBuildingId || !Array.isArray(state.residents)) return loaded;
         const [ratesResult, historyResult] = await Promise.all([
