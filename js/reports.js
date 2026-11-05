@@ -349,7 +349,7 @@ function getResidentStatementSignature(residentId) {
 }
 
 function setResidentStatementActionsEnabled(enabled) {
-    ['statementPrintBtn', 'statementPdfBtn', 'statementCsvBtn'].forEach(id => {
+    ['statementPrintBtn', 'statementPdfBtn', 'unitReportPdfBtn', 'statementCsvBtn'].forEach(id => {
         const button = document.getElementById(id);
         if (button) button.disabled = !enabled;
     });
@@ -491,29 +491,44 @@ function printResidentStatement() {
     window.print();
 }
 
-function renderResidentStatementPdfHtml(statement) {
-    const resident = statement.resident;
-    const cell = (value, styles = '') => '<td style="padding:6px;border:1px solid #cbd5e1;text-align:right;' + styles + '">' + value + '</td>';
-    const monthRows = statement.months.map(row => [
+function statementPdfCell(value, styles = '') {
+    return '<td style="padding:6px;border:1px solid #cbd5e1;text-align:right;' + styles + '">' + value + '</td>';
+}
+
+function statementPdfHeadCell(value) {
+    return '<th style="padding:6px;border:1px solid #cbd5e1;text-align:right;font-weight:600">' + value + '</th>';
+}
+
+function renderStatementMonthsPdfBody(statement) {
+    return statement.months.map(row => [
         '<tr>',
-        '<th style="padding:6px;border:1px solid #cbd5e1;text-align:right;font-weight:600">', esc(row.month), '</th>',
-        cell(fmtMoney(row.dueCents / 100)),
-        cell(fmtMoney(row.paidCents / 100)),
-        cell(fmtMoney(row.remainingCents / 100), row.remainingCents ? 'color:#be123c;font-weight:700' : ''),
-        cell(esc(row.status.label)),
+        statementPdfHeadCell(esc(row.month)),
+        statementPdfCell(fmtMoney(row.dueCents / 100)),
+        statementPdfCell(fmtMoney(row.paidCents / 100)),
+        statementPdfCell(fmtMoney(row.remainingCents / 100), row.remainingCents ? 'color:#be123c;font-weight:700' : ''),
+        statementPdfCell(esc(row.status.label)),
         '</tr>'
     ].join('')).join('');
-    const paymentRows = statement.payments.length
+}
+
+function renderStatementPaymentsPdfBody(statement) {
+    return statement.payments.length
         ? statement.payments.map(payment => [
             '<tr>',
-            cell(esc(payment.month)),
-            cell(fmtMoney(payment.amountCents / 100), 'color:#047857;font-weight:700'),
-            cell(esc(payment.method)),
-            cell(esc(formatDate(payment.date) || '—')),
-            cell(esc(payment.notes || '—')),
+            statementPdfCell(esc(payment.month)),
+            statementPdfCell(fmtMoney(payment.amountCents / 100), 'color:#047857;font-weight:700'),
+            statementPdfCell(esc(payment.method)),
+            statementPdfCell(esc(formatDate(payment.date) || '—')),
+            statementPdfCell(esc(payment.notes || '—')),
             '</tr>'
         ].join('')).join('')
         : '<tr><td colspan="5" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">لا توجد حركات مسجلة.</td></tr>';
+}
+
+function renderResidentStatementPdfHtml(statement) {
+    const resident = statement.resident;
+    const monthRows = renderStatementMonthsPdfBody(statement);
+    const paymentRows = renderStatementPaymentsPdfBody(statement);
 
     return [
         '<div dir="rtl" lang="ar" style="font-family:Cairo,Arial,sans-serif;color:#111827;background:#fff;line-height:1.8">',
@@ -547,12 +562,69 @@ function renderResidentStatementPdfHtml(statement) {
     ].join('');
 }
 
-async function exportResidentStatementPdf() {
-    if (!requireManager()) return;
-    const statement = getResidentStatementSnapshot();
-    if (!statement) return;
+function renderUnitReportPdfHtml(statement) {
+    const resident = statement.resident;
+    const currentMonth = getCurrentMonth();
+    const currentRate = getSubscriptionAmountForMonth(resident, currentMonth);
+    const currentRow = statement.months.find(row => row.month === currentMonth);
+    const unpaidRows = statement.months.filter(row => row.remainingCents > 0);
+    const profileRows = [
+        ['رقم الشقة', esc(resident.apartmentNumber || '—')],
+        ['الدور', esc(resident.floor || '—')],
+        ['الساكن', esc(resident.name || '—')],
+        ['الهاتف', esc(resident.phone || 'غير مسجل')],
+        ['تاريخ إضافة الوحدة', esc(formatDate(resident.createdAt) || '—')],
+        ['قيمة الاشتراك الحالية', fmtMoney(currentRate)]
+    ].map(([label, value]) => '<tr>' + statementPdfHeadCell(label) + statementPdfCell(value) + '</tr>').join('');
+    const unpaidHtml = unpaidRows.length
+        ? unpaidRows.map(row => '<tr>' + statementPdfCell(esc(row.month)) + statementPdfCell(fmtMoney(row.remainingCents / 100), 'color:#be123c;font-weight:700') + '</tr>').join('')
+        : '<tr><td colspan="2" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#047857">لا توجد أشهر غير مسددة.</td></tr>';
+    const currentSummary = currentRow
+        ? `${currentMonth}: مستحق ${fmtMoney(currentRow.dueCents / 100)} • مدفوع ${fmtMoney(currentRow.paidCents / 100)} • متبقٍ ${fmtMoney(currentRow.remainingCents / 100)}`
+        : 'لا يوجد استحقاق للشهر الحالي.';
+
+    return [
+        '<div dir="rtl" lang="ar" style="font-family:Cairo,Arial,sans-serif;color:#111827;background:#fff;line-height:1.8">',
+        '<header style="text-align:center;border-bottom:2px solid #334155;padding-bottom:12px;margin-bottom:18px">',
+        '<h1 style="font-size:22px;font-weight:800;margin:0">', esc(state.buildingName || 'Manzil'), '</h1>',
+        '<h2 style="font-size:17px;font-weight:700;margin:4px 0">تقرير وحدة — شقة ', esc(resident.apartmentNumber || '—'), '</h2>',
+        '<p style="font-size:11px;color:#475569;margin:0">',
+        esc(resident.name || '—'), resident.floor ? ' • الدور ' + esc(resident.floor) : '',
+        ' • الفترة: ', esc(statement.rangeLabel), '</p></header>',
+        '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">بيانات الوحدة</h3>',
+        '<table style="width:100%;border-collapse:collapse;font-size:11px"><tbody>', profileRows, '</tbody></table></section>',
+        '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">الوضع المالي</h3>',
+        '<table style="width:100%;border-collapse:collapse;font-size:11px"><tbody>',
+        '<tr>', statementPdfHeadCell('إجمالي المستحق'), statementPdfCell(fmtMoney(statement.totals.dueCents / 100)), '</tr>',
+        '<tr>', statementPdfHeadCell('إجمالي المدفوع'), statementPdfCell(fmtMoney(statement.totals.paidCents / 100), 'color:#047857;font-weight:700'), '</tr>',
+        '<tr>', statementPdfHeadCell('إجمالي المتبقي'), statementPdfCell(fmtMoney(statement.totals.remainingCents / 100), 'font-weight:700'), '</tr>',
+        '<tr>', statementPdfHeadCell('أشهر متأخرة'), statementPdfCell(fmtNum(statement.totals.arrearsMonths)), '</tr>',
+        '</tbody></table>',
+        '<p style="font-size:11px;color:#334155;margin:8px 0 0">', esc(currentSummary), '</p></section>',
+        '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">المتأخرات</h3>',
+        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
+        '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المتبقي</th>',
+        '</tr></thead><tbody>', unpaidHtml, '</tbody></table></section>',
+        '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حساب الشهور</h3>',
+        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
+        '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المستحق</th>',
+        '<th style="padding:6px;border:1px solid #cbd5e1">المدفوع</th><th style="padding:6px;border:1px solid #cbd5e1">المتبقي</th>',
+        '<th style="padding:6px;border:1px solid #cbd5e1">الحالة</th></tr></thead><tbody>', renderStatementMonthsPdfBody(statement), '</tbody></table></section>',
+        '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حركات الساكن</h3>',
+        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
+        '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th>',
+        '<th style="padding:6px;border:1px solid #cbd5e1">طريقة الدفع</th><th style="padding:6px;border:1px solid #cbd5e1">التاريخ</th>',
+        '<th style="padding:6px;border:1px solid #cbd5e1">ملاحظات</th></tr></thead><tbody>', renderStatementPaymentsPdfBody(statement), '</tbody></table></section>',
+        '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
+        'تقرير وحدة للقراءة فقط ولا يعدل أي بيانات. كل شهر محسوب بقيمة الاشتراك السارية فيه، والمدفوع هو المسجل على الشهر نفسه.',
+        '</p><footer style="font-size:9px;color:#64748b;margin-top:18px;text-align:center">Manzil — ',
+        esc(formatDate(statement.generatedAt)), '</footer></div>'
+    ].join('');
+}
+
+async function downloadStatementPdf(statement, html, filename, buttonId, successMessage, logLabel) {
     let root = null;
-    const button = document.getElementById('statementPdfBtn');
+    const button = document.getElementById(buttonId);
     if (button) button.disabled = true;
     try {
         await ensurePdfLibrary();
@@ -562,10 +634,9 @@ async function exportResidentStatementPdf() {
         root.dir = 'rtl';
         root.lang = 'ar';
         root.style.cssText = 'position:fixed;top:0;left:0;width:190mm;padding:8mm;box-sizing:border-box;background:#fff;z-index:-1';
-        root.innerHTML = renderResidentStatementPdfHtml(statement);
+        root.innerHTML = html;
         document.body.appendChild(root);
 
-        const filename = `manzil_statement_${getStatementFileSlug(statement)}.pdf`;
         const pdfBlob = await window.html2pdf().set({
             margin: 8,
             filename,
@@ -576,7 +647,7 @@ async function exportResidentStatementPdf() {
         }).from(root).outputPdf('blob');
 
         if (!(pdfBlob instanceof Blob) || pdfBlob.type !== 'application/pdf' || pdfBlob.size < 100) {
-            throw new Error('resident_statement_pdf_generation_failed');
+            throw new Error('statement_pdf_generation_failed');
         }
 
         const url = URL.createObjectURL(pdfBlob);
@@ -587,14 +658,42 @@ async function exportResidentStatementPdf() {
         anchor.click();
         anchor.remove();
         window.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
-        toast('تم إنشاء كشف الحساب PDF.','success');
+        toast(successMessage, 'success');
     } catch (error) {
-        console.error('Resident statement PDF export failed:', error);
+        console.error(logLabel, error);
         toast('تعذر إنشاء PDF. تحقق من الاتصال ثم أعد المحاولة.','error');
     } finally {
         if (root) root.remove();
         if (button && residentStatementSnapshot) button.disabled = false;
     }
+}
+
+async function exportResidentStatementPdf() {
+    if (!requireManager()) return;
+    const statement = getResidentStatementSnapshot();
+    if (!statement) return;
+    await downloadStatementPdf(
+        statement,
+        renderResidentStatementPdfHtml(statement),
+        `manzil_statement_${getStatementFileSlug(statement)}.pdf`,
+        'statementPdfBtn',
+        'تم إنشاء كشف الحساب PDF.',
+        'Resident statement PDF export failed:'
+    );
+}
+
+async function exportUnitReportPdf() {
+    if (!requireManager()) return;
+    const statement = getResidentStatementSnapshot();
+    if (!statement) return;
+    await downloadStatementPdf(
+        statement,
+        renderUnitReportPdfHtml(statement),
+        `manzil_unit_${getStatementFileSlug(statement)}.pdf`,
+        'unitReportPdfBtn',
+        'تم إنشاء تقرير الوحدة PDF.',
+        'Unit report PDF export failed:'
+    );
 }
 
 function exportResidentStatementCsv() {
