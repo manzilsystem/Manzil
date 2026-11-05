@@ -194,6 +194,9 @@ Deno.serve(async (request: Request) => {
   }
 
   const residentSnapshot = { user_id: resident.user_id, phone: resident.phone }
+  // Captured for the compensation closure: TS drops outer null-narrowing inside nested functions.
+  const linkedResidentId = resident.id
+  const linkedBuildingId = membership.building_id
   let profileWriteAttempted = false
   let membershipWriteAttempted = false
   let residentLinkAttempted = false
@@ -219,7 +222,7 @@ Deno.serve(async (request: Request) => {
         const { error: residentRestoreError } = await admin.from('residents').update({
           user_id: residentSnapshot.user_id,
           phone: residentSnapshot.phone,
-        }).eq('id', resident.id).eq('building_id', membership.building_id)
+        }).eq('id', linkedResidentId).eq('building_id', linkedBuildingId)
         if (residentRestoreError) {
           console.error('owner_access_compensation_new_user_resident_failed', residentRestoreError)
           restored = false
@@ -232,7 +235,7 @@ Deno.serve(async (request: Request) => {
       const { error } = await admin.from('residents').update({
         user_id: residentSnapshot.user_id,
         phone: residentSnapshot.phone,
-      }).eq('id', resident.id).eq('building_id', membership.building_id)
+      }).eq('id', linkedResidentId).eq('building_id', linkedBuildingId)
       if (error) {
         restored = false
         console.error('owner_access_compensation_resident_failed', error)
@@ -248,7 +251,7 @@ Deno.serve(async (request: Request) => {
         }
       } else {
         const { error } = await admin.from('building_members').delete()
-          .eq('building_id', membership.building_id)
+          .eq('building_id', linkedBuildingId)
           .eq('user_id', ownerUserId)
         if (error) {
           restored = false
