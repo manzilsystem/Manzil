@@ -77,7 +77,7 @@ function loadStatement(options = {}) {
         URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} }
     };
     const app = vm.runInNewContext(
-        reports + '\n({\n            buildResidentStatement, generateResidentStatement, getResidentStatementSignature,\n            renderResidentStatementHtml, renderResidentStatementPdfHtml, exportResidentStatementCsv,\n            invalidateResidentStatementIfStale, getResidentStatementSnapshot\n        })',
+        reports + '\n({\n            buildResidentStatement, generateResidentStatement, getResidentStatementSignature,\n            renderResidentStatementHtml, renderResidentStatementPdfHtml, renderUnitReportPdfHtml, exportResidentStatementCsv,\n            invalidateResidentStatementIfStale, getResidentStatementSnapshot\n        })',
         sandbox
     );
     const select = { value: options.residentId ?? 'r1' };
@@ -278,4 +278,42 @@ test('statement PDF keeps the same figures as the preview', () => {
 test('statement builder uses the shared residents index instead of repeated scans', () => {
     assert.match(reports, /buildResidentIndex\(\)\.get\(String\(residentId \|\| ''\)\)/);
     assert.doesNotMatch(reports, /state\.residents\.find\(/);
+});
+
+test('unit report PDF combines unit identity, current month, and arrears', () => {
+    const { app } = loadStatement({
+        state: {
+            residents: [{
+                id: 'r1', name: 'أحمد', apartmentNumber: '3', floor: '2', phone: '01000000001',
+                monthlyAmount: 100, createdAt: '2024-01-01T00:00:00.000Z'
+            }],
+            income: [{ id: 'i1', residentId: 'r1', month: 'يناير 2024', amount: 40, paymentMethod: 'cash' }]
+        }
+    });
+    const statement = app.buildResidentStatement('r1');
+    const html = app.renderUnitReportPdfHtml(statement);
+    assert.match(html, /تقرير وحدة — شقة 3/);
+    assert.match(html, /بيانات الوحدة/);
+    assert.match(html, /01000000001/);
+    assert.match(html, /قيمة الاشتراك الحالية/);
+    assert.match(html, /مارس 2024: مستحق 100 ج\.م/);
+    assert.match(html, /المتأخرات/);
+    assert.match(html, /260 ج\.م/);
+    assert.match(html, /سداد جزئي/);
+});
+
+test('unit report PDF states when the unit has no unpaid months', () => {
+    const { app } = loadStatement({
+        state: {
+            income: [
+                { id: 'i1', residentId: 'r1', month: 'يناير 2024', amount: 100, paymentMethod: 'cash' },
+                { id: 'i2', residentId: 'r1', month: 'فبراير 2024', amount: 100, paymentMethod: 'cash' },
+                { id: 'i3', residentId: 'r1', month: 'مارس 2024', amount: 100, paymentMethod: 'cash' }
+            ]
+        }
+    });
+    const statement = app.buildResidentStatement('r1');
+    const html = app.renderUnitReportPdfHtml(statement);
+    assert.match(html, /لا توجد أشهر غير مسددة/);
+    assert.match(html, /مارس 2024: مستحق 100 ج\.م • مدفوع 100 ج\.م • متبقٍ 0 ج\.م/);
 });

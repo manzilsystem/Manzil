@@ -518,9 +518,10 @@
                 <div id="residentStatementPreview" aria-live="polite" class="app-input p-4 rounded-2xl border text-xs leading-relaxed space-y-3">
                     <p class="text-slate-400 text-center py-4">اختر ساكنًا ثم اضغط (معاينة)</p>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 no-print">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-2 no-print">
                     <button type="button" id="statementPrintBtn" onclick="printResidentStatement()" disabled class="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white py-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 shadow"><i class="fa-solid fa-print"></i> طباعة / حفظ PDF</button>
-                    <button type="button" id="statementPdfBtn" onclick="exportResidentStatementPdf()" disabled class="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white py-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 shadow"><i class="fa-solid fa-file-pdf"></i> تنزيل PDF</button>
+                    <button type="button" id="statementPdfBtn" onclick="exportResidentStatementPdf()" disabled class="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white py-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 shadow"><i class="fa-solid fa-file-pdf"></i> كشف الحساب PDF</button>
+                    <button type="button" id="unitReportPdfBtn" onclick="exportUnitReportPdf()" disabled class="w-full bg-sky-600 hover:bg-sky-500 disabled:opacity-40 disabled:cursor-not-allowed text-white py-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 shadow"><i class="fa-solid fa-building-user"></i> تقرير الوحدة PDF</button>
                     <button type="button" id="statementCsvBtn" onclick="exportResidentStatementCsv()" disabled class="w-full bg-amber-600 hover:bg-amber-500 disabled:opacity-40 disabled:cursor-not-allowed text-white py-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 shadow"><i class="fa-solid fa-file-csv"></i> تصدير CSV</button>
                 </div>
                 <p class="text-[10px] text-slate-500 text-center no-print">الكشف يغطي كل شهر من إضافة الساكن حتى الشهر الحالي، والمخرجات تعرض نفس الأرقام المعروضة هنا.</p>

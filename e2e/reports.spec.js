@@ -143,6 +143,7 @@ test('resident statement previews one resident and invalidates on data changes',
     await expect(preview).toContainText('أحمد');
     await expect(page.locator('#statementPrintBtn')).toBeEnabled();
     await expect(page.locator('#statementCsvBtn')).toBeEnabled();
+    await expect(page.locator('#unitReportPdfBtn')).toBeEnabled();
 
     await page.evaluate(() => {
         state.income.push({ id: 'i9', residentId: 'r1', month: 'يناير 2024', amount: 10, paymentMethod: 'cash' });
@@ -150,6 +151,7 @@ test('resident statement previews one resident and invalidates on data changes',
     });
     await expect(preview).toContainText('تغيّرت البيانات');
     await expect(page.locator('#statementPrintBtn')).toBeDisabled();
+    await expect(page.locator('#unitReportPdfBtn')).toBeDisabled();
 });
 
 test('resident statement CSV downloads a single-resident ledger', async ({ page }) => {
@@ -198,6 +200,26 @@ test('printing a resident statement isolates its card', async ({ page }) => {
     expect(scopedStyles.statement).not.toBe('none');
     expect(scopedStyles.landlord).toBe('none');
     expect(scopedStyles.monthlyClose).toBe('none');
+});
+
+test('unit report PDF downloads a per-unit file from a fresh preview', async ({ page }) => {
+    await openReports(page);
+    await page.locator('#statementResidentSelect').selectOption('r1');
+    await page.locator('#residentStatementCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await expect(page.locator('#unitReportPdfBtn')).toBeEnabled();
+
+    await page.evaluate(() => {
+        window.html2pdf = () => ({
+            set() { return this; },
+            from() { return this; },
+            outputPdf() { return Promise.resolve(new Blob([new Uint8Array(200)], { type: 'application/pdf' })); }
+        });
+    });
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#unitReportPdfBtn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/^manzil_unit_3_\d{4}-\d{2}\.pdf$/);
 });
 
 test('resident profile opens the statement for the same resident', async ({ page }) => {

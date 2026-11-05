@@ -100,7 +100,7 @@ test('resident statement scopes a monthly ledger to one resident with gated outp
     assert.ok(reportTab.includes('id="residentStatementCard"'));
     assert.match(reportTab, /id="statementResidentSelect"[^>]*onchange="invalidateResidentStatementPreview\(\)"/);
     assert.match(reportTab, /id="residentStatementPreview"[^>]*aria-live="polite"/);
-    for (const id of ['statementPrintBtn', 'statementPdfBtn', 'statementCsvBtn']) {
+    for (const id of ['statementPrintBtn', 'statementPdfBtn', 'unitReportPdfBtn', 'statementCsvBtn']) {
         assert.match(reportTab, new RegExp('id="' + id + '"[^>]*disabled'));
     }
     assert.match(reports, /function buildResidentStatement\(residentId\)/);
@@ -116,6 +116,10 @@ test('resident statement scopes a monthly ledger to one resident with gated outp
     assert.match(reports, /await ensurePdfLibrary\(\)/);
     assert.match(reports, /manzil_statement_\$\{getStatementFileSlug\(statement\)\}\.csv/);
     assert.match(reports, /manzil_statement_\$\{getStatementFileSlug\(statement\)\}\.pdf/);
+    assert.match(reports, /function exportUnitReportPdf\(\)/);
+    assert.match(reports, /manzil_unit_\$\{getStatementFileSlug\(statement\)\}\.pdf/);
+    assert.match(reports, /function renderUnitReportPdfHtml\(statement\)/);
+    assert.match(reports, /بيانات الوحدة/);
 });
 
 test('resident statement entry is reachable from the resident profile', () => {
