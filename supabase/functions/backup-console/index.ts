@@ -2,7 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 const appOrigin = Deno.env.get('APP_ORIGIN') || 'https://manzilsystem.github.io'
 const headers = { 'Access-Control-Allow-Origin': appOrigin, 'Access-Control-Allow-Headers': 'authorization, apikey, x-client-info, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Expose-Headers': 'X-Backup-SHA256, Content-Disposition', 'Access-Control-Max-Age': '86400', 'Vary': 'Origin', 'Cache-Control': 'no-store' }
 const json = (status: number, body: Record<string, unknown>) => new Response(JSON.stringify(body), { status, headers: { ...headers, 'Content-Type': 'application/json' } })
-Deno.serve(async (req: Request) => {
+export async function handleRequest(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers })
   if (req.method !== 'POST') return json(405, { error: 'method_not_allowed' })
   const authorization = req.headers.get('Authorization') || ''
@@ -200,4 +200,8 @@ Deno.serve(async (req: Request) => {
     return json(200, { request: data })
   }
   return json(400, { error: 'unknown_action' })
-})
+}
+
+if (import.meta.main) {
+  Deno.serve(handleRequest)
+}
