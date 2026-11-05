@@ -48,7 +48,7 @@ test('cash transfers are manager-only, read-only to clients, and idempotent', ()
 
 test('expense submissions preserve the selected cash account and preview its balance', () => {
     assert.match(html, /id="expenseCashAccount"/);
-    assert.match(crud, /cashAccountCode = document\.getElementById\('expenseCashAccount'\)/);
+    assert.match(crud, /cashAccountCode = (?:\/\*\* @type \{any\} \*\/ \()?document\.getElementById\('expenseCashAccount'\)/);
     assert.match(crud, /getCashAccountBalance\(cashAccountCode\)/);
     assert.match(crud, /cashAccountCode, date: new Date\(\)\.toISOString\(\)/);
     assert.match(supabase, /cash_account_code: e\.cashAccountCode \|\| 'main'/);
@@ -131,8 +131,8 @@ test('collections route into the cash account chosen at collection time', () => 
 test('income forms, snapshots and accounting carry the destination cash account', () => {
     assert.match(html, /id="incomeCashAccount"/);
     assert.match(html, /id="incomeEditCashAccount"/);
-    assert.match(crud, /cashAccountCode = document\.getElementById\('incomeCashAccount'\)/);
-    assert.match(crud, /cashAccountCode = document\.getElementById\('incomeEditCashAccount'\)/);
+    assert.match(crud, /cashAccountCode = (?:\/\*\* @type \{any\} \*\/ \()?document\.getElementById\('incomeCashAccount'\)/);
+    assert.match(crud, /cashAccountCode = (?:\/\*\* @type \{any\} \*\/ \()?document\.getElementById\('incomeEditCashAccount'\)/);
     assert.match(crud, /paymentMethod,\s+cashAccountCode,\s+notes: allocationNote/);
     assert.match(supabase, /cash_account_code: i\.cashAccountCode \|\| 'main'/);
     assert.match(supabase, /id,resident_id,amount,month,notes,payment_method,cash_account_code,paid_at/);

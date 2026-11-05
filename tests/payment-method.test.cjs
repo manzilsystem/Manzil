@@ -19,7 +19,7 @@ test('new collections and edited collections require one of the supported paymen
         assert.ok(state.includes(value + ':'));
         assert.ok(html.includes('value="' + value + '"'), 'edit form must retain ' + value);
     }
-    assert.match(crud, /const paymentMethod = document\.getElementById\('incomePaymentMethod'\)\.value/);
+    assert.match(crud, /const paymentMethod = (?:\/\*\* @type \{any\} \*\/ \()?document\.getElementById\('incomePaymentMethod'\)\)?\.value/);
     assert.match(crud, /paymentMethod,/);
     assert.match(crud, /relatedPayments\.forEach\(item => \{\s+item\.paymentMethod = paymentMethod;/);
 });

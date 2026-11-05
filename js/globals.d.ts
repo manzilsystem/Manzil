@@ -28,6 +28,7 @@ declare var refreshCashboxSummary: () => Promise<boolean>;
 declare var persistedAuditLogIds: Set<string>;
 declare var lockCurrentSession: () => void;
 declare var setAuthModal: (locked: boolean, message?: string) => void;
+declare function normalizeOwnerPhone(input: unknown): string | null;
 
 // App state and utilities
 declare var state: any;
