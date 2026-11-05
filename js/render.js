@@ -1,3 +1,4 @@
+// @ts-check
 const AUDIT_LOG_PAGE_SIZE = 50;
 let auditLogVisibleCount = AUDIT_LOG_PAGE_SIZE;
 let auditLogLastQuery = null;
@@ -5,7 +6,7 @@ let auditLogLastQuery = null;
 function renderAuditLog(options) {
     const container = document.getElementById('auditLogContainer');
     if (!container) return;
-    const query = String(document.getElementById('auditLogSearch')?.value || '').trim().toLocaleLowerCase('ar');
+    const query = String(/** @type {HTMLInputElement} */ (document.getElementById('auditLogSearch'))?.value || '').trim().toLocaleLowerCase('ar');
     if (query !== auditLogLastQuery) {
         auditLogLastQuery = query;
         auditLogVisibleCount = AUDIT_LOG_PAGE_SIZE;
@@ -49,15 +50,15 @@ function renderAll() {
 
 function getArrearsReportFilters() {
     return {
-        residentId: document.getElementById('arrearsApartmentFilter')?.value || '',
-        fromMonth: document.getElementById('arrearsFromMonth')?.value || '',
-        toMonth: document.getElementById('arrearsToMonth')?.value || '',
-        status: document.getElementById('arrearsStatusFilter')?.value || 'all'
+        residentId: /** @type {HTMLSelectElement} */ (document.getElementById('arrearsApartmentFilter'))?.value || '',
+        fromMonth: /** @type {HTMLInputElement} */ (document.getElementById('arrearsFromMonth'))?.value || '',
+        toMonth: /** @type {HTMLInputElement} */ (document.getElementById('arrearsToMonth'))?.value || '',
+        status: /** @type {HTMLSelectElement} */ (document.getElementById('arrearsStatusFilter'))?.value || 'all'
     };
 }
 
 function populateArrearsApartmentFilter() {
-    const select = document.getElementById('arrearsApartmentFilter');
+    const select = /** @type {HTMLSelectElement} */ (document.getElementById('arrearsApartmentFilter'));
     if (!select) return;
     const selected = select.value;
     const options = state.residents
@@ -71,10 +72,10 @@ function populateArrearsApartmentFilter() {
 
 function resetArrearsFilters() {
     ['arrearsApartmentFilter','arrearsFromMonth','arrearsToMonth'].forEach(id => {
-        const element = document.getElementById(id);
+        const element = /** @type {HTMLInputElement | HTMLSelectElement} */ (document.getElementById(id));
         if (element) element.value = '';
     });
-    const status = document.getElementById('arrearsStatusFilter');
+    const status = /** @type {HTMLSelectElement} */ (document.getElementById('arrearsStatusFilter'));
     if (status) status.value = 'all';
     renderArrearsReport();
 }
@@ -126,18 +127,18 @@ function populateSelects() {
     const months = getActiveBuildingMonths();
     const current = getCurrentMonth();
     ['incomeMonth','expenseMonth','reportMonthSelect','monthlyCloseMonthSelect'].forEach(id => {
-        const el = document.getElementById(id); if (!el) return;
+        const el = /** @type {HTMLSelectElement} */ (document.getElementById(id)); if (!el) return;
         const v = el.value || current;
         el.innerHTML = months.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
         el.value = months.includes(v) ? v : current;
     });
-    const rs = document.getElementById('incomeResident');
+    const rs = /** @type {HTMLSelectElement} */ (document.getElementById('incomeResident'));
     if (rs) {
         const v = rs.value;
         rs.innerHTML = '<option value="">اختر الشقة</option>' + state.residents.map(r => `<option value="${r.id}">${esc(r.name)} - شقة ${esc(r.apartmentNumber)}</option>`).join('');
         rs.value = v;
     }
-    const paymentMethodSelect = document.getElementById('incomePaymentMethod');
+    const paymentMethodSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomePaymentMethod'));
     populatePaymentMethodOptions(paymentMethodSelect, paymentMethodSelect?.value || '');
     populateStatementResidentSelect();
     populatePeriodReportSelects(months, current);
@@ -148,7 +149,7 @@ function populatePeriodReportSelects(months, current = getCurrentMonth()) {
     const defaultFrom = currentKey ? (getStatementMonthLabel(shiftStatementMonthKey(currentKey, -5)) || current) : current;
     const defaults = { periodReportFrom: defaultFrom, periodReportTo: current };
     ['periodReportFrom', 'periodReportTo'].forEach(id => {
-        const el = document.getElementById(id);
+        const el = /** @type {HTMLSelectElement} */ (document.getElementById(id));
         if (!el) return;
         el.innerHTML = months.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
         const v = el.value || defaults[id];
@@ -157,7 +158,7 @@ function populatePeriodReportSelects(months, current = getCurrentMonth()) {
 }
 
 function populateStatementResidentSelect() {
-    const select = document.getElementById('statementResidentSelect');
+    const select = /** @type {HTMLSelectElement} */ (document.getElementById('statementResidentSelect'));
     if (!select) return;
     const selected = select.value;
     const options = state.residents
@@ -170,7 +171,7 @@ function populateStatementResidentSelect() {
 }
 
 function getDashboardPeriod() {
-    const value = document.getElementById('dashboardPeriodFilter')?.value || 'all';
+    const value = /** @type {HTMLSelectElement} */ (document.getElementById('dashboardPeriodFilter'))?.value || 'all';
     return ['current', 'last6'].includes(value) ? value : 'all';
 }
 function getDashboardPeriodMonths(period = getDashboardPeriod()) {
@@ -300,8 +301,8 @@ function renderExpenseBreakdown(period = getDashboardPeriod(), periodMonths = nu
 }
 
 function renderRecent() {
-    const ri = [...state.income].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,4);
-    const re = [...state.expenses].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,4);
+    const ri = [...state.income].sort((a,b) => new Date(b.date).getTime()-new Date(a.date).getTime()).slice(0,4);
+    const re = [...state.expenses].sort((a,b) => new Date(b.date).getTime()-new Date(a.date).getTime()).slice(0,4);
     const ic = document.getElementById('recentIncomeList');
     ic.innerHTML = ri.length ? ri.map(i => { const r = state.residents.find(x => x.id === i.residentId); return `
         <div class="flex justify-between items-center app-input p-2 rounded-xl border text-xs">
@@ -331,11 +332,11 @@ function renderNotices() {
 
 function renderIncomeTable() {
     const c = document.getElementById('incomeCardsList');
-    const s = (document.getElementById('searchIncomeInput')?.value||'').toLowerCase();
-    const fm = document.getElementById('filterIncomeMonth')?.value||'';
-    const filterSel = document.getElementById('filterIncomeMonth');
+    const s = (/** @type {HTMLInputElement} */ (document.getElementById('searchIncomeInput'))?.value||'').toLowerCase();
+    const fm = /** @type {HTMLSelectElement} */ (document.getElementById('filterIncomeMonth'))?.value||'';
+    const filterSel = /** @type {HTMLSelectElement} */ (document.getElementById('filterIncomeMonth'));
     if (filterSel) { const v = filterSel.value; filterSel.innerHTML = '<option value="">كل الشهور</option>' + getActiveBuildingMonths().map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join(''); filterSel.value = v; }
-    let items = [...state.income].sort((a,b) => new Date(b.date)-new Date(a.date));
+    let items = [...state.income].sort((a,b) => new Date(b.date).getTime()-new Date(a.date).getTime());
     if (fm) items = items.filter(i => i.month === fm);
     if (s) items = items.filter(i => {
         const r = state.residents.find(x => x.id === i.residentId);
@@ -362,12 +363,12 @@ function renderIncomeTable() {
 
 function renderExpenseTable() {
     const c = document.getElementById('expenseCardsList');
-    const s = (document.getElementById('searchExpenseInput')?.value||'').toLowerCase();
-    const fc = document.getElementById('filterExpenseCategory')?.value||'';
-    const fm = document.getElementById('filterExpenseMonth')?.value||'';
-    const filterSel = document.getElementById('filterExpenseMonth');
+    const s = (/** @type {HTMLInputElement} */ (document.getElementById('searchExpenseInput'))?.value||'').toLowerCase();
+    const fc = /** @type {HTMLSelectElement} */ (document.getElementById('filterExpenseCategory'))?.value||'';
+    const fm = /** @type {HTMLSelectElement} */ (document.getElementById('filterExpenseMonth'))?.value||'';
+    const filterSel = /** @type {HTMLSelectElement} */ (document.getElementById('filterExpenseMonth'));
     if (filterSel) { const v = filterSel.value; filterSel.innerHTML = '<option value="">كل الشهور</option>' + getActiveBuildingMonths().map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join(''); filterSel.value = v; }
-    let items = [...state.expenses].sort((a,b) => new Date(b.date)-new Date(a.date));
+    let items = [...state.expenses].sort((a,b) => new Date(b.date).getTime()-new Date(a.date).getTime());
     if (fc) items = items.filter(e => e.category === fc);
     if (fm) items = items.filter(e => e.month === fm);
     if (s) items = items.filter(e => [e.title, e.category, e.month, e.notes, e.amount, getCashAccountLabel(e.cashAccountCode || 'main')].some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(s)));
@@ -391,9 +392,9 @@ function renderExpenseTable() {
 
 function renderResidentsGrid() {
     const c = document.getElementById('residentsGrid');
-    const s = (document.getElementById('searchResidentsInput')?.value||'').toLowerCase();
-    const statusFilter = document.getElementById('residentStatusFilter')?.value || 'all';
-    const sortBy = document.getElementById('residentSort')?.value || 'apartment';
+    const s = (/** @type {HTMLInputElement} */ (document.getElementById('searchResidentsInput'))?.value||'').toLowerCase();
+    const statusFilter = /** @type {HTMLSelectElement} */ (document.getElementById('residentStatusFilter'))?.value || 'all';
+    const sortBy = /** @type {HTMLSelectElement} */ (document.getElementById('residentSort'))?.value || 'apartment';
     const getStatus = resident => {
         const outstanding = getMonthOutstanding(resident, getCurrentMonth());
         const paid = getPaidAmountForMonth(resident.id, getCurrentMonth());
@@ -437,7 +438,7 @@ function renderResidentsGrid() {
         const fullySettled = paid && d.count === 0;
         const receiptPayment = fullySettled ? state.income
             .filter(payment => payment.residentId === r.id && payment.month === cur)
-            .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))[0] : null;
+            .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())[0] : null;
         return `<div class="app-card p-4 rounded-3xl border space-y-3">
             <div class="flex justify-between items-start">
                 <div class="flex items-center gap-2">
@@ -470,8 +471,8 @@ function renderResidentsGrid() {
 }
 
 function clearResidentFilters() {
-    const search = document.getElementById('searchResidentsInput');
-    const status = document.getElementById('residentStatusFilter');
+    const search = /** @type {HTMLInputElement} */ (document.getElementById('searchResidentsInput'));
+    const status = /** @type {HTMLSelectElement} */ (document.getElementById('residentStatusFilter'));
     if (search) search.value = '';
     if (status) status.value = 'all';
     renderResidentsGrid();
