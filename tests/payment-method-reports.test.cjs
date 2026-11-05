@@ -180,7 +180,7 @@ test('monthly report resolves each payment to its resident through the index', (
 });
 
 test('report lookups use a single residents index instead of repeated scans', () => {
-    assert.equal((reports.match(/const residentsById = buildResidentIndex\(\)/g) || []).length, 2);
+    assert.equal((reports.match(/const residentsById = buildResidentIndex\(\)/g) || []).length, 3);
     assert.doesNotMatch(reports, /state\.residents\.find\(/);
 });
 

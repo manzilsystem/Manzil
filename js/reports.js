@@ -69,7 +69,7 @@ function getLandlordReportSignature(month) {
 }
 
 function setLandlordReportActionsEnabled(enabled) {
-    ['reportPrintBtn', 'reportExportBtn'].forEach(id => {
+    ['reportPrintBtn', 'reportPdfBtn', 'reportExportBtn'].forEach(id => {
         const button = document.getElementById(id);
         if (button) button.disabled = !enabled;
     });
@@ -231,6 +231,153 @@ function exportToCSV(month = landlordReportMonth) {
     const monthKey = monthLabelToKey(reportMonth);
     downloadCsv(`manzil_report_${monthKey ? monthKey.slice(0, 7) : Date.now()}.csv`, rows);
     toast(`تم تصدير تقرير ${reportMonth}`,'success');
+}
+
+function renderLandlordReportPdfHtml(month) {
+    const { income: inc, expenses: exp } = getLandlordReportData(month);
+    const residentsById = buildResidentIndex();
+    const totalIncCents = inc.reduce((sum, i) => sum + toCents(i.amount), 0);
+    const totalExpCents = exp.reduce((sum, e) => sum + toCents(e.amount), 0);
+    const netCents = totalIncCents - totalExpCents;
+    const { expectedCents, outstandingCents } = getMonthlyBillingTotals(month);
+    const collectionRate = expectedCents > 0 ? Math.round((totalIncCents / expectedCents) * 100) : null;
+    const summaryRow = (label, cents, styles = '') =>
+        '<tr>' + statementPdfHeadCell(esc(label)) + statementPdfCell(fmtMoney(cents / 100), styles) + '</tr>';
+
+    const paymentMethodTotals = new Map();
+    inc.forEach(payment => {
+        const label = getIncomePaymentMethodLabel(payment.paymentMethod);
+        const totals = paymentMethodTotals.get(label) || { count: 0, cents: 0 };
+        totals.count += 1;
+        totals.cents += toCents(payment.amount);
+        paymentMethodTotals.set(label, totals);
+    });
+    const paymentMethodRows = Array.from(paymentMethodTotals.entries()).map(([label, totals]) =>
+        '<tr>' + statementPdfCell(esc(label) + ' (' + totals.count + ')') +
+        statementPdfCell(fmtMoney(totals.cents / 100), 'color:#047857;font-weight:700') + '</tr>'
+    ).join('') || '<tr><td colspan="2" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">لا يوجد</td></tr>';
+
+    const expenseCategoryTotals = getExpenseCategoryTotals(exp);
+    const expenseCategoryRows = expenseCategoryTotals.map(([label, totals]) =>
+        '<tr>' + statementPdfCell(esc(label) + ' (' + totals.count + ')') +
+        statementPdfCell(fmtMoney(totals.cents / 100), 'color:#be123c;font-weight:700') + '</tr>'
+    ).join('') || '<tr><td colspan="2" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">لا يوجد</td></tr>';
+
+    const incomeRows = inc.length
+        ? inc.map(i => {
+            const resident = residentsById.get(i.residentId);
+            return '<tr>' +
+                statementPdfCell(esc(resident?.name || '—')) +
+                statementPdfCell(esc(getIncomePaymentMethodLabel(i.paymentMethod))) +
+                statementPdfCell(fmtMoney(toCents(i.amount) / 100), 'color:#047857;font-weight:700') +
+                '</tr>';
+        }).join('')
+        : '<tr><td colspan="3" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">لا يوجد</td></tr>';
+
+    const expenseRows = exp.length
+        ? exp.map(e =>
+            '<tr>' +
+            statementPdfCell(esc(e.title || '—')) +
+            statementPdfCell(esc(e.category || 'غير مصنف')) +
+            statementPdfCell(fmtMoney(toCents(e.amount) / 100), 'color:#be123c;font-weight:700') +
+            '</tr>').join('')
+        : '<tr><td colspan="3" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">لا يوجد</td></tr>';
+
+    return [
+        '<div dir="rtl" lang="ar" style="font-family:Cairo,Arial,sans-serif;color:#111827;background:#fff;line-height:1.8">',
+        '<header style="text-align:center;border-bottom:2px solid #334155;padding-bottom:12px;margin-bottom:18px">',
+        '<h1 style="font-size:22px;font-weight:800;margin:0">', esc(state.buildingName || 'Manzil'), '</h1>',
+        '<h2 style="font-size:17px;font-weight:700;margin:4px 0">تقرير الملاك — ', esc(month), '</h2>',
+        '<p style="font-size:11px;color:#475569;margin:0">المدير: ', esc(state.managerName || '—'),
+        ' • تم الإنشاء ', esc(formatDate(new Date().toISOString())), '</p></header>',
+        '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">الملخص المالي</h3>',
+        '<table style="width:100%;border-collapse:collapse;font-size:11px"><tbody>',
+        summaryRow('إجمالي التحصيلات', totalIncCents, 'color:#047857;font-weight:700'),
+        summaryRow('إجمالي المصروفات', totalExpCents, 'color:#be123c;font-weight:700'),
+        summaryRow('صافي الحركة', netCents, netCents >= 0 ? 'font-weight:700' : 'color:#be123c;font-weight:700'),
+        summaryRow('إجمالي المستحق', expectedCents),
+        summaryRow('غير المحصّل', outstandingCents, outstandingCents > 0 ? 'color:#b45309;font-weight:700' : ''),
+        '<tr>' + statementPdfHeadCell('نسبة التحصيل') +
+        statementPdfCell(collectionRate === null ? '—' : fmtNum(collectionRate) + '%') + '</tr>',
+        '</tbody></table></section>',
+        '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">توزيع طرق الدفع</h3>',
+        '<table style="width:100%;border-collapse:collapse;font-size:10px"><tbody>', paymentMethodRows, '</tbody></table></section>',
+        '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">تصنيفات المصروفات</h3>',
+        '<table style="width:100%;border-collapse:collapse;font-size:10px"><tbody>', expenseCategoryRows, '</tbody></table></section>',
+        '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">تفاصيل التحصيلات</h3>',
+        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
+        '<th style="padding:6px;border:1px solid #cbd5e1">الساكن</th><th style="padding:6px;border:1px solid #cbd5e1">طريقة الدفع</th>',
+        '<th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th></tr></thead><tbody>', incomeRows, '</tbody></table></section>',
+        '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">تفاصيل المصروفات</h3>',
+        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
+        '<th style="padding:6px;border:1px solid #cbd5e1">البيان</th><th style="padding:6px;border:1px solid #cbd5e1">التصنيف</th>',
+        '<th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th></tr></thead><tbody>', expenseRows, '</tbody></table></section>',
+        '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
+        'تقرير للقراءة فقط ولا يعدل أي بيانات. المستحق محسوب بقيمة الاشتراك السارية في شهر التقرير، ',
+        'والتحصيلات والمصروفات محسوبة على شهر استحقاقها المسجل.',
+        '</p><footer style="font-size:9px;color:#64748b;margin-top:18px;text-align:center">Manzil — ',
+        esc(formatDate(new Date().toISOString())), '</footer></div>'
+    ].join('');
+}
+
+async function exportLandlordReportPdf() {
+    if (!requireManager()) return;
+    const selected = getSelectedReportMonth();
+    if (!landlordReportMonth || (selected && selected !== landlordReportMonth)) {
+        toast('اعرض معاينة الشهر المحدد أولًا', 'error');
+        return;
+    }
+    if (getLandlordReportSignature(landlordReportMonth) !== landlordReportSignature) {
+        toast('تغيّرت البيانات — اضغط «معاينة» لتحديث التقرير.', 'error');
+        return;
+    }
+
+    const monthKey = monthLabelToKey(landlordReportMonth);
+    const filename = `manzil_landlord_report_${monthKey ? monthKey.slice(0, 7) : 'report'}.pdf`;
+    const button = document.getElementById('reportPdfBtn');
+    if (button) button.disabled = true;
+    let root = null;
+
+    try {
+        await ensurePdfLibrary();
+        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+
+        root = document.createElement('section');
+        root.dir = 'rtl';
+        root.lang = 'ar';
+        root.style.cssText = 'position:fixed;top:0;left:0;width:190mm;padding:8mm;box-sizing:border-box;background:#fff;z-index:-1';
+        root.innerHTML = renderLandlordReportPdfHtml(landlordReportMonth);
+        document.body.appendChild(root);
+
+        const pdfBlob = await window.html2pdf().set({
+            margin: 8,
+            filename,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        }).from(root).outputPdf('blob');
+
+        if (!(pdfBlob instanceof Blob) || pdfBlob.type !== 'application/pdf' || pdfBlob.size < 100) {
+            throw new Error('landlord_report_pdf_generation_failed');
+        }
+
+        const url = URL.createObjectURL(pdfBlob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+        toast('تم إنشاء ملف PDF لتقرير الملاك.', 'success');
+    } catch (error) {
+        console.error('Landlord report PDF export failed:', error);
+        toast('تعذر إنشاء PDF. تحقق من الاتصال ثم أعد المحاولة.', 'error');
+    } finally {
+        if (root) root.remove();
+        if (button && landlordReportMonth) setLandlordReportActionsEnabled(true);
+    }
 }
 
 let periodReportSnapshot = null;

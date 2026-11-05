@@ -512,8 +512,9 @@
                 <div id="landlordReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
                     <p class="report-preview-empty">اضغط «معاينة» لعرض تقرير الشهر المحدد.</p>
                 </div>
-                <div class="report-actions report-actions-2 no-print">
+                <div class="report-actions report-actions-3 no-print">
                     <button type="button" id="reportPrintBtn" onclick="printLandlordReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة PDF</button>
+                    <button type="button" id="reportPdfBtn" onclick="exportLandlordReportPdf()" disabled class="report-action report-tone-indigo"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
                     <button type="button" id="reportExportBtn" onclick="exportToCSV()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                 </div>
                 <p class="report-hint no-print">الطباعة تشمل الملخص والتفاصيل، وتصدير CSV يضم حركات شهر التقرير فقط.</p>

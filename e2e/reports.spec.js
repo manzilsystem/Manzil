@@ -37,20 +37,24 @@ async function previewPeriod(page, from, to) {
 test('report output stays disabled until a fresh preview exists', async ({ page }) => {
     await openReports(page);
     const printButton = page.locator('#reportPrintBtn');
+    const pdfButton = page.locator('#reportPdfBtn');
     const exportButton = page.locator('#reportExportBtn');
 
     await expect(printButton).toBeDisabled();
+    await expect(pdfButton).toBeDisabled();
     await expect(exportButton).toBeDisabled();
 
     await previewMonth(page, 'يناير 2024');
     await expect(page.locator('#landlordReportPreview')).toContainText('تقرير يناير 2024');
     await expect(page.locator('#landlordReportPreview')).toContainText('المستحق');
     await expect(printButton).toBeEnabled();
+    await expect(pdfButton).toBeEnabled();
     await expect(exportButton).toBeEnabled();
 
     await page.locator('#reportMonthSelect').selectOption('فبراير 2024');
     await expect(page.locator('#landlordReportPreview')).toContainText('تغيّر الشهر أو البيانات');
     await expect(printButton).toBeDisabled();
+    await expect(pdfButton).toBeDisabled();
     await expect(exportButton).toBeDisabled();
 });
 
