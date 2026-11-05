@@ -302,7 +302,7 @@ function renderOwnerPortal() {
             <p class="text-xs leading-relaxed whitespace-pre-line">${esc(notification.body)}</p>
             <div class="flex items-center justify-between gap-2">
                 <span class="text-[10px] text-slate-500">${formatDate(notification.createdAt)}</span>
-                ${notification.readAt ? '' : `<button type="button" onclick="markOwnerNotificationRead('${esc(notification.id)}')" class="text-[10px] text-indigo-300 underline">تحديد كمقروء</button>`}
+                ${notification.readAt ? '' : `<button type="button" onclick="markOwnerNotificationRead('${esc(notification.id)}')" class="inline-flex items-center min-h-11 px-3 text-[11px] text-indigo-300 font-bold">تحديد كمقروء</button>`}
             </div>
         </article>`).join('') : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إشعارات حتى الآن.</p>';
 
@@ -342,7 +342,7 @@ function renderOwnerPortal() {
                     <h3 id="ownerNotificationsTitle" class="font-bold text-sm">إشعارات حسابك</h3>
                     <p class="text-[10px] text-slate-500 mt-1">${unreadNotifications.length} إشعار غير مقروء</p>
                 </div>
-                ${unreadNotifications.length ? '<button type="button" onclick="markAllOwnerNotificationsRead()" class="text-[10px] text-indigo-300 underline">قراءة الكل</button>' : ''}
+                ${unreadNotifications.length ? '<button type="button" onclick="markAllOwnerNotificationsRead()" class="inline-flex items-center min-h-11 px-3 text-[11px] text-indigo-300 font-bold">قراءة الكل</button>' : ''}
             </div>
             <div class="space-y-2">${notificationRows}</div>
         </section>

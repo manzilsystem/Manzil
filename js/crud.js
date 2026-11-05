@@ -657,12 +657,12 @@ async function deleteResident(id) {
         toast('لا يمكن حذف شقة لها تحصيلات مسجلة؛ احتفظ بالسجل المالي ولا تحذف بياناتها.', 'error');
         return;
     }
-    if (!confirm(`حذف شقة ${r.name}؟`)) return;
+    if (!confirmRecordDeletion(`شقة ${r.name} (رقم ${r.apartmentNumber})`)) return;
     const previousState = cloneStateSnapshot();
     state.residents = state.residents.filter(x => x.id !== id);
     logAction('حذف شقة', `${r.name} - شقة ${r.apartmentNumber}`);
     if (!await saveWithRollback(previousState)) return;
-    toast('تم الحذف','info');
+    toast('تم حذف الشقة بنجاح', 'success');
 }
 
 function quickPayResident(residentId) {
@@ -951,12 +951,12 @@ async function handleIncomeEditSubmit(event) {
 
 async function deleteIncome(id) {
     if (!requireManager()) return;
-    if (!confirm('حذف هذا التحصيل؟')) return;
+    if (!confirmRecordDeletion('هذا التحصيل')) return;
     const previousState = cloneStateSnapshot();
     state.income = state.income.filter(i => i.id !== id);
     logAction('حذف تحصيل', id);
     if (!await saveWithRollback(previousState)) return;
-    toast('تم الحذف','info');
+    toast('تم حذف التحصيل بنجاح', 'success');
 }
 
 function previewExpense() {
@@ -1082,10 +1082,10 @@ async function handleExpenseSubmit(e) {
 
 async function deleteExpense(id) {
     if (!requireManager()) return;
-    if (!confirm('حذف هذا المصروف؟')) return;
+    if (!confirmRecordDeletion('هذا المصروف')) return;
     const previousState = cloneStateSnapshot();
     state.expenses = state.expenses.filter(e => e.id !== id);
     logAction('حذف مصروف', id);
     if (!await saveWithRollback(previousState)) return;
-    toast('تم الحذف','info');
+    toast('تم حذف المصروف بنجاح', 'success');
 }
