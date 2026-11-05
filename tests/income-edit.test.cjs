@@ -66,7 +66,7 @@ test('opening an income edit dialog loads the linked resident and current paymen
 
     h.api.openIncomeEditModal('i1');
 
-    assert.equal(h.elements.incomeEditResidentSummary.textContent, 'Resident · شقة 1');
+    assert.equal(h.elements.incomeEditResidentSummary.textContent, 'شقة 1 · Resident');
     assert.equal(h.elements.incomeEditMonth.value, 'يناير 2024');
     assert.equal(h.elements.incomeEditAmount.value, 40);
     assert.equal(h.elements.incomeEditNotes.value, 'دفعة');

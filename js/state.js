@@ -46,6 +46,26 @@ function confirmRecordDeletion(label) {
 function formatDate(iso) { if (!iso) return ''; try { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('ar-EG',{year:'numeric',month:'short',day:'numeric'}); } catch(e){ return ''; } }
 function getCurrentMonth() { const d = new Date(); return `${monthsNames[d.getMonth()]} ${d.getFullYear()}`; }
 
+function formatApartmentLabel(value) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return 'شقة —';
+    return /^شقة(?:\s|$)/.test(raw) ? raw : `شقة ${raw}`;
+}
+
+function stripIncomeBatchNote(notes) {
+    const text = String(notes || '').trim();
+    const match = text.match(/^دفعة موزعة\s+[A-Z0-9]+\s+\(\d+\/\d+\)(?:\s*·\s*([\s\S]*))?$/i);
+    return match ? String(match[1] || '').trim() : text;
+}
+
+function sortMonthLabels(labels) {
+    return Array.from(new Set((labels || []).filter(Boolean))).sort((a, b) => {
+        const keyA = monthLabelToKey(a) || '';
+        const keyB = monthLabelToKey(b) || '';
+        return keyA.localeCompare(keyB);
+    });
+}
+
 const INCOME_PAYMENT_METHOD_LABELS = Object.freeze({
     cash: 'نقدًا',
     wallet: 'محفظة إلكترونية',
@@ -354,7 +374,7 @@ function calculateCumulativeDebt(residentId) {
     return { count: unpaidMonths.length, totalDebt: totalDebtCents / 100, unpaidMonths: unpaidMonths.map(item => item.month) };
 }
 
-function calculateIncomeAllocationPreview(residentId, amount, selectedMonth, maxMonths = 120) {
+function calculateIncomeAllocationPreview(residentId, amount, selectedMonth, maxMonths = 120, policyOverride = '') {
     const resident = state.residents.find(item => item.id === residentId);
     const amountCents = Number.isFinite(Number(amount)) ? Math.round(Number(amount) * 100) : 0;
     const selectedKey = monthLabelToKey(selectedMonth);
@@ -379,7 +399,8 @@ function calculateIncomeAllocationPreview(residentId, amount, selectedMonth, max
     const limit = Number.isInteger(maxMonths) && maxMonths > 0 ? Math.min(maxMonths, 240) : 120;
     const monthKeys = [];
 
-    if (state.paymentAllocationPolicy === 'selected_month_first') {
+    const allocationPolicy = policyOverride || state.paymentAllocationPolicy;
+    if (allocationPolicy === 'selected_month_first') {
         monthKeys.push(selectedKey);
         priorUnpaid
             .filter(item => item.key < selectedKey)
@@ -483,21 +504,82 @@ function buildArrearsReport(filters = {}) {
 }
 
 function getActiveBuildingMonths() {
-    const set = new Set();
+    const set = new Set([getCurrentMonth()]);
     state.income.forEach(i => { if (i.month) set.add(i.month); });
     state.expenses.forEach(e => { if (e.month) set.add(e.month); });
-    // Keep five years selectable so late payments and historical adjustments can be recorded.
+    return sortMonthLabels(Array.from(set));
+}
+
+function getRecentMonthLabels(count = 12) {
+    const total = Math.max(1, Number(count) || 1);
     const cursor = new Date();
     cursor.setDate(1);
-    for (let offset = 0; offset < 60; offset++) {
-        set.add(`${monthsNames[cursor.getMonth()]} ${cursor.getFullYear()}`);
+    const labels = [];
+    for (let offset = 0; offset < total; offset += 1) {
+        labels.unshift(`${monthsNames[cursor.getMonth()]} ${cursor.getFullYear()}`);
         cursor.setMonth(cursor.getMonth() - 1);
     }
-    return Array.from(set).sort((a,b) => {
-        const [ma,ya] = a.split(' '); const [mb,yb] = b.split(' ');
-        if (ya !== yb) return parseInt(ya) - parseInt(yb);
-        return monthsNames.indexOf(ma) - monthsNames.indexOf(mb);
+    return labels;
+}
+
+function getBuildingMonthOptions(count = 12) {
+    return sortMonthLabels(getActiveBuildingMonths().concat(getRecentMonthLabels(count)));
+}
+
+function getIncomeMonthLabels(resident, includeMonths = []) {
+    const set = new Set(getActiveBuildingMonths());
+    includeMonths.filter(Boolean).forEach(month => set.add(month));
+    if (!resident) return sortMonthLabels(Array.from(set));
+
+    state.income
+        .filter(payment => payment.residentId === resident.id && payment.month)
+        .forEach(payment => set.add(payment.month));
+
+    const candidates = [];
+    const created = new Date(resident.createdAt || '');
+    if (!Number.isNaN(created.getTime())) candidates.push(new Date(created.getFullYear(), created.getMonth(), 1));
+    (Array.isArray(resident.subscriptionRates) ? resident.subscriptionRates : []).forEach(rate => {
+        const [year, month] = String(rate.effectiveMonth || '').split('-').map(Number);
+        if (year && month) candidates.push(new Date(year, month - 1, 1));
     });
+    if (!candidates.length) return sortMonthLabels(Array.from(set));
+
+    const now = new Date();
+    const oldestAllowed = new Date(now.getFullYear(), now.getMonth() - 119, 1);
+    let start = new Date(Math.min(...candidates.map(date => date.getTime())));
+    if (start < oldestAllowed) start = oldestAllowed;
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    while (cursor <= now) {
+        set.add(`${monthsNames[cursor.getMonth()]} ${cursor.getFullYear()}`);
+        cursor.setMonth(cursor.getMonth() + 1);
+    }
+    return sortMonthLabels(Array.from(set));
+}
+
+function getIncomeMonthOptionLabel(resident, month) {
+    if (!resident || !month) return month || '';
+    const outstanding = getMonthOutstanding(resident, month);
+    if (outstanding <= 0) return `${month} · مسدد`;
+    const key = monthLabelToKey(month);
+    const currentKey = monthLabelToKey(getCurrentMonth());
+    const overdue = isSubscriptionMonthOverdue(month) || Boolean(key && currentKey && key < currentKey);
+    return `${month} · ${overdue ? 'متأخر' : 'مستحق'} ${fmtNum(outstanding)} ج.م`;
+}
+
+function getResidentCollectionSummary(resident) {
+    if (!resident) return null;
+    const debt = calculateCumulativeDebt(resident.id);
+    const currentMonth = getCurrentMonth();
+    const lastPayment = state.income
+        .filter(payment => payment.residentId === resident.id)
+        .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())[0] || null;
+    return {
+        debt,
+        currentMonth,
+        currentSubscription: getSubscriptionAmountForMonth(resident, currentMonth),
+        currentOutstanding: getMonthOutstanding(resident, currentMonth),
+        lastPayment
+    };
 }
 
 async function setTheme(theme) {

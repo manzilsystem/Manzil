@@ -132,7 +132,7 @@ function renderArrearsReport() {
 }
 
 function populateSelects() {
-    const months = getActiveBuildingMonths();
+    const months = typeof getBuildingMonthOptions === 'function' ? getBuildingMonthOptions(12) : getActiveBuildingMonths();
     const current = getCurrentMonth();
     ['incomeMonth','expenseMonth','cashboxSummaryMonth','reportMonthSelect','monthlyCloseMonthSelect'].forEach(id => {
         const el = /** @type {HTMLSelectElement} */ (document.getElementById(id)); if (!el) return;
@@ -143,9 +143,15 @@ function populateSelects() {
     const rs = /** @type {HTMLSelectElement} */ (document.getElementById('incomeResident'));
     if (rs) {
         const v = rs.value;
-        rs.innerHTML = '<option value="">اختر الشقة</option>' + state.residents.map(r => `<option value="${r.id}">${esc(r.name)} - شقة ${esc(r.apartmentNumber)}</option>`).join('');
-        rs.value = v;
+        const options = state.residents
+            .slice()
+            .sort((a, b) => String(a.apartmentNumber || '').localeCompare(String(b.apartmentNumber || ''), 'ar', { numeric: true }))
+            .map(r => `<option value="${esc(r.id)}">${esc(formatApartmentLabel(r.apartmentNumber))} · ${esc(r.name)}</option>`)
+            .join('');
+        rs.innerHTML = '<option value="">اختر الشقة</option>' + options;
+        rs.value = state.residents.some(r => r.id === v) ? v : '';
     }
+    if (typeof renderIncomeResidentSummary === 'function') renderIncomeResidentSummary();
     const paymentMethodSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomePaymentMethod'));
     populatePaymentMethodOptions(paymentMethodSelect, paymentMethodSelect?.value || '');
     const purposeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomePurpose'));
@@ -254,7 +260,9 @@ function renderDashboard() {
 
 function renderCashFlowChart(period = getDashboardPeriod()) {
     const c = document.getElementById('cashFlowChartContainer');
-    const months = period === 'all' ? getActiveBuildingMonths().slice(-6) : getDashboardPeriodMonths(period);
+    const months = period === 'all'
+        ? (typeof getRecentMonthLabels === 'function' ? getRecentMonthLabels(6) : getActiveBuildingMonths().slice(-6))
+        : getDashboardPeriodMonths(period);
     const periodLabel = document.getElementById('cashFlowPeriodLabel');
     if (periodLabel) periodLabel.textContent = period === 'all' ? 'عرض آخر 6 أشهر' : getDashboardPeriodLabel(period);
     c.setAttribute('role', 'img');
@@ -356,14 +364,18 @@ function renderIncomeTable() {
         c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center space-y-3"><div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto"><i class="fa-solid fa-hand-holding-dollar"></i></div><div><p class="text-sm font-bold">لا توجد تحصيلات مطابقة</p><p class="text-xs text-slate-500 mt-1">سجّل أول تحصيل أو غيّر الفلتر الحالي.</p></div><button onclick="openNewIncomeModal()" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition"><i class="fa-solid fa-plus"></i> تسجيل تحصيل</button></div>';
         return;
     }
-    c.innerHTML = items.map(i => { const r = state.residents.find(x => x.id === i.residentId); return `
+    c.innerHTML = items.map(i => {
+        const r = state.residents.find(x => x.id === i.residentId);
+        const displayNotes = stripIncomeBatchNote(i.notes);
+        return `
         <div class="app-card p-3 rounded-2xl border flex justify-between items-center gap-2">
             <div class="flex items-center gap-2 min-w-0">
                 <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xs font-bold shrink-0">${esc(r?.apartmentNumber||'?')}</div>
-                <div class="min-w-0"><p class="text-xs font-bold truncate">${esc(r?.name||'محذوف')}</p><p class="text-[10px] text-slate-500">${esc(i.month||'')} • ${formatDate(i.date)} • ${esc(getIncomePaymentMethodLabel(i.paymentMethod))}</p><span class="cash-account-tag mt-1"><i class="fa-solid fa-tag" aria-hidden="true"></i>${esc(renderPurposeLabel(i.purposeCode))}</span><span class="cash-account-tag mt-1"><i class="fa-solid fa-vault" aria-hidden="true"></i>${esc(renderCashAccountLabel(i.cashAccountCode))}</span></div>
+                <div class="min-w-0"><p class="text-xs font-bold truncate">${esc(r?.name||'محذوف')}</p><p class="text-[10px] text-slate-500">${esc(formatApartmentLabel(r?.apartmentNumber))} • ${esc(i.month||'')} • ${formatDate(i.date)} • ${esc(getIncomePaymentMethodLabel(i.paymentMethod))}</p><span class="cash-account-tag mt-1"><i class="fa-solid fa-tag" aria-hidden="true"></i>${esc(renderPurposeLabel(i.purposeCode))}</span><span class="cash-account-tag mt-1"><i class="fa-solid fa-vault" aria-hidden="true"></i>${esc(renderCashAccountLabel(i.cashAccountCode))}</span>${displayNotes ? `<p class="mt-1 text-[10px] text-slate-400 truncate"><i class="fa-solid fa-note-sticky ml-1" aria-hidden="true"></i>${esc(displayNotes)}</p>` : ''}</div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <span class="text-sm font-black text-emerald-400">${fmtNum(i.amount)}</span>
+                <button onclick="openIncomeReceiptModal('${i.id}')" aria-label="عرض إيصال ${esc(r?.name || '')}" title="عرض الإيصال وطباعته" class="text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-print text-sm"></i></button>
                 <button onclick="sendIncomeReceiptOnWhatsApp('${i.id}')" aria-label="إرسال إيصال واتساب إلى ${esc(r?.name || '')}" title="إرسال إيصال واتساب" class="text-emerald-400 hover:text-emerald-300 p-1"><i class="fa-brands fa-whatsapp text-sm"></i></button>
                 <button onclick="openIncomeEditModal('${i.id}')" aria-label="تعديل التحصيل ${i.month}" class="icon-action text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-pen text-xs"></i></button>
                 <button onclick="deleteIncome('${i.id}')" aria-label="حذف التحصيل ${i.month}" class="icon-action text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash text-xs"></i></button>

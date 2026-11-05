@@ -97,7 +97,7 @@ test('owner can contact the building manager through the configured WhatsApp num
     assert.equal(url.pathname, '/201012345678');
     const message = url.searchParams.get('text');
     assert.match(message, /عمارة النور/);
-    assert.match(message, /الشقة: 3/);
+    assert.match(message, /الشقة: شقة 3/);
     assert.match(message, /أحمد/);
 });
 
@@ -122,7 +122,7 @@ test('owner can print a unit-scoped receipt with all distributed months and save
     assert.match(printDocument.html, /إيصال استلام/);
     assert.match(printDocument.html, /عمارة النور/);
     assert.match(printDocument.html, /أحمد/);
-    assert.match(printDocument.html, /رقم الشقة/);
+    assert.match(printDocument.html, /الشقة<\/div><div class="value">شقة 3/);
     assert.match(printDocument.html, /أكتوبر 2026/);
     assert.match(printDocument.html, /نوفمبر 2026/);
     assert.match(printDocument.html, /المبلغ المستلم/);
@@ -141,5 +141,5 @@ test('printing owner receipts is unavailable to the manager role', () => {
 });
 
 test('owner portal feature refreshes the installed application cache', () => {
-    assert.match(sw, /CACHE_NAME = 'manzil-v111'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v112'/);
 });

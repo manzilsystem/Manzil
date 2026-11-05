@@ -68,6 +68,117 @@ function ownerPaymentCashLabel(payment) {
     return '';
 }
 
+function receiptPaymentNotes(payment) {
+    if (typeof stripIncomeBatchNote === 'function') return stripIncomeBatchNote(payment?.notes);
+    const text = String(payment?.notes || '').trim();
+    const match = text.match(/^دفعة موزعة\s+[A-Z0-9]+\s+\(\d+\/\d+\)(?:\s*·\s*([\s\S]*))?$/i);
+    return match ? String(match[1] || '').trim() : text;
+}
+
+function receiptNotesForPayments(payments) {
+    return Array.from(new Set((payments || []).map(receiptPaymentNotes).filter(Boolean)));
+}
+
+function receiptApartmentLabel(resident) {
+    if (typeof formatApartmentLabel === 'function') return formatApartmentLabel(resident?.apartmentNumber);
+    const raw = String(resident?.apartmentNumber ?? '').trim();
+    if (!raw) return 'شقة —';
+    return /^شقة(?:\s|$)/.test(raw) ? raw : `شقة ${raw}`;
+}
+
+function buildReceiptDocument(receipt, resident, source = 'owner') {
+    const rows = receipt.payments.map(payment => `
+        <tr>
+            <td>${esc(ownerPaymentPurposeLabel(payment))}</td>
+            <td>${esc(payment.month || '—')}</td>
+            <td>${esc(ownerPaymentCashLabel(payment) || '—')}</td>
+            <td>${fmtNum(payment.amount)} ج.م</td>
+        </tr>`).join('');
+    const notes = receiptNotesForPayments(receipt.payments);
+    const notesHtml = notes.length
+        ? `<section class="notes"><div class="label">ملاحظات الدفع</div>${notes.map(note => `<p>${esc(note)}</p>`).join('')}</section>`
+        : '';
+    const thankYou = typeof getReceiptThankYouMessage === 'function'
+        ? getReceiptThankYouMessage()
+        : 'شكراً لالتزامكم، ونسعد دائماً بخدمتكم.';
+    const sourceText = source === 'manager'
+        ? 'تم إصدار هذا الإيصال من لوحة إدارة Manzil.'
+        : 'تم إصدار هذا الإيصال من بوابة المالك في Manzil.';
+    return `<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>إيصال ${esc(receipt.reference)} - Manzil</title>
+    <style>
+        * { box-sizing:border-box; }
+        body { margin:0; padding:24px; background:#f1f5f9; color:#0f172a; font-family:Tahoma,Arial,sans-serif; }
+        .receipt { max-width:720px; margin:0 auto; padding:28px; background:#fff; border:1px solid #cbd5e1; border-radius:16px; }
+        header { display:flex; justify-content:space-between; align-items:center; gap:16px; padding-bottom:18px; border-bottom:2px solid #334155; }
+        h1 { margin:0; font-size:22px; } .brand { font-size:18px; font-weight:900; }
+        .number { margin-top:8px; color:#475569; font-size:12px; }
+        .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:22px 0; }
+        .field { padding:11px; border:1px solid #e2e8f0; border-radius:10px; min-width:0; }
+        .label { color:#64748b; font-size:11px; } .value { margin-top:6px; font-size:13px; font-weight:700; overflow-wrap:anywhere; }
+        table { width:100%; border-collapse:collapse; margin-top:16px; }
+        th,td { padding:12px 10px; text-align:right; border-bottom:1px solid #e2e8f0; font-size:12px; }
+        th { color:#475569; background:#f8fafc; }
+        .notes { margin-top:16px; padding:12px; border:1px dashed #cbd5e1; border-radius:10px; }
+        .notes p { margin:5px 0 0; font-size:12px; }
+        .total { display:flex; justify-content:space-between; gap:12px; margin-top:18px; padding:16px; border-radius:10px; background:#ecfdf5; color:#065f46; font-weight:900; }
+        footer { margin-top:24px; padding-top:16px; border-top:1px solid #e2e8f0; text-align:center; color:#475569; font-size:12px; line-height:1.8; }
+        .actions { margin-top:20px; text-align:center; }
+        .actions button { min-height:46px; padding:10px 22px; border:0; border-radius:10px; background:#4f46e5; color:#fff; font-size:14px; font-weight:700; cursor:pointer; }
+        @media(max-width:480px) { body { padding:10px; } .receipt { padding:16px; } h1 { font-size:18px; } .grid { gap:8px; } .field { padding:9px; } }
+        @media print { body { padding:0; background:#fff; } .receipt { max-width:none; border:0; border-radius:0; padding:0; } .actions { display:none; } }
+    </style>
+</head>
+<body>
+    <main class="receipt">
+        <header>
+            <div><div class="brand">${esc(state.buildingName || 'Manzil')}</div><p class="number">رقم الإيصال: ${esc(receipt.reference)}</p></div>
+            <h1>إيصال استلام</h1>
+        </header>
+        <section class="grid">
+            <div class="field"><div class="label">اسم المالك</div><div class="value">${esc(resident.name || '—')}</div></div>
+            <div class="field"><div class="label">الشقة</div><div class="value">${esc(receiptApartmentLabel(resident))}</div></div>
+            <div class="field"><div class="label">تاريخ الاستلام</div><div class="value">${esc(formatDate(receipt.date) || '—')}</div></div>
+            <div class="field"><div class="label">طريقة الدفع</div><div class="value">${esc(getIncomePaymentMethodLabel(receipt.paymentMethod))}</div></div>
+            <div class="field"><div class="label">الغرض</div><div class="value">${esc(receipt.purposeSummary)}</div></div>
+            <div class="field"><div class="label">الصندوق</div><div class="value">${esc(receipt.cashboxSummary || '—')}</div></div>
+        </section>
+        <h2 style="font-size:14px;margin:0">تفاصيل السداد</h2>
+        <table><thead><tr><th>الغرض</th><th>شهر / بند</th><th>الصندوق</th><th>المبلغ</th></tr></thead><tbody>${rows}</tbody></table>
+        ${notesHtml}
+        <div class="total"><span>إجمالي المبلغ المستلم</span><span>${fmtNum(receipt.totalAmount)} ج.م</span></div>
+        <footer>${esc(thankYou)}<br>${sourceText}</footer>
+        <div class="actions"><button type="button" onclick="window.print()">طباعة / حفظ PDF</button></div>
+    </main>
+</body>
+</html>`;
+}
+
+function openReceiptPrintWindow(receipt, resident, source = 'owner') {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        toast('اسمح بفتح نافذة الإيصال من المتصفح، ثم حاول مرة أخرى.', 'error');
+        return;
+    }
+    try {
+        printWindow.document.open();
+        printWindow.document.write(buildReceiptDocument(receipt, resident, source));
+        printWindow.document.close();
+        printWindow.opener = null;
+        printWindow.focus();
+        setTimeout(() => {
+            try { printWindow.print(); } catch {}
+        }, 250);
+    } catch {
+        try { printWindow.close(); } catch {}
+        toast('تعذر تجهيز الإيصال للطباعة. حاول مرة أخرى.', 'error');
+    }
+}
+
 function getOwnerManagerWhatsAppPhone() {
     let phone = String(state.managerPhone || '').replace(/\D/g, '');
     if (phone.startsWith('00')) phone = phone.slice(2);
@@ -88,7 +199,7 @@ function contactOwnerManager() {
     const message = [
         'مرحبًا، أحتاج الاستفسار عن حساب شقتي في تطبيق Manzil.',
         `العمارة: ${state.buildingName || '—'}`,
-        `الشقة: ${resident.apartmentNumber || '—'}`,
+        `الشقة: ${receiptApartmentLabel(resident)}`,
         `الاسم: ${resident.name || '—'}`
     ].join('\n');
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
@@ -104,81 +215,86 @@ function printOwnerReceipt(receiptId) {
         toast('تعذر العثور على الإيصال. حدّث الصفحة وحاول مرة أخرى.', 'error');
         return;
     }
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-        toast('اسمح بفتح نافذة الإيصال من المتصفح، ثم حاول مرة أخرى.', 'error');
-        return;
-    }
-    const rows = receipt.payments.map(payment => `
-        <tr>
-            <td>${esc(ownerPaymentPurposeLabel(payment))}</td>
-            <td>${esc(payment.month || '—')}</td>
-            <td>${fmtNum(payment.amount)} ج.م</td>
-        </tr>`).join('');
+    openReceiptPrintWindow(receipt, resident, 'owner');
+}
+
+let activeManagerReceipt = null;
+
+function findManagerReceipt(incomeId) {
+    const payment = (Array.isArray(state.income) ? state.income : []).find(item => item.id === incomeId);
+    if (!payment) return null;
+    const resident = state.residents.find(item => item.id === payment.residentId);
+    if (!resident) return null;
+    const receipt = groupOwnerPaymentsIntoReceipts(resident.id)
+        .find(item => item.payments.some(entry => entry.id === incomeId));
+    return receipt ? { payment, resident, receipt } : null;
+}
+
+function buildManagerReceiptPreview(receipt, resident) {
+    const detailRows = receipt.payments.map(payment => `
+        <div class="rounded-xl border border-slate-700/50 p-2 space-y-0.5">
+            <div class="flex justify-between gap-2 text-[11px] font-bold"><span>${esc(ownerPaymentPurposeLabel(payment))}</span><span class="text-emerald-400">${fmtNum(payment.amount)} ج.م</span></div>
+            <p class="text-[10px] text-slate-500">${esc(payment.month || '—')} · ${esc(ownerPaymentCashLabel(payment) || '—')}</p>
+        </div>`).join('');
+    const notes = receiptNotesForPayments(receipt.payments);
     const thankYou = typeof getReceiptThankYouMessage === 'function'
         ? getReceiptThankYouMessage()
         : 'شكراً لالتزامكم، ونسعد دائماً بخدمتكم.';
-    const documentHtml = `<!doctype html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>إيصال ${esc(receipt.reference)} - Manzil</title>
-    <style>
-        * { box-sizing:border-box; }
-        body { margin:0; padding:24px; background:#f1f5f9; color:#0f172a; font-family:Tahoma,Arial,sans-serif; }
-        .receipt { max-width:720px; margin:0 auto; padding:28px; background:#fff; border:1px solid #cbd5e1; border-radius:16px; }
-        header { display:flex; justify-content:space-between; align-items:center; gap:16px; padding-bottom:18px; border-bottom:2px solid #334155; }
-        h1 { margin:0; font-size:22px; } .brand { font-size:18px; font-weight:900; }
-        .number { margin-top:8px; color:#475569; font-size:12px; }
-        .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:22px 0; }
-        .field { padding:11px; border:1px solid #e2e8f0; border-radius:10px; min-width:0; }
-        .label { color:#64748b; font-size:11px; } .value { margin-top:6px; font-size:13px; font-weight:700; overflow-wrap:anywhere; }
-        table { width:100%; border-collapse:collapse; margin-top:16px; }
-        th,td { padding:12px 10px; text-align:right; border-bottom:1px solid #e2e8f0; font-size:12px; }
-        th { color:#475569; background:#f8fafc; }
-        .total { display:flex; justify-content:space-between; gap:12px; margin-top:18px; padding:16px; border-radius:10px; background:#ecfdf5; color:#065f46; font-weight:900; }
-        footer { margin-top:24px; padding-top:16px; border-top:1px solid #e2e8f0; text-align:center; color:#475569; font-size:12px; line-height:1.8; }
-        .actions { margin-top:20px; text-align:center; }
-        .actions button { min-height:46px; padding:10px 22px; border:0; border-radius:10px; background:#4f46e5; color:#fff; font-size:14px; font-weight:700; cursor:pointer; }
-        @media(max-width:480px) { body { padding:10px; } .receipt { padding:16px; } h1 { font-size:18px; } .grid { gap:8px; } .field { padding:9px; } }
-        @media print { body { padding:0; background:#fff; } .receipt { max-width:none; border:0; border-radius:0; padding:0; } .actions { display:none; } }
-    </style>
-</head>
-<body>
-    <main class="receipt">
-        <header>
-            <div><div class="brand">${esc(state.buildingName || 'Manzil')}</div><p class="number">رقم الإيصال: ${esc(receipt.reference)}</p></div>
-            <h1>إيصال استلام</h1>
-        </header>
-        <section class="grid">
-            <div class="field"><div class="label">اسم المالك</div><div class="value">${esc(resident.name || '—')}</div></div>
-            <div class="field"><div class="label">رقم الشقة</div><div class="value">${esc(resident.apartmentNumber || '—')}</div></div>
-            <div class="field"><div class="label">تاريخ الاستلام</div><div class="value">${esc(formatDate(receipt.date) || '—')}</div></div>
-            <div class="field"><div class="label">طريقة الدفع</div><div class="value">${esc(getIncomePaymentMethodLabel(receipt.paymentMethod))}</div></div>
-            <div class="field"><div class="label">الغرض</div><div class="value">${esc(receipt.purposeSummary)}</div></div>
-            <div class="field"><div class="label">الصندوق</div><div class="value">${esc(receipt.cashboxSummary || '—')}</div></div>
-        </section>
-        <h2 style="font-size:14px;margin:0">تفاصيل السداد</h2>
-        <table><thead><tr><th>الغرض</th><th>شهر / بند</th><th>المبلغ</th></tr></thead><tbody>${rows}</tbody></table>
-        <div class="total"><span>إجمالي المبلغ المستلم</span><span>${fmtNum(receipt.totalAmount)} ج.م</span></div>
-        <footer>${esc(thankYou)}<br>تم إصدار هذا الإيصال من بوابة المالك في Manzil.</footer>
-        <div class="actions"><button type="button" onclick="window.print()">طباعة / حفظ PDF</button></div>
-    </main>
-</body>
-</html>`;
-    try {
-        printWindow.document.open();
-        printWindow.document.write(documentHtml);
-        printWindow.document.close();
-        printWindow.opener = null;
-        printWindow.focus();
-        setTimeout(() => {
-            try { printWindow.print(); } catch {}
-        }, 250);
-    } catch {
-        try { printWindow.close(); } catch {}
-        toast('تعذر تجهيز الإيصال للطباعة. حاول مرة أخرى.', 'error');
+    const field = (label, value) => `<div class="app-input border rounded-xl p-2"><p class="text-[10px] text-slate-500">${esc(label)}</p><p class="mt-1 text-[11px] font-bold">${esc(value)}</p></div>`;
+    return `
+        <div class="flex items-start justify-between gap-3 border-b border-slate-700/60 pb-3">
+            <div><p class="text-sm font-bold">${esc(state.buildingName || 'Manzil')}</p><p class="text-[10px] text-slate-400 mt-1">رقم الإيصال: ${esc(receipt.reference)}</p></div>
+            <span class="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 text-[10px] font-bold text-emerald-300">إيصال استلام</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+            ${field('الشقة', receiptApartmentLabel(resident))}
+            ${field('اسم المالك', resident.name || '—')}
+            ${field('تاريخ الاستلام', formatDate(receipt.date) || '—')}
+            ${field('طريقة الدفع', getIncomePaymentMethodLabel(receipt.paymentMethod))}
+            ${field('الغرض', receipt.purposeSummary)}
+            ${field('الصندوق', receipt.cashboxSummary || '—')}
+        </div>
+        <div class="space-y-1.5">${detailRows}</div>
+        ${notes.length ? `<div class="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-2 space-y-1"><p class="text-[10px] font-bold text-indigo-300">ملاحظات الدفع</p>${notes.map(note => `<p class="text-[11px] text-slate-300">${esc(note)}</p>`).join('')}</div>` : ''}
+        <div class="flex justify-between gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-xs font-black text-emerald-300"><span>إجمالي المبلغ المستلم</span><span>${fmtNum(receipt.totalAmount)} ج.م</span></div>
+        <p class="text-[10px] text-slate-500 leading-5">${esc(thankYou)}<br>تم إصدار هذا الإيصال من لوحة إدارة Manzil.</p>`;
+}
+
+function openIncomeReceiptModal(incomeId) {
+    if (!requireManager()) return;
+    const found = findManagerReceipt(incomeId);
+    if (!found) {
+        toast('تعذر العثور على الإيصال. حدّث السجل ثم حاول مرة أخرى.', 'error');
+        return;
+    }
+    activeManagerReceipt = { residentId: found.resident.id, receiptId: found.receipt.id, incomeId };
+    const subtitle = document.getElementById('incomeReceiptSubtitle');
+    if (subtitle) subtitle.textContent = `${found.receipt.reference} · ${found.resident.name}`;
+    const content = document.getElementById('incomeReceiptContent');
+    if (content) content.innerHTML = buildManagerReceiptPreview(found.receipt, found.resident);
+    openModal('incomeReceiptModal');
+}
+
+function printActiveIncomeReceipt() {
+    if (!requireManager() || !activeManagerReceipt) return;
+    const resident = state.residents.find(item => item.id === activeManagerReceipt.residentId);
+    if (!resident) {
+        toast('تعذر العثور على بيانات الشقة.', 'error');
+        return;
+    }
+    const receipt = groupOwnerPaymentsIntoReceipts(resident.id)
+        .find(item => item.id === activeManagerReceipt.receiptId);
+    if (!receipt) {
+        toast('تعذر العثور على الإيصال. حدّث الصفحة وحاول مرة أخرى.', 'error');
+        return;
+    }
+    openReceiptPrintWindow(receipt, resident, 'manager');
+}
+
+function sendActiveIncomeReceiptOnWhatsApp() {
+    if (!requireManager() || !activeManagerReceipt) return;
+    if (typeof sendIncomeReceiptOnWhatsApp === 'function') {
+        sendIncomeReceiptOnWhatsApp(activeManagerReceipt.incomeId);
     }
 }
 
