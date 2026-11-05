@@ -1,3 +1,4 @@
+// @ts-check
 let landlordReportMonth = '';
 let landlordReportSignature = '';
 
@@ -40,9 +41,10 @@ function closeReportPanel({ focusCard = true } = {}) {
         const panel = document.getElementById(REPORT_PANEL_IDS[name]);
         if (panel) panel.classList.add('hidden');
     });
+    /** @type {HTMLElement | null} */
     let opened = null;
-    document.querySelectorAll('[data-report-nav]').forEach(item => {
-        if (item.classList.contains('is-active')) opened = item;
+    document.querySelectorAll('[data-report-nav]').forEach((item) => {
+        if (item.classList.contains('is-active')) opened = /** @type {HTMLElement} */ (item);
         item.classList.remove('is-active');
         item.removeAttribute('aria-current');
     });
@@ -66,8 +68,8 @@ function switchReportTab(tab) {
         const panel = document.getElementById(REPORT_PANEL_IDS[name]);
         if (panel) panel.classList.toggle('hidden', name !== tab);
     });
-    document.querySelectorAll('[data-report-nav]').forEach(item => {
-        const active = item.dataset.reportNav === tab;
+    document.querySelectorAll('[data-report-nav]').forEach((item) => {
+        const active = /** @type {HTMLElement} */ (item).dataset.reportNav === tab;
         item.classList.toggle('is-active', active);
         if (active) item.setAttribute('aria-current', 'page');
         else item.removeAttribute('aria-current');
@@ -98,7 +100,7 @@ function handleReportTabKeydown(event) {
         : event.key === 'End'
             ? items.length - 1
             : (currentIndex + (event.key === 'ArrowLeft' ? 1 : -1) + items.length) % items.length;
-    items[nextIndex].focus();
+    /** @type {HTMLElement} */ (items[nextIndex]).focus();
 }
 
 function handleReportViewKeydown(event) {
@@ -118,11 +120,11 @@ function syncReportNavStatus() {
     Object.keys(REPORT_OUTPUT_BUTTON_IDS).forEach(tab => {
         const item = document.querySelector(`[data-report-nav="${tab}"]`);
         if (!item) return;
-        const button = document.getElementById(REPORT_OUTPUT_BUTTON_IDS[tab]);
+        const button = /** @type {HTMLButtonElement} */ (document.getElementById(REPORT_OUTPUT_BUTTON_IDS[tab]));
         const preview = document.querySelector(`#${REPORT_PANEL_IDS[tab]} [id$="Preview"]`);
         const ready = Boolean(button) && !button.disabled;
         item.classList.toggle('is-ready', ready);
-        item.classList.toggle('is-stale', !ready && preview?.dataset.stale === 'true');
+        item.classList.toggle('is-stale', !ready && /** @type {HTMLElement} */ (preview)?.dataset.stale === 'true');
     });
 }
 
@@ -170,7 +172,7 @@ function getExpenseCategoryTotals(expenses) {
 }
 
 function getSelectedReportMonth() {
-    return String(document.getElementById('reportMonthSelect')?.value || '');
+    return String(/** @type {HTMLSelectElement} */ (document.getElementById('reportMonthSelect'))?.value || '');
 }
 
 function getLandlordReportSignature(month) {
@@ -187,7 +189,7 @@ function getLandlordReportSignature(month) {
 
 function setLandlordReportActionsEnabled(enabled) {
     ['reportPrintBtn', 'reportPdfBtn', 'reportExportBtn'].forEach(id => {
-        const button = document.getElementById(id);
+        const button = /** @type {HTMLButtonElement} */ (document.getElementById(id));
         if (button) button.disabled = !enabled;
     });
     markReportPreviewStale('landlordReportPreview', !enabled);
@@ -216,7 +218,7 @@ function invalidateLandlordReportIfStale() {
 
 function generateLandlordReport() {
     if (!requireManager()) return;
-    const m = document.getElementById('reportMonthSelect').value;
+    const m = /** @type {HTMLSelectElement} */ (document.getElementById('reportMonthSelect')).value;
     if (!m) { toast('اختر شهر','error'); return; }
     const { income: inc, expenses: exp } = getLandlordReportData(m);
     const residentsById = buildResidentIndex();
@@ -453,7 +455,7 @@ async function exportLandlordReportPdf() {
 
     const monthKey = monthLabelToKey(landlordReportMonth);
     const filename = `manzil_landlord_report_${monthKey ? monthKey.slice(0, 7) : 'report'}.pdf`;
-    const button = document.getElementById('reportPdfBtn');
+    const button = /** @type {HTMLButtonElement} */ (document.getElementById('reportPdfBtn'));
     if (button) button.disabled = true;
     let root = null;
 
@@ -504,20 +506,20 @@ let periodReportSignature = '';
 
 function getPeriodReportSelection() {
     return {
-        from: String(document.getElementById('periodReportFrom')?.value || ''),
-        to: String(document.getElementById('periodReportTo')?.value || '')
+        from: String(/** @type {HTMLSelectElement} */ (document.getElementById('periodReportFrom'))?.value || ''),
+        to: String(/** @type {HTMLSelectElement} */ (document.getElementById('periodReportTo'))?.value || '')
     };
 }
 
 function setPeriodReportMonthValue(id, monthKey) {
-    const select = document.getElementById(id);
+    const select = /** @type {HTMLSelectElement} */ (document.getElementById(id));
     const label = getStatementMonthLabel(monthKey);
     if (!select || !label) return;
     select.value = label;
 }
 
 function applyPeriodReportPreset() {
-    const preset = String(document.getElementById('periodReportPreset')?.value || '');
+    const preset = String(/** @type {HTMLSelectElement} */ (document.getElementById('periodReportPreset'))?.value || '');
     if (!preset || preset === 'custom') return;
     const currentKey = monthLabelToKey(getCurrentMonth());
     if (!currentKey) return;
@@ -530,7 +532,7 @@ function applyPeriodReportPreset() {
 }
 
 function onPeriodReportRangeChange() {
-    const preset = document.getElementById('periodReportPreset');
+    const preset = /** @type {HTMLSelectElement} */ (document.getElementById('periodReportPreset'));
     if (preset) preset.value = 'custom';
     invalidatePeriodReportPreview();
 }
@@ -578,7 +580,7 @@ function buildPeriodReport(fromMonth, toMonth) {
         acc.expenseCents += row.expenseCents;
         if (row.outstandingCents > 0) acc.unpaidMonths += 1;
         return acc;
-    }, { expectedCents: 0, collectedCents: 0, outstandingCents: 0, expenseCents: 0, unpaidMonths: 0 });
+    }, { expectedCents: 0, collectedCents: 0, outstandingCents: 0, expenseCents: 0, unpaidMonths: 0, netCents: 0, rate: null });
     totals.netCents = totals.collectedCents - totals.expenseCents;
     totals.rate = getPeriodCollectionRate(totals.expectedCents, totals.collectedCents);
     const rangeLabels = new Set(months.map(row => row.month));
@@ -622,7 +624,7 @@ function getPeriodReportSignature(fromMonth, toMonth) {
 
 function setPeriodReportActionsEnabled(enabled) {
     ['periodReportPrintBtn', 'periodReportExportBtn'].forEach(id => {
-        const button = document.getElementById(id);
+        const button = /** @type {HTMLButtonElement} */ (document.getElementById(id));
         if (button) button.disabled = !enabled;
     });
     markReportPreviewStale('periodReportPreview', !enabled);
@@ -839,7 +841,7 @@ function buildResidentStatement(residentId) {
     const payments = (state.income || [])
         .filter(payment => payment.residentId === resident.id)
         .slice()
-        .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+        .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
     const paymentKeys = payments
         .map(payment => monthLabelToKey(payment.month))
         .filter(Boolean)
@@ -914,7 +916,7 @@ function getResidentStatementSignature(residentId) {
 
 function setResidentStatementActionsEnabled(enabled) {
     ['statementPrintBtn', 'statementPdfBtn', 'unitReportPdfBtn', 'statementCsvBtn'].forEach(id => {
-        const button = document.getElementById(id);
+        const button = /** @type {HTMLButtonElement} */ (document.getElementById(id));
         if (button) button.disabled = !enabled;
     });
     markReportPreviewStale('residentStatementPreview', !enabled);
@@ -947,7 +949,7 @@ function getResidentStatementSnapshot() {
         toast('اعرض كشف الحساب أولًا','error');
         return null;
     }
-    const selected = String(document.getElementById('statementResidentSelect')?.value || '');
+    const selected = String(/** @type {HTMLSelectElement} */ (document.getElementById('statementResidentSelect'))?.value || '');
     if (selected && selected !== residentStatementSnapshot.resident.id) {
         toast('اعرض كشف الساكن المحدد أولًا','error');
         return null;
@@ -1022,7 +1024,7 @@ function renderResidentStatementHtml(statement) {
 
 function generateResidentStatement() {
     if (!requireManager()) return;
-    const residentId = String(document.getElementById('statementResidentSelect')?.value || '');
+    const residentId = String(/** @type {HTMLSelectElement} */ (document.getElementById('statementResidentSelect'))?.value || '');
     if (!residentId) { toast('اختر ساكنًا','error'); return; }
     const statement = buildResidentStatement(residentId);
     if (!statement) { toast('تعذر العثور على الساكن. حدّث البيانات ثم حاول مرة أخرى.','error'); return; }
@@ -1190,7 +1192,7 @@ function renderUnitReportPdfHtml(statement) {
 
 async function downloadStatementPdf(statement, html, filename, buttonId, successMessage, logLabel) {
     let root = null;
-    const button = document.getElementById(buttonId);
+    const button = /** @type {HTMLButtonElement} */ (document.getElementById(buttonId));
     if (button) button.disabled = true;
     try {
         await ensurePdfLibrary();
@@ -1230,7 +1232,7 @@ async function downloadStatementPdf(statement, html, filename, buttonId, success
         toast('تعذر إنشاء PDF. تحقق من الاتصال ثم أعد المحاولة.','error');
     } finally {
         if (root) root.remove();
-        if (button && residentStatementSnapshot) button.disabled = false;
+        if (button && residentStatementSnapshot) /** @type {HTMLButtonElement} */ (button).disabled = false;
     }
 }
 
