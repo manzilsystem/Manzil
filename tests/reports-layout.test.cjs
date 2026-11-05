@@ -63,8 +63,8 @@ test('reports surface shares card headers, stat tiles, and tabular numerals', ()
     assert.match(css, /\.report-stat-value \{[^}]*font-variant-numeric: tabular-nums/);
     assert.match(css, /\.report-amount \{ font-variant-numeric: tabular-nums/);
     assert.match(css, /#printableArea \.app-card, #printableArea \.app-input, #printableArea \.report-stat \{/);
-    assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 4);
-    assert.equal((reports.match(/class="report-stat"/g) || []).length, 6);
+    assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 5);
+    assert.equal((reports.match(/class="report-stat"/g) || []).length, 10);
     assert.equal((render.match(/class="report-stat"/g) || []).length, 4);
     assert.match(reports, /text-emerald-400 report-amount/);
     assert.match(render, /text-rose-400 shrink-0 report-amount/);
@@ -94,4 +94,36 @@ test('audit log reports how many entries are shown and offers load more', () => 
     assert.match(render, /عرض \$\{fmtNum\(visible\.length\)\} من \$\{fmtNum\(filtered\.length\)\}/);
     assert.match(render, /renderAuditLog\(\{ more: true \}\)/);
     assert.doesNotMatch(render, /filtered\.slice\(0, 100\)/);
+});
+
+test('resident statement scopes a monthly ledger to one resident with gated outputs', () => {
+    assert.ok(reportTab.includes('id="residentStatementCard"'));
+    assert.match(reportTab, /id="statementResidentSelect"[^>]*onchange="invalidateResidentStatementPreview\(\)"/);
+    assert.match(reportTab, /id="residentStatementPreview"[^>]*aria-live="polite"/);
+    for (const id of ['statementPrintBtn', 'statementPdfBtn', 'statementCsvBtn']) {
+        assert.match(reportTab, new RegExp('id="' + id + '"[^>]*disabled'));
+    }
+    assert.match(reports, /function buildResidentStatement\(residentId\)/);
+    assert.match(reports, /function getResidentStatementSignature\(residentId\)/);
+    assert.match(reports, /function invalidateResidentStatementIfStale\(\)/);
+    assert.match(render, /invalidateResidentStatementIfStale\(\)/);
+    assert.match(render, /function populateStatementResidentSelect\(\)/);
+    assert.match(reports, /getSubscriptionAmountForMonth\(resident, month\)/);
+    assert.match(reports, /getPaidAmountForMonth\(resident.id, month\)/);
+    assert.match(reports, /statement-table/);
+    assert.match(css, /body\.print-statement #tab-reports > :not\(#residentStatementCard\) \{ display: none !important; \}/);
+    assert.match(css, /body\.print-statement #residentStatementCard \{/);
+    assert.match(reports, /await ensurePdfLibrary\(\)/);
+    assert.match(reports, /manzil_statement_\$\{getStatementFileSlug\(statement\)\}\.csv/);
+    assert.match(reports, /manzil_statement_\$\{getStatementFileSlug\(statement\)\}\.pdf/);
+});
+
+test('resident statement entry is reachable from the resident profile', () => {
+    const crud = fs.readFileSync(path.join(__dirname, '..', 'js', 'crud.js'), 'utf8');
+    const app = fs.readFileSync(path.join(__dirname, '..', 'js', 'app.js'), 'utf8');
+    assert.match(crud, /onclick="openResidentStatementFromProfile/);
+    assert.match(crud, /function openResidentStatementFromProfile\(residentId\)/);
+    assert.match(crud, /switchTab\('reports'\)/);
+    assert.match(crud, /generateResidentStatement\(\)/);
+    assert.match(app, /function ensurePdfLibrary\(\)/);
 });

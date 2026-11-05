@@ -230,6 +230,7 @@ function buildResidentProfileHtml(resident) {
             <section class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                 <button type="button" onclick="openResidentIncomeFromProfile(${residentArg})" class="min-h-11 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-hand-holding-dollar ml-1"></i> تسجيل تحصيل</button>
                 <button type="button" onclick="editResidentFromProfile(${residentArg})" class="min-h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-pen ml-1"></i> تعديل بيانات الشقة</button>
+                <button type="button" onclick="openResidentStatementFromProfile(${residentArg})" class="min-h-11 app-input border rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-file-invoice ml-1"></i> كشف حساب</button>
                 <button type="button" onclick="openSubscriptionRatesFromProfile(${residentArg})" class="min-h-11 app-input border rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-clock-rotate-left ml-1"></i> إدارة سجل الاشتراك</button>
                 ${phone && debt.totalDebt > 0 ? `<button type="button" onclick="sendWhatsAppReminderFromProfile(${residentArg})" class="min-h-11 bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-brands fa-whatsapp ml-1"></i> تذكير بالمتأخرات</button>` : ''}
             </section>
@@ -295,6 +296,17 @@ function sendWhatsAppReminderFromProfile(residentId) {
     if (!requireManager()) return;
     closeModal('residentProfileModal');
     sendWhatsAppReminder(residentId);
+}
+
+function openResidentStatementFromProfile(residentId) {
+    if (!requireManager()) return;
+    closeModal('residentProfileModal');
+    switchTab('reports');
+    const select = document.getElementById('statementResidentSelect');
+    if (select) select.value = residentId;
+    generateResidentStatement();
+    const card = document.getElementById('residentStatementCard');
+    if (card) requestAnimationFrame(() => card.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 
 function saveResidentAndProvisionOwner() {

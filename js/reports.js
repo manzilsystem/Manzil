@@ -229,3 +229,387 @@ function exportArrearsCSV() {
     downloadCsv(`manzil_arrears_${Date.now()}.csv`, rows);
     toast('تم تصدير تقرير المتأخرات','success');
 }
+
+let residentStatementSnapshot = null;
+let residentStatementResidentId = '';
+let residentStatementSignature = '';
+
+function getStatementMonthKeyFromDate(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
+function getStatementMonthLabel(monthKey) {
+    const [year, month] = String(monthKey).split('-').map(Number);
+    if (!year || !month || !monthsNames[month - 1]) return '';
+    return `${monthsNames[month - 1]} ${year}`;
+}
+
+function shiftStatementMonthKey(monthKey, offset) {
+    const [year, month] = String(monthKey).split('-').map(Number);
+    const cursor = new Date(Date.UTC(year, month - 1 + offset, 1));
+    return `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, '0')}-01`;
+}
+
+function getResidentStatementStatus(dueCents, paidCents, monthKey, currentKey) {
+    if (dueCents === 0 && paidCents === 0) {
+        return monthKey > currentKey
+            ? { label: 'لم يحن بعد', className: 'text-slate-500' }
+            : { label: 'لا استحقاق', className: 'text-slate-500' };
+    }
+    if (dueCents === 0) return { label: 'مدفوع مقدماً', className: 'text-sky-400' };
+    if (paidCents >= dueCents) {
+        return paidCents > dueCents
+            ? { label: 'مسدد بزيادة', className: 'text-emerald-400' }
+            : { label: 'مسدد', className: 'text-emerald-400' };
+    }
+    if (paidCents === 0) return { label: 'غير مسدد', className: 'text-rose-400' };
+    return { label: 'سداد جزئي', className: 'text-amber-400' };
+}
+
+function buildResidentStatement(residentId) {
+    const resident = buildResidentIndex().get(String(residentId || ''));
+    if (!resident) return null;
+
+    const currentKey = monthLabelToKey(getCurrentMonth()) || '';
+    const payments = (state.income || [])
+        .filter(payment => payment.residentId === resident.id)
+        .slice()
+        .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    const paymentKeys = payments
+        .map(payment => monthLabelToKey(payment.month))
+        .filter(Boolean)
+        .sort();
+    const createdKey = getStatementMonthKeyFromDate(new Date(resident.createdAt || ''));
+    let startKey = createdKey || paymentKeys[0] || currentKey;
+    let endKey = currentKey || startKey;
+    paymentKeys.forEach(key => {
+        if (key < startKey) startKey = key;
+        if (key > endKey) endKey = key;
+    });
+    if (!startKey) return null;
+    if (startKey > endKey) endKey = startKey;
+
+    const months = [];
+    let dueCents = 0;
+    let paidCents = 0;
+    let remainingCents = 0;
+    for (let key = startKey; key <= endKey; key = shiftStatementMonthKey(key, 1)) {
+        const month = getStatementMonthLabel(key);
+        const isBilled = (!createdKey || key >= createdKey) && (!currentKey || key <= currentKey);
+        const rowDueCents = isBilled ? toCents(getSubscriptionAmountForMonth(resident, month)) : 0;
+        const rowPaidCents = toCents(getPaidAmountForMonth(resident.id, month));
+        const rowRemainingCents = Math.max(0, rowDueCents - rowPaidCents);
+        dueCents += rowDueCents;
+        paidCents += rowPaidCents;
+        remainingCents += rowRemainingCents;
+        months.push({
+            key,
+            month,
+            dueCents: rowDueCents,
+            paidCents: rowPaidCents,
+            remainingCents: rowRemainingCents,
+            status: getResidentStatementStatus(rowDueCents, rowPaidCents, key, currentKey)
+        });
+    }
+
+    const paymentRows = payments.map(payment => ({
+        id: payment.id,
+        month: String(payment.month || '—'),
+        amountCents: toCents(payment.amount),
+        method: getIncomePaymentMethodLabel(payment.paymentMethod),
+        date: payment.date || '',
+        notes: String(payment.notes || '')
+    }));
+    const unassignedPaidCents = paymentRows
+        .filter(payment => !monthLabelToKey(payment.month))
+        .reduce((sum, payment) => sum + payment.amountCents, 0);
+
+    return {
+        resident,
+        months,
+        payments: paymentRows,
+        rangeLabel: `${months[0].month} – ${months[months.length - 1].month}`,
+        totals: {
+            dueCents,
+            paidCents,
+            remainingCents,
+            arrearsMonths: months.filter(row => row.remainingCents > 0 && row.key < currentKey).length,
+            unassignedPaidCents
+        },
+        generatedAt: new Date().toISOString()
+    };
+}
+
+function getResidentStatementSignature(residentId) {
+    const resident = buildResidentIndex().get(String(residentId || ''));
+    if (!resident) return '';
+    const payments = (state.income || []).filter(payment => payment.residentId === resident.id);
+    return JSON.stringify([resident, payments]);
+}
+
+function setResidentStatementActionsEnabled(enabled) {
+    ['statementPrintBtn', 'statementPdfBtn', 'statementCsvBtn'].forEach(id => {
+        const button = document.getElementById(id);
+        if (button) button.disabled = !enabled;
+    });
+}
+
+function clearResidentStatement(message) {
+    residentStatementSnapshot = null;
+    residentStatementResidentId = '';
+    residentStatementSignature = '';
+    setResidentStatementActionsEnabled(false);
+    const preview = document.getElementById('residentStatementPreview');
+    if (preview) preview.innerHTML = `<p class="text-slate-400 text-center py-4">${esc(message)}</p>`;
+}
+
+function invalidateResidentStatementPreview() {
+    if (!residentStatementSnapshot) return;
+    clearResidentStatement('تغيّر الساكن — اختر ساكنًا ثم اضغط «معاينة» لعرض الكشف.');
+}
+
+function invalidateResidentStatementIfStale() {
+    if (!residentStatementSnapshot) return;
+    if (getResidentStatementSignature(residentStatementSnapshot.resident.id) !== residentStatementSignature) {
+        clearResidentStatement('تغيّرت البيانات — اضغط «معاينة» لتحديث الكشف.');
+    }
+}
+
+function getResidentStatementSnapshot() {
+    if (!residentStatementSnapshot) {
+        toast('اعرض كشف الحساب أولًا','error');
+        return null;
+    }
+    const selected = String(document.getElementById('statementResidentSelect')?.value || '');
+    if (selected && selected !== residentStatementSnapshot.resident.id) {
+        toast('اعرض كشف الساكن المحدد أولًا','error');
+        return null;
+    }
+    if (getResidentStatementSignature(residentStatementSnapshot.resident.id) !== residentStatementSignature) {
+        clearResidentStatement('تغيّرت البيانات — اضغط «معاينة» لتحديث الكشف.');
+        return null;
+    }
+    return residentStatementSnapshot;
+}
+
+function getStatementFileSlug(statement) {
+    const apartment = String(statement.resident.apartmentNumber || 'resident').replace(/[^\w\u0621-\u064A-]+/g, '_');
+    const lastKey = statement.months[statement.months.length - 1]?.key || '';
+    return `${apartment}_${lastKey.slice(0, 7)}`;
+}
+
+function renderResidentStatementHtml(statement) {
+    const resident = statement.resident;
+    const monthRows = statement.months.map(row => `
+        <tr>
+            <td>${esc(row.month)}</td>
+            <td>${fmtMoney(row.dueCents / 100)}</td>
+            <td class="text-emerald-400">${fmtMoney(row.paidCents / 100)}</td>
+            <td class="${row.remainingCents ? 'text-rose-400' : ''}">${fmtMoney(row.remainingCents / 100)}</td>
+            <td class="${row.status.className}">${esc(row.status.label)}</td>
+        </tr>`).join('');
+    const paymentRows = statement.payments.length
+        ? statement.payments.map(payment => `
+            <div class="flex justify-between items-start gap-3 border-b border-slate-800 py-1.5 last:border-0">
+                <div class="min-w-0">
+                    <p class="font-bold">${esc(payment.month)}</p>
+                    <p class="text-[10px] text-slate-500">${esc(payment.method)} · ${esc(formatDate(payment.date) || '—')}</p>
+                    ${payment.notes ? `<p class="text-[10px] text-slate-500 break-words">${esc(payment.notes)}</p>` : ''}
+                </div>
+                <strong class="text-emerald-400 shrink-0 report-amount">${fmtMoney(payment.amountCents / 100)}</strong>
+            </div>`).join('')
+        : '<p class="text-slate-500 text-[10px]">لا توجد حركات مسجلة.</p>';
+    const unassignedNote = statement.totals.unassignedPaidCents > 0
+        ? `<p>مدفوعات بدون شهر استحقاق قابل للقراءة: ${fmtMoney(statement.totals.unassignedPaidCents / 100)}</p>`
+        : '';
+    return `
+        <div class="space-y-3">
+            <div class="text-center border-b border-slate-700 pb-2">
+                <h3 class="font-black text-sm">${esc(state.buildingName || 'العمارة')}</h3>
+                <p class="text-[10px] text-slate-400">كشف حساب ساكن · ${esc(resident.name)} · شقة ${esc(resident.apartmentNumber || '—')}${resident.floor ? ' · الدور ' + esc(resident.floor) : ''}</p>
+                <p class="text-[10px] text-slate-400">الفترة: ${esc(statement.rangeLabel)}</p>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div class="report-stat"><p class="report-stat-label">إجمالي المستحق</p><p class="report-stat-value">${fmtMoney(statement.totals.dueCents / 100)}</p></div>
+                <div class="report-stat"><p class="report-stat-label">إجمالي المدفوع</p><p class="report-stat-value text-emerald-400">${fmtMoney(statement.totals.paidCents / 100)}</p></div>
+                <div class="report-stat"><p class="report-stat-label">إجمالي المتبقي</p><p class="report-stat-value ${statement.totals.remainingCents ? 'text-rose-400' : 'text-emerald-400'}">${fmtMoney(statement.totals.remainingCents / 100)}</p></div>
+                <div class="report-stat"><p class="report-stat-label">أشهر متأخرة</p><p class="report-stat-value ${statement.totals.arrearsMonths ? 'text-amber-400' : 'text-emerald-400'}">${fmtNum(statement.totals.arrearsMonths)}</p></div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="statement-table">
+                    <thead><tr><th>الشهر</th><th>المستحق</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th></tr></thead>
+                    <tbody>${monthRows}</tbody>
+                </table>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold text-slate-400 mb-1">حركات الساكن (${fmtNum(statement.payments.length)}):</p>
+                ${paymentRows}
+            </div>
+            <div class="text-[10px] text-slate-500 text-center pt-2 border-t border-slate-700 space-y-1">
+                <p>كل شهر محسوب بقيمة الاشتراك السارية فيه، والمدفوع هو المسجل على الشهر نفسه.</p>
+                ${unassignedNote}
+                <p>تم الإنشاء: ${esc(formatDate(statement.generatedAt))}</p>
+            </div>
+        </div>`;
+}
+
+function generateResidentStatement() {
+    if (!requireManager()) return;
+    const residentId = String(document.getElementById('statementResidentSelect')?.value || '');
+    if (!residentId) { toast('اختر ساكنًا','error'); return; }
+    const statement = buildResidentStatement(residentId);
+    if (!statement) { toast('تعذر العثور على الساكن. حدّث البيانات ثم حاول مرة أخرى.','error'); return; }
+    const preview = document.getElementById('residentStatementPreview');
+    if (!preview) return;
+    preview.innerHTML = renderResidentStatementHtml(statement);
+    residentStatementSnapshot = statement;
+    residentStatementResidentId = residentId;
+    residentStatementSignature = getResidentStatementSignature(residentId);
+    setResidentStatementActionsEnabled(true);
+}
+
+function printResidentStatement() {
+    if (!requireManager()) return;
+    const statement = getResidentStatementSnapshot();
+    if (!statement) return;
+    switchTab('reports');
+    const title = document.getElementById('printBuildingTitle');
+    const meta = document.getElementById('printBuildingMeta');
+    const previousTitle = title ? title.textContent : '';
+    const previousMeta = meta ? meta.textContent : '';
+    if (title) title.textContent = `كشف حساب ساكن - ${state.buildingName || 'Manzil'}`;
+    if (meta) meta.textContent = `${statement.resident.name} • شقة ${statement.resident.apartmentNumber || '—'} • ${statement.rangeLabel}`;
+    document.body.classList.remove('print-landlord');
+    document.body.classList.add('print-statement');
+    const restore = () => {
+        document.body.classList.remove('print-statement');
+        if (title) title.textContent = previousTitle;
+        if (meta) meta.textContent = previousMeta;
+    };
+    window.addEventListener('afterprint', restore, { once: true });
+    window.print();
+}
+
+function renderResidentStatementPdfHtml(statement) {
+    const resident = statement.resident;
+    const cell = (value, styles = '') => '<td style="padding:6px;border:1px solid #cbd5e1;text-align:right;' + styles + '">' + value + '</td>';
+    const monthRows = statement.months.map(row => [
+        '<tr>',
+        '<th style="padding:6px;border:1px solid #cbd5e1;text-align:right;font-weight:600">', esc(row.month), '</th>',
+        cell(fmtMoney(row.dueCents / 100)),
+        cell(fmtMoney(row.paidCents / 100)),
+        cell(fmtMoney(row.remainingCents / 100), row.remainingCents ? 'color:#be123c;font-weight:700' : ''),
+        cell(esc(row.status.label)),
+        '</tr>'
+    ].join('')).join('');
+    const paymentRows = statement.payments.length
+        ? statement.payments.map(payment => [
+            '<tr>',
+            cell(esc(payment.month)),
+            cell(fmtMoney(payment.amountCents / 100), 'color:#047857;font-weight:700'),
+            cell(esc(payment.method)),
+            cell(esc(formatDate(payment.date) || '—')),
+            cell(esc(payment.notes || '—')),
+            '</tr>'
+        ].join('')).join('')
+        : '<tr><td colspan="5" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">لا توجد حركات مسجلة.</td></tr>';
+
+    return [
+        '<div dir="rtl" lang="ar" style="font-family:Cairo,Arial,sans-serif;color:#111827;background:#fff;line-height:1.8">',
+        '<header style="text-align:center;border-bottom:2px solid #334155;padding-bottom:12px;margin-bottom:18px">',
+        '<h1 style="font-size:22px;font-weight:800;margin:0">', esc(state.buildingName || 'Manzil'), '</h1>',
+        '<h2 style="font-size:17px;font-weight:700;margin:4px 0">كشف حساب ساكن — ', esc(resident.name), '</h2>',
+        '<p style="font-size:11px;color:#475569;margin:0">',
+        'شقة ', esc(resident.apartmentNumber || '—'), resident.floor ? ' • الدور ' + esc(resident.floor) : '',
+        ' • الفترة: ', esc(statement.rangeLabel), '</p></header>',
+        '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">الملخص</h3>',
+        '<table style="width:100%;border-collapse:collapse;font-size:11px"><tbody>',
+        '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">إجمالي المستحق</th><td style="padding:7px;border:1px solid #cbd5e1">', fmtMoney(statement.totals.dueCents / 100), '</td></tr>',
+        '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">إجمالي المدفوع</th><td style="padding:7px;border:1px solid #cbd5e1;color:#047857;font-weight:700">', fmtMoney(statement.totals.paidCents / 100), '</td></tr>',
+        '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">إجمالي المتبقي</th><td style="padding:7px;border:1px solid #cbd5e1;font-weight:700">', fmtMoney(statement.totals.remainingCents / 100), '</td></tr>',
+        '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">أشهر متأخرة</th><td style="padding:7px;border:1px solid #cbd5e1">', fmtNum(statement.totals.arrearsMonths), '</td></tr>',
+        '</tbody></table></section>',
+        '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حساب الشهور</h3>',
+        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
+        '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المستحق</th>',
+        '<th style="padding:6px;border:1px solid #cbd5e1">المدفوع</th><th style="padding:6px;border:1px solid #cbd5e1">المتبقي</th>',
+        '<th style="padding:6px;border:1px solid #cbd5e1">الحالة</th></tr></thead><tbody>', monthRows, '</tbody></table></section>',
+        '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حركات الساكن</h3>',
+        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
+        '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th>',
+        '<th style="padding:6px;border:1px solid #cbd5e1">طريقة الدفع</th><th style="padding:6px;border:1px solid #cbd5e1">التاريخ</th>',
+        '<th style="padding:6px;border:1px solid #cbd5e1">ملاحظات</th></tr></thead><tbody>', paymentRows, '</tbody></table></section>',
+        '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
+        'كل شهر محسوب بقيمة الاشتراك السارية فيه، والمدفوع هو المسجل على الشهر نفسه. هذا الكشف للقراءة فقط ولا يعدل أي بيانات.',
+        '</p><footer style="font-size:9px;color:#64748b;margin-top:18px;text-align:center">Manzil — ',
+        esc(formatDate(statement.generatedAt)), '</footer></div>'
+    ].join('');
+}
+
+async function exportResidentStatementPdf() {
+    if (!requireManager()) return;
+    const statement = getResidentStatementSnapshot();
+    if (!statement) return;
+    let root = null;
+    const button = document.getElementById('statementPdfBtn');
+    if (button) button.disabled = true;
+    try {
+        await ensurePdfLibrary();
+        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+
+        root = document.createElement('section');
+        root.dir = 'rtl';
+        root.lang = 'ar';
+        root.style.cssText = 'position:fixed;top:0;left:0;width:190mm;padding:8mm;box-sizing:border-box;background:#fff;z-index:-1';
+        root.innerHTML = renderResidentStatementPdfHtml(statement);
+        document.body.appendChild(root);
+
+        const filename = `manzil_statement_${getStatementFileSlug(statement)}.pdf`;
+        const pdfBlob = await window.html2pdf().set({
+            margin: 8,
+            filename,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        }).from(root).outputPdf('blob');
+
+        if (!(pdfBlob instanceof Blob) || pdfBlob.type !== 'application/pdf' || pdfBlob.size < 100) {
+            throw new Error('resident_statement_pdf_generation_failed');
+        }
+
+        const url = URL.createObjectURL(pdfBlob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+        toast('تم إنشاء كشف الحساب PDF.','success');
+    } catch (error) {
+        console.error('Resident statement PDF export failed:', error);
+        toast('تعذر إنشاء PDF. تحقق من الاتصال ثم أعد المحاولة.','error');
+    } finally {
+        if (root) root.remove();
+        if (button && residentStatementSnapshot) button.disabled = false;
+    }
+}
+
+function exportResidentStatementCsv() {
+    if (!requireManager()) return;
+    const statement = getResidentStatementSnapshot();
+    if (!statement) return;
+    const rows = [['الشهر','المستحق','المدفوع','المتبقي','الحالة']];
+    statement.months.forEach(row => {
+        rows.push([row.month, row.dueCents / 100, row.paidCents / 100, row.remainingCents / 100, row.status.label]);
+    });
+    rows.push([]);
+    rows.push(['الحركات','الشهر','المبلغ','طريقة الدفع','التاريخ','ملاحظات']);
+    statement.payments.forEach(payment => {
+        rows.push(['تحصيل', payment.month, payment.amountCents / 100, payment.method, formatDate(payment.date) || '', payment.notes]);
+    });
+    downloadCsv(`manzil_statement_${getStatementFileSlug(statement)}.csv`, rows);
+    toast('تم تصدير كشف الحساب','success');
+}

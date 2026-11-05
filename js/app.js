@@ -113,6 +113,30 @@ function handleModalKeyboard(event) {
     }
 }
 
+let pdfLibraryPromise = null;
+
+function ensurePdfLibrary() {
+    if (typeof window.html2pdf === 'function') return Promise.resolve();
+    if (pdfLibraryPromise) return pdfLibraryPromise;
+
+    pdfLibraryPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+        script.async = true;
+        script.crossOrigin = 'anonymous';
+        script.onload = () => {
+            if (typeof window.html2pdf === 'function') resolve();
+            else reject(new Error('pdf_library_unavailable'));
+        };
+        script.onerror = () => reject(new Error('pdf_library_failed_to_load'));
+        document.head.appendChild(script);
+    }).catch(error => {
+        pdfLibraryPromise = null;
+        throw error;
+    });
+    return pdfLibraryPromise;
+}
+
 async function loadSubscriptionRateAdapter() {
     await new Promise((resolve, reject) => {
         const script = document.createElement('script');

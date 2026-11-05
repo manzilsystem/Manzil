@@ -42,6 +42,7 @@ function renderAll() {
     renderDashboard(); renderIncomeTable(); renderExpenseTable(); renderResidentsGrid();
     renderNotices(); renderAuditLog(); renderArrearsReport(); populateSelects();
     invalidateLandlordReportIfStale();
+    invalidateResidentStatementIfStale();
     renderCashbox();
 }
 
@@ -130,6 +131,20 @@ function populateSelects() {
     }
     const paymentMethodSelect = document.getElementById('incomePaymentMethod');
     populatePaymentMethodOptions(paymentMethodSelect, paymentMethodSelect?.value || '');
+    populateStatementResidentSelect();
+}
+
+function populateStatementResidentSelect() {
+    const select = document.getElementById('statementResidentSelect');
+    if (!select) return;
+    const selected = select.value;
+    const options = state.residents
+        .slice()
+        .sort((a, b) => String(a.apartmentNumber || '').localeCompare(String(b.apartmentNumber || ''), 'ar', { numeric: true }))
+        .map(resident => `<option value="${esc(resident.id)}">شقة ${esc(resident.apartmentNumber)} · ${esc(resident.name)}</option>`)
+        .join('');
+    select.innerHTML = '<option value="">اختر الساكن</option>' + options;
+    if (selected && state.residents.some(resident => resident.id === selected)) select.value = selected;
 }
 
 function getDashboardPeriod() {
