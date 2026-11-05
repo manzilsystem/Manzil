@@ -50,7 +50,7 @@ function isUuid(value: string): boolean {
   return value.length === 36 && value[8] === '-' && value[13] === '-' && value[18] === '-' && value[23] === '-' && /^[0-9a-f-]{36}$/i.test(value)
 }
 
-Deno.serve(async (request: Request) => {
+export async function handleRequest(request: Request): Promise<Response> {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (request.method !== 'POST') return json(405, { error: 'method_not_allowed' })
 
@@ -335,4 +335,8 @@ Deno.serve(async (request: Request) => {
     temporary_pin: temporaryPin,
     first_login_pin_change_required: true,
   })
-})
+}
+
+if (import.meta.main) {
+  Deno.serve(handleRequest)
+}
