@@ -35,7 +35,7 @@
                     <span class="text-[10px] text-slate-500">اختصارات الإدارة اليومية</span>
                 </div>
                 <div class="quick-actions-grid grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <button onclick="openModal('incomeModal')" class="quick-action quick-action-income" aria-label="تسجيل تحصيل جديد">
+                    <button onclick="openNewIncomeModal()" class="quick-action quick-action-income" aria-label="تسجيل تحصيل جديد">
                         <i class="fa-solid fa-hand-holding-dollar"></i><span>تحصيل جديد</span>
                     </button>
                     <button onclick="openExpenseModal()" class="quick-action quick-action-expense" aria-label="تسجيل مصروف جديد">
@@ -151,7 +151,7 @@
         <section id="tab-income" class="hidden space-y-4">
             <div class="section-toolbar flex justify-between items-center app-card p-4 rounded-3xl border no-print">
                 <div><h2 class="font-bold text-base">سجل التحصيلات</h2><p class="text-[11px] text-slate-400">اشتراكات السكان</p></div>
-                <button onclick="openModal('incomeModal')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-emerald-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> تحصيل جديد</button>
+                <button onclick="openNewIncomeModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-emerald-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> تحصيل جديد</button>
             </div>
             <div class="list-filters app-card p-3 rounded-3xl border flex gap-2 no-print">
                 <input type="search" id="searchIncomeInput" aria-label="البحث في التحصيلات" oninput="renderIncomeTable()" placeholder="ابحث في التحصيلات..." class="flex-grow app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">

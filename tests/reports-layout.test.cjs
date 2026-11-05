@@ -69,7 +69,7 @@ test('reports surface shares card headers, stat tiles, and tabular numerals', ()
     assert.match(css, /#printableArea \.app-card, #printableArea \.app-input, #printableArea \.report-stat \{/);
     assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 6);
     assert.equal((reportTab.match(/class="report-card-badge /g) || []).length, 6);
-    assert.equal((reports.match(/class="report-stat"/g) || []).length, 16);
+    assert.equal((reports.match(/class="report-stat"/g) || []).length, 17);
     assert.equal((render.match(/class="report-stat"/g) || []).length, 4);
     assert.match(reports, /text-emerald-400 report-amount/);
     assert.match(render, /text-rose-400 report-amount/);

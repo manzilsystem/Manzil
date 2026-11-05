@@ -53,6 +53,66 @@ const INCOME_PAYMENT_METHOD_LABELS = Object.freeze({
     bank_transfer: 'تحويل بنكي'
 });
 
+const INCOME_PURPOSE_LABELS = Object.freeze({
+    subscription: 'اشتراك شهري',
+    services: 'خدمات ونظافة',
+    development: 'تطوير',
+    emergency: 'صيانة طارئة',
+    penalty: 'غرامة',
+    donation: 'تبرع',
+    other: 'أخرى'
+});
+
+const INCOME_PURPOSE_DEFAULT_CASH_ACCOUNT = Object.freeze({
+    subscription: 'main',
+    services: 'main',
+    development: 'development',
+    emergency: 'emergency',
+    penalty: 'main',
+    donation: 'main',
+    other: 'main'
+});
+
+const INCOME_PURPOSE_LOCKED_CASH_ACCOUNT = Object.freeze({
+    subscription: true,
+    services: false,
+    development: true,
+    emergency: true,
+    penalty: true,
+    donation: true,
+    other: false
+});
+
+function normalizeIncomePurpose(purpose) {
+    const value = String(purpose || '').trim();
+    return Object.prototype.hasOwnProperty.call(INCOME_PURPOSE_LABELS, value) ? value : 'subscription';
+}
+
+function getIncomePurposeLabel(purpose) {
+    return INCOME_PURPOSE_LABELS[normalizeIncomePurpose(purpose)];
+}
+
+function isSubscriptionIncome(payment) {
+    return normalizeIncomePurpose(payment?.purposeCode) === 'subscription';
+}
+
+function getIncomePurposeCashAccount(purpose) {
+    return INCOME_PURPOSE_DEFAULT_CASH_ACCOUNT[normalizeIncomePurpose(purpose)];
+}
+
+function isIncomePurposeCashAccountLocked(purpose) {
+    return INCOME_PURPOSE_LOCKED_CASH_ACCOUNT[normalizeIncomePurpose(purpose)] === true;
+}
+
+function populateIncomePurposeOptions(select, selectedPurpose = '') {
+    if (!select) return;
+    const current = normalizeIncomePurpose(selectedPurpose);
+    select.innerHTML = Object.entries(INCOME_PURPOSE_LABELS)
+        .map(([purpose, label]) => '<option value="' + esc(purpose) + '">' + esc(label) + '</option>')
+        .join('');
+    select.value = current;
+}
+
 const DEFAULT_PAYMENT_SETTINGS = Object.freeze({
     cash: { enabled: true },
     wallet: { enabled: true, provider: '', accountName: '', number: '' },
@@ -240,6 +300,7 @@ async function clearAuditLog() {
 function getPaidAmountForMonth(residentId, month) {
     const paidCents = state.income.reduce((sum, payment) => {
         if (payment.residentId !== residentId || payment.month !== month) return sum;
+        if (!isSubscriptionIncome(payment)) return sum;
         const amount = Number(payment.amount);
         return sum + (Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0);
     }, 0);

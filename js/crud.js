@@ -5,6 +5,44 @@ let editingIncomeId = null;
 let expenseSaving = false;
 let editingExpenseId = null;
 
+const CRUD_INCOME_PURPOSES = ['subscription', 'services', 'development', 'emergency', 'penalty', 'donation', 'other'];
+const CRUD_INCOME_PURPOSE_LABELS = {
+    subscription: 'اشتراك شهري', services: 'خدمات ونظافة', development: 'تطوير',
+    emergency: 'صيانة طارئة', penalty: 'غرامة', donation: 'تبرع', other: 'أخرى'
+};
+
+function crudIncomePurpose(purpose) {
+    const value = String(purpose || '').trim();
+    if (typeof normalizeIncomePurpose === 'function') return normalizeIncomePurpose(value);
+    return CRUD_INCOME_PURPOSES.includes(value) ? value : 'subscription';
+}
+
+function crudIncomePurposeLabel(purpose) {
+    if (typeof getIncomePurposeLabel === 'function') return getIncomePurposeLabel(purpose);
+    return CRUD_INCOME_PURPOSE_LABELS[crudIncomePurpose(purpose)];
+}
+
+function crudIncomePurposeCashAccount(purpose) {
+    if (typeof getIncomePurposeCashAccount === 'function') return getIncomePurposeCashAccount(purpose);
+    const normalized = crudIncomePurpose(purpose);
+    return normalized === 'development' || normalized === 'emergency' ? normalized : 'main';
+}
+
+function crudIncomePurposeLocked(purpose) {
+    if (typeof isIncomePurposeCashAccountLocked === 'function') return isIncomePurposeCashAccountLocked(purpose);
+    const normalized = crudIncomePurpose(purpose);
+    return normalized !== 'services' && normalized !== 'other';
+}
+
+function crudIsSubscriptionIncome(payment) {
+    if (typeof isSubscriptionIncome === 'function') return isSubscriptionIncome(payment);
+    return crudIncomePurpose(payment?.purposeCode) === 'subscription';
+}
+
+function crudCashAccountLabel(code) {
+    return typeof getCashAccountLabel === 'function' ? getCashAccountLabel(code || 'main') : 'الخزنة الرئيسية';
+}
+
 function normalizeApartmentDigits(value) {
     return String(value ?? '').replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632))
         .replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776)).trim();
@@ -275,7 +313,13 @@ function openResidentIncomeFromProfile(residentId) {
     amountInput.value = '';
     monthSelect.value = getCurrentMonth();
     paymentMethodSelect.value = '';
+    const purposeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomePurpose'));
+    if (purposeSelect) purposeSelect.value = 'subscription';
     if (notesInput) notesInput.value = '';
+    syncIncomePurposeCashAccount('incomePurpose', 'incomeCashAccount', {
+        resetUnlocked: true,
+        hintId: 'incomePurposeCashHint'
+    });
     if (typeof previewIncomeAllocation === 'function') previewIncomeAllocation();
     closeModal('residentProfileModal');
     openModal('incomeModal');
@@ -695,18 +739,106 @@ function quickPayResident(residentId) {
     amountInput.value = amount.toFixed(2);
     monthSelect.value = month;
     paymentMethodSelect.value = '';
+    const purposeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomePurpose'));
+    if (purposeSelect) purposeSelect.value = 'subscription';
     if (notesInput) notesInput.value = 'دفع سريع';
+    if (typeof syncIncomePurposeCashAccount === 'function') {
+        syncIncomePurposeCashAccount('incomePurpose', 'incomeCashAccount', {
+            resetUnlocked: true,
+            hintId: 'incomePurposeCashHint'
+        });
+    }
 
     previewIncomeAllocation();
     openModal('incomeModal');
 }
 
+function getIncomePurposeCashHint(purpose, forEdit) {
+    if (purpose === 'development') return 'غرض التطوير يُودع في صندوق التطوير فقط.';
+    if (purpose === 'emergency') return 'غرض الصيانة الطارئة يُودع في صندوق الصيانة الطارئة فقط.';
+    if (forEdit) return 'يمكنك تعديل الصندوق مع الحفاظ على تاريخ التحصيل.';
+    if (crudIncomePurposeLocked(purpose)) {
+        return 'غرض «' + crudIncomePurposeLabel(purpose) + '» يُودع في الخزنة الرئيسية.';
+    }
+    return 'يمكنك اختيار الصندوق المستلم لهذا الغرض.';
+}
+
+function syncIncomePurposeCashAccount(purposeSelectId, cashAccountSelectId, options = {}) {
+    const purposeSelect = /** @type {HTMLSelectElement} */ (document.getElementById(purposeSelectId));
+    const cashAccountSelect = /** @type {HTMLSelectElement} */ (document.getElementById(cashAccountSelectId));
+    const purpose = crudIncomePurpose(purposeSelect?.value);
+    if (!cashAccountSelect) return purpose;
+    const locked = purpose === 'development' || purpose === 'emergency'
+        || (!options.forEdit && crudIncomePurposeLocked(purpose));
+    if (locked || options.resetUnlocked) {
+        cashAccountSelect.value = crudIncomePurposeCashAccount(purpose);
+    }
+    cashAccountSelect.disabled = locked;
+    if (typeof cashAccountSelect.setAttribute === 'function') {
+        cashAccountSelect.setAttribute('aria-disabled', locked ? 'true' : 'false');
+    }
+    const hint = document.getElementById(options.hintId || '');
+    if (hint) hint.textContent = getIncomePurposeCashHint(purpose, options.forEdit === true);
+    return purpose;
+}
+
+function handleIncomePurposeChange() {
+    syncIncomePurposeCashAccount('incomePurpose', 'incomeCashAccount', {
+        resetUnlocked: true,
+        hintId: 'incomePurposeCashHint'
+    });
+    previewIncomeAllocation();
+}
+
+function handleIncomeEditPurposeChange() {
+    syncIncomePurposeCashAccount('incomeEditPurpose', 'incomeEditCashAccount', {
+        forEdit: true,
+        resetUnlocked: true,
+        hintId: 'incomeEditPurposeHint'
+    });
+}
+
+function resetIncomeFormFields() {
+    /** @type {HTMLFormElement} */ (document.getElementById('incomeForm'))?.reset();
+    const purposeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomePurpose'));
+    if (purposeSelect) purposeSelect.value = 'subscription';
+    const monthSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeMonth'));
+    const currentMonth = getCurrentMonth();
+    if (monthSelect?.options && Array.from(monthSelect.options).some(option => option.value === currentMonth)) {
+        monthSelect.value = currentMonth;
+    }
+    syncIncomePurposeCashAccount('incomePurpose', 'incomeCashAccount', {
+        resetUnlocked: true,
+        hintId: 'incomePurposeCashHint'
+    });
+    /** @type {HTMLElement} */ (document.getElementById('incomeAllocationPreview'))?.classList.add('hidden');
+}
+
+function openNewIncomeModal() {
+    if (!requireManager()) return;
+    if (typeof populateSelects === 'function') populateSelects();
+    resetIncomeFormFields();
+    openModal('incomeModal');
+}
+
 function previewIncomeAllocation() {
+    const purpose = syncIncomePurposeCashAccount('incomePurpose', 'incomeCashAccount', {
+        hintId: 'incomePurposeCashHint'
+    });
+    const isSubscription = purpose === 'subscription';
+    const monthLabel = document.getElementById('incomeMonthLabel');
+    const monthSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeMonth'));
+    if (monthLabel) monthLabel.textContent = isSubscription ? 'شهر بداية التوزيع' : 'شهر تسجيل التحصيل';
+    if (monthSelect && typeof monthSelect.setAttribute === 'function') {
+        monthSelect.setAttribute('aria-label', isSubscription ? 'شهر بداية التوزيع' : 'شهر تسجيل التحصيل');
+    }
     const policyHelp = /** @type {any} */ (document.getElementById('incomeAllocationPolicyHelp'));
     if (policyHelp) {
-        policyHelp.textContent = state.paymentAllocationPolicy === 'selected_month_first'
-            ? 'سيُسدد الشهر المحدد أولًا، ثم تُسوّى الشهور الأقدم، وبعدها الشهور التالية. راجع المعاينة قبل الحفظ.'
-            : 'سيُسدد أقدم شهر غير مسدد أولًا، ثم الأشهر التالية بالترتيب. راجع المعاينة قبل الحفظ.';
+        policyHelp.textContent = isSubscription
+            ? (state.paymentAllocationPolicy === 'selected_month_first'
+                ? 'سيُسدد الشهر المحدد أولًا، ثم تُسوّى الشهور الأقدم، وبعدها الشهور التالية. راجع المعاينة قبل الحفظ.'
+                : 'سيُسدد أقدم شهر غير مسدد أولًا، ثم الأشهر التالية بالترتيب. راجع المعاينة قبل الحفظ.')
+            : 'هذا الغرض لا يُوزَّع على أشهر الاشتراك؛ يُسجل كمبلغ مستقل في الصندوق المحدد.';
     }
     const preview = /** @type {any} */ (document.getElementById('incomeAllocationPreview'));
     const summary = /** @type {any} */ (document.getElementById('incomeAllocationSummary'));
@@ -720,7 +852,7 @@ function previewIncomeAllocation() {
     const outstandingHint = document.getElementById('incomeOutstandingHint');
     if (outstandingHint) {
         const resident = state.residents.find(item => item.id === residentId);
-        if (!resident || !month) {
+        if (!resident || !month || !isSubscription) {
             outstandingHint.textContent = '';
         } else {
             const outstanding = getMonthOutstanding(resident, month);
@@ -735,6 +867,16 @@ function previewIncomeAllocation() {
     const ready = Boolean(residentId && month && Number.isFinite(amount) && amount > 0);
     if (!ready) {
         preview.classList.add('hidden');
+        if (submit) submit.disabled = false;
+        return;
+    }
+
+    const cashAccountCode = /** @type {any} */ (document.getElementById('incomeCashAccount'))?.value || 'main';
+    if (!isSubscription) {
+        preview.classList.remove('hidden');
+        summary.textContent = `سيُسجل تحصيل «${crudIncomePurposeLabel(purpose)}» بمبلغ ${fmtNum(amount)} ج.م في ${crudCashAccountLabel(cashAccountCode)} دون توزيعه على أشهر الاشتراك.`;
+        rows.innerHTML = `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الغرض</span><strong>${esc(crudIncomePurposeLabel(purpose))}</strong></div>`
+            + `<div class="flex justify-between items-center gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`;
         if (submit) submit.disabled = false;
         return;
     }
@@ -757,10 +899,9 @@ function previewIncomeAllocation() {
     summary.textContent = result.remainingCents > 0
         ? `تم توزيع ${fmtNum(result.totalAllocated)} من ${fmtNum(amount)} ج.م. المتبقي ${fmtNum(result.remainingAmount)} ج.م خارج نطاق التوزيع؛ قلّل المبلغ.`
         : `سيتم توزيع ${fmtNum(result.totalAllocated)} ج.م على ${result.allocations.length} شهر، بدءًا من أقدم شهر غير مسدد.`;
-    const cashAccountCode = /** @type {any} */ (document.getElementById('incomeCashAccount'))?.value || 'main';
     rows.innerHTML = result.allocations.map(item =>
         `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${esc(item.month)}</span><strong class="text-emerald-400">${fmtNum(item.amount)} ج.م</strong></div>`
-    ).join('') + `<div class="flex justify-between items-center gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(getCashAccountLabel(cashAccountCode))}</strong></div>`;
+    ).join('') + `<div class="flex justify-between items-center gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`;
     if (submit) submit.disabled = result.remainingCents > 0;
 }
 
@@ -772,15 +913,19 @@ async function handleIncomeSubmit(e) {
     const month = /** @type {any} */ (document.getElementById('incomeMonth')).value;
     const notes = /** @type {any} */ (document.getElementById('incomeNotes')).value.trim();
     const paymentMethod = /** @type {any} */ (document.getElementById('incomePaymentMethod')).value;
+    const purpose = syncIncomePurposeCashAccount('incomePurpose', 'incomeCashAccount', {
+        hintId: 'incomePurposeCashHint'
+    });
     const cashAccountCode = /** @type {any} */ (document.getElementById('incomeCashAccount'))?.value || 'main';
     const paymentMethodEnabled = typeof isIncomePaymentMethodEnabled === 'function'
         ? isIncomePaymentMethodEnabled(paymentMethod)
         : Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod);
     if (!residentId || !Number.isFinite(amount) || amount <= 0 || !month
         || !Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod)
+        || !CRUD_INCOME_PURPOSES.includes(purpose)
         || !['main', 'development', 'emergency'].includes(cashAccountCode)
         || !paymentMethodEnabled) {
-        toast('اختر الشقة وطريقة الدفع والشهر والصندوق، وأدخل مبلغاً أكبر من صفر.', 'error');
+        toast('اختر الشقة والغرض وطريقة الدفع والشهر والصندوق، وأدخل مبلغاً أكبر من صفر.', 'error');
         return;
     }
     const resident = state.residents.find(item => item.id === residentId);
@@ -788,13 +933,20 @@ async function handleIncomeSubmit(e) {
         toast('الشقة المحددة غير موجودة؛ حدّث القائمة ثم حاول مجدداً', 'error');
         return;
     }
+    if ((purpose === 'development' && cashAccountCode !== 'development')
+        || (purpose === 'emergency' && cashAccountCode !== 'emergency')) {
+        toast('الغرض المحدد يتطلب صندوقه الخاص. اختر الصندوق المطابق ثم أعد المحاولة.', 'error');
+        return;
+    }
 
-    const allocation = calculateIncomeAllocationPreview(residentId, amount, month);
-    if (allocation.invalid || !allocation.allocations.length || allocation.remainingCents > 0) {
+    const isSubscription = purpose === 'subscription';
+    const allocation = isSubscription ? calculateIncomeAllocationPreview(residentId, amount, month) : null;
+    if (isSubscription && (!allocation || allocation.invalid || !allocation.allocations.length || allocation.remainingCents > 0)) {
         previewIncomeAllocation();
         toast('تعذر توزيع كامل المبلغ على فترات الاشتراك. راجع المعاينة أو قلّل المبلغ.', 'error');
         return;
     }
+    const allocatedCount = allocation ? allocation.allocations.length : 1;
 
     incomeSaving = true;
     const submit = /** @type {any} */ (document.getElementById('incomeSubmitButton'));
@@ -805,36 +957,54 @@ async function handleIncomeSubmit(e) {
     const previousState = cloneStateSnapshot();
     const paidAt = new Date().toISOString();
     const paymentReference = generateId().replace(/-/g, '').slice(0, 12).toUpperCase();
-    allocation.allocations.forEach((item, index) => {
-        const allocationNote = [
-            `دفعة موزعة ${paymentReference} (${index + 1}/${allocation.allocations.length})`,
-            notes
-        ].filter(Boolean).join(' · ');
+    if (isSubscription && allocation) {
+        allocation.allocations.forEach((item, index) => {
+            const allocationNote = [
+                `دفعة موزعة ${paymentReference} (${index + 1}/${allocation.allocations.length})`,
+                notes
+            ].filter(Boolean).join(' · ');
+            state.income.push({
+                id: generateId(),
+                residentId,
+                amount: item.amount,
+                month: item.month,
+                date: paidAt,
+                paymentMethod,
+                cashAccountCode,
+                purposeCode: 'subscription',
+                notes: allocationNote
+            });
+        });
+        logAction(
+            'تحصيل موزع',
+            `${resident.name} - ${fmtNum(amount)} ج.م - ${getIncomePaymentMethodLabel(paymentMethod)} - ${crudCashAccountLabel(cashAccountCode)} - ${allocation.allocations.length} شهر - ${paymentReference}`
+        );
+    } else {
         state.income.push({
             id: generateId(),
             residentId,
-            amount: item.amount,
-            month: item.month,
+            amount,
+            month,
             date: paidAt,
             paymentMethod,
             cashAccountCode,
-            notes: allocationNote
+            purposeCode: purpose,
+            notes
         });
-    });
-    logAction(
-        'تحصيل موزع',
-        `${resident.name} - ${fmtNum(amount)} ج.م - ${getIncomePaymentMethodLabel(paymentMethod)} - ${getCashAccountLabel(cashAccountCode)} - ${allocation.allocations.length} شهر - ${paymentReference}`
-    );
+        logAction(
+            'تحصيل ' + crudIncomePurposeLabel(purpose),
+            `${resident.name} - ${fmtNum(amount)} ج.م - ${getIncomePaymentMethodLabel(paymentMethod)} - ${crudCashAccountLabel(cashAccountCode)} - ${month}`
+        );
+    }
 
     try {
         if (!await saveWithRollback(previousState)) return;
         closeModal('incomeModal');
-        /** @type {any} */ (document.getElementById('incomeForm')).reset();
-        /** @type {any} */ (document.getElementById('incomeAllocationPreview'))?.classList.add('hidden');
+        resetIncomeFormFields();
         renderAll();
         toast(
-            allocation.allocations.length > 1
-                ? `تم توزيع التحصيل على ${allocation.allocations.length} أشهر`
+            allocatedCount > 1
+                ? `تم توزيع التحصيل على ${allocatedCount} أشهر`
                 : 'تم تسجيل التحصيل',
             'success'
         );
@@ -873,9 +1043,25 @@ function openIncomeEditModal(id) {
         populatePaymentMethodOptions(paymentMethodSelect, payment.paymentMethod || '', true);
     }
     if (paymentMethodSelect) paymentMethodSelect.value = payment.paymentMethod || '';
-    const cashAccountSelect = /** @type {any} */ (document.getElementById('incomeEditCashAccount'));
+    const cashAccountSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeEditCashAccount'));
     if (cashAccountSelect) cashAccountSelect.value = payment.cashAccountCode || 'main';
+    const purposeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeEditPurpose'));
+    if (purposeSelect && typeof populateIncomePurposeOptions === 'function') {
+        populateIncomePurposeOptions(purposeSelect, payment.purposeCode);
+    }
+    syncIncomePurposeCashAccount('incomeEditPurpose', 'incomeEditCashAccount', {
+        forEdit: true,
+        hintId: 'incomeEditPurposeHint'
+    });
     const distributionNote = String(payment.notes || '').match(/^(دفعة موزعة\s+[A-Z0-9]+\s+\(\d+\/\d+\))(?:\s+·\s+([\s\S]*))?$/i);
+    if (purposeSelect) {
+        purposeSelect.disabled = Boolean(distributionNote);
+        if (distributionNote) {
+            purposeSelect.value = crudIncomePurpose(payment.purposeCode);
+            const hint = document.getElementById('incomeEditPurposeHint');
+            if (hint) hint.textContent = 'هذه دفعة موزعة على أشهر الاشتراك؛ لا يمكن تغيير غرضها من هنا.';
+        }
+    }
     /** @type {any} */ (document.getElementById('incomeEditNotes')).value = distributionNote ? (distributionNote[2] || '') : (payment.notes || '');
     openModal('incomeEditModal');
 }
@@ -899,15 +1085,30 @@ async function handleIncomeEditSubmit(event) {
     const monthKey = monthLabelToKey(month);
     const notes = /** @type {any} */ (document.getElementById('incomeEditNotes')).value.trim();
     const paymentMethod = /** @type {any} */ (document.getElementById('incomeEditPaymentMethod')).value;
+    const purpose = syncIncomePurposeCashAccount('incomeEditPurpose', 'incomeEditCashAccount', {
+        forEdit: true,
+        hintId: 'incomeEditPurposeHint'
+    });
     const cashAccountCode = /** @type {any} */ (document.getElementById('incomeEditCashAccount'))?.value || 'main';
+    const distributionMatch = String(payment.notes || '').match(/^(دفعة موزعة\s+([A-Z0-9]+)\s+\(\d+\/\d+\))(?:\s+·\s+[\s\S]*)?$/i);
     const paymentMethodEnabled = typeof isIncomePaymentMethodEnabled === 'function'
         ? isIncomePaymentMethodEnabled(paymentMethod)
         : Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod);
     if (!monthKey || amountCents <= 0
         || !Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod)
+        || !CRUD_INCOME_PURPOSES.includes(purpose)
         || !['main', 'development', 'emergency'].includes(cashAccountCode)
         || (!paymentMethodEnabled && paymentMethod !== (payment.paymentMethod || ''))) {
-        toast('اختر شهرًا صحيحًا وطريقة الدفع والصندوق وأدخل مبلغًا أكبر من صفر.', 'error');
+        toast('اختر شهرًا صحيحًا وغرض التحصيل وطريقة الدفع والصندوق وأدخل مبلغًا أكبر من صفر.', 'error');
+        return;
+    }
+    if ((purpose === 'development' && cashAccountCode !== 'development')
+        || (purpose === 'emergency' && cashAccountCode !== 'emergency')) {
+        toast('الغرض المحدد يتطلب صندوقه الخاص. اختر الصندوق المطابق ثم أعد المحاولة.', 'error');
+        return;
+    }
+    if (distributionMatch && purpose !== crudIncomePurpose(payment.purposeCode)) {
+        toast('لا يمكن تغيير غرض دفعة موزعة على أشهر الاشتراك.', 'error');
         return;
     }
     const createdMonth = getLocalMonthKey(resident.createdAt);
@@ -915,21 +1116,25 @@ async function handleIncomeEditSubmit(event) {
         toast('لا يمكن تسجيل تحصيل قبل تاريخ إنشاء الشقة.', 'error');
         return;
     }
-    const dueCents = Math.max(0, Math.round(getSubscriptionAmountForMonth(resident, month) * 100));
-    const paidByOthersCents = state.income.reduce((sum, item) => {
-        if (item.id === payment.id || item.residentId !== payment.residentId || item.month !== month) return sum;
-        const value = Number(item.amount);
-        return sum + (Number.isFinite(value) && value > 0 ? Math.round(value * 100) : 0);
-    }, 0);
-    const availableCents = Math.max(0, dueCents - paidByOthersCents);
-    if (amountCents > availableCents) {
-        toast('المبلغ أكبر من المتبقي لهذا الشهر (' + fmtNum(availableCents / 100) + ' ج.م).', 'error');
-        return;
+    if (purpose === 'subscription') {
+        const dueCents = Math.max(0, Math.round(getSubscriptionAmountForMonth(resident, month) * 100));
+        const paidByOthersCents = state.income.reduce((sum, item) => {
+            if (item.id === payment.id || item.residentId !== payment.residentId || item.month !== month) return sum;
+            if (!crudIsSubscriptionIncome(item)) return sum;
+            const value = Number(item.amount);
+            return sum + (Number.isFinite(value) && value > 0 ? Math.round(value * 100) : 0);
+        }, 0);
+        const availableCents = Math.max(0, dueCents - paidByOthersCents);
+        if (amountCents > availableCents) {
+            toast('المبلغ أكبر من المتبقي لهذا الشهر (' + fmtNum(availableCents / 100) + ' ج.م).', 'error');
+            return;
+        }
     }
     if (amountCents === Math.round(Number(payment.amount) * 100)
         && month === payment.month && notes === (payment.notes || '')
         && paymentMethod === (payment.paymentMethod || '')
-        && cashAccountCode === (payment.cashAccountCode || 'main')) {
+        && cashAccountCode === (payment.cashAccountCode || 'main')
+        && purpose === crudIncomePurpose(payment.purposeCode)) {
         toast('لم يتم تغيير بيانات التحصيل.', 'info');
         return;
     }
@@ -943,7 +1148,6 @@ async function handleIncomeEditSubmit(event) {
     const previousState = cloneStateSnapshot();
     const previousAmount = Number(payment.amount) || 0;
     const previousMonth = payment.month;
-    const distributionMatch = String(payment.notes || '').match(/^(دفعة موزعة\s+([A-Z0-9]+)\s+\(\d+\/\d+\))(?:\s+·\s+[\s\S]*)?$/i);
     const relatedPayments = distributionMatch
         ? state.income.filter(item => item.residentId === payment.residentId
             && item.date === payment.date
@@ -954,13 +1158,15 @@ async function handleIncomeEditSubmit(event) {
     relatedPayments.forEach(item => {
         item.paymentMethod = paymentMethod;
         item.cashAccountCode = cashAccountCode;
+        item.purposeCode = purpose;
     });
     payment.notes = distributionMatch
         ? distributionMatch[1] + (notes ? ' · ' + notes : '')
         : notes;
     logAction('تعديل تحصيل', resident.name + ' - ' + previousMonth + ' إلى ' + month
+        + ' - الغرض: ' + crudIncomePurposeLabel(purpose)
         + ' - طريقة الدفع: ' + getIncomePaymentMethodLabel(paymentMethod)
-        + ' - الصندوق: ' + getCashAccountLabel(cashAccountCode)
+        + ' - الصندوق: ' + crudCashAccountLabel(cashAccountCode)
         + ' - ' + fmtNum(previousAmount) + ' إلى ' + fmtNum(payment.amount));
     try {
         if (!await saveWithRollback(previousState)) return;
@@ -1016,7 +1222,7 @@ function previewExpense() {
     summary.className = `text-xs font-bold ${fundInsufficient ? 'text-rose-400' : 'text-rose-300'}`;
     details.innerHTML = [
         `<div class="flex justify-between gap-3"><span>الفئة</span><strong>${esc(category || 'أخرى')}</strong></div>`,
-        `<div class="flex justify-between gap-3"><span>الصندوق</span><strong>${esc(getCashAccountLabel(cashAccountCode))}</strong></div>`,
+        `<div class="flex justify-between gap-3"><span>الصندوق</span><strong>${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`,
         `<div class="flex justify-between gap-3"><span>مصروفات الشهر من الصندوق</span><strong>${fmtNum(monthFundExpenses)} ج.م</strong></div>`,
         `<div class="flex justify-between gap-3"><span>الرصيد قبل الصرف</span><strong>${fmtNum(accountBalance)} ج.م</strong></div>`,
         `<div class="flex justify-between gap-3"><span>الرصيد بعد الصرف</span><strong class="${fundInsufficient ? 'text-rose-400' : ''}">${fmtNum(balanceAfter)} ج.م</strong></div>`,
@@ -1081,7 +1287,7 @@ async function handleExpenseSubmit(e) {
     const availableBalance = getCashAccountBalance(cashAccountCode) +
         (existingExpense && (existingExpense.cashAccountCode || 'main') === cashAccountCode ? (Number(existingExpense.amount) || 0) : 0);
     if (cashAccountCode !== 'main' && amount > availableBalance + 0.000001) {
-        toast('الرصيد المتاح في ' + getCashAccountLabel(cashAccountCode) + ' غير كافٍ.', 'error');
+        toast('الرصيد المتاح في ' + crudCashAccountLabel(cashAccountCode) + ' غير كافٍ.', 'error');
         previewExpense();
         return;
     }

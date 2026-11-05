@@ -257,8 +257,8 @@ test('statement CSV exports cents and a monthly-then-transactions layout', () =>
     assert.match(csv, /"الشهر","المستحق","المدفوع","المتبقي","الحالة"/);
     assert.match(csv, /"يناير 2024","100","100","0","مسدد"/);
     assert.match(csv, /\r\n\r\n/);
-    assert.match(csv, /"الحركات","الشهر","المبلغ","طريقة الدفع","التاريخ","ملاحظات"/);
-    assert.match(csv, /"تحصيل","يناير 2024","100","نقدًا"/);
+    assert.match(csv, /"الحركات","الشهر","المبلغ","الغرض","طريقة الدفع","التاريخ","ملاحظات"/);
+    assert.match(csv, /"تحصيل","يناير 2024","100","اشتراك شهري","نقدًا"/);
     assert.doesNotMatch(csv, /100\.00000000000001/);
 });
 

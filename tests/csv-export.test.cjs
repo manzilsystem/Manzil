@@ -93,7 +93,7 @@ test('CSV export leaves missing optional expense fields blank instead of writing
 
     exportToCSV('يناير 2024');
     const csv = downloads[0];
-    assert.ok(csv.endsWith('"مصروف","مصروف قديم","","يناير 2024","25","",""'));
+    assert.ok(csv.endsWith('"مصروف","مصروف قديم","","يناير 2024","25","","الخزنة الرئيسية","",""'));
     assert.doesNotMatch(csv, /undefined/);
     assert.equal(getAnchor().download, 'manzil_report_2024-01.csv');
 });
@@ -106,7 +106,7 @@ test('CSV export preserves existing expense category and notes', () => {
     });
 
     exportToCSV('يناير 2024');
-    assert.match(downloads[0], /"صيانة","","يناير 2024","25","","كهرباء فاتورة"/);
+    assert.match(downloads[0], /"صيانة","","يناير 2024","25","","الخزنة الرئيسية","","كهرباء فاتورة"/);
 });
 
 test('CSV export resolves each collection to its own resident', () => {

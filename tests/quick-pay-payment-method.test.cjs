@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const root = path.join(__dirname, '..');
 const crud = fs.readFileSync(path.join(root, 'js', 'crud.js'), 'utf8');
-const start = crud.indexOf('function quickPayResident(residentId) {');
+const start = crud.indexOf('const CRUD_INCOME_PURPOSES =');
 const end = crud.indexOf('\n}\n\nfunction previewIncomeAllocation()', start);
 if (start < 0 || end < 0) throw new Error('quickPayResident function not found');
 const source = crud.slice(start, end + 2);

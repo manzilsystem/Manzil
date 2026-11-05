@@ -179,10 +179,11 @@ test('period report gates print and csv on the previewed range', async ({ page }
     await expect(preview).toContainText('تقرير الفترة يناير 2024 – فبراير 2024');
     await expect(preview).toContainText('الإجمالي');
     await expect(preview.locator('.statement-table tbody tr')).toHaveCount(2);
-    await expect(preview.locator('.report-block-title')).toContainText('التحصيل حسب الطريقة');
-    await expect(preview.locator('.report-list-row')).toHaveCount(1);
-    await expect(preview.locator('.report-list-row').first()).toContainText('نقدًا');
-    await expect(preview.locator('.report-list-row').first()).toContainText('· 2 حركة · 100%');
+    const methodBlock = preview.locator('.report-block', { hasText: 'التحصيل حسب الطريقة' });
+    await expect(methodBlock.locator('.report-block-title')).toContainText('التحصيل حسب الطريقة');
+    await expect(methodBlock.locator('.report-list-row')).toHaveCount(1);
+    await expect(methodBlock.locator('.report-list-row').first()).toContainText('نقدًا');
+    await expect(methodBlock.locator('.report-list-row').first()).toContainText('· 2 حركة · 100%');
     await expect(printButton).toBeEnabled();
     await expect(exportButton).toBeEnabled();
 
