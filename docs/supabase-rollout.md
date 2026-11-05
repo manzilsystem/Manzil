@@ -88,7 +88,25 @@ order by created_at desc
 limit 50;
 ```
 
-> **ملاحظة (2026-11-05):** دالة `monitor-client-errors` موجودة في المستودع مع اختباراتها، لكنها غير منشورة في المشروع المستضاف ولا توجد جدولة لها: `pg_cron` و`pg_net` غير مثبتين ولا يوجد جدول `cron.job`. الفحص اليومي يدوي عبر الاستعلام أعلاه. للتشغيل الآلي: انشر الدالة، أضف السر `CRON_SECRET`، عطّل «Verify JWT» لها، فعّل `pg_cron` و`pg_net`، ثم جدول `net.http_post` يوميًا بالجسم `{"cron":"daily_error_check","secret":"…"}`.
+> **الحالة (2026-11-05): مفعّل في الإنتاج.** الدالة `monitor-client-errors` منشورة (الإصدار 1) مع **Verify JWT معطّل** لأنها تتحقق من `CRON_SECRET` في جسم الطلب. السر محفوظ في أسرار Edge Functions باسم `CRON_SECRET`، ونسخة مطابقة في Vault باسم `manzil_cron_secret` ليقرأها أمر الجدولة دون كتابة القيمة نصًا. امتدادا `pg_cron` (1.6.4) و`pg_net` (0.20.4) مفعّلان، والمهمة `manzil-daily-error-check` تعمل يوميًا الساعة **06:00 UTC** (08:00 بتوقيت القاهرة) عبر `net.http_post`.
+>
+> التحقق الحي: طلب بالسر الصحيح أعاد `200 {"checked":true,"errorCount":0,"threshold":100}`، والسر الخاطئ `401`، وGET `405`؛ وأعاد `net._http_response` الحالة `200` لنفس التشغيل. الحد 100 خطأ/24 ساعة، والتجاوز يُسجَّل في سجلات الدالة (`console.error`) دون إشعار خارجي بعد.
+>
+> لمتابعة المهمة:
+> ```sql
+> select jobid, jobname, schedule, active from cron.job;
+> select jobid, status, return_message, start_time from cron.job_run_details order by start_time desc limit 10;
+> select id, status_code, content, error_msg from net._http_response order by id desc limit 10;
+> ```
+>
+> لتشغيل الفحص فورًا بدل انتظار الجدولة:
+> ```sql
+> select net.http_post(
+>   url := 'https://musvcrkljccubwbcrtjs.supabase.co/functions/v1/monitor-client-errors',
+>   headers := '{"Content-Type":"application/json"}'::jsonb,
+>   body := jsonb_build_object('cron','daily_error_check','secret',(select decrypted_secret from vault.decrypted_secrets where name='manzil_cron_secret'))
+> );
+> ```
 
 ## اختبار الخصوصية قبل الإطلاق
 

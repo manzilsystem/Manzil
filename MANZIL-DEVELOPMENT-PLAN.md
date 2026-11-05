@@ -17,7 +17,7 @@
 | `npm run typecheck` | يمر بدون أخطاء |
 | اختبارات Node | 511/511 تمر |
 | اختبارات Deno (Edge Functions) | 61/61 تمر |
-| انحراف الإنتاج | Migrations 53/53 مطبّقة. الدوال المنشورة: 4 من 5 (`monitor-client-errors` غير منشورة). `pg_cron`/`pg_net` غير مثبتين → لا جدولة |
+| انحراف الإنتاج | Migrations 53/53 مطبّقة. الدوال المنشورة: 5/5. `pg_cron` و`pg_net` مفعّلان، والمهمة `manzil-daily-error-check` نشطة يوميًا 06:00 UTC |
 | ملفات متجاهلة | `node_modules/`, `test-results/` ✓ |
 
 ### الفروع (الكل مدمج على main — 2026-11-05)
@@ -81,7 +81,7 @@
 
 ### متوسطة الأولوية
 6. ~~TypeScript تدريجي~~ — تم 2026-11-05: أُضيف `// @ts-check` لـ `telemetry.js`, `state.js`, `access.js`, `notices.js`, `app.js`, `subscription-rates.js`, `monthly-close.js`, `cashbox.js`, `backup.js` + تعريفات globals العالمة
-7. **مراقبة أخطاء محسّنة** — الكود والاختبارات جاهزة (`monitor-client-errors` + 6 اختبارات Deno)، لكن **ليست منشورة ولا مجدولة في الإنتاج** (تحقق 2026-11-05: المشروع يعرض 4 دوال فقط، `pg_cron`/`pg_net` غير مثبتين، وجدول `cron.job` غير موجود، وجدول `client_errors` موجود لكنه فارغ). المراقبة الحالية يدوية عبر استعلام SQL الموثّق في `docs/supabase-rollout.md`. النشر الكامل يتطلب: إضافة الدالة + سر `CRON_SECRET` + تعطيل Verify JWT لها + تفعيل `pg_cron`/`pg_net` + جدولة `net.http_post` — مؤجل لأن الوصول الحالي للوحة فقط (لا `SUPABASE_ACCESS_TOKEN` محليًا)، والتغيير يمس إعدادات إنتاج
+7. ~~مراقبة أخطاء محسّنة~~ — تم 2026-11-05: `monitor-client-errors` منشورة في الإنتاج (v1، Verify JWT معطّل، وتتحقق من `CRON_SECRET`)، وفُعّل `pg_cron` 1.6.4 و`pg_net` 0.20.4، وأُضيفت مهمة `manzil-daily-error-check` يوميًا 06:00 UTC تنادي الدالة عبر `net.http_post` وتقرأ السر من Vault (`manzil_cron_secret`). تحقق حي: 200 للسر الصحيح، 401 للخاطئ، 405 لـGET، وتنفيذ pg_cron فعلي نجح (200)
 8. ~~قياس أداء DB~~ — تم 2026-11-05 على الإنتاج: أكبر جدول 96 صفًا وكل الجداول 32–136 kB؛ لا فهارس جديدة مطلوبة
 9. **اختبار استعادة معزول** — `tests/post-restore-verify.sql` جاهز للتحقق بعد الاستعادة، لكن الاستعادة الفعلية لم تُجرَّب على قاعدة منفصلة؛ تتطلب مشروع Supabase مجانيًا ثانيًا (قرار المستخدم)
 
@@ -175,3 +175,4 @@
 | 2026-11-05 | انحراف المراقبة | التحقق من الإنتاج: الدوال 4 فقط (`monitor-client-errors` غير منشورة)، لا `pg_cron`/`pg_net` ولا جدول `cron.job`، وجدول `client_errors` موجود بإجمالي 0 صف. صُحّح البند في الخطة من «مجدول» إلى «كود واختبارات جاهزة، غير منشور/مجدول»، وأُضيف توضيح في `docs/supabase-rollout.md` |
 | 2026-11-05 | تحقق نهائي | CI أخضر للالتزام `a14b232`: Quality + Node/PostgreSQL + Local Supabase seed. محليًا: `deno check` للدوال الخمس، 61/61 Deno، 511/511 Node، و`tsc` نظيف. مراجعة استراتيجية service worker — سليمة ولا تغيير مطلوب |
 | 2026-11-05 | تتبّع الخطة | نُسخ ملف الخطة إلى المستودع كـ `MANZIL-DEVELOPMENT-PLAN.md` وأُضيف إلى git ليُرفع مع الكود ويبقى مرئيًا في المستودع |
+| 2026-11-05 | نشر المراقبة | عبر موصل `supabase_direct`: نشر `monitor-client-errors` v1 (`verify_jwt=false`)، إضافة سر `CRON_SECRET`، تفعيل `pg_cron` و`pg_net`، تخزين نسخة السر في Vault، وجدولة `manzil-daily-error-check` يوميًا 06:00 UTC. تحقق حي: 200/401/405، ثم تنفيذ مهمة pg_cron مؤقتة نجح وأعاد 200، وأُزيلت مهمة الاختبار. الدوال الآن 5/5 |
