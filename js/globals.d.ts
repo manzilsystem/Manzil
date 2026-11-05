@@ -29,3 +29,5 @@ declare var initSupabaseApp: () => Promise<void>;
 declare var handleReportViewKeydown: (event: KeyboardEvent) => void;
 declare var renderNotices: () => void;
 declare var loadState: () => Promise<boolean>;
+declare var markReportPreviewStale: (id: string, stale: boolean) => void;
+declare var syncReportNavStatus: () => void;
