@@ -25,5 +25,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Install dependencies
+        run: npm ci
+      - name: Type-check opted-in modules
+        run: npm run typecheck
       - name: Run regression tests
         run: node --test tests/*.test.cjs
