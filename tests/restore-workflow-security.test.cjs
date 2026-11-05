@@ -53,6 +53,12 @@ test('abandoned restore requests are failed after a safe timeout', () => {
     assert.ok(!workflow.includes("UPDATE public.restore_requests SET status='queued'"));
 });
 
+test('restore is scoped to application schemas owned by the postgres role', () => {
+    assert.match(workflow, /--schema=public --schema=private --schema=supabase_migrations/);
+    assert.ok(!workflow.includes('--schema=auth'));
+    assert.ok(!workflow.includes('--schema=storage'));
+});
+
 test('restore worker suppresses psql command tags so empty RETURNING results stay empty', () => {
     assert.ok(workflow.includes('psql --no-password --quiet --host="$PGHOST"'));
 });
