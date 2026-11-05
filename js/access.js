@@ -46,8 +46,26 @@ function groupOwnerPaymentsIntoReceipts(residentId) {
             const amount = Number(payment.amount);
             return sum + (Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0);
         }, 0);
-        return { ...receipt, payments, totalAmount: totalCents / 100 };
+        const purposeLabels = Array.from(new Set(payments.map(ownerPaymentPurposeLabel)));
+        const cashboxLabels = Array.from(new Set(payments.map(ownerPaymentCashLabel))).filter(Boolean);
+        return {
+            ...receipt,
+            payments,
+            totalAmount: totalCents / 100,
+            purposeSummary: purposeLabels.length === 1 ? purposeLabels[0] : 'دفعة مختلطة',
+            cashboxSummary: cashboxLabels.join('، ')
+        };
     }).sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+}
+
+function ownerPaymentPurposeLabel(payment) {
+    if (typeof getIncomePurposeLabel === 'function') return getIncomePurposeLabel(payment?.purposeCode);
+    return 'اشتراك شهري';
+}
+
+function ownerPaymentCashLabel(payment) {
+    if (typeof getCashAccountLabel === 'function') return getCashAccountLabel(payment?.cashAccountCode || 'main');
+    return '';
 }
 
 function getOwnerManagerWhatsAppPhone() {
@@ -93,6 +111,7 @@ function printOwnerReceipt(receiptId) {
     }
     const rows = receipt.payments.map(payment => `
         <tr>
+            <td>${esc(ownerPaymentPurposeLabel(payment))}</td>
             <td>${esc(payment.month || '—')}</td>
             <td>${fmtNum(payment.amount)} ج.م</td>
         </tr>`).join('');
@@ -137,9 +156,11 @@ function printOwnerReceipt(receiptId) {
             <div class="field"><div class="label">رقم الشقة</div><div class="value">${esc(resident.apartmentNumber || '—')}</div></div>
             <div class="field"><div class="label">تاريخ الاستلام</div><div class="value">${esc(formatDate(receipt.date) || '—')}</div></div>
             <div class="field"><div class="label">طريقة الدفع</div><div class="value">${esc(getIncomePaymentMethodLabel(receipt.paymentMethod))}</div></div>
+            <div class="field"><div class="label">الغرض</div><div class="value">${esc(receipt.purposeSummary)}</div></div>
+            <div class="field"><div class="label">الصندوق</div><div class="value">${esc(receipt.cashboxSummary || '—')}</div></div>
         </section>
         <h2 style="font-size:14px;margin:0">تفاصيل السداد</h2>
-        <table><thead><tr><th>شهر الاشتراك</th><th>المبلغ</th></tr></thead><tbody>${rows}</tbody></table>
+        <table><thead><tr><th>الغرض</th><th>شهر / بند</th><th>المبلغ</th></tr></thead><tbody>${rows}</tbody></table>
         <div class="total"><span>إجمالي المبلغ المستلم</span><span>${fmtNum(receipt.totalAmount)} ج.م</span></div>
         <footer>${esc(thankYou)}<br>تم إصدار هذا الإيصال من بوابة المالك في Manzil.</footer>
         <div class="actions"><button type="button" onclick="window.print()">طباعة / حفظ PDF</button></div>
@@ -221,7 +242,10 @@ function renderOwnerPortal() {
     const ownerReceiptRows = ownerReceipts.length ? ownerReceipts.map(receipt => {
         const allocationRows = receipt.payments.map(payment => `
             <div class="flex items-center justify-between gap-3 py-2 border-b border-slate-700/40 last:border-0">
-                <span class="text-xs">${esc(payment.month || '—')}</span>
+                <span class="text-xs min-w-0">
+                    <span class="block">${esc(ownerPaymentPurposeLabel(payment))} · ${esc(payment.month || '—')}</span>
+                    <span class="block text-[10px] text-slate-500 mt-0.5">${esc(ownerPaymentCashLabel(payment) || '—')}</span>
+                </span>
                 <strong class="text-xs text-emerald-400 shrink-0">${fmtNum(payment.amount)} ج.م</strong>
             </div>`).join('');
         return `
@@ -239,6 +263,8 @@ function renderOwnerPortal() {
                         <div><span class="text-slate-500">الشقة</span><p class="font-bold mt-1">${esc(resident.apartmentNumber || '—')}</p></div>
                         <div><span class="text-slate-500">صاحب الإيصال</span><p class="font-bold mt-1">${esc(resident.name || '—')}</p></div>
                         <div><span class="text-slate-500">طريقة الدفع</span><p class="font-bold mt-1">${esc(getIncomePaymentMethodLabel(receipt.paymentMethod))}</p></div>
+                        <div><span class="text-slate-500">الغرض</span><p class="font-bold mt-1">${esc(receipt.purposeSummary)}</p></div>
+                        <div><span class="text-slate-500">الصندوق</span><p class="font-bold mt-1">${esc(receipt.cashboxSummary || '—')}</p></div>
                         <div><span class="text-slate-500">تاريخ الاستلام</span><p class="font-bold mt-1">${esc(formatDate(receipt.date) || '—')}</p></div>
                         <div><span class="text-slate-500">المبلغ المستلم</span><p class="font-black text-emerald-400 mt-1">${fmtNum(receipt.totalAmount)} ج.م</p></div>
                     </div>

@@ -112,6 +112,58 @@ test('non-subscription collections are not split across subscription months', as
     expect(await page.evaluate(() => state.auditLogs[0]?.action || '')).toBe('تحصيل خدمات ونظافة');
 });
 
+test('a mixed payment collects subscription and extra purposes into their funds', async ({ page }) => {
+    await seedManagerSession(page);
+    await page.evaluate(() => openNewIncomeModal());
+
+    await page.locator('#incomeResident').selectOption('r1');
+    await page.locator('#incomePaymentMethod').selectOption('cash');
+    await page.locator('#incomeAmount').fill('100');
+    await expect(page.locator('#incomeSubmitButton')).toHaveText('حفظ التحصيل وتوزيعه');
+
+    const addLine = page.getByRole('button', { name: 'إضافة بند إضافي للدفعة' });
+    await addLine.click();
+    const lines = page.locator('#incomeExtraLines [data-income-line]');
+    await expect(lines).toHaveCount(1);
+    await lines.nth(0).locator('.income-line-purpose').selectOption('services');
+    await lines.nth(0).locator('.income-line-amount').fill('50');
+    await lines.nth(0).locator('.income-line-cash-account').selectOption('main');
+    await expect(page.locator('#incomeMixedTotal')).toContainText('150');
+    await expect(page.locator('#incomeSubmitButton')).toHaveText('حفظ الدفعة المختلطة');
+
+    await addLine.click();
+    await expect(lines).toHaveCount(2);
+    await lines.nth(1).locator('.income-line-purpose').selectOption('development');
+    await expect(lines.nth(1).locator('.income-line-cash-account')).toHaveValue('development');
+    await expect(lines.nth(1).locator('.income-line-cash-account')).toBeDisabled();
+    await lines.nth(1).locator('.income-line-amount').fill('75');
+    await expect(page.locator('#incomeMixedTotal')).toContainText('225');
+
+    await page.locator('#incomeSubmitButton').click();
+    await expect(page.locator('#incomeModal')).toBeHidden();
+
+    const saved = await page.evaluate(() => state.income.map(item => ({
+        amount: item.amount,
+        purposeCode: item.purposeCode,
+        cashAccountCode: item.cashAccountCode,
+        notes: item.notes
+    })));
+    expect(saved.map(item => item.purposeCode)).toEqual(['subscription', 'services', 'development']);
+    expect(saved.map(item => item.cashAccountCode)).toEqual(['main', 'main', 'development']);
+    expect(saved.map(item => item.amount)).toEqual([100, 50, 75]);
+    const references = saved.map(item => item.notes.match(/^دفعة موزعة ([A-Z0-9]+) \((\d+)\/3\)/));
+    expect(references.every(Boolean)).toBe(true);
+    expect(new Set(references.map(match => match[1])).size).toBe(1);
+    const reference = references[0][1];
+    expect(reference).toHaveLength(12);
+
+    expect(await cashboxBalances(page)).toEqual({ main: 650, development: 75, emergency: 0 });
+    expect(await page.evaluate(() => state.auditLogs[0]?.action || '')).toBe('تحصيل مختلط');
+    const auditDetail = await page.evaluate(() => state.auditLogs[0]?.details || '');
+    expect(auditDetail).toContain(reference);
+    expect(auditDetail).toContain('3 بند');
+});
+
 test('editing a collection moves its amount between cash boxes', async ({ page }) => {
     await seedManagerSession(page);
     const current = await page.evaluate(() => getCurrentMonth());
