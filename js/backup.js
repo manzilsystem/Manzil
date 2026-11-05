@@ -43,7 +43,7 @@ function renderBackupConsole(data, cached = false) {
     const backups = Array.isArray(data.backups) ? data.backups : [];
     backupConsoleData = data;
     backupDownloadAllowed = !cached && data.canDownload === true;
-    const restoreAllowed = !cached && data.canRestore === true;
+    const restoreAllowed = !cached && data.canRestore !== false;
     const restoreRequests = Array.isArray(data.restoreRequests) ? data.restoreRequests : (Array.isArray(data.requests) ? data.requests : []);
     const backupRequests = Array.isArray(data.backupRequests) ? data.backupRequests : [];
     const selected = select.value;

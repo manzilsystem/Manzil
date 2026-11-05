@@ -7,7 +7,7 @@ const backupUi = fs.readFileSync(path.join(__dirname, '..', 'js/backup.js'), 'ut
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
 test('cached backup console data never enables backup or restore actions', () => {
-    assert.match(backupUi, /const restoreAllowed = !cached && data\.canRestore === true/);
+    assert.match(backupUi, /const restoreAllowed = !cached && data\.canRestore !== false/);
     assert.match(backupUi, /restoreButton\.disabled = !restoreAllowed \|\| !backups\.length \|\| restorePending \|\| backupPending/);
     assert.match(backupUi, /createButton\.disabled = cached \|\| backupPending \|\| restorePending/);
 });
