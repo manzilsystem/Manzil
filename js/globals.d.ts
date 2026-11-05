@@ -23,3 +23,6 @@ declare var updateThemeSelection: () => void;
 declare var activeSession: { user: { id: string } } | null;
 declare var supabaseClient: any | null;
 declare var updateAccessSwitchButton: () => void;
+declare var openModal: (id: string) => void;
+declare var closeModal: (id: string) => void;
+declare var renderNotices: () => void;

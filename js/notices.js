@@ -1,4 +1,5 @@
-function openNoticeModal() { if (!requireManager()) return; document.getElementById('noticeInput').value = ''; openModal('noticeModal'); }
+// @ts-check
+function openNoticeModal() { if (!requireManager()) return; /** @type {HTMLInputElement} */ (document.getElementById('noticeInput')).value = ''; openModal('noticeModal'); }
 
 function applyNoticeTemplate(type) {
     if (!requireManager()) return;
@@ -8,12 +9,12 @@ function applyNoticeTemplate(type) {
         elevator: `إعلان:\nنظراً لأعمال الصيانة الدورية، سيكون الأسانسير متوقفاً يوم ____ من الساعة __ إلى __.\nنعتذر عن الإزعاج.`,
         eid: `كل عام وأنتم بخير بمناسبة ____.\nأعاده الله عليكم باليمن والبركات.\nإدارة العمارة.`
     };
-    document.getElementById('noticeInput').value = t[type] || '';
+    /** @type {HTMLInputElement} */ (document.getElementById('noticeInput')).value = t[type] || '';
 }
 
 async function handleNoticeSubmit() {
     if (!requireManager()) return;
-    const text = document.getElementById('noticeInput').value.trim();
+    const text = /** @type {HTMLInputElement} */ (document.getElementById('noticeInput')).value.trim();
     if (!text) { toast('اكتب نص الإعلان','error'); return; }
     const previousState = cloneStateSnapshot();
     state.notices.push({ id: generateId(), text, date: new Date().toISOString() });

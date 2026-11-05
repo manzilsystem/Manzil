@@ -9,5 +9,5 @@
         "skipLibCheck": true,
         "types": []
     },
-    "include": ["js/telemetry.js", "js/state.js", "js/access.js", "js/globals.d.ts"]
+    "include": ["js/telemetry.js", "js/state.js", "js/access.js", "js/notices.js", "js/globals.d.ts"]
 }
