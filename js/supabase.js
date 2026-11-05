@@ -13,6 +13,12 @@ let authGeneration = 0;
 let passwordRecoveryPending = false;
 const PASSWORD_RECOVERY_STORAGE_KEY = 'manzil.passwordRecoveryPending';
 
+function supabaseIncomePurpose(purpose) {
+    const value = String(purpose || '').trim();
+    if (typeof normalizeIncomePurpose === 'function') return normalizeIncomePurpose(value);
+    return ['subscription', 'services', 'development', 'emergency', 'penalty', 'donation', 'other'].includes(value) ? value : 'subscription';
+}
+
 function setPasswordRecoveryPending(pending) {
     passwordRecoveryPending = Boolean(pending);
     try {
@@ -248,7 +254,7 @@ function attachResidentSubscriptionHistory(residents, rateRows = [], changeRows 
 }
 
 function mapIncome(row) {
-    return { id: row.id, residentId: row.resident_id, amount: Number(row.amount) || 0, month: row.month, notes: row.notes || '', paymentMethod: row.payment_method || null, cashAccountCode: row.cash_account_code || 'main', date: row.paid_at };
+    return { id: row.id, residentId: row.resident_id, amount: Number(row.amount) || 0, month: row.month, notes: row.notes || '', paymentMethod: row.payment_method || null, cashAccountCode: row.cash_account_code || 'main', purposeCode: supabaseIncomePurpose(row.purpose_code), date: row.paid_at };
 }
 
 function mapExpense(row) {
@@ -487,8 +493,8 @@ async function loadState() {
         ? 'id,user_id,name,apartment_number,floor,phone,monthly_amount,created_at'
         : 'id,name,apartment_number,floor,monthly_amount,created_at';
     const incomeColumns = isManager
-        ? 'id,resident_id,amount,month,notes,payment_method,cash_account_code,paid_at'
-        : 'id,resident_id,amount,month,payment_method,paid_at';
+        ? 'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,paid_at'
+        : 'id,resident_id,amount,month,payment_method,purpose_code,paid_at';
     const expenseColumns = 'id,title,amount,category,month,notes,cash_account_code,spent_at';
     const noticeColumns = 'id,text,created_at';
     const auditColumns = 'id,action,details,actor_id,created_at,actor:profiles!audit_logs_actor_id_fkey(full_name)';
@@ -598,7 +604,9 @@ async function saveState() {
         income: state.income.map(i => ({
             id: i.id, resident_id: i.residentId, amount: Number(i.amount) || 0,
             month: i.month, notes: i.notes || null, payment_method: i.paymentMethod || null,
-            cash_account_code: i.cashAccountCode || 'main', paid_at: toSupabaseTimestamp(i.date)
+            cash_account_code: i.cashAccountCode || 'main',
+            purpose_code: supabaseIncomePurpose(i.purposeCode),
+            paid_at: toSupabaseTimestamp(i.date)
         })),
         expenses: state.expenses.map(e => ({
             id: e.id, title: e.title, amount: Number(e.amount) || 0,

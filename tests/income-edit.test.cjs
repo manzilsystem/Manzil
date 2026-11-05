@@ -16,7 +16,7 @@ function createHarness({ income = [], values = {}, saveResult = true } = {}) {
         incomeEditPaymentMethod: { value: values.paymentMethod || 'cash' },
         incomeEditPaymentMethod: { value: values.paymentMethod || 'cash' },
         incomeEditNotes: { value: values.notes || '' },
-        incomeEditCashAccount: { value: values.cashAccountCode || 'main' },
+        incomeEditCashAccount: { value: values.cashAccountCode || 'main', disabled: false, setAttribute() {} },
         incomeEditSubmitButton: { disabled: false, textContent: 'حفظ التعديل' }
     };
     const state = {

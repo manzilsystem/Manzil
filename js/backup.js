@@ -443,7 +443,7 @@ function isValidBackup(data) {
         );
     })) return false;
     const residentIds = new Set(data.residents.map(r => r.id));
-    if (!data.income.every(i => i && typeof i === 'object' && validId(i.id) && validId(i.residentId) && residentIds.has(i.residentId) && typeof i.month === 'string' && validAmount(i.amount) && (i.notes === undefined || typeof i.notes === 'string') && (i.paymentMethod === undefined || i.paymentMethod === null || ['cash', 'wallet', 'instapay', 'bank_transfer'].includes(i.paymentMethod)))) return false;
+    if (!data.income.every(i => i && typeof i === 'object' && validId(i.id) && validId(i.residentId) && residentIds.has(i.residentId) && typeof i.month === 'string' && validAmount(i.amount) && (i.notes === undefined || typeof i.notes === 'string') && (i.paymentMethod === undefined || i.paymentMethod === null || ['cash', 'wallet', 'instapay', 'bank_transfer'].includes(i.paymentMethod)) && (i.purposeCode === undefined || i.purposeCode === null || ['subscription', 'services', 'development', 'emergency', 'penalty', 'donation', 'other'].includes(i.purposeCode)))) return false;
     if (!hasUnique(data.income.map(i => i.id))) return false;
     if (!data.expenses.every(e => e && typeof e === 'object' && validId(e.id) && typeof e.title === 'string' && typeof e.month === 'string' && validAmount(e.amount) && (e.category === undefined || typeof e.category === 'string') && (e.notes === undefined || typeof e.notes === 'string'))) return false;
     if (!hasUnique(data.expenses.map(e => e.id))) return false;
