@@ -16,7 +16,7 @@ function json(status: number, body: Record<string, unknown>) {
   })
 }
 
-Deno.serve(async (request: Request) => {
+export async function handleRequest(request: Request): Promise<Response> {
   if (request.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -72,4 +72,8 @@ Deno.serve(async (request: Request) => {
     console.error('Error monitoring function failed:', err)
     return json(500, { error: 'internal_server_error' })
   }
-})
+}
+
+if (import.meta.main) {
+  Deno.serve(handleRequest)
+}
