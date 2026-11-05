@@ -12,7 +12,7 @@ interface Window {
     manzilSupabaseConfig?: ManzilSupabaseConfig;
     manzilReportError?: (message: unknown) => void;
     manzilErrorLog?: () => unknown[];
-    html2pdf?: unknown;
+    html2pdf?: () => { set: (options: Record<string, unknown>) => { from: (element: HTMLElement) => { outputPdf: (type: string) => Promise<Blob> } } };
 }
 
 // Global functions defined in other JS modules
@@ -23,15 +23,12 @@ declare var updateThemeSelection: () => void;
 declare var activeSession: { user: { id: string } } | null;
 declare var supabaseClient: any | null;
 declare var updateAccessSwitchButton: () => void;
-declare var resetReportView: () => void;
 declare var initSupabaseApp: () => Promise<void>;
-declare var handleReportViewKeydown: (event: KeyboardEvent) => void;
 declare var renderNotices: () => void;
 declare var loadState: () => Promise<boolean>;
-declare var markReportPreviewStale: (id: string, stale: boolean) => void;
-declare var syncReportNavStatus: () => void;
 declare var activeBuildingVersion: number;
 declare var refreshCashboxSummary: () => Promise<boolean>;
 declare var persistedAuditLogIds: Set<string>;
 declare var lockCurrentSession: () => void;
 declare var setAuthModal: (locked: boolean, message?: string) => void;
+declare var getArrearsReportFilters: () => { apartmentNumber?: string; fromMonth?: string; toMonth?: string; status?: string };
