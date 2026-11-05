@@ -45,7 +45,7 @@ test('error collector is active and stores sanitized entries locally', async ({ 
     expect(entry.message).toBe('e2e-check');
     expect(entry.stack.length).toBeLessThanOrEqual(1200);
     expect(Object.keys(entry).sort()).toEqual([
-        'column', 'created_at', 'kind', 'line', 'message', 'path', 'release', 'role', 'source', 'stack'
+        'column_number', 'created_at', 'kind', 'line', 'message', 'path', 'release', 'role', 'source', 'stack'
     ]);
 });
 
