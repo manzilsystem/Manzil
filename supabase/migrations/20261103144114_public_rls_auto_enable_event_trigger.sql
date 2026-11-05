@@ -1,0 +1,3 @@
+-- Duplicate migration kept for remote history compatibility.
+-- The canonical version is 20261103121000_public_rls_auto_enable_event_trigger.sql.
+-- This file is intentionally empty to avoid re-applying the same changes.

@@ -1,3 +1,4 @@
+// @ts-check
 let backupConsoleRefreshTimer = null;
 let backupConsoleLoadPromise = null;
 let activeRestoreRequestId = null;
@@ -28,13 +29,13 @@ async function callBackupConsole(body) {
 }
 
 function renderBackupConsole(data, cached = false) {
-    const select = document.getElementById('backupRestoreSelect');
+    const select = /** @type {HTMLSelectElement} */ (document.getElementById('backupRestoreSelect'));
     const last = document.getElementById('backupLastStatus');
     const history = document.getElementById('backupRestoreHistory');
     const backupHistory = document.getElementById('backupRequestHistory');
-    const restoreButton = document.getElementById('backupRestoreButton');
-    const createButton = document.getElementById('backupCreateButton');
-    const downloadButton = document.getElementById('backupDownloadButton');
+    const restoreButton = /** @type {HTMLButtonElement} */ (document.getElementById('backupRestoreButton'));
+    const createButton = /** @type {HTMLButtonElement} */ (document.getElementById('backupCreateButton'));
+    const downloadButton = /** @type {HTMLButtonElement} */ (document.getElementById('backupDownloadButton'));
     if (!select || !last || !history || !restoreButton || !createButton || !downloadButton) return;
 
     const backups = Array.isArray(data.backups) ? data.backups : [];
@@ -110,9 +111,9 @@ async function loadBackupConsole(options = {}) {
         const last = document.getElementById('backupLastStatus');
         if (!last) return;
         backupDownloadAllowed = false;
-        const restoreButton = document.getElementById('backupRestoreButton');
-        const createButton = document.getElementById('backupCreateButton');
-        const downloadButton = document.getElementById('backupDownloadButton');
+        const restoreButton = /** @type {HTMLButtonElement} */ (document.getElementById('backupRestoreButton'));
+        const createButton = /** @type {HTMLButtonElement} */ (document.getElementById('backupCreateButton'));
+        const downloadButton = /** @type {HTMLButtonElement} */ (document.getElementById('backupDownloadButton'));
         if (restoreButton) restoreButton.disabled = true;
         if (createButton) createButton.disabled = true;
         if (downloadButton) downloadButton.disabled = true;
@@ -166,16 +167,16 @@ async function loadBackupConsole(options = {}) {
     }
 }
 function updateBackupDownloadButton() {
-    const button = document.getElementById('backupDownloadButton');
-    const select = document.getElementById('backupRestoreSelect');
+    const button = /** @type {HTMLButtonElement} */ (document.getElementById('backupDownloadButton'));
+    const select = /** @type {HTMLSelectElement} */ (document.getElementById('backupRestoreSelect'));
     if (button) button.disabled = !backupDownloadAllowed || backupDownloadInProgress || !select?.value;
 }
 
 async function downloadDatabaseBackup() {
     if (!requireManager()) return;
-    const select = document.getElementById('backupRestoreSelect');
+    const select = /** @type {HTMLSelectElement} */ (document.getElementById('backupRestoreSelect'));
     const tag = select?.value || '';
-    const button = document.getElementById('backupDownloadButton');
+    const button = /** @type {HTMLButtonElement} */ (document.getElementById('backupDownloadButton'));
     const status = document.getElementById('backupDownloadStatus');
     if (!button || button.disabled || !/^backup-\\d{8}T\\d{6}Z$/.test(tag)) return;
 
@@ -262,7 +263,7 @@ async function downloadDatabaseBackup() {
 
 async function requestDatabaseBackup() {
     if (!requireManager()) return;
-    const button = document.getElementById('backupCreateButton');
+    const button = /** @type {HTMLButtonElement} */ (document.getElementById('backupCreateButton'));
     const status = document.getElementById('backupRestoreStatus');
     if (!button || button.disabled) return;
     button.disabled = true;
@@ -282,7 +283,7 @@ async function requestDatabaseBackup() {
 
 async function requestDatabaseRestore() {
     if (!requireManager()) return;
-    const select = document.getElementById('backupRestoreSelect');
+    const select = /** @type {HTMLSelectElement} */ (document.getElementById('backupRestoreSelect'));
     const tag = select?.value;
     if (!tag) { toast('اختر نسخة احتياطية أولاً', 'error'); return; }
     const selectedLabel = select.options[select.selectedIndex]?.textContent?.trim() || tag;
@@ -290,7 +291,7 @@ async function requestDatabaseRestore() {
     if (!confirm(warning)) return;
     const confirmation = prompt('لتأكيد الاستعادة اكتب RESTORE');
     if (confirmation !== 'RESTORE') { toast('تم إلغاء الاستعادة', 'info'); return; }
-    const button = document.getElementById('backupRestoreButton');
+    const button = /** @type {HTMLButtonElement} */ (document.getElementById('backupRestoreButton'));
     const status = document.getElementById('backupRestoreStatus');
     button.disabled = true;
     status.textContent = 'جارٍ إرسال طلب الاستعادة...';
@@ -369,7 +370,8 @@ function importJSON(ev) {
     r.onload = async () => {
         let previousState = null;
         try {
-            const data = JSON.parse(r.result);
+            const resultStr = typeof r.result === 'string' ? r.result : new TextDecoder().decode(r.result);
+            const data = JSON.parse(resultStr);
             if (!isValidBackup(data)) throw new Error('ملف غير صالح');
             if (!confirm('استيراد البيانات؟ سيتم استبدال الحالية.')) return;
             previousState = cloneStateSnapshot();
