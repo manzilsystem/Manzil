@@ -60,7 +60,7 @@ from new_building;
 
 ### اختبارات الدوال
 
-كل دالة تُصدّر `handleRequest` وتشغّل `Deno.serve` فقط عند `import.meta.main`. تشغيل الاختبارات محليًا:
+كل دالة تُصدّر `handleRequest` ولا تستمع إلا عندما تكون وحدة الدخول (`Deno.mainModule === import.meta.url`)، وهو ما يتحقق في Edge Runtime ولا يتحقق عند استيرادها في الاختبارات. تشغيل الاختبارات محليًا:
 
 ```bash
 deno test --allow-env --allow-net supabase/functions/*/index_test.ts
