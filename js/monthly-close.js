@@ -1,5 +1,4 @@
 let monthlyCloseLastReport = null;
-let monthlyClosePdfLibraryPromise = null;
 
 const monthlyCloseAccounts = [
     { code: 'main', label: 'الخزنة الرئيسية' },
@@ -124,28 +123,6 @@ async function loadMonthlyCloseReport() {
     }
 }
 
-function ensureMonthlyClosePdfLibrary() {
-    if (typeof window.html2pdf === 'function') return Promise.resolve();
-    if (monthlyClosePdfLibraryPromise) return monthlyClosePdfLibraryPromise;
-
-    monthlyClosePdfLibraryPromise = new Promise(function (resolve, reject) {
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-        script.async = true;
-        script.crossOrigin = 'anonymous';
-        script.onload = function () {
-            if (typeof window.html2pdf === 'function') resolve();
-            else reject(new Error('monthly_close_pdf_library_unavailable'));
-        };
-        script.onerror = function () { reject(new Error('monthly_close_pdf_library_failed_to_load')); };
-        document.head.appendChild(script);
-    }).catch(function (error) {
-        monthlyClosePdfLibraryPromise = null;
-        throw error;
-    });
-    return monthlyClosePdfLibraryPromise;
-}
-
 function renderMonthlyClosePdfHtml(report) {
     const totals = report.totals;
     const rows = monthlyCloseAccounts.map(function (account) {
@@ -201,7 +178,7 @@ async function exportMonthlyClosePdf() {
     if (button) button.disabled = true;
 
     try {
-        await ensureMonthlyClosePdfLibrary();
+        await ensurePdfLibrary();
         if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
         root = document.createElement('section');

@@ -24,7 +24,7 @@ async function openReports(page) {
 
 async function previewMonth(page, month) {
     await page.locator('#reportMonthSelect').selectOption(month);
-    await page.getByRole('button', { name: 'معاينة', exact: true }).click();
+    await page.locator('#landlordReportPrint').getByRole('button', { name: 'معاينة', exact: true }).click();
 }
 
 test('report output stays disabled until a fresh preview exists', async ({ page }) => {
@@ -128,6 +128,88 @@ test('printing a report hides every other reports card', async ({ page }) => {
     }));
     expect(restored.scoped).toBe(false);
     expect(restored.title).toContain('كشف حساب مالي');
+});
+
+test('resident statement previews one resident and invalidates on data changes', async ({ page }) => {
+    await openReports(page);
+    await expect(page.locator('#statementPrintBtn')).toBeDisabled();
+
+    await page.locator('#statementResidentSelect').selectOption('r1');
+    await page.locator('#residentStatementCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+
+    const preview = page.locator('#residentStatementPreview');
+    await expect(preview).toContainText('كشف حساب ساكن');
+    await expect(preview).toContainText('إجمالي المستحق');
+    await expect(preview).toContainText('أحمد');
+    await expect(page.locator('#statementPrintBtn')).toBeEnabled();
+    await expect(page.locator('#statementCsvBtn')).toBeEnabled();
+
+    await page.evaluate(() => {
+        state.income.push({ id: 'i9', residentId: 'r1', month: 'يناير 2024', amount: 10, paymentMethod: 'cash' });
+        renderAll();
+    });
+    await expect(preview).toContainText('تغيّرت البيانات');
+    await expect(page.locator('#statementPrintBtn')).toBeDisabled();
+});
+
+test('resident statement CSV downloads a single-resident ledger', async ({ page }) => {
+    await openReports(page);
+    await page.locator('#statementResidentSelect').selectOption('r1');
+    await page.locator('#residentStatementCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#statementCsvBtn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/^manzil_statement_3_\d{4}-\d{2}\.csv$/);
+
+    const stream = await download.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const csv = Buffer.concat(chunks).toString('utf8');
+    expect(csv).toContain('"يناير 2024","100","100","0","مسدد"');
+    expect(csv).toContain('"الحركات"');
+    expect(csv).not.toContain('سارة');
+});
+
+test('printing a resident statement isolates its card', async ({ page }) => {
+    await openReports(page);
+    await page.locator('#statementResidentSelect').selectOption('r1');
+    await page.locator('#residentStatementCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await page.evaluate(() => { window.print = () => { window.__printCalls = (window.__printCalls || 0) + 1; }; });
+
+    await page.locator('#statementPrintBtn').click();
+    const printed = await page.evaluate(() => ({
+        calls: window.__printCalls,
+        scoped: document.body.classList.contains('print-statement'),
+        title: document.getElementById('printBuildingTitle').textContent,
+        meta: document.getElementById('printBuildingMeta').textContent
+    }));
+    expect(printed.calls).toBe(1);
+    expect(printed.scoped).toBe(true);
+    expect(printed.title).toContain('كشف حساب ساكن');
+    expect(printed.meta).toContain('أحمد');
+
+    await page.emulateMedia({ media: 'print' });
+    const scopedStyles = await page.evaluate(() => ({
+        statement: getComputedStyle(document.getElementById('residentStatementCard')).display,
+        landlord: getComputedStyle(document.getElementById('landlordReportPrint')).display,
+        monthlyClose: getComputedStyle(document.querySelector('#tab-reports > details')).display
+    }));
+    expect(scopedStyles.statement).not.toBe('none');
+    expect(scopedStyles.landlord).toBe('none');
+    expect(scopedStyles.monthlyClose).toBe('none');
+});
+
+test('resident profile opens the statement for the same resident', async ({ page }) => {
+    await openReports(page);
+    await page.evaluate(() => openResidentProfile('r1'));
+    await expect(page.locator('#residentProfileModal')).toBeVisible();
+
+    await page.locator('#residentProfileModal').getByRole('button', { name: /كشف حساب/ }).click();
+    await expect(page.locator('#tab-reports')).toBeVisible();
+    await expect(page.locator('#statementResidentSelect')).toHaveValue('r1');
+    await expect(page.locator('#residentStatementPreview')).toContainText('كشف حساب ساكن');
+    await expect(page.locator('#residentStatementPreview')).toContainText('أحمد');
 });
 
 test('audit log reports the visible count and loads more entries', async ({ page }) => {
