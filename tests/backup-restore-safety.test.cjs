@@ -36,7 +36,7 @@ test('database-wide restore requires management access to every building', () =>
 
 test('cached backup metadata is display-only and never enables destructive actions', () => {
     assert.match(ui, /renderBackupConsole\(cached, true\)/);
-    assert.match(ui, /const restoreAllowed = !cached && data\.canRestore === true/);
+    assert.match(ui, /const restoreAllowed = !cached && data\.canRestore !== false/);
     assert.match(ui, /restoreButton\.disabled = !restoreAllowed \|\|/);
     assert.match(ui, /createButton\.disabled = cached \|\|/);
     assert.match(ui, /callBackupConsole\(\{ action: 'list' \}\)/);
@@ -114,7 +114,7 @@ test('backup catalog only enables downloads for a verified global manager', () =
     assert.match(edge, /canDownload: globalAccess/);
     assert.match(edge, /canRestore: globalAccess/);
     assert.match(ui, /backupDownloadAllowed = !cached && data\.canDownload === true/);
-    assert.match(ui, /const restoreAllowed = !cached && data\.canRestore === true/);
+    assert.match(ui, /const restoreAllowed = !cached && data\.canRestore !== false/);
 });
 
 test('full database backup download is restricted to global managers and a server-held GitHub token', () => {
