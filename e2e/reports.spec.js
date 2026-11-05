@@ -68,9 +68,11 @@ async function previewStatement(page) {
 test('report output stays disabled until a fresh preview exists', async ({ page }) => {
     await openReports(page);
     const printButton = page.locator('#reportPrintBtn');
+    const pdfButton = page.locator('#reportPdfBtn');
     const exportButton = page.locator('#reportExportBtn');
 
     await expect(printButton).toBeDisabled();
+    await expect(pdfButton).toBeDisabled();
     await expect(exportButton).toBeDisabled();
     await expect(page.locator('[data-report-nav="landlord"]')).not.toHaveClass(/is-ready|is-stale/);
 
@@ -78,12 +80,14 @@ test('report output stays disabled until a fresh preview exists', async ({ page 
     await expect(page.locator('#landlordReportPreview')).toContainText('تقرير يناير 2024');
     await expect(page.locator('#landlordReportPreview')).toContainText('المستحق');
     await expect(printButton).toBeEnabled();
+    await expect(pdfButton).toBeEnabled();
     await expect(exportButton).toBeEnabled();
     await expect(page.locator('[data-report-nav="landlord"]')).toHaveClass(/is-ready/);
 
     await page.locator('#reportMonthSelect').selectOption('فبراير 2024');
     await expect(page.locator('#landlordReportPreview')).toContainText('تغيّر الشهر أو البيانات');
     await expect(printButton).toBeDisabled();
+    await expect(pdfButton).toBeDisabled();
     await expect(exportButton).toBeDisabled();
     await expect(page.locator('[data-report-nav="landlord"]')).toHaveClass(/is-stale/);
     await expect(page.locator('[data-report-nav="landlord"]')).not.toHaveClass(/is-ready/);
