@@ -107,3 +107,43 @@ test('editing a collection moves its amount between cash boxes', async ({ page }
     expect(await cashboxBalances(page)).toEqual({ main: 500, development: 0, emergency: 60 });
     expect(await page.evaluate(() => state.auditLogs[0]?.details || '')).toContain('صندوق الصيانة الطارئة');
 });
+
+test('cashbox monthly summary separates collections, spending and internal transfers', async ({ page }) => {
+    await seedManagerSession(page);
+    const month = await page.evaluate(() => getCurrentMonth());
+
+    await page.evaluate(currentMonth => {
+        state.income = [{
+            id: 'i1', residentId: 'r1', amount: 120, month: currentMonth, paymentMethod: 'cash',
+            cashAccountCode: 'development', date: new Date().toISOString()
+        }];
+        state.expenses = [{
+            id: 'e1', title: 'كهرباء', amount: 30, category: 'كهرباء', month: currentMonth,
+            cashAccountCode: 'development', date: new Date().toISOString()
+        }];
+        state.cashTransfers = [{
+            id: 't1', fromAccountCode: 'main', toAccountCode: 'development',
+            amount: 50, notes: '', transferredAt: new Date().toISOString()
+        }];
+        syncCashboxBalancesAfterSnapshot();
+        switchTab('cashbox');
+        renderAll();
+    }, month);
+
+    await expect(page.locator('#cashboxSummaryMonth')).toHaveValue(month);
+    const rows = page.locator('#cashboxSummaryRows article');
+    await expect(rows).toHaveCount(3);
+    await expect(rows.nth(0)).toContainText('الخزنة الرئيسية');
+    await expect(rows.nth(0)).toContainText('صافي صادر');
+    await expect(rows.nth(1)).toContainText('صندوق التطوير');
+    await expect(rows.nth(1)).toContainText('صافي وارد');
+    await expect(rows.nth(2)).toContainText('صندوق الصيانة الطارئة');
+    const developmentNet = await page.evaluate(() => {
+        const select = document.getElementById('cashboxSummaryMonth');
+        select.value = getCurrentMonth();
+        const totals = calculateFundMovement(select.value);
+        const bucket = totals.development;
+        return bucket.income + bucket.transfersIn - bucket.expenses - bucket.transfersOut;
+    });
+    expect(developmentNet).toBe(14000);
+});

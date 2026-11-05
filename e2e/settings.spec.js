@@ -56,3 +56,31 @@ test('settings stay inside the viewport and keep their sections usable', async (
     expect(metrics.modalRight).toBeLessThanOrEqual(metrics.viewport + 1);
     expect(metrics.documentWidth).toBeLessThanOrEqual(metrics.viewport + 1);
 });
+
+test('backup administration shows the checksum and requires typed restore confirmation', async ({ page }) => {
+    await openSettings(page);
+    const tag = 'backup-20261105T022300Z';
+    const sha = 'a'.repeat(64);
+    await page.evaluate(({ tag, sha }) => {
+        window.callBackupConsole = async () => ({
+            backups: [{ tag, file_name: `manzil-db-${tag.slice(7)}.dump`, size_bytes: 2048, sha256: sha, created_at: '2026-11-05T02:23:00Z' }],
+            restoreRequests: [], backupRequests: [], canDownload: true, canRestore: true
+        });
+        closeModal('settingsModal');
+        openModal('backupModal');
+    }, { tag, sha });
+
+    await expect(page.locator('#backupSelectedDetails')).toBeVisible();
+    await expect(page.locator('#backupDetailSha')).toHaveText(sha);
+    await expect(page.locator('#backupDetailTag')).toHaveText(tag);
+    await expect(page.locator('#backupRestoreButton')).toBeEnabled();
+
+    await page.locator('#backupRestoreButton').click();
+    await expect(page.locator('#restoreConfirmModal')).toBeVisible();
+    await expect(page.locator('#restoreConfirmSubmitButton')).toBeDisabled();
+    await page.locator('#restoreConfirmInput').fill('RESTORE');
+    await expect(page.locator('#restoreConfirmSubmitButton')).toBeEnabled();
+    await page.locator('#restoreConfirmModal').getByRole('button', { name: 'إلغاء', exact: true }).click();
+    await expect(page.locator('#restoreConfirmModal')).toBeHidden();
+    await expect(page.locator('#backupModal')).toBeVisible();
+});

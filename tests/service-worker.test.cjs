@@ -11,7 +11,7 @@ const app = fs.readFileSync(path.join(root, 'js', 'app.js'), 'utf8');
 
 test('service worker is valid JavaScript and bumps the app cache', () => {
     assert.doesNotThrow(() => new vm.Script(sw, { filename: 'sw.js' }));
-    assert.match(sw, /const CACHE_NAME = 'manzil-v108'/);
+    assert.match(sw, /const CACHE_NAME = 'manzil-v109'/);
 });
 
 test('all runtime modules are pre-cached with the application shell', () => {
@@ -53,4 +53,14 @@ test('navigations revalidate the shell so a release lands without clearing the c
 test('the page re-checks for a new worker while it stays open', () => {
     assert.match(html, /updateViaCache: 'none'/);
     assert.match(html, /setInterval\(\(\) => \{[\s\S]*?refreshWorker\(\);[\s\S]*?\}, 15 \* 60 \* 1000\);/);
+});
+
+test('new deployments apply automatically once the user is idle, without a cache clear', () => {
+    assert.match(html, /let updatePending = false/);
+    assert.match(html, /const appIsBusy = \(\) =>/);
+    assert.match(html, /document\.querySelector\('\[role="dialog"\]:not\(\.hidden\)'\)/);
+    assert.match(html, /if \(appIsBusy\(\)\) \{ showUpdateBanner\(\); return; \}/);
+    assert.match(html, /updatePending = true;\s*applyPendingUpdate\(\);/);
+    assert.match(html, /setInterval\(\(\) => \{ if \(updatePending\) applyPendingUpdate\(\); \}, 5000\)/);
+    assert.match(html, /سيُطبّق تلقائيًا فور إنهاء النافذة أو الحقل المفتوح/);
 });

@@ -15,30 +15,63 @@
         if (!('serviceWorker' in navigator) || !location.protocol.startsWith('http')) return;
         let reloading = false;
         let controllerChanges = 0;
+        let updatePending = false;
+        let updateBanner = null;
         const hadController = Boolean(navigator.serviceWorker.controller);
+
+        const appIsBusy = () => {
+            if (document.querySelector('[role="dialog"]:not(.hidden)')) return true;
+            const active = document.activeElement;
+            if (!active || !['INPUT', 'TEXTAREA'].includes(active.tagName)) return false;
+            return String(/** @type {HTMLInputElement} */ (active).value || '').trim() !== '';
+        };
+
+        const showUpdateBanner = () => {
+            if (updateBanner || !document.body) return;
+            updateBanner = document.createElement('div');
+            updateBanner.setAttribute('role', 'status');
+            updateBanner.setAttribute('aria-live', 'polite');
+            updateBanner.textContent = 'يتوفر تحديث جديد للتطبيق. سيُطبّق تلقائيًا فور إنهاء النافذة أو الحقل المفتوح.';
+            updateBanner.style.cssText = 'position:fixed;right:12px;bottom:88px;z-index:90;max-width:calc(100vw - 24px);background:#0f766e;color:#fff;padding:10px 14px;border-radius:14px;font-size:12px;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.35);';
+            document.body.appendChild(updateBanner);
+        };
+
+        const applyPendingUpdate = () => {
+            if (reloading || !updatePending) return;
+            // Reloading while a dialog or a filled field is open would discard
+            // data the user is still entering. Apply the update automatically
+            // as soon as the app is idle instead of requiring a cache clear.
+            if (appIsBusy()) { showUpdateBanner(); return; }
+            reloading = true;
+            location.reload();
+        };
+
         navigator.serviceWorker.addEventListener('controllerchange', () => {
             controllerChanges += 1;
             // The first install has no controller and already served this page
             // from the network; any later change means an update replaced a
             // worker this page was using.
             if (reloading || (!hadController && controllerChanges === 1)) return;
-            reloading = true;
-            location.reload();
+            updatePending = true;
+            applyPendingUpdate();
         });
         const refreshWorker = () => navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
             .then(registration => registration.update().catch(() => {}))
             .catch(error => console.warn('تعذر تحديث التطبيق تلقائيًا:', error));
         refreshWorker();
-        window.addEventListener('pageshow', refreshWorker);
-        window.addEventListener('focus', refreshWorker);
+        window.addEventListener('pageshow', () => { refreshWorker(); applyPendingUpdate(); });
+        window.addEventListener('focus', () => { refreshWorker(); applyPendingUpdate(); });
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') refreshWorker();
+            if (document.visibilityState === 'visible') { refreshWorker(); applyPendingUpdate(); }
         });
         // Installed PWAs can stay open for days without a navigation, which is
         // the only other moment the browser checks for a new worker.
         setInterval(() => {
             if (document.visibilityState === 'visible') refreshWorker();
         }, 15 * 60 * 1000);
+        // A download can finish while a dialog is being closed; retry the
+        // deferred reload without user action.
+        setInterval(() => { if (updatePending) applyPendingUpdate(); }, 5000);
     })();
     </script>
     <link rel="manifest" href="manifest.json">
@@ -430,6 +463,17 @@
                     <p id="cashBalance-emergency" class="text-2xl font-black text-amber-300">0 ج.م</p>
                     <p class="text-[10px] text-slate-500">تحصيلات موجهة إليه + تحويلات واردة − مصروفاته</p>
                 </article>
+            </div>
+
+            <div class="app-card p-5 rounded-3xl border space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h3 class="font-bold text-sm">حركة الصناديق الشهرية</h3>
+                        <p class="text-[10px] text-slate-500 mt-1">التحصيلات والمصروفات وصافي التحويلات لكل صندوق في الشهر المختار، من نفس سجلات الخزنة.</p>
+                    </div>
+                    <select id="cashboxSummaryMonth" onchange="renderCashbox()" aria-label="شهر حركة الصناديق" class="app-input border rounded-xl px-3 py-2 text-xs"></select>
+                </div>
+                <div id="cashboxSummaryRows" class="space-y-2"></div>
             </div>
 
             <div class="app-card p-5 rounded-3xl border space-y-4">
@@ -1433,6 +1477,7 @@
                     <div class="font-bold text-sm">النسخ التلقائي</div>
                     <p class="text-xs text-slate-400 leading-6">موعد النسخ اليومي 02:23 UTC (04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة)، مع فحص SHA-256 وصلاحية أرشيف PostgreSQL، والاحتفاظ بآخر 30 نسخة.</p>
                     <div id="backupLastStatus" class="text-xs text-slate-400">جارٍ تحميل سجل النسخ...</div>
+                    <div id="backupStaleNotice" role="alert" class="hidden rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] leading-5 text-amber-300">هذه البيانات محفوظة محليًا من زيارة سابقة. لا يمكن إنشاء نسخة أو استعادة حتى يتم التحقق من الحالة من الخادم.</div>
                     <div class="flex items-center justify-between gap-2">
                         <p id="backupRefreshNotice" class="text-[10px] text-slate-500" role="status" aria-live="polite">حالة الطلبات تُحدّث تلقائيًا أثناء التنفيذ.</p>
                         <button type="button" onclick="loadBackupConsole()" class="app-input border rounded-lg px-3 py-1.5 text-xs font-bold whitespace-nowrap"><i class="fa-solid fa-rotate ml-1" aria-hidden="true"></i> تحديث الحالة</button>
@@ -1447,20 +1492,55 @@
                     <select id="backupRestoreSelect" onchange="updateBackupDownloadButton()" class="w-full app-input border rounded-xl px-3 py-3 text-sm" aria-label="اختر النسخة المراد تنزيلها أو استعادتها">
                         <option value="">جارٍ تحميل النسخ...</option>
                     </select>
+                    <div id="backupSelectedDetails" class="hidden app-input border rounded-xl p-3 space-y-1.5 text-[11px] text-slate-400" aria-live="polite">
+                        <div class="flex justify-between gap-3"><span>وقت الإصدار</span><strong id="backupDetailDate" class="text-slate-200">—</strong></div>
+                        <div class="flex justify-between gap-3"><span>الحجم</span><strong id="backupDetailSize" class="text-slate-200">—</strong></div>
+                        <div class="flex justify-between gap-3"><span>معرّف النسخة</span><code id="backupDetailTag" dir="ltr" class="text-slate-200">—</code></div>
+                        <div class="space-y-1">
+                            <span>بصمة SHA-256 لملف النسخة</span>
+                            <code id="backupDetailSha" dir="ltr" class="block break-all rounded-lg bg-slate-950/50 px-2 py-1 text-[10px] text-slate-300">—</code>
+                        </div>
+                        <div class="flex justify-between gap-3"><span>آخر استعادة ناجحة لهذه النسخة</span><strong id="backupDetailRestored" class="text-slate-200">—</strong></div>
+                    </div>
                     <button id="backupDownloadButton" type="button" onclick="downloadDatabaseBackup()" class="w-full bg-indigo-700 hover:bg-indigo-600 disabled:opacity-50 text-white py-2.5 rounded-xl text-xs font-bold" disabled><i class="fa-solid fa-download ml-2"></i> تنزيل النسخة الكاملة</button>
                     <div id="backupDownloadStatus" role="status" aria-live="polite" class="text-[11px] text-slate-400"></div>
                     <p class="text-[10px] text-slate-500">التنزيل الكامل متاح فقط للمدير الذي يدير جميع المباني، ويتم التحقق من SHA-256 قبل حفظ الملف.</p>
                     <button id="backupRestoreButton" onclick="requestDatabaseRestore()" class="w-full bg-rose-700 hover:bg-rose-600 disabled:opacity-50 text-white py-3 rounded-xl font-bold" disabled>استعادة النسخة المختارة</button>
+                    <p class="text-[10px] text-slate-500">الاستعادة متاحة فقط للمدير الذي يدير جميع المباني، وتتطلب كتابة RESTORE في نافذة تأكيد منفصلة.</p>
                     <div id="backupRestoreStatus" role="status" aria-live="polite" class="text-xs text-slate-400"></div>
                     <div id="backupRestoreHistory" class="space-y-2 text-xs"></div>
                 </section>
                 <section class="border-t border-slate-700/60 pt-3 space-y-2">
                     <div class="font-bold text-sm">نسخة التطبيق المحلية (JSON)</div>
+                    <p class="text-[10px] leading-5 text-slate-500">تحفظ بيانات العمارة الحالية مع وقت التصدير وعدد السجلات، وتصلح للنقل بين البيئات. الاستيراد يتحقق من الملف ثم يستبدل بيانات العمارة الحالية فقط، ولا يستبدل قاعدة البيانات الكاملة.</p>
                     <button onclick="exportJSON()" class="w-full app-card border py-2.5 rounded-xl text-xs font-bold"><i class="fa-solid fa-download ml-2"></i> تصدير JSON</button>
                     <label for="backupImportInput" class="block w-full app-card border py-2.5 rounded-xl text-xs font-bold text-center cursor-pointer"><i class="fa-solid fa-upload ml-2"></i> استعادة ملف JSON</label>
                     <input id="backupImportInput" type="file" accept=".json,application/json" aria-label="اختيار ملف JSON" onchange="importJSON(event)" class="sr-only">
                 </section>
                 <div id="backupStatus" class="text-xs text-slate-400 text-center"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Restore typed confirmation -->
+    <div id="restoreConfirmModal" role="dialog" aria-modal="true" aria-labelledby="restoreConfirmTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center z-[60] p-4">
+        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+            <div class="bg-rose-800 text-white px-5 py-4 flex justify-between items-center">
+                <h3 id="restoreConfirmTitle" class="font-bold text-sm"><i class="fa-solid fa-triangle-exclamation ml-2"></i> تأكيد استعادة قاعدة البيانات</h3>
+                <button type="button" onclick="cancelDatabaseRestore()" aria-label="إلغاء الاستعادة" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-5 space-y-3">
+                <p class="text-xs leading-6 text-rose-300">سيتم استبدال قاعدة بيانات الإنتاج بالكامل، بما يشمل جميع المباني والحسابات والسجلات، بحالة النسخة المختارة. لا يمكن التراجع عن العملية من الواجهة.</p>
+                <div id="restoreConfirmSummary" class="app-input border rounded-xl p-3 space-y-1 text-[11px] text-slate-300"></div>
+                <label class="block text-xs space-y-1">
+                    <span class="text-slate-400">اكتب <strong dir="ltr">RESTORE</strong> بالأحرف الإنجليزية لتأكيد التنفيذ</span>
+                    <input id="restoreConfirmInput" dir="ltr" autocomplete="off" spellcheck="false" oninput="updateRestoreConfirmButton()" aria-label="اكتب RESTORE لتأكيد الاستعادة" class="w-full app-input border rounded-2xl px-3 py-2.5 text-center font-mono text-sm tracking-widest">
+                </label>
+                <p id="restoreConfirmStatus" role="status" aria-live="polite" class="text-[11px] text-slate-400"></p>
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" onclick="cancelDatabaseRestore()" class="app-input border py-2.5 rounded-xl text-xs font-bold">إلغاء</button>
+                    <button type="button" id="restoreConfirmSubmitButton" onclick="confirmDatabaseRestore()" disabled class="bg-rose-700 hover:bg-rose-600 disabled:opacity-40 text-white py-2.5 rounded-xl text-xs font-bold">تنفيذ الاستعادة</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1620,6 +1700,7 @@
                     <span class="text-slate-400">شهر بداية التوزيع</span>
                     <select id="incomeMonth" aria-label="شهر بداية التوزيع" onchange="previewIncomeAllocation()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
                 </label>
+                <p id="incomeOutstandingHint" role="status" aria-live="polite" class="text-[10px] text-slate-500"></p>
                 <p id="incomeAllocationPolicyHelp" class="text-[10px] text-slate-500">يُوزّع المبلغ وفق سياسة العمارة. راجع المعاينة قبل الحفظ.</p>
                 <div id="incomeAllocationPreview" aria-live="polite" class="hidden app-input border rounded-2xl p-3 space-y-2">
                     <p id="incomeAllocationSummary" class="text-xs font-bold"></p>

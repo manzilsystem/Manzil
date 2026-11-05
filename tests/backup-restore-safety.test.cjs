@@ -36,17 +36,23 @@ test('database-wide restore requires management access to every building', () =>
 
 test('cached backup metadata is display-only and never enables destructive actions', () => {
     assert.match(ui, /renderBackupConsole\(cached, true\)/);
-    assert.match(ui, /restoreButton\.disabled = cached \|\|/);
+    assert.match(ui, /const restoreAllowed = !cached && data\.canRestore === true/);
+    assert.match(ui, /restoreButton\.disabled = !restoreAllowed \|\|/);
     assert.match(ui, /createButton\.disabled = cached \|\|/);
     assert.match(ui, /callBackupConsole\(\{ action: 'list' \}\)/);
     assert.doesNotMatch(ui, /github\.com|api\.github\.com/i);
 });
 
 test('restore UI requires explicit confirmation and a second typed confirmation', () => {
-    assert.match(ui, /if \(!confirm\(warning\)\) return/);
-    assert.match(ui, /prompt\('لتأكيد الاستعادة اكتب RESTORE'\)/);
+    assert.match(ui, /pendingRestoreTag = tag/);
+    assert.match(ui, /openModal\('restoreConfirmModal'\)/);
+    assert.match(html, /id="restoreConfirmInput"/);
+    assert.match(html, /اكتب <strong dir="ltr">RESTORE<\/strong>/);
     assert.match(ui, /confirmation !== 'RESTORE'/);
     assert.match(ui, /action: 'request_restore', backup_tag: tag, confirmation/);
+    const typedGate = ui.indexOf("confirmation !== 'RESTORE'");
+    const request = ui.indexOf("action: 'request_restore', backup_tag: tag, confirmation");
+    assert.ok(typedGate >= 0 && request > typedGate, 'the typed confirmation must gate the restore request');
 });
 
 test('backup archive is validated and excludes backup control tables', () => {
@@ -106,7 +112,9 @@ test('backup and restore workers share a non-cancelling database maintenance loc
 test('backup catalog only enables downloads for a verified global manager', () => {
     assert.match(edge, /const \[globalAccess, \{ data: backups/);
     assert.match(edge, /canDownload: globalAccess/);
+    assert.match(edge, /canRestore: globalAccess/);
     assert.match(ui, /backupDownloadAllowed = !cached && data\.canDownload === true/);
+    assert.match(ui, /const restoreAllowed = !cached && data\.canRestore === true/);
 });
 
 test('full database backup download is restricted to global managers and a server-held GitHub token', () => {

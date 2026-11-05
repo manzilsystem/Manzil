@@ -35,3 +35,9 @@ test('expense records can be edited and the previous account amount is credited 
     assert.match(html, /onclick="openExpenseModal\(\)"/);
     assert.match(crud, /تعديل المصروف/);
 });
+
+test('expense preview shows the month spending already taken from the selected fund', () => {
+    assert.match(crud, /const monthFundExpenses = state\.expenses/);
+    assert.match(crud, /item\.month === month && \(item\.cashAccountCode \|\| 'main'\) === cashAccountCode && item\.id !== editingExpenseId/);
+    assert.match(crud, /مصروفات الشهر من الصندوق/);
+});

@@ -7,8 +7,30 @@ const backupUi = fs.readFileSync(path.join(__dirname, '..', 'js/backup.js'), 'ut
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
 test('cached backup console data never enables backup or restore actions', () => {
-    assert.match(backupUi, /restoreButton\.disabled = cached \|\| !backups\.length \|\| restorePending \|\| backupPending/);
+    assert.match(backupUi, /const restoreAllowed = !cached && data\.canRestore === true/);
+    assert.match(backupUi, /restoreButton\.disabled = !restoreAllowed \|\| !backups\.length \|\| restorePending \|\| backupPending/);
     assert.match(backupUi, /createButton\.disabled = cached \|\| backupPending \|\| restorePending/);
+});
+
+test('backup console explains stale local data instead of silently showing it', () => {
+    assert.match(html, /id="backupStaleNotice"/);
+    assert.match(backupUi, /staleNotice\.classList\.toggle\('hidden', !cached\)/);
+    assert.match(html, /لا يمكن إنشاء نسخة أو استعادة حتى يتم التحقق من الحالة من الخادم/);
+});
+
+test('selected backup details expose the checksum and restore history', () => {
+    assert.match(html, /id="backupDetailSha"/);
+    assert.match(html, /id="backupDetailRestored"/);
+    assert.match(backupUi, /formatBackupSha\(backup\.sha256\)/);
+    assert.match(backupUi, /item\.backup_tag === backup\.tag && item\.status === 'succeeded'/);
+});
+
+test('JSON export carries versioned metadata and import still accepts older plain files', () => {
+    assert.match(backupUi, /format: 'manzil-state-json'/);
+    assert.match(backupUi, /exportedAt: exportedAt\.toISOString\(\)/);
+    assert.match(backupUi, /counts: \{/);
+    assert.match(backupUi, /raw\.format === 'manzil-state-json' \? raw\.data : raw/);
+    assert.match(html, /لا يستبدل قاعدة البيانات الكاملة/);
 });
 
 test('backup actions remain disabled until a fresh server response is received', () => {

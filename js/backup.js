@@ -4,6 +4,8 @@ let backupConsoleLoadPromise = null;
 let activeRestoreRequestId = null;
 let backupDownloadAllowed = false;
 let backupDownloadInProgress = false;
+let backupConsoleData = null;
+let pendingRestoreTag = null;
 function backupCacheKey() { return 'manzil.backup-console.v1.' + (activeBuildingId || 'none'); }
 
 function formatBackupBytes(bytes) {
@@ -39,7 +41,9 @@ function renderBackupConsole(data, cached = false) {
     if (!select || !last || !history || !restoreButton || !createButton || !downloadButton) return;
 
     const backups = Array.isArray(data.backups) ? data.backups : [];
+    backupConsoleData = data;
     backupDownloadAllowed = !cached && data.canDownload === true;
+    const restoreAllowed = !cached && data.canRestore === true;
     const restoreRequests = Array.isArray(data.restoreRequests) ? data.restoreRequests : (Array.isArray(data.requests) ? data.requests : []);
     const backupRequests = Array.isArray(data.backupRequests) ? data.backupRequests : [];
     const selected = select.value;
@@ -48,13 +52,17 @@ function renderBackupConsole(data, cached = false) {
         return '<option value="' + esc(item.tag) + '">' + esc(date) + ' — ' + esc(formatBackupBytes(item.size_bytes)) + '</option>';
     }).join('');
     if (backups.some(item => item.tag === selected)) select.value = selected;
+    else if (backups.length === 1) select.value = backups[0].tag;
 
     const restorePending = restoreRequests.some(item => ['queued', 'running'].includes(item.status));
     const backupPending = backupRequests.some(item => ['queued', 'dispatched'].includes(item.status));
     // Cached state is display-only; destructive/financial actions require a fresh server read.
-    restoreButton.disabled = cached || !backups.length || restorePending || backupPending;
+    restoreButton.disabled = !restoreAllowed || !backups.length || restorePending || backupPending;
     createButton.disabled = cached || backupPending || restorePending;
     updateBackupDownloadButton();
+
+    const staleNotice = document.getElementById('backupStaleNotice');
+    if (staleNotice) staleNotice.classList.toggle('hidden', !cached);
 
     last.textContent = backups.length
         ? (cached ? 'نسخة محفوظة محليًا — ' : '') + 'آخر نسخة: ' + new Date(backups[0].created_at).toLocaleString('ar-EG') + ' — ' + formatBackupBytes(backups[0].size_bytes)
@@ -166,10 +174,42 @@ async function loadBackupConsole(options = {}) {
         backupConsoleLoadPromise = null;
     }
 }
+function formatBackupSha(value) {
+    const sha = String(value || '').trim().toLowerCase();
+    return /^[a-f0-9]{64}$/.test(sha) ? sha : '';
+}
+
+function renderSelectedBackupDetails() {
+    const details = document.getElementById('backupSelectedDetails');
+    const select = /** @type {HTMLSelectElement} */ (document.getElementById('backupRestoreSelect'));
+    if (!details || !select) return;
+    const backups = Array.isArray(backupConsoleData?.backups) ? backupConsoleData.backups : [];
+    const backup = backups.find(item => item.tag === select.value);
+    if (!backup) {
+        details.classList.add('hidden');
+        return;
+    }
+    const restored = (Array.isArray(backupConsoleData?.restoreRequests) ? backupConsoleData.restoreRequests : [])
+        .find(item => item.backup_tag === backup.tag && item.status === 'succeeded');
+    const setText = (id, text) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = text;
+    };
+    setText('backupDetailDate', new Date(backup.created_at).toLocaleString('ar-EG'));
+    setText('backupDetailSize', formatBackupBytes(backup.size_bytes));
+    setText('backupDetailTag', backup.tag);
+    setText('backupDetailSha', formatBackupSha(backup.sha256) || 'غير متاحة في السجل');
+    setText('backupDetailRestored', restored
+        ? new Date(restored.finished_at || restored.created_at).toLocaleString('ar-EG')
+        : 'لم تُسترجع بعد');
+    details.classList.remove('hidden');
+}
+
 function updateBackupDownloadButton() {
     const button = /** @type {HTMLButtonElement} */ (document.getElementById('backupDownloadButton'));
     const select = /** @type {HTMLSelectElement} */ (document.getElementById('backupRestoreSelect'));
     if (button) button.disabled = !backupDownloadAllowed || backupDownloadInProgress || !select?.value;
+    renderSelectedBackupDetails();
 }
 
 async function downloadDatabaseBackup() {
@@ -286,36 +326,95 @@ async function requestDatabaseRestore() {
     const select = /** @type {HTMLSelectElement} */ (document.getElementById('backupRestoreSelect'));
     const tag = select?.value;
     if (!tag) { toast('اختر نسخة احتياطية أولاً', 'error'); return; }
-    const selectedLabel = select.options[select.selectedIndex]?.textContent?.trim() || tag;
-    const warning = 'سيتم استبدال قاعدة بيانات الإنتاج بالكامل، بما يشمل جميع المباني والحسابات والسجلات.\\n\\nالنسخة المحددة: ' + selectedLabel + '\\nمعرّف النسخة: ' + tag + '\\n\\nلا يمكن التراجع عن العملية من داخل التطبيق. هل تريد المتابعة؟';
-    if (!confirm(warning)) return;
-    const confirmation = prompt('لتأكيد الاستعادة اكتب RESTORE');
-    if (confirmation !== 'RESTORE') { toast('تم إلغاء الاستعادة', 'info'); return; }
-    const button = /** @type {HTMLButtonElement} */ (document.getElementById('backupRestoreButton'));
-    const status = document.getElementById('backupRestoreStatus');
-    button.disabled = true;
-    status.textContent = 'جارٍ إرسال طلب الاستعادة...';
+    const backups = Array.isArray(backupConsoleData?.backups) ? backupConsoleData.backups : [];
+    const backup = backups.find(item => item.tag === tag);
+    if (!backup) { toast('تعذر التحقق من النسخة المختارة. حدّث الحالة ثم حاول مرة أخرى.', 'error'); return; }
+    pendingRestoreTag = tag;
+    const summary = document.getElementById('restoreConfirmSummary');
+    if (summary) {
+        summary.innerHTML = [
+            '<div class="flex justify-between gap-3"><span>النسخة</span><strong dir="ltr" class="text-slate-100">' + esc(tag) + '</strong></div>',
+            '<div class="flex justify-between gap-3"><span>وقت الإصدار</span><strong class="text-slate-100">' + esc(new Date(backup.created_at).toLocaleString('ar-EG')) + '</strong></div>',
+            '<div class="flex justify-between gap-3"><span>الحجم</span><strong class="text-slate-100">' + esc(formatBackupBytes(backup.size_bytes)) + '</strong></div>'
+        ].join('');
+    }
+    const input = /** @type {HTMLInputElement} */ (document.getElementById('restoreConfirmInput'));
+    if (input) input.value = '';
+    const confirmStatus = document.getElementById('restoreConfirmStatus');
+    if (confirmStatus) confirmStatus.textContent = '';
+    updateRestoreConfirmButton();
+    openModal('restoreConfirmModal');
+    if (input) input.focus();
+}
+
+function updateRestoreConfirmButton() {
+    const input = /** @type {HTMLInputElement} */ (document.getElementById('restoreConfirmInput'));
+    const button = /** @type {HTMLButtonElement} */ (document.getElementById('restoreConfirmSubmitButton'));
+    if (button) button.disabled = (input?.value || '').trim() !== 'RESTORE';
+}
+
+function cancelDatabaseRestore() {
+    pendingRestoreTag = null;
+    const input = /** @type {HTMLInputElement} */ (document.getElementById('restoreConfirmInput'));
+    if (input) input.value = '';
+    const status = document.getElementById('restoreConfirmStatus');
+    if (status) status.textContent = '';
+    updateRestoreConfirmButton();
+    closeModal('restoreConfirmModal');
+}
+
+async function confirmDatabaseRestore() {
+    if (!requireManager() || !pendingRestoreTag) return;
+    const tag = pendingRestoreTag;
+    const input = /** @type {HTMLInputElement} */ (document.getElementById('restoreConfirmInput'));
+    const confirmation = (input?.value || '').trim();
+    if (confirmation !== 'RESTORE') { toast('اكتب RESTORE لتأكيد الاستعادة', 'error'); return; }
+    const button = /** @type {HTMLButtonElement} */ (document.getElementById('restoreConfirmSubmitButton'));
+    const status = document.getElementById('restoreConfirmStatus');
+    if (button) button.disabled = true;
+    if (status) status.textContent = 'جارٍ إرسال طلب الاستعادة...';
     try {
         const data = await callBackupConsole({ action: 'request_restore', backup_tag: tag, confirmation });
         activeRestoreRequestId = data.request.id;
-        status.textContent = 'تم تسجيل الطلب. سيبدأ التنفيذ تلقائيًا خلال دقائق.';
+        pendingRestoreTag = null;
+        closeModal('restoreConfirmModal');
+        const panelStatus = document.getElementById('backupRestoreStatus');
+        if (panelStatus) panelStatus.textContent = 'تم تسجيل الطلب. سيبدأ التنفيذ تلقائيًا خلال دقائق.';
         await loadBackupConsole();
     } catch (error) {
-        button.disabled = false;
-        status.textContent = error.message === 'restore_already_pending'
+        if (status) status.textContent = error.message === 'restore_already_pending'
             ? 'توجد عملية استعادة أخرى قيد التنفيذ.'
             : 'تعذر تسجيل طلب الاستعادة. حاول مرة أخرى.';
+        updateRestoreConfirmButton();
         console.error('Restore request error:', error);
     }
 }
 
 function exportJSON() {
     if (!requireManager()) return;
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const exportedAt = new Date();
+    const pad = value => String(value).padStart(2, '0');
+    const stamp = `${exportedAt.getFullYear()}${pad(exportedAt.getMonth() + 1)}${pad(exportedAt.getDate())}-${pad(exportedAt.getHours())}${pad(exportedAt.getMinutes())}`;
+    const payload = {
+        format: 'manzil-state-json',
+        version: 2,
+        exportedAt: exportedAt.toISOString(),
+        buildingName: state.buildingName || '',
+        counts: {
+            residents: state.residents.length,
+            income: state.income.length,
+            expenses: state.expenses.length,
+            notices: state.notices.length
+        },
+        data: state
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `manzil_backup_${Date.now()}.json`;
+    const objectUrl = URL.createObjectURL(blob);
+    a.href = objectUrl;
+    a.download = `manzil_state_${stamp}.json`;
     a.click();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
     toast('تم التصدير','success');
 }
 
@@ -371,9 +470,14 @@ function importJSON(ev) {
         let previousState = null;
         try {
             const resultStr = typeof r.result === 'string' ? r.result : new TextDecoder().decode(r.result);
-            const data = JSON.parse(resultStr);
+            const raw = JSON.parse(resultStr);
+            const data = raw && raw.format === 'manzil-state-json' ? raw.data : raw;
             if (!isValidBackup(data)) throw new Error('ملف غير صالح');
-            if (!confirm('استيراد البيانات؟ سيتم استبدال الحالية.')) return;
+            const sourceName = typeof data.buildingName === 'string' && data.buildingName.trim()
+                ? `«${data.buildingName.trim().slice(0, 80)}»`
+                : 'النسخة';
+            const counts = `الشقق: ${data.residents.length} · التحصيلات: ${data.income.length} · المصروفات: ${data.expenses.length} · التنبيهات: ${data.notices.length}`;
+            if (!confirm(`استيراد ${sourceName}؟\n${counts}\nسيتم استبدال بيانات العمارة الحالية نهائيًا.`)) return;
             previousState = cloneStateSnapshot();
             state = { ...state, ...data, auditLogs: Array.isArray(data.auditLogs) ? data.auditLogs : [] };
             const { data: layoutResult, error: layoutError } = await supabaseClient.rpc('set_building_apartment_layout', {

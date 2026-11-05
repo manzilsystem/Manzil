@@ -146,6 +146,66 @@ function syncCashboxBalancesAfterSnapshot() {
     return true;
 }
 
+function cashMonthLabelFromIso(value) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '' : `${monthsNames[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+function getCashboxSummaryMonth() {
+    const select = /** @type {HTMLSelectElement} */ (document.getElementById('cashboxSummaryMonth'));
+    return select?.value || getCurrentMonth();
+}
+
+function calculateFundMovement(month) {
+    const totals = Object.keys(CASH_ACCOUNTS).reduce((result, code) => {
+        result[code] = { income: 0, expenses: 0, transfersIn: 0, transfersOut: 0 };
+        return result;
+    }, /** @type {Record<string, { income: number, expenses: number, transfersIn: number, transfersOut: number }>} */ ({}));
+    const add = (code, kind, amount) => {
+        const bucket = totals[CASH_ACCOUNTS[code] ? code : 'main'];
+        const value = Number(amount);
+        if (Number.isFinite(value) && value > 0) bucket[kind] += Math.round(value * 100);
+    };
+    state.income.forEach(item => {
+        if (item.month === month) add(item.cashAccountCode, 'income', item.amount);
+    });
+    state.expenses.forEach(item => {
+        if (item.month === month) add(item.cashAccountCode, 'expenses', item.amount);
+    });
+    (Array.isArray(state.cashTransfers) ? state.cashTransfers : []).forEach(item => {
+        if (cashMonthLabelFromIso(item.transferredAt) !== month) return;
+        add(item.fromAccountCode, 'transfersOut', item.amount);
+        add(item.toAccountCode, 'transfersIn', item.amount);
+    });
+    return totals;
+}
+
+function renderCashboxMovementSummary() {
+    const container = document.getElementById('cashboxSummaryRows');
+    if (!container) return;
+    const month = getCashboxSummaryMonth();
+    const totals = calculateFundMovement(month);
+    container.innerHTML = Object.keys(CASH_ACCOUNTS).map(code => {
+        const bucket = totals[code];
+        const transfers = bucket.transfersIn - bucket.transfersOut;
+        const net = bucket.income + transfers - bucket.expenses;
+        const netClass = net > 0 ? 'text-emerald-400' : net < 0 ? 'text-rose-400' : 'text-slate-300';
+        return `
+            <article class="app-input border rounded-2xl p-3 space-y-2">
+                <div class="flex justify-between items-center gap-2">
+                    <strong class="text-xs">${esc(getCashAccountLabel(code))}</strong>
+                    <strong class="${netClass} whitespace-nowrap">${fmtNum(net / 100)} ج.م</strong>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-center text-[10px] text-slate-400">
+                    <div><span class="block font-bold text-emerald-400">${fmtNum(bucket.income / 100)}</span>تحصيلات</div>
+                    <div><span class="block font-bold text-rose-400">${fmtNum(bucket.expenses / 100)}</span>مصروفات</div>
+                    <div><span class="block font-bold ${transfers >= 0 ? 'text-indigo-300' : 'text-amber-300'}">${fmtNum(Math.abs(transfers) / 100)}</span>${transfers >= 0 ? 'صافي وارد' : 'صافي صادر'}</div>
+                </div>
+            </article>
+        `;
+    }).join('') + `<p class="text-[10px] text-slate-500">صافي الحركة = التحصيلات + التحويلات الواردة − المصروفات − التحويلات الصادرة. التحويلات الداخلية لا تُحسب إيرادًا أو مصروفًا.</p>`;
+}
+
 function renderCashbox() {
     if (currentUserRole !== 'manager') return;
 
@@ -158,6 +218,8 @@ function renderCashbox() {
         .reduce((sum, code) => sum + getCashAccountBalance(code), 0);
     const totalElement = document.getElementById('cashBalance-total');
     if (totalElement) totalElement.textContent = `${fmtNum(totalBalance)} ج.م`;
+
+    renderCashboxMovementSummary();
 
     const list = document.getElementById('cashTransfersList');
     if (!list) return;
