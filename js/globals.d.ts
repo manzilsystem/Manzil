@@ -19,5 +19,7 @@ interface Window {
 declare var activeBuildingId: string | undefined;
 declare var saveState: () => Promise<boolean>;
 declare var renderAll: () => void;
-declare var requireManager: () => boolean;
 declare var updateThemeSelection: () => void;
+declare var activeSession: { user: { id: string } } | null;
+declare var supabaseClient: any | null;
+declare var updateAccessSwitchButton: () => void;

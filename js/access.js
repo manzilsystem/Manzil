@@ -1,3 +1,4 @@
+// @ts-check
 function requireManager(message = 'هذه الصلاحية متاحة للمدير فقط') {
     if (currentUserRole === 'manager') return true;
     toast(message, 'error');
@@ -46,7 +47,7 @@ function groupOwnerPaymentsIntoReceipts(residentId) {
             return sum + (Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0);
         }, 0);
         return { ...receipt, payments, totalAmount: totalCents / 100 };
-    }).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    }).sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
 }
 
 function getOwnerManagerWhatsAppPhone() {
@@ -214,7 +215,7 @@ function renderOwnerPortal() {
     const subscriptionGraceDays = Math.min(31, Math.max(0, Number(state.subscriptionGraceDays) || 0));
     const ownPayments = state.income
         .filter(payment => payment.residentId === resident.id)
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         .slice(0, 12);
     const ownerReceipts = groupOwnerPaymentsIntoReceipts(resident.id);
     const ownerReceiptRows = ownerReceipts.length ? ownerReceipts.map(receipt => {
@@ -401,8 +402,8 @@ async function markAllOwnerNotificationsRead() {
 
 function requestOwnerPinOnWhatsApp() {
     const supportNumber = '201027767039';
-    const phone = document.getElementById('authIdentifier')?.value.trim() || '';
-    const apartmentNumber = document.getElementById('ownerApartmentRequestNumber')?.value.trim() || '';
+    const phone = /** @type {HTMLInputElement} */ (document.getElementById('authIdentifier'))?.value.trim() || '';
+    const apartmentNumber = /** @type {HTMLInputElement} */ (document.getElementById('ownerApartmentRequestNumber'))?.value.trim() || '';
     const message = [
         'مرحبًا، أنا مالك شقة وأحتاج الرقم السري للدخول إلى تطبيق المبنى. من فضلك راجع طلبي وأرسل لي طريقة الدخول.',
         phone ? `رقم الجوال الذي أحاول الدخول به: ${phone}` : '',
