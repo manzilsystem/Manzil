@@ -160,8 +160,7 @@
 
 ### المرحلة B — TypeScript تدريجي
 
-- ✅ 12 وحدة مفحوصة: telemetry, state, access, notices, app, subscription-rates, monthly-close, cashbox, backup, reports, render, settings
-- ⏳ crud.js (83 خطأ بعد إصلاحات DOM) — معقد جدًا، يحتاج refactoring مخصص
+- ✅ 13 وحدة مفحوصة: telemetry, state, access, notices, app, subscription-rates, monthly-close, cashbox, backup, reports, render, settings, crud
 - ⏳ supabase.js — يعرّف كل الـ globals، تركه آمن
 
 ## مراحل العمل المتبقية
