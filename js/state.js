@@ -1,3 +1,4 @@
+// @ts-check
 const monthsNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 
 function fmtNum(n) { return (Number(n) || 0).toLocaleString('en-US'); }

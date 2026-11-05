@@ -14,3 +14,10 @@ interface Window {
     manzilErrorLog?: () => unknown[];
     html2pdf?: unknown;
 }
+
+// Global functions defined in other JS modules
+declare var activeBuildingId: string | undefined;
+declare var saveState: () => Promise<boolean>;
+declare var renderAll: () => void;
+declare var requireManager: () => boolean;
+declare var updateThemeSelection: () => void;
