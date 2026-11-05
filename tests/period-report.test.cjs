@@ -84,7 +84,9 @@ function loadReport(options = {}) {
             '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
         }[character])),
         formatDate: () => '01/03/2024',
-        getIncomePaymentMethodLabel: method => ({ cash: 'نقدًا' }[method] || 'غير محدد'),
+        getIncomePaymentMethodLabel: method => ({
+            cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي'
+        }[method] || 'غير محدد'),
         getPaidAmountForMonth: getPaid,
         getSubscriptionAmountForMonth: getSub,
         getMonthOutstanding: (resident, month) => {
@@ -210,6 +212,10 @@ test('period preview gates print and csv until a fresh preview exists', () => {
     assert.equal(lines[0], '"الشهر","المستحق","المحصّل","غير المحصّل","نسبة التحصيل %","المصروف","الصافي"');
     assert.equal(lines[1], '"يناير 2024","100","100","0","100","0","100"');
     assert.equal(lines[4], '"الإجمالي","300","140","160","47","25","115"');
+    assert.equal(lines[5], '');
+    assert.equal(lines[6], '"طريقة التحصيل","عدد الحركات","المبلغ","نسبته من المحصّل %"');
+    assert.equal(lines[7], '"نقدًا","2","140","100"');
+    assert.equal(lines.length, 8);
 
     sandbox.state.income.push({ id: 'i3', residentId: 'r1', month: 'مارس 2024', amount: 150, paymentMethod: 'cash' });
     app.invalidatePeriodReportIfStale();
@@ -251,4 +257,50 @@ test('period signature follows residents and subscription settings inside the ra
     state.defaultSubscription = 100;
     state.expenses.push({ id: 'e2', month: 'أبريل 2024', title: 'خارج الفترة', amount: 999 });
     assert.equal(app.getPeriodReportSignature('يناير 2024', 'مارس 2024'), signature);
+});
+
+const mixedChannels = {
+    income: [
+        { id: 'i1', residentId: 'r1', month: 'يناير 2024', amount: 100, paymentMethod: 'cash' },
+        { id: 'i2', residentId: 'r1', month: 'فبراير 2024', amount: 40, paymentMethod: 'cash' },
+        { id: 'i3', residentId: 'r1', month: 'فبراير 2024', amount: 60, paymentMethod: 'instapay' },
+        { id: 'i4', residentId: 'r1', month: 'مارس 2024', amount: 10, paymentMethod: 'wallet' },
+        { id: 'i5', residentId: 'r1', month: 'أبريل 2024', amount: 500, paymentMethod: 'bank_transfer' }
+    ]
+};
+
+test('period report splits collections by channel and the split equals collected', () => {
+    const { app } = loadReport({ state: mixedChannels });
+    const report = app.buildPeriodReport('يناير 2024', 'مارس 2024');
+    assert.equal(report.methods.map(item => item.label).join('|'), 'نقدًا|InstaPay|محفظة إلكترونية');
+    assert.equal(report.methods.map(item => item.cents).join('|'), '14000|6000|1000');
+    assert.equal(report.methods.map(item => item.count).join('|'), '2|1|1');
+    assert.equal(report.methods.map(item => item.share).join('|'), '67|29|5');
+    assert.equal(report.methods.reduce((sum, item) => sum + item.cents, 0), report.totals.collectedCents);
+});
+
+test('the period preview lists each channel with its movement count and share', () => {
+    const { app } = loadReport({ state: mixedChannels });
+    const html = app.renderPeriodReportHtml(app.buildPeriodReport('يناير 2024', 'مارس 2024'));
+    assert.match(html, /التحصيل حسب الطريقة<\/span><span class="report-block-count">3<\/span>/);
+    assert.match(html, /InstaPay <span class="report-list-meta">· 1 حركة · 29%<\/span>/);
+    assert.match(html, /<span class="report-list-value text-emerald-400 report-amount">140 ج\.م<\/span>/);
+    assert.match(html, /توزيع الطرق يغطي تحصيلات أشهر الفترة فقط/);
+});
+
+test('a period without collections says so instead of inventing channels', () => {
+    const { app } = loadReport({ state: { income: [] } });
+    const report = app.buildPeriodReport('يناير 2024', 'فبراير 2024');
+    assert.equal(report.methods.length, 0);
+    assert.equal(report.totals.collectedCents, 0);
+    const html = app.renderPeriodReportHtml(report);
+    assert.match(html, /<span class="report-block-count">0<\/span>/);
+    assert.match(html, /لا تحصيلات في هذه الفترة\./);
+});
+
+test('switching a payment to another channel invalidates the period signature', () => {
+    const { app, state } = loadReport();
+    const signature = app.getPeriodReportSignature('يناير 2024', 'مارس 2024');
+    state.income[0].paymentMethod = 'instapay';
+    assert.notEqual(app.getPeriodReportSignature('يناير 2024', 'مارس 2024'), signature);
 });

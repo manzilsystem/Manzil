@@ -82,6 +82,10 @@ test('period report gates print and csv on the previewed range', async ({ page }
     await expect(preview).toContainText('تقرير الفترة يناير 2024 – فبراير 2024');
     await expect(preview).toContainText('الإجمالي');
     await expect(preview.locator('.statement-table tbody tr')).toHaveCount(2);
+    await expect(preview.locator('.report-block-title')).toContainText('التحصيل حسب الطريقة');
+    await expect(preview.locator('.report-list-row')).toHaveCount(1);
+    await expect(preview.locator('.report-list-row').first()).toContainText('نقدًا');
+    await expect(preview.locator('.report-list-row').first()).toContainText('· 2 حركة · 100%');
     await expect(printButton).toBeEnabled();
     await expect(exportButton).toBeEnabled();
 
@@ -126,6 +130,7 @@ test('printing a period report isolates its card', async ({ page }) => {
         monthlyClose: getComputedStyle(document.querySelector('#tab-reports > details')).display
     }));
     expect(scopedStyles.period).not.toBe('none');
+    await expect(page.locator('#periodReportPreview .report-block').first()).toBeVisible();
     expect(scopedStyles.landlord).toBe('none');
     expect(scopedStyles.statement).toBe('none');
     expect(scopedStyles.monthlyClose).toBe('none');
@@ -146,6 +151,35 @@ test('period report CSV downloads the range with a totals row', async ({ page })
     const csv = Buffer.concat(chunks).toString('utf8');
     expect(csv).toContain('"يناير 2024","100","100","0","100","0","100"');
     expect(csv).toContain('"الإجمالي","200","1000","0","500","0","1000"');
+    expect(csv).toContain('"طريقة التحصيل","عدد الحركات","المبلغ","نسبته من المحصّل %"');
+    expect(csv).toContain('"نقدًا","2","1000","100"');
+});
+
+test('period channel split matches between preview and csv', async ({ page }) => {
+    await openReports(page);
+    await page.evaluate(() => {
+        state.income.push({ id: 'i4', residentId: 'r1', month: 'فبراير 2024', amount: 100, paymentMethod: 'instapay' });
+        renderAll();
+    });
+    await previewPeriod(page, 'يناير 2024', 'فبراير 2024');
+
+    const block = page.locator('#periodReportPreview .report-block', { hasText: 'التحصيل حسب الطريقة' });
+    const rows = block.locator('.report-list-row');
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(0)).toContainText('نقدًا');
+    await expect(rows.nth(0)).toContainText('· 2 حركة · 91%');
+    await expect(rows.nth(1)).toContainText('InstaPay');
+    await expect(rows.nth(1)).toContainText('· 1 حركة · 9%');
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#periodReportExportBtn').click();
+    const download = await downloadPromise;
+    const stream = await download.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const csv = Buffer.concat(chunks).toString('utf8');
+    expect(csv).toContain('"نقدًا","2","1000","91"');
+    expect(csv).toContain('"InstaPay","1","100","9"');
 });
 
 test('period quick preset fills both month selects', async ({ page }) => {
