@@ -1,3 +1,4 @@
+// @ts-check
 function switchTab(tab) {
     if (!requireManager()) return;
     const tabs = ['dashboard','income','expenses','cashbox','residents','reports'];
@@ -103,16 +104,16 @@ function handleModalKeyboard(event) {
     if (!items.length) {
         event.preventDefault();
         if (!modal.hasAttribute('tabindex')) modal.setAttribute('tabindex', '-1');
-        modal.focus();
+        /** @type {HTMLElement} */ (modal).focus();
         return;
     }
     const first = items[0], last = items[items.length - 1];
     if (event.shiftKey && (document.activeElement === first || !modal.contains(document.activeElement))) {
         event.preventDefault();
-        last.focus();
+        /** @type {HTMLElement} */ (last).focus();
     } else if (!event.shiftKey && (document.activeElement === last || !modal.contains(document.activeElement))) {
         event.preventDefault();
-        first.focus();
+        /** @type {HTMLElement} */ (first).focus();
     }
 }
 
