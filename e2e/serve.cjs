@@ -16,7 +16,14 @@ const types = {
 };
 
 http.createServer((request, response) => {
-    const requested = decodeURIComponent(new URL(request.url, 'http://127.0.0.1').pathname);
+    let requested;
+    try {
+        requested = decodeURIComponent(new URL(request.url, 'http://127.0.0.1').pathname);
+    } catch {
+        response.writeHead(400);
+        response.end('bad request');
+        return;
+    }
     const relative = requested.endsWith('/') ? `${requested}index.html` : requested;
     const file = path.normalize(path.join(root, relative));
 
