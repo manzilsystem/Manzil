@@ -21,7 +21,7 @@ test('every Edge Function exports a testable request handler', () => {
   for (const name of functionNames) {
     const source = fs.readFileSync(path.join(functionsDir, name, 'index.ts'), 'utf8');
     assert.match(source, /export async function handleRequest\(/, `${name} must export handleRequest`);
-    assert.match(source, /if \(import\.meta\.main\)\s*{\s*Deno\.serve\(handleRequest\)/, `${name} must only listen under import.meta.main`);
+    assert.match(source, /if \(Deno\.mainModule === import\.meta\.url\)\s*{\s*Deno\.serve\(handleRequest\)/, `${name} must only listen when it is the entry module`);
   }
 });
 

@@ -337,6 +337,6 @@ export async function handleRequest(request: Request): Promise<Response> {
   })
 }
 
-if (import.meta.main) {
+if (Deno.mainModule === import.meta.url) {
   Deno.serve(handleRequest)
 }
