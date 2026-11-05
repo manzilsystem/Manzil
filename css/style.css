@@ -413,6 +413,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     to { opacity: 1; transform: translate(-50%, 0); }
 }
 .toast { animation: toastIn .3s ease; }
+.icon-action { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; min-height: 32px; }
 @keyframes fadeIn { from { opacity: 0; transform: scale(.95); } to { opacity: 1; transform: scale(1); } }
 .animate-fadeIn { animation: fadeIn .2s ease; }
 
