@@ -9,13 +9,13 @@ const source = fs.readFileSync(
 );
 
 test('monitor-client-errors validates cron secret', () => {
-  assert.match(source, /expectedSecret = Deno\.env\.get\("CRON_SECRET"\)/);
+  assert.match(source, /expectedSecret = Deno\.env\.get\(['"]CRON_SECRET['"]\)/);
   assert.match(source, /secret !== expectedSecret/);
 });
 
 test('monitor-client-errors checks client_errors table in last 24h', () => {
-  assert.match(source, /from\("client_errors"\)/);
-  assert.match(source, /gte\("created_at"/);
+  assert.match(source, /from\(['"]client_errors['"]\)/);
+  assert.match(source, /gte\(['"]created_at['"]/);
   assert.match(source, /24 \* 60 \* 60 \* 1000/);
 });
 
