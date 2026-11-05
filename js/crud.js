@@ -1,3 +1,4 @@
+// @ts-check
 let ownerProvisionRequested = false;
 let incomeSaving = false;
 let editingIncomeId = null;
@@ -21,8 +22,8 @@ function getFloorLabel(floorNumber) {
 }
 
 function updateResidentApartmentOptions(preferredApartment = '') {
-    const floorSelect = document.getElementById('residentFloor');
-    const apartmentSelect = document.getElementById('residentApartment');
+    const floorSelect = /** @type {any} */ (document.getElementById('residentFloor'));
+    const apartmentSelect = /** @type {any} */ (document.getElementById('residentApartment'));
     if (!floorSelect || !apartmentSelect) return;
     const floorNumber = Number(floorSelect.value);
     const currentResident = state.residents.find(item => item.id === editingResidentId);
@@ -48,7 +49,7 @@ function updateResidentApartmentOptions(preferredApartment = '') {
 }
 
 function populateResidentFloorOptions(currentFloor = '') {
-    const select = document.getElementById('residentFloor');
+    const select = /** @type {any} */ (document.getElementById('residentFloor'));
     if (!select) return;
     const floors = [];
     for (let floor = 1; floor <= state.floorCount; floor += 1) floors.push(String(floor));
@@ -70,35 +71,35 @@ function openResidentModal(mode, id) {
         return;
     }
     editingResidentId = isEdit ? id : null;
-    const amountInput = document.getElementById('residentAmount');
-    const historyButton = document.getElementById('manageSubscriptionRatesBtn');
-    document.getElementById('residentModalTitle').textContent = isEdit ? 'تعديل بيانات الشقة' : 'شقة جديدة';
+    const amountInput = /** @type {any} */ (document.getElementById('residentAmount'));
+    const historyButton = /** @type {any} */ (document.getElementById('manageSubscriptionRatesBtn'));
+    /** @type {any} */ (document.getElementById('residentModalTitle')).textContent = isEdit ? 'تعديل بيانات الشقة' : 'شقة جديدة';
     if (isEdit) {
         const resident = state.residents.find(item => item.id === id);
         if (resident) {
-            document.getElementById('residentName').value = resident.name || '';
+            /** @type {any} */ (document.getElementById('residentName')).value = resident.name || '';
             populateResidentFloorOptions(resident.floor || '');
             updateResidentApartmentOptions(resident.apartmentNumber || '');
-            document.getElementById('residentPhone').value = resident.phone || '';
+            /** @type {any} */ (document.getElementById('residentPhone')).value = resident.phone || '';
             amountInput.value = getCurrentSubscriptionAmount(resident);
             amountInput.readOnly = false;
             amountInput.removeAttribute('aria-readonly');
-            const amountHelp = document.getElementById('residentAmountHelp');
+            const amountHelp = /** @type {any} */ (document.getElementById('residentAmountHelp'));
             if (amountHelp) {
                 amountHelp.textContent = 'يمكنك تعديل الاشتراك مباشرة؛ سيُسجّل التغيير من الشهر الحالي مع الاحتفاظ بالسجل السابق. لاختيار شهر سريان آخر استخدم سجل الاشتراك.';
                 amountHelp.classList.remove('hidden');
             }
             historyButton?.classList.remove('hidden');
-            document.getElementById('residentNotes').value = resident.notes || '';
+            /** @type {any} */ (document.getElementById('residentNotes')).value = resident.notes || '';
         }
     } else {
-        document.getElementById('residentForm').reset();
+        /** @type {any} */ (document.getElementById('residentForm')).reset();
         populateResidentFloorOptions();
         updateResidentApartmentOptions();
         amountInput.value = state.defaultSubscription || '';
         amountInput.readOnly = false;
         amountInput.removeAttribute('aria-readonly');
-        document.getElementById('residentAmountHelp')?.classList.add('hidden');
+        /** @type {any} */ (document.getElementById('residentAmountHelp'))?.classList.add('hidden');
         historyButton?.classList.add('hidden');
     }
     openModal('residentModal');
@@ -124,7 +125,7 @@ function buildResidentProfileHtml(resident) {
     }));
     const recentPayments = state.income
         .filter(payment => payment.residentId === resident.id)
-        .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+        .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
         .slice(0, 10);
     const rateHistory = (Array.isArray(resident.subscriptionRateHistory) ? resident.subscriptionRateHistory : [])
         .slice()
@@ -244,7 +245,7 @@ function openResidentProfile(residentId) {
         toast('تعذر العثور على الشقة. حدّث البيانات ثم حاول مرة أخرى.', 'error');
         return;
     }
-    const content = document.getElementById('residentProfileContent');
+    const content = /** @type {any} */ (document.getElementById('residentProfileContent'));
     if (!content) {
         toast('تعذر فتح ملف الشقة. أعد تحميل الصفحة وحاول مرة أخرى.', 'error');
         return;
@@ -261,11 +262,11 @@ function openResidentIncomeFromProfile(residentId) {
         return;
     }
     if (typeof populateSelects === 'function') populateSelects();
-    const residentSelect = document.getElementById('incomeResident');
-    const amountInput = document.getElementById('incomeAmount');
-    const monthSelect = document.getElementById('incomeMonth');
-    const paymentMethodSelect = document.getElementById('incomePaymentMethod');
-    const notesInput = document.getElementById('incomeNotes');
+    const residentSelect = /** @type {any} */ (document.getElementById('incomeResident'));
+    const amountInput = /** @type {any} */ (document.getElementById('incomeAmount'));
+    const monthSelect = /** @type {any} */ (document.getElementById('incomeMonth'));
+    const paymentMethodSelect = /** @type {any} */ (document.getElementById('incomePaymentMethod'));
+    const notesInput = /** @type {any} */ (document.getElementById('incomeNotes'));
     if (!residentSelect || !amountInput || !monthSelect || !paymentMethodSelect) {
         toast('تعذر تجهيز نموذج التحصيل. أعد تحميل الصفحة وحاول مرة أخرى.', 'error');
         return;
@@ -303,14 +304,14 @@ function openResidentStatementFromProfile(residentId) {
     closeModal('residentProfileModal');
     switchTab('reports');
     jumpToReportPanel('residentStatementCard');
-    const select = document.getElementById('statementResidentSelect');
+    const select = /** @type {any} */ (document.getElementById('statementResidentSelect'));
     if (select) select.value = residentId;
     generateResidentStatement();
 }
 
 function saveResidentAndProvisionOwner() {
     if (!requireManager()) return;
-    const form = document.getElementById('residentForm');
+    const form = /** @type {any} */ (document.getElementById('residentForm'));
     if (!form.reportValidity()) return;
     ownerProvisionRequested = true;
     form.requestSubmit();
@@ -353,7 +354,7 @@ function formatSubscriptionAmount(value) {
 }
 
 function renderSubscriptionRateHistory(resident) {
-    const body = document.getElementById('subscriptionRateHistoryBody');
+    const body = /** @type {any} */ (document.getElementById('subscriptionRateHistoryBody'));
     if (!body) return;
     const history = Array.isArray(resident.subscriptionRateHistory) ? resident.subscriptionRateHistory : [];
     if (!history.length) {
@@ -386,14 +387,14 @@ function openSubscriptionRateModal(residentId) {
     const resident = state.residents.find(item => item.id === residentId);
     if (!resident) return;
     subscriptionRateResidentId = resident.id;
-    document.getElementById('subscriptionRateResidentSummary').textContent =
+    /** @type {any} */ (document.getElementById('subscriptionRateResidentSummary')).textContent =
         `${resident.name} · شقة ${resident.apartmentNumber} · القيمة الحالية ${formatSubscriptionAmount(getCurrentSubscriptionAmount(resident))}`;
-    const monthInput = document.getElementById('subscriptionRateEffectiveMonth');
+    const monthInput = /** @type {any} */ (document.getElementById('subscriptionRateEffectiveMonth'));
     monthInput.value = getLocalMonthKey();
     const createdMonth = getLocalMonthKey(resident.createdAt);
     if (createdMonth) monthInput.min = createdMonth;
     else monthInput.removeAttribute('min');
-    document.getElementById('subscriptionRateAmount').value = getCurrentSubscriptionAmount(resident);
+    /** @type {any} */ (document.getElementById('subscriptionRateAmount')).value = getCurrentSubscriptionAmount(resident);
     renderSubscriptionRateHistory(resident);
     openModal('subscriptionRateModal');
 }
@@ -406,8 +407,8 @@ async function addSubscriptionRateChange(event) {
         toast('تعذر العثور على الشقة. أعد فتح سجل الاشتراك.', 'error');
         return;
     }
-    const effectiveMonth = document.getElementById('subscriptionRateEffectiveMonth').value.trim();
-    const monthlyAmount = Number(document.getElementById('subscriptionRateAmount').value);
+    const effectiveMonth = /** @type {any} */ (document.getElementById('subscriptionRateEffectiveMonth')).value.trim();
+    const monthlyAmount = Number(/** @type {any} */ (document.getElementById('subscriptionRateAmount')).value);
     if (!isValidEffectiveMonth(effectiveMonth)) {
         toast('اختر شهرًا صحيحًا لتطبيق الاشتراك.', 'error');
         return;
@@ -449,9 +450,9 @@ async function addSubscriptionRateChange(event) {
         console.error('Could not refresh subscription rate history:', error);
     }
     renderSubscriptionRateHistory(resident);
-    const amountInput = document.getElementById('residentAmount');
+    const amountInput = /** @type {any} */ (document.getElementById('residentAmount'));
     if (amountInput && editingResidentId === resident.id) amountInput.value = resident.monthlyAmount;
-    const summary = document.getElementById('subscriptionRateResidentSummary');
+    const summary = /** @type {any} */ (document.getElementById('subscriptionRateResidentSummary'));
     if (summary) {
         summary.textContent = `${resident.name} · شقة ${resident.apartmentNumber} · القيمة الحالية ${formatSubscriptionAmount(getCurrentSubscriptionAmount(resident))}`;
     }
@@ -464,13 +465,13 @@ async function handleResidentSubmit(e) {
     const previousState = cloneStateSnapshot();
     const shouldProvisionOwner = ownerProvisionRequested;
     ownerProvisionRequested = false;
-    const name = document.getElementById('residentName').value.trim();
-    const apartmentNumber = normalizeApartmentDigits(document.getElementById('residentApartment').value);
-    const floor = normalizeApartmentDigits(document.getElementById('residentFloor').value);
-    const phone = document.getElementById('residentPhone').value.trim();
-    const amountInput = document.getElementById('residentAmount').value.trim();
+    const name = /** @type {any} */ (document.getElementById('residentName')).value.trim();
+    const apartmentNumber = normalizeApartmentDigits(/** @type {any} */ (document.getElementById('residentApartment')).value);
+    const floor = normalizeApartmentDigits(/** @type {any} */ (document.getElementById('residentFloor')).value);
+    const phone = /** @type {any} */ (document.getElementById('residentPhone')).value.trim();
+    const amountInput = /** @type {any} */ (document.getElementById('residentAmount')).value.trim();
     const monthlyAmount = amountInput === '' ? Number(state.defaultSubscription) || 0 : Number(amountInput);
-    const notes = document.getElementById('residentNotes').value.trim();
+    const notes = /** @type {any} */ (document.getElementById('residentNotes')).value.trim();
     if (!name || !apartmentNumber || (state.floorCount > 0 && !floor)) { toast('الاسم والدور ورقم الشقة مطلوبة.', 'error'); return; }
     const existingResident = state.residents.find(item => item.id === editingResidentId);
     if (editingResidentId && !existingResident) {
@@ -593,20 +594,20 @@ async function provisionOwnerAccess(residentId) {
         return;
     }
     renderAll();
-    const phoneDisplay = document.getElementById('ownerTempPinPhone');
+    const phoneDisplay = /** @type {any} */ (document.getElementById('ownerTempPinPhone'));
     const resident = state.residents.find(item => item.id === residentId);
     phoneDisplay.textContent = data.phone;
     phoneDisplay.dataset.phone = data.phone;
     phoneDisplay.dataset.apartmentNumber = resident?.apartmentNumber || '';
-    document.getElementById('ownerTempPinValue').value = data.temporary_pin;
-    const modal = document.getElementById('ownerTempPinModal');
+    /** @type {any} */ (document.getElementById('ownerTempPinValue')).value = data.temporary_pin;
+    const modal = /** @type {any} */ (document.getElementById('ownerTempPinModal'));
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 }
 
 function sendOwnerTempPinOnWhatsApp() {
-    const phoneDisplay = document.getElementById('ownerTempPinPhone');
-    const pin = document.getElementById('ownerTempPinValue')?.value.trim() || '';
+    const phoneDisplay = /** @type {any} */ (document.getElementById('ownerTempPinPhone'));
+    const pin = /** @type {any} */ (document.getElementById('ownerTempPinValue'))?.value.trim() || '';
     const phoneDigits = String(phoneDisplay?.dataset.phone || '').replace(/\D/g, '');
     const apartmentNumber = String(phoneDisplay?.dataset.apartmentNumber || '').trim();
     if (!/^[1-9]\d{7,14}$/.test(phoneDigits)) {
@@ -629,7 +630,7 @@ function sendOwnerTempPinOnWhatsApp() {
 }
 
 async function copyOwnerTempPin() {
-    const input = document.getElementById('ownerTempPinValue');
+    const input = /** @type {any} */ (document.getElementById('ownerTempPinValue'));
     input.select();
     let copied = false;
     try {
@@ -642,9 +643,9 @@ async function copyOwnerTempPin() {
 }
 
 function closeOwnerTempPinModal() {
-    const input = document.getElementById('ownerTempPinValue');
+    const input = /** @type {any} */ (document.getElementById('ownerTempPinValue'));
     input.value = '';
-    const modal = document.getElementById('ownerTempPinModal');
+    const modal = /** @type {any} */ (document.getElementById('ownerTempPinModal'));
     modal.classList.add('hidden');
     modal.classList.remove('flex');
 }
@@ -680,11 +681,11 @@ function quickPayResident(residentId) {
     }
 
     if (typeof populateSelects === 'function') populateSelects();
-    const residentSelect = document.getElementById('incomeResident');
-    const amountInput = document.getElementById('incomeAmount');
-    const monthSelect = document.getElementById('incomeMonth');
-    const paymentMethodSelect = document.getElementById('incomePaymentMethod');
-    const notesInput = document.getElementById('incomeNotes');
+    const residentSelect = /** @type {any} */ (document.getElementById('incomeResident'));
+    const amountInput = /** @type {any} */ (document.getElementById('incomeAmount'));
+    const monthSelect = /** @type {any} */ (document.getElementById('incomeMonth'));
+    const paymentMethodSelect = /** @type {any} */ (document.getElementById('incomePaymentMethod'));
+    const notesInput = /** @type {any} */ (document.getElementById('incomeNotes'));
     if (!residentSelect || !amountInput || !monthSelect || !paymentMethodSelect) {
         toast('تعذر تجهيز نموذج التحصيل. أعد تحميل الصفحة وحاول مرة أخرى.', 'error');
         return;
@@ -701,21 +702,21 @@ function quickPayResident(residentId) {
 }
 
 function previewIncomeAllocation() {
-    const policyHelp = document.getElementById('incomeAllocationPolicyHelp');
+    const policyHelp = /** @type {any} */ (document.getElementById('incomeAllocationPolicyHelp'));
     if (policyHelp) {
         policyHelp.textContent = state.paymentAllocationPolicy === 'selected_month_first'
             ? 'سيُسدد الشهر المحدد أولًا، ثم تُسوّى الشهور الأقدم، وبعدها الشهور التالية. راجع المعاينة قبل الحفظ.'
             : 'سيُسدد أقدم شهر غير مسدد أولًا، ثم الأشهر التالية بالترتيب. راجع المعاينة قبل الحفظ.';
     }
-    const preview = document.getElementById('incomeAllocationPreview');
-    const summary = document.getElementById('incomeAllocationSummary');
-    const rows = document.getElementById('incomeAllocationRows');
-    const submit = document.getElementById('incomeSubmitButton');
+    const preview = /** @type {any} */ (document.getElementById('incomeAllocationPreview'));
+    const summary = /** @type {any} */ (document.getElementById('incomeAllocationSummary'));
+    const rows = /** @type {any} */ (document.getElementById('incomeAllocationRows'));
+    const submit = /** @type {any} */ (document.getElementById('incomeSubmitButton'));
     if (!preview || !summary || !rows) return;
 
-    const residentId = document.getElementById('incomeResident')?.value || '';
-    const amount = Number(document.getElementById('incomeAmount')?.value);
-    const month = document.getElementById('incomeMonth')?.value || '';
+    const residentId = /** @type {any} */ (document.getElementById('incomeResident'))?.value || '';
+    const amount = Number(/** @type {any} */ (document.getElementById('incomeAmount'))?.value);
+    const month = /** @type {any} */ (document.getElementById('incomeMonth'))?.value || '';
     const ready = Boolean(residentId && month && Number.isFinite(amount) && amount > 0);
     if (!ready) {
         preview.classList.add('hidden');
@@ -741,7 +742,7 @@ function previewIncomeAllocation() {
     summary.textContent = result.remainingCents > 0
         ? `تم توزيع ${fmtNum(result.totalAllocated)} من ${fmtNum(amount)} ج.م. المتبقي ${fmtNum(result.remainingAmount)} ج.م خارج نطاق التوزيع؛ قلّل المبلغ.`
         : `سيتم توزيع ${fmtNum(result.totalAllocated)} ج.م على ${result.allocations.length} شهر، بدءًا من أقدم شهر غير مسدد.`;
-    const cashAccountCode = document.getElementById('incomeCashAccount')?.value || 'main';
+    const cashAccountCode = /** @type {any} */ (document.getElementById('incomeCashAccount'))?.value || 'main';
     rows.innerHTML = result.allocations.map(item =>
         `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${esc(item.month)}</span><strong class="text-emerald-400">${fmtNum(item.amount)} ج.م</strong></div>`
     ).join('') + `<div class="flex justify-between items-center gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(getCashAccountLabel(cashAccountCode))}</strong></div>`;
@@ -751,12 +752,12 @@ function previewIncomeAllocation() {
 async function handleIncomeSubmit(e) {
     if (!requireManager() || incomeSaving) return;
     e.preventDefault();
-    const residentId = document.getElementById('incomeResident').value;
-    const amount = Number(document.getElementById('incomeAmount').value);
-    const month = document.getElementById('incomeMonth').value;
-    const notes = document.getElementById('incomeNotes').value.trim();
-    const paymentMethod = document.getElementById('incomePaymentMethod').value;
-    const cashAccountCode = document.getElementById('incomeCashAccount')?.value || 'main';
+    const residentId = /** @type {any} */ (document.getElementById('incomeResident')).value;
+    const amount = Number(/** @type {any} */ (document.getElementById('incomeAmount')).value);
+    const month = /** @type {any} */ (document.getElementById('incomeMonth')).value;
+    const notes = /** @type {any} */ (document.getElementById('incomeNotes')).value.trim();
+    const paymentMethod = /** @type {any} */ (document.getElementById('incomePaymentMethod')).value;
+    const cashAccountCode = /** @type {any} */ (document.getElementById('incomeCashAccount'))?.value || 'main';
     const paymentMethodEnabled = typeof isIncomePaymentMethodEnabled === 'function'
         ? isIncomePaymentMethodEnabled(paymentMethod)
         : Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod);
@@ -781,7 +782,7 @@ async function handleIncomeSubmit(e) {
     }
 
     incomeSaving = true;
-    const submit = document.getElementById('incomeSubmitButton');
+    const submit = /** @type {any} */ (document.getElementById('incomeSubmitButton'));
     if (submit) {
         submit.disabled = true;
         submit.textContent = 'جارٍ الحفظ...';
@@ -813,8 +814,8 @@ async function handleIncomeSubmit(e) {
     try {
         if (!await saveWithRollback(previousState)) return;
         closeModal('incomeModal');
-        document.getElementById('incomeForm').reset();
-        document.getElementById('incomeAllocationPreview')?.classList.add('hidden');
+        /** @type {any} */ (document.getElementById('incomeForm')).reset();
+        /** @type {any} */ (document.getElementById('incomeAllocationPreview'))?.classList.add('hidden');
         renderAll();
         toast(
             allocation.allocations.length > 1
@@ -845,22 +846,22 @@ function openIncomeEditModal(id) {
         return;
     }
     editingIncomeId = payment.id;
-    document.getElementById('incomeEditResidentSummary').textContent =
+    /** @type {any} */ (document.getElementById('incomeEditResidentSummary')).textContent =
         resident.name + ' · شقة ' + resident.apartmentNumber;
-    const monthSelect = document.getElementById('incomeEditMonth');
+    const monthSelect = /** @type {any} */ (document.getElementById('incomeEditMonth'));
     monthSelect.innerHTML = getActiveBuildingMonths()
         .map(month => '<option value="' + esc(month) + '">' + esc(month) + '</option>').join('');
     monthSelect.value = payment.month;
-    document.getElementById('incomeEditAmount').value = payment.amount;
-    const paymentMethodSelect = document.getElementById('incomeEditPaymentMethod');
+    /** @type {any} */ (document.getElementById('incomeEditAmount')).value = payment.amount;
+    const paymentMethodSelect = /** @type {any} */ (document.getElementById('incomeEditPaymentMethod'));
     if (typeof populatePaymentMethodOptions === 'function') {
         populatePaymentMethodOptions(paymentMethodSelect, payment.paymentMethod || '', true);
     }
     if (paymentMethodSelect) paymentMethodSelect.value = payment.paymentMethod || '';
-    const cashAccountSelect = document.getElementById('incomeEditCashAccount');
+    const cashAccountSelect = /** @type {any} */ (document.getElementById('incomeEditCashAccount'));
     if (cashAccountSelect) cashAccountSelect.value = payment.cashAccountCode || 'main';
     const distributionNote = String(payment.notes || '').match(/^(دفعة موزعة\s+[A-Z0-9]+\s+\(\d+\/\d+\))(?:\s+·\s+([\s\S]*))?$/i);
-    document.getElementById('incomeEditNotes').value = distributionNote ? (distributionNote[2] || '') : (payment.notes || '');
+    /** @type {any} */ (document.getElementById('incomeEditNotes')).value = distributionNote ? (distributionNote[2] || '') : (payment.notes || '');
     openModal('incomeEditModal');
 }
 
@@ -877,13 +878,13 @@ async function handleIncomeEditSubmit(event) {
         toast('الشقة المرتبطة بالتحصيل غير موجودة.', 'error');
         return;
     }
-    const amount = Number(document.getElementById('incomeEditAmount').value);
+    const amount = Number(/** @type {any} */ (document.getElementById('incomeEditAmount')).value);
     const amountCents = Number.isFinite(amount) ? Math.round(amount * 100) : 0;
-    const month = document.getElementById('incomeEditMonth').value;
+    const month = /** @type {any} */ (document.getElementById('incomeEditMonth')).value;
     const monthKey = monthLabelToKey(month);
-    const notes = document.getElementById('incomeEditNotes').value.trim();
-    const paymentMethod = document.getElementById('incomeEditPaymentMethod').value;
-    const cashAccountCode = document.getElementById('incomeEditCashAccount')?.value || 'main';
+    const notes = /** @type {any} */ (document.getElementById('incomeEditNotes')).value.trim();
+    const paymentMethod = /** @type {any} */ (document.getElementById('incomeEditPaymentMethod')).value;
+    const cashAccountCode = /** @type {any} */ (document.getElementById('incomeEditCashAccount'))?.value || 'main';
     const paymentMethodEnabled = typeof isIncomePaymentMethodEnabled === 'function'
         ? isIncomePaymentMethodEnabled(paymentMethod)
         : Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod);
@@ -919,7 +920,7 @@ async function handleIncomeEditSubmit(event) {
     }
 
     incomeSaving = true;
-    const submit = document.getElementById('incomeEditSubmitButton');
+    const submit = /** @type {any} */ (document.getElementById('incomeEditSubmitButton'));
     if (submit) {
         submit.disabled = true;
         submit.textContent = 'جارٍ الحفظ...';
@@ -972,17 +973,17 @@ async function deleteIncome(id) {
 }
 
 function previewExpense() {
-    const preview = document.getElementById('expensePreview');
-    const summary = document.getElementById('expensePreviewSummary');
-    const details = document.getElementById('expensePreviewDetails');
+    const preview = /** @type {any} */ (document.getElementById('expensePreview'));
+    const summary = /** @type {any} */ (document.getElementById('expensePreviewSummary'));
+    const details = /** @type {any} */ (document.getElementById('expensePreviewDetails'));
     if (!preview || !summary || !details) return;
 
-    const title = document.getElementById('expenseTitle')?.value.trim() || '';
-    const amount = Number(document.getElementById('expenseAmount')?.value);
-    const category = document.getElementById('expenseCategory')?.value || '';
-    const month = document.getElementById('expenseMonth')?.value || '';
-    const notes = document.getElementById('expenseNotes')?.value.trim() || '';
-    const cashAccountCode = document.getElementById('expenseCashAccount')?.value || 'main';
+    const title = /** @type {any} */ (document.getElementById('expenseTitle'))?.value.trim() || '';
+    const amount = Number(/** @type {any} */ (document.getElementById('expenseAmount'))?.value);
+    const category = /** @type {any} */ (document.getElementById('expenseCategory'))?.value || '';
+    const month = /** @type {any} */ (document.getElementById('expenseMonth'))?.value || '';
+    const notes = /** @type {any} */ (document.getElementById('expenseNotes'))?.value.trim() || '';
+    const cashAccountCode = /** @type {any} */ (document.getElementById('expenseCashAccount'))?.value || 'main';
     const editingExpense = editingExpenseId ? state.expenses.find(item => item.id === editingExpenseId) : null;
     const accountBalance = getCashAccountBalance(cashAccountCode) +
         (editingExpense && (editingExpense.cashAccountCode || 'main') === cashAccountCode ? (Number(editingExpense.amount) || 0) : 0);
@@ -1009,15 +1010,15 @@ function previewExpense() {
 function openExpenseModal() {
     if (!requireManager()) return;
     editingExpenseId = null;
-    document.getElementById('expenseForm')?.reset();
-    document.getElementById('expenseTitle').value = '';
-    document.getElementById('expenseAmount').value = '';
-    document.getElementById('expenseNotes').value = '';
-    document.getElementById('expenseMonth').value = getCurrentMonth();
-    document.getElementById('expenseCashAccount').value = 'main';
-    document.getElementById('expenseModalTitle').textContent = 'مصروف جديد';
-    document.getElementById('expenseSubmitButton').textContent = 'حفظ المصروف';
-    document.getElementById('expensePreview')?.classList.add('hidden');
+    /** @type {any} */ (document.getElementById('expenseForm'))?.reset();
+    /** @type {any} */ (document.getElementById('expenseTitle')).value = '';
+    /** @type {any} */ (document.getElementById('expenseAmount')).value = '';
+    /** @type {any} */ (document.getElementById('expenseNotes')).value = '';
+    /** @type {any} */ (document.getElementById('expenseMonth')).value = getCurrentMonth();
+    /** @type {any} */ (document.getElementById('expenseCashAccount')).value = 'main';
+    /** @type {any} */ (document.getElementById('expenseModalTitle')).textContent = 'مصروف جديد';
+    /** @type {any} */ (document.getElementById('expenseSubmitButton')).textContent = 'حفظ المصروف';
+    /** @type {any} */ (document.getElementById('expensePreview'))?.classList.add('hidden');
     openModal('expenseModal');
 }
 
@@ -1026,14 +1027,14 @@ function openExpenseEditModal(id) {
     const expense = state.expenses.find(item => item.id === id);
     if (!expense) { toast('تعذر العثور على المصروف. حدّث السجل ثم حاول مرة أخرى.', 'error'); return; }
     editingExpenseId = id;
-    document.getElementById('expenseTitle').value = expense.title || '';
-    document.getElementById('expenseAmount').value = String(expense.amount ?? '');
-    document.getElementById('expenseCategory').value = expense.category || 'أخرى';
-    document.getElementById('expenseMonth').value = expense.month || getCurrentMonth();
-    document.getElementById('expenseCashAccount').value = expense.cashAccountCode || 'main';
-    document.getElementById('expenseNotes').value = expense.notes || '';
-    document.getElementById('expenseModalTitle').textContent = 'تعديل المصروف';
-    document.getElementById('expenseSubmitButton').textContent = 'حفظ التعديل';
+    /** @type {any} */ (document.getElementById('expenseTitle')).value = expense.title || '';
+    /** @type {any} */ (document.getElementById('expenseAmount')).value = String(expense.amount ?? '');
+    /** @type {any} */ (document.getElementById('expenseCategory')).value = expense.category || 'أخرى';
+    /** @type {any} */ (document.getElementById('expenseMonth')).value = expense.month || getCurrentMonth();
+    /** @type {any} */ (document.getElementById('expenseCashAccount')).value = expense.cashAccountCode || 'main';
+    /** @type {any} */ (document.getElementById('expenseNotes')).value = expense.notes || '';
+    /** @type {any} */ (document.getElementById('expenseModalTitle')).textContent = 'تعديل المصروف';
+    /** @type {any} */ (document.getElementById('expenseSubmitButton')).textContent = 'حفظ التعديل';
     openModal('expenseModal');
     previewExpense();
 }
@@ -1041,12 +1042,12 @@ function openExpenseEditModal(id) {
 async function handleExpenseSubmit(e) {
     if (!requireManager() || expenseSaving) return;
     e.preventDefault();
-    const title = document.getElementById('expenseTitle').value.trim();
-    const amount = Number(document.getElementById('expenseAmount').value);
-    const category = document.getElementById('expenseCategory').value;
-    const month = document.getElementById('expenseMonth').value;
-    const notes = document.getElementById('expenseNotes').value.trim();
-    const cashAccountCode = document.getElementById('expenseCashAccount')?.value || 'main';
+    const title = /** @type {any} */ (document.getElementById('expenseTitle')).value.trim();
+    const amount = Number(/** @type {any} */ (document.getElementById('expenseAmount')).value);
+    const category = /** @type {any} */ (document.getElementById('expenseCategory')).value;
+    const month = /** @type {any} */ (document.getElementById('expenseMonth')).value;
+    const notes = /** @type {any} */ (document.getElementById('expenseNotes')).value.trim();
+    const cashAccountCode = /** @type {any} */ (document.getElementById('expenseCashAccount'))?.value || 'main';
     const existingExpense = editingExpenseId ? state.expenses.find(item => item.id === editingExpenseId) : null;
     if (editingExpenseId && !existingExpense) {
         toast('المصروف المراد تعديله لم يعد موجوداً. حدّث السجل ثم حاول مجدداً.', 'error');
@@ -1066,7 +1067,7 @@ async function handleExpenseSubmit(e) {
         return;
     }
     expenseSaving = true;
-    const submit = document.getElementById('expenseSubmitButton');
+    const submit = /** @type {any} */ (document.getElementById('expenseSubmitButton'));
     if (submit) { submit.disabled = true; submit.textContent = 'جارٍ الحفظ...'; }
     const previousState = cloneStateSnapshot();
     if (existingExpense) {
@@ -1081,9 +1082,9 @@ async function handleExpenseSubmit(e) {
         if (!await saveWithRollback(previousState)) return;
         editingExpenseId = null;
         closeModal('expenseModal');
-        document.getElementById('expenseForm').reset();
-        document.getElementById('expensePreview')?.classList.add('hidden');
-        document.getElementById('expenseModalTitle').textContent = 'مصروف جديد';
+        /** @type {any} */ (document.getElementById('expenseForm')).reset();
+        /** @type {any} */ (document.getElementById('expensePreview'))?.classList.add('hidden');
+        /** @type {any} */ (document.getElementById('expenseModalTitle')).textContent = 'مصروف جديد';
         renderAll();
         toast(existingExpense ? 'تم تعديل المصروف بنجاح.' : 'تم تسجيل المصروف', 'success');
     } finally {
