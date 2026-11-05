@@ -741,9 +741,10 @@ function previewIncomeAllocation() {
     summary.textContent = result.remainingCents > 0
         ? `تم توزيع ${fmtNum(result.totalAllocated)} من ${fmtNum(amount)} ج.م. المتبقي ${fmtNum(result.remainingAmount)} ج.م خارج نطاق التوزيع؛ قلّل المبلغ.`
         : `سيتم توزيع ${fmtNum(result.totalAllocated)} ج.م على ${result.allocations.length} شهر، بدءًا من أقدم شهر غير مسدد.`;
+    const cashAccountCode = document.getElementById('incomeCashAccount')?.value || 'main';
     rows.innerHTML = result.allocations.map(item =>
         `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${esc(item.month)}</span><strong class="text-emerald-400">${fmtNum(item.amount)} ج.م</strong></div>`
-    ).join('');
+    ).join('') + `<div class="flex justify-between items-center gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(getCashAccountLabel(cashAccountCode))}</strong></div>`;
     if (submit) submit.disabled = result.remainingCents > 0;
 }
 
@@ -755,13 +756,15 @@ async function handleIncomeSubmit(e) {
     const month = document.getElementById('incomeMonth').value;
     const notes = document.getElementById('incomeNotes').value.trim();
     const paymentMethod = document.getElementById('incomePaymentMethod').value;
+    const cashAccountCode = document.getElementById('incomeCashAccount')?.value || 'main';
     const paymentMethodEnabled = typeof isIncomePaymentMethodEnabled === 'function'
         ? isIncomePaymentMethodEnabled(paymentMethod)
         : Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod);
     if (!residentId || !Number.isFinite(amount) || amount <= 0 || !month
         || !Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod)
+        || !['main', 'development', 'emergency'].includes(cashAccountCode)
         || !paymentMethodEnabled) {
-        toast('اختر الشقة وطريقة الدفع والشهر، وأدخل مبلغاً أكبر من صفر.', 'error');
+        toast('اختر الشقة وطريقة الدفع والشهر والصندوق، وأدخل مبلغاً أكبر من صفر.', 'error');
         return;
     }
     const resident = state.residents.find(item => item.id === residentId);
@@ -798,12 +801,13 @@ async function handleIncomeSubmit(e) {
             month: item.month,
             date: paidAt,
             paymentMethod,
+            cashAccountCode,
             notes: allocationNote
         });
     });
     logAction(
         'تحصيل موزع',
-        `${resident.name} - ${fmtNum(amount)} ج.م - ${getIncomePaymentMethodLabel(paymentMethod)} - ${allocation.allocations.length} شهر - ${paymentReference}`
+        `${resident.name} - ${fmtNum(amount)} ج.م - ${getIncomePaymentMethodLabel(paymentMethod)} - ${getCashAccountLabel(cashAccountCode)} - ${allocation.allocations.length} شهر - ${paymentReference}`
     );
 
     try {
@@ -853,6 +857,8 @@ function openIncomeEditModal(id) {
         populatePaymentMethodOptions(paymentMethodSelect, payment.paymentMethod || '', true);
     }
     if (paymentMethodSelect) paymentMethodSelect.value = payment.paymentMethod || '';
+    const cashAccountSelect = document.getElementById('incomeEditCashAccount');
+    if (cashAccountSelect) cashAccountSelect.value = payment.cashAccountCode || 'main';
     const distributionNote = String(payment.notes || '').match(/^(دفعة موزعة\s+[A-Z0-9]+\s+\(\d+\/\d+\))(?:\s+·\s+([\s\S]*))?$/i);
     document.getElementById('incomeEditNotes').value = distributionNote ? (distributionNote[2] || '') : (payment.notes || '');
     openModal('incomeEditModal');
@@ -877,13 +883,15 @@ async function handleIncomeEditSubmit(event) {
     const monthKey = monthLabelToKey(month);
     const notes = document.getElementById('incomeEditNotes').value.trim();
     const paymentMethod = document.getElementById('incomeEditPaymentMethod').value;
+    const cashAccountCode = document.getElementById('incomeEditCashAccount')?.value || 'main';
     const paymentMethodEnabled = typeof isIncomePaymentMethodEnabled === 'function'
         ? isIncomePaymentMethodEnabled(paymentMethod)
         : Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod);
     if (!monthKey || amountCents <= 0
         || !Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod)
+        || !['main', 'development', 'emergency'].includes(cashAccountCode)
         || (!paymentMethodEnabled && paymentMethod !== (payment.paymentMethod || ''))) {
-        toast('اختر شهرًا صحيحًا وطريقة الدفع وأدخل مبلغًا أكبر من صفر.', 'error');
+        toast('اختر شهرًا صحيحًا وطريقة الدفع والصندوق وأدخل مبلغًا أكبر من صفر.', 'error');
         return;
     }
     const createdMonth = getLocalMonthKey(resident.createdAt);
@@ -904,7 +912,8 @@ async function handleIncomeEditSubmit(event) {
     }
     if (amountCents === Math.round(Number(payment.amount) * 100)
         && month === payment.month && notes === (payment.notes || '')
-        && paymentMethod === (payment.paymentMethod || '')) {
+        && paymentMethod === (payment.paymentMethod || '')
+        && cashAccountCode === (payment.cashAccountCode || 'main')) {
         toast('لم يتم تغيير بيانات التحصيل.', 'info');
         return;
     }
@@ -926,12 +935,16 @@ async function handleIncomeEditSubmit(event) {
         : [payment];
     payment.amount = amountCents / 100;
     payment.month = month;
-    relatedPayments.forEach(item => { item.paymentMethod = paymentMethod; });
+    relatedPayments.forEach(item => {
+        item.paymentMethod = paymentMethod;
+        item.cashAccountCode = cashAccountCode;
+    });
     payment.notes = distributionMatch
         ? distributionMatch[1] + (notes ? ' · ' + notes : '')
         : notes;
     logAction('تعديل تحصيل', resident.name + ' - ' + previousMonth + ' إلى ' + month
         + ' - طريقة الدفع: ' + getIncomePaymentMethodLabel(paymentMethod)
+        + ' - الصندوق: ' + getCashAccountLabel(cashAccountCode)
         + ' - ' + fmtNum(previousAmount) + ' إلى ' + fmtNum(payment.amount));
     try {
         if (!await saveWithRollback(previousState)) return;

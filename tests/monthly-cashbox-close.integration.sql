@@ -59,6 +59,17 @@ INSERT INTO public.income (
     '10000000-0000-4000-8000-000000000001'
 );
 
+-- A collection deposited straight into the emergency fund during November.
+INSERT INTO public.income (
+    id, building_id, resident_id, amount, month, paid_at, created_by, cash_account_code
+) VALUES (
+    '50000000-0000-4000-8000-000000000045',
+    '20000000-0000-4000-8000-000000000004',
+    '30000000-0000-4000-8000-000000000004',
+    30, '2026-11', '2026-11-12T10:00:00Z',
+    '10000000-0000-4000-8000-000000000001', 'emergency'
+);
+
 INSERT INTO public.expenses (
     id, building_id, title, amount, category, month, spent_at, created_by, cash_account_code
 ) VALUES
@@ -160,18 +171,19 @@ BEGIN
     END IF;
 
     IF (v_report#>>'{accounts,emergency,opening_balance}')::numeric <> 0
+       OR (v_report#>>'{accounts,emergency,income}')::numeric <> 30
        OR (v_report#>>'{accounts,emergency,transfers_in}')::numeric <> 15
-       OR (v_report#>>'{accounts,emergency,closing_balance}')::numeric <> 15 THEN
+       OR (v_report#>>'{accounts,emergency,closing_balance}')::numeric <> 45 THEN
         RAISE EXCEPTION 'emergency fund close mismatch: %', v_report;
     END IF;
 
     IF (v_report#>>'{totals,opening_balance}')::numeric <> 140
-       OR (v_report#>>'{totals,income}')::numeric <> 150
+       OR (v_report#>>'{totals,income}')::numeric <> 180
        OR (v_report#>>'{totals,expenses}')::numeric <> 25
        OR (v_report#>>'{totals,transfers_in}')::numeric <> 15
        OR (v_report#>>'{totals,transfers_out}')::numeric <> 15
-       OR (v_report#>>'{totals,net_movement}')::numeric <> 125
-       OR (v_report#>>'{totals,closing_balance}')::numeric <> 265 THEN
+       OR (v_report#>>'{totals,net_movement}')::numeric <> 155
+       OR (v_report#>>'{totals,closing_balance}')::numeric <> 295 THEN
         RAISE EXCEPTION 'monthly total close mismatch: %', v_report;
     END IF;
 

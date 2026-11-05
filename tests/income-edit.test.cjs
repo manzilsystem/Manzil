@@ -16,6 +16,7 @@ function createHarness({ income = [], values = {}, saveResult = true } = {}) {
         incomeEditPaymentMethod: { value: values.paymentMethod || 'cash' },
         incomeEditPaymentMethod: { value: values.paymentMethod || 'cash' },
         incomeEditNotes: { value: values.notes || '' },
+        incomeEditCashAccount: { value: values.cashAccountCode || 'main' },
         incomeEditSubmitButton: { disabled: false, textContent: 'حفظ التعديل' }
     };
     const state = {
@@ -48,6 +49,9 @@ function createHarness({ income = [], values = {}, saveResult = true } = {}) {
         INCOME_PAYMENT_METHOD_LABELS: { cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي' },
         getIncomePaymentMethodLabel: method => ({ cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي' })[method] || 'غير محدد',
         esc: value => String(value ?? ''),
+        getCashAccountLabel: code => ({
+            main: 'الخزنة الرئيسية', development: 'صندوق التطوير', emergency: 'صندوق الصيانة الطارئة'
+        })[code] || 'الخزنة الرئيسية',
         console
     };
     const api = vm.runInNewContext(source + '\n({ openIncomeEditModal, handleIncomeEditSubmit })', sandbox, {

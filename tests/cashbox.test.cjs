@@ -70,11 +70,39 @@ test('cashbox screens and summaries are manager-only in the application', () => 
     assert.match(html, /src="js\/cashbox\.js"/);
 });
 
-test('main balance includes all income while fund balances are backed by transfers', () => {
+test('collections route into the cash account chosen at collection time', () => {
+    const incomeMigration = read('supabase/migrations/20261105090000_income_cash_account_allocation.sql');
+    assert.match(incomeMigration, /ALTER TABLE public\.income\s+ADD COLUMN IF NOT EXISTS cash_account_code text NOT NULL DEFAULT 'main'/);
+    assert.match(incomeMigration, /income_cash_account_code_check/);
+    assert.match(incomeMigration, /CREATE OR REPLACE FUNCTION private\.get_cashbox_summary/);
+    assert.match(incomeMigration, /COALESCE\(NULLIF\(payment\.cash_account_code, ''\), 'main'\) = 'main'/);
+    assert.match(incomeMigration, /AND payment\.cash_account_code = 'development'/);
+    assert.match(incomeMigration, /AND payment\.cash_account_code = 'emergency'/);
+    assert.match(incomeMigration, /CREATE OR REPLACE FUNCTION private\.get_monthly_cashbox_close/);
+    assert.match(incomeMigration, /SELECT COALESCE\(NULLIF\(payment\.cash_account_code, ''\), 'main'\)::text, 'income'::text/);
+    assert.match(incomeMigration, /CREATE OR REPLACE FUNCTION private\.persist_building_snapshot/);
+    assert.match(incomeMigration, /RAISE EXCEPTION 'invalid_income_cash_account_code'/);
+    assert.match(incomeMigration, /UPDATE public\.income allocated_income/);
+    assert.match(incomeMigration, /-- Fund accounts may only spend money explicitly transferred or collected into them\./);
+});
+
+test('income forms, snapshots and accounting carry the destination cash account', () => {
+    assert.match(html, /id="incomeCashAccount"/);
+    assert.match(html, /id="incomeEditCashAccount"/);
+    assert.match(crud, /cashAccountCode = document\.getElementById\('incomeCashAccount'\)/);
+    assert.match(crud, /cashAccountCode = document\.getElementById\('incomeEditCashAccount'\)/);
+    assert.match(crud, /paymentMethod,\s+cashAccountCode,\s+notes: allocationNote/);
+    assert.match(supabase, /cash_account_code: i\.cashAccountCode \|\| 'main'/);
+    assert.match(supabase, /id,resident_id,amount,month,notes,payment_method,cash_account_code,paid_at/);
+    assert.match(cashbox, /income: byAccount\(\)/);
+    assert.match(cashbox, /next\.income\[code\] - previous\.income\[code\]/);
+    assert.match(render, /getCashAccountLabel\(i\.cashAccountCode \|\| 'main'\)/);
+});
+
+test('main balance still sums income and expenses while fund balances follow their own rows', () => {
     assert.match(migration, /'main',[\s\S]*?SUM\(payment\.amount\)/);
     assert.match(migration, /'development',[\s\S]*?to_account_code = 'development'/);
     assert.match(migration, /'emergency',[\s\S]*?to_account_code = 'emergency'/);
-    assert.match(migration, /-- Fund accounts may only spend money explicitly transferred into them/);
 });
 
 test('all client-side JavaScript modules parse without syntax errors', () => {
@@ -89,7 +117,7 @@ test('cashbox UI applies starting balance, collection and expense deltas in cent
     const sandbox = {
         state: {
             startingBalance: 1000,
-            income: [{ amount: 100.10 }],
+            income: [{ amount: 100.10 }, { amount: 40.05, cashAccountCode: 'development' }],
             expenses: [
                 { amount: 50.05, cashAccountCode: 'main' },
                 { amount: 20.10, cashAccountCode: 'development' },
@@ -106,7 +134,7 @@ test('cashbox UI applies starting balance, collection and expense deltas in cent
 
     accounting.initializeCashboxAccountingSnapshot();
     sandbox.state.startingBalance += 25.25;
-    sandbox.state.income.push({ amount: 30.30 });
+    sandbox.state.income.push({ amount: 30.30 }, { amount: 12.12, cashAccountCode: 'emergency' });
     sandbox.state.expenses.push(
         { amount: 5.05, cashAccountCode: 'main' },
         { amount: 4.04, cashAccountCode: 'development' },
@@ -117,19 +145,19 @@ test('cashbox UI applies starting balance, collection and expense deltas in cent
         JSON.parse(JSON.stringify(accounting.calculateCashboxAccountingTotals())),
         {
             startingBalance: 102525,
-            income: 13040,
+            income: { main: 13040, development: 4005, emergency: 1212 },
             expenses: { main: 5510, development: 2414, emergency: 1308 }
         }
     );
     assert.equal(accounting.syncCashboxBalancesAfterSnapshot(), true);
     assert.deepEqual(
         JSON.parse(JSON.stringify(accounting.getState().cashAccountBalances)),
-        { main: 550.50, development: 195.96, emergency: 296.97 }
+        { main: 550.50, development: 195.96, emergency: 309.09 }
     );
     assert.equal(accounting.syncCashboxBalancesAfterSnapshot(), true);
     assert.deepEqual(
         JSON.parse(JSON.stringify(accounting.getState().cashAccountBalances)),
-        { main: 550.50, development: 195.96, emergency: 296.97 }
+        { main: 550.50, development: 195.96, emergency: 309.09 }
     );
 });
 

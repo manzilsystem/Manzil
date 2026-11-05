@@ -406,7 +406,7 @@
         <section id="tab-cashbox" class="hidden space-y-4">
             <div class="app-card p-5 rounded-3xl border space-y-2">
                 <h2 class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-vault text-indigo-400"></i> الخزنة والصناديق</h2>
-                <p class="text-xs text-slate-400">رصيد كل صندوق مستقل. التحويلات الداخلية لا تُحسب إيرادًا أو مصروفًا.</p>
+                <p class="text-xs text-slate-400">رصيد كل صندوق مستقل. اختر الصندوق وقت التحصيل ليصل المبلغ إليه مباشرة، والتحويلات الداخلية لا تُحسب إيرادًا أو مصروفًا.</p>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -418,17 +418,17 @@
                 <article class="app-card border rounded-3xl p-4 space-y-2">
                     <p class="text-xs text-slate-400">الخزنة الرئيسية</p>
                     <p id="cashBalance-main" class="text-2xl font-black text-emerald-400">0 ج.م</p>
-                    <p class="text-[10px] text-slate-500">التحصيلات + رصيد البداية − المصروفات والتحويلات</p>
+                    <p class="text-[10px] text-slate-500">تحصيلات الخزنة + رصيد البداية − المصروفات والتحويلات</p>
                 </article>
                 <article class="app-card border rounded-3xl p-4 space-y-2">
                     <p class="text-xs text-slate-400">صندوق التطوير</p>
                     <p id="cashBalance-development" class="text-2xl font-black text-indigo-300">0 ج.م</p>
-                    <p class="text-[10px] text-slate-500">تمويل مخصص للتحسينات والتطوير</p>
+                    <p class="text-[10px] text-slate-500">تحصيلات موجهة إليه + تحويلات واردة − مصروفاته</p>
                 </article>
                 <article class="app-card border rounded-3xl p-4 space-y-2">
                     <p class="text-xs text-slate-400">صندوق الصيانة الطارئة</p>
                     <p id="cashBalance-emergency" class="text-2xl font-black text-amber-300">0 ج.م</p>
-                    <p class="text-[10px] text-slate-500">مخصص للأعطال والإصلاحات العاجلة</p>
+                    <p class="text-[10px] text-slate-500">تحصيلات موجهة إليه + تحويلات واردة − مصروفاته</p>
                 </article>
             </div>
 
@@ -1608,6 +1608,14 @@
                     </select>
                 </label>
                 <label class="block text-xs space-y-1">
+                    <span class="text-slate-400">الصندوق المستلم</span>
+                    <select id="incomeCashAccount" aria-label="الصندوق المستلم" onchange="previewIncomeAllocation()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                        <option value="main">الخزنة الرئيسية</option>
+                        <option value="development">صندوق التطوير</option>
+                        <option value="emergency">صندوق الصيانة الطارئة</option>
+                    </select>
+                </label>
+                <label class="block text-xs space-y-1">
                     <span class="text-slate-400">شهر بداية التوزيع</span>
                     <select id="incomeMonth" aria-label="شهر بداية التوزيع" onchange="previewIncomeAllocation()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
                 </label>
@@ -1646,6 +1654,14 @@
                         <option value="wallet">محفظة إلكترونية</option>
                         <option value="instapay">InstaPay</option>
                         <option value="bank_transfer">تحويل بنكي</option>
+                    </select>
+                </label>
+                <label class="block text-xs space-y-1">
+                    <span class="text-slate-400">الصندوق المستلم</span>
+                    <select id="incomeEditCashAccount" aria-label="صندوق التحصيل" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm">
+                        <option value="main">الخزنة الرئيسية</option>
+                        <option value="development">صندوق التطوير</option>
+                        <option value="emergency">صندوق الصيانة الطارئة</option>
                     </select>
                 </label>
                 <label class="block text-xs space-y-1">

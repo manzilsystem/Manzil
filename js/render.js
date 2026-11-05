@@ -339,7 +339,7 @@ function renderIncomeTable() {
     if (fm) items = items.filter(i => i.month === fm);
     if (s) items = items.filter(i => {
         const r = state.residents.find(x => x.id === i.residentId);
-        return [r?.name, r?.apartmentNumber, i.month, i.notes, i.amount, getIncomePaymentMethodLabel(i.paymentMethod)].some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(s));
+        return [r?.name, r?.apartmentNumber, i.month, i.notes, i.amount, getIncomePaymentMethodLabel(i.paymentMethod), getCashAccountLabel(i.cashAccountCode || 'main')].some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(s));
     });
     if (!items.length) {
         c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center space-y-3"><div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto"><i class="fa-solid fa-hand-holding-dollar"></i></div><div><p class="text-sm font-bold">لا توجد تحصيلات مطابقة</p><p class="text-xs text-slate-500 mt-1">سجّل أول تحصيل أو غيّر الفلتر الحالي.</p></div><button onclick="openModal(\'incomeModal\')" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition"><i class="fa-solid fa-plus"></i> تسجيل تحصيل</button></div>';
@@ -349,7 +349,7 @@ function renderIncomeTable() {
         <div class="app-card p-3 rounded-2xl border flex justify-between items-center gap-2">
             <div class="flex items-center gap-2 min-w-0">
                 <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xs font-bold shrink-0">${esc(r?.apartmentNumber||'?')}</div>
-                <div class="min-w-0"><p class="text-xs font-bold truncate">${esc(r?.name||'محذوف')}</p><p class="text-[10px] text-slate-500">${esc(i.month||'')} • ${formatDate(i.date)} • ${esc(getIncomePaymentMethodLabel(i.paymentMethod))}</p></div>
+                <div class="min-w-0"><p class="text-xs font-bold truncate">${esc(r?.name||'محذوف')}</p><p class="text-[10px] text-slate-500">${esc(i.month||'')} • ${formatDate(i.date)} • ${esc(getIncomePaymentMethodLabel(i.paymentMethod))}</p><span class="cash-account-tag mt-1"><i class="fa-solid fa-vault" aria-hidden="true"></i>${esc(getCashAccountLabel(i.cashAccountCode || 'main'))}</span></div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <span class="text-sm font-black text-emerald-400">${fmtNum(i.amount)}</span>
