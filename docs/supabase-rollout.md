@@ -92,6 +92,8 @@ limit 50;
 >
 > التحقق الحي: طلب بالسر الصحيح أعاد `200 {"checked":true,"errorCount":0,"threshold":100}`، والسر الخاطئ `401`، وGET `405`؛ وأعاد `net._http_response` الحالة `200` لنفس التشغيل. الحد 100 خطأ/24 ساعة، والتجاوز يُسجَّل في سجلات الدالة (`console.error`) دون إشعار خارجي بعد.
 >
+> `pg_net` مثبّت بالأمر الموصى به `create extension pg_net;` الذي ينشئ مخطط `net` تلقائيًا. يظهر تحذير المستشارين `extension_in_public` لأن سجل الامتداد في `public`، لكن دواله (`net.http_post`) في مخطط `net` وغير مكشوفة عبر PostgREST؛ الامتداد غير قابل للنقل (`extrelocatable=false`) فلا تحاول `alter extension ... set schema`.
+>
 > لمتابعة المهمة:
 > ```sql
 > select jobid, jobname, schedule, active from cron.job;
