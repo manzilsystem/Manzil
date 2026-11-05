@@ -81,5 +81,8 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - name: Type-check backup console Edge Function
-        run: deno check supabase/functions/backup-console/index.ts
+      - name: Type-check Edge Functions
+        run: |
+          for fn in supabase/functions/*/index.ts; do
+            deno check "$fn"
+          done
