@@ -8,6 +8,7 @@ const functions = [
     'manage-owner-access',
     'complete-owner-pin-change',
     'owner-login',
+    'monitor-client-errors',
 ];
 
 for (const name of functions) {
