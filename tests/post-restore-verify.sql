@@ -106,6 +106,26 @@ BEGIN
     RAISE NOTICE 'Cash transfer ledger verified';
 END $$;
 
+-- Verify income purpose column and constraint (purpose-aware collections)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'income' AND column_name = 'purpose_code'
+    ) THEN
+        RAISE EXCEPTION 'income.purpose_code column missing';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'public.income'::regclass AND conname = 'income_purpose_code_check'
+    ) THEN
+        RAISE EXCEPTION 'income_purpose_code_check constraint missing';
+    END IF;
+
+    RAISE NOTICE 'Income purpose mapping verified';
+END $$;
+
 -- Verify notifications table exists
 DO $$
 DECLARE
@@ -147,6 +167,7 @@ DECLARE
         'resident_subscription_rate_changes_lookup_idx',
         'cash_transfers_building_transferred_idx',
         'cash_transfers_request_unique',
+        'income_building_purpose_idx',
         'notifications_dedupe_scope_unique',
         'notifications_target_user_id_idx'
     ];

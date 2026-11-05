@@ -152,12 +152,12 @@ test('income forms, snapshots and accounting carry the destination cash account'
     assert.match(html, /id="incomeEditCashAccount"/);
     assert.match(crud, /cashAccountCode = (?:\/\*\* @type \{any\} \*\/ \()?document\.getElementById\('incomeCashAccount'\)/);
     assert.match(crud, /cashAccountCode = (?:\/\*\* @type \{any\} \*\/ \()?document\.getElementById\('incomeEditCashAccount'\)/);
-    assert.match(crud, /paymentMethod,\s+cashAccountCode,\s+notes: allocationNote/);
+    assert.match(crud, /paymentMethod,\s+cashAccountCode,\s+purposeCode: 'subscription',\s+notes: allocationNote/);
     assert.match(supabase, /cash_account_code: i\.cashAccountCode \|\| 'main'/);
-    assert.match(supabase, /id,resident_id,amount,month,notes,payment_method,cash_account_code,paid_at/);
+    assert.match(supabase, /id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,paid_at/);
     assert.match(cashbox, /income: byAccount\(\)/);
     assert.match(cashbox, /next\.income\[code\] - previous\.income\[code\]/);
-    assert.match(render, /getCashAccountLabel\(i\.cashAccountCode \|\| 'main'\)/);
+    assert.match(render, /renderCashAccountLabel\(i\.cashAccountCode\)/);
 });
 
 test('main balance still sums income and expenses while fund balances follow their own rows', () => {

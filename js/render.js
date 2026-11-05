@@ -3,6 +3,14 @@ const AUDIT_LOG_PAGE_SIZE = 50;
 let auditLogVisibleCount = AUDIT_LOG_PAGE_SIZE;
 let auditLogLastQuery = null;
 
+function renderPurposeLabel(purposeCode) {
+    return typeof getIncomePurposeLabel === 'function' ? getIncomePurposeLabel(purposeCode) : 'اشتراك شهري';
+}
+
+function renderCashAccountLabel(code) {
+    return typeof getCashAccountLabel === 'function' ? getCashAccountLabel(code || 'main') : 'الخزنة الرئيسية';
+}
+
 function renderAuditLog(options) {
     const container = document.getElementById('auditLogContainer');
     if (!container) return;
@@ -140,6 +148,8 @@ function populateSelects() {
     }
     const paymentMethodSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomePaymentMethod'));
     populatePaymentMethodOptions(paymentMethodSelect, paymentMethodSelect?.value || '');
+    const purposeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomePurpose'));
+    if (typeof populateIncomePurposeOptions === 'function') populateIncomePurposeOptions(purposeSelect, purposeSelect?.value || 'subscription');
     populateStatementResidentSelect();
     populatePeriodReportSelects(months, current);
 }
@@ -306,7 +316,7 @@ function renderRecent() {
     const ic = document.getElementById('recentIncomeList');
     ic.innerHTML = ri.length ? ri.map(i => { const r = state.residents.find(x => x.id === i.residentId); return `
         <div class="flex justify-between items-center app-input p-2 rounded-xl border text-xs">
-            <div class="min-w-0"><p class="font-bold truncate">${esc(r?.name||'محذوف')}</p><p class="text-[10px] text-slate-500">${esc(i.month||'')}</p></div>
+            <div class="min-w-0"><p class="font-bold truncate">${esc(r?.name||'محذوف')}</p><p class="text-[10px] text-slate-500">${esc(i.month||'')} • ${esc(renderPurposeLabel(i.purposeCode))}</p></div>
             <span class="text-emerald-400 font-black shrink-0">${fmtNum(i.amount)}</span>
         </div>`; }).join('') : '<p class="text-slate-500 text-xs text-center py-2">لا توجد تحصيلات</p>';
     const ec = document.getElementById('recentExpenseList');
@@ -340,17 +350,17 @@ function renderIncomeTable() {
     if (fm) items = items.filter(i => i.month === fm);
     if (s) items = items.filter(i => {
         const r = state.residents.find(x => x.id === i.residentId);
-        return [r?.name, r?.apartmentNumber, i.month, i.notes, i.amount, getIncomePaymentMethodLabel(i.paymentMethod), getCashAccountLabel(i.cashAccountCode || 'main')].some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(s));
+        return [r?.name, r?.apartmentNumber, i.month, i.notes, i.amount, getIncomePaymentMethodLabel(i.paymentMethod), renderPurposeLabel(i.purposeCode), renderCashAccountLabel(i.cashAccountCode)].some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(s));
     });
     if (!items.length) {
-        c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center space-y-3"><div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto"><i class="fa-solid fa-hand-holding-dollar"></i></div><div><p class="text-sm font-bold">لا توجد تحصيلات مطابقة</p><p class="text-xs text-slate-500 mt-1">سجّل أول تحصيل أو غيّر الفلتر الحالي.</p></div><button onclick="openModal(\'incomeModal\')" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition"><i class="fa-solid fa-plus"></i> تسجيل تحصيل</button></div>';
+        c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center space-y-3"><div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto"><i class="fa-solid fa-hand-holding-dollar"></i></div><div><p class="text-sm font-bold">لا توجد تحصيلات مطابقة</p><p class="text-xs text-slate-500 mt-1">سجّل أول تحصيل أو غيّر الفلتر الحالي.</p></div><button onclick="openNewIncomeModal()" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition"><i class="fa-solid fa-plus"></i> تسجيل تحصيل</button></div>';
         return;
     }
     c.innerHTML = items.map(i => { const r = state.residents.find(x => x.id === i.residentId); return `
         <div class="app-card p-3 rounded-2xl border flex justify-between items-center gap-2">
             <div class="flex items-center gap-2 min-w-0">
                 <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xs font-bold shrink-0">${esc(r?.apartmentNumber||'?')}</div>
-                <div class="min-w-0"><p class="text-xs font-bold truncate">${esc(r?.name||'محذوف')}</p><p class="text-[10px] text-slate-500">${esc(i.month||'')} • ${formatDate(i.date)} • ${esc(getIncomePaymentMethodLabel(i.paymentMethod))}</p><span class="cash-account-tag mt-1"><i class="fa-solid fa-vault" aria-hidden="true"></i>${esc(getCashAccountLabel(i.cashAccountCode || 'main'))}</span></div>
+                <div class="min-w-0"><p class="text-xs font-bold truncate">${esc(r?.name||'محذوف')}</p><p class="text-[10px] text-slate-500">${esc(i.month||'')} • ${formatDate(i.date)} • ${esc(getIncomePaymentMethodLabel(i.paymentMethod))}</p><span class="cash-account-tag mt-1"><i class="fa-solid fa-tag" aria-hidden="true"></i>${esc(renderPurposeLabel(i.purposeCode))}</span><span class="cash-account-tag mt-1"><i class="fa-solid fa-vault" aria-hidden="true"></i>${esc(renderCashAccountLabel(i.cashAccountCode))}</span></div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <span class="text-sm font-black text-emerald-400">${fmtNum(i.amount)}</span>
@@ -371,7 +381,7 @@ function renderExpenseTable() {
     let items = [...state.expenses].sort((a,b) => new Date(b.date).getTime()-new Date(a.date).getTime());
     if (fc) items = items.filter(e => e.category === fc);
     if (fm) items = items.filter(e => e.month === fm);
-    if (s) items = items.filter(e => [e.title, e.category, e.month, e.notes, e.amount, getCashAccountLabel(e.cashAccountCode || 'main')].some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(s)));
+    if (s) items = items.filter(e => [e.title, e.category, e.month, e.notes, e.amount, renderCashAccountLabel(e.cashAccountCode)].some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(s)));
     if (!items.length) {
         c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center space-y-3"><div class="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center mx-auto"><i class="fa-solid fa-receipt"></i></div><div><p class="text-sm font-bold">لا توجد مصروفات مطابقة</p><p class="text-xs text-slate-500 mt-1">سجّل أول مصروف أو غيّر الفلاتر الحالية.</p></div><button onclick="openModal(\'expenseModal\')" class="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition"><i class="fa-solid fa-plus"></i> تسجيل مصروف</button></div>';
         return;
@@ -380,7 +390,7 @@ function renderExpenseTable() {
         <div class="app-card p-3 rounded-2xl border flex justify-between items-center gap-2">
             <div class="flex items-center gap-2 min-w-0">
                 <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-receipt"></i></div>
-                <div class="min-w-0"><p class="text-xs font-bold truncate">${esc(e.title)}</p><p class="text-[10px] text-slate-500">${esc(e.category||'')} • ${esc(e.month||'')}</p><p class="text-[10px] text-indigo-300">${esc(getCashAccountLabel(e.cashAccountCode || 'main'))}</p></div>
+                <div class="min-w-0"><p class="text-xs font-bold truncate">${esc(e.title)}</p><p class="text-[10px] text-slate-500">${esc(e.category||'')} • ${esc(e.month||'')}</p><p class="text-[10px] text-indigo-300">${esc(renderCashAccountLabel(e.cashAccountCode))}</p></div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <span class="text-sm font-black text-rose-400">${fmtNum(e.amount)}</span>

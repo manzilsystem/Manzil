@@ -18,9 +18,11 @@ function loadHandler(residents, saveWithRollback = async () => true) {
     const sandbox = {
         state: { residents, income: [], expenses: [], notices: [], auditLogs: [] },
         requireManager: () => true,
+        getCurrentMonth: () => 'يناير 2024',
         document: { getElementById: id => ({
             value: values[id] ?? '',
             reset() {},
+            setAttribute() {},
             classList: { add() {}, remove() {} },
             disabled: false,
             textContent: '',

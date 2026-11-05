@@ -121,6 +121,12 @@ function sendIncomeReceiptOnWhatsApp(incomeId) {
     });
 
     const total = relatedPayments.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    const purposeLabel = typeof getIncomePurposeLabel === 'function'
+        ? getIncomePurposeLabel(payment.purposeCode)
+        : 'اشتراك شهري';
+    const cashAccountLabel = typeof getCashAccountLabel === 'function'
+        ? getCashAccountLabel(payment.cashAccountCode || 'main')
+        : '';
     const details = relatedPayments.map(item =>
         `• ${item.month}: ${fmtNum(item.amount)} ج.م`
     ).join('\n');
@@ -128,11 +134,12 @@ function sendIncomeReceiptOnWhatsApp(incomeId) {
         `إيصال استلام — ${state.buildingName || 'العمارة'}`,
         '',
         `مرحباً ${resident.name || 'بكم'}،`,
-        'نؤكد استلام دفعة الاشتراك بنجاح.',
+        `نؤكد استلام تحصيل «${purposeLabel}» بنجاح.`,
         `الشقة: ${resident.apartmentNumber || '—'}`,
         `المبلغ المستلم: ${fmtNum(total)} ج.م`,
         `طريقة الدفع: ${getIncomePaymentMethodLabel(payment.paymentMethod)}`,
-        'تفاصيل السداد:',
+        ...(cashAccountLabel ? [`الصندوق: ${cashAccountLabel}`] : []),
+        'تفاصيل التحصيل:',
         details,
         `تاريخ الاستلام: ${formatDate(payment.date)}`,
         `رقم الإيصال: ${reference}`,

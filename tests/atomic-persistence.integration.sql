@@ -33,6 +33,7 @@
 \ir ../supabase/migrations/20261104002557_income_payment_method.sql
 \ir ../supabase/migrations/20261104034317_building_payment_subscription_settings.sql
 \ir ../supabase/migrations/20261105090000_income_cash_account_allocation.sql
+\ir ../supabase/migrations/20261105150000_income_purpose_cashbox_mapping.sql
 
 INSERT INTO public.profiles (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),
@@ -636,6 +637,65 @@ BEGIN
        OR (SELECT cash_account_code FROM public.income
            WHERE id = '50000000-0000-4000-8000-000000000002') <> 'emergency' THEN
         RAISE EXCEPTION 'legacy snapshot reset an allocated collection: %', v_result;
+    END IF;
+
+    -- Collections persist their purpose alongside the cash account.
+    v_result := public.persist_building_snapshot(
+        v_building,
+        (v_result->>'version')::bigint,
+        '40000000-0000-4000-8000-000000000018',
+        jsonb_set(v_payload, '{income,0,purpose_code}', '"services"'::jsonb)
+    );
+    IF v_result->>'ok' <> 'true'
+       OR (SELECT purpose_code FROM public.income
+           WHERE id = '50000000-0000-4000-8000-000000000001') <> 'services' THEN
+        RAISE EXCEPTION 'income purpose persistence failed: %', v_result;
+    END IF;
+
+    -- A development-purpose collection may not be deposited anywhere but its own fund.
+    BEGIN
+        PERFORM public.persist_building_snapshot(
+            v_building,
+            (v_result->>'version')::bigint,
+            '40000000-0000-4000-8000-000000000019',
+            jsonb_set(
+                jsonb_set(v_payload, '{income,1,purpose_code}', '"development"'::jsonb),
+                '{income,1,cash_account_code}', '"main"'::jsonb
+            )
+        );
+        RAISE EXCEPTION 'misrouted development collection unexpectedly committed';
+    EXCEPTION WHEN SQLSTATE '22023' THEN
+        NULL;
+    END;
+
+    -- Unknown purposes are rejected instead of silently stored.
+    BEGIN
+        PERFORM public.persist_building_snapshot(
+            v_building,
+            (v_result->>'version')::bigint,
+            '40000000-0000-4000-8000-000000000020',
+            jsonb_set(v_payload, '{income,1,purpose_code}', '"bonus"'::jsonb)
+        );
+        RAISE EXCEPTION 'unknown income purpose unexpectedly committed';
+    EXCEPTION WHEN SQLSTATE '22023' THEN
+        NULL;
+    END;
+
+    -- Payloads from older clients omit the purpose; new rows default to subscription.
+    v_result := public.persist_building_snapshot(
+        v_building,
+        (v_result->>'version')::bigint,
+        '40000000-0000-4000-8000-000000000021',
+        jsonb_set(
+            v_payload,
+            '{income}',
+            (v_payload->'income') || '[{"id":"50000000-0000-4000-8000-000000000019","resident_id":"30000000-0000-4000-8000-000000000001","amount":10,"month":"2026-11","paid_at":"2026-11-02T12:00:00Z","cash_account_code":"main"}]'::jsonb
+        )
+    );
+    IF v_result->>'ok' <> 'true'
+       OR (SELECT purpose_code FROM public.income
+           WHERE id = '50000000-0000-4000-8000-000000000019') <> 'subscription' THEN
+        RAISE EXCEPTION 'legacy payload did not default to the subscription purpose: %', v_result;
     END IF;
 END;
 $cashbox$;

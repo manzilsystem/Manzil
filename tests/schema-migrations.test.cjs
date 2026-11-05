@@ -35,6 +35,7 @@ test('local migration history matches the applied Supabase order', () => {
     assert.ok(position('owner_login_rate_limit') < position('subscription_rate_change_history'));
     assert.ok(position('subscription_rate_change_history') < position('owner_payment_notifications'));
     assert.ok(position('owner_payment_notifications') < position('income_cash_account_allocation'));
+    assert.ok(position('income_cash_account_allocation') < position('income_purpose_cashbox_mapping'));
 });
 
 test('the integration harness replays the newest body of every snapshot RPC', () => {

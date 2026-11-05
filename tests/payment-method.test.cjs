@@ -27,7 +27,7 @@ test('new collections and edited collections require one of the supported paymen
 test('payment method is loaded, persisted, displayed and included in WhatsApp receipts', () => {
     assert.match(supabase, /payment_method: i\.paymentMethod \|\| null/);
     assert.match(supabase, /paymentMethod: row\.payment_method \|\| null/);
-    assert.match(supabase, /payment_method,paid_at/);
+    assert.match(supabase, /payment_method,[a-z_,]*paid_at/);
     assert.match(render, /getIncomePaymentMethodLabel\(i\.paymentMethod\)/);
     assert.match(notices, /طريقة الدفع: \$\{getIncomePaymentMethodLabel\(payment\.paymentMethod\)\}/);
 });

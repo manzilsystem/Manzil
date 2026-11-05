@@ -187,7 +187,7 @@ test('report lookups use a single residents index instead of repeated scans', ()
 });
 
 test('CSV export includes a payment method column for collections', () => {
-    assert.match(reports, /\['النوع','الوصف','الشقة','الشهر','المبلغ','طريقة الدفع','ملاحظات'\]/);
+    assert.match(reports, /\['النوع','الوصف','الشقة','الشهر','المبلغ','الغرض','الصندوق','طريقة الدفع','ملاحظات'\]/);
     assert.match(reports, /getIncomePaymentMethodLabel\(i\.paymentMethod\)/);
 });
 

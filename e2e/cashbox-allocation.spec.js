@@ -43,15 +43,18 @@ test('collecting into a fund box routes the money there instead of the main box'
     await seedManagerSession(page);
     await page.evaluate(() => {
         switchTab('cashbox');
-        openModal('incomeModal');
+        openNewIncomeModal();
     });
     await expect(page.locator('#incomeModal')).toBeVisible();
     await expect(page.locator('#incomeCashAccount')).toHaveValue('main');
+    await expect(page.locator('#incomeCashAccount')).toBeDisabled();
 
     await page.locator('#incomeResident').selectOption('r1');
     await page.locator('#incomePaymentMethod').selectOption('cash');
     await page.locator('#incomeAmount').fill('100');
-    await page.locator('#incomeCashAccount').selectOption('development');
+    await page.locator('#incomePurpose').selectOption('development');
+    await expect(page.locator('#incomeCashAccount')).toHaveValue('development');
+    await expect(page.locator('#incomeCashAccount')).toBeDisabled();
 
     const preview = page.locator('#incomeAllocationRows');
     await expect(preview).toContainText('الصندوق المستلم');
@@ -62,10 +65,12 @@ test('collecting into a fund box routes the money there instead of the main box'
 
     const collected = await page.evaluate(() => state.income.map(item => ({
         amount: item.amount,
-        cashAccountCode: item.cashAccountCode
+        cashAccountCode: item.cashAccountCode,
+        purposeCode: item.purposeCode
     })));
     expect(collected.length).toBeGreaterThan(0);
     expect(collected.every(item => item.cashAccountCode === 'development')).toBe(true);
+    expect(collected.every(item => item.purposeCode === 'development')).toBe(true);
     expect(collected.reduce((sum, item) => sum + item.amount, 0)).toBe(100);
     expect(await cashboxBalances(page)).toEqual({ main: 500, development: 100, emergency: 0 });
     await expect(page.locator('#cashBalance-development')).toContainText('100');
@@ -75,7 +80,36 @@ test('collecting into a fund box routes the money there instead of the main box'
     expect(auditDetail).toContain('صندوق التطوير');
 
     await page.evaluate(() => switchTab('income'));
-    await expect(page.locator('#tab-income .cash-account-tag').first()).toHaveText('صندوق التطوير');
+    await expect(page.locator('#tab-income .cash-account-tag').nth(0)).toHaveText('تطوير');
+    await expect(page.locator('#tab-income .cash-account-tag').nth(1)).toHaveText('صندوق التطوير');
+});
+
+test('non-subscription collections are not split across subscription months', async ({ page }) => {
+    await seedManagerSession(page);
+    const month = await page.evaluate(() => getCurrentMonth());
+    await page.evaluate(() => openNewIncomeModal());
+
+    await page.locator('#incomeResident').selectOption('r1');
+    await page.locator('#incomePaymentMethod').selectOption('cash');
+    await page.locator('#incomeAmount').fill('75');
+    await page.locator('#incomePurpose').selectOption('services');
+    await expect(page.locator('#incomeCashAccount')).toHaveValue('main');
+    await expect(page.locator('#incomeCashAccount')).toBeEnabled();
+    await expect(page.locator('#incomeMonthLabel')).toHaveText('شهر تسجيل التحصيل');
+
+    await page.locator('#incomeSubmitButton').click();
+    await expect(page.locator('#incomeModal')).toBeHidden();
+
+    const saved = await page.evaluate(() => state.income.map(item => ({
+        amount: item.amount,
+        month: item.month,
+        purposeCode: item.purposeCode,
+        cashAccountCode: item.cashAccountCode
+    })));
+    expect(saved).toEqual([{ amount: 75, month, purposeCode: 'services', cashAccountCode: 'main' }]);
+    expect(await page.evaluate(currentMonth => getMonthOutstanding(state.residents[0], currentMonth), month)).toBe(100);
+    expect(await cashboxBalances(page)).toEqual({ main: 575, development: 0, emergency: 0 });
+    expect(await page.evaluate(() => state.auditLogs[0]?.action || '')).toBe('تحصيل خدمات ونظافة');
 });
 
 test('editing a collection moves its amount between cash boxes', async ({ page }) => {

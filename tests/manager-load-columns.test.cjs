@@ -20,7 +20,7 @@ test('manager load selects only fields consumed by application state', () => {
         "const residentColumns = isManager\n        ? 'id,user_id,name,apartment_number,floor,phone,monthly_amount,created_at'"
     ));
     assert.ok(loadState.includes(
-        "const incomeColumns = isManager\n        ? 'id,resident_id,amount,month,notes,payment_method,cash_account_code,paid_at'"
+        "const incomeColumns = isManager\n        ? 'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,paid_at'"
     ));
     assert.ok(loadState.includes(
         "const expenseColumns = 'id,title,amount,category,month,notes,cash_account_code,spent_at'"
@@ -35,6 +35,6 @@ test('manager load selects only fields consumed by application state', () => {
 });
 
 test('manager load keeps private resident notes and income notes available', () => {
-    assert.ok(loadState.includes("'id,resident_id,amount,month,notes,payment_method,cash_account_code,paid_at'"));
+    assert.ok(loadState.includes("'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,paid_at'"));
     assert.ok(loadState.includes("resident.notes = notesByResident.get(resident.id) || ''"));
 });
