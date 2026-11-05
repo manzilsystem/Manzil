@@ -18,8 +18,7 @@ interface Window {
 // Global functions defined in other JS modules
 declare var activeBuildingId: string | undefined;
 declare var saveState: () => Promise<boolean>;
-declare var updateThemeSelection: () => void;
-declare var activeSession: { user: { id: string } } | null;
+declare var activeSession: { user: { id: string; email?: string } } | null;
 declare var supabaseClient: any | null;
 declare var updateAccessSwitchButton: () => void;
 declare var initSupabaseApp: () => Promise<void>;
@@ -29,3 +28,7 @@ declare var refreshCashboxSummary: () => Promise<boolean>;
 declare var persistedAuditLogIds: Set<string>;
 declare var lockCurrentSession: () => void;
 declare var setAuthModal: (locked: boolean, message?: string) => void;
+
+// App state and utilities
+declare var state: any;
+declare var currentUserRole: string;
