@@ -226,7 +226,7 @@ test('payment method detail fields collapse when disabled and retain their value
     assert.match(settings, /function syncPaymentMethodDetails\(\)/);
     assert.match(settings, /details\.hidden = !enabled/);
     assert.match(settings, /details\.classList\.toggle\('hidden', !enabled\)/);
-    assert.match(settings, /field\.disabled = !enabled/);
+    assert.match(settings, /disabled = !enabled/);
     assert.match(settings, /syncPaymentMethodDetails\(\);/);
     assert.match(sw, /CACHE_NAME = 'manzil-v108'/);
 });

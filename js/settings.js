@@ -1,7 +1,8 @@
+// @ts-check
 const SETTINGS_TABS = ['building','payments','subscriptions','appearance','backup','receipts','reminders','account'];
 function updateSettingsMessageCounter(inputId, counterId, maxLength) {
-    const input = document.getElementById(inputId);
-    const counter = document.getElementById(counterId);
+    const input = /** @type {HTMLInputElement | HTMLTextAreaElement | null} */ (document.getElementById(inputId));
+    const counter = /** @type {HTMLElement | null} */ (document.getElementById(counterId));
     if (!input || !counter) return;
     const length = String(input.value || '').length;
     counter.textContent = `${length} / ${maxLength} حرف`;
@@ -10,8 +11,8 @@ function updateSettingsMessageCounter(inputId, counterId, maxLength) {
 }
 
 function renderReceiptPreview() {
-    const input = document.getElementById('settingsReceiptThankYou');
-    const preview = document.getElementById('settingsReceiptPreview');
+    const input = /** @type {HTMLInputElement | HTMLTextAreaElement | null} */ (document.getElementById('settingsReceiptThankYou'));
+    const preview = /** @type {HTMLElement | null} */ (document.getElementById('settingsReceiptPreview'));
     updateSettingsMessageCounter('settingsReceiptThankYou', 'settingsReceiptCharacterCount', 180);
     if (!preview) return;
     const thankYou = String(input?.value || '').trim() || DEFAULT_RECEIPT_THANK_YOU;
@@ -24,8 +25,8 @@ function renderReceiptPreview() {
     ].join('\n');
 }
 function renderReminderPreview() {
-    const input = document.getElementById('settingsReminderTemplate');
-    const preview = document.getElementById('settingsReminderPreview');
+    const input = /** @type {HTMLInputElement | HTMLTextAreaElement | null} */ (document.getElementById('settingsReminderTemplate'));
+    const preview = /** @type {HTMLElement | null} */ (document.getElementById('settingsReminderPreview'));
     updateSettingsMessageCounter('settingsReminderTemplate', 'settingsReminderCharacterCount', 500);
     if (!preview) return;
     const template = String(input?.value || '').trim() || DEFAULT_REMINDER_TEMPLATE;
@@ -36,25 +37,25 @@ function renderReminderPreview() {
     });
 }
 function resetReceiptTemplate() {
-    const input = document.getElementById('settingsReceiptThankYou');
+    const input = /** @type {HTMLInputElement | HTMLTextAreaElement | null} */ (document.getElementById('settingsReceiptThankYou'));
     if (!input) return;
     input.value = DEFAULT_RECEIPT_THANK_YOU;
     renderReceiptPreview();
 }
 
 function resetReminderTemplate() {
-    const input = document.getElementById('settingsReminderTemplate');
+    const input = /** @type {HTMLInputElement | HTMLTextAreaElement | null} */ (document.getElementById('settingsReminderTemplate'));
     if (!input) return;
     input.value = DEFAULT_REMINDER_TEMPLATE.slice(0, 500);
     renderReminderPreview();
 }
 
 function insertReminderVariable(variable) {
-    const input = document.getElementById('settingsReminderTemplate');
+    const input = /** @type {HTMLInputElement | HTMLTextAreaElement | null} */ (document.getElementById('settingsReminderTemplate'));
     if (!input || !variable) return;
     const value = String(input.value || '');
-    const start = Number.isInteger(input.selectionStart) ? input.selectionStart : value.length;
-    const end = Number.isInteger(input.selectionEnd) ? input.selectionEnd : start;
+    const start = Number.isInteger(input.selectionStart) ? /** @type {number} */ (input.selectionStart) : value.length;
+    const end = Number.isInteger(input.selectionEnd) ? /** @type {number} */ (input.selectionEnd) : start;
     input.value = (value.slice(0, start) + variable + value.slice(end)).slice(0, 500);
     const caret = Math.min(start + String(variable).length, 500);
     input.focus?.();
@@ -72,17 +73,18 @@ const SETTINGS_SECTION_ICONS = {
 function syncSettingsWorkspace(tab) {
     const activeTab = SETTINGS_TABS.includes(tab) ? tab : null;
     document.querySelectorAll('[data-settings-nav]').forEach(item => {
-        const active = item.dataset.settingsNav === (activeTab || 'overview');
-        item.classList.toggle('is-active', active);
-        if (active) item.setAttribute('aria-current', 'page');
-        else item.removeAttribute('aria-current');
+        const el = /** @type {HTMLElement} */ (item);
+        const active = el.dataset.settingsNav === (activeTab || 'overview');
+        el.classList.toggle('is-active', active);
+        if (active) el.setAttribute('aria-current', 'page');
+        else el.removeAttribute('aria-current');
     });
     document.querySelectorAll('.settings-card[aria-controls]').forEach(card => {
         card.classList.toggle('is-active', card.getAttribute('aria-controls') === 'settings-panel-' + activeTab);
     });
-    const layout = document.getElementById('settingsLayout');
+    const layout = /** @type {HTMLElement | null} */ (document.getElementById('settingsLayout'));
     if (layout) layout.dataset.settingsView = activeTab ? 'section' : 'overview';
-    const toolbarIcon = document.getElementById('settingsCurrentSectionIcon');
+    const toolbarIcon = /** @type {HTMLElement | null} */ (document.getElementById('settingsCurrentSectionIcon'));
     if (toolbarIcon) toolbarIcon.innerHTML = `<i class="fa-solid ${SETTINGS_SECTION_ICONS[activeTab] || 'fa-sliders'}" aria-hidden="true"></i>`;
 }
 
@@ -140,7 +142,7 @@ function switchSettingsTab(tab) {
 function handleSettingsTabKeydown(event) {
     if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
     const items = [...document.querySelectorAll('[data-settings-nav]')];
-    const current = document.activeElement?.closest?.('[data-settings-nav]');
+    const current = /** @type {HTMLElement | null} */ (document.activeElement?.closest?.('[data-settings-nav]'));
     const currentIndex = items.indexOf(current);
     if (currentIndex < 0) return;
     event.preventDefault();
@@ -149,7 +151,7 @@ function handleSettingsTabKeydown(event) {
         : event.key === 'End'
             ? items.length - 1
             : (currentIndex + (event.key === 'ArrowLeft' ? 1 : -1) + items.length) % items.length;
-    const next = items[nextIndex];
+    const next = /** @type {HTMLElement} */ (items[nextIndex]);
     const nextTab = next.dataset.settingsNav;
     if (nextTab === 'overview') showSettingsOverview();
     else switchSettingsTab(nextTab);
@@ -158,9 +160,10 @@ function handleSettingsTabKeydown(event) {
 function updateThemeSelection() {
     const theme = SETTINGS_THEME_NAMES[state.currentTheme] ? state.currentTheme : 'dark';
     document.querySelectorAll('[data-theme-option]').forEach(button => {
-        const active = button.dataset.themeOption === theme;
-        button.classList.toggle('active', active);
-        button.setAttribute('aria-pressed', String(active));
+        const el = /** @type {HTMLElement} */ (button);
+        const active = el.dataset.themeOption === theme;
+        el.classList.toggle('active', active);
+        el.setAttribute('aria-pressed', String(active));
     });
     const label = document.getElementById('settingsCurrentTheme');
     if (label) label.textContent = SETTINGS_THEME_NAMES[theme];
@@ -196,7 +199,8 @@ function renderSettingsOwnerAccess() {
     }
     const normalize = value => String(value || '').toLocaleLowerCase('ar')
         .replace(/[\u064B-\u065F\u0670\u0640]/g, '').trim();
-    const query = normalize(search?.value);
+    const searchInput = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsOwnerAccessSearch'));
+    const query = normalize(searchInput?.value);
     const filtered = residents.filter(resident => [
         resident.name, resident.apartmentNumber, resident.phone,
         resident.userId ? 'حساب مرتبط' : resident.phone ? 'لم ينشأ حساب' : 'بدون هاتف'
@@ -234,18 +238,19 @@ function syncPaymentMethodDetails() {
     ];
     let enabledCount = 0;
     methods.forEach(({ toggle: toggleId, details: detailsId }) => {
-        const toggle = document.getElementById(toggleId);
+        const toggle = /** @type {HTMLInputElement | null} */ (document.getElementById(toggleId));
         if (!toggle) return;
         const enabled = toggle.checked;
         if (enabled) enabledCount += 1;
-        const details = detailsId ? document.getElementById(detailsId) : null;
+        const details = detailsId ? /** @type {HTMLElement | null} */ (document.getElementById(detailsId)) : null;
         if (details) {
             details.hidden = !enabled;
             details.classList.toggle('hidden', !enabled);
             details.setAttribute('aria-hidden', String(!enabled));
             toggle.setAttribute('aria-expanded', String(enabled));
             details.querySelectorAll('input, select, textarea').forEach(field => {
-                field.disabled = !enabled;
+                const el = /** @type {HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement} */ (field);
+                el.disabled = !enabled;
             });
         }
         toggle.onchange = syncPaymentMethodDetails;
@@ -253,20 +258,21 @@ function syncPaymentMethodDetails() {
         card?.classList.toggle('is-disabled', !enabled);
         const status = card?.querySelector('[data-method-status]');
         if (status) {
-            status.textContent = enabled ? 'مفعّلة' : 'متوقفة';
-            status.classList.toggle('is-off', !enabled);
+            const statusEl = /** @type {HTMLElement} */ (status);
+            statusEl.textContent = enabled ? 'مفعّلة' : 'متوقفة';
+            statusEl.classList.toggle('is-off', !enabled);
         }
     });
-    const count = document.getElementById('settingsPaymentSummaryCount');
+    const count = /** @type {HTMLElement | null} */ (document.getElementById('settingsPaymentSummaryCount'));
     if (count) count.textContent = String(enabledCount);
 }
 
 function renderSubscriptionRulePreview() {
-    const preview = document.getElementById('settingsSubscriptionRulePreview');
+    const preview = /** @type {HTMLElement | null} */ (document.getElementById('settingsSubscriptionRulePreview'));
     if (!preview) return;
-    const dueDay = Number(document.getElementById('settingsSubscriptionDueDay')?.value);
-    const graceDays = Number(document.getElementById('settingsSubscriptionGraceDays')?.value);
-    const policy = document.getElementById('settingsPaymentAllocationPolicy')?.value;
+    const dueDay = Number(/** @type {HTMLInputElement | null} */ (document.getElementById('settingsSubscriptionDueDay'))?.value);
+    const graceDays = Number(/** @type {HTMLInputElement | null} */ (document.getElementById('settingsSubscriptionGraceDays'))?.value);
+    const policy = /** @type {HTMLSelectElement | null} */ (document.getElementById('settingsPaymentAllocationPolicy'))?.value;
     const validDue = Number.isInteger(dueDay) && dueDay >= 1 && dueDay <= 28;
     const validGrace = Number.isInteger(graceDays) && graceDays >= 0 && graceDays <= 31;
     const dueLabel = validDue
@@ -367,7 +373,7 @@ function renderSettingsFloorStack(floors, apartmentsPerFloor, total) {
 }
 
 function renderSettingsBuildingLive() {
-    const value = id => String(document.getElementById(id)?.value ?? '').trim();
+    const value = id => String(/** @type {HTMLInputElement | null} */ (document.getElementById(id))?.value ?? '').trim();
     const floors = Number(value('settingsFloorCount') || state.floorCount || 0);
     const perFloor = Number(value('settingsApartmentsPerFloor') || state.apartmentsPerFloor || 0);
     const residents = Array.isArray(state.residents) ? state.residents.length : 0;
@@ -394,10 +400,10 @@ function renderSettingsBuildingLive() {
 
 function renderBuildingLayoutPreview() {
     renderSettingsBuildingLive();
-    const preview = document.getElementById('settingsBuildingLayoutPreview');
+    const preview = /** @type {HTMLElement | null} */ (document.getElementById('settingsBuildingLayoutPreview'));
     if (!preview) return;
-    const floors = Number(document.getElementById('settingsFloorCount')?.value || 0);
-    const apartmentsPerFloor = Number(document.getElementById('settingsApartmentsPerFloor')?.value || 0);
+    const floors = Number(/** @type {HTMLInputElement | null} */ (document.getElementById('settingsFloorCount'))?.value || 0);
+    const apartmentsPerFloor = Number(/** @type {HTMLInputElement | null} */ (document.getElementById('settingsApartmentsPerFloor'))?.value || 0);
     if (floors === 0 && apartmentsPerFloor === 0) {
         preview.textContent = 'حدد عدد الأدوار والشقق لعرض التوزيع.';
         renderSettingsFloorStack(0, 0, 0);
@@ -423,48 +429,65 @@ function renderBuildingLayoutPreview() {
 
 function openSettingsModal() {
     if (!requireManager()) return;
-    document.getElementById('settingsBuildingName').value = state.buildingName||'';
-    document.getElementById('settingsManagerName').value = state.managerName||'';
-    document.getElementById('settingsManagerPhone').value = state.managerPhone||'';
-    document.getElementById('settingsDefaultSub').value = state.defaultSubscription||'';
-    document.getElementById('settingsStartingBalance').value = state.startingBalance ?? '';
-    document.getElementById('settingsFloorCount').value = state.floorCount || '';
-    document.getElementById('settingsApartmentsPerFloor').value = state.apartmentsPerFloor || '';
+    const idVal = (id) => /** @type {HTMLInputElement | null} */ (document.getElementById(id));
+    idVal('settingsBuildingName').value = state.buildingName||'';
+    idVal('settingsManagerName').value = state.managerName||'';
+    idVal('settingsManagerPhone').value = state.managerPhone||'';
+    idVal('settingsDefaultSub').value = String(state.defaultSubscription||'');
+    idVal('settingsStartingBalance').value = String(state.startingBalance ?? '');
+    idVal('settingsFloorCount').value = String(state.floorCount || '');
+    idVal('settingsApartmentsPerFloor').value = String(state.apartmentsPerFloor || '');
     ['settingsFloorCount', 'settingsApartmentsPerFloor'].forEach(id => {
-        const field = document.getElementById(id);
+        const field = /** @type {HTMLInputElement | null} */ (document.getElementById(id));
         if (!field) return;
         field.oninput = renderBuildingLayoutPreview;
         field.onchange = renderBuildingLayoutPreview;
     });
     renderBuildingLayoutPreview();
     ['settingsBuildingName', 'settingsManagerName', 'settingsDefaultSub', 'settingsStartingBalance'].forEach(id => {
-        const field = document.getElementById(id);
+        const field = /** @type {HTMLInputElement | null} */ (document.getElementById(id));
         if (field) field.oninput = renderSettingsBuildingLive;
     });
 
     const paymentSettings = normalizePaymentSettings(state.paymentSettings);
-    document.getElementById('settingsPaymentCashEnabled').checked = paymentSettings.cash.enabled;
-    document.getElementById('settingsPaymentWalletEnabled').checked = paymentSettings.wallet.enabled;
-    document.getElementById('settingsWalletProvider').value = paymentSettings.wallet.provider;
-    document.getElementById('settingsWalletAccountName').value = paymentSettings.wallet.accountName;
-    document.getElementById('settingsWalletNumber').value = paymentSettings.wallet.number;
-    document.getElementById('settingsPaymentInstapayEnabled').checked = paymentSettings.instapay.enabled;
-    document.getElementById('settingsInstapayAccountName').value = paymentSettings.instapay.accountName;
-    document.getElementById('settingsInstapayAddress').value = paymentSettings.instapay.address;
-    document.getElementById('settingsPaymentBankEnabled').checked = paymentSettings.bank_transfer.enabled;
-    document.getElementById('settingsBankName').value = paymentSettings.bank_transfer.bankName;
-    document.getElementById('settingsBankAccountName').value = paymentSettings.bank_transfer.accountName;
-    document.getElementById('settingsBankAccountNumber').value = paymentSettings.bank_transfer.accountNumber;
-    document.getElementById('settingsBankIban').value = paymentSettings.bank_transfer.iban;
+    const cashToggle = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsPaymentCashEnabled'));
+    if (cashToggle) cashToggle.checked = paymentSettings.cash.enabled;
+    const walletToggle = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsPaymentWalletEnabled'));
+    if (walletToggle) walletToggle.checked = paymentSettings.wallet.enabled;
+    const walletProvider = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsWalletProvider'));
+    if (walletProvider) walletProvider.value = paymentSettings.wallet.provider;
+    const walletAccountName = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsWalletAccountName'));
+    if (walletAccountName) walletAccountName.value = paymentSettings.wallet.accountName;
+    const walletNumber = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsWalletNumber'));
+    if (walletNumber) walletNumber.value = paymentSettings.wallet.number;
+    const instapayToggle = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsPaymentInstapayEnabled'));
+    if (instapayToggle) instapayToggle.checked = paymentSettings.instapay.enabled;
+    const instapayAccountName = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsInstapayAccountName'));
+    if (instapayAccountName) instapayAccountName.value = paymentSettings.instapay.accountName;
+    const instapayAddress = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsInstapayAddress'));
+    if (instapayAddress) instapayAddress.value = paymentSettings.instapay.address;
+    const bankToggle = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsPaymentBankEnabled'));
+    if (bankToggle) bankToggle.checked = paymentSettings.bank_transfer.enabled;
+    const bankName = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsBankName'));
+    if (bankName) bankName.value = paymentSettings.bank_transfer.bankName;
+    const bankAccountName = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsBankAccountName'));
+    if (bankAccountName) bankAccountName.value = paymentSettings.bank_transfer.accountName;
+    const bankAccountNumber = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsBankAccountNumber'));
+    if (bankAccountNumber) bankAccountNumber.value = paymentSettings.bank_transfer.accountNumber;
+    const bankIban = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsBankIban'));
+    if (bankIban) bankIban.value = paymentSettings.bank_transfer.iban;
     syncPaymentMethodDetails();
-    document.getElementById('settingsSubscriptionDueDay').value = Number(state.subscriptionDueDay) || 1;
-    document.getElementById('settingsSubscriptionGraceDays').value = Number(state.subscriptionGraceDays) || 0;
-    document.getElementById('settingsPaymentAllocationPolicy').value =
+    const dueDayInput = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsSubscriptionDueDay'));
+    if (dueDayInput) dueDayInput.value = String(Number(state.subscriptionDueDay) || 1);
+    const graceDaysInput = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsSubscriptionGraceDays'));
+    if (graceDaysInput) graceDaysInput.value = String(Number(state.subscriptionGraceDays) || 0);
+    const policySelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('settingsPaymentAllocationPolicy'));
+    if (policySelect) policySelect.value =
         ['oldest_first', 'selected_month_first'].includes(state.paymentAllocationPolicy)
             ? state.paymentAllocationPolicy
             : 'oldest_first';
     ['settingsSubscriptionDueDay', 'settingsSubscriptionGraceDays', 'settingsPaymentAllocationPolicy'].forEach(id => {
-        const field = document.getElementById(id);
+        const field = /** @type {HTMLInputElement | HTMLSelectElement | null} */ (document.getElementById(id));
         if (!field) return;
         field.oninput = renderSubscriptionRulePreview;
         field.onchange = renderSubscriptionRulePreview;
@@ -479,14 +502,14 @@ function openSettingsModal() {
     const role = document.getElementById('settingsAccountRole');
     if (role) role.textContent = currentUserRole === 'manager' ? 'مدير المبنى' : 'مالك الشقة';
     document.getElementById('settingsPasswordResetBtn')?.classList.toggle('hidden', currentUserRole !== 'manager');
-    const receiptInput = document.getElementById('settingsReceiptThankYou');
+    const receiptInput = /** @type {HTMLInputElement | HTMLTextAreaElement | null} */ (document.getElementById('settingsReceiptThankYou'));
     if (receiptInput) {
         try { receiptInput.value = state.receiptThankYouTemplate ?? (localStorage.getItem(getReceiptSettingsKey()) || ''); }
         catch { receiptInput.value = state.receiptThankYouTemplate || ''; }
         receiptInput.oninput = renderReceiptPreview;
     }
     renderReceiptPreview();
-    const reminderInput = document.getElementById('settingsReminderTemplate');
+    const reminderInput = /** @type {HTMLInputElement | HTMLTextAreaElement | null} */ (document.getElementById('settingsReminderTemplate'));
     if (reminderInput) {
         try { reminderInput.value = state.reminderMessageTemplate ?? (localStorage.getItem(getReminderTemplateKey()) || ''); }
         catch { reminderInput.value = state.reminderMessageTemplate || ''; }
@@ -501,38 +524,38 @@ function openSettingsModal() {
 
 async function saveSettings() {
     if (!requireManager()) return;
-    const defaultSubscription = Number(document.getElementById('settingsDefaultSub').value || 0);
-    const startingBalance = Number(document.getElementById('settingsStartingBalance').value || 0);
-    const floorCount = Number(document.getElementById('settingsFloorCount').value || 0);
-    const apartmentsPerFloor = Number(document.getElementById('settingsApartmentsPerFloor').value || 0);
+    const defaultSubscription = Number(/** @type {HTMLInputElement | null} */ (document.getElementById('settingsDefaultSub')).value || 0);
+    const startingBalance = Number(/** @type {HTMLInputElement | null} */ (document.getElementById('settingsStartingBalance')).value || 0);
+    const floorCount = Number(/** @type {HTMLInputElement | null} */ (document.getElementById('settingsFloorCount')).value || 0);
+    const apartmentsPerFloor = Number(/** @type {HTMLInputElement | null} */ (document.getElementById('settingsApartmentsPerFloor')).value || 0);
     const validLayout = (floorCount === 0 && apartmentsPerFloor === 0)
         || (Number.isInteger(floorCount) && floorCount >= 1 && floorCount <= 100
             && Number.isInteger(apartmentsPerFloor) && apartmentsPerFloor >= 1 && apartmentsPerFloor <= 100);
-    const subscriptionDueDay = Number(document.getElementById('settingsSubscriptionDueDay').value);
-    const subscriptionGraceDays = Number(document.getElementById('settingsSubscriptionGraceDays').value);
-    const paymentAllocationPolicy = document.getElementById('settingsPaymentAllocationPolicy').value;
+    const subscriptionDueDay = Number(/** @type {HTMLInputElement | null} */ (document.getElementById('settingsSubscriptionDueDay')).value);
+    const subscriptionGraceDays = Number(/** @type {HTMLInputElement | null} */ (document.getElementById('settingsSubscriptionGraceDays')).value);
+    const paymentAllocationPolicy = /** @type {HTMLSelectElement | null} */ (document.getElementById('settingsPaymentAllocationPolicy')).value;
     const validSubscriptionRules = Number.isInteger(subscriptionDueDay) && subscriptionDueDay >= 1 && subscriptionDueDay <= 28
         && Number.isInteger(subscriptionGraceDays) && subscriptionGraceDays >= 0 && subscriptionGraceDays <= 31
         && ['oldest_first', 'selected_month_first'].includes(paymentAllocationPolicy);
     const paymentSettings = normalizePaymentSettings({
-        cash: { enabled: document.getElementById('settingsPaymentCashEnabled').checked },
+        cash: { enabled: /** @type {HTMLInputElement | null} */ (document.getElementById('settingsPaymentCashEnabled')).checked },
         wallet: {
-            enabled: document.getElementById('settingsPaymentWalletEnabled').checked,
-            provider: document.getElementById('settingsWalletProvider').value,
-            accountName: document.getElementById('settingsWalletAccountName').value,
-            number: document.getElementById('settingsWalletNumber').value
+            enabled: /** @type {HTMLInputElement | null} */ (document.getElementById('settingsPaymentWalletEnabled')).checked,
+            provider: /** @type {HTMLInputElement | null} */ (document.getElementById('settingsWalletProvider')).value,
+            accountName: /** @type {HTMLInputElement | null} */ (document.getElementById('settingsWalletAccountName')).value,
+            number: /** @type {HTMLInputElement | null} */ (document.getElementById('settingsWalletNumber')).value
         },
         instapay: {
-            enabled: document.getElementById('settingsPaymentInstapayEnabled').checked,
-            accountName: document.getElementById('settingsInstapayAccountName').value,
-            address: document.getElementById('settingsInstapayAddress').value
+            enabled: /** @type {HTMLInputElement | null} */ (document.getElementById('settingsPaymentInstapayEnabled')).checked,
+            accountName: /** @type {HTMLInputElement | null} */ (document.getElementById('settingsInstapayAccountName')).value,
+            address: /** @type {HTMLInputElement | null} */ (document.getElementById('settingsInstapayAddress')).value
         },
         bank_transfer: {
-            enabled: document.getElementById('settingsPaymentBankEnabled').checked,
-            bankName: document.getElementById('settingsBankName').value,
-            accountName: document.getElementById('settingsBankAccountName').value,
-            accountNumber: document.getElementById('settingsBankAccountNumber').value,
-            iban: document.getElementById('settingsBankIban').value
+            enabled: /** @type {HTMLInputElement | null} */ (document.getElementById('settingsPaymentBankEnabled')).checked,
+            bankName: /** @type {HTMLInputElement | null} */ (document.getElementById('settingsBankName')).value,
+            accountName: /** @type {HTMLInputElement | null} */ (document.getElementById('settingsBankAccountName')).value,
+            accountNumber: /** @type {HTMLInputElement | null} */ (document.getElementById('settingsBankAccountNumber')).value,
+            iban: /** @type {HTMLInputElement | null} */ (document.getElementById('settingsBankIban')).value
         }
     });
     const hasEnabledPaymentMethod = Object.values(paymentSettings).some(method => method.enabled);
@@ -549,18 +572,21 @@ async function saveSettings() {
         toast('فعّل وسيلة دفع واحدة على الأقل قبل حفظ الإعدادات.', 'error');
         return;
     }
-    const receiptInput = document.getElementById('settingsReceiptThankYou');
+    const receiptInput = /** @type {HTMLInputElement | HTMLTextAreaElement | null} */ (document.getElementById('settingsReceiptThankYou'));
     const receiptThankYou = String(receiptInput?.value || '').trim();
-    const reminderInput = document.getElementById('settingsReminderTemplate');
+    const reminderInput = /** @type {HTMLInputElement | HTMLTextAreaElement | null} */ (document.getElementById('settingsReminderTemplate'));
     const reminderTemplate = String(reminderInput?.value || '').trim();
     if (receiptThankYou.length > 180 || reminderTemplate.length > 500) {
         toast('تحقق من طول رسالة الإيصال أو التذكير.', 'error');
         return;
     }
     const previousState = cloneStateSnapshot();
-    state.buildingName = document.getElementById('settingsBuildingName').value.trim();
-    state.managerName = document.getElementById('settingsManagerName').value.trim();
-    state.managerPhone = document.getElementById('settingsManagerPhone').value.trim();
+    const buildingNameInput = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsBuildingName'));
+    if (buildingNameInput) state.buildingName = buildingNameInput.value.trim();
+    const managerNameInput = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsManagerName'));
+    if (managerNameInput) state.managerName = managerNameInput.value.trim();
+    const managerPhoneInput = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsManagerPhone'));
+    if (managerPhoneInput) state.managerPhone = managerPhoneInput.value.trim();
     state.defaultSubscription = defaultSubscription;
     state.startingBalance = startingBalance;
     state.floorCount = floorCount;
@@ -623,7 +649,7 @@ async function sendSettingsPasswordReset() {
     if (!requireManager()) return;
     const email = activeSession?.user?.email;
     if (!email) { toast('لا يوجد بريد إلكتروني مرتبط بحساب المدير', 'error'); return; }
-    const button = document.getElementById('settingsPasswordResetBtn');
+    const button = /** @type {HTMLButtonElement | null} */ (document.getElementById('settingsPasswordResetBtn'));
     if (button) { button.disabled = true; button.textContent = 'جارٍ إرسال الرابط...'; }
     try {
         const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
