@@ -45,9 +45,9 @@ test('changing the report month invalidates the preview and output actions', () 
 });
 
 test('export is scoped to the previewed month and uses a month-based filename', () => {
-    assert.match(reports, /function exportToCSV\(month = landlordReportMonth\)/);
-    assert.match(reports, /const \{ income: inc, expenses: exp \} = getLandlordReportData\(reportMonth\)/);
-    assert.match(reports, /manzil_report_\$\{monthKey \? monthKey\.slice\(0, 7\) : Date\.now\(\)\}\.csv/);
+    assert.match(reports, /function exportToCSV\(month = landlordReportMonth, purposeFilter = landlordReportPurposeFilter\)/);
+    assert.match(reports, /const \{ income: inc, expenses: exp \} = getLandlordReportData\(reportMonth, purposeFilter\)/);
+    assert.match(reports, /manzil_report_\$\{monthKey \? monthKey\.slice\(0, 7\) : Date\.now\(\)\}\$\{purposeSuffix\}\.csv/);
     assert.doesNotMatch(reports, /state\.income\.forEach\(i =>/);
 });
 
@@ -69,7 +69,7 @@ test('reports surface shares card headers, stat tiles, and tabular numerals', ()
     assert.match(css, /#printableArea \.app-card, #printableArea \.app-input, #printableArea \.report-stat \{/);
     assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 6);
     assert.equal((reportTab.match(/class="report-card-badge /g) || []).length, 6);
-    assert.equal((reports.match(/class="report-stat"/g) || []).length, 17);
+    assert.equal((reports.match(/class="report-stat"/g) || []).length, 29);
     assert.equal((render.match(/class="report-stat"/g) || []).length, 4);
     assert.match(reports, /text-emerald-400 report-amount/);
     assert.match(render, /text-rose-400 report-amount/);
@@ -160,7 +160,7 @@ test('landlord report compares expected dues with collections', () => {
     assert.match(reports, /function getMonthlyBillingTotals\(month\)/);
     assert.match(reports, /getSubscriptionAmountForMonth\(resident, month\)/);
     assert.match(reports, /getMonthOutstanding\(resident, month\)/);
-    assert.match(reports, /const \{ expectedCents, outstandingCents \} = getMonthlyBillingTotals\(m\)/);
+    assert.match(reports, /const \{ expectedCents, outstandingCents \} = showDues\s*\? getMonthlyBillingTotals\(m\)/);
     assert.match(reports, /collectionRate/);
     assert.match(reports, /isResidentActiveInMonth/);
     assert.match(reports, /function getExpenseCategoryTotals\(expenses\)/);
@@ -189,8 +189,8 @@ test('resident statement scopes a monthly ledger to one resident with gated outp
     for (const id of ['statementPrintBtn', 'statementPdfBtn', 'unitReportPdfBtn', 'statementCsvBtn']) {
         assert.match(reportTab, new RegExp('id="' + id + '"[^>]*disabled'));
     }
-    assert.match(reports, /function buildResidentStatement\(residentId\)/);
-    assert.match(reports, /function getResidentStatementSignature\(residentId\)/);
+    assert.match(reports, /function buildResidentStatement\(residentId, purposeFilter = ''\)/);
+    assert.match(reports, /function getResidentStatementSignature\(residentId, purposeFilter = ''\)/);
     assert.match(reports, /function invalidateResidentStatementIfStale\(\)/);
     assert.match(render, /invalidateResidentStatementIfStale\(\)/);
     assert.match(render, /function populateStatementResidentSelect\(\)/);
@@ -203,7 +203,7 @@ test('resident statement scopes a monthly ledger to one resident with gated outp
     assert.match(reports, /manzil_statement_\$\{getStatementFileSlug\(statement\)\}\.csv/);
     assert.match(reports, /manzil_statement_\$\{getStatementFileSlug\(statement\)\}\.pdf/);
     assert.match(reports, /function exportUnitReportPdf\(\)/);
-    assert.match(reports, /manzil_unit_\$\{getStatementFileSlug\(statement\)\}\.pdf/);
+    assert.match(reports, /manzil_unit_\$\{getStatementFileSlug\(statement, false\)\}\.pdf/);
     assert.match(reports, /function renderUnitReportPdfHtml\(statement\)/);
     assert.match(reports, /بيانات الوحدة/);
 });
@@ -219,13 +219,13 @@ test('period report rolls the monthly landlord figures across a range with gated
     for (const id of ['periodReportPrintBtn', 'periodReportExportBtn']) {
         assert.match(reportTab, new RegExp('id="' + id + '"[^>]*disabled'));
     }
-    assert.match(reports, /function buildPeriodReport\(fromMonth, toMonth\)/);
-    assert.match(reports, /const \{ expectedCents, outstandingCents \} = getMonthlyBillingTotals\(month\)/);
-    assert.match(reports, /function getPeriodReportSignature\(fromMonth, toMonth\)/);
+    assert.match(reports, /function buildPeriodReport\(fromMonth, toMonth, purposeFilter = ''\)/);
+    assert.match(reports, /const \{ expectedCents, outstandingCents \} = showDues\s*\? getMonthlyBillingTotals\(month\)/);
+    assert.match(reports, /function getPeriodReportSignature\(fromMonth, toMonth, purposeFilter = ''\)/);
     assert.match(reports, /function invalidatePeriodReportIfStale\(\)/);
     assert.match(render, /invalidatePeriodReportIfStale\(\)/);
     assert.match(render, /function populatePeriodReportSelects\(months/);
-    assert.match(reports, /manzil_period_\$\{getPeriodReportFileSlug\(report\)\}\.csv/);
+    assert.match(reports, /manzil_period_\$\{getPeriodReportFileSlug\(report\)\}\$\{purposeSuffix\}\.csv/);
     assert.match(reports, /document\.body\.classList\.add\('print-period'\)/);
     assert.match(css, /body\.print-period #tab-reports > :not\(#periodReportCard\) \{ display: none !important; \}/);
     assert.match(css, /body\.print-period #periodReportCard \{/);

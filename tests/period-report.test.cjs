@@ -228,7 +228,7 @@ test('period preview gates print and csv until a fresh preview exists', () => {
     app.generatePeriodReport();
     elements.periodReportTo.value = 'أبريل 2024';
     app.onPeriodReportRangeChange();
-    assert.match(elements.periodReportPreview.innerHTML, /تغيّرت الفترة أو البيانات/);
+    assert.match(elements.periodReportPreview.innerHTML, /تغيّرت الفترة أو الغرض أو البيانات/);
     assert.equal(sandbox.document.getElementById('periodReportPreset').value, 'custom');
 
     app.printPeriodReport();
@@ -287,7 +287,7 @@ test('the period preview lists each channel with its movement count and share', 
     assert.match(html, /التحصيل حسب الطريقة<\/span><span class="report-block-count">3<\/span>/);
     assert.match(html, /InstaPay <span class="report-list-meta">· 1 حركة · 29%<\/span>/);
     assert.match(html, /<span class="report-list-value text-emerald-400 report-amount">140 ج\.م<\/span>/);
-    assert.match(html, /توزيع الطرق يغطي كل تحصيلات أشهر الفترة، ومجموعه يساوي الإجمالي المحصّل/);
+    assert.match(html, /توزيع الطرق يغطي كل تحصيلات أشهر الفترة، ومجموعه يساوي إجمالي التحصيل/);
 });
 
 test('a period without collections says so instead of inventing channels', () => {

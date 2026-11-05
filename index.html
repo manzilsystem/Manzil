@@ -515,6 +515,10 @@
                         <span class="report-field-label">شهر التقرير</span>
                         <select id="reportMonthSelect" aria-label="شهر التقرير" onchange="invalidateLandlordReportPreview()" class="report-control app-input border focus:outline-none"></select>
                     </label>
+                    <label class="report-field report-field-narrow" for="landlordReportPurpose">
+                        <span class="report-field-label">غرض التحصيل</span>
+                        <select id="landlordReportPurpose" aria-label="فلتر غرض التحصيل" onchange="invalidateLandlordReportPreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
                     <button type="button" onclick="generateLandlordReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
                 </div>
                 <div id="landlordReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
@@ -557,6 +561,10 @@
                         <span class="report-field-label">إلى شهر</span>
                         <select id="periodReportTo" aria-label="إلى شهر" onchange="onPeriodReportRangeChange()" class="report-control app-input border focus:outline-none"></select>
                     </label>
+                    <label class="report-field report-field-narrow" for="periodReportPurpose">
+                        <span class="report-field-label">غرض التحصيل</span>
+                        <select id="periodReportPurpose" aria-label="فلتر غرض التحصيل" onchange="invalidatePeriodReportPreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
                     <button type="button" onclick="generatePeriodReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
                 </div>
                 <div id="periodReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
@@ -585,6 +593,10 @@
                         <select id="statementResidentSelect" onchange="invalidateResidentStatementPreview()" class="report-control app-input border">
                             <option value="">اختر الساكن</option>
                         </select>
+                    </label>
+                    <label class="report-field report-field-narrow" for="statementPurpose">
+                        <span class="report-field-label">غرض التحصيل</span>
+                        <select id="statementPurpose" aria-label="فلتر غرض التحصيل" onchange="invalidateResidentStatementPreview()" class="report-control app-input border"></select>
                     </label>
                     <button type="button" onclick="generateResidentStatement()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
                 </div>
