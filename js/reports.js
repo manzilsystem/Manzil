@@ -315,11 +315,27 @@ function buildPeriodReport(fromMonth, toMonth) {
     }, { expectedCents: 0, collectedCents: 0, outstandingCents: 0, expenseCents: 0, unpaidMonths: 0 });
     totals.netCents = totals.collectedCents - totals.expenseCents;
     totals.rate = getPeriodCollectionRate(totals.expectedCents, totals.collectedCents);
+    const rangeLabels = new Set(months.map(row => row.month));
+    const methodTotals = new Map();
+    (state.income || []).filter(item => rangeLabels.has(item.month)).forEach(payment => {
+        const label = getIncomePaymentMethodLabel(payment.paymentMethod);
+        const bucket = methodTotals.get(label) || { label, count: 0, cents: 0 };
+        bucket.count += 1;
+        bucket.cents += toCents(payment.amount);
+        methodTotals.set(label, bucket);
+    });
+    const methods = Array.from(methodTotals.values())
+        .sort((a, b) => b.cents - a.cents)
+        .map(item => ({
+            ...item,
+            share: totals.collectedCents > 0 ? Math.round((item.cents / totals.collectedCents) * 100) : null
+        }));
     return {
         fromMonth,
         toMonth,
         months,
         totals,
+        methods,
         rangeLabel: `${fromMonth} – ${toMonth}`,
         generatedAt: new Date().toISOString()
     };
@@ -391,6 +407,11 @@ function renderPeriodReportHtml(report) {
             <td class="${row.netCents >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${fmtMoney(row.netCents / 100)}</td>
         </tr>`).join('');
     const totals = report.totals;
+    const methodSummary = report.methods.map(item => `
+        <div class="report-list-row">
+            <span class="report-list-title">${esc(item.label)} <span class="report-list-meta">· ${fmtNum(item.count)} حركة · ${item.share === null ? '—' : fmtNum(item.share) + '%'}</span></span>
+            <span class="report-list-value text-emerald-400 report-amount">${fmtMoney(item.cents / 100)}</span>
+        </div>`).join('');
     const unpaidNote = totals.unpaidMonths > 0
         ? `<p>${fmtNum(totals.unpaidMonths)} شهر من الفترة فيه متبقٍّ غير محصّل.</p>`
         : '';
@@ -415,9 +436,14 @@ function renderPeriodReportHtml(report) {
                     <tfoot><tr><td>الإجمالي</td><td>${fmtMoney(totals.expectedCents / 100)}</td><td>${fmtMoney(totals.collectedCents / 100)}</td><td>${fmtMoney(totals.outstandingCents / 100)}</td><td>${totals.rate === null ? '—' : fmtNum(totals.rate) + '%'}</td><td>${fmtMoney(totals.expenseCents / 100)}</td><td>${fmtMoney(totals.netCents / 100)}</td></tr></tfoot>
                 </table>
             </div>
+            <div class="report-block">
+                <p class="report-block-title"><span>التحصيل حسب الطريقة</span><span class="report-block-count">${fmtNum(report.methods.length)}</span></p>
+                ${methodSummary ? '<div class="report-list">' + methodSummary + '</div>' : '<p class="report-note">لا تحصيلات في هذه الفترة.</p>'}
+            </div>
             <div class="report-note report-divider text-center">
                 <p>كل شهر محسوب بسعر الاشتراك السارية فيه وحصيلته من حركات الشهر نفسه، مثل تقرير الملاك الشهري.</p>
                 <p>نسبة تزيد على 100% تعني تحصيلًا أعلى من مستحق الشهر (مقدمة أو متأخرات مسددة).</p>
+                <p>توزيع الطرق يغطي تحصيلات أشهر الفترة فقط، ومجموعه يساوي المحصّل.</p>
                 ${unpaidNote}
             </div>
         </div>`;
@@ -480,6 +506,11 @@ function exportPeriodReportCsv() {
     });
     rows.push(['الإجمالي', totals.expectedCents / 100, totals.collectedCents / 100, totals.outstandingCents / 100,
         totals.rate ?? '', totals.expenseCents / 100, totals.netCents / 100]);
+    rows.push([]);
+    rows.push(['طريقة التحصيل', 'عدد الحركات', 'المبلغ', 'نسبته من المحصّل %']);
+    report.methods.forEach(item => {
+        rows.push([item.label, item.count, item.cents / 100, item.share ?? '']);
+    });
     downloadCsv(`manzil_period_${getPeriodReportFileSlug(report)}.csv`, rows);
     toast('تم تصدير تقرير الفترة','success');
 }
