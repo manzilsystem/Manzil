@@ -1,0 +1,3 @@
+-- Duplicate migration kept for remote history compatibility.
+-- The canonical version is 20261102233018_atomic_building_snapshot.sql.
+-- This file is intentionally empty to avoid re-applying the same changes.
