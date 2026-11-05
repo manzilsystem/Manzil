@@ -16,7 +16,7 @@ function loadDeleteNotice() {
             auditLogs: [],
         },
         requireManager: () => true,
-        confirm: () => true,
+        confirmRecordDeletion: () => true,
         cloneStateSnapshot: () => JSON.parse(JSON.stringify(sandbox.state)),
         saveWithRollback: async () => true,
         renderNotices() {},

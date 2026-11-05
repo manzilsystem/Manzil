@@ -25,13 +25,13 @@ async function handleNoticeSubmit() {
 async function deleteNotice(id) {
     if (!requireManager()) return;
     const notice = state.notices.find(n => n.id === id); if (!notice) return;
-    if (!confirm('حذف هذا الإعلان؟')) return;
+    if (!confirmRecordDeletion('هذا الإعلان')) return;
     const previousState = cloneStateSnapshot();
     state.notices = state.notices.filter(n => n.id !== id);
     logAction('حذف إعلان', notice?.text || id);
     if (!await saveWithRollback(previousState)) return;
     renderNotices();
-    toast('تم حذف الإعلان', 'info');
+    toast('تم حذف الإعلان بنجاح', 'success');
 }
 
 function shareNoticeToWhatsApp() {

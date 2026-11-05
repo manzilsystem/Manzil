@@ -38,6 +38,10 @@ function toast(msg, type = 'success') {
     setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'all 0.3s'; setTimeout(() => el.remove(), 300); }, 2500);
 }
 
+function confirmRecordDeletion(label) {
+    return confirm(`سيتم حذف ${label} نهائيًا من السجلات والتقارير، ولا يمكن التراجع عن هذا الإجراء. متابعة؟`);
+}
+
 function formatDate(iso) { if (!iso) return ''; try { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('ar-EG',{year:'numeric',month:'short',day:'numeric'}); } catch(e){ return ''; } }
 function getCurrentMonth() { const d = new Date(); return `${monthsNames[d.getMonth()]} ${d.getFullYear()}`; }
 

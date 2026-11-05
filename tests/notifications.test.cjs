@@ -15,7 +15,7 @@ test('persistence exposes one operation-level success message', () => {
 test('notification paths report copy, delete, and owner provisioning failures', () => {
     assert.match(crud, /let copied = false;/);
     assert.match(crud, /تعذر نسخ الرمز؛ حدده وانسخه يدويًا/);
-    assert.match(notices, /toast\('تم حذف الإعلان', 'info'\)/);
+    assert.match(notices, /toast\('تم حذف الإعلان بنجاح', 'success'\)/);
     assert.match(crud, /Owner provisioning refresh failed/);
     assert.match(crud, /تم إنشاء الحساب لكن تعذر تحديث البيانات/);
 });
