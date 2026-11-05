@@ -9,5 +9,5 @@
         "skipLibCheck": true,
         "types": []
     },
-    "include": ["js/telemetry.js", "js/state.js", "js/access.js", "js/notices.js", "js/app.js", "js/subscription-rates.js", "js/monthly-close.js", "js/cashbox.js", "js/backup.js", "js/reports.js", "js/globals.d.ts"]
+    "include": ["js/telemetry.js", "js/state.js", "js/access.js", "js/notices.js", "js/app.js", "js/subscription-rates.js", "js/monthly-close.js", "js/cashbox.js", "js/backup.js", "js/reports.js", "js/render.js", "js/globals.d.ts"]
 }
