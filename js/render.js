@@ -324,7 +324,7 @@ function renderNotices() {
             <p class="text-xs leading-relaxed whitespace-pre-line">${esc(n.text)}</p>
             <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-700/50">
                 <span class="text-[10px] text-slate-500">${formatDate(n.date)}</span>
-                <button onclick="deleteNotice('${n.id}')" class="text-[10px] text-rose-400 hover:underline"><i class="fa-solid fa-trash"></i> حذف</button>
+                <button onclick="deleteNotice('${n.id}')" aria-label="حذف الإعلان" class="text-[10px] text-rose-400 hover:underline"><i class="fa-solid fa-trash"></i> حذف</button>
             </div>
         </div>`).join('');
 }
@@ -384,7 +384,7 @@ function renderExpenseTable() {
             <div class="flex items-center gap-2 shrink-0">
                 <span class="text-sm font-black text-rose-400">${fmtNum(e.amount)}</span>
                 <button onclick="openExpenseEditModal('${e.id}')" aria-label="تعديل المصروف ${esc(e.title)}" class="text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-pen text-xs"></i></button>
-                <button onclick="deleteExpense('${e.id}')" class="text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash text-xs"></i></button>
+                <button onclick="deleteExpense('${e.id}')" aria-label="حذف المصروف ${esc(e.title)}" class="text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash text-xs"></i></button>
             </div>
         </div>`).join('');
 }
