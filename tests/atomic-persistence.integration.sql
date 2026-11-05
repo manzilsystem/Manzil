@@ -8,7 +8,7 @@
 \ir ../supabase/migrations/20261103030212_drop_legacy_subscription_rate_rpc.sql
 \ir ../supabase/migrations/20261103031121_restrict_subscription_rate_visibility.sql
 \ir ../supabase/migrations/20261103050000_allow_all_five_themes.sql
-\ir ../supabase/migrations/20261104110000_add_turquoise_theme.sql
+\ir ../supabase/migrations/20261104055511_add_turquoise_theme.sql
 \ir ../supabase/migrations/20261103062659_manager_only_resident_notes.sql
 \ir ../supabase/migrations/20261103063455_owner_login_rate_limit.sql
 \ir ../supabase/migrations/20261103064001_subscription_rate_change_history.sql
