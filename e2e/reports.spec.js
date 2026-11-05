@@ -22,14 +22,31 @@ async function openReports(page) {
     await expect(page.locator('#tab-reports')).toBeVisible();
 }
 
+async function backToGrid(page) {
+    await page.getByRole('button', { name: 'رجوع إلى شبكة التقارير' }).click();
+    await expect(page.locator('#tab-reports')).toHaveAttribute('data-report-view', 'grid');
+}
+
 async function openReportPanel(page, name) {
+    if (await page.locator('#tab-reports').getAttribute('data-report-view') === 'panel') await backToGrid(page);
     const item = page.locator(`[data-report-nav="${name}"]`);
     await expect(item).toBeVisible();
     await item.click();
     await expect(item).toHaveClass(/is-active/);
+    await expect(page.locator('#tab-reports')).toHaveAttribute('data-report-view', 'panel');
+}
+
+async function reportViewCounts(page) {
+    return page.evaluate(() => ({
+        view: document.getElementById('tab-reports').dataset.reportView,
+        visiblePanels: [...document.querySelectorAll('.report-panel')].filter(panel => !panel.classList.contains('hidden')).length,
+        active: document.querySelectorAll('.report-nav-item.is-active').length,
+        ariaCurrent: document.querySelectorAll('[data-report-nav][aria-current="page"]').length
+    }));
 }
 
 async function previewMonth(page, month) {
+    await openReportPanel(page, 'landlord');
     await page.locator('#reportMonthSelect').selectOption(month);
     await page.locator('#landlordReportPrint').getByRole('button', { name: 'معاينة', exact: true }).click();
 }
@@ -72,39 +89,77 @@ test('report output stays disabled until a fresh preview exists', async ({ page 
     await expect(page.locator('[data-report-nav="landlord"]')).not.toHaveClass(/is-ready/);
 });
 
-test('the reports nav shows one panel at a time', async ({ page }) => {
+test('the tab opens on the icon grid and a card opens its report full page', async ({ page }) => {
     await openReports(page);
-    await expect(page.locator('#landlordReportPrint')).toBeVisible();
-    for (const hidden of ['periodReportCard', 'residentStatementCard', 'monthlyClosePanel', 'arrearsPanel', 'auditLogPanel']) {
-        await expect(page.locator('#' + hidden)).toBeHidden();
-    }
+    await expect(page.locator('.report-section-head')).toBeVisible();
+    await expect(page.locator('#reportViewBar')).toBeHidden();
+    expect(await reportViewCounts(page)).toEqual({ view: 'grid', visiblePanels: 0, active: 0, ariaCurrent: 0 });
 
     await openReportPanel(page, 'arrears');
     await expect(page.locator('#arrearsPanel')).toBeVisible();
-    await expect(page.locator('#landlordReportPrint')).toBeHidden();
+    await expect(page.locator('.report-section-head')).toBeHidden();
+    await expect(page.locator('#reportViewBar')).toBeVisible();
+    await expect(page.locator('#reportViewTitle')).toHaveText('المتأخرات');
+    await expect(page.locator('#reportViewMeta')).toHaveText('تصفية وتصدير CSV');
+    expect(await reportViewCounts(page)).toEqual({ view: 'panel', visiblePanels: 1, active: 1, ariaCurrent: 1 });
+
+    await backToGrid(page);
+    await expect(page.locator('#arrearsPanel')).toBeHidden();
+    await expect(page.locator('.report-section-head')).toBeVisible();
+    expect(await reportViewCounts(page)).toEqual({ view: 'grid', visiblePanels: 0, active: 0, ariaCurrent: 0 });
 
     await openReportPanel(page, 'monthlyClose');
     await expect(page.locator('#monthlyClosePanel')).toBeVisible();
-    await expect(page.locator('#arrearsPanel')).toBeHidden();
     await expect(page.locator('#monthlyCloseMonthSelect')).toBeVisible();
-
-    const current = await page.evaluate(() => ({
-        active: document.querySelectorAll('.report-nav-item.is-active').length,
-        ariaCurrent: document.querySelectorAll('[data-report-nav][aria-current="page"]').length,
-        visiblePanels: [...document.querySelectorAll('.report-panel')].filter(panel => !panel.classList.contains('hidden')).length
-    }));
-    expect(current).toEqual({ active: 1, ariaCurrent: 1, visiblePanels: 1 });
+    await expect(page.locator('#reportViewTitle')).toHaveText('الإقفال الشهري');
+    expect(await reportViewCounts(page)).toEqual({ view: 'panel', visiblePanels: 1, active: 1, ariaCurrent: 1 });
 });
 
-test('arrow keys move between report panels', async ({ page }) => {
+test('the back button and Escape return to the icon grid', async ({ page }) => {
+    await openReports(page);
+    await openReportPanel(page, 'landlord');
+    await expect(page.locator('#landlordReportPrint')).toBeVisible();
+
+    await backToGrid(page);
+    await expect(page.locator('[data-report-nav="landlord"]')).toBeFocused();
+
+    await openReportPanel(page, 'period');
+    await expect(page.locator('#periodReportCard')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#tab-reports')).toHaveAttribute('data-report-view', 'grid');
+    await expect(page.locator('#periodReportCard')).toBeHidden();
+    await expect(page.locator('[data-report-nav="period"]')).toBeFocused();
+});
+
+test('re-entering the reports tab lands on the grid, printing keeps the open report', async ({ page }) => {
+    await openReports(page);
+    await openReportPanel(page, 'landlord');
+
+    await page.evaluate(() => switchTab('dashboard'));
+    await page.evaluate(() => switchTab('reports'));
+    await expect(page.locator('#tab-reports')).toHaveAttribute('data-report-view', 'grid');
+    await expect(page.locator('#landlordReportPrint')).toBeHidden();
+
+    await openReportPanel(page, 'statement');
+    await page.locator('#statementResidentSelect').selectOption('r1');
+    await page.locator('#residentStatementCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await page.evaluate(() => { window.print = () => { window.__printCalls = (window.__printCalls || 0) + 1; }; });
+    await page.locator('#statementPrintBtn').click();
+    await expect(page.locator('#tab-reports')).toHaveAttribute('data-report-view', 'panel');
+    await expect(page.locator('#residentStatementCard')).toBeVisible();
+});
+
+test('arrow keys move between cards and Enter opens the report', async ({ page }) => {
     await openReports(page);
     await page.locator('[data-report-nav="landlord"]').focus();
     await page.keyboard.press('ArrowLeft');
-    await expect(page.locator('[data-report-nav="period"]')).toHaveClass(/is-active/);
-    await expect(page.locator('#periodReportCard')).toBeVisible();
+    await expect(page.locator('[data-report-nav="period"]')).toBeFocused();
+    await expect(page.locator('#tab-reports')).toHaveAttribute('data-report-view', 'grid');
     await page.keyboard.press('End');
-    await expect(page.locator('[data-report-nav="audit"]')).toHaveClass(/is-active/);
+    await expect(page.locator('[data-report-nav="audit"]')).toBeFocused();
+    await page.keyboard.press('Enter');
     await expect(page.locator('#auditLogPanel')).toBeVisible();
+    await expect(page.locator('#reportViewTitle')).toHaveText('سجل العمليات');
 });
 
 test('period report gates print and csv on the previewed range', async ({ page }) => {

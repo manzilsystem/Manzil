@@ -17,6 +17,49 @@ const REPORT_OUTPUT_BUTTON_IDS = {
     monthlyClose: 'monthlyClosePdfButton'
 };
 
+const REPORT_TONE_CLASSES = ['report-tone-indigo', 'report-tone-emerald', 'report-tone-amber', 'report-tone-rose', 'report-tone-sky'];
+
+function getReportView() {
+    return document.getElementById('tab-reports')?.dataset.reportView === 'panel' ? 'panel' : 'grid';
+}
+
+function renderReportViewBar(tab) {
+    const bar = document.getElementById('reportViewBar');
+    const item = document.querySelector(`[data-report-nav="${tab}"]`);
+    if (!bar || !item) return;
+    REPORT_TONE_CLASSES.forEach(tone => bar.classList.remove(tone));
+    const tone = REPORT_TONE_CLASSES.find(name => item.classList.contains(name));
+    if (tone) bar.classList.add(tone);
+    document.getElementById('reportViewIcon').innerHTML = item.querySelector('.report-nav-icon')?.innerHTML || '';
+    document.getElementById('reportViewTitle').textContent = item.querySelector('.report-nav-copy b')?.textContent || '';
+    document.getElementById('reportViewMeta').textContent = item.querySelector('.report-nav-copy small')?.textContent || '';
+}
+
+function closeReportPanel({ focusCard = true } = {}) {
+    REPORT_TABS.forEach(name => {
+        const panel = document.getElementById(REPORT_PANEL_IDS[name]);
+        if (panel) panel.classList.add('hidden');
+    });
+    let opened = null;
+    document.querySelectorAll('[data-report-nav]').forEach(item => {
+        if (item.classList.contains('is-active')) opened = item;
+        item.classList.remove('is-active');
+        item.removeAttribute('aria-current');
+    });
+    document.getElementById('tab-reports')?.setAttribute('data-report-view', 'grid');
+    if (focusCard && opened) opened.focus();
+}
+
+function showReportGrid() {
+    if (getReportView() !== 'panel') return false;
+    closeReportPanel();
+    return true;
+}
+
+function resetReportView() {
+    closeReportPanel({ focusCard: false });
+}
+
 function switchReportTab(tab) {
     if (!REPORT_PANEL_IDS[tab]) return false;
     REPORT_TABS.forEach(name => {
@@ -30,6 +73,10 @@ function switchReportTab(tab) {
         else item.removeAttribute('aria-current');
     });
     syncReportNavStatus();
+    renderReportViewBar(tab);
+    document.getElementById('tab-reports')?.setAttribute('data-report-view', 'panel');
+    const bar = document.getElementById('reportViewBar');
+    if (bar) requestAnimationFrame(() => bar.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     return true;
 }
 
@@ -37,8 +84,6 @@ function jumpToReportPanel(panelId) {
     const tab = REPORT_TABS.find(name => REPORT_PANEL_IDS[name] === panelId);
     if (!tab) return;
     switchReportTab(tab);
-    const panel = document.getElementById(panelId);
-    if (panel) requestAnimationFrame(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 
 function handleReportTabKeydown(event) {
@@ -53,9 +98,15 @@ function handleReportTabKeydown(event) {
         : event.key === 'End'
             ? items.length - 1
             : (currentIndex + (event.key === 'ArrowLeft' ? 1 : -1) + items.length) % items.length;
-    const next = items[nextIndex];
-    switchReportTab(next.dataset.reportNav);
-    next.focus();
+    items[nextIndex].focus();
+}
+
+function handleReportViewKeydown(event) {
+    if (event.key !== 'Escape' || getReportView() !== 'panel') return;
+    if (typeof getTopmostOpenModal === 'function' && getTopmostOpenModal()) return;
+    if (document.getElementById('tab-reports')?.classList.contains('hidden')) return;
+    event.preventDefault();
+    showReportGrid();
 }
 
 function markReportPreviewStale(previewId, stale) {

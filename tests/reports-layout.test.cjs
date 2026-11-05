@@ -8,13 +8,14 @@ const css = fs.readFileSync(path.join(__dirname, '..', 'css', 'style.css'), 'utf
 const reports = fs.readFileSync(path.join(__dirname, '..', 'js', 'reports.js'), 'utf8');
 const render = fs.readFileSync(path.join(__dirname, '..', 'js', 'render.js'), 'utf8');
 const stateSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'state.js'), 'utf8');
+const app = fs.readFileSync(path.join(__dirname, '..', 'js', 'app.js'), 'utf8');
 const reportTab = html.slice(html.indexOf('id="tab-reports"'), html.indexOf('id="appCopyright"'));
 
-test('the landlord panel is the single panel shown when the tab opens', () => {
+test('the reports tab opens on the icon grid with every panel closed', () => {
     const panels = [...reportTab.matchAll(/<(?:div) id="(landlordReportPrint|periodReportCard|residentStatementCard|monthlyClosePanel|arrearsPanel|auditLogPanel)"([^>]*)>/g)];
     assert.deepEqual(panels.map(match => match[1]), ['landlordReportPrint', 'periodReportCard', 'residentStatementCard', 'monthlyClosePanel', 'arrearsPanel', 'auditLogPanel']);
-    assert.doesNotMatch(panels[0][2], /hidden/, 'landlord panel must start visible');
-    panels.slice(1).forEach(match => assert.match(match[2], /hidden/, match[1] + ' must start hidden'));
+    panels.forEach(match => assert.match(match[2], /hidden/, match[1] + ' must start hidden so the grid is the only thing on screen'));
+    assert.match(reportTab, /id="tab-reports" class="[^"]*" data-report-view="grid"/, 'the section remembers which view is open');
 });
 
 test('monthly close and arrears are panels with their controls preserved', () => {
@@ -30,8 +31,8 @@ test('the reports nav offers one entry per panel and marks the active one', () =
     assert.deepEqual(entries.map(match => match[1]), ['landlord', 'period', 'statement', 'monthlyClose', 'arrears', 'audit']);
     assert.deepEqual(entries.map(match => match[2]), ['landlordReportPrint', 'periodReportCard', 'residentStatementCard', 'monthlyClosePanel', 'arrearsPanel', 'auditLogPanel']);
     entries.forEach(match => assert.ok(reportTab.includes('id="' + match[2] + '"'), match[2] + ' has no panel'));
-    assert.equal((reportTab.match(/class="report-nav-item is-active"/g) || []).length, 1);
-    assert.equal((reportTab.match(/aria-current="page"/g) || []).length, 1);
+    assert.equal((reportTab.match(/class="report-nav-item is-active[^"]*"/g) || []).length, 0, 'no card is open until the user taps one');
+    assert.equal((reportTab.match(/aria-current="page"/g) || []).length, 0, 'the active marker is set only while a report is open');
 });
 
 test('changing the report month invalidates the preview and output actions', () => {
@@ -82,21 +83,51 @@ test('reports section has a header, an icon nav, and unified actions', () => {
     assert.match(reports, /function handleReportTabKeydown\(event\)/);
     assert.match(reports, /function jumpToReportPanel\(panelId\)/);
     assert.equal((reportTab.match(/class="report-card-icon /g) || []).length, 6);
-    assert.equal((reportTab.match(/class="report-nav-icon /g) || []).length, 6);
+    assert.equal((reportTab.match(/class="report-nav-icon" aria-hidden="true"/g) || []).length, 6);
+    assert.equal((reportTab.match(/class="report-nav-item[^"]*report-tone-[a-z]+"/g) || []).length, 6, 'each nav card carries its report tone so the accent, border and ring follow the tone system');
     assert.match(reportTab, /class="report-actions report-actions-4/);
     assert.match(reportTab, /class="report-toolbar no-print"/);
     assert.match(reportTab, /class="report-preview text-xs/);
-    assert.match(css, /\.report-nav \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)/);
-    assert.match(css, /@media \(min-width: 1280px\) \{[\s\S]*?repeat\(6, minmax\(0, 1fr\)\); \}\s*\.report-nav-item \{ flex-direction: column/, 'six across only on wide screens, where each item stacks icon over full-width copy');
-    assert.match(css, /\.report-nav-item\.is-active \{/);
-    assert.match(css, /\.report-nav-item\.is-ready::after/);
+    assert.match(css, /\.report-nav \{ display: grid; grid-template-columns: repeat\(2, minmax\(0, 1fr\)/, 'two columns on mobile');
+    assert.match(css, /@media \(min-width: 640px\) \{ \.report-nav \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)/, 'three columns from 640px');
+    assert.doesNotMatch(css, /\.report-nav \{ grid-template-columns: repeat\(6/, 'the six-across strip is gone so each card has room for its copy');
+    assert.match(css, /@media \(max-width: 639\.98px\) \{[^@]*\.report-nav-item \{ flex-direction: column/, 'phone tiles stack icon over copy so two columns still fit the Arabic labels');
+    assert.match(css, /\.report-nav-item \{[^}]*min-height: 4\.8rem/, 'cards stay compact enough to leave the panel reachable on a phone');
+    assert.match(css, /\.report-nav-item::before \{/, 'the tone glow behind each card');
+    assert.match(css, /\.report-nav-item:hover \{[^}]*transform: translateY\(-2px\)/);
+    assert.match(css, /\.report-nav-item\.is-active \{[^}]*box-shadow: 0 0 0 2px color-mix\(in srgb, var\(--report-tone, var\(--accent-color\)\) 28%, transparent\)/, 'the active card is ringed in its own tone');
+    assert.match(css, /\.report-nav-item\.is-ready::after \{ background: #10b981/, 'a ready preview stays green whatever the report tone is');
     assert.match(css, /\.report-nav-item\.is-stale::after/);
+    assert.match(css, /@media \(max-width: 639\.98px\) \{[\s\S]*?\.report-toolbar > \.report-field \{ flex: 0 0 auto; \}/, 'stacked fields must drop the row flex-basis, which made every toolbar 12rem taller on phones');
     assert.match(css, /\.report-action:disabled \{/);
     assert.match(css, /\.report-action-primary \{/);
     assert.match(css, /\.report-preview:has\(> \.report-preview-empty:only-child\) \{/);
     assert.match(css, /\.report-list-row \{/);
     assert.match(css, /\.arrears-card, \.report-surface \{/);
     assert.match(css, /\.audit-log-row::before/);
+});
+
+test('tapping a card opens that report full page and back returns to the grid', () => {
+    assert.match(reportTab, /id="reportViewBar" class="report-view-bar no-print"/);
+    assert.match(reportTab, /class="report-view-back" onclick="showReportGrid\(\)" aria-label="رجوع إلى شبكة التقارير"/);
+    ['reportViewIcon', 'reportViewTitle', 'reportViewMeta'].forEach(id => assert.ok(reportTab.includes('id="' + id + '"'), 'missing ' + id));
+    assert.match(reports, /function showReportGrid\(\)/);
+    assert.match(reports, /function resetReportView\(\)/);
+    assert.match(reports, /function renderReportViewBar\(tab\)/);
+    assert.match(reports, /function handleReportViewKeydown\(event\)/);
+    assert.match(reports, /document\.getElementById\('tab-reports'\)\?\.setAttribute\('data-report-view', 'panel'\)/);
+    assert.match(reports, /if \(getReportView\(\) !== 'panel'\) return false;/, 'back only makes sense while a report is open');
+    assert.match(reports, /if \(event\.key !== 'Escape' \|\| getReportView\(\) !== 'panel'\) return;/);
+    assert.match(reports, /typeof getTopmostOpenModal === 'function' && getTopmostOpenModal\(\)/, 'an open modal keeps its own Escape');
+    assert.match(reports, /item\.querySelector\('\.report-nav-copy b'\)\?\.textContent/, 'the bar title is read from the card so the two never drift apart');
+    assert.match(app, /document\.addEventListener\('keydown', handleReportViewKeydown\)/);
+    assert.match(app, /const reportsOpen = !document\.getElementById\('tab-reports'\)\?\.classList\.contains\('hidden'\);/, 'read before the loop unhides the tab');
+    assert.match(app, /if \(tab === 'reports' && !reportsOpen && typeof resetReportView === 'function'\) resetReportView\(\)/, 'entering the tab lands on the grid, but re-entering it from a print call keeps the open report');
+    assert.match(reports, /function resetReportView\(\) \{\s*closeReportPanel\(\{ focusCard: false \}\);/, 'resetting the view must not steal focus from the caller');
+    assert.doesNotMatch(reports, /switchReportTab\(next\.dataset\.reportNav\)/, 'arrow keys move focus between cards instead of opening reports');
+    assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-section-head \{ display: none; \}/, 'the grid leaves the screen while a report is open');
+    assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-view-bar \{ display: flex; \}/);
+    assert.match(css, /\.report-view-bar \{[\s\S]*?scroll-margin-top: 6\.5rem;/, 'the sticky header must not swallow the back bar');
 });
 
 test('the nav marker follows the same freshness gate as the output buttons', () => {
@@ -206,11 +237,11 @@ test('period report rolls the monthly landlord figures across a range with gated
 
 test('resident statement entry is reachable from the resident profile', () => {
     const crud = fs.readFileSync(path.join(__dirname, '..', 'js', 'crud.js'), 'utf8');
-    const app = fs.readFileSync(path.join(__dirname, '..', 'js', 'app.js'), 'utf8');
     assert.match(crud, /onclick="openResidentStatementFromProfile/);
     assert.match(crud, /function openResidentStatementFromProfile\(residentId\)/);
     assert.match(crud, /switchTab\('reports'\)/);
     assert.match(crud, /jumpToReportPanel\('residentStatementCard'\)/);
     assert.match(crud, /generateResidentStatement\(\)/);
+    assert.doesNotMatch(crud, /card\.scrollIntoView/, 'opening the report already scrolls to the back bar, so the profile entry must not scroll twice');
     assert.match(app, /function ensurePdfLibrary\(\)/);
 });
