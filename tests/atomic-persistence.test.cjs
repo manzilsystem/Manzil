@@ -4,7 +4,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const root = path.join(__dirname, '..');
-const migration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103000000_atomic_building_snapshot.sql'), 'utf8');
+const migration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261102233018_atomic_building_snapshot.sql'), 'utf8');
 const subscriptionMigration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261103025013_atomic_subscription_rate_snapshot.sql'), 'utf8');
 const supabaseSource = fs.readFileSync(path.join(root, 'js', 'supabase.js'), 'utf8');
 const stateSource = fs.readFileSync(path.join(root, 'js', 'state.js'), 'utf8');
