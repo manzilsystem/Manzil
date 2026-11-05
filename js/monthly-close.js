@@ -14,6 +14,8 @@ function invalidateMonthlyClosePreview() {
     if (status) status.textContent = 'تغيّر الشهر المحدد. أنشئ معاينة جديدة قبل التصدير.';
     const preview = document.getElementById('monthlyClosePreview');
     if (preview) preview.innerHTML = '<p class="text-slate-500 text-center py-4">اختر الشهر ثم اضغط «مراجعة الإقفال».</p>';
+    markReportPreviewStale('monthlyClosePreview', true);
+    syncReportNavStatus();
 }
 
 function monthlyCloseMoney(value) {
@@ -89,6 +91,8 @@ async function loadMonthlyCloseReport() {
     if (reviewButton) reviewButton.disabled = true;
     status.textContent = 'جارٍ حساب الأرصدة والحركات من قاعدة البيانات...';
     preview.innerHTML = '<p class="text-slate-400 text-center py-4">جارٍ إعداد المراجعة الشهرية...</p>';
+    markReportPreviewStale('monthlyClosePreview', false);
+    syncReportNavStatus();
 
     const buildingId = activeBuildingId;
     try {
@@ -113,6 +117,8 @@ async function loadMonthlyCloseReport() {
             ? 'اكتملت المراجعة والمطابقة النقدية.'
             : 'اكتملت المراجعة مع وجود فرق يحتاج إلى مراجعة.';
         if (exportButton) exportButton.disabled = false;
+        markReportPreviewStale('monthlyClosePreview', false);
+        syncReportNavStatus();
     } catch (error) {
         console.error('Monthly cashbox close failed:', error);
         status.textContent = 'تعذر إعداد الإقفال الشهري. تحقق من الاتصال ثم أعد المحاولة.';

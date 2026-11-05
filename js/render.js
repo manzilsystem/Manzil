@@ -43,6 +43,7 @@ function renderAll() {
     invalidateLandlordReportIfStale();
     invalidateResidentStatementIfStale();
     invalidatePeriodReportIfStale();
+    syncReportNavStatus();
     renderCashbox();
 }
 

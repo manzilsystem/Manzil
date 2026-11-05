@@ -52,7 +52,7 @@ function loadReport(options = {}) {
         periodReportPreset: { value: options.preset ?? '6' },
         periodReportFrom: { value: options.from ?? 'يناير 2024' },
         periodReportTo: { value: options.to ?? 'مارس 2024' },
-        periodReportPreview: { innerHTML: '' },
+        periodReportPreview: { innerHTML: '', dataset: {} },
         periodReportPrintBtn: { disabled: true },
         periodReportExportBtn: { disabled: true },
         printBuildingTitle: { textContent: '' },
@@ -110,6 +110,8 @@ function loadReport(options = {}) {
     };
     sandbox.document = {
         getElementById: id => elements[id] || null,
+        querySelector: () => null,
+        querySelectorAll: () => [],
         body: { classList: { add() {}, remove() {} } },
         createElement: () => ({
             href: '',

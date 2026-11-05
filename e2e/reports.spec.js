@@ -22,16 +22,30 @@ async function openReports(page) {
     await expect(page.locator('#tab-reports')).toBeVisible();
 }
 
+async function openReportPanel(page, name) {
+    const item = page.locator(`[data-report-nav="${name}"]`);
+    await expect(item).toBeVisible();
+    await item.click();
+    await expect(item).toHaveClass(/is-active/);
+}
+
 async function previewMonth(page, month) {
     await page.locator('#reportMonthSelect').selectOption(month);
     await page.locator('#landlordReportPrint').getByRole('button', { name: 'معاينة', exact: true }).click();
 }
 
 async function previewPeriod(page, from, to) {
+    await openReportPanel(page, 'period');
     await page.locator('#periodReportPreset').selectOption('custom');
     await page.locator('#periodReportFrom').selectOption(from);
     await page.locator('#periodReportTo').selectOption(to);
     await page.locator('#periodReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+}
+
+async function previewStatement(page) {
+    await openReportPanel(page, 'statement');
+    await page.locator('#statementResidentSelect').selectOption('r1');
+    await page.locator('#residentStatementCard').getByRole('button', { name: 'معاينة', exact: true }).click();
 }
 
 test('report output stays disabled until a fresh preview exists', async ({ page }) => {
@@ -41,32 +55,56 @@ test('report output stays disabled until a fresh preview exists', async ({ page 
 
     await expect(printButton).toBeDisabled();
     await expect(exportButton).toBeDisabled();
+    await expect(page.locator('[data-report-nav="landlord"]')).not.toHaveClass(/is-ready|is-stale/);
 
     await previewMonth(page, 'يناير 2024');
     await expect(page.locator('#landlordReportPreview')).toContainText('تقرير يناير 2024');
     await expect(page.locator('#landlordReportPreview')).toContainText('المستحق');
     await expect(printButton).toBeEnabled();
     await expect(exportButton).toBeEnabled();
+    await expect(page.locator('[data-report-nav="landlord"]')).toHaveClass(/is-ready/);
 
     await page.locator('#reportMonthSelect').selectOption('فبراير 2024');
     await expect(page.locator('#landlordReportPreview')).toContainText('تغيّر الشهر أو البيانات');
     await expect(printButton).toBeDisabled();
     await expect(exportButton).toBeDisabled();
+    await expect(page.locator('[data-report-nav="landlord"]')).toHaveClass(/is-stale/);
+    await expect(page.locator('[data-report-nav="landlord"]')).not.toHaveClass(/is-ready/);
 });
 
-test('quick jump chips open collapsed report panels', async ({ page }) => {
+test('the reports nav shows one panel at a time', async ({ page }) => {
     await openReports(page);
-    const arrears = page.locator('#arrearsPanel');
-    const monthlyClose = page.locator('#monthlyClosePanel');
+    await expect(page.locator('#landlordReportPrint')).toBeVisible();
+    for (const hidden of ['periodReportCard', 'residentStatementCard', 'monthlyClosePanel', 'arrearsPanel', 'auditLogPanel']) {
+        await expect(page.locator('#' + hidden)).toBeHidden();
+    }
 
-    await expect(arrears).toHaveJSProperty('open', false);
-    await expect(monthlyClose).toHaveJSProperty('open', false);
+    await openReportPanel(page, 'arrears');
+    await expect(page.locator('#arrearsPanel')).toBeVisible();
+    await expect(page.locator('#landlordReportPrint')).toBeHidden();
 
-    await page.locator('.report-jump-chip', { hasText: 'المتأخرات' }).click();
-    await expect(arrears).toHaveJSProperty('open', true);
+    await openReportPanel(page, 'monthlyClose');
+    await expect(page.locator('#monthlyClosePanel')).toBeVisible();
+    await expect(page.locator('#arrearsPanel')).toBeHidden();
+    await expect(page.locator('#monthlyCloseMonthSelect')).toBeVisible();
 
-    await page.locator('.report-jump-chip', { hasText: 'الإقفال الشهري' }).click();
-    await expect(monthlyClose).toHaveJSProperty('open', true);
+    const current = await page.evaluate(() => ({
+        active: document.querySelectorAll('.report-nav-item.is-active').length,
+        ariaCurrent: document.querySelectorAll('[data-report-nav][aria-current="page"]').length,
+        visiblePanels: [...document.querySelectorAll('.report-panel')].filter(panel => !panel.classList.contains('hidden')).length
+    }));
+    expect(current).toEqual({ active: 1, ariaCurrent: 1, visiblePanels: 1 });
+});
+
+test('arrow keys move between report panels', async ({ page }) => {
+    await openReports(page);
+    await page.locator('[data-report-nav="landlord"]').focus();
+    await page.keyboard.press('ArrowLeft');
+    await expect(page.locator('[data-report-nav="period"]')).toHaveClass(/is-active/);
+    await expect(page.locator('#periodReportCard')).toBeVisible();
+    await page.keyboard.press('End');
+    await expect(page.locator('[data-report-nav="audit"]')).toHaveClass(/is-active/);
+    await expect(page.locator('#auditLogPanel')).toBeVisible();
 });
 
 test('period report gates print and csv on the previewed range', async ({ page }) => {
@@ -127,7 +165,7 @@ test('printing a period report isolates its card', async ({ page }) => {
         period: getComputedStyle(document.getElementById('periodReportCard')).display,
         landlord: getComputedStyle(document.getElementById('landlordReportPrint')).display,
         statement: getComputedStyle(document.getElementById('residentStatementCard')).display,
-        monthlyClose: getComputedStyle(document.querySelector('#tab-reports > details')).display
+        monthlyClose: getComputedStyle(document.getElementById('monthlyClosePanel')).display
     }));
     expect(scopedStyles.period).not.toBe('none');
     await expect(page.locator('#periodReportPreview .report-block').first()).toBeVisible();
@@ -184,6 +222,7 @@ test('period channel split matches between preview and csv', async ({ page }) =>
 
 test('period quick preset fills both month selects', async ({ page }) => {
     await openReports(page);
+    await openReportPanel(page, 'period');
     await page.locator('#periodReportPreset').selectOption('3');
     const range = await page.evaluate(() => ({
         from: document.getElementById('periodReportFrom').value,
@@ -261,7 +300,7 @@ test('printing a report hides every other reports card', async ({ page }) => {
     await page.emulateMedia({ media: 'print' });
     const scopedStyles = await page.evaluate(() => ({
         preview: getComputedStyle(document.getElementById('landlordReportPrint')).display,
-        monthlyClose: getComputedStyle(document.querySelector('#tab-reports > details')).display,
+        monthlyClose: getComputedStyle(document.getElementById('monthlyClosePanel')).display,
         controls: getComputedStyle(document.querySelector('#landlordReportPrint .no-print')).display,
         previewHeader: getComputedStyle(document.querySelector('#landlordReportPreview .report-preview-header')).display
     }));
@@ -283,8 +322,7 @@ test('resident statement previews one resident and invalidates on data changes',
     await openReports(page);
     await expect(page.locator('#statementPrintBtn')).toBeDisabled();
 
-    await page.locator('#statementResidentSelect').selectOption('r1');
-    await page.locator('#residentStatementCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await previewStatement(page);
 
     const preview = page.locator('#residentStatementPreview');
     await expect(preview).toContainText('كشف حساب ساكن');
@@ -305,8 +343,7 @@ test('resident statement previews one resident and invalidates on data changes',
 
 test('resident statement CSV downloads a single-resident ledger', async ({ page }) => {
     await openReports(page);
-    await page.locator('#statementResidentSelect').selectOption('r1');
-    await page.locator('#residentStatementCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await previewStatement(page);
 
     const downloadPromise = page.waitForEvent('download');
     await page.locator('#statementCsvBtn').click();
@@ -324,8 +361,7 @@ test('resident statement CSV downloads a single-resident ledger', async ({ page 
 
 test('printing a resident statement isolates its card', async ({ page }) => {
     await openReports(page);
-    await page.locator('#statementResidentSelect').selectOption('r1');
-    await page.locator('#residentStatementCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await previewStatement(page);
     await page.evaluate(() => { window.print = () => { window.__printCalls = (window.__printCalls || 0) + 1; }; });
 
     await page.locator('#statementPrintBtn').click();
@@ -344,7 +380,7 @@ test('printing a resident statement isolates its card', async ({ page }) => {
     const scopedStyles = await page.evaluate(() => ({
         statement: getComputedStyle(document.getElementById('residentStatementCard')).display,
         landlord: getComputedStyle(document.getElementById('landlordReportPrint')).display,
-        monthlyClose: getComputedStyle(document.querySelector('#tab-reports > details')).display
+        monthlyClose: getComputedStyle(document.getElementById('monthlyClosePanel')).display
     }));
     expect(scopedStyles.statement).not.toBe('none');
     expect(scopedStyles.landlord).toBe('none');
@@ -353,8 +389,7 @@ test('printing a resident statement isolates its card', async ({ page }) => {
 
 test('unit report PDF downloads a per-unit file from a fresh preview', async ({ page }) => {
     await openReports(page);
-    await page.locator('#statementResidentSelect').selectOption('r1');
-    await page.locator('#residentStatementCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await previewStatement(page);
     await expect(page.locator('#unitReportPdfBtn')).toBeEnabled();
 
     await page.evaluate(() => {
@@ -385,6 +420,7 @@ test('resident profile opens the statement for the same resident', async ({ page
 
 test('audit log reports the visible count and loads more entries', async ({ page }) => {
     await openReports(page);
+    await openReportPanel(page, 'audit');
     await page.evaluate(() => {
         state.auditLogs = Array.from({ length: 60 }, (_, index) => ({
             id: `audit-${index}`,

@@ -38,6 +38,8 @@ function loadExporter(state, selectedMonth = '') {
         setTimeout: callback => { callback(); return 0; },
         document: {
             getElementById: id => (id === 'reportMonthSelect' && selectedMonth ? { value: selectedMonth } : null),
+            querySelector: () => null,
+            querySelectorAll: () => [],
             createElement: () => {
                 anchor = { download: '', href: '', click: () => {} };
                 return anchor;
