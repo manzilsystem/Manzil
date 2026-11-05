@@ -27,6 +27,13 @@
 \ir ../supabase/migrations/20261103180000_sync_owner_payment_notifications.sql
 \ir ../supabase/migrations/20261103180000_sync_owner_payment_notifications.sql
 
+-- The snapshot RPC body replayed below is copied from the live database, so the
+-- fixture needs every column that body reads.
+\ir ../supabase/migrations/20261103214929_add_resident_floor.sql
+\ir ../supabase/migrations/20261104002557_income_payment_method.sql
+\ir ../supabase/migrations/20261104034317_building_payment_subscription_settings.sql
+\ir ../supabase/migrations/20261105090000_income_cash_account_allocation.sql
+
 INSERT INTO public.profiles (id) VALUES
 ('10000000-0000-4000-8000-000000000001'),
 ('10000000-0000-4000-8000-000000000002'),

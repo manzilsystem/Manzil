@@ -36,3 +36,22 @@ test('local migration history matches the applied Supabase order', () => {
     assert.ok(position('subscription_rate_change_history') < position('owner_payment_notifications'));
     assert.ok(position('owner_payment_notifications') < position('income_cash_account_allocation'));
 });
+
+test('the integration harness replays the newest body of every snapshot RPC', () => {
+    const harness = fs.readFileSync(path.join(__dirname, 'atomic-persistence.integration.sql'), 'utf8');
+    const replayed = new Set(
+        [...harness.matchAll(/\\ir \.\.\/supabase\/migrations\/(\d+_[a-z0-9_]+\.sql)/g)].map(match => match[1])
+    );
+
+    for (const signature of [
+        'private.persist_building_snapshot',
+        'private.get_cashbox_summary',
+        'private.get_monthly_cashbox_close'
+    ]) {
+        const redefiners = files.filter(file => fs.readFileSync(path.join(migrationsDir, file), 'utf8')
+            .includes(`CREATE OR REPLACE FUNCTION ${signature}`));
+        const newest = redefiners[redefiners.length - 1];
+        assert.ok(replayed.has(newest),
+            `the harness never replays ${newest}, so its drills run an older ${signature} body`);
+    }
+});
