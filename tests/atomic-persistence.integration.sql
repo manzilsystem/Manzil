@@ -942,3 +942,5 @@ BEGIN
     END IF;
 END;
 $billing_start$;
+
+RESET ROLE;
