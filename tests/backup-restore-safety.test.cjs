@@ -156,3 +156,20 @@ test('client prefers browser-managed direct download and retains checksum-verifi
     assert.match(ui, /action: 'download_backup'/);
     assert.match(ui, /crypto\.subtle\.digest\('SHA-256'/);
 });
+
+test('backup download accepts the real UTC release tag format', () => {
+    assert.ok(ui.includes(String.raw`!/^backup-\d{8}T\d{6}Z$/.test(tag)`));
+    assert.ok(!ui.includes(String.raw`!/^backup-\\d{8}T\\d{6}Z$/.test(tag)`), 'the source must not contain a double-escaped tag matcher');
+});
+
+
+test('manual backup creation reports status in its own status region', () => {
+    assert.match(ui, /getElementById\('backupCreateStatus'\)/);
+    assert.match(ui, /if \(createStatus && !cached\)/);
+    assert.match(ui, /latestBackup\?\.status === 'succeeded'/);
+    assert.match(ui, /latestBackup\?\.status === 'failed'/);
+    const request = ui.slice(ui.indexOf('async function requestDatabaseBackup'), ui.indexOf('async function requestDatabaseRestore'));
+    assert.match(request, /getElementById\('backupCreateStatus'\)/);
+    assert.doesNotMatch(request, /getElementById\('backupRestoreStatus'\)/);
+    assert.match(html, /id="backupCreateStatus" role="status" aria-live="polite"/);
+});

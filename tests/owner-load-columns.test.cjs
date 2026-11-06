@@ -17,7 +17,7 @@ test('owner sessions select only fields required by the read-only portal', () =>
     ), 'owner resident data must retain created_at and the billing start for debt calculations');
 
     assert.ok(loadState.includes(
-        "const incomeColumns = isManager\n        ? 'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,paid_at'\n        : 'id,resident_id,amount,month,payment_method,purpose_code,paid_at'"
+        "const incomeColumns = isManager\n        ? 'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,paid_at'\n        : 'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,paid_at'"
     ), 'owner payment history needs only payment identity, amount, month, and date');
 
     assert.ok(loadState.includes(
@@ -25,6 +25,8 @@ test('owner sessions select only fields required by the read-only portal', () =>
     ), 'owner announcements need only their displayed fields');
 
     assert.ok(loadState.includes("supabaseQuery('residents', residentColumns)"));
-    assert.ok(loadState.includes("supabaseQuery('income', incomeColumns)"));
+    assert.ok(loadState.includes("supabaseQueryAllById('income', incomeColumns)"));
+    assert.match(source, /async function supabaseQueryAllById\(table, columns = '\*', pageSize = 1000\)/);
+    assert.match(source, /\.order\('id', \{ ascending: true \}\)\s*\.range\(offset, offset \+ pageSize - 1\)/);
     assert.ok(loadState.includes("supabaseQuery('notices', noticeColumns)"));
 });

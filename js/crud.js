@@ -2367,7 +2367,10 @@ async function handleIncomeEditSubmit(event) {
             const value = Number(item.amount);
             return sum + (Number.isFinite(value) && value > 0 ? Math.round(value * 100) : 0);
         }, 0);
-        const availableCents = Math.max(0, dueCents - paidByOthersCents);
+        const adjustmentCents = typeof getAdjustmentAmountForMonth === 'function'
+            ? Math.max(0, Math.round(getAdjustmentAmountForMonth(resident.id, month) * 100))
+            : 0;
+        const availableCents = Math.max(0, dueCents - adjustmentCents - paidByOthersCents);
         if (amountCents > availableCents) {
             toast('المبلغ أكبر من المتبقي لهذا الشهر (' + fmtNum(availableCents / 100) + ' ج.م).', 'error');
             return;

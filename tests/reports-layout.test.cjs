@@ -206,7 +206,7 @@ test('resident statement scopes a monthly ledger to one resident with gated outp
     }
     assert.match(reports, /function buildResidentStatement\(residentId, purposeFilter = ''\)/);
     assert.match(reports, /function getResidentStatementSignature\(residentId, purposeFilter = ''\)/);
-    assert.match(reports, /\[resident, payments, adjustments, state\.defaultSubscription \?\? '', purposeFilter \|\| ''\]/);
+    assert.match(reports, /\[resident, payments, adjustments, state\.defaultSubscription \?\? '', getCurrentMonth\(\), purposeFilter \|\| ''\]/);
     assert.match(reports, /function invalidateResidentStatementIfStale\(\)/);
     assert.match(render, /invalidateResidentStatementIfStale\(\)/);
     assert.match(render, /function populateStatementResidentSelect\(\)/);

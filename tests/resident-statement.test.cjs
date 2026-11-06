@@ -22,6 +22,7 @@ function makeGetPaidAmountForMonth(state) {
     return (residentId, month) => {
         const paidCents = (state.income || []).reduce((sum, payment) => {
             if (payment.residentId !== residentId || payment.month !== month) return sum;
+            if (payment.purposeCode && payment.purposeCode !== 'subscription') return sum;
             const amount = Number(payment.amount);
             return sum + (Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0);
         }, 0);
@@ -58,6 +59,7 @@ function loadStatement(options = {}) {
         state,
         monthsNames: monthNames,
         getCurrentMonth: () => options.currentMonth || 'مارس 2024',
+        setCurrentMonth: value => { options.currentMonth = value; },
         monthLabelToKey,
         toCents,
         fmtNum: value => String(Number(value) || 0),
@@ -69,6 +71,7 @@ function loadStatement(options = {}) {
         getIncomePaymentMethodLabel: method => ({
             cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي'
         }[method] || 'غير محدد'),
+        getCashAccountLabel: code => ({ main: 'الخزنة الرئيسية', development: 'صندوق التطوير', emergency: 'صندوق الطوارئ' }[code || 'main']),
         getPaidAmountForMonth: makeGetPaidAmountForMonth(state),
         getAdjustmentAmountForMonth: (residentId, month) => {
             const monthKey = monthLabelToKey(month);
@@ -87,7 +90,7 @@ function loadStatement(options = {}) {
         URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} }
     };
     const app = vm.runInNewContext(
-        reports + '\n({\n            buildResidentStatement, generateResidentStatement, getResidentStatementSignature,\n            renderResidentStatementHtml, renderResidentStatementPdfHtml, renderUnitReportPdfHtml, exportResidentStatementCsv,\n            invalidateResidentStatementIfStale, getResidentStatementSnapshot\n        })',
+        reports + '\n({\n            buildResidentStatement, generateResidentStatement, getResidentStatementSignature, getResidentStatementSummaryItems,\n            renderResidentStatementHtml, renderResidentStatementPdfHtml, renderUnitReportPdfHtml, exportResidentStatementCsv,\n            invalidateResidentStatementIfStale, getResidentStatementSnapshot\n        })',
         sandbox
     );
     const select = { value: options.residentId ?? 'r1' };
@@ -282,7 +285,7 @@ test('statement CSV exports cents and a monthly-then-transactions layout', () =>
     assert.match(csv, /"الشهر","المستحق","إعفاء\/تخفيض","الصافي","المدفوع","المتبقي","الحالة"/);
     assert.match(csv, /"يناير 2024","100","0","100","100","0","مسدد"/);
     assert.match(csv, /\r\n\r\n/);
-    assert.match(csv, /"الحركات","الشهر","المبلغ","الغرض","طريقة الدفع","التاريخ","ملاحظات"/);
+    assert.match(csv, /"الحركات","الشهر","المبلغ","الغرض","طريقة الدفع","الصندوق","التاريخ","ملاحظات"/);
     assert.match(csv, /"تحصيل","يناير 2024","100","اشتراك شهري","نقدًا"/);
     assert.doesNotMatch(csv, /100\.00000000000001/);
 });
@@ -421,4 +424,45 @@ test('unit report PDF states when the unit has no unpaid months', () => {
     const html = app.renderUnitReportPdfHtml(statement);
     assert.match(html, /لا توجد أشهر غير مسددة/);
     assert.match(html, /مارس 2024: مستحق 100 ج\.م • مدفوع 100 ج\.م • متبقٍ 0 ج\.م/);
+});
+
+
+test('statement distinguishes subscription payments from all collected movements', () => {
+    const { app } = loadStatement({
+        state: {
+            income: [
+                { id: 'i1', residentId: 'r1', month: 'يناير 2024', amount: 100, paymentMethod: 'cash', purposeCode: 'subscription' },
+                { id: 'i2', residentId: 'r1', month: 'يناير 2024', amount: 50, paymentMethod: 'cash', purposeCode: 'development' }
+            ]
+        }
+    });
+    const statement = app.buildResidentStatement('r1');
+    assert.equal(statement.totals.paidCents, 10000);
+    assert.equal(statement.totals.filteredPaidCents, 15000);
+    const summary = app.getResidentStatementSummaryItems(statement);
+    assert.equal(summary.find(item => item.label === 'مدفوع الاشتراكات').cents, 10000);
+    assert.equal(summary.find(item => item.label === 'إجمالي حركات التحصيل').cents, 15000);
+});
+
+test('resident statement preview, PDF, unit PDF and CSV include each payment cashbox', () => {
+    const { app, sandbox } = loadStatement({
+        state: {
+            income: [{ id: 'i1', residentId: 'r1', month: 'يناير 2024', amount: 100, paymentMethod: 'cash', cashAccountCode: 'development' }]
+        }
+    });
+    const statement = app.buildResidentStatement('r1');
+    assert.match(app.renderResidentStatementHtml(statement), /صندوق التطوير/);
+    assert.match(app.renderResidentStatementPdfHtml(statement), /صندوق التطوير/);
+    assert.match(app.renderUnitReportPdfHtml(statement), /صندوق التطوير/);
+    sandbox.state.income[0].cashAccountCode = 'development';
+    app.generateResidentStatement();
+    app.exportResidentStatementCsv();
+    assert.match(sandbox.__download.content, /"development"|"صندوق التطوير"/);
+});
+
+test('statement signature changes when the current month changes', () => {
+    const { app, sandbox } = loadStatement();
+    const initial = app.getResidentStatementSignature('r1');
+    sandbox.setCurrentMonth('أبريل 2024');
+    assert.notEqual(app.getResidentStatementSignature('r1'), initial);
 });

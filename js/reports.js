@@ -508,7 +508,8 @@ function getResidentStatementSummaryItems(statement) {
             ...(statement.totals.adjustmentCents > 0
                 ? [{ label: 'إعفاء/تخفيض', cents: statement.totals.adjustmentCents, tone: 'amber' }]
                 : []),
-            { label: 'إجمالي المدفوع', cents: statement.totals.paidCents, tone: 'emerald' },
+            { label: 'مدفوع الاشتراكات', cents: statement.totals.paidCents, tone: 'emerald' },
+            ...(!statement.purposeFilter ? [{ label: 'إجمالي حركات التحصيل', cents: statement.totals.filteredPaidCents, tone: 'emerald' }] : []),
             { label: 'إجمالي المتبقي', cents: statement.totals.remainingCents, tone: statement.totals.remainingCents ? 'rose' : 'emerald' },
             { label: 'أشهر متأخرة', text: fmtNum(statement.totals.arrearsMonths), tone: statement.totals.arrearsMonths ? 'amber' : 'emerald' }
         ];
@@ -2158,6 +2159,7 @@ function buildResidentStatement(residentId, purposeFilter = '') {
         amountCents: toCents(payment.amount),
         purpose: reportPurposeLabel(payment.purposeCode),
         method: getIncomePaymentMethodLabel(payment.paymentMethod),
+        cashAccount: getCashAccountLabel(payment.cashAccountCode || 'main'),
         date: payment.date || '',
         notes: String(payment.notes || '')
     });
@@ -2227,7 +2229,7 @@ function getResidentStatementSignature(residentId, purposeFilter = '') {
     if (!resident) return '';
     const payments = (state.income || []).filter(payment => payment.residentId === resident.id);
     const adjustments = (state.adjustments || []).filter(adjustment => adjustment.residentId === resident.id);
-    return JSON.stringify([resident, payments, adjustments, state.defaultSubscription ?? '', purposeFilter || '']);
+    return JSON.stringify([resident, payments, adjustments, state.defaultSubscription ?? '', getCurrentMonth(), purposeFilter || '']);
 }
 
 function setResidentStatementActionsEnabled(enabled) {
@@ -2306,7 +2308,7 @@ function renderResidentStatementHtml(statement) {
             <div class="report-list-row items-start">
                 <div class="min-w-0">
                     <p class="report-list-title">${esc(payment.month)}</p>
-                    <p class="report-list-meta">${esc(payment.purpose)} · ${esc(payment.method)} · ${esc(formatDate(payment.date) || '—')}</p>
+                    <p class="report-list-meta">${esc(payment.purpose)} · ${esc(payment.method)} · ${esc(payment.cashAccount)} · ${esc(formatDate(payment.date) || '—')}</p>
                     ${payment.notes ? `<p class="report-list-meta break-words">${esc(payment.notes)}</p>` : ''}
                 </div>
                 <strong class="report-list-value text-emerald-400 report-amount">${fmtMoney(payment.amountCents / 100)}</strong>
@@ -2433,11 +2435,12 @@ function renderStatementPaymentsPdfBody(statement, payments = statement.payments
             statementPdfCell(fmtMoney(payment.amountCents / 100), 'color:#047857;font-weight:700'),
             statementPdfCell(esc(payment.purpose)),
             statementPdfCell(esc(payment.method)),
+            statementPdfCell(esc(payment.cashAccount || 'الخزنة الرئيسية')),
             statementPdfCell(esc(formatDate(payment.date) || '—')),
             statementPdfCell(esc(payment.notes || '—')),
             '</tr>'
         ].join('')).join('')
-        : '<tr><td colspan="6" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">لا توجد حركات مسجلة.</td></tr>';
+        : '<tr><td colspan="7" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">لا توجد حركات مسجلة.</td></tr>';
 }
 
 function renderResidentStatementPdfHtml(statement) {
@@ -2492,7 +2495,7 @@ function renderResidentStatementPdfHtml(statement) {
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حركات الساكن</h3>',
         '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
         '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th>',
-        '<th style="padding:6px;border:1px solid #cbd5e1">الغرض</th><th style="padding:6px;border:1px solid #cbd5e1">طريقة الدفع</th><th style="padding:6px;border:1px solid #cbd5e1">التاريخ</th>',
+        '<th style="padding:6px;border:1px solid #cbd5e1">الغرض</th><th style="padding:6px;border:1px solid #cbd5e1">طريقة الدفع</th><th style="padding:6px;border:1px solid #cbd5e1">الصندوق</th><th style="padding:6px;border:1px solid #cbd5e1">التاريخ</th>',
         '<th style="padding:6px;border:1px solid #cbd5e1">ملاحظات</th></tr></thead><tbody>', paymentRows, '</tbody></table></section>',
         '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
         showDues
@@ -2538,7 +2541,8 @@ function renderUnitReportPdfHtml(statement) {
         '<table style="width:100%;border-collapse:collapse;font-size:11px"><tbody>',
         '<tr>', statementPdfHeadCell('إجمالي المستحق'), statementPdfCell(fmtMoney(statement.totals.dueCents / 100)), '</tr>',
         '<tr>', statementPdfHeadCell('إعفاء/تخفيض'), statementPdfCell(fmtMoney((statement.totals.adjustmentCents || 0) / 100), 'color:#b45309;font-weight:700'), '</tr>',
-        '<tr>', statementPdfHeadCell('إجمالي المدفوع'), statementPdfCell(fmtMoney(statement.totals.paidCents / 100), 'color:#047857;font-weight:700'), '</tr>',
+        '<tr>', statementPdfHeadCell('مدفوع الاشتراكات'), statementPdfCell(fmtMoney(statement.totals.paidCents / 100), 'color:#047857;font-weight:700'), '</tr>',
+        '<tr>', statementPdfHeadCell('إجمالي حركات التحصيل'), statementPdfCell(fmtMoney(statement.totals.filteredPaidCents / 100), 'color:#047857;font-weight:700'), '</tr>',
         '<tr>', statementPdfHeadCell('إجمالي المتبقي'), statementPdfCell(fmtMoney(statement.totals.remainingCents / 100), 'font-weight:700'), '</tr>',
         '<tr>', statementPdfHeadCell('أشهر متأخرة'), statementPdfCell(fmtNum(statement.totals.arrearsMonths)), '</tr>',
         '</tbody></table>',
@@ -2574,7 +2578,7 @@ function renderUnitReportPdfHtml(statement) {
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حركات الساكن</h3>',
         '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
         '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th>',
-        '<th style="padding:6px;border:1px solid #cbd5e1">الغرض</th><th style="padding:6px;border:1px solid #cbd5e1">طريقة الدفع</th><th style="padding:6px;border:1px solid #cbd5e1">التاريخ</th>',
+        '<th style="padding:6px;border:1px solid #cbd5e1">الغرض</th><th style="padding:6px;border:1px solid #cbd5e1">طريقة الدفع</th><th style="padding:6px;border:1px solid #cbd5e1">الصندوق</th><th style="padding:6px;border:1px solid #cbd5e1">التاريخ</th>',
         '<th style="padding:6px;border:1px solid #cbd5e1">ملاحظات</th></tr></thead><tbody>', renderStatementPaymentsPdfBody(statement), '</tbody></table></section>',
         '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
         'تقرير وحدة للقراءة فقط ولا يعدل أي بيانات. كل شهر محسوب بقيمة الاشتراك السارية فيه، والمدفوع هو المسجل على الشهر نفسه، ويعرض كل حركات الوحدة بغض النظر عن فلتر الغرض.',
@@ -2682,9 +2686,9 @@ function exportResidentStatementCsv() {
         rows.push(['الغرض', statement.purposeLabel]);
         rows.push([]);
     }
-    rows.push(['الحركات','الشهر','المبلغ','الغرض','طريقة الدفع','التاريخ','ملاحظات']);
+    rows.push(['الحركات','الشهر','المبلغ','الغرض','طريقة الدفع','الصندوق','التاريخ','ملاحظات']);
     statement.payments.forEach(payment => {
-        rows.push(['تحصيل', payment.month, payment.amountCents / 100, payment.purpose, payment.method, formatDate(payment.date) || '', payment.notes]);
+        rows.push(['تحصيل', payment.month, payment.amountCents / 100, payment.purpose, payment.method, payment.cashAccount, formatDate(payment.date) || '', payment.notes]);
     });
     downloadCsv(`manzil_statement_${getStatementFileSlug(statement)}.csv`, rows);
     toast('تم تصدير كشف الحساب','success');
