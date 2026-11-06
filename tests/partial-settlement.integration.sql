@@ -54,7 +54,7 @@ BEGIN
     v_result := private.persist_building_snapshot(
         v_building, v_version, '90000000-0000-4000-8000-000000000003', v_payload
     );
-    IF v_result->>'ok' <> 'true' THEN
+    IF v_result->>'ok' IS DISTINCT FROM 'true' THEN
         RAISE EXCEPTION 'first partial settlement payment failed: %', v_result;
     END IF;
     IF NOT EXISTS (
@@ -80,7 +80,7 @@ BEGIN
     v_result := private.persist_building_snapshot(
         v_building, v_version, '90000000-0000-4000-8000-000000000004', v_payload
     );
-    IF v_result->>'ok' <> 'true'
+    IF v_result->>'ok' IS DISTINCT FROM 'true'
        OR (SELECT SUM(amount) FROM public.income WHERE settlement_adjustment_id = v_settlement) <> 500 THEN
         RAISE EXCEPTION 'installments up to the settlement cap failed: %', v_result;
     END IF;
@@ -107,6 +107,7 @@ BEGIN
     END IF;
 
     -- A settlement purpose cannot be posted without its agreement link.
+    v_payload := jsonb_set(v_payload, '{income,1,amount}', '300'::jsonb);
     v_payload := jsonb_set(
         v_payload,
         '{income}',
