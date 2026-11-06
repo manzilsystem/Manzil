@@ -24,7 +24,7 @@ BEGIN
             ADD CONSTRAINT income_settlement_adjustment_id_fkey
             FOREIGN KEY (settlement_adjustment_id)
             REFERENCES public.resident_adjustments(id)
-            ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+            ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED;
     END IF;
 END;
 $settlement_fk$;
