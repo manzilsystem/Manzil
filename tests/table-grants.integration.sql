@@ -22,7 +22,7 @@ BEGIN
         RAISE EXCEPTION 'authenticated audit log privileges are not append-only';
     END IF;
 
-    FOREACH v_table IN ARRAY ARRAY['residents', 'income', 'expenses', 'resident_adjustments'] LOOP
+    FOREACH v_table IN ARRAY ARRAY['residents', 'income', 'expenses', 'resident_adjustments', 'resident_lease_details'] LOOP
         IF NOT has_table_privilege('authenticated', format('public.%I', v_table), 'SELECT')
            OR has_table_privilege('authenticated', format('public.%I', v_table), 'INSERT')
            OR has_table_privilege('authenticated', format('public.%I', v_table), 'UPDATE')
