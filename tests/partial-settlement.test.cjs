@@ -39,6 +39,9 @@ test('PostgreSQL integration harness applies and tests the settlement migration'
     assert.match(atomic, /20261106160000_partial_settlement_income\.sql/);
     assert.match(tableGrants, /partial-settlement\.integration\.sql/);
     assert.match(integration, /settlement_payment_exceeds_agreement/);
+    assert.match(integration, /settlement_exceeds_month_due/);
+    assert.match(integration, /settlement_conflicts_with_adjustment/);
+    assert.match(integration, /settlement_conflicts_with_subscription_income/);
     assert.match(integration, /unlinked settlement income was accepted/);
     assert.match(integration, /whole snapshot/);
 });
