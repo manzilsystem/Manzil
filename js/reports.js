@@ -29,8 +29,8 @@ function reportPurposeLabel(purposeCode) {
 
 function normalizeReportPurposeFilter(value) {
     const purpose = String(value || '').trim();
-    if (!purpose || typeof INCOME_PURPOSE_LABELS === 'undefined') return '';
-    return Object.prototype.hasOwnProperty.call(INCOME_PURPOSE_LABELS, purpose) ? purpose : '';
+    if (!purpose || typeof INCOME_PURPOSE_FORM_CODES === 'undefined') return '';
+    return INCOME_PURPOSE_FORM_CODES.includes(purpose) ? purpose : '';
 }
 
 function getReportPurposeFilter(id) {
@@ -41,8 +41,8 @@ function getReportPurposeFilter(id) {
 
 function reportPaymentMatchesPurpose(payment, purposeFilter) {
     if (!purposeFilter) return true;
-    const purpose = typeof normalizeIncomePurpose === 'function'
-        ? normalizeIncomePurpose(payment?.purposeCode)
+    const purpose = typeof getIncomePurposeFormCode === 'function'
+        ? getIncomePurposeFormCode(payment?.purposeCode)
         : (String(payment?.purposeCode || '').trim() || 'subscription');
     return purpose === purposeFilter;
 }
@@ -61,9 +61,9 @@ function reportPurposeFilterLabel(purposeFilter) {
 }
 
 function populateReportPurposeFilters() {
-    if (typeof INCOME_PURPOSE_LABELS === 'undefined') return;
-    const options = Object.entries(INCOME_PURPOSE_LABELS)
-        .map(([value, label]) => `<option value="${esc(value)}">${esc(label)}</option>`)
+    if (typeof INCOME_PURPOSE_FORM_CODES === 'undefined') return;
+    const options = INCOME_PURPOSE_FORM_CODES
+        .map(value => `<option value="${esc(value)}">${esc(reportPurposeLabel(value))}</option>`)
         .join('');
     REPORT_PURPOSE_FILTER_IDS.forEach(id => {
         const select = /** @type {HTMLSelectElement | null} */ (document.getElementById(id));

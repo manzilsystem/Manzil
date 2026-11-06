@@ -84,6 +84,28 @@ test('collecting into a fund box routes the money there instead of the main box'
     await expect(page.locator('#tab-income .cash-account-tag').nth(1)).toHaveText('صندوق التطوير');
 });
 
+test('the purpose form offers the three main purposes plus other and requires its reason', async ({ page }) => {
+    await seedManagerSession(page);
+    await page.evaluate(() => openNewIncomeModal());
+
+    const options = await page.locator('#incomePurpose option').allTextContents();
+    expect(options).toEqual(['اشتراك شهري', 'تطوير', 'صيانة طارئة', 'أخرى']);
+
+    await page.locator('#incomeResident').selectOption('r1');
+    await page.locator('#incomePaymentMethod').selectOption('cash');
+    await page.locator('#incomeAmount').fill('50');
+    await page.locator('#incomePurpose').selectOption('other');
+    await page.locator('#incomeSubmitButton').click();
+    await expect(page.locator('#incomeModal')).toBeVisible();
+    expect(await page.evaluate(() => state.income.length)).toBe(0);
+
+    await page.locator('#incomeNotes').fill('نظافة المبنى');
+    await page.locator('#incomeSubmitButton').click();
+    await expect(page.locator('#incomeModal')).toBeHidden();
+    const saved = await page.evaluate(() => state.income.map(item => ({ purposeCode: item.purposeCode, notes: item.notes })));
+    expect(saved).toEqual([{ purposeCode: 'other', notes: 'نظافة المبنى' }]);
+});
+
 test('non-subscription collections are not split across subscription months', async ({ page }) => {
     await seedManagerSession(page);
     const month = await page.evaluate(() => getCurrentMonth());
@@ -92,7 +114,8 @@ test('non-subscription collections are not split across subscription months', as
     await page.locator('#incomeResident').selectOption('r1');
     await page.locator('#incomePaymentMethod').selectOption('cash');
     await page.locator('#incomeAmount').fill('75');
-    await page.locator('#incomePurpose').selectOption('services');
+    await page.locator('#incomePurpose').selectOption('other');
+    await page.locator('#incomeNotes').fill('نظافة المبنى');
     await expect(page.locator('#incomeCashAccount')).toHaveValue('main');
     await expect(page.locator('#incomeCashAccount')).toBeEnabled();
     await expect(page.locator('#incomeMonthLabel')).toHaveText('شهر تسجيل التحصيل');
@@ -106,10 +129,10 @@ test('non-subscription collections are not split across subscription months', as
         purposeCode: item.purposeCode,
         cashAccountCode: item.cashAccountCode
     })));
-    expect(saved).toEqual([{ amount: 75, month, purposeCode: 'services', cashAccountCode: 'main' }]);
+    expect(saved).toEqual([{ amount: 75, month, purposeCode: 'other', cashAccountCode: 'main' }]);
     expect(await page.evaluate(currentMonth => getMonthOutstanding(state.residents[0], currentMonth), month)).toBe(100);
     expect(await cashboxBalances(page)).toEqual({ main: 575, development: 0, emergency: 0 });
-    expect(await page.evaluate(() => state.auditLogs[0]?.action || '')).toBe('تحصيل خدمات ونظافة');
+    expect(await page.evaluate(() => state.auditLogs[0]?.action || '')).toBe('تحصيل أخرى');
 });
 
 test('a mixed payment collects subscription and extra purposes into their funds', async ({ page }) => {
@@ -125,9 +148,10 @@ test('a mixed payment collects subscription and extra purposes into their funds'
     await addLine.click();
     const lines = page.locator('#incomeExtraLines [data-income-line]');
     await expect(lines).toHaveCount(1);
-    await lines.nth(0).locator('.income-line-purpose').selectOption('services');
+    await lines.nth(0).locator('.income-line-purpose').selectOption('other');
     await lines.nth(0).locator('.income-line-amount').fill('50');
     await lines.nth(0).locator('.income-line-cash-account').selectOption('main');
+    await page.locator('#incomeNotes').fill('نظافة المبنى');
     await expect(page.locator('#incomeMixedTotal')).toContainText('150');
     await expect(page.locator('#incomeSubmitButton')).toHaveText('حفظ الدفعة المختلطة');
 
@@ -148,7 +172,7 @@ test('a mixed payment collects subscription and extra purposes into their funds'
         cashAccountCode: item.cashAccountCode,
         notes: item.notes
     })));
-    expect(saved.map(item => item.purposeCode)).toEqual(['subscription', 'services', 'development']);
+    expect(saved.map(item => item.purposeCode)).toEqual(['subscription', 'other', 'development']);
     expect(saved.map(item => item.cashAccountCode)).toEqual(['main', 'main', 'development']);
     expect(saved.map(item => item.amount)).toEqual([100, 50, 75]);
     const references = saved.map(item => item.notes.match(/^دفعة موزعة ([A-Z0-9]+) \((\d+)\/3\)/));

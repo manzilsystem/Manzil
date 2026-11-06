@@ -24,7 +24,7 @@ function plain(value) {
     return JSON.parse(JSON.stringify(value));
 }
 
-function lineElement({ purpose = 'services', amount = '50', cashAccountCode = 'main' } = {}) {
+function lineElement({ purpose = 'other', amount = '50', cashAccountCode = 'main' } = {}) {
     const fields = {
         '.income-line-purpose': makeElement({ value: purpose }),
         '.income-line-amount': makeElement({ value: amount }),
@@ -69,7 +69,7 @@ function createCrudHarness({ income = [], extraLines = [], elements = {} } = {})
         incomeEditAmount: makeElement({ value: '50' }),
         incomeEditPaymentMethod: makeElement({ value: 'cash' }),
         incomeEditCashAccount: makeElement({ value: 'main' }),
-        incomeEditPurpose: makeElement({ value: 'services' }),
+        incomeEditPurpose: makeElement({ value: 'other' }),
         incomeEditPurposeHint: makeElement(),
         incomeEditNotes: makeElement({ value: '' }),
         incomeEditSubmitButton: makeElement()
@@ -138,7 +138,7 @@ test('a mixed payment builds one batch with a subscription split plus independen
         isSubscription: true,
         allocation: { allocations: [{ month: 'يناير 2024', amount: 100 }] },
         extraLines: [
-            { purpose: 'services', amount: 50, cashAccountCode: 'main' },
+            { purpose: 'other', amount: 50, cashAccountCode: 'main' },
             { purpose: 'development', amount: 75, cashAccountCode: 'development' }
         ],
         paidAt: '2024-01-15T10:00:00.000Z',
@@ -146,7 +146,7 @@ test('a mixed payment builds one batch with a subscription split plus independen
     });
 
     assert.equal(rows.length, 3);
-    assert.deepEqual(plain(rows.map(row => row.purposeCode)), ['subscription', 'services', 'development']);
+    assert.deepEqual(plain(rows.map(row => row.purposeCode)), ['subscription', 'other', 'development']);
     assert.deepEqual(plain(rows.map(row => row.cashAccountCode)), ['main', 'main', 'development']);
     assert.equal(rows.reduce((sum, row) => sum + row.amount, 0), 225);
     assert.deepEqual(plain(rows.map(row => row.month)), ['يناير 2024', 'يناير 2024', 'يناير 2024']);
@@ -160,7 +160,7 @@ test('a non-subscription item paid alone keeps its plain note, while extras crea
     const harness = createCrudHarness();
     const single = harness.api.buildIncomePaymentRows({
         residentId: 'r1', amount: 50, month: 'يناير 2024', notes: 'نظافة',
-        paymentMethod: 'cash', purpose: 'services', cashAccountCode: 'main',
+        paymentMethod: 'cash', purpose: 'other', cashAccountCode: 'main',
         isSubscription: false, allocation: null, extraLines: [],
         paidAt: '2024-01-15T10:00:00.000Z', paymentReference: 'ABCDEF123456'
     });
@@ -169,15 +169,15 @@ test('a non-subscription item paid alone keeps its plain note, while extras crea
 
     const mixed = harness.api.buildIncomePaymentRows({
         residentId: 'r1', amount: 50, month: 'يناير 2024', notes: 'نظافة',
-        paymentMethod: 'cash', purpose: 'services', cashAccountCode: 'main',
+        paymentMethod: 'cash', purpose: 'other', cashAccountCode: 'main',
         isSubscription: false, allocation: null,
-        extraLines: [{ purpose: 'donation', amount: 25, cashAccountCode: 'main' }],
+        extraLines: [{ purpose: 'development', amount: 25, cashAccountCode: 'development' }],
         paidAt: '2024-01-15T10:00:00.000Z', paymentReference: 'ABCDEF123456'
     });
     assert.equal(mixed.length, 2);
     assert.equal(mixed[0].notes, 'دفعة موزعة ABCDEF123456 (1/2) · نظافة');
     assert.equal(mixed[1].notes, 'دفعة موزعة ABCDEF123456 (2/2) · نظافة');
-    assert.deepEqual(plain(mixed.map(row => row.purposeCode)), ['services', 'donation']);
+    assert.deepEqual(plain(mixed.map(row => row.purposeCode)), ['other', 'development']);
 });
 
 test('extra lines reject subscription, zero amounts and misrouted funds', () => {
@@ -188,7 +188,7 @@ test('extra lines reject subscription, zero amounts and misrouted funds', () => 
         /الاشتراك/
     );
     assert.match(
-        harness.api.validateIncomeExtraLines([{ purpose: 'services', amount: 0, cashAccountCode: 'main' }]).message,
+        harness.api.validateIncomeExtraLines([{ purpose: 'other', amount: 0, cashAccountCode: 'main' }]).message,
         /أكبر من صفر/
     );
     assert.match(
@@ -196,7 +196,7 @@ test('extra lines reject subscription, zero amounts and misrouted funds', () => 
         /صندوقه الخاص/
     );
     const valid = harness.api.validateIncomeExtraLines([
-        { purpose: 'services', amount: 12.5, cashAccountCode: 'main' },
+        { purpose: 'other', amount: 12.5, cashAccountCode: 'main' },
         { purpose: 'emergency', amount: 7.5, cashAccountCode: 'emergency' }
     ]);
     assert.equal(valid.valid, true);
@@ -206,16 +206,17 @@ test('extra lines reject subscription, zero amounts and misrouted funds', () => 
 test('submitting a mixed payment saves every item under one shared reference', async () => {
     const harness = createCrudHarness({
         extraLines: [
-            lineElement({ purpose: 'services', amount: '50', cashAccountCode: 'main' }),
+            lineElement({ purpose: 'other', amount: '50', cashAccountCode: 'main' }),
             lineElement({ purpose: 'development', amount: '75', cashAccountCode: 'development' })
-        ]
+        ],
+        elements: { incomeNotes: makeElement({ value: 'صيانة المصعد' }) }
     });
 
     await harness.api.handleIncomeSubmit({ preventDefault() {} });
 
     assert.equal(harness.calls.save, 1);
     assert.equal(harness.state.income.length, 3);
-    assert.deepEqual(harness.state.income.map(row => row.purposeCode), ['subscription', 'services', 'development']);
+    assert.deepEqual(harness.state.income.map(row => row.purposeCode), ['subscription', 'other', 'development']);
     assert.deepEqual(harness.state.income.map(row => row.cashAccountCode), ['main', 'main', 'development']);
     assert.equal(harness.state.income.reduce((sum, row) => sum + row.amount, 0), 225);
     const references = new Set(harness.state.income.map(row => row.notes.match(/^دفعة موزعة ([A-Z0-9]+) \(/)?.[1]));
@@ -228,7 +229,7 @@ test('submitting a mixed payment saves every item under one shared reference', a
 
 test('submitting with an invalid extra line saves nothing', async () => {
     const harness = createCrudHarness({
-        extraLines: [lineElement({ purpose: 'services', amount: '0', cashAccountCode: 'main' })]
+        extraLines: [lineElement({ purpose: 'other', amount: '0', cashAccountCode: 'main' })]
     });
 
     await harness.api.handleIncomeSubmit({ preventDefault() {} });
@@ -249,10 +250,11 @@ test('a mixed batch locks purpose and cashbox but still allows editing its amoun
             },
             {
                 id: 'i2', residentId: 'r1', amount: 50, month: 'يناير 2024',
-                notes: 'دفعة موزعة AB12CD34 (2/2)', paymentMethod: 'cash',
-                cashAccountCode: 'main', purposeCode: 'services', date
+                notes: 'دفعة موزعة AB12CD34 (2/2) · صيانة المصعد', paymentMethod: 'cash',
+                cashAccountCode: 'main', purposeCode: 'other', date
             }
-        ]
+        ],
+        elements: { incomeEditNotes: makeElement({ value: 'صيانة المصعد' }) }
     });
 
     harness.api.openIncomeEditModal('i2');
@@ -267,7 +269,7 @@ test('a mixed batch locks purpose and cashbox but still allows editing its amoun
 
     assert.equal(harness.calls.save, 1);
     assert.equal(harness.state.income[1].amount, 60);
-    assert.equal(harness.state.income[1].purposeCode, 'services');
+    assert.equal(harness.state.income[1].purposeCode, 'other');
     assert.equal(harness.state.income[0].purposeCode, 'subscription');
     assert.equal(harness.state.income[0].cashAccountCode, 'main');
     assert.equal(harness.state.income[0].paymentMethod, 'instapay');
@@ -285,18 +287,18 @@ test('a mixed batch rejects a tampered purpose or cashbox', async () => {
             {
                 id: 'i2', residentId: 'r1', amount: 50, month: 'يناير 2024',
                 notes: 'دفعة موزعة AB12CD34 (2/2)', paymentMethod: 'cash',
-                cashAccountCode: 'main', purposeCode: 'services', date
+                cashAccountCode: 'main', purposeCode: 'other', date
             }
         ]
     });
 
     harness.api.openIncomeEditModal('i2');
-    harness.elements.incomeEditPurpose.value = 'other';
+    harness.elements.incomeEditPurpose.value = 'emergency';
     await harness.api.handleIncomeEditSubmit({ preventDefault() {} });
     assert.equal(harness.calls.save, 0);
     assert.match(harness.messages.at(-1)[0], /دفعة مختلطة/);
 
-    harness.elements.incomeEditPurpose.value = 'services';
+    harness.elements.incomeEditPurpose.value = 'other';
     harness.elements.incomeEditCashAccount.value = 'emergency';
     await harness.api.handleIncomeEditSubmit({ preventDefault() {} });
     assert.equal(harness.calls.save, 0);
@@ -318,7 +320,7 @@ test('WhatsApp receipts list every mixed item with its purpose and funds', () =>
                 },
                 {
                     id: 'p2', residentId: 'r1', amount: 50, month: 'يناير 2024', date,
-                    paymentMethod: 'cash', cashAccountCode: 'main', purposeCode: 'services',
+                    paymentMethod: 'cash', cashAccountCode: 'main', purposeCode: 'other',
                     notes: 'دفعة موزعة AB12CD34 (2/3)'
                 },
                 {
@@ -333,7 +335,7 @@ test('WhatsApp receipts list every mixed item with its purpose and funds', () =>
         fmtNum: value => String(value),
         getIncomePaymentMethodLabel: () => 'نقدًا',
         getIncomePurposeLabel: code => ({
-            subscription: 'اشتراك شهري', services: 'خدمات ونظافة', development: 'تطوير'
+            subscription: 'اشتراك شهري', other: 'أخرى', development: 'تطوير'
         })[code] || 'اشتراك شهري',
         getCashAccountLabel: code => ({
             main: 'الخزنة الرئيسية', development: 'صندوق التطوير', emergency: 'صندوق الصيانة الطارئة'
@@ -350,8 +352,8 @@ test('WhatsApp receipts list every mixed item with its purpose and funds', () =>
     assert.match(message, /تحصيل «دفعة مختلطة»/);
     assert.match(message, /المبلغ المستلم: 225 ج.م/);
     assert.match(message, /الصندوق: الخزنة الرئيسية، صندوق التطوير/);
-    assert.ok(message.indexOf('اشتراك شهري · يناير 2024: 100 ج.م') < message.indexOf('خدمات ونظافة · يناير 2024: 50 ج.م'));
-    assert.ok(message.indexOf('خدمات ونظافة · يناير 2024: 50 ج.م') < message.indexOf('تطوير · يناير 2024: 75 ج.م'));
+    assert.ok(message.indexOf('اشتراك شهري · يناير 2024: 100 ج.م') < message.indexOf('أخرى · يناير 2024: 50 ج.م'));
+    assert.ok(message.indexOf('أخرى · يناير 2024: 50 ج.م') < message.indexOf('تطوير · يناير 2024: 75 ج.م'));
     assert.match(message, /رقم الإيصال: AB12CD34/);
 });
 

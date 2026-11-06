@@ -75,13 +75,15 @@ const INCOME_PAYMENT_METHOD_LABELS = Object.freeze({
 
 const INCOME_PURPOSE_LABELS = Object.freeze({
     subscription: 'اشتراك شهري',
-    services: 'خدمات ونظافة',
+    services: 'أخرى',
     development: 'تطوير',
     emergency: 'صيانة طارئة',
-    penalty: 'غرامة',
-    donation: 'تبرع',
+    penalty: 'أخرى',
+    donation: 'أخرى',
     other: 'أخرى'
 });
+
+const INCOME_PURPOSE_FORM_CODES = Object.freeze(['subscription', 'development', 'emergency', 'other']);
 
 const INCOME_PURPOSE_DEFAULT_CASH_ACCOUNT = Object.freeze({
     subscription: 'main',
@@ -112,23 +114,28 @@ function getIncomePurposeLabel(purpose) {
     return INCOME_PURPOSE_LABELS[normalizeIncomePurpose(purpose)];
 }
 
+function getIncomePurposeFormCode(purpose) {
+    const normalized = normalizeIncomePurpose(purpose);
+    return INCOME_PURPOSE_FORM_CODES.includes(normalized) ? normalized : 'other';
+}
+
 function isSubscriptionIncome(payment) {
     return normalizeIncomePurpose(payment?.purposeCode) === 'subscription';
 }
 
 function getIncomePurposeCashAccount(purpose) {
-    return INCOME_PURPOSE_DEFAULT_CASH_ACCOUNT[normalizeIncomePurpose(purpose)];
+    return INCOME_PURPOSE_DEFAULT_CASH_ACCOUNT[getIncomePurposeFormCode(purpose)];
 }
 
 function isIncomePurposeCashAccountLocked(purpose) {
-    return INCOME_PURPOSE_LOCKED_CASH_ACCOUNT[normalizeIncomePurpose(purpose)] === true;
+    return INCOME_PURPOSE_LOCKED_CASH_ACCOUNT[getIncomePurposeFormCode(purpose)] === true;
 }
 
 function populateIncomePurposeOptions(select, selectedPurpose = '') {
     if (!select) return;
-    const current = normalizeIncomePurpose(selectedPurpose);
-    select.innerHTML = Object.entries(INCOME_PURPOSE_LABELS)
-        .map(([purpose, label]) => '<option value="' + esc(purpose) + '">' + esc(label) + '</option>')
+    const current = getIncomePurposeFormCode(selectedPurpose);
+    select.innerHTML = INCOME_PURPOSE_FORM_CODES
+        .map(purpose => '<option value="' + esc(purpose) + '">' + esc(INCOME_PURPOSE_LABELS[purpose]) + '</option>')
         .join('');
     select.value = current;
 }
