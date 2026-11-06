@@ -101,7 +101,7 @@ function loadReport(options = {}) {
         URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} }
     };
     const app = vm.runInNewContext(
-        reports + '\n({\n            buildPeriodReport, buildPeriodMonthKeys, generatePeriodReport, renderPeriodReportHtml,\n            applyPeriodReportPreset, onPeriodReportRangeChange, exportPeriodReportCsv, printPeriodReport,\n            getPeriodReportSignature, invalidatePeriodReportPreview, invalidatePeriodReportIfStale, clearPeriodReportPreview\n        })',
+        reports + '\n({\n            buildPeriodReport, buildPeriodMonthKeys, generatePeriodReport, renderPeriodReportHtml,\n            applyPeriodReportPreset, onPeriodReportRangeChange, exportPeriodReportCsv, printPeriodReport,\n            getPeriodReportSignature, invalidatePeriodReportPreview, invalidatePeriodReportIfStale, clearPeriodReportPreview,\n            getPeriodMonthSpan, getPeriodRangeError, PERIOD_REPORT_MAX_MONTHS\n        })',
         sandbox
     );
     sandbox.window = {
@@ -195,6 +195,39 @@ test('a reversed period range produces no report and explains itself', () => {
     assert.match(elements.periodReportPreview.innerHTML, /الفترة غير صحيحة/);
     assert.equal(elements.periodReportPrintBtn.disabled, true);
     assert.ok(calls.toasts.some(entry => entry.includes('شهر البداية بعد شهر النهاية')));
+});
+
+test('a period range of exactly 60 months builds the full month list', () => {
+    const { app } = loadReport();
+    const keys = app.buildPeriodMonthKeys('يناير 2019', 'ديسمبر 2023');
+    assert.equal(app.PERIOD_REPORT_MAX_MONTHS, 60);
+    assert.equal(keys.length, 60);
+    assert.equal(keys[0], '2019-01-01');
+    assert.equal(keys[59], '2023-12-01');
+    assert.equal(app.buildPeriodReport('يناير 2019', 'ديسمبر 2023').months.length, 60);
+});
+
+test('a period longer than 60 months is rejected instead of silently truncated', () => {
+    const { app, elements, calls } = loadReport({ from: 'ديسمبر 2018', to: 'ديسمبر 2023' });
+    assert.equal(app.getPeriodMonthSpan('2018-12-01', '2023-12-01'), 61);
+    assert.equal(app.buildPeriodMonthKeys('ديسمبر 2018', 'ديسمبر 2023'), null);
+    assert.equal(app.buildPeriodReport('ديسمبر 2018', 'ديسمبر 2023'), null);
+    assert.match(app.getPeriodRangeError('ديسمبر 2018', 'ديسمبر 2023'), /أقصى مدة لتقرير الفترة 60 شهرًا/);
+
+    app.generatePeriodReport();
+    assert.match(elements.periodReportPreview.innerHTML, /أقصى مدة لتقرير الفترة 60 شهرًا/);
+    assert.equal(elements.periodReportPrintBtn.disabled, true);
+    assert.equal(elements.periodReportExportBtn.disabled, true);
+    assert.ok(calls.toasts.some(entry => entry.includes('أقصى مدة لتقرير الفترة 60 شهرًا')));
+});
+
+test('a rejected long range keeps its signature tied to the selected endpoints only', () => {
+    const { app, state } = loadReport();
+    const signature = app.getPeriodReportSignature('ديسمبر 2018', 'ديسمبر 2023');
+    state.income.push({ id: 'mid', residentId: 'r1', month: 'مايو 2020', amount: 10, paymentMethod: 'cash' });
+    assert.equal(app.getPeriodReportSignature('ديسمبر 2018', 'ديسمبر 2023'), signature);
+    state.income.push({ id: 'edge', residentId: 'r1', month: 'ديسمبر 2023', amount: 10, paymentMethod: 'cash' });
+    assert.notEqual(app.getPeriodReportSignature('ديسمبر 2018', 'ديسمبر 2023'), signature);
 });
 
 test('period preview gates print and csv until a fresh preview exists', () => {
