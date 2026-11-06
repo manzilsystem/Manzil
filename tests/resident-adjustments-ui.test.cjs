@@ -65,7 +65,7 @@ test('adjustment helpers read the month entitlement and exclude the edited row',
     assert.equal(app.getResidentAdjustments('r1')[0].id, 'a3');
     assert.equal(app.getAdjustmentKindLabel('waiver'), 'إعفاء');
     assert.equal(app.getAdjustmentKindLabel('discount'), 'تخفيض');
-    assert.equal(app.getAdjustmentKindLabel('settlement'), 'تسوية متفق عليها');
+    assert.equal(app.getAdjustmentKindLabel('settlement'), 'تسوية');
     assert.equal(app.adjustmentMonthKeyToLabel('2024-03'), 'مارس 2024');
 });
 
