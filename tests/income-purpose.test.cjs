@@ -228,6 +228,7 @@ test('the other purpose requires its detailed reason in the notes', async () => 
 test('settlement agreement balance decreases only by linked settlement income', () => {
     const app = loadState();
     const settlement = { id: 's1', residentId: 'r1', effectiveMonth: '2024-01-01', kind: 'settlement', amount: 80 };
+    app.state.residents = [{ id: 'r1', name: 'Resident', createdAt: '2024-01-01', monthlyAmount: 100 }];
     app.state.adjustments = [settlement];
     app.state.income = [
         { id: 'p1', residentId: 'r1', month: 'يناير 2024', amount: 25, purposeCode: 'settlement', settlementAdjustmentId: 's1' },
@@ -244,6 +245,7 @@ test('settlement agreement balance decreases only by linked settlement income', 
 
 test('regular subscription allocation skips months covered by a settlement agreement', () => {
     const app = loadState();
+    app.state.residents = [{ id: 'r1', name: 'Resident', createdAt: '2024-01-01', monthlyAmount: 100 }];
     app.state.adjustments = [
         { id: 's1', residentId: 'r1', effectiveMonth: '2024-01-01', kind: 'settlement', amount: 80 }
     ];
