@@ -879,6 +879,7 @@ $income_notification_sync$;
 \ir ../supabase/migrations/20261106215500_resident_lease_details.sql
 
 -- Tenant details are persisted atomically but remain invisible to unit owners.
+RESET ROLE;
 INSERT INTO public.buildings (id, name)
 VALUES ('20000000-0000-4000-8000-000000000005', 'Tenant details integration');
 INSERT INTO public.building_members (building_id, user_id, role)
