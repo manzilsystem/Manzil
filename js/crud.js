@@ -1929,15 +1929,6 @@ function validateIncomeWizardStep(step) {
         const validation = validateIncomeExtraLines(getIncomeExtraLines());
         if (!validation.valid) { toast(validation.message, 'error'); return false; }
     }
-    if (step === 3) {
-        if (!value('incomePaymentMethod')) { toast('اختر طريقة الدفع.', 'error'); return false; }
-        if (!value('incomeCashAccount') && document.getElementById('incomeCashAccount')) { toast('اختر الصندوق المستلم.', 'error'); return false; }
-        const needsDetail = value('incomePurpose') === 'other'
-            || getIncomeExtraLines().some(line => line.purpose === 'other');
-        if (needsDetail && !value('incomeNotes')) {
-            toast('غرض «أخرى» يتطلب كتابة الغرض بالتفصيل في الملاحظات.', 'error'); return false;
-        }
-    }
     return true;
 }
 
@@ -2173,7 +2164,7 @@ function previewIncomeAllocation() {
 async function handleIncomeSubmit(e) {
     if (!requireManager() || incomeSaving) return;
     e.preventDefault();
-    if (!validateIncomeWizardStep(1) || !validateIncomeWizardStep(2) || !validateIncomeWizardStep(3)) return;
+    if (!validateIncomeWizardStep(1) || !validateIncomeWizardStep(2)) return;
     const residentId = /** @type {any} */ (document.getElementById('incomeResident')).value;
     const amount = Number(/** @type {any} */ (document.getElementById('incomeAmount')).value);
     const notes = /** @type {any} */ (document.getElementById('incomeNotes')).value.trim();
