@@ -1,28 +1,3 @@
-
-
-test('backup validation accepts optional tenant details and preserves older backup compatibility', () => {
-    const resident = { id: 'resident-1', name: 'مالك', apartmentNumber: '1', monthlyAmount: 100 };
-    const leased = {
-        ...resident,
-        isRented: true,
-        tenantName: 'مستأجر',
-        tenantPhone: '01012345678',
-        leaseStart: '2026-01-01',
-        leaseEnd: '2027-01-01',
-        rentAmount: 5000,
-        depositAmount: 10000
-    };
-
-    assert.equal(isValidBackup(validBackup({ residents: [resident] })), true);
-    assert.equal(isValidBackup(validBackup({ residents: [leased] })), true);
-    assert.equal(isValidBackup(validBackup({ residents: [{ ...leased, isRented: false, tenantName: '' }] })), true);
-    assert.equal(isValidBackup(validBackup({ residents: [{ ...leased, tenantName: '' }] })), false);
-    assert.equal(isValidBackup(validBackup({ residents: [{ ...leased, rentAmount: -1 }] })), false);
-    assert.equal(isValidBackup(validBackup({ residents: [{ ...leased, depositAmount: 'bad' }] })), false);
-    assert.equal(isValidBackup(validBackup({ residents: [{ ...leased, leaseStart: '2026-02-31' }] })), false);
-    assert.equal(isValidBackup(validBackup({ residents: [{ ...leased, leaseEnd: '2025-12-31' }] })), false);
-    assert.equal(isValidBackup(validBackup({ residents: [{ ...leased, tenantPhone: '1'.repeat(61) }] })), false);
-});
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -113,4 +88,29 @@ test('backup validation rejects duplicate apartment numbers written with differe
     const first = { id: 'resident-1', name: 'أول', apartmentNumber: '1', monthlyAmount: 100 };
     const second = { id: 'resident-2', name: 'ثان', apartmentNumber: '١', monthlyAmount: 100 };
     assert.equal(isValidBackup(validBackup({ residents: [first, second] })), false);
+});
+
+
+test('backup validation accepts optional tenant details and preserves older backup compatibility', () => {
+    const resident = { id: 'resident-1', name: 'مالك', apartmentNumber: '1', monthlyAmount: 100 };
+    const leased = {
+        ...resident,
+        isRented: true,
+        tenantName: 'مستأجر',
+        tenantPhone: '01012345678',
+        leaseStart: '2026-01-01',
+        leaseEnd: '2027-01-01',
+        rentAmount: 5000,
+        depositAmount: 10000
+    };
+
+    assert.equal(isValidBackup(validBackup({ residents: [resident] })), true);
+    assert.equal(isValidBackup(validBackup({ residents: [leased] })), true);
+    assert.equal(isValidBackup(validBackup({ residents: [{ ...leased, isRented: false, tenantName: '' }] })), true);
+    assert.equal(isValidBackup(validBackup({ residents: [{ ...leased, tenantName: '' }] })), false);
+    assert.equal(isValidBackup(validBackup({ residents: [{ ...leased, rentAmount: -1 }] })), false);
+    assert.equal(isValidBackup(validBackup({ residents: [{ ...leased, depositAmount: 'bad' }] })), false);
+    assert.equal(isValidBackup(validBackup({ residents: [{ ...leased, leaseStart: '2026-02-31' }] })), false);
+    assert.equal(isValidBackup(validBackup({ residents: [{ ...leased, leaseEnd: '2025-12-31' }] })), false);
+    assert.equal(isValidBackup(validBackup({ residents: [{ ...leased, tenantPhone: '1'.repeat(61) }] })), false);
 });
