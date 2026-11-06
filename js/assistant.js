@@ -257,14 +257,16 @@ function getAssistantIncomeSnapshot(months) {
     const rows = (Array.isArray(state.income) ? state.income : []).filter(row => !allowed.size || allowed.has(row.month));
     let cents = 0;
     let subscriptionCents = 0;
+    let settlementCents = 0;
     const purposes = new Map();
     rows.forEach(row => {
         const amountCents = typeof toCents === 'function' ? toCents(row.amount) : Math.round((Number(row.amount) || 0) * 100);
         if (amountCents <= 0) return;
         cents += amountCents;
-        const isSubscription = typeof isSubscriptionIncome === 'function' ? isSubscriptionIncome(row) : row.purposeCode === 'subscription';
+        const code = row.purposeCode || 'subscription';
+        const isSubscription = typeof isSubscriptionIncome === 'function' ? isSubscriptionIncome(row) : code === 'subscription';
         if (isSubscription) subscriptionCents += amountCents;
-        const code = row.purposeCode || (isSubscription ? 'subscription' : 'other');
+        if (code === 'settlement') settlementCents += amountCents;
         purposes.set(code, (purposes.get(code) || 0) + amountCents);
     });
     const purposeRows = Array.from(purposes.entries())
@@ -281,7 +283,9 @@ function getAssistantIncomeSnapshot(months) {
         total: cents / 100,
         subscriptionCents,
         subscriptionTotal: subscriptionCents / 100,
-        otherTotal: (cents - subscriptionCents) / 100,
+        settlementCents,
+        settlementTotal: settlementCents / 100,
+        otherTotal: (cents - subscriptionCents - settlementCents) / 100,
         purposes: purposeRows
     };
 }
@@ -311,22 +315,36 @@ function getAssistantMonthSummary(period, now = new Date()) {
     const residents = Array.isArray(state.residents) ? state.residents : [];
     let dueCents = 0;
     let paidCents = 0;
+    let subscriptionPaidCents = 0;
+    let settlementPaidCents = 0;
     let adjustedCents = 0;
     let outstandingCents = 0;
     let paidUnits = 0;
     let partialUnits = 0;
     const unpaid = [];
     residents.forEach(resident => {
-        const due = typeof getSubscriptionAmountForMonth === 'function'
+        const grossDue = typeof getSubscriptionAmountForMonth === 'function'
             ? Number(getSubscriptionAmountForMonth(resident, month)) || 0
             : Number(resident.monthlyAmount ?? state.defaultSubscription) || 0;
-        const paid = typeof getPaidAmountForMonth === 'function' ? Number(getPaidAmountForMonth(resident.id, month)) || 0 : 0;
-        const adjusted = typeof getAdjustmentAmountForMonth === 'function' ? Number(getAdjustmentAmountForMonth(resident.id, month)) || 0 : 0;
+        const due = typeof getMonthlyDueAmountForMonth === 'function'
+            ? Number(getMonthlyDueAmountForMonth(resident, month)) || 0 : grossDue;
+        const paid = typeof getMonthlyDuePaidAmount === 'function'
+            ? Number(getMonthlyDuePaidAmount(resident.id, month)) || 0
+            : typeof getPaidAmountForMonth === 'function' ? Number(getPaidAmountForMonth(resident.id, month)) || 0 : 0;
+        const subscriptionPaid = typeof getPaidAmountForMonth === 'function'
+            ? Number(getPaidAmountForMonth(resident.id, month)) || 0 : 0;
+        const settlement = typeof getSettlementAdjustmentForMonth === 'function'
+            ? getSettlementAdjustmentForMonth(resident.id, month) : null;
+        const settlementPaid = settlement && typeof getSettlementPaidAmount === 'function'
+            ? Number(getSettlementPaidAmount(settlement.id)) || 0 : 0;
+        const adjusted = Math.max(0, grossDue - due);
         const outstanding = typeof getMonthOutstanding === 'function'
             ? Number(getMonthOutstanding(resident, month)) || 0
-            : Math.max(0, due - adjusted - paid);
+            : Math.max(0, due - paid);
         dueCents += Math.round(due * 100);
         paidCents += Math.round(paid * 100);
+        subscriptionPaidCents += Math.round(subscriptionPaid * 100);
+        settlementPaidCents += Math.round(settlementPaid * 100);
         adjustedCents += Math.round(adjusted * 100);
         outstandingCents += Math.round(outstanding * 100);
         if (due > 0 && outstanding <= 0) paidUnits += 1;
@@ -340,7 +358,9 @@ function getAssistantMonthSummary(period, now = new Date()) {
         expenses,
         net: (income.cents - expenses.cents) / 100,
         dueTotal: dueCents / 100,
-        paidSubscriptionTotal: paidCents / 100,
+        paidSubscriptionTotal: subscriptionPaidCents / 100,
+        paidSettlementTotal: settlementPaidCents / 100,
+        paidDueTotal: paidCents / 100,
         adjustmentsTotal: adjustedCents / 100,
         outstandingTotal: outstandingCents / 100,
         paidUnits,
