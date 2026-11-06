@@ -2071,7 +2071,6 @@ function resetIncomeFormFields() {
     incomeSelectedMonths = new Set();
     incomeAmountManual = false;
     refreshIncomeMonthOptions('', getCurrentMonth());
-    const monthSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeMonth'));
     const currentMonth = getCurrentMonth();
     if (monthSelect?.options && Array.from(monthSelect.options).some(option => option.value === currentMonth)) {
         monthSelect.value = currentMonth;
