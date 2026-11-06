@@ -783,7 +783,7 @@ function cancelAdjustmentEdit() {
     resetAdjustmentForm();
 }
 
-async async function handleAdjustmentSubmit(event) {
+async function handleAdjustmentSubmit(event) {
     if (!requireManager()) return;
     event.preventDefault();
     const resident = state.residents.find(item => item.id === adjustmentResidentId);
