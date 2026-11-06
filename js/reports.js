@@ -1206,7 +1206,7 @@ function getResidentStatementSignature(residentId, purposeFilter = '') {
     const resident = buildResidentIndex().get(String(residentId || ''));
     if (!resident) return '';
     const payments = (state.income || []).filter(payment => payment.residentId === resident.id);
-    return JSON.stringify([resident, payments, purposeFilter || '']);
+    return JSON.stringify([resident, payments, state.defaultSubscription ?? '', purposeFilter || '']);
 }
 
 function setResidentStatementActionsEnabled(enabled) {
