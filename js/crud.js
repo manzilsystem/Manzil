@@ -686,10 +686,16 @@ function renderAdjustmentList(resident) {
         const monthLabel = adjustmentMonthKeyToLabel(monthKey);
         const kindLabel = getAdjustmentKindLabel(adjustment.kind);
         const argument = esc(JSON.stringify(String(adjustment.id)));
+        const settlementPaid = adjustment.kind === 'settlement' ? getSettlementPaidAmount(adjustment.id) : 0;
+        const settlementRemaining = adjustment.kind === 'settlement'
+            ? getSettlementRemainingAmount(adjustment) : 0;
+        const amountCell = adjustment.kind === 'settlement'
+            ? `<strong>${formatSubscriptionAmount(adjustment.amount)} ج.م</strong><span class="block text-[10px] text-slate-500">مدفوع ${formatSubscriptionAmount(settlementPaid)} · متبقٍ ${formatSubscriptionAmount(settlementRemaining)}</span>`
+            : `${formatSubscriptionAmount(adjustment.amount)} ج.م`;
         return `<tr class="border-t border-slate-700/40">
             <td class="px-3 py-2 whitespace-nowrap">${esc(monthLabel || '—')}</td>
             <td class="px-3 py-2 whitespace-nowrap">${esc(kindLabel)}</td>
-            <td class="px-3 py-2 whitespace-nowrap font-bold text-amber-300">${formatSubscriptionAmount(adjustment.amount)} ج.م</td>
+            <td class="px-3 py-2 whitespace-nowrap font-bold text-amber-300">${amountCell}</td>
             <td class="px-3 py-2 max-w-[220px] break-words">${esc(adjustment.reason || '—')}</td>
             <td class="px-3 py-2 whitespace-nowrap">
                 <button type="button" onclick="editAdjustment(${argument})" aria-label="تعديل ${esc(kindLabel)} شهر ${esc(monthLabel)}" class="icon-action rounded-lg text-sky-400 hover:text-sky-300 hover:bg-sky-500/10"><i class="fa-solid fa-pen"></i></button>
