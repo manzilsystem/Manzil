@@ -872,4 +872,4 @@ $income_notification_sync$;
 
 -- Latest snapshot body and its settlement ledger, replayed for the harness guard.
 \ir ../supabase/migrations/20261106021427_resident_adjustments.sql
-\ir ../supabase/migrations/20261106060000_snapshot_resident_adjustments.sql
+\ir ../supabase/migrations/20261106022840_snapshot_resident_adjustments.sql
