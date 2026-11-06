@@ -28,8 +28,8 @@ test('monthly close and arrears are panels with their controls preserved', () =>
 
 test('the reports nav offers one entry per panel and marks the active one', () => {
     const entries = [...reportTab.matchAll(/data-report-nav="([a-zA-Z]+)" aria-controls="([a-zA-Z]+)"/g)];
-    assert.deepEqual(entries.map(match => match[1]), ['landlord', 'period', 'expenses', 'statement', 'monthlyClose', 'arrears', 'audit']);
-    assert.deepEqual(entries.map(match => match[2]), ['landlordReportPrint', 'periodReportCard', 'expensesReportCard', 'residentStatementCard', 'monthlyClosePanel', 'arrearsPanel', 'auditLogPanel']);
+    assert.deepEqual(entries.map(match => match[1]), ['landlord', 'period', 'expenses', 'adjustments', 'statement', 'monthlyClose', 'arrears', 'audit']);
+    assert.deepEqual(entries.map(match => match[2]), ['landlordReportPrint', 'periodReportCard', 'expensesReportCard', 'adjustmentsReportCard', 'residentStatementCard', 'monthlyClosePanel', 'arrearsPanel', 'auditLogPanel']);
     entries.forEach(match => assert.ok(reportTab.includes('id="' + match[2] + '"'), match[2] + ' has no panel'));
     assert.equal((reportTab.match(/class="report-nav-item is-active[^"]*"/g) || []).length, 0, 'no card is open until the user taps one');
     assert.equal((reportTab.match(/aria-current="page"/g) || []).length, 0, 'the active marker is set only while a report is open');
@@ -74,9 +74,9 @@ test('reports surface shares card headers, stat tiles, and tabular numerals', ()
     assert.match(css, /\.report-stat-value \{[^}]*font-variant-numeric: tabular-nums/);
     assert.match(css, /\.report-amount \{ font-variant-numeric: tabular-nums/);
     assert.match(css, /#printableArea \.app-card, #printableArea \.app-input, #printableArea \.report-stat \{/);
-    assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 7);
-    assert.equal((reportTab.match(/class="report-card-badge /g) || []).length, 7);
-    assert.equal((reports.match(/class="report-stat"/g) || []).length, 17, 'landlord, expenses, statement and conditional adjustment tiles come from the shared helpers');
+    assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 8);
+    assert.equal((reportTab.match(/class="report-card-badge /g) || []).length, 8);
+    assert.equal((reports.match(/class="report-stat"/g) || []).length, 21, 'landlord, expenses, adjustments, statement and conditional adjustment tiles come from the shared helpers');
     assert.equal((render.match(/class="report-stat"/g) || []).length, 4);
     assert.match(reports, /text-emerald-400 report-amount/);
     assert.match(render, /text-rose-400 report-amount/);
@@ -97,9 +97,9 @@ test('reports section has a header, an icon nav, and unified actions', () => {
     assert.match(reports, /function switchReportTab\(tab\)/);
     assert.match(reports, /function handleReportTabKeydown\(event\)/);
     assert.match(reports, /function jumpToReportPanel\(panelId\)/);
-    assert.equal((reportTab.match(/class="report-card-icon /g) || []).length, 7);
-    assert.equal((reportTab.match(/class="report-nav-icon" aria-hidden="true"/g) || []).length, 7);
-    assert.equal((reportTab.match(/class="report-nav-item[^"]*report-tone-[a-z]+"/g) || []).length, 7, 'each nav card carries its report tone so the accent, border and ring follow the tone system');
+    assert.equal((reportTab.match(/class="report-card-icon /g) || []).length, 8);
+    assert.equal((reportTab.match(/class="report-nav-icon" aria-hidden="true"/g) || []).length, 8);
+    assert.equal((reportTab.match(/class="report-nav-item[^"]*report-tone-[a-z]+"/g) || []).length, 8, 'each nav card carries its report tone so the accent, border and ring follow the tone system');
     assert.match(reportTab, /class="report-actions report-actions-4/);
     assert.match(reportTab, /class="report-toolbar no-print"/);
     assert.match(reportTab, /class="report-preview text-xs/);

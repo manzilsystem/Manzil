@@ -53,6 +53,7 @@ function renderAll() {
     invalidateResidentStatementIfStale();
     invalidatePeriodReportIfStale();
     if (typeof invalidateExpensesReportIfStale === 'function') invalidateExpensesReportIfStale();
+    if (typeof invalidateAdjustmentsReportIfStale === 'function') invalidateAdjustmentsReportIfStale();
     syncReportNavStatus();
     renderCashbox();
 }
@@ -160,6 +161,7 @@ function populateSelects() {
     populateStatementResidentSelect();
     populatePeriodReportSelects(months, current);
     if (typeof populateExpensesReportFilters === 'function') populateExpensesReportFilters(months, current);
+    if (typeof populateAdjustmentsReportFilters === 'function') populateAdjustmentsReportFilters(months, current);
     if (typeof populateReportPurposeFilters === 'function') populateReportPurposeFilters();
     if (typeof populateReportCashAccountFilters === 'function') populateReportCashAccountFilters();
     if (typeof populateReportPaymentMethodFilters === 'function') populateReportPaymentMethodFilters();
