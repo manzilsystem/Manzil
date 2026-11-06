@@ -59,6 +59,7 @@ function loadStatement(options = {}) {
         state,
         monthsNames: monthNames,
         getCurrentMonth: () => options.currentMonth || 'مارس 2024',
+        setCurrentMonth: value => { options.currentMonth = value; },
         monthLabelToKey,
         toCents,
         fmtNum: value => String(Number(value) || 0),
@@ -462,6 +463,6 @@ test('resident statement preview, PDF, unit PDF and CSV include each payment cas
 test('statement signature changes when the current month changes', () => {
     const { app, sandbox } = loadStatement();
     const initial = app.getResidentStatementSignature('r1');
-    sandbox.getCurrentMonth = () => 'أبريل 2024';
+    sandbox.setCurrentMonth('أبريل 2024');
     assert.notEqual(app.getResidentStatementSignature('r1'), initial);
 });
