@@ -1871,7 +1871,13 @@
                 <h3 id="incomeModalTitle" class="font-bold text-sm"><i class="fa-solid fa-hand-holding-dollar ml-2"></i> تحصيل جديد</h3>
                 <button onclick="closeModal('incomeModal')" aria-label="إغلاق نافذة التحصيل" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <form id="incomeForm" onsubmit="handleIncomeSubmit(event)" class="p-5 space-y-3">
+            <form id="incomeForm" novalidate onsubmit="handleIncomeSubmit(event)" class="p-5 space-y-3">
+                <div class="flex items-center justify-between gap-3" aria-label="تقدم التحصيل">
+                    <p id="incomeWizardProgress" class="text-xs font-bold text-emerald-300">الخطوة 1 من 3 · بيانات الساكن</p>
+                    <span id="incomeWizardStepDots" class="text-[10px] text-slate-500">● ○ ○</span>
+                </div>
+                <section id="incomeWizardStep1" data-income-step="1" class="space-y-3">
+
                 <select id="incomeResident" aria-label="الشقة" onchange="handleIncomeResidentChange()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر الشقة</option></select>
                 <div id="incomeResidentSummary" class="hidden rounded-2xl border border-slate-700/60 p-3 space-y-1 text-[11px]" role="status" aria-live="polite"></div>
                 <label class="block text-xs space-y-1">
@@ -1884,6 +1890,8 @@
                     </select>
                 </label>
                 <p class="text-[10px] text-slate-500">اختر «أخرى» لأي غرض غير الاشتراك والتطوير والصيانة الطارئة، واكتب الغرض بالتفصيل في الملاحظات.</p>
+                </section>
+                <section id="incomeWizardStep2" data-income-step="2" class="hidden space-y-3">
                 <div id="incomeMonthsWrap" class="rounded-2xl border border-slate-700/60 p-3 space-y-2">
                     <div class="flex items-start justify-between gap-2">
                         <div>
@@ -1920,6 +1928,19 @@
                     <input type="number" id="incomeAmount" min="0.01" step="0.01" inputmode="decimal" aria-label="المبلغ المدفوع الآن" placeholder="المبلغ المدفوع الآن" oninput="handleIncomeAmountInput()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 </label>
                 <p id="incomeSelectionHint" class="text-[10px] text-slate-500"></p>
+                <div class="rounded-2xl border border-slate-700/60 p-3 space-y-2">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-xs font-bold">بنود الدفعة</p>
+                            <p class="text-[10px] text-slate-500">أضف بندًا أو أكثر يُحصَّل مع نفس الدفعة. الاشتراك يبقى في الحقل الأساسي ويُوزَّع على الأشهر.</p>
+                        </div>
+                        <button type="button" onclick="addIncomeLine()" aria-label="إضافة بند إضافي للدفعة" class="shrink-0 min-h-11 border border-emerald-500/40 text-emerald-300 rounded-xl px-3 py-2 text-xs font-bold"><i class="fa-solid fa-plus ml-1"></i> بند آخر</button>
+                    </div>
+                    <div id="incomeExtraLines" class="space-y-2"></div>
+                    <p id="incomeMixedTotal" class="hidden text-xs font-bold text-emerald-400" role="status" aria-live="polite"></p>
+                </div>
+                </section>
+                <section id="incomeWizardStep3" data-income-step="3" class="hidden space-y-3">
                 <label class="block text-xs space-y-1">
                     <span class="text-slate-400">طريقة الدفع</span>
                     <select id="incomePaymentMethod" aria-label="طريقة الدفع" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
@@ -1935,17 +1956,6 @@
                     </select>
                 </label>
                 <p id="incomePurposeCashHint" class="text-[10px] text-slate-500"></p>
-                <div class="rounded-2xl border border-slate-700/60 p-3 space-y-2">
-                    <div class="flex items-start justify-between gap-3">
-                        <div>
-                            <p class="text-xs font-bold">بنود الدفعة</p>
-                            <p class="text-[10px] text-slate-500">أضف بندًا أو أكثر يُحصَّل مع نفس الدفعة. الاشتراك يبقى في الحقل الأساسي ويُوزَّع على الأشهر.</p>
-                        </div>
-                        <button type="button" onclick="addIncomeLine()" aria-label="إضافة بند إضافي للدفعة" class="shrink-0 min-h-11 border border-emerald-500/40 text-emerald-300 rounded-xl px-3 py-2 text-xs font-bold"><i class="fa-solid fa-plus ml-1"></i> بند آخر</button>
-                    </div>
-                    <div id="incomeExtraLines" class="space-y-2"></div>
-                    <p id="incomeMixedTotal" class="hidden text-xs font-bold text-emerald-400" role="status" aria-live="polite"></p>
-                </div>
                 <div id="incomeAllocationPreview" aria-live="polite" class="hidden app-input border rounded-2xl p-3 space-y-2">
                     <p id="incomeAllocationSummary" class="text-xs font-bold"></p>
                     <div id="incomeAllocationRows" class="space-y-1"></div>
@@ -1957,6 +1967,16 @@
                     <button type="button" onclick="setIncomeNoteSuggestion('إيصال بدل فاقد')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">إيصال بدل فاقد</button>
                 </div>
                 <textarea id="incomeNotes" aria-label="ملاحظات التحصيل" rows="2" placeholder="ملاحظات التحصيل — اكتب الغرض بالتفصيل عند اختيار «أخرى»" oninput="previewIncomeAllocation()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
+
+                </section>
+                <div class="sticky bottom-0 rounded-xl border border-slate-700/60 bg-slate-900/95 p-3">
+                    <p class="text-[10px] text-slate-400">مراجعة قبل الحفظ</p>
+                    <p id="incomeWizardSummary" class="text-xs font-bold" aria-live="polite">اختر الساكن والغرض والمبلغ لعرض ملخص التحصيل.</p>
+                </div>
+                <div class="grid grid-cols-2 gap-2 pt-2">
+                    <button type="button" id="incomeWizardBack" onclick="changeIncomeWizardStep(-1)" class="hidden min-h-11 rounded-xl border border-slate-700/60 px-3 text-sm font-bold">رجوع</button>
+                    <button type="button" id="incomeWizardNext" onclick="changeIncomeWizardStep(1)" class="min-h-11 rounded-xl bg-emerald-700 px-3 text-sm font-bold text-white">التالي</button>
+                </div>
                 <button type="submit" id="incomeSubmitButton" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-2xl font-bold transition">حفظ التحصيل وتوزيعه</button>
             </form>
         </div>

@@ -2,7 +2,7 @@
 
 تطبيق ويب عربي (RTL) لإدارة الشقق والاشتراكات والتحصيلات والمصروفات والصناديق والتقارير، مع بوابة مالك للقراءة فقط. يعمل كـPWA ويستخدم Supabase للمصادقة وPostgreSQL، وRLS لعزل بيانات كل مبنى.
 
-الإصدار الحي: **manzil-v142** (`sw.js` → `CACHE_NAME`، `js/telemetry.js` → `RELEASE`).
+الإصدار الحي: **manzil-v143** (`sw.js` → `CACHE_NAME`، `js/telemetry.js` → `RELEASE`).
 
 ## التشغيل
 
