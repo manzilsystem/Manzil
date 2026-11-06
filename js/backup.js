@@ -451,6 +451,18 @@ function isValidBackup(data) {
     if (!hasUnique(data.expenses.map(e => e.id))) return false;
     if (!data.notices.every(n => n && typeof n === 'object' && validId(n.id) && typeof n.text === 'string')) return false;
     if (!hasUnique(data.notices.map(n => n.id))) return false;
+    if (data.adjustments !== undefined) {
+        if (!Array.isArray(data.adjustments)) return false;
+        if (!data.adjustments.every(a => a && typeof a === 'object'
+            && validId(a.id)
+            && validId(a.residentId) && residentIds.has(a.residentId)
+            && ['waiver', 'discount', 'settlement'].includes(a.kind)
+            && /^\d{4}-(0[1-9]|1[0-2])(-01)?$/.test(String(a.effectiveMonth || ''))
+            && validNumber(a.amount) && Number(a.amount) > 0
+            && typeof a.reason === 'string' && a.reason.trim() !== ''
+            && (a.createdAt === undefined || a.createdAt === null || typeof a.createdAt === 'string'))) return false;
+        if (!hasUnique(data.adjustments.map(a => a.id))) return false;
+    }
     if (data.auditLogs !== undefined && !Array.isArray(data.auditLogs)) return false;
     if (data.currentTheme !== undefined && !['dark','light','emerald','ocean','sand','turquoise'].includes(data.currentTheme)) return false;
     if (data.defaultSubscription !== undefined && !validAmount(data.defaultSubscription)) return false;
@@ -486,6 +498,15 @@ function importJSON(ev) {
                 ...r,
                 billingStartMonth: normalizeBillingStartMonth(r.billingStartMonth)
             }));
+            // Older files predate the adjustments ledger. Importing one must not
+            // carry the current building's settlements into the replaced data.
+            state.adjustments = Array.isArray(data.adjustments) ? data.adjustments.map(adjustment => ({
+                ...adjustment,
+                effectiveMonth: normalizeBillingStartMonth(adjustment.effectiveMonth),
+                amount: Math.round(Number(adjustment.amount) * 100) / 100,
+                reason: adjustment.reason.trim(),
+                createdAt: adjustment.createdAt || new Date().toISOString()
+            })) : [];
             const { data: layoutResult, error: layoutError } = await supabaseClient.rpc('set_building_apartment_layout', {
                 p_building_id: activeBuildingId,
                 p_floor_count: state.floorCount || 0,

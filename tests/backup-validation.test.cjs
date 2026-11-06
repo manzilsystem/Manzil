@@ -39,6 +39,27 @@ test('backup validation rejects empty or null financial values instead of coerci
     assert.equal(isValidBackup(validBackup({ defaultSubscription: '' })), false);
 });
 
+test('backup validation accepts well-formed adjustments and rejects unsafe ledger rows', () => {
+    const resident = { id: 'resident-1', name: 'ساكن', apartmentNumber: '1', monthlyAmount: 100 };
+    const adjustment = {
+        id: 'adjustment-1',
+        residentId: 'resident-1',
+        effectiveMonth: '2026-10-01',
+        kind: 'discount',
+        amount: 25,
+        reason: 'تخفيض تعاوني'
+    };
+    assert.equal(isValidBackup(validBackup({ residents: [resident], adjustments: [adjustment] })), true);
+    assert.equal(isValidBackup(validBackup({ residents: [resident], adjustments: [{ ...adjustment, effectiveMonth: '2026-10' }] })), true);
+    assert.equal(isValidBackup(validBackup({ residents: [resident], adjustments: [{ ...adjustment, residentId: 'missing' }] })), false);
+    assert.equal(isValidBackup(validBackup({ residents: [resident], adjustments: [{ ...adjustment, kind: 'bonus' }] })), false);
+    assert.equal(isValidBackup(validBackup({ residents: [resident], adjustments: [{ ...adjustment, effectiveMonth: '2026-10-05' }] })), false);
+    assert.equal(isValidBackup(validBackup({ residents: [resident], adjustments: [{ ...adjustment, amount: 0 }] })), false);
+    assert.equal(isValidBackup(validBackup({ residents: [resident], adjustments: [{ ...adjustment, reason: '   ' }] })), false);
+    assert.equal(isValidBackup(validBackup({ residents: [resident], adjustments: [adjustment, { ...adjustment }] })), false);
+    assert.equal(isValidBackup(validBackup({ residents: [resident], adjustments: 'none' })), false);
+});
+
 test('backup validation rejects duplicate apartment numbers written with different digit systems', () => {
     const first = { id: 'resident-1', name: 'أول', apartmentNumber: '1', monthlyAmount: 100 };
     const second = { id: 'resident-2', name: 'ثان', apartmentNumber: '١', monthlyAmount: 100 };
