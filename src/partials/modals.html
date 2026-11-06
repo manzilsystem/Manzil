@@ -613,7 +613,7 @@
                                 <div class="settings-info-card">
                                     <div class="settings-info-card-title"><i class="fa-solid fa-list-check" aria-hidden="true"></i> المتغيرات ومعانيها</div>
                                     <ul class="settings-info-list settings-variable-legend">
-                                        <li><code>{name}</code> اسم المالك أو الساكن</li>
+                                        <li><code>{name}</code> اسم المالك</li>
                                         <li><code>{apartment}</code> رقم الشقة و<b>{building}</b> اسم العمارة</li>
                                         <li><code>{amount}</code> إجمالي المتأخرات و<b>{count}</b> عدد الشهور</li>
                                         <li><code>{month}</code> الشهر الحالي و<b>{months}</b> قائمة الشهور المتأخرة</li>
@@ -794,7 +794,7 @@
                 </section>
                 <section class="guide-step">
                     <h4><span class="guide-step-number">2</span> أضف الشقق</h4>
-                    <p>سجّل اسم الساكن ورقم الشقة ورقم الهاتف. قيمة الاشتراك الخاصة بالشقة تغلب القيمة الافتراضية عند إدخالها.</p>
+                    <p>سجّل اسم المالك ورقم الشقة ورقم الهاتف. قيمة الاشتراك الخاصة بالشقة تغلب القيمة الافتراضية عند إدخالها.</p>
                 </section>
                 <section class="guide-step">
                     <h4><span class="guide-step-number">3</span> سجّل التحصيلات والمصروفات</h4>
@@ -824,11 +824,11 @@
                 <button onclick="closeModal('residentModal')" aria-label="إغلاق نافذة بيانات الشقة" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <form id="residentForm" onsubmit="handleResidentSubmit(event)" class="p-5 space-y-3">
-                <input type="text" id="residentName" aria-label="اسم الساكن" placeholder="اسم الساكن" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                <input type="text" id="residentName" aria-label="اسم المالك" placeholder="اسم المالك" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 <div class="grid grid-cols-2 gap-2">
                     <select id="residentFloor" aria-label="الدور" onchange="updateResidentApartmentOptions()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر الدور</option></select>
                     <select id="residentApartment" aria-label="رقم الشقة" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر رقم الشقة</option></select>
-                    <input type="tel" id="residentPhone" aria-label="هاتف الساكن" placeholder="الهاتف" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                    <input type="tel" id="residentPhone" aria-label="هاتف المالك" placeholder="الهاتف" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 </div>
                 <label class="block text-xs space-y-1"><span class="text-slate-400">الاشتراك الشهري الحالي (جنيه)</span><input type="number" id="residentAmount" min="0" step="0.01" inputmode="decimal" aria-label="الاشتراك الشهري للشقة" placeholder="الاشتراك الشهري" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></label>
                 <p id="residentAmountHelp" class="hidden text-[10px] text-slate-500 -mt-1"></p>
@@ -1008,7 +1008,7 @@
                     <table class="w-full text-xs text-right">
                         <thead class="text-slate-400 bg-slate-900/40">
                             <tr>
-                                <th class="px-3 py-2 whitespace-nowrap">الشقة والساكن</th>
+                                <th class="px-3 py-2 whitespace-nowrap">الشقة والمالك</th>
                                 <th class="px-3 py-2 whitespace-nowrap">السعر الساري</th>
                                 <th class="px-3 py-2 whitespace-nowrap">السعر الجديد</th>
                             </tr>
@@ -1033,7 +1033,7 @@
             </div>
             <form id="incomeForm" novalidate onsubmit="handleIncomeSubmit(event)" class="p-5 space-y-3">
                 <div class="flex items-center justify-between gap-3" aria-label="تقدم التحصيل">
-                    <p id="incomeWizardProgress" class="text-xs font-bold text-emerald-300">الخطوة 1 من 3 · بيانات الساكن</p>
+                    <p id="incomeWizardProgress" class="text-xs font-bold text-emerald-300">الخطوة 1 من 3 · بيانات المالك</p>
                     <span id="incomeWizardStepDots" class="text-[10px] text-slate-500">● ○ ○</span>
                 </div>
                 <section id="incomeWizardStep1" data-income-step="1" class="space-y-3">
@@ -1141,7 +1141,7 @@
                 </section>
                 <div class="sticky bottom-0 rounded-xl border border-slate-700/60 bg-slate-900/95 p-3">
                     <p class="text-[10px] text-slate-400">مراجعة قبل الحفظ</p>
-                    <p id="incomeWizardSummary" class="text-xs font-bold" aria-live="polite">اختر الساكن والغرض والمبلغ لعرض ملخص التحصيل.</p>
+                    <p id="incomeWizardSummary" class="text-xs font-bold" aria-live="polite">اختر المالك والغرض والمبلغ لعرض ملخص التحصيل.</p>
                 </div>
                 <div class="grid grid-cols-2 gap-2 pt-2">
                     <button type="button" id="incomeWizardBack" onclick="changeIncomeWizardStep(-1)" class="hidden min-h-11 rounded-xl border border-slate-700/60 px-3 text-sm font-bold">رجوع</button>
