@@ -1931,7 +1931,7 @@ function validateIncomeWizardStep(step) {
     }
     if (step === 3) {
         if (!value('incomePaymentMethod')) { toast('اختر طريقة الدفع.', 'error'); return false; }
-        if (!value('incomeCashAccount') && !document.getElementById('incomeCashAccount')) { toast('اختر الصندوق المستلم.', 'error'); return false; }
+        if (!value('incomeCashAccount')) { toast('اختر الصندوق المستلم.', 'error'); return false; }
         const needsDetail = value('incomePurpose') === 'other'
             || getIncomeExtraLines().some(line => line.purpose === 'other');
         if (needsDetail && !value('incomeNotes')) {
