@@ -60,6 +60,30 @@ test('backup validation accepts well-formed adjustments and rejects unsafe ledge
     assert.equal(isValidBackup(validBackup({ residents: [resident], adjustments: 'none' })), false);
 });
 
+test('backup validation preserves settlement links and rejects overpaid or mixed agreements', () => {
+    const resident = { id: 'resident-1', name: 'ساكن', apartmentNumber: '1', monthlyAmount: 100 };
+    const settlement = {
+        id: 'settlement-1', residentId: 'resident-1', effectiveMonth: '2026-11-01',
+        kind: 'settlement', amount: 80, reason: 'اتفاق تسوية'
+    };
+    const payment = {
+        id: 'income-1', residentId: 'resident-1', month: 'نوفمبر 2026', amount: 25,
+        purposeCode: 'settlement', settlementAdjustmentId: 'settlement-1'
+    };
+    const base = { residents: [resident], adjustments: [settlement], income: [payment] };
+    assert.equal(isValidBackup(validBackup(base)), true);
+    assert.equal(isValidBackup(validBackup({ ...base, income: [{ ...payment, amount: 81 }] })), false);
+    assert.equal(isValidBackup(validBackup({ ...base, income: [{ ...payment, settlementAdjustmentId: null }] })), false);
+    assert.equal(isValidBackup(validBackup({ ...base, income: [{ ...payment, month: 'أكتوبر 2026' }] })), false);
+    assert.equal(isValidBackup(validBackup({ ...base, income: [payment, {
+        ...payment, id: 'income-2', purposeCode: 'subscription', settlementAdjustmentId: null
+    }] })), false);
+    assert.equal(isValidBackup(validBackup({ ...base, adjustments: [settlement, {
+        ...settlement, id: 'discount-1', kind: 'discount', amount: 5
+    }] })), false);
+    assert.equal(isValidBackup(validBackup({ ...base, adjustments: [{ ...settlement, amount: 101 }] })), false);
+});
+
 test('backup validation rejects duplicate apartment numbers written with different digit systems', () => {
     const first = { id: 'resident-1', name: 'أول', apartmentNumber: '1', monthlyAmount: 100 };
     const second = { id: 'resident-2', name: 'ثان', apartmentNumber: '١', monthlyAmount: 100 };
