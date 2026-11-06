@@ -16,7 +16,7 @@ const PASSWORD_RECOVERY_STORAGE_KEY = 'manzil.passwordRecoveryPending';
 function supabaseIncomePurpose(purpose) {
     const value = String(purpose || '').trim();
     if (typeof normalizeIncomePurpose === 'function') return normalizeIncomePurpose(value);
-    return ['subscription', 'services', 'development', 'emergency', 'penalty', 'donation', 'other'].includes(value) ? value : 'subscription';
+    return ['subscription', 'services', 'development', 'emergency', 'penalty', 'donation', 'other', 'settlement'].includes(value) ? value : 'subscription';
 }
 
 function setPasswordRecoveryPending(pending) {
