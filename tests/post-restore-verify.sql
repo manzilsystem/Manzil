@@ -188,6 +188,36 @@ BEGIN
     RAISE NOTICE 'Resident billing start month verified';
 END $$;
 
+-- Verify the per-account owner theme preference and its setter
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'profiles'
+          AND column_name = 'theme_preference'
+    ) THEN
+        RAISE EXCEPTION 'profiles.theme_preference column missing';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'public.profiles'::regclass
+          AND conname = 'profiles_theme_preference_check'
+    ) THEN
+        RAISE EXCEPTION 'profiles_theme_preference_check constraint missing';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_proc
+        WHERE pronamespace = 'public'::regnamespace
+          AND proname = 'set_my_theme'
+    ) THEN
+        RAISE EXCEPTION 'set_my_theme function missing';
+    END IF;
+
+    RAISE NOTICE 'Owner theme preference verified';
+END $$;
+
 -- Verify notifications table exists
 DO $$
 DECLARE

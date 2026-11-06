@@ -463,7 +463,7 @@ async function loadState() {
     const membership = await chooseBuildingMembership(memberships, session, generation);
     if (!membership || !isCurrentAuthSession(session, generation)) return false;
     const { data: profile, error: profileError } = await supabaseClient.from('profiles')
-        .select('must_change_pin').eq('id', session.user.id).maybeSingle();
+        .select('must_change_pin,theme_preference').eq('id', session.user.id).maybeSingle();
     if (!isCurrentAuthSession(session, generation)) return false;
     if (profileError) throw profileError;
     activeBuildingId = membership.building_id;
@@ -559,7 +559,7 @@ async function loadState() {
         managerPhone: building.manager_phone || '',
         defaultSubscription: Number(building.default_subscription) || 0,
         startingBalance: Number(building.starting_balance) || 0,
-        currentTheme: ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise'].includes(building.current_theme) ? building.current_theme : 'dark',
+        currentTheme: resolveUserTheme(building.current_theme, profile?.theme_preference, currentUserRole),
         paymentSettings: getBuildingPaymentSettings(building.payment_settings),
         subscriptionDueDay: Math.min(28, Math.max(1, Number(building.subscription_due_day) || 1)),
         subscriptionGraceDays: Math.min(31, Math.max(0, Number(building.subscription_grace_days) || 0)),
@@ -1077,10 +1077,7 @@ async function openAuthenticatedApp() {
     }
     setAuthModal(false);
     document.body.classList.remove('owner-mode');
-    const theme = ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise'].includes(state.currentTheme) ? state.currentTheme : 'dark';
-    const themeColors = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16', turquoise:'#071f27' };
-    document.body.setAttribute('data-theme', theme);
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[theme]);
+    applyThemeToDocument(state.currentTheme);
     renderAll();
     if (currentUserRole === 'owner') {
         document.body.classList.add('owner-mode');

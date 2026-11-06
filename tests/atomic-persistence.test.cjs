@@ -65,7 +65,8 @@ test('snapshot payload construction is guarded against invalid timestamps and fi
 test('database constraint accepts all six themes supported by the UI', () => {
     for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand']) assert.ok(themeMigration.includes(`'${theme}'`));
     for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise']) assert.ok(turquoiseThemeMigration.includes(`'${theme}'`));
-    assert.match(supabaseSource, /\['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise'\]\.includes\(building\.current_theme\)/);
+    assert.match(stateSource, /\['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise'\]/);
+    assert.match(supabaseSource, /resolveUserTheme\(building\.current_theme, profile\?\.theme_preference, currentUserRole\)/);
 });
 
 test('subscription rate RLS caches auth identity and indexes created_by foreign key', () => {
