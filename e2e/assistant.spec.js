@@ -106,11 +106,11 @@ test.describe('assistant floating launcher', () => {
         });
     });
 
-    test('clears the bottom nav, hides on scroll down and returns on scroll up', async ({ page }) => {
+    test('clears the bottom nav, shrinks on scroll down and widens on scroll up', async ({ page }) => {
         const fab = page.locator('#assistantFab');
         await expect(fab).toBeVisible();
-        await expect(fab.locator('img.assistant-fab-avatar')).toHaveAttribute('src', 'icons/assistant-abbah.png');
-        await expect(fab).not.toHaveClass(/is-hidden/);
+        await expect(fab.locator('.assistant-fab-avatar img')).toHaveAttribute('src', 'icons/assistant-abbah.png');
+        await expect(fab).not.toHaveClass(/is-hidden|is-compact/);
 
         const box = await fab.boundingBox();
         const navBox = await page.locator('nav[aria-label="التنقل الرئيسي"]').boundingBox();
@@ -120,10 +120,18 @@ test.describe('assistant floating launcher', () => {
         expect(scrollRoom).toBeGreaterThan(400);
 
         await page.mouse.wheel(0, 500);
-        await expect(fab).toHaveClass(/is-hidden/);
+        await expect(fab).toHaveClass(/is-compact/);
+        await expect(fab).not.toHaveClass(/is-hidden/);
+        await expect(fab).toBeVisible();
+        const compactBox = await fab.boundingBox();
+        if (page.viewportSize().width > 560) {
+            await expect.poll(async () => (await fab.boundingBox()).width, { timeout: 5_000 })
+                .toBeLessThan(box.width - 20);
+        }
+        expect(compactBox.height).toBeGreaterThan(40);
 
         await page.mouse.wheel(0, -300);
-        await expect(fab).not.toHaveClass(/is-hidden/);
+        await expect(fab).not.toHaveClass(/is-compact/);
         await expect(fab).toBeVisible();
     });
 
