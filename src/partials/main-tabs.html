@@ -352,6 +352,10 @@
                         <span class="report-field-label">غرض التحصيل</span>
                         <select id="landlordReportPurpose" aria-label="فلتر غرض التحصيل" onchange="invalidateLandlordReportPreview()" class="report-control app-input border focus:outline-none"></select>
                     </label>
+                    <label class="report-field report-field-narrow" for="landlordReportCashAccount">
+                        <span class="report-field-label">الصندوق</span>
+                        <select id="landlordReportCashAccount" aria-label="فلتر الصندوق" onchange="invalidateLandlordReportPreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
                     <button type="button" onclick="generateLandlordReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
                 </div>
                 <div id="landlordReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
@@ -397,6 +401,10 @@
                     <label class="report-field report-field-narrow" for="periodReportPurpose">
                         <span class="report-field-label">غرض التحصيل</span>
                         <select id="periodReportPurpose" aria-label="فلتر غرض التحصيل" onchange="invalidatePeriodReportPreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field report-field-narrow" for="periodReportCashAccount">
+                        <span class="report-field-label">الصندوق</span>
+                        <select id="periodReportCashAccount" aria-label="فلتر الصندوق" onchange="invalidatePeriodReportPreview()" class="report-control app-input border focus:outline-none"></select>
                     </label>
                     <button type="button" onclick="generatePeriodReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
                 </div>

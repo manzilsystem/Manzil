@@ -2,6 +2,7 @@
 let landlordReportMonth = '';
 let landlordReportSignature = '';
 let landlordReportPurposeFilter = '';
+let landlordReportCashAccountFilter = '';
 
 const REPORT_TABS = ['landlord', 'period', 'statement', 'monthlyClose', 'arrears', 'audit'];
 const REPORT_PANEL_IDS = {
@@ -22,6 +23,7 @@ const REPORT_OUTPUT_BUTTON_IDS = {
 const REPORT_TONE_CLASSES = ['report-tone-indigo', 'report-tone-emerald', 'report-tone-amber', 'report-tone-rose', 'report-tone-sky'];
 
 const REPORT_PURPOSE_FILTER_IDS = ['landlordReportPurpose', 'periodReportPurpose', 'statementPurpose'];
+const REPORT_CASH_ACCOUNT_FILTER_IDS = ['landlordReportCashAccount', 'periodReportCashAccount'];
 
 function reportPurposeLabel(purposeCode) {
     return typeof getIncomePurposeLabel === 'function' ? getIncomePurposeLabel(purposeCode) : 'اشتراك شهري';
@@ -47,9 +49,16 @@ function reportPaymentMatchesPurpose(payment, purposeFilter) {
     return purpose === purposeFilter;
 }
 
-function filterReportIncome(income, purposeFilter) {
-    if (!purposeFilter) return income;
-    return income.filter(payment => reportPaymentMatchesPurpose(payment, purposeFilter));
+function filterReportIncome(income, purposeFilter, cashAccountFilter = '') {
+    if (!purposeFilter && !cashAccountFilter) return income;
+    return income.filter(payment =>
+        reportPaymentMatchesPurpose(payment, purposeFilter) &&
+        reportCashAccountMatches(payment, cashAccountFilter));
+}
+
+function filterReportExpenses(expenses, cashAccountFilter = '') {
+    if (!cashAccountFilter) return expenses;
+    return expenses.filter(expense => reportCashAccountMatches(expense, cashAccountFilter));
 }
 
 function reportShowsSubscriptionDues(purposeFilter) {
@@ -82,6 +91,44 @@ function reportIsSubscriptionPayment(payment) {
 
 function reportCashAccountLabel(code) {
     return typeof getCashAccountLabel === 'function' ? getCashAccountLabel(code || 'main') : 'الخزنة الرئيسية';
+}
+
+function normalizeReportCashAccountFilter(value) {
+    const code = String(value || '').trim();
+    if (!code) return '';
+    const accounts = typeof CASH_ACCOUNTS !== 'undefined' ? CASH_ACCOUNTS : null;
+    if (accounts) return accounts[code] ? code : '';
+    return ['main', 'development', 'emergency'].includes(code) ? code : '';
+}
+
+function getReportCashAccountFilter(id) {
+    if (typeof document === 'undefined') return '';
+    const select = /** @type {HTMLSelectElement | null} */ (document.getElementById(id));
+    return normalizeReportCashAccountFilter(select?.value || '');
+}
+
+function reportCashAccountFilterLabel(cashAccountFilter) {
+    return cashAccountFilter ? reportCashAccountLabel(cashAccountFilter) : 'كل الصناديق';
+}
+
+function reportCashAccountMatches(item, cashAccountFilter) {
+    if (!cashAccountFilter) return true;
+    return (String(item?.cashAccountCode || '').trim() || 'main') === cashAccountFilter;
+}
+
+function populateReportCashAccountFilters() {
+    const accounts = typeof CASH_ACCOUNTS !== 'undefined' ? CASH_ACCOUNTS : null;
+    if (!accounts) return;
+    const options = Object.keys(accounts)
+        .map(code => `<option value="${esc(code)}">${esc(reportCashAccountLabel(code))}</option>`)
+        .join('');
+    REPORT_CASH_ACCOUNT_FILTER_IDS.forEach(id => {
+        const select = /** @type {HTMLSelectElement | null} */ (document.getElementById(id));
+        if (!select) return;
+        const selected = normalizeReportCashAccountFilter(select.value || '');
+        select.innerHTML = '<option value="">كل الصناديق</option>' + options;
+        select.value = selected;
+    });
 }
 
 function getReportView() {
@@ -192,10 +239,10 @@ function syncReportNavStatus() {
     });
 }
 
-function getLandlordReportData(month, purposeFilter = '') {
+function getLandlordReportData(month, purposeFilter = '', cashAccountFilter = '') {
     return {
-        income: filterReportIncome(state.income.filter(i => i.month === month), purposeFilter),
-        expenses: state.expenses.filter(e => e.month === month)
+        income: filterReportIncome(state.income.filter(i => i.month === month), purposeFilter, cashAccountFilter),
+        expenses: filterReportExpenses(state.expenses.filter(e => e.month === month), cashAccountFilter)
     };
 }
 
@@ -240,10 +287,11 @@ function getExpenseCategoryTotals(expenses) {
     return Array.from(totals.entries()).sort((a, b) => b[1].cents - a[1].cents);
 }
 
-function buildLandlordReportModel(month, purposeFilter = '') {
-    const showDues = reportShowsSubscriptionDues(purposeFilter);
+function buildLandlordReportModel(month, purposeFilter = '', cashAccountFilter = '') {
+    const showDues = reportShowsSubscriptionDues(purposeFilter) && !cashAccountFilter;
     const filterLabel = reportPurposeFilterLabel(purposeFilter);
-    const { income: inc, expenses: exp } = getLandlordReportData(month, purposeFilter);
+    const cashAccountLabel = reportCashAccountFilterLabel(cashAccountFilter);
+    const { income: inc, expenses: exp } = getLandlordReportData(month, purposeFilter, cashAccountFilter);
     const totalIncCents = inc.reduce((sum, i) => sum + toCents(i.amount), 0);
     const subscriptionIncCents = inc
         .filter(item => reportIsSubscriptionPayment(item))
@@ -273,6 +321,8 @@ function buildLandlordReportModel(month, purposeFilter = '') {
     return {
         month,
         purposeFilter,
+        cashAccountFilter,
+        cashAccountLabel,
         showDues,
         filterLabel,
         inc,
@@ -372,8 +422,8 @@ function getSelectedReportMonth() {
     return String(/** @type {HTMLSelectElement} */ (document.getElementById('reportMonthSelect'))?.value || '');
 }
 
-function getLandlordReportSignature(month, purposeFilter = '') {
-    const { income, expenses } = getLandlordReportData(month, purposeFilter);
+function getLandlordReportSignature(month, purposeFilter = '', cashAccountFilter = '') {
+    const { income, expenses } = getLandlordReportData(month, purposeFilter, cashAccountFilter);
     const monthKey = monthLabelToKey(month);
     const adjustments = (state.adjustments || [])
         .filter(item => String(item.effectiveMonth || '') === monthKey);
@@ -385,7 +435,8 @@ function getLandlordReportSignature(month, purposeFilter = '') {
         income,
         expenses,
         adjustments,
-        purposeFilter || ''
+        purposeFilter || '',
+        cashAccountFilter || ''
     ]);
 }
 
@@ -402,6 +453,7 @@ function clearLandlordReportPreview(message) {
     landlordReportMonth = '';
     landlordReportSignature = '';
     landlordReportPurposeFilter = '';
+    landlordReportCashAccountFilter = '';
     setLandlordReportActionsEnabled(false);
     const preview = document.getElementById('landlordReportPreview');
     if (preview) preview.innerHTML = `<p class="report-preview-empty">${esc(message)}</p>`;
@@ -409,12 +461,12 @@ function clearLandlordReportPreview(message) {
 
 function invalidateLandlordReportPreview() {
     if (!landlordReportMonth) return;
-    clearLandlordReportPreview('تغيّر الشهر أو الغرض أو البيانات — اضغط «معاينة» لتحديث التقرير.');
+    clearLandlordReportPreview('تغيّر الشهر أو الفلتر أو البيانات — اضغط «معاينة» لتحديث التقرير.');
 }
 
 function invalidateLandlordReportIfStale() {
     if (!landlordReportMonth) return;
-    if (getLandlordReportSignature(landlordReportMonth, landlordReportPurposeFilter) !== landlordReportSignature) {
+    if (getLandlordReportSignature(landlordReportMonth, landlordReportPurposeFilter, landlordReportCashAccountFilter) !== landlordReportSignature) {
         clearLandlordReportPreview('تغيّرت البيانات — اضغط «معاينة» لتحديث التقرير.');
     }
 }
@@ -424,8 +476,9 @@ function generateLandlordReport() {
     const m = /** @type {HTMLSelectElement} */ (document.getElementById('reportMonthSelect')).value;
     if (!m) { toast('اختر شهر','error'); return; }
     const purposeFilter = getReportPurposeFilter('landlordReportPurpose');
-    const model = buildLandlordReportModel(m, purposeFilter);
-    const { showDues, filterLabel, inc, exp, residentsById, purposeTotals, paymentMethodTotals, expenseCategories } = model;
+    const cashAccountFilter = getReportCashAccountFilter('landlordReportCashAccount');
+    const model = buildLandlordReportModel(m, purposeFilter, cashAccountFilter);
+    const { showDues, filterLabel, cashAccountLabel, inc, exp, residentsById, purposeTotals, paymentMethodTotals, expenseCategories } = model;
     const expenseCategorySummary = expenseCategories.map(([label, totals]) =>
         '<div class="report-list-row"><span class="report-list-title">' +
         esc(label) + ' <span class="report-list-meta">(' + totals.count + ')</span></span>' +
@@ -446,7 +499,7 @@ function generateLandlordReport() {
         <div class="space-y-3">
             <header class="report-preview-header">
                 <h3 class="report-preview-title">${esc(state.buildingName||'العمارة')}</h3>
-                <p class="report-preview-meta">تقرير ${esc(m)}${purposeFilter ? ' • الغرض: ' + esc(filterLabel) : ''} • تم الإنشاء ${formatDate(new Date().toISOString())}</p>
+                <p class="report-preview-meta">تقرير ${esc(m)}${purposeFilter ? ' • الغرض: ' + esc(filterLabel) : ''}${cashAccountFilter ? ' • الصندوق: ' + esc(cashAccountLabel) : ''} • تم الإنشاء ${formatDate(new Date().toISOString())}</p>
             </header>
             ${statsHtml}
             <div class="report-block">
@@ -469,15 +522,18 @@ function generateLandlordReport() {
                 <p class="report-block-title"><span>تفاصيل المصروفات</span><span class="report-block-count">${fmtNum(exp.length)}</span></p>
                 ${exp.length ? '<div class="report-list">' + exp.map(e => '<div class="report-list-row"><span class="report-list-title">' + esc(e.title) + '</span><span class="report-list-value text-rose-400 report-amount">' + fmtMoney(toCents(e.amount) / 100) + '</span></div>').join('') + '</div>' : '<p class="report-note">لا يوجد</p>'}
             </div>
-            <div class="report-note report-divider text-center"><p>${purposeFilter
-                ? (showDues
-                    ? 'المستحق ونسبة التحصيل يعتمدان على اشتراكات الشهر، والحركات معروضة للاشتراكات فقط.'
-                    : 'المعروض يشمل تحصيلات غرض «' + esc(filterLabel) + '» فقط. المستحق ونسبة التحصيل مرتبطان باشتراكات الشهر لذلك يُخفيان عند تصفية غرض آخر، والمصروفات معروضة كاملة لأنها غير مرتبطة بأغراض التحصيل.')
-                : 'المستحق محسوب بقيمة الاشتراك السارية في شهر التقرير، ونسبة التحصيل تعتمد على تحصيلات الاشتراك فقط.'}</p></div>
+            <div class="report-note report-divider text-center"><p>${cashAccountFilter
+                ? 'الحركات معروضة لصندوق «' + esc(cashAccountLabel) + '» فقط، والمستحق ونسبة التحصيل يخصان العمارة كلها لذلك يُخفيان عند تصفية الصندوق.'
+                : purposeFilter
+                    ? (showDues
+                        ? 'المستحق ونسبة التحصيل يعتمدان على اشتراكات الشهر، والحركات معروضة للاشتراكات فقط.'
+                        : 'المعروض يشمل تحصيلات غرض «' + esc(filterLabel) + '» فقط. المستحق ونسبة التحصيل مرتبطان باشتراكات الشهر لذلك يُخفيان عند تصفية غرض آخر، والمصروفات معروضة كاملة لأنها غير مرتبطة بأغراض التحصيل.')
+                    : 'المستحق محسوب بقيمة الاشتراك السارية في شهر التقرير، ونسبة التحصيل تعتمد على تحصيلات الاشتراك فقط.'}</p></div>
         </div>`;
     landlordReportMonth = m;
     landlordReportPurposeFilter = purposeFilter;
-    landlordReportSignature = getLandlordReportSignature(m, purposeFilter);
+    landlordReportCashAccountFilter = cashAccountFilter;
+    landlordReportSignature = getLandlordReportSignature(m, purposeFilter, cashAccountFilter);
     setLandlordReportActionsEnabled(true);
 }
 
@@ -533,7 +589,7 @@ function downloadCsv(filename, rows) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function exportToCSV(month = landlordReportMonth, purposeFilter = landlordReportPurposeFilter) {
+function exportToCSV(month = landlordReportMonth, purposeFilter = landlordReportPurposeFilter, cashAccountFilter = landlordReportCashAccountFilter) {
     if (!requireManager()) return;
     const reportMonth = String(month || '');
     if (!reportMonth) { toast('اعرض معاينة التقرير أولًا','error'); return; }
@@ -546,11 +602,18 @@ function exportToCSV(month = landlordReportMonth, purposeFilter = landlordReport
         toast('اعرض معاينة الغرض المحدد أولًا','error');
         return;
     }
-    if (landlordReportSignature && getLandlordReportSignature(reportMonth, purposeFilter) !== landlordReportSignature) {
+    const cashSelect = typeof document !== 'undefined'
+        ? /** @type {HTMLSelectElement | null} */ (document.getElementById('landlordReportCashAccount'))
+        : null;
+    if (cashSelect && normalizeReportCashAccountFilter(cashSelect.value) !== cashAccountFilter) {
+        toast('اعرض معاينة الصندوق المحدد أولًا','error');
+        return;
+    }
+    if (landlordReportSignature && getLandlordReportSignature(reportMonth, purposeFilter, cashAccountFilter) !== landlordReportSignature) {
         toast('تغيّرت البيانات — اضغط «معاينة» لتحديث التقرير.','error');
         return;
     }
-    const { income: inc, expenses: exp } = getLandlordReportData(reportMonth, purposeFilter);
+    const { income: inc, expenses: exp } = getLandlordReportData(reportMonth, purposeFilter, cashAccountFilter);
     const residentsById = buildResidentIndex();
     const rows = [['النوع','الوصف','الشقة','الشهر','المبلغ','الغرض','الصندوق','طريقة الدفع','ملاحظات']];
     inc.forEach(i => {
@@ -562,13 +625,14 @@ function exportToCSV(month = landlordReportMonth, purposeFilter = landlordReport
     exp.forEach(e => rows.push(['مصروف', e.title, '', e.month, toCents(e.amount) / 100, '', reportCashAccountLabel(e.cashAccountCode), '', [e.category, e.notes].filter(Boolean).join(' ')]));
     const monthKey = monthLabelToKey(reportMonth);
     const purposeSuffix = purposeFilter ? `_${purposeFilter}` : '';
-    downloadCsv(`manzil_report_${monthKey ? monthKey.slice(0, 7) : Date.now()}${purposeSuffix}.csv`, rows);
+    const cashSuffix = cashAccountFilter ? `_${cashAccountFilter}` : '';
+    downloadCsv(`manzil_report_${monthKey ? monthKey.slice(0, 7) : Date.now()}${purposeSuffix}${cashSuffix}.csv`, rows);
     toast(`تم تصدير تقرير ${reportMonth}`,'success');
 }
 
-function renderLandlordReportPdfHtml(month, purposeFilter = '') {
-    const model = buildLandlordReportModel(month, purposeFilter);
-    const { showDues, filterLabel, inc, exp, residentsById, purposeTotals, paymentMethodTotals, expenseCategories } = model;
+function renderLandlordReportPdfHtml(month, purposeFilter = '', cashAccountFilter = '') {
+    const model = buildLandlordReportModel(month, purposeFilter, cashAccountFilter);
+    const { showDues, filterLabel, cashAccountLabel, inc, exp, residentsById, purposeTotals, paymentMethodTotals, expenseCategories } = model;
     const summaryRows = renderPdfSummaryRows(getLandlordSummaryItems(model));
 
     const paymentMethodRows = Array.from(paymentMethodTotals.entries()).map(([label, totals]) =>
@@ -612,7 +676,8 @@ function renderLandlordReportPdfHtml(month, purposeFilter = '') {
         '<header style="text-align:center;border-bottom:2px solid #334155;padding-bottom:12px;margin-bottom:18px">',
         '<h1 style="font-size:22px;font-weight:800;margin:0">', esc(state.buildingName || 'Manzil'), '</h1>',
         '<h2 style="font-size:17px;font-weight:700;margin:4px 0">تقرير الملاك — ', esc(month),
-        purposeFilter ? ' • الغرض: ' + esc(filterLabel) : '', '</h2>',
+        purposeFilter ? ' • الغرض: ' + esc(filterLabel) : '',
+        cashAccountFilter ? ' • الصندوق: ' + esc(cashAccountLabel) : '', '</h2>',
         '<p style="font-size:11px;color:#475569;margin:0">المدير: ', esc(state.managerName || '—'),
         ' • تم الإنشاء ', esc(formatDate(new Date().toISOString())), '</p></header>',
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">الملخص المالي</h3>',
@@ -635,9 +700,11 @@ function renderLandlordReportPdfHtml(month, purposeFilter = '') {
         '<th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th></tr></thead><tbody>', expenseRows, '</tbody></table></section>',
         '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
         'تقرير للقراءة فقط ولا يعدل أي بيانات. ',
-        showDues
-            ? 'المستحق محسوب بقيمة الاشتراك السارية في شهر التقرير بعد الإعفاءات والتخفيضات، والتحصيلات والمصروفات محسوبة على شهر استحقاقها المسجل.'
-            : 'التحصيلات معروضة لغرض «' + esc(filterLabel) + '» فقط، بينما المصروفات كاملة لأنها غير مرتبطة بأغراض التحصيل. المستحق ونسبة التحصيل يخصان الاشتراكات لذلك لا يظهران في هذا العرض.',
+        cashAccountFilter
+            ? 'الحركات معروضة لصندوق «' + esc(cashAccountLabel) + '» فقط. المستحق ونسبة التحصيل يخصان العمارة كلها لذلك لا يظهران عند تصفية الصندوق.'
+            : showDues
+                ? 'المستحق محسوب بقيمة الاشتراك السارية في شهر التقرير بعد الإعفاءات والتخفيضات، والتحصيلات والمصروفات محسوبة على شهر استحقاقها المسجل.'
+                : 'التحصيلات معروضة لغرض «' + esc(filterLabel) + '» فقط، بينما المصروفات كاملة لأنها غير مرتبطة بأغراض التحصيل. المستحق ونسبة التحصيل يخصان الاشتراكات لذلك لا يظهران في هذا العرض.',
         '</p><footer style="font-size:9px;color:#64748b;margin-top:18px;text-align:center">Manzil — ',
         esc(formatDate(new Date().toISOString())), '</footer></div>'
     ].join('');
@@ -650,14 +717,15 @@ async function exportLandlordReportPdf() {
         toast('اعرض معاينة الشهر المحدد أولًا', 'error');
         return;
     }
-    if (getLandlordReportSignature(landlordReportMonth, landlordReportPurposeFilter) !== landlordReportSignature) {
+    if (getLandlordReportSignature(landlordReportMonth, landlordReportPurposeFilter, landlordReportCashAccountFilter) !== landlordReportSignature) {
         toast('تغيّرت البيانات — اضغط «معاينة» لتحديث التقرير.', 'error');
         return;
     }
 
     const monthKey = monthLabelToKey(landlordReportMonth);
     const purposeSuffix = landlordReportPurposeFilter ? `_${landlordReportPurposeFilter}` : '';
-    const filename = `manzil_landlord_report_${monthKey ? monthKey.slice(0, 7) : 'report'}${purposeSuffix}.pdf`;
+    const cashSuffix = landlordReportCashAccountFilter ? `_${landlordReportCashAccountFilter}` : '';
+    const filename = `manzil_landlord_report_${monthKey ? monthKey.slice(0, 7) : 'report'}${purposeSuffix}${cashSuffix}.pdf`;
     const button = /** @type {HTMLButtonElement} */ (document.getElementById('reportPdfBtn'));
     if (button) button.disabled = true;
     let root = null;
@@ -670,7 +738,7 @@ async function exportLandlordReportPdf() {
         root.dir = 'rtl';
         root.lang = 'ar';
         root.style.cssText = 'position:fixed;top:0;left:0;width:190mm;padding:8mm;box-sizing:border-box;background:#fff;z-index:-1';
-        root.innerHTML = renderLandlordReportPdfHtml(landlordReportMonth, landlordReportPurposeFilter);
+        root.innerHTML = renderLandlordReportPdfHtml(landlordReportMonth, landlordReportPurposeFilter, landlordReportCashAccountFilter);
         document.body.appendChild(root);
 
         const pdfBlob = await window.html2pdf().set({
@@ -762,22 +830,24 @@ function getPeriodCollectionRate(expectedCents, collectedCents) {
     return expectedCents > 0 ? Math.round((collectedCents / expectedCents) * 100) : null;
 }
 
-function buildPeriodReport(fromMonth, toMonth, purposeFilter = '') {
+function buildPeriodReport(fromMonth, toMonth, purposeFilter = '', cashAccountFilter = '') {
     const keys = buildPeriodMonthKeys(fromMonth, toMonth);
     if (!keys) return null;
     const normalizedPurpose = normalizeReportPurposeFilter(purposeFilter);
-    const showDues = reportShowsSubscriptionDues(normalizedPurpose);
+    const normalizedCashAccount = normalizeReportCashAccountFilter(cashAccountFilter);
+    const showDues = reportShowsSubscriptionDues(normalizedPurpose) && !normalizedCashAccount;
     const months = keys.map(key => {
         const month = getStatementMonthLabel(key);
-        const monthIncome = filterReportIncome((state.income || []).filter(item => item.month === month), normalizedPurpose);
+        const monthIncome = filterReportIncome((state.income || []).filter(item => item.month === month), normalizedPurpose, normalizedCashAccount);
         const totalIncomeCents = monthIncome.reduce((sum, item) => sum + toCents(item.amount), 0);
         const collectedCents = monthIncome
             .filter(item => reportIsSubscriptionPayment(item))
             .reduce((sum, item) => sum + toCents(item.amount), 0);
         const otherIncomeCents = totalIncomeCents - collectedCents;
-        const expenseCents = (state.expenses || [])
-            .filter(item => item.month === month)
-            .reduce((sum, item) => sum + toCents(item.amount), 0);
+        const expenseCents = filterReportExpenses(
+            (state.expenses || []).filter(item => item.month === month),
+            normalizedCashAccount
+        ).reduce((sum, item) => sum + toCents(item.amount), 0);
         const { expectedCents, outstandingCents, adjustmentCents } = showDues
             ? getMonthlyBillingTotals(month)
             : { expectedCents: 0, outstandingCents: 0, adjustmentCents: 0 };
@@ -811,7 +881,11 @@ function buildPeriodReport(fromMonth, toMonth, purposeFilter = '') {
     totals.netCents = totals.totalIncomeCents - totals.expenseCents;
     totals.rate = showDues ? getPeriodCollectionRate(totals.expectedCents, totals.collectedCents) : null;
     const rangeLabels = new Set(months.map(row => row.month));
-    const rangeIncome = filterReportIncome((state.income || []).filter(item => rangeLabels.has(item.month)), normalizedPurpose);
+    const rangeIncome = filterReportIncome(
+        (state.income || []).filter(item => rangeLabels.has(item.month)),
+        normalizedPurpose,
+        normalizedCashAccount
+    );
     const methodTotals = new Map();
     rangeIncome.forEach(payment => {
         const label = getIncomePaymentMethodLabel(payment.paymentMethod);
@@ -847,12 +921,14 @@ function buildPeriodReport(fromMonth, toMonth, purposeFilter = '') {
         showDues,
         purposeFilter: normalizedPurpose,
         purposeLabel: reportPurposeFilterLabel(normalizedPurpose),
+        cashAccountFilter: normalizedCashAccount,
+        cashAccountLabel: reportCashAccountFilterLabel(normalizedCashAccount),
         rangeLabel: `${fromMonth} – ${toMonth}`,
         generatedAt: new Date().toISOString()
     };
 }
 
-function getPeriodReportSignature(fromMonth, toMonth, purposeFilter = '') {
+function getPeriodReportSignature(fromMonth, toMonth, purposeFilter = '', cashAccountFilter = '') {
     const labels = new Set([fromMonth, toMonth]);
     const keys = new Set(buildPeriodMonthKeys(fromMonth, toMonth) || []);
     keys.forEach(key => labels.add(getStatementMonthLabel(key)));
@@ -864,7 +940,8 @@ function getPeriodReportSignature(fromMonth, toMonth, purposeFilter = '') {
         (state.income || []).filter(item => labels.has(item.month)),
         (state.expenses || []).filter(item => labels.has(item.month)),
         (state.adjustments || []).filter(item => keys.has(String(item.effectiveMonth || ''))),
-        purposeFilter || ''
+        purposeFilter || '',
+        cashAccountFilter || ''
     ]);
 }
 
@@ -887,12 +964,18 @@ function clearPeriodReportPreview(message) {
 
 function invalidatePeriodReportPreview() {
     if (!periodReportSnapshot) return;
-    clearPeriodReportPreview('تغيّرت الفترة أو الغرض أو البيانات — اضغط «معاينة» لتحديث التقرير.');
+    clearPeriodReportPreview('تغيّرت الفترة أو الفلتر أو البيانات — اضغط «معاينة» لتحديث التقرير.');
 }
 
 function invalidatePeriodReportIfStale() {
     if (!periodReportSnapshot) return;
-    if (getPeriodReportSignature(periodReportSnapshot.fromMonth, periodReportSnapshot.toMonth, periodReportSnapshot.purposeFilter) !== periodReportSignature) {
+    const signature = getPeriodReportSignature(
+        periodReportSnapshot.fromMonth,
+        periodReportSnapshot.toMonth,
+        periodReportSnapshot.purposeFilter,
+        periodReportSnapshot.cashAccountFilter
+    );
+    if (signature !== periodReportSignature) {
         clearPeriodReportPreview('تغيّرت البيانات — اضغط «معاينة» لتحديث التقرير.');
     }
 }
@@ -910,6 +993,10 @@ function getSelectedPeriodReportSnapshot() {
     }
     if (getReportPurposeFilter('periodReportPurpose') !== (periodReportSnapshot.purposeFilter || '')) {
         toast('اعرض معاينة الغرض المحدد أولًا','error');
+        return null;
+    }
+    if (getReportCashAccountFilter('periodReportCashAccount') !== (periodReportSnapshot.cashAccountFilter || '')) {
+        toast('اعرض معاينة الصندوق المحدد أولًا','error');
         return null;
     }
     return periodReportSnapshot;
@@ -956,6 +1043,9 @@ function renderPeriodReportHtml(report) {
     const filterNote = report.purposeFilter
         ? `<p>التحصيلات معروضة لغرض «${esc(report.purposeLabel)}» فقط.</p>`
         : '';
+    const cashFilterNote = report.cashAccountFilter
+        ? `<p>الحركات معروضة لصندوق «${esc(report.cashAccountLabel)}» فقط.</p>`
+        : '';
     const statsHtml = showDues
         ? `<div class="report-stats">
                 <div class="report-stat"><p class="report-stat-label">المستحق</p><p class="report-stat-value">${fmtMoney(totals.expectedCents / 100)}</p></div>
@@ -968,7 +1058,7 @@ function renderPeriodReportHtml(report) {
                 <div class="report-stat"><p class="report-stat-label">الصافي</p><p class="report-stat-value ${totals.netCents >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${fmtMoney(totals.netCents / 100)}</p></div>
             </div>`
         : `<div class="report-stats report-stats-4">
-                <div class="report-stat"><p class="report-stat-label">تحصيل الغرض</p><p class="report-stat-value text-emerald-400">${fmtMoney(totals.totalIncomeCents / 100)}</p></div>
+                <div class="report-stat"><p class="report-stat-label">${report.cashAccountFilter ? 'تحصيل الصندوق' : 'تحصيل الغرض'}</p><p class="report-stat-value text-emerald-400">${fmtMoney(totals.totalIncomeCents / 100)}</p></div>
                 <div class="report-stat"><p class="report-stat-label">عدد الحركات</p><p class="report-stat-value">${fmtNum(totals.movementCount)}</p></div>
                 <div class="report-stat"><p class="report-stat-label">المصروف</p><p class="report-stat-value text-rose-400">${fmtMoney(totals.expenseCents / 100)}</p></div>
                 <div class="report-stat"><p class="report-stat-label">الصافي</p><p class="report-stat-value ${totals.netCents >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${fmtMoney(totals.netCents / 100)}</p></div>
@@ -983,7 +1073,7 @@ function renderPeriodReportHtml(report) {
             </div>`
         : `<div class="report-table-wrap">
                 <table class="statement-table">
-                    <thead><tr><th>الشهر</th><th>تحصيل الغرض</th><th>عدد الحركات</th><th>المصروف</th><th>الصافي</th></tr></thead>
+                    <thead><tr><th>الشهر</th><th>${report.cashAccountFilter ? 'تحصيل الصندوق' : 'تحصيل الغرض'}</th><th>عدد الحركات</th><th>المصروف</th><th>الصافي</th></tr></thead>
                     <tbody>${monthRows}</tbody>
                     <tfoot><tr><td>الإجمالي</td><td>${fmtMoney(totals.totalIncomeCents / 100)}</td><td>${fmtNum(totals.movementCount)}</td><td>${fmtMoney(totals.expenseCents / 100)}</td><td>${fmtMoney(totals.netCents / 100)}</td></tr></tfoot>
                 </table>
@@ -992,7 +1082,7 @@ function renderPeriodReportHtml(report) {
         <div class="space-y-3">
             <header class="report-preview-header">
                 <h3 class="report-preview-title">${esc(state.buildingName || 'العمارة')}</h3>
-                <p class="report-preview-meta">تقرير الفترة ${esc(report.rangeLabel)}${report.purposeFilter ? ' • الغرض: ' + esc(report.purposeLabel) : ''} • تم الإنشاء ${esc(formatDate(report.generatedAt))}</p>
+                <p class="report-preview-meta">تقرير الفترة ${esc(report.rangeLabel)}${report.purposeFilter ? ' • الغرض: ' + esc(report.purposeLabel) : ''}${report.cashAccountFilter ? ' • الصندوق: ' + esc(report.cashAccountLabel) : ''} • تم الإنشاء ${esc(formatDate(report.generatedAt))}</p>
             </header>
             ${statsHtml}
             ${tableHtml}
@@ -1005,13 +1095,16 @@ function renderPeriodReportHtml(report) {
                 ${methodSummary ? '<div class="report-list">' + methodSummary + '</div>' : '<p class="report-note">لا تحصيلات في هذه الفترة.</p>'}
             </div>
             <div class="report-note report-divider text-center">
-                ${showDues
-                    ? '<p>عمود «المحصّل» يحتسب الاشتراكات فقط؛ أما الإيرادات الأخرى فتُعرض في بند مستقل وتُضاف إلى الصافي.</p>'
-                    : '<p>المستحق ونسبة التحصيل يخصان الاشتراكات الشهرية لذلك لا يظهران عند تصفية غرض آخر. المصروفات معروضة كاملة لأنها غير مرتبطة بأغراض التحصيل.</p>'}
+                ${report.cashAccountFilter
+                    ? '<p>المستحق ونسبة التحصيل يخصان العمارة كلها لذلك لا يظهران عند تصفية الصندوق، والمصروفات معروضة لهذا الصندوق فقط.</p>'
+                    : showDues
+                        ? '<p>عمود «المحصّل» يحتسب الاشتراكات فقط؛ أما الإيرادات الأخرى فتُعرض في بند مستقل وتُضاف إلى الصافي.</p>'
+                        : '<p>المستحق ونسبة التحصيل يخصان الاشتراكات الشهرية لذلك لا يظهران عند تصفية غرض آخر. المصروفات معروضة كاملة لأنها غير مرتبطة بأغراض التحصيل.</p>'}
                 <p>كل شهر محسوب بسعر الاشتراك السارية فيه وحصيلته من حركات الشهر نفسه، مثل تقرير الملاك الشهري.</p>
                 <p>نسبة تزيد على 100% تعني تحصيلًا أعلى من مستحق الشهر (مقدمة أو متأخرات مسددة).</p>
                 <p>توزيع الطرق يغطي كل تحصيلات أشهر الفترة، ومجموعه يساوي إجمالي التحصيل.</p>
                 ${filterNote}
+                ${cashFilterNote}
                 ${unpaidNote}
                 ${adjustmentNote}
             </div>
@@ -1034,7 +1127,8 @@ function generatePeriodReport() {
     const { from, to } = getPeriodReportSelection();
     if (!from || !to) { toast('اختر شهر البداية والنهاية','error'); return; }
     const purposeFilter = getReportPurposeFilter('periodReportPurpose');
-    const report = buildPeriodReport(from, to, purposeFilter);
+    const cashAccountFilter = getReportCashAccountFilter('periodReportCashAccount');
+    const report = buildPeriodReport(from, to, purposeFilter, cashAccountFilter);
     if (!report) {
         const message = getPeriodRangeError(from, to) || 'الفترة غير صحيحة.';
         clearPeriodReportPreview(message);
@@ -1045,7 +1139,7 @@ function generatePeriodReport() {
     if (!preview) return;
     preview.innerHTML = renderPeriodReportHtml(report);
     periodReportSnapshot = report;
-    periodReportSignature = getPeriodReportSignature(from, to, purposeFilter);
+    periodReportSignature = getPeriodReportSignature(from, to, purposeFilter, cashAccountFilter);
     setPeriodReportActionsEnabled(true);
 }
 
@@ -1058,7 +1152,7 @@ function printPeriodReport() {
     const previousTitle = title ? title.textContent : '';
     const previousMeta = meta ? meta.textContent : '';
     if (title) title.textContent = `تقرير الفترة - ${state.buildingName || 'Manzil'}`;
-    if (meta) meta.textContent = `الفترة ${report.rangeLabel} • المدير: ${state.managerName || '—'}`;
+    if (meta) meta.textContent = `الفترة ${report.rangeLabel}${report.cashAccountFilter ? ' • الصندوق: ' + report.cashAccountLabel : ''} • المدير: ${state.managerName || '—'}`;
     document.body.classList.remove('print-landlord', 'print-statement');
     document.body.classList.add('print-period');
     const restore = () => {
@@ -1084,7 +1178,7 @@ function exportPeriodReportCsv() {
     const showDues = report.showDues !== false;
     const rows = showDues
         ? [['الشهر','المستحق','المحصّل','غير المحصّل','نسبة التحصيل %','المصروف','الصافي']]
-        : [['الشهر','تحصيل الغرض','عدد الحركات','المصروف','الصافي']];
+        : [['الشهر', report.cashAccountFilter ? 'تحصيل الصندوق' : 'تحصيل الغرض','عدد الحركات','المصروف','الصافي']];
     report.months.forEach(row => {
         if (showDues) {
             rows.push([row.month, row.expectedCents / 100, row.collectedCents / 100, row.outstandingCents / 100,
@@ -1100,6 +1194,7 @@ function exportPeriodReportCsv() {
         rows.push(['الإجمالي', totals.totalIncomeCents / 100, totals.movementCount, totals.expenseCents / 100, totals.netCents / 100]);
         rows.push([]);
         rows.push(['الغرض', report.purposeLabel]);
+        if (report.cashAccountFilter) rows.push(['الصندوق', report.cashAccountLabel]);
     }
     rows.push([]);
     rows.push(['طريقة التحصيل', 'عدد الحركات', 'المبلغ', 'نسبته من المحصّل %']);
@@ -1107,7 +1202,8 @@ function exportPeriodReportCsv() {
         rows.push([item.label, item.count, item.cents / 100, item.share ?? '']);
     });
     const purposeSuffix = report.purposeFilter ? `_${report.purposeFilter}` : '';
-    downloadCsv(`manzil_period_${getPeriodReportFileSlug(report)}${purposeSuffix}.csv`, rows);
+    const cashSuffix = report.cashAccountFilter ? `_${report.cashAccountFilter}` : '';
+    downloadCsv(`manzil_period_${getPeriodReportFileSlug(report)}${purposeSuffix}${cashSuffix}.csv`, rows);
     toast('تم تصدير تقرير الفترة','success');
 }
 
