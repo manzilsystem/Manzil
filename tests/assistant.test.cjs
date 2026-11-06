@@ -220,7 +220,8 @@ test('assistant is local-only and never touches the network', () => {
     assert.doesNotMatch(assistantSource, /XMLHttpRequest|WebSocket|EventSource/);
     assert.doesNotMatch(assistantSource, /https?:\/\//);
     assert.doesNotMatch(assistantSource, /supabase/i);
-    assert.match(assistantSource, /مساعد محلي/);
+    assert.match(assistantSource, /ومساعدك المحلي/, 'the assistant introduces itself as a local helper');
+    assert.match(html, /<p><span class="assistant-online-dot" aria-hidden="true"><\/span> بيانات التطبيق فقط<\/p>/, 'the head keeps the one-line privacy note and nothing more');
 });
 
 test('arabic normalization and period resolution understand months, years and rollover phrasing', () => {

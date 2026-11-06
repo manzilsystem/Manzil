@@ -3,7 +3,6 @@
 // every answer is computed from `state` and the existing billing helpers.
 
 const ASSISTANT_NAME = 'عم عبده البواب';
-const ASSISTANT_TAGLINE = 'مساعد محلي يقرأ بيانات التطبيق فقط';
 const ASSISTANT_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 const ASSISTANT_CASH_LABELS = Object.freeze({
     main: 'الخزنة الرئيسية',
