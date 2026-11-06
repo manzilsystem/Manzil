@@ -348,6 +348,8 @@ function buildResidentProfileHtml(resident) {
             ? { label: 'متأخر عن السداد', className: 'text-rose-400 bg-rose-500/10 border-rose-500/20' }
             : { label: 'داخل مهلة السداد', className: 'text-sky-400 bg-sky-500/10 border-sky-500/20' };
     const debt = calculateCumulativeDebt(resident.id);
+    const currentAdjustment = getAdjustmentAmountForMonth(resident.id, currentMonth);
+    const residentAdjustments = getResidentAdjustments(resident.id);
     const unpaidMonths = (debt.unpaidMonths || []).map(month => ({
         month,
         amount: getMonthOutstanding(resident, month)
@@ -397,6 +399,16 @@ function buildResidentProfileHtml(resident) {
                 </div>
             </div>`).join('')
         : '<p class="text-xs text-slate-500 text-center py-3">لا توجد تغييرات تاريخية مسجلة.</p>';
+    const adjustmentsHtml = residentAdjustments.length
+        ? residentAdjustments.slice(0, 6).map(adjustment => `
+            <div class="flex items-start justify-between gap-3 py-2 border-b border-slate-700/40 last:border-0">
+                <div class="min-w-0">
+                    <p class="text-xs font-bold">${esc(adjustmentMonthKeyToLabel(String(adjustment.effectiveMonth || '').slice(0, 7)) || '—')}</p>
+                    <p class="text-[10px] text-slate-500 break-words">${esc(getAdjustmentKindLabel(adjustment.kind))}${adjustment.reason ? ' · ' + esc(adjustment.reason) : ''}</p>
+                </div>
+                <strong class="text-xs text-amber-300 shrink-0">${formatSubscriptionAmount(adjustment.amount)} ج.م</strong>
+            </div>`).join('')
+        : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إعفاءات أو تخفيضات مسجلة.</p>';
 
     return `
         <div class="space-y-4">
@@ -434,6 +446,7 @@ function buildResidentProfileHtml(resident) {
                     <span class="text-[10px] font-bold border rounded-full px-3 py-1 ${paymentStatus.className}">${paymentStatus.label}</span>
                     <span class="text-[10px] text-slate-500">حالة الشهر الحالي</span>
                 </div>
+                ${currentAdjustment > 0 ? `<p class="text-[10px] text-amber-300">إعفاءات وتخفيضات ${esc(currentMonth)}: ${formatSubscriptionAmount(currentAdjustment)} ج.م</p>` : ''}
             </section>
 
             <section class="app-input border rounded-2xl p-4">
@@ -457,9 +470,18 @@ function buildResidentProfileHtml(resident) {
                 ${ratesHtml}
             </section>
 
+            <section class="app-input border rounded-2xl p-4">
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <h4 class="text-xs font-black">الإعفاءات والتخفيضات</h4>
+                    <span class="text-[10px] text-slate-500">${fmtNum(residentAdjustments.length)} تسجيل</span>
+                </div>
+                ${adjustmentsHtml}
+            </section>
+
             <section class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                 <button type="button" onclick="openResidentIncomeFromProfile(${residentArg})" class="min-h-11 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-hand-holding-dollar ml-1"></i> تسجيل تحصيل</button>
                 <button type="button" onclick="editResidentFromProfile(${residentArg})" class="min-h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-pen ml-1"></i> تعديل بيانات الشقة</button>
+                <button type="button" onclick="openAdjustmentFromProfile(${residentArg})" class="min-h-11 bg-amber-600/15 border border-amber-500/30 text-amber-300 rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-percent ml-1"></i> إعفاء أو تخفيض</button>
                 <button type="button" onclick="openResidentStatementFromProfile(${residentArg})" class="min-h-11 app-input border rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-file-invoice ml-1"></i> كشف حساب</button>
                 <button type="button" onclick="openSubscriptionRatesFromProfile(${residentArg})" class="min-h-11 app-input border rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-clock-rotate-left ml-1"></i> إدارة سجل الاشتراك</button>
                 ${phone && debt.totalDebt > 0 ? `<button type="button" onclick="sendWhatsAppReminderFromProfile(${residentArg})" class="min-h-11 bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-brands fa-whatsapp ml-1"></i> تذكير بالمتأخرات</button>` : ''}
@@ -549,6 +571,271 @@ function openResidentStatementFromProfile(residentId) {
     const select = /** @type {any} */ (document.getElementById('statementResidentSelect'));
     if (select) select.value = residentId;
     generateResidentStatement();
+}
+
+let adjustmentResidentId = null;
+let editingAdjustmentId = null;
+const ADJUSTMENT_KIND_LABELS = { waiver: 'إعفاء', discount: 'تخفيض', settlement: 'تسوية' };
+const ADJUSTMENT_FORM_KINDS = ['waiver', 'discount'];
+
+function getAdjustmentKindLabel(kind) {
+    return ADJUSTMENT_KIND_LABELS[kind] || 'تسوية';
+}
+
+function adjustmentMonthKeyToLabel(monthKey) {
+    const [year, month] = String(monthKey || '').split('-');
+    const name = monthsNames[Number(month) - 1];
+    return name && year ? `${name} ${year}` : String(monthKey || '');
+}
+
+function getResidentAdjustments(residentId) {
+    return (Array.isArray(state.adjustments) ? state.adjustments : [])
+        .filter(adjustment => adjustment.residentId === residentId)
+        .sort((a, b) => String(b.effectiveMonth || '').localeCompare(String(a.effectiveMonth || '')));
+}
+
+function getAdjustmentMonthDue(resident, monthKey) {
+    if (!resident || !isValidEffectiveMonth(monthKey)) return 0;
+    return Number(getSubscriptionAmountForMonth(resident, adjustmentMonthKeyToLabel(monthKey))) || 0;
+}
+
+function getAdjustedTotalForMonth(residentId, monthKey, excludeId = null) {
+    const prefix = `${monthKey}-01`;
+    return getResidentAdjustments(residentId)
+        .filter(adjustment => adjustment.effectiveMonth === prefix && adjustment.id !== excludeId)
+        .reduce((sum, adjustment) => {
+            const amount = Number(adjustment.amount);
+            return sum + (Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0);
+        }, 0) / 100;
+}
+
+function updateAdjustmentDueHint() {
+    const resident = state.residents.find(item => item.id === adjustmentResidentId);
+    const hint = document.getElementById('adjustmentDueHint');
+    const monthInput = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentMonth'));
+    const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentAmount'));
+    if (!resident || !hint || !monthInput) return;
+    const monthKey = monthInput.value;
+    if (!isValidEffectiveMonth(monthKey)) {
+        hint.textContent = 'اختر شهر الاستحقاق.';
+        hint.className = 'text-[10px] text-slate-400';
+        return;
+    }
+    const dueCents = Math.round(getAdjustmentMonthDue(resident, monthKey) * 100);
+    const existingCents = Math.round(getAdjustedTotalForMonth(resident.id, monthKey, editingAdjustmentId) * 100);
+    const entered = Number(amountInput?.value);
+    const enteredCents = Number.isFinite(entered) && entered > 0 ? Math.round(entered * 100) : 0;
+    const remainingCents = dueCents - existingCents - enteredCents;
+    hint.textContent = `مستحق ${adjustmentMonthKeyToLabel(monthKey)}: ${formatSubscriptionAmount(dueCents / 100)} ج.م · المسجل من إعفاءات وتخفيضات: ${formatSubscriptionAmount(existingCents / 100)} ج.م · المتبقي بعد هذا المبلغ: ${formatSubscriptionAmount(Math.max(0, remainingCents) / 100)} ج.م`;
+    hint.className = remainingCents < 0 ? 'text-[10px] text-rose-400' : 'text-[10px] text-slate-400';
+}
+
+function updateAdjustmentFormState() {
+    const editing = editingAdjustmentId
+        ? (Array.isArray(state.adjustments) ? state.adjustments : []).find(item => item.id === editingAdjustmentId)
+        : null;
+    const title = document.getElementById('adjustmentFormTitle');
+    const cancel = document.getElementById('adjustmentCancelEdit');
+    const save = document.getElementById('adjustmentSaveButton');
+    if (title) title.textContent = editing ? 'تعديل الإعفاء أو التخفيض' : 'تسجيل إعفاء أو تخفيض';
+    if (cancel) cancel.classList.toggle('hidden', !editing);
+    if (save) save.textContent = editing ? 'حفظ التعديل' : 'حفظ الإعفاء/التخفيض';
+}
+
+function renderAdjustmentList(resident) {
+    const body = document.getElementById('adjustmentListBody');
+    if (!body) return;
+    const list = getResidentAdjustments(resident.id);
+    const count = document.getElementById('adjustmentListCount');
+    if (count) count.textContent = list.length ? `${fmtNum(list.length)} تسجيل` : '';
+    if (!list.length) {
+        body.innerHTML = '<tr><td colspan="5" class="px-3 py-5 text-center text-xs text-slate-500">لا توجد إعفاءات أو تخفيضات مسجلة.</td></tr>';
+        return;
+    }
+    body.innerHTML = list.map(adjustment => {
+        const monthKey = String(adjustment.effectiveMonth || '').slice(0, 7);
+        const monthLabel = adjustmentMonthKeyToLabel(monthKey);
+        const kindLabel = getAdjustmentKindLabel(adjustment.kind);
+        const argument = esc(JSON.stringify(String(adjustment.id)));
+        return `<tr class="border-t border-slate-700/40">
+            <td class="px-3 py-2 whitespace-nowrap">${esc(monthLabel || '—')}</td>
+            <td class="px-3 py-2 whitespace-nowrap">${esc(kindLabel)}</td>
+            <td class="px-3 py-2 whitespace-nowrap font-bold text-amber-300">${formatSubscriptionAmount(adjustment.amount)} ج.م</td>
+            <td class="px-3 py-2 max-w-[220px] break-words">${esc(adjustment.reason || '—')}</td>
+            <td class="px-3 py-2 whitespace-nowrap">
+                <button type="button" onclick="editAdjustment(${argument})" aria-label="تعديل ${esc(kindLabel)} شهر ${esc(monthLabel)}" class="icon-action rounded-lg text-sky-400 hover:text-sky-300 hover:bg-sky-500/10"><i class="fa-solid fa-pen"></i></button>
+                <button type="button" onclick="deleteAdjustment(${argument})" aria-label="حذف ${esc(kindLabel)} شهر ${esc(monthLabel)}" class="icon-action rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"><i class="fa-solid fa-trash"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function resetAdjustmentForm() {
+    editingAdjustmentId = null;
+    const form = /** @type {HTMLFormElement | null} */ (document.getElementById('adjustmentForm'));
+    form?.reset();
+    const monthInput = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentMonth'));
+    if (monthInput) monthInput.value = getLocalMonthKey();
+    updateAdjustmentFormState();
+    updateAdjustmentDueHint();
+}
+
+function openAdjustmentModal(residentId) {
+    if (!requireManager()) return;
+    const resident = state.residents.find(item => item.id === residentId);
+    if (!resident) {
+        toast('تعذر العثور على الشقة. حدّث البيانات ثم حاول مرة أخرى.', 'error');
+        return;
+    }
+    adjustmentResidentId = resident.id;
+    editingAdjustmentId = null;
+    const form = /** @type {HTMLFormElement | null} */ (document.getElementById('adjustmentForm'));
+    form?.reset();
+    const monthInput = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentMonth'));
+    if (monthInput) {
+        const createdMonth = getLocalMonthKey(resident.createdAt);
+        if (createdMonth) monthInput.min = createdMonth;
+        else monthInput.removeAttribute('min');
+        monthInput.value = getLocalMonthKey();
+    }
+    const summary = document.getElementById('adjustmentResidentSummary');
+    if (summary) {
+        summary.textContent = `${resident.name} · شقة ${resident.apartmentNumber} · الاشتراك الحالي ${formatSubscriptionAmount(getCurrentSubscriptionAmount(resident))} ج.م`;
+    }
+    renderAdjustmentList(resident);
+    updateAdjustmentFormState();
+    updateAdjustmentDueHint();
+    openModal('adjustmentModal');
+}
+
+function openAdjustmentFromProfile(residentId) {
+    if (!requireManager()) return;
+    closeModal('residentProfileModal');
+    openAdjustmentModal(residentId);
+}
+
+function editAdjustment(id) {
+    if (!requireManager()) return;
+    const adjustment = (Array.isArray(state.adjustments) ? state.adjustments : []).find(item => item.id === id);
+    if (!adjustment || adjustment.residentId !== adjustmentResidentId) return;
+    editingAdjustmentId = adjustment.id;
+    const kindSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('adjustmentKind'));
+    if (kindSelect) kindSelect.value = ADJUSTMENT_FORM_KINDS.includes(adjustment.kind) ? adjustment.kind : 'waiver';
+    const monthInput = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentMonth'));
+    if (monthInput) monthInput.value = String(adjustment.effectiveMonth || '').slice(0, 7);
+    const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentAmount'));
+    if (amountInput) amountInput.value = String(Number(adjustment.amount) || '');
+    const reasonInput = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentReason'));
+    if (reasonInput) reasonInput.value = adjustment.reason || '';
+    updateAdjustmentFormState();
+    updateAdjustmentDueHint();
+    reasonInput?.focus();
+}
+
+function cancelAdjustmentEdit() {
+    if (!requireManager()) return;
+    resetAdjustmentForm();
+}
+
+async function handleAdjustmentSubmit(event) {
+    if (!requireManager()) return;
+    event.preventDefault();
+    const resident = state.residents.find(item => item.id === adjustmentResidentId);
+    if (!resident) {
+        toast('تعذر العثور على الشقة. أعد فتح نافذة الإعفاء والتخفيض.', 'error');
+        return;
+    }
+    const kindSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('adjustmentKind'));
+    const monthInput = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentMonth'));
+    const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentAmount'));
+    const reasonInput = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentReason'));
+    const kind = String(kindSelect?.value || '');
+    const monthKey = String(monthInput?.value || '');
+    const amount = Number(amountInput?.value);
+    const reason = String(reasonInput?.value || '').trim();
+
+    if (!ADJUSTMENT_FORM_KINDS.includes(kind)) {
+        toast('اختر نوع الإعفاء أو التخفيض.', 'error');
+        return;
+    }
+    if (!isValidEffectiveMonth(monthKey)) {
+        toast('اختر شهرًا صحيحًا للاستحقاق.', 'error');
+        return;
+    }
+    const createdMonth = getLocalMonthKey(resident.createdAt);
+    if (createdMonth && monthKey < createdMonth) {
+        toast('لا يمكن تسجيل إعفاء أو تخفيض قبل تاريخ إنشاء الشقة.', 'error');
+        return;
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+        toast('المبلغ يجب أن يكون أكبر من صفر.', 'error');
+        return;
+    }
+    if (!reason) {
+        toast('اكتب سبب الإعفاء أو التخفيض.', 'error');
+        return;
+    }
+    const dueCents = Math.round(getAdjustmentMonthDue(resident, monthKey) * 100);
+    if (dueCents <= 0) {
+        toast('لا يوجد اشتراك مستحق لهذا الشهر، فلا يمكن تسجيل إعفاء أو تخفيض.', 'error');
+        return;
+    }
+    const existingCents = Math.round(getAdjustedTotalForMonth(resident.id, monthKey, editingAdjustmentId) * 100);
+    const amountCents = Math.round(amount * 100);
+    if (existingCents + amountCents > dueCents) {
+        toast(`مجموع الإعفاءات والتخفيضات يتجاوز مستحق الشهر (${formatSubscriptionAmount(dueCents / 100)} ج.م).`, 'error');
+        return;
+    }
+
+    const previousState = cloneStateSnapshot();
+    const effectiveMonth = `${monthKey}-01`;
+    const label = adjustmentMonthKeyToLabel(monthKey);
+    state.adjustments = Array.isArray(state.adjustments) ? state.adjustments : [];
+    if (editingAdjustmentId) {
+        const target = state.adjustments.find(item => item.id === editingAdjustmentId);
+        if (!target || target.residentId !== resident.id) {
+            toast('تعذر العثور على الإعفاء المطلوب تعديله. أعد فتح النافذة.', 'error');
+            return;
+        }
+        target.kind = kind;
+        target.effectiveMonth = effectiveMonth;
+        target.amount = amountCents / 100;
+        target.reason = reason;
+        logAction('تعديل إعفاء/تخفيض', `${resident.name} - شقة ${resident.apartmentNumber} - ${getAdjustmentKindLabel(kind)} ${label} - ${formatSubscriptionAmount(target.amount)} ج.م`);
+    } else {
+        state.adjustments.push({
+            id: generateId(),
+            residentId: resident.id,
+            effectiveMonth,
+            kind,
+            amount: amountCents / 100,
+            reason,
+            createdAt: new Date().toISOString()
+        });
+        logAction('إضافة إعفاء/تخفيض', `${resident.name} - شقة ${resident.apartmentNumber} - ${getAdjustmentKindLabel(kind)} ${label} - ${formatSubscriptionAmount(amountCents / 100)} ج.م`);
+    }
+
+    if (!await saveWithRollback(previousState)) return;
+    toast(editingAdjustmentId ? 'تم تحديث الإعفاء أو التخفيض.' : 'تم حفظ الإعفاء أو التخفيض وخصمه من المستحق.', 'success');
+    resetAdjustmentForm();
+    renderAdjustmentList(resident);
+}
+
+async function deleteAdjustment(id) {
+    if (!requireManager()) return;
+    const adjustment = (Array.isArray(state.adjustments) ? state.adjustments : []).find(item => item.id === id);
+    if (!adjustment || adjustment.residentId !== adjustmentResidentId) return;
+    const monthLabel = adjustmentMonthKeyToLabel(String(adjustment.effectiveMonth || '').slice(0, 7));
+    if (!confirmRecordDeletion(`${getAdjustmentKindLabel(adjustment.kind)} شهر ${monthLabel} بقيمة ${formatSubscriptionAmount(adjustment.amount)} ج.م`)) return;
+    const previousState = cloneStateSnapshot();
+    state.adjustments = (Array.isArray(state.adjustments) ? state.adjustments : []).filter(item => item.id !== id);
+    const resident = state.residents.find(item => item.id === adjustment.residentId);
+    logAction('حذف إعفاء/تخفيض', `${resident ? resident.name : adjustment.residentId} - ${getAdjustmentKindLabel(adjustment.kind)} ${monthLabel}`);
+    if (!await saveWithRollback(previousState)) return;
+    toast('تم حذف الإعفاء أو التخفيض.', 'success');
+    if (editingAdjustmentId === id) resetAdjustmentForm();
+    if (resident) renderAdjustmentList(resident);
+    updateAdjustmentDueHint();
 }
 
 function saveResidentAndProvisionOwner() {
