@@ -32,7 +32,7 @@ test('distributed payment batches are grouped without losing per-line receipt an
     assert.match(render, /function getIncomeListBatchKey\(item\)/);
     assert.match(render, /دفعة مجمعة/);
     assert.match(render, /renderIncomeListRow\(item, resident\)/);
-    assert.match(render, /openIncomeReceiptModal\('\$\{item\.id\}'\)/);
-    assert.match(render, /sendIncomeReceiptOnWhatsApp\('\$\{item\.id\}'\)/);
-    assert.match(render, /openIncomeEditModal\('\$\{item\.id\}'\)/);
+    assert.match(render, /openIncomeReceiptModal\('\$\{i\.id\}'\)/);
+    assert.match(render, /sendIncomeReceiptOnWhatsApp\('\$\{i\.id\}'\)/);
+    assert.match(render, /openIncomeEditModal\('\$\{i\.id\}'\)/);
 });
