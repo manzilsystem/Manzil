@@ -320,6 +320,8 @@ function openResidentModal(mode, id) {
             }
             historyButton?.classList.remove('hidden');
             /** @type {any} */ (document.getElementById('residentNotes')).value = resident.notes || '';
+            const billingInput = /** @type {HTMLInputElement | null} */ (document.getElementById('residentBillingStart'));
+            if (billingInput) billingInput.value = String(resident.billingStartMonth || '').slice(0, 7);
         }
     } else {
         /** @type {any} */ (document.getElementById('residentForm')).reset();
@@ -429,6 +431,10 @@ function buildResidentProfileHtml(resident) {
                     <div class="bg-slate-900/30 rounded-xl p-3 min-w-0">
                         <p class="text-[10px] text-slate-500">تاريخ إضافة الشقة</p>
                         <p class="text-xs font-bold mt-1">${esc(formatDate(resident.createdAt) || '—')}</p>
+                    </div>
+                    <div class="bg-slate-900/30 rounded-xl p-3 min-w-0">
+                        <p class="text-[10px] text-slate-500">بداية المحاسبة</p>
+                        <p class="text-xs font-bold mt-1">${esc(monthKeyToLabel(getResidentBillingStartKey(resident)) || '—')}</p>
                     </div>
                 </div>
                 ${resident.notes ? `<p class="text-xs text-slate-400 border-t border-slate-700/40 pt-2 break-words"><strong>ملاحظات:</strong> ${esc(resident.notes)}</p>` : ''}
@@ -693,7 +699,7 @@ function openAdjustmentModal(residentId) {
     form?.reset();
     const monthInput = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentMonth'));
     if (monthInput) {
-        const createdMonth = getLocalMonthKey(resident.createdAt);
+        const createdMonth = getIncomeBillingStartKey(resident);
         if (createdMonth) monthInput.min = createdMonth;
         else monthInput.removeAttribute('min');
         monthInput.value = getLocalMonthKey();
@@ -762,9 +768,9 @@ async function handleAdjustmentSubmit(event) {
         toast('اختر شهرًا صحيحًا للاستحقاق.', 'error');
         return;
     }
-    const createdMonth = getLocalMonthKey(resident.createdAt);
+    const createdMonth = getIncomeBillingStartKey(resident);
     if (createdMonth && monthKey < createdMonth) {
-        toast('لا يمكن تسجيل إعفاء أو تخفيض قبل تاريخ إنشاء الشقة.', 'error');
+        toast('لا يمكن تسجيل إعفاء أو تخفيض قبل بداية محاسبة الشقة.', 'error');
         return;
     }
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -920,7 +926,7 @@ function openSubscriptionRateModal(residentId) {
         `${resident.name} · شقة ${resident.apartmentNumber} · القيمة الحالية ${formatSubscriptionAmount(getCurrentSubscriptionAmount(resident))}`;
     const monthInput = /** @type {any} */ (document.getElementById('subscriptionRateEffectiveMonth'));
     monthInput.value = getLocalMonthKey();
-    const createdMonth = getLocalMonthKey(resident.createdAt);
+    const createdMonth = getIncomeBillingStartKey(resident);
     if (createdMonth) monthInput.min = createdMonth;
     else monthInput.removeAttribute('min');
     /** @type {any} */ (document.getElementById('subscriptionRateAmount')).value = getCurrentSubscriptionAmount(resident);
@@ -942,9 +948,9 @@ async function addSubscriptionRateChange(event) {
         toast('اختر شهرًا صحيحًا لتطبيق الاشتراك.', 'error');
         return;
     }
-    const createdMonth = getLocalMonthKey(resident.createdAt);
+    const createdMonth = getIncomeBillingStartKey(resident);
     if (createdMonth && effectiveMonth < createdMonth) {
-        toast('لا يمكن تطبيق الاشتراك قبل تاريخ إنشاء الشقة.', 'error');
+        toast('لا يمكن تطبيق الاشتراك قبل بداية محاسبة الشقة.', 'error');
         return;
     }
     if (!Number.isFinite(monthlyAmount) || monthlyAmount < 0) {
@@ -1128,6 +1134,12 @@ async function handleResidentSubmit(e) {
     const amountInput = /** @type {any} */ (document.getElementById('residentAmount')).value.trim();
     const monthlyAmount = amountInput === '' ? Number(state.defaultSubscription) || 0 : Number(amountInput);
     const notes = /** @type {any} */ (document.getElementById('residentNotes')).value.trim();
+    const billingStartValue = String(/** @type {any} */ (document.getElementById('residentBillingStart'))?.value || '').trim();
+    if (billingStartValue && !isValidEffectiveMonth(billingStartValue)) {
+        toast('اختر شهرًا صحيحًا لبداية المحاسبة.', 'error');
+        return;
+    }
+    const billingStartMonth = billingStartValue ? `${billingStartValue}-01` : null;
     if (!name || !apartmentNumber || (state.floorCount > 0 && !floor)) { toast('الاسم والدور ورقم الشقة مطلوبة.', 'error'); return; }
     const existingResident = state.residents.find(item => item.id === editingResidentId);
     if (editingResidentId && !existingResident) {
@@ -1157,8 +1169,16 @@ async function handleResidentSubmit(e) {
         const r = state.residents.find(x => x.id === editingResidentId);
         if (r) {
             const previousAmount = getCurrentSubscriptionAmount(r);
+            const previousBillingStart = r.billingStartMonth || '';
+            const nextBillingStart = billingStartMonth || '';
             const subscriptionChanged = Math.round(previousAmount * 100) !== Math.round(monthlyAmount * 100);
-            Object.assign(r, { name, apartmentNumber, floor, phone, notes });
+            Object.assign(r, { name, apartmentNumber, floor, phone, notes, billingStartMonth });
+            if (nextBillingStart !== previousBillingStart) {
+                const backfilled = ensureSubscriptionRateFromBillingStart(r);
+                let details = `${name} - شقة ${apartmentNumber}: ${billingStartMonth ? monthKeyToLabel(billingStartMonth) : 'من تاريخ الإضافة'}`;
+                if (backfilled !== null) details += ` · سعر تاريخي ${fmtNum(backfilled)} ج.م`;
+                logAction('تعديل بداية المحاسبة', details);
+            }
             if (subscriptionChanged) {
                 const effectiveMonth = getLocalMonthKey();
                 const effectiveDate = effectiveMonth + '-01';
@@ -1170,16 +1190,21 @@ async function handleResidentSubmit(e) {
                 logAction('تغيير قيمة الاشتراك', `${name} - ${previousAmount} إلى ${monthlyAmount} بدءًا من ${effectiveMonth}`);
             } else {
                 r.monthlyAmount = monthlyAmount;
-                logAction('تعديل شقة', `${name} - شقة ${apartmentNumber}`);
+                if (nextBillingStart === previousBillingStart) {
+                    logAction('تعديل شقة', `${name} - شقة ${apartmentNumber}`);
+                }
             }
             targetResidentId = r.id;
         }
     } else {
         const createdAt = new Date();
+        const createdMonthKey = getLocalMonthKey(createdAt) + '-01';
+        const rateMonthKey = billingStartMonth && billingStartMonth < createdMonthKey ? billingStartMonth : createdMonthKey;
         const resident = {
             id: generateId(), name, apartmentNumber, floor, phone, monthlyAmount, notes,
             createdAt: createdAt.toISOString(),
-            subscriptionRates: [{ effectiveMonth: getLocalMonthKey(createdAt) + '-01', monthlyAmount }]
+            billingStartMonth,
+            subscriptionRates: [{ effectiveMonth: rateMonthKey, monthlyAmount }]
         };
         state.residents.push(resident);
         targetResidentId = resident.id;
@@ -1497,7 +1522,7 @@ function getSelectedIncomeMonths() {
 }
 
 function getIncomeBillingStartKey(resident) {
-    return getLocalMonthKey(resident?.createdAt);
+    return (getResidentBillingStartKey(resident) || '').slice(0, 7);
 }
 
 function getIncomePickerLabel() {
@@ -1550,7 +1575,7 @@ function updateIncomeMonthPickerHint(resident = null) {
     const createdKey = getIncomeBillingStartKey(target);
     if (createdKey && key < createdKey) {
         hint.className = 'text-[10px] text-rose-300';
-        hint.textContent = `هذا الشهر قبل بداية محاسبة الشقة (${monthKeyToLabel(createdKey)}). عدّل بداية المحاسبة أولًا.`;
+        hint.textContent = `هذا الشهر قبل بداية محاسبة الشقة (${monthKeyToLabel(createdKey)}). اختر الشهر لتأكيد تعديل بداية المحاسبة.`;
         return;
     }
     const status = getIncomeMonthPickerStatus(target, label);
@@ -1570,7 +1595,34 @@ function updateIncomeMonthPickerHint(resident = null) {
     }
 }
 
-function handleIncomeMonthPickerChange() {
+function ensureSubscriptionRateFromBillingStart(resident) {
+    const startKey = getResidentBillingStartKey(resident);
+    if (!startKey) return null;
+    const rates = Array.isArray(resident.subscriptionRates) ? resident.subscriptionRates : [];
+    const earliestRate = rates
+        .filter(rate => /^\d{4}-\d{2}-01$/.test(String(rate.effectiveMonth || '')))
+        .sort((a, b) => a.effectiveMonth.localeCompare(b.effectiveMonth))[0];
+    if (!earliestRate || earliestRate.effectiveMonth <= startKey) return null;
+    const amount = Math.max(0, Number(earliestRate.monthlyAmount) || 0);
+    resident.subscriptionRates = rates
+        .concat({ effectiveMonth: startKey, monthlyAmount: amount })
+        .sort((a, b) => String(a.effectiveMonth).localeCompare(String(b.effectiveMonth)));
+    return amount;
+}
+
+async function adjustResidentBillingStart(resident, monthKey) {
+    const previousState = cloneStateSnapshot();
+    resident.billingStartMonth = `${monthKey}-01`;
+    const backfilled = ensureSubscriptionRateFromBillingStart(resident);
+    let details = `${resident.name} - شقة ${resident.apartmentNumber}: ${monthKeyToLabel(monthKey)}`;
+    if (backfilled !== null) details += ` · سعر تاريخي ${fmtNum(backfilled)} ج.م`;
+    logAction('تعديل بداية المحاسبة', details);
+    if (!await saveWithRollback(previousState)) return false;
+    updateIncomeMonthPickerHint(resident);
+    return true;
+}
+
+async function handleIncomeMonthPickerChange() {
     const resident = getIncomeResidentFromForm();
     const picker = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeMonthPicker'));
     const key = String(picker?.value || '');
@@ -1580,16 +1632,21 @@ function handleIncomeMonthPickerChange() {
         return;
     }
     const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
-    const createdKey = getIncomeBillingStartKey(resident);
-    if (createdKey && key < createdKey) {
-        incomeSelectedMonths = new Set();
-        incomeAmountManual = false;
-        renderIncomeMonthsGrid(resident);
-        if (amountInput) amountInput.value = '';
-        previewIncomeAllocation();
-        updateIncomeMonthPickerHint(resident);
-        toast(`لا يمكن التحصيل قبل بداية محاسبة الشقة (${monthKeyToLabel(createdKey)}).`, 'error');
-        return;
+    const billingStartKey = getIncomeBillingStartKey(resident);
+    if (billingStartKey && key < billingStartKey) {
+        const confirmed = confirm(`الشهر المختار ${label} قبل بداية محاسبة الشقة (${monthKeyToLabel(billingStartKey)}).\nهل تريد تعديل بداية المحاسبة إلى ${label} لتحصيله؟`);
+        if (!confirmed) {
+            incomeSelectedMonths = new Set();
+            incomeAmountManual = false;
+            renderIncomeMonthsGrid(resident);
+            if (amountInput) amountInput.value = '';
+            previewIncomeAllocation();
+            updateIncomeMonthPickerHint(resident);
+            return;
+        }
+        if (!await adjustResidentBillingStart(resident, key)) return;
+        toast(`تم تعديل بداية المحاسبة إلى ${label}.`, 'success');
+        renderIncomeResidentSummary();
     }
     const outstanding = getMonthOutstanding(resident, label);
     incomeSelectedMonths = outstanding > 0 ? new Set([label]) : new Set();
@@ -2006,7 +2063,7 @@ function previewIncomeAllocation() {
     const debtAfter = Math.max(0, debtBefore - overduePaid);
     const debtRowsHtml = `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${selectedMonthLate || overduePaid > 0 ? 'المتأخرات بعد الدفعة' : 'المتأخرات الحالية'}</span><strong class="${debtAfter > 0 ? 'text-amber-300' : 'text-emerald-400'}">${fmtNum(Math.max(0, debtAfter))} ج.م</strong></div>`;
     if (allocation.invalidStart) {
-        summary.textContent = 'لا يمكن اختيار شهر قبل تاريخ إنشاء الشقة.';
+        summary.textContent = 'لا يمكن اختيار شهر قبل بداية محاسبة الشقة.';
         rows.innerHTML = '';
         if (submit) submit.disabled = true;
         return;
@@ -2089,7 +2146,7 @@ async function handleIncomeSubmit(e) {
         : null;
     if (isSubscription && (!allocation || allocation.invalidStart)) {
         previewIncomeAllocation();
-        toast('لا يمكن اختيار شهر قبل تاريخ إنشاء الشقة.', 'error');
+        toast('لا يمكن اختيار شهر قبل بداية محاسبة الشقة.', 'error');
         return;
     }
     if (isSubscription && (!allocation || allocation.invalid || !allocation.allocations.length || allocation.remainingCents > 0)) {
@@ -2297,9 +2354,9 @@ async function handleIncomeEditSubmit(event) {
         toast('لا يمكن تغيير صندوق بند داخل دفعة مختلطة؛ احذف البند وأعد تسجيله إن لزم.', 'error');
         return;
     }
-    const createdMonth = getLocalMonthKey(resident.createdAt);
+    const createdMonth = getIncomeBillingStartKey(resident);
     if (createdMonth && monthKey.slice(0, 7) < createdMonth) {
-        toast('لا يمكن تسجيل تحصيل قبل تاريخ إنشاء الشقة.', 'error');
+        toast('لا يمكن تسجيل تحصيل قبل بداية محاسبة الشقة.', 'error');
         return;
     }
     if (purpose === 'subscription') {

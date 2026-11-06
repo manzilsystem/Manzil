@@ -166,6 +166,28 @@ BEGIN
     RAISE NOTICE 'Resident adjustments ledger verified';
 END $$;
 
+-- Verify the editable billing start month and its month-start guard
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'residents'
+          AND column_name = 'billing_start_month'
+    ) THEN
+        RAISE EXCEPTION 'residents.billing_start_month column missing';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'public.residents'::regclass
+          AND conname = 'residents_billing_start_month_check'
+    ) THEN
+        RAISE EXCEPTION 'residents_billing_start_month_check constraint missing';
+    END IF;
+
+    RAISE NOTICE 'Resident billing start month verified';
+END $$;
+
 -- Verify notifications table exists
 DO $$
 DECLARE

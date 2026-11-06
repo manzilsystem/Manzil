@@ -82,6 +82,7 @@ function createCrudHarness({ income = [], extraLines = [], elements = {} } = {})
         getActiveBuildingMonths: () => ['يناير 2024', 'فبراير 2024'],
         getCurrentMonth: () => 'يناير 2024',
         getLocalMonthKey: () => '2024-01',
+        getResidentBillingStartKey: resident => resident.billingStartMonth || '2024-01-01',
         getMonthOutstanding: () => 100,
         calculateCumulativeDebt: () => ({ totalDebt: 0, count: 0 }),
         getSubscriptionAmountForMonth: () => 100,

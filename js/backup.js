@@ -428,6 +428,8 @@ function isValidBackup(data) {
     const validAmount = value => validNumber(value) && Number(value) >= 0;
     if (!data.residents.every(r => r && typeof r === 'object' && validId(r.id) && typeof r.name === 'string' && typeof r.apartmentNumber === 'string' && (r.phone === undefined || typeof r.phone === 'string') && (r.floor === undefined || r.floor === null || typeof r.floor === 'string') && (r.notes === undefined || typeof r.notes === 'string') && validAmount(r.monthlyAmount ?? 0))) return false;
     if (!data.residents.every(r => r.userId === undefined || r.userId === null || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(r.userId)))) return false;
+    if (!data.residents.every(r => r.billingStartMonth === undefined || r.billingStartMonth === null || r.billingStartMonth === ''
+        || /^\d{4}-(0[1-9]|1[0-2])(-01)?$/.test(String(r.billingStartMonth)))) return false;
     const hasUnique = values => new Set(values).size === values.length;
     if (!hasUnique(data.residents.map(r => r.id))) return false;
     const apartmentKeys = data.residents.map(r => String(r.apartmentNumber).replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632)).replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776)).trim().toLocaleLowerCase('ar-EG'));
@@ -480,6 +482,10 @@ function importJSON(ev) {
             if (!confirm(`استيراد ${sourceName}؟\n${counts}\nسيتم استبدال بيانات العمارة الحالية نهائيًا.`)) return;
             previousState = cloneStateSnapshot();
             state = { ...state, ...data, auditLogs: Array.isArray(data.auditLogs) ? data.auditLogs : [] };
+            state.residents = state.residents.map(r => ({
+                ...r,
+                billingStartMonth: normalizeBillingStartMonth(r.billingStartMonth)
+            }));
             const { data: layoutResult, error: layoutError } = await supabaseClient.rpc('set_building_apartment_layout', {
                 p_building_id: activeBuildingId,
                 p_floor_count: state.floorCount || 0,

@@ -63,6 +63,13 @@ function createProfileHarness(isManager = true) {
         state,
         requireManager: () => isManager,
         getCurrentMonth: () => 'نوفمبر 2026',
+        getResidentBillingStartKey: resident => resident.billingStartMonth || '2025-01-01',
+        monthKeyToLabel: key => {
+            const match = String(key || '').match(/^(\d{4})-(0[1-9]|1[0-2])/);
+            return match
+                ? `${['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'][Number(match[2]) - 1]} ${match[1]}`
+                : '';
+        },
         getSubscriptionAmountForMonth: () => 100,
         getPaidAmountForMonth: () => 50,
         getMonthOutstanding: (_resident, month) => month === 'نوفمبر 2026' ? 50 : 100,
@@ -155,5 +162,5 @@ test('profile collection action opens the income form prefilled for its unit wit
 });
 
 test('profile feature refreshes the installed application cache', () => {
-    assert.match(sw, /CACHE_NAME = 'manzil-v125'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v126'/);
 });

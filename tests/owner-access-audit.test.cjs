@@ -21,7 +21,7 @@ test('manager settings expose owner account provisioning without granting owner 
     assert.match(settings, /editResident\('\$\{esc\(resident\.id\)\}'\)/);
     assert.match(access, /function requireManager\(/);
     assert.match(provision, /role.*manager/);
-    assert.match(auth, /: 'id,name,apartment_number,floor,monthly_amount,created_at'/);
+    assert.match(auth, /: 'id,name,apartment_number,floor,monthly_amount,created_at,billing_start_month'/);
 });
 
 test('audit log attributes actions to profile names and supports safe client-side search', () => {
@@ -37,5 +37,5 @@ test('audit log attributes actions to profile names and supports safe client-sid
 test('owner account controls are touch-friendly and service worker cache is refreshed', () => {
     assert.match(css, /\.settings-owner-action \{[\s\S]*?min-height: 2\.5rem;/);
     assert.match(css, /@media \(max-width: 560px\)[\s\S]*?\.settings-owner-row \{/);
-    assert.match(sw, /CACHE_NAME = 'manzil-v125'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v126'/);
 });

@@ -347,6 +347,19 @@ function monthKeyToLabel(monthKey) {
     return `${monthsNames[month - 1]} ${year}`;
 }
 
+function normalizeBillingStartMonth(value) {
+    const match = String(value || '').trim().match(/^(\d{4})-(0[1-9]|1[0-2])(?:-01)?$/);
+    return match ? `${match[1]}-${match[2]}-01` : null;
+}
+
+function getResidentBillingStartKey(resident) {
+    const stored = normalizeBillingStartMonth(resident?.billingStartMonth);
+    if (stored) return stored;
+    const created = new Date(resident?.createdAt || Date.now());
+    if (Number.isNaN(created.getTime())) return null;
+    return `${created.getFullYear()}-${String(created.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
 function getSubscriptionAmountForMonth(resident, month) {
     if (!resident) return 0;
     const monthKey = monthLabelToKey(month);
@@ -384,9 +397,10 @@ function getMonthOutstanding(resident, month) {
 function calculateCumulativeDebt(residentId) {
     const resident = state.residents.find(r => r.id === residentId);
     if (!resident) return { count: 0, totalDebt: 0, unpaidMonths: [] };
-    const start = new Date(resident.createdAt || Date.now());
-    if (Number.isNaN(start.getTime())) return { count: 0, totalDebt: 0, unpaidMonths: [] };
-    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    const startKey = getResidentBillingStartKey(resident);
+    if (!startKey) return { count: 0, totalDebt: 0, unpaidMonths: [] };
+    const [startYear, startMonth] = startKey.split('-').map(Number);
+    const cursor = new Date(startYear, startMonth - 1, 1);
     const now = new Date();
     const allMonths = [];
     while (cursor <= now) { allMonths.push(`${monthsNames[cursor.getMonth()]} ${cursor.getFullYear()}`); cursor.setMonth(cursor.getMonth()+1); }
@@ -408,10 +422,7 @@ function calculateSelectedMonthsAllocation(residentId, selectedMonths, amount, f
     if (!resident || amountCents <= 0 || !Array.isArray(selectedMonths) || !selectedMonths.length) {
         return invalid;
     }
-    const createdAt = new Date(resident.createdAt || Date.now());
-    const createdKey = Number.isNaN(createdAt.getTime())
-        ? null
-        : `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}-01`;
+    const createdKey = getResidentBillingStartKey(resident);
     const selectedKeys = [];
     for (const month of selectedMonths) {
         const key = monthLabelToKey(month);
@@ -469,10 +480,7 @@ function calculateIncomeAllocationPreview(residentId, amount, selectedMonth, max
         return { allocations: [], totalAllocated: 0, remainingAmount: Math.max(0, amountCents) / 100, remainingCents: Math.max(0, amountCents), invalid: true };
     }
 
-    const createdAt = new Date(resident.createdAt || Date.now());
-    const createdKey = Number.isNaN(createdAt.getTime())
-        ? selectedKey
-        : `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}-01`;
+    const createdKey = getResidentBillingStartKey(resident) || selectedKey;
     if (selectedKey < createdKey) {
         return { allocations: [], totalAllocated: 0, remainingAmount: amountCents / 100, remainingCents: amountCents, invalid: true, invalidStart: true };
     }
@@ -624,8 +632,11 @@ function getIncomeMonthLabels(resident, includeMonths = []) {
         .forEach(payment => set.add(payment.month));
 
     const candidates = [];
-    const created = new Date(resident.createdAt || '');
-    if (!Number.isNaN(created.getTime())) candidates.push(new Date(created.getFullYear(), created.getMonth(), 1));
+    const billingStartKey = getResidentBillingStartKey(resident);
+    if (billingStartKey) {
+        const [year, month] = billingStartKey.split('-').map(Number);
+        candidates.push(new Date(year, month - 1, 1));
+    }
     (Array.isArray(resident.subscriptionRates) ? resident.subscriptionRates : []).forEach(rate => {
         const [year, month] = String(rate.effectiveMonth || '').split('-').map(Number);
         if (year && month) candidates.push(new Date(year, month - 1, 1));
@@ -649,10 +660,11 @@ function getIncomeCollectionMonthLabels(resident, futureMonths = 12, includeMont
     const now = new Date();
     const currentStart = new Date(now.getFullYear(), now.getMonth(), 1);
     let start = currentStart;
-    const created = new Date(resident.createdAt || '');
-    if (!Number.isNaN(created.getTime())) {
-        const createdStart = new Date(created.getFullYear(), created.getMonth(), 1);
-        if (createdStart < start) start = createdStart;
+    const billingStartKey = getResidentBillingStartKey(resident);
+    if (billingStartKey) {
+        const [year, month] = billingStartKey.split('-').map(Number);
+        const billingStart = new Date(year, month - 1, 1);
+        if (billingStart < start) start = billingStart;
     }
     let firstUnpaid = null;
     const scan = new Date(start);

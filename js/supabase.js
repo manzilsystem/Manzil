@@ -196,6 +196,7 @@ function mapResident(row) {
         monthlyAmount: Number(row.monthly_amount) || 0,
         notes: row.notes || '',
         createdAt: row.created_at,
+        billingStartMonth: row.billing_start_month || null,
         subscriptionRates: [],
         subscriptionRateHistory: []
     };
@@ -503,8 +504,8 @@ async function loadState() {
         : Promise.resolve({ data: null, error: null });
     const isManager = currentUserRole === 'manager';
     const residentColumns = isManager
-        ? 'id,user_id,name,apartment_number,floor,phone,monthly_amount,created_at'
-        : 'id,name,apartment_number,floor,monthly_amount,created_at';
+        ? 'id,user_id,name,apartment_number,floor,phone,monthly_amount,created_at,billing_start_month'
+        : 'id,name,apartment_number,floor,monthly_amount,created_at,billing_start_month';
     const incomeColumns = isManager
         ? 'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,paid_at'
         : 'id,resident_id,amount,month,payment_method,purpose_code,paid_at';
@@ -619,7 +620,8 @@ async function saveState() {
             id: r.id, user_id: r.userId || null, name: r.name,
             apartment_number: r.apartmentNumber, floor: r.floor || null, phone: r.phone || null,
             monthly_amount: Number(r.monthlyAmount) || 0, notes: r.notes || null,
-            created_at: toSupabaseTimestamp(r.createdAt)
+            created_at: toSupabaseTimestamp(r.createdAt),
+            billing_start_month: r.billingStartMonth || null
         })),
         income: state.income.map(i => ({
             id: i.id, resident_id: i.residentId, amount: Number(i.amount) || 0,

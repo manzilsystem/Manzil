@@ -44,6 +44,14 @@ function loadReport(overrides = {}) {
             const index = monthNames.indexOf(name);
             return index < 0 || !/^\d{4}$/.test(year || '') ? null : `${year}-${String(index + 1).padStart(2, '0')}-01`;
         },
+        getResidentBillingStartKey: resident => {
+            const stored = String(resident?.billingStartMonth || '').match(/^(\d{4})-(0[1-9]|1[0-2])(?:-01)?$/);
+            if (stored) return `${stored[1]}-${stored[2]}-01`;
+            const created = new Date(resident?.createdAt || Date.now());
+            return Number.isNaN(created.getTime())
+                ? null
+                : `${created.getFullYear()}-${String(created.getMonth() + 1).padStart(2, '0')}-01`;
+        },
         getSubscriptionAmountForMonth: (resident, month) => {
             if (!resident) return 0;
             const rates = Array.isArray(resident.subscriptionRates) ? resident.subscriptionRates : [];
