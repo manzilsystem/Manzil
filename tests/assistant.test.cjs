@@ -36,7 +36,18 @@ const ADJUSTMENTS = [
     { id: 'a2', residentId: 'r1', kind: 'discount', effectiveMonth: '2026-10-01', amount: 10, reason: 'خصم أخوة' }
 ];
 
+function createStorageStub() {
+    const map = new Map();
+    return {
+        map,
+        getItem: key => (map.has(key) ? map.get(key) : null),
+        setItem: (key, value) => { map.set(key, String(value)); },
+        removeItem: key => { map.delete(key); }
+    };
+}
+
 function createHarness(seed = true) {
+    const sessionStorage = createStorageStub();
     const sandbox = {
         console,
         Date,
@@ -49,7 +60,7 @@ function createHarness(seed = true) {
             body: { classList: { add() {}, remove() {}, toggle() {} }, setAttribute() {} }
         },
         localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
-        sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+        sessionStorage,
         crypto: { randomUUID: () => 'test-id' },
         requestAnimationFrame: callback => callback(),
         currentUserRole: 'manager',
@@ -88,15 +99,24 @@ function createHarness(seed = true) {
         resolveAssistantPeriod,
         resolveAssistantResident,
         assistantEscape,
+        buildAssistantFollowUps,
+        hasAssistantTimeHint,
+        assistantFollowsResident,
+        resolveAssistantPeriodWithContext,
+        restoreAssistantSession,
+        appendAssistantMessage,
+        chatSnapshot: () => assistantChat,
+        contextSnapshot: () => assistantContext,
         ASSISTANT_NAME,
         ASSISTANT_SUGGESTIONS
     })`, context);
-    return { context, api };
+    return { context, api, storage: sandbox.sessionStorage };
 }
 
 test('assistant modal, launcher, script and styles are wired into the app', () => {
     assert.match(html, /id="assistantModal"/);
     assert.match(html, /id="assistantLog"[^>]*role="log"[^>]*aria-live="polite"/);
+    assert.match(html, /id="assistantLog"[^>]*onclick="handleAssistantSuggestion\(event\)"/, 'follow-up chips inside the log reuse the delegated handler');
     assert.match(html, /id="assistantInput"[^>]*maxlength="240"/);
     assert.match(html, /id="assistantSuggestions"[^>]*onclick="handleAssistantSuggestion\(event\)"/);
     assert.match(html, /onsubmit="sendAssistantMessage\(event\)"/);
@@ -117,6 +137,14 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(serviceWorker, /\.\/icons\/assistant-abbah\.png/);
     assert.match(serviceWorker, /\.\/icons\/assistant-abbah-full\.png/);
     assert.match(assistantSource, /ASSISTANT_FAB_SCROLL_DEADZONE/, 'scroll direction drives the launcher');
+    assert.match(assistantSource, /ASSISTANT_FOLLOWUPS/, 'every answer carries follow-up questions');
+    assert.match(assistantSource, /isSafeAssistantHtml/, 'a stored chat log is re-checked before it renders');
+    assert.match(assistantSource, /sessionStorage\.setItem\(keys\.chat/, 'the chat survives reopening the assistant');
+    assert.match(css, /\.assistant-followups \{/);
+    assert.match(css, /\.assistant-chip\.is-followup \{/);
+    assert.match(css, /\.assistant-typing-dot \{/);
+    assert.match(css, /@keyframes assistant-typing-bounce/);
+    assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\.assistant-typing-dot \{ animation: none; \}/);
     assert.match(assistantSource, /window\.addEventListener\('scroll', handleAssistantFabScroll, \{ passive: true \}\)/);
     assert.match(assistantSource, /new MutationObserver\(\(\) => syncAssistantFab\(\)\)\.observe\(modal/);
     assert.doesNotMatch(assistantSource, /addEventListener\('focus'/, 'a visibility-hidden launcher is not focusable, so no focus handler is needed');
@@ -362,4 +390,79 @@ test('answers are empty-state safe when no residents or transactions exist', () 
 
     const expenses = api.answerAssistantQuery('مصروفات نوفمبر 2026', NOW);
     assert.match(expenses.html, /مفيش مصروفات مسجلة/);
+});
+
+test('the doorman remembers the discussed period and reuses it for follow-ups', () => {
+    const { api } = createHarness();
+    assert.equal(api.hasAssistantTimeHint('تحصيل أكتوبر 2026'), true);
+    assert.equal(api.hasAssistantTimeHint('ومصروفات؟'), false);
+
+    const october = api.answerAssistantQuery('تحصيل أكتوبر 2026', NOW);
+    assert.equal(october.id, 'income');
+
+    const followUp = api.answerAssistantQuery('ومصروفات؟', NOW);
+    assert.equal(followUp.id, 'expenses');
+    assert.match(followUp.title, /أكتوبر 2026/, 'the follow-up stays in the month already on screen');
+    assert.match(followUp.html, /صيانة أسانسير/);
+
+    const explicit = api.answerAssistantQuery('مصروفات الشهر', NOW);
+    assert.match(explicit.title, /نوفمبر 2026/, 'an explicit month still wins over memory');
+});
+
+test('follow-up chips name the month that was just discussed', () => {
+    const { api } = createHarness();
+    const answer = api.answerAssistantQuery('ملخص أكتوبر 2026', NOW);
+    assert.deepEqual(Array.from(answer.followUps, item => item.query), ['مصروفات أكتوبر 2026', 'مين عليه متأخرات؟', 'رصيد الخزنة كام؟']);
+    assert.match(answer.html, /class="assistant-followups"/);
+    assert.match(answer.html, /data-assistant-query="مصروفات أكتوبر 2026"/);
+
+    const unscoped = api.buildAssistantFollowUps('income', { type: 'year', label: 'سنة 2026', months: [] });
+    assert.equal(unscoped[0].query, 'مصروفات الشهر', 'a year period has no single month to name');
+    unscoped.forEach(item => assert.ok(item.label && item.query));
+});
+
+test('a pronoun after a unit question keeps talking about the same resident', () => {
+    const { api } = createHarness();
+    assert.equal(api.answerAssistantQuery('شقة 7 دفع كام؟', NOW).id, 'resident');
+
+    const followUp = api.answerAssistantQuery('هو دفع كام؟', NOW);
+    assert.equal(followUp.id, 'resident');
+    assert.match(followUp.title, /سارة حسن/);
+
+    assert.equal(api.assistantFollowsResident('هو متأخر من قد إيه؟'), true);
+    assert.equal(api.assistantFollowsResident('مين عليه متأخرات؟'), false);
+});
+
+test('the chat and its context survive a reopen and reset wipes both', () => {
+    const { context, api, storage } = createHarness();
+    api.appendAssistantMessage('user', '<p>سؤال</p>');
+    api.answerAssistantQuery('تحصيل أكتوبر 2026', NOW);
+    assert.equal(JSON.parse(storage.getItem('manzil-assistant-chat:building-1')).length, 1);
+    assert.match(storage.getItem('manzil-assistant-context:building-1'), /أكتوبر 2026/);
+
+    vm.runInContext('assistantChat = []; assistantContext = { period: null, residentId: null };', context);
+    api.restoreAssistantSession();
+    assert.equal(api.chatSnapshot().length, 1);
+    assert.equal(api.contextSnapshot().period.label, 'أكتوبر 2026');
+    assert.match(api.answerAssistantQuery('ومصروفات؟', NOW).title, /أكتوبر 2026/);
+
+    vm.runInContext(`
+        assistantChat = [];
+        assistantContext = { period: null, residentId: null };
+        resetAssistantChat();
+    `, context);
+    assert.equal(JSON.parse(storage.getItem('manzil-assistant-context:building-1')).period, null);
+    assert.equal(api.chatSnapshot().length, 1, 'reset leaves only the fresh greeting');
+});
+
+test('a tampered chat log is dropped instead of rendered', () => {
+    const { api, storage } = createHarness();
+    storage.setItem('manzil-assistant-chat:building-1', JSON.stringify([
+        { role: 'bot', html: '<img src=x onerror="alert(1)">' },
+        { role: 'bot', html: '<script>alert(1)</script>' },
+        { role: 'bot', html: '<p class="assistant-hello">رد سليم</p>' }
+    ]));
+    api.restoreAssistantSession();
+    assert.equal(api.chatSnapshot().length, 1);
+    assert.match(api.chatSnapshot()[0].html, /رد سليم/);
 });

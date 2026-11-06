@@ -2076,7 +2076,7 @@
                 <button type="button" class="assistant-icon-button" onclick="resetAssistantChat()" aria-label="بدء محادثة جديدة" title="محادثة جديدة"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>
                 <button type="button" class="assistant-icon-button" onclick="closeModal('assistantModal')" aria-label="إغلاق مساعد عم عبده"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             </header>
-            <div id="assistantLog" class="assistant-log" role="log" aria-live="polite" aria-label="محادثة عم عبده البواب"></div>
+            <div id="assistantLog" class="assistant-log" role="log" aria-live="polite" aria-label="محادثة عم عبده البواب" onclick="handleAssistantSuggestion(event)"></div>
             <div id="assistantSuggestions" class="assistant-suggestions" aria-label="أسئلة مقترحة" onclick="handleAssistantSuggestion(event)"></div>
             <form class="assistant-form" onsubmit="sendAssistantMessage(event)">
                 <label for="assistantInput" class="sr-only">اكتب سؤالك لعم عبده</label>

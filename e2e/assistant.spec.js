@@ -151,3 +151,53 @@ test.describe('assistant floating launcher', () => {
         await expect(fab).toBeHidden();
     });
 });
+
+test.describe('assistant remembers the conversation', () => {
+    test('follow-up chips continue in the month already on screen', async ({ page }) => {
+        await seedAndOpenAssistant(page);
+        const botMessages = page.locator('#assistantLog .assistant-msg.is-bot:not(.is-typing) .assistant-bubble');
+
+        await page.locator('#assistantInput').fill('تحصيل أكتوبر 2026');
+        await page.locator('#assistantInput').press('Enter');
+        await expect(botMessages.last()).toContainText('تحصيل أكتوبر 2026');
+        await expect(page.locator('#assistantLog .is-typing')).toHaveCount(0);
+
+        const chip = page.locator('#assistantLog [data-assistant-query="مصروفات أكتوبر 2026"]');
+        await expect(chip).toBeVisible();
+        await chip.click();
+        await expect(botMessages.last()).toContainText('مصروفات أكتوبر 2026');
+    });
+
+    test('a pronoun keeps the answer on the apartment just discussed', async ({ page }) => {
+        await seedAndOpenAssistant(page);
+        const botMessages = page.locator('#assistantLog .assistant-msg.is-bot:not(.is-typing) .assistant-bubble');
+
+        await page.locator('#assistantInput').fill('شقة 7 دفع كام؟');
+        await page.locator('#assistantInput').press('Enter');
+        await expect(botMessages.last()).toContainText('سارة حسن');
+
+        await page.locator('#assistantInput').fill('هو دفع كام؟');
+        await page.locator('#assistantInput').press('Enter');
+        await expect(botMessages.last()).toContainText('سارة حسن');
+        await expect(botMessages.last()).not.toContainText('أحمد علي');
+    });
+
+    test('the chat survives closing the assistant and resets on demand', async ({ page }) => {
+        await seedAndOpenAssistant(page);
+        const messages = page.locator('#assistantLog .assistant-msg:not(.is-typing)');
+
+        await page.locator('#assistantInput').fill('رصيد الخزنة كام؟');
+        await page.locator('#assistantInput').press('Enter');
+        await expect(messages).toHaveCount(3);
+
+        await page.keyboard.press('Escape');
+        await page.locator('#assistantFab').click();
+        await expect(page.locator('#assistantModal')).toBeVisible();
+        await expect(messages).toHaveCount(3);
+        await expect(page.locator('#assistantLog .assistant-msg.is-user').last()).toContainText('رصيد الخزنة كام؟');
+
+        await page.getByRole('button', { name: 'بدء محادثة جديدة' }).click();
+        await expect(messages).toHaveCount(1);
+        await expect(page.locator('#assistantLog')).toContainText('أهلاً يا أستاذ');
+    });
+});
