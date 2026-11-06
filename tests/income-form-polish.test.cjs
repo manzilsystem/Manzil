@@ -109,6 +109,8 @@ test('the income form exposes sorted apartment choices, a resident summary and a
     assert.match(html, /id="incomeMonthsWrap"/);
     assert.match(html, /id="incomeMonthsGrid" role="group"/);
     assert.match(html, /id="incomeMonthsSummary"/);
+    assert.match(html, /<input type="month" id="incomeMonthPicker"[^>]*onchange="handleIncomeMonthPickerChange\(\)"/);
+    assert.match(html, /id="incomeMonthPickerHint"[^>]*aria-live="polite"/);
     assert.match(html, /applyIncomeMonthQuickAction\('arrears'\)/);
     assert.match(html, /applyIncomeMonthQuickAction\('current'\)/);
     assert.match(html, /applyIncomeMonthQuickAction\('two'\)/);
@@ -130,6 +132,8 @@ test('the income form exposes sorted apartment choices, a resident summary and a
     assert.doesNotMatch(crudSource, /getIncomeAllocationPolicyOverride/);
     assert.match(crudSource, /function getSelectedIncomeMonths\(\)/);
     assert.match(crudSource, /function renderIncomeMonthsGrid\(resident\)/);
+    assert.match(crudSource, /function handleIncomeMonthPickerChange\(\)/);
+    assert.match(crudSource, /function updateIncomeMonthPickerHint\(resident = null\)/);
     assert.match(crudSource, /function applyIncomeMonthQuickAction\(action\)/);
     assert.match(crudSource, /function handleIncomeMonthToggle\(input\)/);
     assert.match(crudSource, /calculateIncomeAllocationPreview\(residentId, amount, month, 120, '', selectedMonths\)/);

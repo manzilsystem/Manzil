@@ -179,6 +179,60 @@ test('a late month can be settled alone and is marked as overdue in the preview'
         .map(item => item.month))).toEqual([months.previous]);
 });
 
+test('the calendar picker settles an older unpaid month even after the month has rolled over', async ({ page }) => {
+    await seedManager(page);
+    const months = await monthNames(page);
+    const pickerKey = await page.evaluate(months => {
+        const [name, year] = months.previous.split(' ');
+        return `${year}-${String(monthsNames.indexOf(name) + 1).padStart(2, '0')}`;
+    }, months);
+    await page.evaluate(() => openNewIncomeModal());
+    await page.locator('#incomeResident').selectOption('r2');
+
+    await page.locator('#incomeMonthPicker').fill(pickerKey);
+    await page.locator('#incomeMonthPicker').dispatchEvent('change');
+
+    await expect(page.locator('#incomeMonthsGrid input[data-income-month]:checked')).toHaveCount(1);
+    await expect(page.locator(`#incomeMonthsGrid input[data-income-month="${months.previous}"]`)).toBeChecked();
+    await expect(page.locator('#incomeAmount')).toHaveValue('100');
+    await expect(page.locator('#incomeMonthPickerHint')).toContainText('متبقٍ');
+
+    await page.locator('#incomePaymentMethod').selectOption('cash');
+    await page.locator('#incomeSubmitButton').click();
+    await expect(page.locator('#incomeModal')).toBeHidden();
+    const saved = await page.evaluate(() => state.income
+        .filter(item => item.residentId === 'r2')
+        .map(item => item.month));
+    expect(saved).toEqual([months.previous]);
+});
+
+test('the calendar picker refuses a fully paid month and a month before the billing start', async ({ page }) => {
+    await seedManager(page);
+    const months = await monthNames(page);
+    const previousKey = await page.evaluate(months => {
+        const [name, year] = months.previous.split(' ');
+        return `${year}-${String(monthsNames.indexOf(name) + 1).padStart(2, '0')}`;
+    }, months);
+    const beforeStartKey = await page.evaluate(() => {
+        const date = new Date();
+        const target = new Date(date.getFullYear(), date.getMonth() - 4, 1);
+        return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}`;
+    });
+    await page.evaluate(() => openNewIncomeModal());
+    await page.locator('#incomeResident').selectOption('r1');
+
+    await page.locator('#incomeMonthPicker').fill(previousKey);
+    await page.locator('#incomeMonthPicker').dispatchEvent('change');
+    await expect(page.locator('#incomeMonthsGrid input[data-income-month]:checked')).toHaveCount(0);
+    await expect(page.locator('#toastContainer')).toContainText('مسدد بالكامل');
+
+    await page.locator('#incomeMonthPicker').fill(beforeStartKey);
+    await page.locator('#incomeMonthPicker').dispatchEvent('change');
+    await expect(page.locator('#incomeMonthsGrid input[data-income-month]:checked')).toHaveCount(0);
+    await expect(page.locator('#toastContainer')).toContainText('قبل بداية محاسبة الشقة');
+    await expect(page.locator('#incomeMonthPickerHint')).toContainText('قبل بداية محاسبة الشقة');
+});
+
 test('payment notes can be picked quickly and appear in the manager receipt', async ({ page }) => {
     await seedManager(page);
 

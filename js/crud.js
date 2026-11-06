@@ -1366,6 +1366,7 @@ function quickPayResident(residentId) {
     if (notesInput) notesInput.value = 'دفع سريع';
     incomeSelectedMonths = new Set([month]);
     incomeAmountManual = false;
+    syncIncomeMonthPicker(resident, month);
     renderIncomeMonthsGrid(resident);
     syncIncomePurposeUi();
     if (typeof syncIncomePurposeCashAccount === 'function') {
@@ -1495,6 +1496,115 @@ function getSelectedIncomeMonths() {
         .filter(Boolean);
 }
 
+function getIncomeBillingStartKey(resident) {
+    return getLocalMonthKey(resident?.createdAt);
+}
+
+function getIncomePickerLabel() {
+    const picker = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeMonthPicker'));
+    return monthKeyToLabel(picker?.value || '');
+}
+
+function syncIncomeMonthPicker(resident, monthLabel = '') {
+    const picker = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeMonthPicker'));
+    if (!picker) return;
+    const label = monthLabel || getSelectedIncomeMonths()[0] || getCurrentMonth();
+    const key = monthLabelToKey(label);
+    if (key) picker.value = key.slice(0, 7);
+    updateIncomeMonthPickerHint(resident);
+}
+
+function getIncomeMonthPickerStatus(resident, monthLabel) {
+    const key = monthLabelToKey(monthLabel);
+    const picker = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeMonthPicker'));
+    if (!resident || !key || !picker?.value) return null;
+    if (key.slice(0, 7) !== String(picker.value).slice(0, 7)) return null;
+    return {
+        key,
+        due: getSubscriptionAmountForMonth(resident, monthLabel),
+        paid: getPaidAmountForMonth(resident.id, monthLabel),
+        adjusted: typeof getAdjustmentAmountForMonth === 'function'
+            ? getAdjustmentAmountForMonth(resident.id, monthLabel)
+            : 0,
+        outstanding: getMonthOutstanding(resident, monthLabel)
+    };
+}
+
+function updateIncomeMonthPickerHint(resident = null) {
+    const hint = document.getElementById('incomeMonthPickerHint');
+    if (!hint) return;
+    const target = resident || getIncomeResidentFromForm();
+    if (!target) {
+        hint.className = 'text-[10px] text-slate-500';
+        hint.textContent = 'اختر الشقة أولًا لعرض حالة الشهر.';
+        return;
+    }
+    const picker = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeMonthPicker'));
+    const key = String(picker?.value || '');
+    const label = monthKeyToLabel(key);
+    if (!label) {
+        hint.className = 'text-[10px] text-slate-500';
+        hint.textContent = 'اختر شهر التحصيل من الكلندر.';
+        return;
+    }
+    const createdKey = getIncomeBillingStartKey(target);
+    if (createdKey && key < createdKey) {
+        hint.className = 'text-[10px] text-rose-300';
+        hint.textContent = `هذا الشهر قبل بداية محاسبة الشقة (${monthKeyToLabel(createdKey)}). عدّل بداية المحاسبة أولًا.`;
+        return;
+    }
+    const status = getIncomeMonthPickerStatus(target, label);
+    if (!status) return;
+    const parts = [
+        `مستحق ${fmtNum(status.due)} ج.م`,
+        `مدفوع ${fmtNum(status.paid)} ج.م`
+    ];
+    if (status.adjusted > 0) parts.push(`إعفاء/تخفيض ${fmtNum(status.adjusted)} ج.م`);
+    parts.push(`متبقٍ ${fmtNum(status.outstanding)} ج.م`);
+    if (status.outstanding <= 0) {
+        hint.className = 'text-[10px] text-emerald-300';
+        hint.textContent = `${parts.join(' · ')} — الشهر مسدد بالكامل.`;
+    } else {
+        hint.className = 'text-[10px] text-slate-400';
+        hint.textContent = parts.join(' · ');
+    }
+}
+
+function handleIncomeMonthPickerChange() {
+    const resident = getIncomeResidentFromForm();
+    const picker = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeMonthPicker'));
+    const key = String(picker?.value || '');
+    const label = monthKeyToLabel(key);
+    if (!resident || !label) {
+        updateIncomeMonthPickerHint(resident);
+        return;
+    }
+    const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
+    const createdKey = getIncomeBillingStartKey(resident);
+    if (createdKey && key < createdKey) {
+        incomeSelectedMonths = new Set();
+        incomeAmountManual = false;
+        renderIncomeMonthsGrid(resident);
+        if (amountInput) amountInput.value = '';
+        previewIncomeAllocation();
+        updateIncomeMonthPickerHint(resident);
+        toast(`لا يمكن التحصيل قبل بداية محاسبة الشقة (${monthKeyToLabel(createdKey)}).`, 'error');
+        return;
+    }
+    const outstanding = getMonthOutstanding(resident, label);
+    incomeSelectedMonths = outstanding > 0 ? new Set([label]) : new Set();
+    incomeAmountManual = false;
+    renderIncomeMonthsGrid(resident);
+    if (outstanding > 0) {
+        syncIncomeAmountFromSelection();
+    } else {
+        if (amountInput) amountInput.value = '';
+        toast('الشهر المختار مسدد بالكامل — اختر شهرًا غير مسدد.', 'info');
+    }
+    previewIncomeAllocation();
+    updateIncomeMonthPickerHint(resident);
+}
+
 function getIncomeMonthStatus(resident, month) {
     const key = monthLabelToKey(month);
     const currentKey = getLocalMonthKey();
@@ -1520,6 +1630,7 @@ function selectFirstUnpaidIncomeMonth(resident) {
         : [];
     const first = labels.find(month => getMonthOutstanding(resident, month) > 0);
     incomeSelectedMonths = new Set(first ? [first] : []);
+    syncIncomeMonthPicker(resident, first || getCurrentMonth());
 }
 
 function renderIncomeMonthsGrid(resident) {
@@ -1531,7 +1642,7 @@ function renderIncomeMonthsGrid(resident) {
         return;
     }
     const labels = typeof getIncomeCollectionMonthLabels === 'function'
-        ? getIncomeCollectionMonthLabels(resident, 12)
+        ? getIncomeCollectionMonthLabels(resident, 12, getIncomePickerLabel() ? [getIncomePickerLabel()] : [])
         : [];
     const payable = new Set(labels.filter(month => getMonthOutstanding(resident, month) > 0));
     incomeSelectedMonths = new Set(Array.from(incomeSelectedMonths).filter(month => payable.has(month)));
@@ -1563,6 +1674,10 @@ function handleIncomeMonthToggle(input) {
     if (!month) return;
     if (input.checked) incomeSelectedMonths.add(month);
     else incomeSelectedMonths.delete(month);
+    const selected = Array.from(incomeSelectedMonths)
+        .sort((a, b) => (monthLabelToKey(a) || '').localeCompare(monthLabelToKey(b) || ''));
+    if (selected.length) syncIncomeMonthPicker(getIncomeResidentFromForm(), selected[0]);
+    else updateIncomeMonthPickerHint(getIncomeResidentFromForm());
     if (!incomeAmountManual) syncIncomeAmountFromSelection();
     previewIncomeAllocation();
 }
@@ -1615,6 +1730,10 @@ function applyIncomeMonthQuickAction(action) {
         if (!unpaid.length) toast('لا توجد شهور مستحقة.', 'info');
     }
     incomeAmountManual = false;
+    const ordered = Array.from(incomeSelectedMonths)
+        .sort((a, b) => (monthLabelToKey(a) || '').localeCompare(monthLabelToKey(b) || ''));
+    if (ordered.length) syncIncomeMonthPicker(resident, ordered[0]);
+    else updateIncomeMonthPickerHint(resident);
     renderIncomeMonthsGrid(resident);
     syncIncomeAmountFromSelection();
     previewIncomeAllocation();
@@ -1707,6 +1826,13 @@ function resetIncomeFormFields() {
     const currentMonth = getCurrentMonth();
     if (monthSelect?.options && Array.from(monthSelect.options).some(option => option.value === currentMonth)) {
         monthSelect.value = currentMonth;
+    }
+    const monthPicker = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeMonthPicker'));
+    if (monthPicker) monthPicker.value = getLocalMonthKey();
+    const monthPickerHint = document.getElementById('incomeMonthPickerHint');
+    if (monthPickerHint) {
+        monthPickerHint.textContent = '';
+        monthPickerHint.className = 'text-[10px] text-slate-500';
     }
     syncIncomePurposeUi();
     syncIncomePurposeCashAccount('incomePurpose', 'incomeCashAccount', {
