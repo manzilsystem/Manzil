@@ -10,6 +10,8 @@ const assistantSource = fs.readFileSync(path.join(root, 'js', 'assistant.js'), '
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'css', 'style.css'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+const supabaseSource = fs.readFileSync(path.join(root, 'js', 'supabase.js'), 'utf8');
+const appSource = fs.readFileSync(path.join(root, 'js', 'app.js'), 'utf8');
 
 const NOW = new Date(2026, 10, 15, 12, 0, 0);
 
@@ -36,6 +38,23 @@ const ADJUSTMENTS = [
     { id: 'a2', residentId: 'r1', kind: 'discount', effectiveMonth: '2026-10-01', amount: 10, reason: 'خصم أخوة' }
 ];
 
+const NOTICES = [
+    { id: 'n1', text: 'صيانة الأسانسير يوم الخميس', date: '2026-10-20T09:00:00.000Z' },
+    { id: 'n2', text: 'قراءة العدادات الأسبوع الجاي', date: '2026-11-10T09:00:00.000Z' }
+];
+
+const OWNER_NOTIFICATIONS = [
+    { id: 'on1', title: 'إيصال جديد', body: 'تم تسجيل دفعة نوفمبر', readAt: '2026-11-05T08:00:00.000Z', createdAt: '2026-11-04T08:00:00.000Z' },
+    { id: 'on2', title: 'تذكير بالاشتراك', body: 'الموعد آخر الشهر', readAt: null, createdAt: '2026-11-12T08:00:00.000Z' }
+];
+
+const PAYMENT_SETTINGS = {
+    cash: { enabled: true },
+    wallet: { enabled: false, provider: 'فودافون كاش', accountName: 'مدير', number: '01000000000' },
+    instapay: { enabled: true, accountName: 'منزل للعمارات', address: 'MANZIL.INSTA' },
+    bank_transfer: { enabled: true, bankName: 'البنك الأهلي', accountName: 'منزل', iban: 'EG0000000000000000000000000' }
+};
+
 function createStorageStub() {
     const map = new Map();
     return {
@@ -46,7 +65,7 @@ function createStorageStub() {
     };
 }
 
-function createHarness(seed = true) {
+function createHarness(seed = true, identity = {}) {
     const sessionStorage = createStorageStub();
     const sandbox = {
         console,
@@ -69,7 +88,31 @@ function createHarness(seed = true) {
     const context = vm.createContext(sandbox);
     vm.runInContext(stateSource, context, { filename: 'js/state.js' });
     vm.runInContext(assistantSource, context, { filename: 'js/assistant.js' });
-    if (seed) {
+    vm.runInContext(`
+        currentUserRole = ${JSON.stringify(identity.role || 'manager')};
+        currentProfileName = ${JSON.stringify(identity.profileName === undefined ? null : identity.profileName)};
+        currentResidentId = ${JSON.stringify(identity.residentId === undefined ? null : identity.residentId)};
+    `, context);
+    if (identity.ownerScoped) {
+        vm.runInContext(`
+            state.buildingName = 'عمارة النور';
+            state.managerName = 'أ. محمد';
+            state.managerPhone = '01000000000';
+            state.defaultSubscription = 100;
+            state.floorCount = 5;
+            state.apartmentsPerFloor = 4;
+            state.subscriptionDueDay = 5;
+            state.subscriptionGraceDays = 3;
+            state.paymentSettings = ${JSON.stringify(PAYMENT_SETTINGS)};
+            state.residents = ${JSON.stringify(RESIDENTS.slice(0, 1))};
+            state.income = ${JSON.stringify(INCOME.filter(item => item.residentId === 'r1'))};
+            state.expenses = [];
+            state.adjustments = ${JSON.stringify(ADJUSTMENTS.filter(item => item.residentId === 'r1'))};
+            state.notices = ${JSON.stringify(NOTICES)};
+            state.ownerNotifications = ${JSON.stringify(OWNER_NOTIFICATIONS)};
+            state.cashAccountBalances = { main: 0, development: 0, emergency: 0 };
+        `, context);
+    } else if (seed) {
         vm.runInContext(`
             state.buildingName = 'عمارة النور';
             state.managerName = 'أ. محمد';
@@ -87,6 +130,9 @@ function createHarness(seed = true) {
     const api = vm.runInContext(`({
         answerAssistantQuery,
         buildAssistantGreetingHtml,
+        assistantAddress,
+        assistantUserDisplayName,
+        detectOwnerAssistantIntent,
         detectAssistantIntent,
         getAssistantArrearsSnapshot,
         getAssistantCashSnapshot,
@@ -442,8 +488,8 @@ test('the chat and its context survive a reopen and reset wipes both', () => {
     const { context, api, storage } = createHarness();
     api.appendAssistantMessage('user', '<p>سؤال</p>');
     api.answerAssistantQuery('تحصيل أكتوبر 2026', NOW);
-    assert.equal(JSON.parse(storage.getItem('manzil-assistant-chat:building-1')).length, 1);
-    assert.match(storage.getItem('manzil-assistant-context:building-1'), /أكتوبر 2026/);
+    assert.equal(JSON.parse(storage.getItem('manzil-assistant-chat:building-1:manager')).length, 1);
+    assert.match(storage.getItem('manzil-assistant-context:building-1:manager'), /أكتوبر 2026/);
 
     vm.runInContext('assistantChat = []; assistantContext = { period: null, residentId: null };', context);
     api.restoreAssistantSession();
@@ -456,13 +502,13 @@ test('the chat and its context survive a reopen and reset wipes both', () => {
         assistantContext = { period: null, residentId: null };
         resetAssistantChat();
     `, context);
-    assert.equal(JSON.parse(storage.getItem('manzil-assistant-context:building-1')).period, null);
+    assert.equal(JSON.parse(storage.getItem('manzil-assistant-context:building-1:manager')).period, null);
     assert.equal(api.chatSnapshot().length, 1, 'reset leaves only the fresh greeting');
 });
 
 test('a tampered chat log is dropped instead of rendered', () => {
     const { api, storage } = createHarness();
-    storage.setItem('manzil-assistant-chat:building-1', JSON.stringify([
+    storage.setItem('manzil-assistant-chat:building-1:manager', JSON.stringify([
         { role: 'bot', html: '<img src=x onerror="alert(1)">' },
         { role: 'bot', html: '<script>alert(1)</script>' },
         { role: 'bot', html: '<p class="assistant-hello">رد سليم</p>' }
@@ -470,4 +516,110 @@ test('a tampered chat log is dropped instead of rendered', () => {
     api.restoreAssistantSession();
     assert.equal(api.chatSnapshot().length, 1);
     assert.match(api.chatSnapshot()[0].html, /رد سليم/);
+});
+
+test('the assistant calls each signed-in user by their own name', () => {
+    const named = createHarness(true, { role: 'manager', profileName: 'محمود سمير' });
+    assert.equal(named.api.assistantUserDisplayName(), 'محمود سمير');
+    assert.match(named.api.buildAssistantGreetingHtml(NOW), /أهلاً يا محمود سمير/);
+    assert.match(named.api.answerAssistantQuery('شكرا', NOW).html, /تحت أمرك يا محمود سمير/);
+
+    const owner = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    assert.match(owner.api.buildAssistantGreetingHtml(NOW), /أهلاً يا أحمد علي/);
+
+    const anonymous = createHarness(true, { role: 'manager', profileName: null });
+    assert.equal(anonymous.api.assistantAddress(), 'يا أستاذ', 'an unnamed account keeps the generic address');
+});
+
+test('an owner bill answer covers their own apartment and their own due window', () => {
+    const { api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    const bill = api.answerAssistantQuery('عليّا كام في أكتوبر 2026؟', NOW);
+    assert.equal(bill.id, 'my_bill');
+    assert.match(bill.title, /أكتوبر 2026/);
+    assert.match(bill.html, /شقة 3/);
+    assert.match(bill.html, /يوم 5 من كل شهر/);
+    assert.match(bill.html, /فترة السماح/);
+    assert.doesNotMatch(bill.html, /سارة/, 'an owner never sees another resident');
+
+    const followUp = api.answerAssistantQuery('عليّا كام؟', NOW);
+    assert.match(followUp.title, /أكتوبر 2026/, 'the month just discussed carries over');
+    const fresh = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    assert.match(fresh.api.answerAssistantQuery('عليّا كام؟', NOW).title, /نوفمبر 2026/);
+    assert.equal(api.detectOwnerAssistantIntent(api.normalizeAssistantArabic('مين عليه متأخرات')), 'my_bill', 'arrears resolve to the owner’s own debt');
+    assert.equal(fresh.api.answerAssistantQuery('مين عليه متأخرات؟', NOW).id, 'my_bill');
+});
+
+test('building-wide questions are refused for owners instead of answered with their slice', () => {
+    const { api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    for (const query of ['إجمالي تحصيل العمارة', 'مصروفات الشهر', 'رصيد الخزنة كام؟', 'تقرير المالك', 'عدد السكان']) {
+        const answer = api.answerAssistantQuery(query, NOW);
+        assert.equal(answer.id, 'owner_scope', query);
+        assert.match(answer.html, /دي تخص إدارة العمارة|بتظهر في حسابك/);
+        assert.doesNotMatch(answer.html, /1,200|390|200\.00/, 'no building aggregate leaks into the refusal');
+    }
+    const adjustments = api.answerAssistantQuery('الإعفاءات والتخفيضات', NOW);
+    assert.equal(adjustments.id, 'my_adjustments');
+    assert.doesNotMatch(adjustments.html, /سارة|خصم أخوة/);
+});
+
+test('owners get receipts, due dates, payment methods, notices, notifications and the manager', () => {
+    const { api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    assert.equal(api.answerAssistantQuery('إيصالاتي', NOW).id, 'my_receipts');
+    assert.doesNotMatch(api.answerAssistantQuery('إيصالاتي', NOW).html, /سارة|200\.00/, 'only their own payments');
+    assert.equal(api.answerAssistantQuery('آخر يوم للدفع كام؟', NOW).id, 'my_due_date');
+    assert.equal(api.answerAssistantQuery('أقدر أدفع بإيه؟', NOW).id, 'payment_methods');
+    const methods = api.answerAssistantQuery('طرق الدفع المتاحة', NOW).html;
+    assert.match(methods, /تحويل بنكي/);
+    assert.match(methods, /InstaPay/);
+    assert.doesNotMatch(methods, /فودافون كاش/, 'a disabled method must not be offered');
+    assert.equal(api.answerAssistantQuery('إعلانات المبنى', NOW).id, 'notices');
+    assert.match(api.answerAssistantQuery('إعلانات المبنى', NOW).html, /قراءة العدادات/);
+    assert.equal(api.answerAssistantQuery('إشعاراتي', NOW).id, 'my_notifications');
+    assert.match(api.answerAssistantQuery('إشعاراتي', NOW).html, /إيصال جديد/);
+    assert.equal(api.answerAssistantQuery('رقم المدير', NOW).id, 'contact');
+    assert.match(api.answerAssistantQuery('رقم المدير', NOW).html, /href="tel:01000000000"/);
+    assert.equal(api.answerAssistantQuery('بيانات شقتي', NOW).id, 'my_apartment');
+});
+
+test('an owner greeting and follow-ups stay inside their own scope', () => {
+    const { api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    const greeting = api.answerAssistantQuery('السلام عليكم', NOW);
+    assert.equal(greeting.id, 'greeting');
+    assert.match(greeting.html, /شقة 3/);
+    assert.doesNotMatch(greeting.html, /1,200/, 'the owner greeting never shows cashbox balances');
+    const labels = Array.from(api.buildAssistantFollowUps('my_bill', { type: 'month', label: 'نوفمبر 2026', months: ['نوفمبر 2026'] })
+        .map(item => item.query));
+    assert.deepEqual(labels, ['إيصالاتي', 'آخر يوم للدفع كام؟', 'عليّا متأخرات؟']);
+    assert.equal(api.buildAssistantFollowUps('summary', { type: 'month', label: 'نوفمبر 2026', months: ['نوفمبر 2026'] }).length, 2, 'unknown ids fall back to owner suggestions');
+});
+
+test('assistant history is stored per identity so an owner never restores the manager chat', () => {
+    const { context, api, storage } = createHarness();
+    api.appendAssistantMessage('bot', '<p>رصيد الخزنة 1,200</p>');
+    assert.ok(storage.map.has('manzil-assistant-chat:building-1:manager'));
+    vm.runInContext(`
+        currentUserRole = 'owner';
+        currentResidentId = 'r1';
+        assistantChat = [];
+        assistantContext = { period: null, residentId: null };
+    `, context);
+    api.restoreAssistantSession();
+    assert.equal(api.chatSnapshot().length, 0, 'the owner session starts clean');
+    assert.ok(!storage.map.has('manzil-assistant-chat:building-1:owner-r1'));
+});
+
+test('owners keep the launcher and can open the assistant without manager rights', () => {
+    assert.match(assistantSource, /function isAssistantFabAllowed\(\) \{[\s\S]{0,220}currentUserRole !== 'manager' && currentUserRole !== 'owner'/);
+    assert.match(assistantSource, /function openAssistantModal\(\) \{[\s\S]{0,240}currentUserRole !== 'manager' && currentUserRole !== 'owner'/);
+    assert.doesNotMatch(assistantSource, /function openAssistantModal\(\) \{[\s\S]{0,80}requireManager/, 'the assistant is no longer manager-only');
+    assert.doesNotMatch(css, /body\.owner-mode \.assistant-fab\s*[,{][^}]*display:\s*none/, 'the launcher must stay visible in the owner portal');
+    assert.match(css, /body\.owner-mode \.assistant-fab \{ bottom:/, 'and sit lower while the bottom nav is hidden');
+    assert.match(assistantSource, /const suggestions = assistantIsOwner\(\) \? ASSISTANT_SUGGESTIONS_OWNER : ASSISTANT_SUGGESTIONS;/);
+    assert.match(assistantSource, /const map = assistantIsOwner\(\) \? ASSISTANT_FOLLOWUPS_OWNER : ASSISTANT_FOLLOWUPS;/);
+    assert.match(supabaseSource, /\.select\('must_change_pin,theme_preference,full_name'\)/, 'the display name rides in with the profile');
+    assert.match(supabaseSource, /currentProfileName = typeof profile\?\.full_name/);
+    assert.match(supabaseSource, /if \(typeof syncAssistantFab === 'function'\) syncAssistantFab\(\)/, 'the launcher syncs once the session is known');
+    assert.match(stateSource, /var currentProfileName = null;/);
+    assert.match(appSource, /if \(id !== 'pinLockModal' && !OWNER_ALLOWED_MODALS\.has\(id\) && !requireManager\(\)\) return;/);
+    assert.match(appSource, /const OWNER_ALLOWED_MODALS = new Set\(\['assistantModal'\]\);/, 'the assistant is the only modal an owner may open');
 });

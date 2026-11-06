@@ -18,6 +18,14 @@ const ASSISTANT_SUGGESTIONS = Object.freeze([
     { label: 'مصروفات الشهر', query: 'مصروفات الشهر' },
     { label: 'الإعفاءات', query: 'الإعفاءات والتخفيضات' }
 ]);
+const ASSISTANT_SUGGESTIONS_OWNER = Object.freeze([
+    { label: 'حسابي الشهر ده', query: 'عليّا كام الشهر ده؟' },
+    { label: 'إيصالاتي', query: 'إيصالاتي' },
+    { label: 'آخر يوم للدفع', query: 'آخر يوم للدفع كام؟' },
+    { label: 'طرق الدفع', query: 'أقدر أدفع بإيه؟' },
+    { label: 'إعلانات المبنى', query: 'إعلانات المبنى' },
+    { label: 'أكلم المدير', query: 'رقم المدير' }
+]);
 
 const ASSISTANT_TYPING_DELAY_MS = 260;
 const ASSISTANT_HISTORY_LIMIT = 30;
@@ -43,14 +51,38 @@ const ASSISTANT_FOLLOWUPS = Object.freeze({
     unknown: ['ملخص الشهر', 'مين عليه متأخرات؟']
 });
 
+const ASSISTANT_FOLLOWUPS_OWNER = Object.freeze({
+    my_bill: ['إيصالاتي', 'آخر يوم للدفع كام؟', 'عليّا متأخرات؟'],
+    my_receipts: ['عليّا كام الشهر ده؟', 'إعلانات المبنى'],
+    my_due_date: ['عليّا كام الشهر ده؟', 'أقدر أدفع بإيه؟'],
+    payment_methods: ['آخر يوم للدفع كام؟', 'رقم المدير'],
+    my_notifications: ['إعلانات المبنى', 'عليّا كام الشهر ده؟'],
+    notices: ['إشعاراتي', 'رقم المدير'],
+    contact: ['أقدر أدفع بإيه؟', 'عليّا كام الشهر ده؟'],
+    my_adjustments: ['عليّا كام الشهر ده؟', 'إيصالاتي'],
+    greeting: ['عليّا كام الشهر ده؟', 'إيصالاتي'],
+    thanks: ['عليّا كام الشهر ده؟', 'إعلانات المبنى'],
+    help: ['عليّا كام الشهر ده؟', 'آخر يوم للدفع كام؟'],
+    owner_scope: ['عليّا كام الشهر ده؟', 'إيصالاتي'],
+    unknown: ['عليّا كام الشهر ده؟', 'إعلانات المبنى']
+});
+
 let assistantContext = { period: null, residentId: null };
 let assistantChat = [];
 
+function assistantIdentityKey() {
+    if (typeof currentUserRole !== 'undefined' && currentUserRole === 'owner') {
+        return `owner-${String(currentResidentId || 'none')}`;
+    }
+    return 'manager';
+}
+
 function assistantStorageKeys() {
     const building = typeof activeBuildingId === 'string' && activeBuildingId ? activeBuildingId : 'local';
+    const scope = `${building}:${assistantIdentityKey()}`;
     return {
-        chat: `${ASSISTANT_CHAT_STORAGE_PREFIX}:${building}`,
-        context: `${ASSISTANT_CONTEXT_STORAGE_PREFIX}:${building}`
+        chat: `${ASSISTANT_CHAT_STORAGE_PREFIX}:${scope}`,
+        context: `${ASSISTANT_CONTEXT_STORAGE_PREFIX}:${scope}`
     };
 }
 
@@ -123,7 +155,8 @@ function rememberAssistantContext(text, period, resident) {
 }
 
 function buildAssistantFollowUps(answerId, period) {
-    const queries = ASSISTANT_FOLLOWUPS[answerId] || ASSISTANT_FOLLOWUPS.unknown;
+    const map = assistantIsOwner() ? ASSISTANT_FOLLOWUPS_OWNER : ASSISTANT_FOLLOWUPS;
+    const queries = map[answerId] || map.unknown;
     const label = period && period.type === 'month' ? period.label : null;
     return queries.slice(0, 3).map(query => {
         const scoped = query.replace(/(نفس الفترة|الشهر)/, label || 'الشهر');
@@ -371,8 +404,8 @@ function resolveAssistantResident(text) {
     return { resident: matches.length === 1 ? matches[0] : null, matches };
 }
 
-function getAssistantResidentSnapshot(resident, now = new Date()) {
-    const month = getAssistantNowLabel(now);
+function getAssistantResidentSnapshot(resident, now = new Date(), monthLabel = '') {
+    const month = monthLabel || getAssistantNowLabel(now);
     const subscription = typeof getSubscriptionAmountForMonth === 'function'
         ? Number(getSubscriptionAmountForMonth(resident, month)) || 0
         : Number(resident.monthlyAmount ?? state.defaultSubscription) || 0;
@@ -670,25 +703,380 @@ function buildAssistantReportsAnswer() {
 
 const ASSISTANT_HERO_SRC = 'icons/assistant-abbah-full.png';
 
+function assistantIsOwner() {
+    return typeof currentUserRole !== 'undefined' && currentUserRole === 'owner';
+}
+
+function assistantOwnerResident() {
+    const residents = Array.isArray(state.residents) ? state.residents : [];
+    if (!residents.length) return null;
+    return residents.find(resident => resident.id === currentResidentId) || residents[0];
+}
+
+function assistantUserDisplayName() {
+    if (assistantIsOwner()) return String(assistantOwnerResident()?.name || '').trim();
+    return String(typeof currentProfileName === 'string' ? currentProfileName : '').trim();
+}
+
+function assistantAddress() {
+    const name = assistantUserDisplayName();
+    return name ? `يا ${assistantEscape(name)}` : 'يا أستاذ';
+}
+
+function assistantCents(value) {
+    return typeof toCents === 'function' ? toCents(value) : Math.round((Number(value) || 0) * 100);
+}
+
+function assistantDateLabel(value) {
+    if (!value) return '';
+    return typeof formatDate === 'function' ? String(formatDate(value) || '') : String(value);
+}
+
+function assistantDueRows(monthLabel, outstanding, now = new Date()) {
+    if (typeof getSubscriptionDueDeadline !== 'function') return '';
+    const deadline = getSubscriptionDueDeadline(monthLabel);
+    if (!deadline) return '';
+    const dueDay = Math.min(28, Math.max(1, Number(state.subscriptionDueDay) || 1));
+    const graceDays = Math.min(31, Math.max(0, Number(state.subscriptionGraceDays) || 0));
+    const late = Number(outstanding) > 0 && new Date(now || Date.now()).getTime() >= deadline.getTime();
+    let html = assistantRow('ميعاد المستحق', `يوم ${assistantNumber(dueDay)} من كل شهر`);
+    html += assistantRow('فترة السماح', `${assistantNumber(graceDays)} يوم`);
+    const deadlineLabel = assistantDateLabel(deadline);
+    if (deadlineLabel) html += assistantRow('آخر موعد للدفع', deadlineLabel, late ? 'bad' : '');
+    return html;
+}
+
+function buildAssistantOwnerMissingAnswer() {
+    return {
+        id: 'owner_scope',
+        title: 'مفيش شقة على حسابك',
+        html: assistantNote('لسه مفيش شقة مرتبطة بحسابك. اطلب من مدير العمارة ربط الحساب، وبعدها أقدر أقولك حسابك وإيصالاتك وميعاد الدفع.')
+    };
+}
+
+function buildAssistantOwnerBillAnswer(period, now = new Date()) {
+    const resident = assistantOwnerResident();
+    if (!resident) return buildAssistantOwnerMissingAnswer();
+    const month = period && period.type === 'month' ? period.label : getAssistantNowLabel(now);
+    const snapshot = getAssistantResidentSnapshot(resident, now, month);
+    let html = '';
+    html += assistantRow('شقتك', assistantApartmentLabel(resident));
+    html += assistantRow('اشتراك الشهر', assistantMoney(snapshot.subscription));
+    html += assistantRow('المدفوع في الشهر ده', assistantMoney(snapshot.paid), snapshot.paid > 0 ? 'good' : '');
+    if (snapshot.adjusted > 0) html += assistantRow('إعفاء / تخفيض', assistantMoney(snapshot.adjusted), 'warn');
+    html += assistantRow('المتبقي عليك', assistantMoney(snapshot.outstanding), snapshot.outstanding > 0 ? 'bad' : 'good');
+    html += assistantRow('متأخرات على شقتك', assistantMoney(snapshot.debt.totalDebt), snapshot.debt.totalDebt > 0 ? 'bad' : 'good');
+    html += assistantDueRows(month, snapshot.outstanding, now);
+    if (snapshot.lastPayment) {
+        const dateLabel = assistantDateLabel(snapshot.lastPayment.date);
+        html += assistantRow('آخر دفعة', `${assistantMoney(snapshot.lastPayment.amount)}${dateLabel ? ` · ${dateLabel}` : ''}`);
+    }
+    html += snapshot.outstanding <= 0 && snapshot.debt.totalDebt <= 0
+        ? assistantNote('حسابك تمام — مفيش حاجة عليك دلوقتي.')
+        : assistantNote('الأرقام دي من سجل العمارة لشقتك أنت؛ لو دفعة مش ظاهرة كلم مدير العمارة.');
+    return { id: 'my_bill', title: `حسابك · ${month}`, html };
+}
+
+function buildAssistantOwnerReceiptsAnswer(period, now = new Date()) {
+    const resident = assistantOwnerResident();
+    if (!resident) return buildAssistantOwnerMissingAnswer();
+    const allowed = period && period.type !== 'all' && Array.isArray(period.months) ? new Set(period.months) : null;
+    const payments = (Array.isArray(state.income) ? state.income : [])
+        .filter(payment => payment.residentId === resident.id)
+        .filter(payment => !allowed || allowed.has(String(payment.month || '')))
+        .slice()
+        .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+    const title = `إيصالاتك · ${allowed ? period.label : 'كل الفترات'}`;
+    if (!payments.length) return { id: 'my_receipts', title, html: assistantNote('مفيش دفعات مسجلة على شقتك في الفترة دي.') };
+    const totalCents = payments.reduce((sum, payment) => sum + assistantCents(payment.amount), 0);
+    let html = assistantRow('عدد الإيصالات', assistantNumber(payments.length));
+    html += assistantRow('إجمالي اللي دفعته', assistantMoney(totalCents / 100), 'good');
+    html += assistantList(payments.slice(0, 6).map(payment => {
+        const dateLabel = assistantDateLabel(payment.date);
+        const method = typeof getIncomePaymentMethodLabel === 'function'
+            ? getIncomePaymentMethodLabel(payment.paymentMethod)
+            : 'نقدًا';
+        return `${assistantEscape(payment.month || '')}${dateLabel ? ` · ${assistantEscape(dateLabel)}` : ''} — <strong>${assistantEscape(assistantMoney(payment.amount))}</strong> · ${assistantEscape(method)}`;
+    }));
+    if (payments.length > 6) html += assistantNote(`وفي ${assistantNumber(payments.length - 6)} إيصالات أقدم؛ كاملها في بوابة المالك.`);
+    html += assistantNote('كل دفعة ليها إيصال في بوابة المالك، ولو ناقصك نسخة اطلبها من المدير.');
+    return { id: 'my_receipts', title, html };
+}
+
+function buildAssistantOwnerDueAnswer(now = new Date()) {
+    const resident = assistantOwnerResident();
+    if (!resident) return buildAssistantOwnerMissingAnswer();
+    const month = getAssistantNowLabel(now);
+    const snapshot = getAssistantResidentSnapshot(resident, now, month);
+    let html = assistantDueRows(month, snapshot.outstanding, now);
+    const overdueNow = typeof isSubscriptionMonthOverdue === 'function' ? isSubscriptionMonthOverdue(month, now) : false;
+    const status = snapshot.outstanding <= 0
+        ? 'مفيش عليك حاجة في الشهر ده'
+        : overdueNow ? 'الموعد عدّى — يُرجى الدفع وتوضيح المدير' : 'لسه في وقت، المتبقي ' + assistantMoney(snapshot.outstanding);
+    html += assistantRow('الحالة', status, snapshot.outstanding > 0 && overdueNow ? 'bad' : snapshot.outstanding > 0 ? 'warn' : 'good');
+    if (snapshot.debt.totalDebt > 0) {
+        html += assistantRow('متأخرات سابقة', assistantMoney(snapshot.debt.totalDebt), 'bad');
+        html += assistantNote(`عليك ${assistantNumber(snapshot.debt.count)} شهر متأخر، والمدير يقدر يوضحلك التسويات المتاحة.`);
+    }
+    return { id: 'my_due_date', title: `ميعاد الدفع · ${month}`, html };
+}
+
+function buildAssistantOwnerPaymentMethodsAnswer() {
+    const settings = typeof normalizePaymentSettings === 'function'
+        ? normalizePaymentSettings(state.paymentSettings)
+        : (state.paymentSettings || {});
+    const labels = typeof INCOME_PAYMENT_METHOD_LABELS !== 'undefined' ? INCOME_PAYMENT_METHOD_LABELS : {};
+    const rows = Object.keys(labels)
+        .filter(method => settings[method]?.enabled)
+        .map(method => {
+            const detail = settings[method] || {};
+            const parts = [];
+            if (method === 'wallet') {
+                if (detail.provider) parts.push(`الشركة: ${detail.provider}`);
+                if (detail.accountName) parts.push(`صاحب المحفظة: ${detail.accountName}`);
+            } else if (method === 'instapay') {
+                if (detail.accountName) parts.push(`صاحب الحساب: ${detail.accountName}`);
+                if (detail.address) parts.push(`عنوان الدفع: ${detail.address}`);
+            } else if (method === 'bank_transfer') {
+                if (detail.bankName) parts.push(`البنك: ${detail.bankName}`);
+                if (detail.accountName) parts.push(`صاحب الحساب: ${detail.accountName}`);
+            } else {
+                parts.push('تسليم نقدي لمدير العمارة.');
+            }
+            return `<strong>${assistantEscape(labels[method])}</strong>${parts.length ? ` — ${assistantEscape(parts.join(' · '))}` : ''}`;
+        });
+    const html = rows.length
+        ? assistantList(rows) + assistantNote('البيانات دي زي ما المدير مسجلها في إعدادات الدفع، والدفع نفسه بيتسجل عند المدير.')
+        : assistantNote('مفيش طرق دفع مفعّلة حاليًا؛ الدفع نقدًا لمدير العمارة.');
+    return { id: 'payment_methods', title: 'طرق الدفع المتاحة', html };
+}
+
+function buildAssistantOwnerNotificationsAnswer() {
+    const notifications = (Array.isArray(state.ownerNotifications) ? state.ownerNotifications : [])
+        .slice()
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    const unread = notifications.filter(notification => !notification.readAt).length;
+    let html = assistantRow('إشعاراتك', assistantNumber(notifications.length));
+    html += assistantRow('غير المقروء', assistantNumber(unread), unread > 0 ? 'warn' : 'good');
+    html += notifications.length
+        ? assistantList(notifications.slice(0, 5).map(notification => {
+            const dateLabel = assistantDateLabel(notification.createdAt);
+            return `${assistantEscape(notification.title || 'إشعار')}${dateLabel ? ` · ${assistantEscape(dateLabel)}` : ''}${notification.readAt ? '' : ' · <strong>جديد</strong>'}`;
+        }))
+        : assistantNote('مفيش إشعارات على حسابك حاليًا.');
+    if (unread > 0) html += assistantNote('افتح الإشعار من بوابة المالك وحدده كمقروء.');
+    return { id: 'my_notifications', title: 'إشعارات حسابك', html };
+}
+
+function buildAssistantNoticesAnswer() {
+    const notices = (Array.isArray(state.notices) ? state.notices : [])
+        .slice()
+        .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+    let html = '';
+    if (notices.length) {
+        html += assistantList(notices.slice(0, 3).map(notice => {
+            const dateLabel = assistantDateLabel(notice.date);
+            return `${assistantEscape(String(notice.text || '').slice(0, 140))}${dateLabel ? ` — <em>${assistantEscape(dateLabel)}</em>` : ''}`;
+        }));
+        if (notices.length > 3) html += assistantNote(`و${assistantNumber(notices.length - 3)} إعلان أقدم موجود في بوابة المالك.`);
+    } else {
+        html += assistantNote('مفيش إعلانات منشورة حاليًا.');
+    }
+    return { id: 'notices', title: 'إعلانات المبنى', html };
+}
+
+function buildAssistantManagerContactAnswer() {
+    const name = String(state.managerName || '').trim();
+    const phone = String(state.managerPhone || '').trim();
+    let html = '';
+    html += assistantRow('مدير العمارة', name || 'غير مسجل');
+    html += assistantRow('رقم التواصل', phone || 'غير مسجل');
+    if (phone) {
+        html += `<p class="assistant-note">تقدر تتصل بالمدير مباشرة: <a href="tel:${assistantEscape(phone.replace(/[^\d+]/g, ''))}" class="assistant-link">${assistantEscape(phone)}</a></p>`;
+    }
+    html += assistantNote('أي تعديل في الاشتراك أو تسوية أو إيصال بيتسجل عن طريق مدير العمارة.');
+    return { id: 'contact', title: 'تواصل مع المدير', html };
+}
+
+function buildAssistantOwnerApartmentAnswer(now = new Date()) {
+    const resident = assistantOwnerResident();
+    if (!resident) return buildAssistantOwnerMissingAnswer();
+    const month = getAssistantNowLabel(now);
+    const snapshot = getAssistantResidentSnapshot(resident, now, month);
+    let html = '';
+    html += assistantRow('شقتك', assistantApartmentLabel(resident));
+    if (state.buildingName) html += assistantRow('العمارة', String(state.buildingName));
+    if (resident.floor) html += assistantRow('الدور', String(resident.floor));
+    html += assistantRow('اشتراك الشهر الحالي', assistantMoney(snapshot.subscription));
+    html += assistantRow('المتبقي ' + month, assistantMoney(snapshot.outstanding), snapshot.outstanding > 0 ? 'bad' : 'good');
+    html += assistantRow('متأخرات على شقتك', assistantMoney(snapshot.debt.totalDebt), snapshot.debt.totalDebt > 0 ? 'bad' : 'good');
+    html += assistantNote('بيانات الشقق التانية وسجلات العمارة مش متاحة في حسابك.');
+    return { id: 'my_apartment', title: 'بيانات شقتك', html };
+}
+
+function buildAssistantOwnerAdjustmentsAnswer(period, now = new Date()) {
+    const resident = assistantOwnerResident();
+    if (!resident) return buildAssistantOwnerMissingAnswer();
+    const allowed = new Set(period && Array.isArray(period.months) ? period.months : []);
+    const rows = (Array.isArray(state.adjustments) ? state.adjustments : []).filter(adjustment => {
+        if (adjustment.residentId !== resident.id) return false;
+        const key = String(adjustment.effectiveMonth || '');
+        if (!/^\d{4}-\d{2}-01$/.test(key)) return false;
+        const label = typeof monthKeyToLabel === 'function'
+            ? monthKeyToLabel(key)
+            : `${getAssistantMonthNames()[Number(key.slice(5, 7)) - 1]} ${key.slice(0, 4)}`;
+        return allowed.has(label);
+    });
+    const kindLabel = kind => typeof getAdjustmentKindLabel === 'function'
+        ? getAdjustmentKindLabel(kind)
+        : ({ waiver: 'إعفاء', discount: 'تخفيض', settlement: 'تسوية' }[kind] || 'تسوية');
+    let cents = 0;
+    rows.forEach(adjustment => {
+        const amountCents = assistantCents(adjustment.amount);
+        if (amountCents > 0) cents += amountCents;
+    });
+    let html = '';
+    html += assistantRow('إجمالي الإعفاءات والتخفيضات', assistantMoney(cents / 100), cents > 0 ? 'warn' : '');
+    html += assistantRow('عدد البنود', assistantNumber(rows.length));
+    html += rows.length
+        ? assistantList(rows.slice().sort((a, b) => String(b.effectiveMonth).localeCompare(String(a.effectiveMonth))).slice(0, 6).map(adjustment => {
+            const month = typeof monthKeyToLabel === 'function' ? monthKeyToLabel(adjustment.effectiveMonth) : String(adjustment.effectiveMonth).slice(0, 7);
+            return `${assistantEscape(kindLabel(adjustment.kind))} ${assistantEscape(assistantMoney(adjustment.amount))} · ${assistantEscape(month)}`;
+        }))
+        : assistantNote('مفيش إعفاءات أو تخفيضات مسجلة على شقتك في الفترة دي.');
+    html += assistantNote('الإعفاء والتخفيض بيخصموا من المستحق ومش بيتحسبوا دفعات نقدية.');
+    return { id: 'my_adjustments', title: `إعفاءات شقتك · ${period ? period.label : ''}`.trim(), html };
+}
+
+function buildAssistantOwnerHelpAnswer() {
+    const html = `${assistantList([
+        'حسابك في أي شهر: الاشتراك، المدفوع، المتبقي والمتأخرات.',
+        'إيصالاتك: كل دفعة بتاريخها وطريقة الدفع.',
+        'ميعاد الدفع: يوم الاستحقاق، فترة السماح وآخر موعد.',
+        'طرق الدفع المفعّلة في العمارة.',
+        'إشعاراتك وإعلانات المبنى.',
+        'إعفاءات وتخفيضات شقتك، ورقم مدير العمارة.'
+    ])}${assistantNote('اكتب بالعامية أو بالفصحى. مثال: «عليّا كام في نوفمبر؟»، «إيصالاتي»، «آخر يوم للدفع كام؟».')}`;
+    return { id: 'help', title: 'أنا أقدر أساعدك في إيه؟', html };
+}
+
+function buildAssistantOwnerScopeAnswer() {
+    const html = `${assistantNote('الحسابات دي تخص إدارة العمارة ومش بتظهر في حسابك. اللي أقدر أقوله لك:')}${assistantList([
+        'حسابك في أي شهر والمتأخرات على شقتك.',
+        'إيصالاتك، إعفاءات شقتك وطرق الدفع المفعّلة.',
+        'ميعاد الدفع وآخر موعد.',
+        'إعلانات المبنى، إشعاراتك ورقم المدير.'
+    ])}`;
+    return { id: 'owner_scope', title: 'ده يخص الإدارة', html };
+}
+
+function detectOwnerAssistantIntent(normalized) {
+    if (/(السلام عليكم|سلام|صباح|مساء|ازيك|عامل ايه|اهلا|هاي)/.test(normalized)) return 'greeting';
+    if (/(شكرا|تسلم|مشكور|ربنا يكرمك)/.test(normalized)) return 'thanks';
+    if (/(مساعده|ساعدني|بتعرف تعمل|تقدر تعمل|اوامر|خيارات|استخدمك|بتعرف ايه)/.test(normalized)) return 'help';
+    if (/(تحصيل|مصروف|مصاريف|صرف|خزنه|صندوق|سيوله|صافي|اجمالي|كل الشقق|السكان|سكان العماره|الشقق التاني|تقرير|تقارير|طابق العماره|طوابق العماره|ادوار العماره|احصائيات|لوحة تحكم)/.test(normalized)) return 'owner_scope';
+    if (/(استحقاق|اخر يوم|مهله|موعد الدفع|يوم كام ادفع|قبل ما اتاخر|متاخر عن ميعاد)/.test(normalized)) return 'my_due_date';
+    if (/(طرق الدفع|وسائل الدفع|ادفع باي|ادفع ازاي|تحويل بنكي|انستاباي|انستا باي|محفزه|فيزا|بطاقه)/.test(normalized)) return 'payment_methods';
+    if (/(ايصال|دفعاتي|مدفوعات|حركاتي|دفعت|استلمت)/.test(normalized)) return 'my_receipts';
+    if (/(اشعار|تنبيه|الرسائل اللي وصلت)/.test(normalized)) return 'my_notifications';
+    if (/(اعلان|اعلانات|لوحة|اخبار العماره)/.test(normalized)) return 'notices';
+    if (/(اعفاء|تخفيض|تسويه|خصم)/.test(normalized)) return 'my_adjustments';
+    if (/(مدير|رقم|تليفون|موبايل|اكلم|اتصل|شكوى|شكاوي)/.test(normalized)) return 'contact';
+    if (/(شقتي|وحدتي|بيانات حسابي|عمارتنا|مبنيانا)/.test(normalized)) return 'my_apartment';
+    if (/(حسابي|عليا|علياء|مستحق|متبقي|كام الشهر|ادفع كام|ادفع قد ايه|الفاتوره|فاتوره|اشتراك|متاخر|مديون|مش دفع|غير مدفوع|ملخص|وضع|احوال|نظره)/.test(normalized)) return 'my_bill';
+    return 'unknown';
+}
+
+function selectOwnerAssistantAnswer(intent, period, now) {
+    switch (intent) {
+        case 'greeting':
+            return { id: 'greeting', title: 'وعليكم السلام', html: buildAssistantOwnerGreetingHtml(now) };
+        case 'thanks':
+            return { id: 'thanks', title: 'العفو', html: `<p class="assistant-hello">تحت أمرك ${assistantAddress()}. لو محتاج رقم من حسابك أو ميعاد الدفع، اسألني.</p>` };
+        case 'help':
+            return buildAssistantOwnerHelpAnswer();
+        case 'my_bill':
+            return buildAssistantOwnerBillAnswer(period, now);
+        case 'my_receipts':
+            return buildAssistantOwnerReceiptsAnswer(period, now);
+        case 'my_due_date':
+            return buildAssistantOwnerDueAnswer(now);
+        case 'payment_methods':
+            return buildAssistantOwnerPaymentMethodsAnswer();
+        case 'my_notifications':
+            return buildAssistantOwnerNotificationsAnswer();
+        case 'notices':
+            return buildAssistantNoticesAnswer();
+        case 'my_adjustments':
+            return buildAssistantOwnerAdjustmentsAnswer(period, now);
+        case 'contact':
+            return buildAssistantManagerContactAnswer();
+        case 'my_apartment':
+            return buildAssistantOwnerApartmentAnswer(now);
+        case 'owner_scope':
+            return buildAssistantOwnerScopeAnswer();
+        default:
+            return {
+                id: 'unknown',
+                title: 'مش لاقي إجابة واضحة',
+                html: `<p class="assistant-note">معلش ${assistantAddress()}، السؤال ده مش واضح بالنسبة لي. جرّب تسألني عن:</p>${assistantList([
+                    'كام عليك في الشهر ده.',
+                    'إيصالاتك في شهر معين.',
+                    'آخر يوم للدفع وفترة السماح.',
+                    'طرق الدفع المفعّلة.',
+                    'إعلانات المبنى وإشعاراتك.'
+                ])}`
+            };
+    }
+}
+
+function answerOwnerAssistantQuery(text, now = new Date()) {
+    const intent = detectOwnerAssistantIntent(normalizeAssistantArabic(text));
+    const period = resolveAssistantPeriodWithContext(text, now);
+    return withAssistantAnswerMeta(selectOwnerAssistantAnswer(intent, period, now), period, null, text);
+}
+
 function assistantHeroHtml() {
     return `<img class="assistant-hero" src="${ASSISTANT_HERO_SRC}" alt="" width="74" height="74" decoding="async">`;
 }
 
 function buildAssistantGreetingHtml(now = new Date()) {
+    if (assistantIsOwner()) return buildAssistantOwnerGreetingHtml(now);
     const month = getAssistantNowLabel(now);
     const residents = Array.isArray(state.residents) ? state.residents : [];
+    const hello = `أهلاً ${assistantAddress()}، أنا <strong>${assistantEscape(ASSISTANT_NAME)}</strong> بواب العمارة ومساعدك المحلي.`;
     if (!residents.length) {
-        return `${assistantHeroHtml()}<p class="assistant-hello">أهلاً يا أستاذ، أنا <strong>${assistantEscape(ASSISTANT_NAME)}</strong> بواب العمارة ومساعدك المحلي.</p>
+        return `${assistantHeroHtml()}<p class="assistant-hello">${hello}</p>
             <p class="assistant-note">لسه مفيش شقق مسجلة. أضف الشقق والاشتراكات، وبعدها أقدر أقولك تحصيل الشهر والمتأخرات وأرصدة الخزائن.</p>`;
     }
     const summary = getAssistantMonthSummary({ type: 'month', label: month, months: [month] }, now);
     const arrears = getAssistantArrearsSnapshot();
-    let html = `${assistantHeroHtml()}<p class="assistant-hello">أهلاً يا أستاذ، أنا <strong>${assistantEscape(ASSISTANT_NAME)}</strong> بواب العمارة ومساعدك المحلي.</p>`;
+    let html = `${assistantHeroHtml()}<p class="assistant-hello">${hello}</p>`;
     html += assistantRow('احنا في شهر', month);
     html += assistantRow('تحصيل الشهر', assistantMoney(summary.income.total));
     html += assistantRow('غير محصل الشهر', assistantMoney(summary.outstandingTotal), summary.outstandingTotal > 0 ? 'warn' : 'good');
     html += assistantRow('إجمالي المتأخرات', assistantMoney(arrears.totalDebt), arrears.totalDebt > 0 ? 'bad' : 'good');
     html += assistantNote('اسألني عن أي شهر أو شقة، أو اختار من الأسئلة المقترحة تحت.');
+    return html;
+}
+
+function buildAssistantOwnerGreetingHtml(now = new Date()) {
+    const resident = assistantOwnerResident();
+    const hello = `أهلاً ${assistantAddress()}، أنا <strong>${assistantEscape(ASSISTANT_NAME)}</strong> بواب العمارة.`;
+    if (!resident) {
+        return `${assistantHeroHtml()}<p class="assistant-hello">${hello}</p>${buildAssistantOwnerMissingAnswer().html}`;
+    }
+    const month = getAssistantNowLabel(now);
+    const snapshot = getAssistantResidentSnapshot(resident, now, month);
+    let html = `${assistantHeroHtml()}<p class="assistant-hello">${hello}</p>`;
+    html += assistantRow('شقتك', assistantApartmentLabel(resident));
+    html += assistantRow('اشتراك ' + month, assistantMoney(snapshot.subscription));
+    html += assistantRow('المتبقي ' + month, assistantMoney(snapshot.outstanding), snapshot.outstanding > 0 ? 'warn' : 'good');
+    html += assistantRow('متأخرات على شقتك', assistantMoney(snapshot.debt.totalDebt), snapshot.debt.totalDebt > 0 ? 'bad' : 'good');
+    const unread = (Array.isArray(state.ownerNotifications) ? state.ownerNotifications : [])
+        .filter(notification => !notification.readAt).length;
+    if (unread) html += assistantRow('إشعارات جديدة', assistantNumber(unread), 'warn');
+    html += assistantNote('اسألني عن حسابك، إيصالاتك، ميعاد الدفع، طرق الدفع أو إعلانات المبنى.');
     return html;
 }
 
@@ -700,6 +1088,10 @@ function assistantRememberedResident() {
 
 function answerAssistantQuery(text, now = new Date()) {
     const normalized = normalizeAssistantArabic(text);
+    if (assistantIsOwner()) {
+        if (!normalized) return withAssistantAnswerMeta(buildAssistantOwnerHelpAnswer(), resolveAssistantPeriod(text, now), null);
+        return answerOwnerAssistantQuery(text, now);
+    }
     if (!normalized) return withAssistantAnswerMeta(buildAssistantHelpAnswer(), resolveAssistantPeriod(text, now), null);
     const residentMatch = resolveAssistantResident(text);
     if (residentMatch.matches.length > 1) {
@@ -725,7 +1117,7 @@ function selectAssistantAnswer(intent, period, resident, now) {
         case 'greeting':
             return { id: 'greeting', title: 'وعليكم السلام', html: buildAssistantGreetingHtml(now) };
         case 'thanks':
-            return { id: 'thanks', title: 'العفو يا أستاذ', html: '<p class="assistant-hello">تحت أمرك في أي وقت. لو محتاج أي رقم أو ملخص، اسألني.</p>' };
+            return { id: 'thanks', title: 'العفو', html: `<p class="assistant-hello">تحت أمرك ${assistantAddress()}. لو محتاج أي رقم أو ملخص، اسألني.</p>` };
         case 'help':
             return buildAssistantHelpAnswer();
         case 'adjustments':
@@ -752,7 +1144,7 @@ function selectAssistantAnswer(intent, period, resident, now) {
             return {
                 id: 'unknown',
                 title: 'مش لاقي إجابة واضحة',
-                html: `${assistantNote('معلش يا أستاذ، السؤال ده مش واضح بالنسبة لي. جرّب تسألني عن:')}${assistantList([
+                html: `<p class="assistant-note">معلش ${assistantAddress()}، السؤال ده مش واضح بالنسبة لي. جرّب تسألني عن:</p>${assistantList([
                     'ملخص الشهر أو تحصيل شهر معين.',
                     'مين عليه متأخرات.',
                     'رصيد الخزنة.',
@@ -810,7 +1202,8 @@ function showAssistantTyping() {
 function populateAssistantSuggestions() {
     const container = document.getElementById('assistantSuggestions');
     if (!container || container.children.length) return;
-    container.innerHTML = ASSISTANT_SUGGESTIONS.map(item =>
+    const suggestions = assistantIsOwner() ? ASSISTANT_SUGGESTIONS_OWNER : ASSISTANT_SUGGESTIONS;
+    container.innerHTML = suggestions.map(item =>
         `<button type="button" class="assistant-chip" data-assistant-query="${assistantEscape(item.query)}">${assistantEscape(item.label)}</button>`
     ).join('');
 }
@@ -825,15 +1218,22 @@ function restoreAssistantChat() {
 }
 
 function openAssistantModal() {
-    if (typeof requireManager === 'function' && !requireManager()) return;
+    if (typeof currentUserRole !== 'undefined' && currentUserRole !== 'manager' && currentUserRole !== 'owner') {
+        if (typeof toast === 'function') toast('المساعد متاح للمدير وللمالك في حدود حسابه', 'error');
+        return;
+    }
     if (typeof openModal === 'function') openModal('assistantModal');
     syncAssistantFab();
     populateAssistantSuggestions();
     const log = document.getElementById('assistantLog');
     if (log && !log.children.length) restoreAssistantChat();
     requestAnimationFrame(() => {
-        const input = document.getElementById('assistantInput');
-        if (input && typeof input.focus === 'function') input.focus();
+        const input = /** @type {HTMLInputElement | null} */ (document.getElementById('assistantInput'));
+        if (!input) return;
+        input.placeholder = assistantIsOwner()
+            ? 'اسألني عن حسابك، إيصالاتك، ميعاد الدفع…'
+            : 'اسألني عن التحصيل، المتأخرات، الخزنة…';
+        if (typeof input.focus === 'function') input.focus();
     });
 }
 
@@ -891,7 +1291,7 @@ function assistantModalIsOpen() {
 }
 
 function isAssistantFabAllowed() {
-    if (typeof currentUserRole !== 'undefined' && currentUserRole !== 'manager') return false;
+    if (typeof currentUserRole !== 'undefined' && currentUserRole !== 'manager' && currentUserRole !== 'owner') return false;
     if (document.body.classList.contains('session-locked')) return false;
     return !assistantModalIsOpen();
 }

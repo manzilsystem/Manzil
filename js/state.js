@@ -295,6 +295,7 @@ function renderReminderTemplate(template, values) {
 let editingResidentId = null;
 var currentUserRole = null;
 var currentResidentId = null;
+var currentProfileName = null;
 
 function logAction(action, details) {
     state.auditLogs.unshift({ id: generateId(), action, details, date: new Date().toISOString() });

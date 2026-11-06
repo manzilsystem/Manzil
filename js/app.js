@@ -47,8 +47,11 @@ function focusModal(modal) {
     modal.focus();
 }
 
+// Modals an owner may open: the assistant is read-only and answers only from the owner's own scoped data.
+const OWNER_ALLOWED_MODALS = new Set(['assistantModal']);
+
 function openModal(id) {
-    if (id !== 'pinLockModal' && !requireManager()) return;
+    if (id !== 'pinLockModal' && !OWNER_ALLOWED_MODALS.has(id) && !requireManager()) return;
     const modal = document.getElementById(id);
     if (!modal) return;
     if (modal.classList.contains('hidden')) {
