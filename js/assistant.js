@@ -430,13 +430,14 @@ function getAssistantResidentSnapshot(resident, now = new Date(), monthLabel = '
         : Number(resident.monthlyAmount ?? state.defaultSubscription) || 0;
     const settlement = typeof getSettlementAdjustmentForMonth === 'function'
         ? getSettlementAdjustmentForMonth(resident.id, month) : null;
-    const subscription = typeof getMonthlyDueAmountForMonth === 'function'
+    const monthlyDue = typeof getMonthlyDueAmountForMonth === 'function'
         ? Number(getMonthlyDueAmountForMonth(resident, month)) || 0 : grossSubscription;
+    const subscription = settlement ? monthlyDue : grossSubscription;
     const paid = typeof getMonthlyDuePaidAmount === 'function'
         ? Number(getMonthlyDuePaidAmount(resident.id, month)) || 0
         : typeof getPaidAmountForMonth === 'function'
             ? Number(getPaidAmountForMonth(resident.id, month)) || 0 : 0;
-    const adjusted = Math.max(0, Math.round((grossSubscription - subscription) * 100)) / 100;
+    const adjusted = Math.max(0, Math.round((grossSubscription - monthlyDue) * 100)) / 100;
     const settlementPaid = settlement && typeof getSettlementPaidAmount === 'function'
         ? Number(getSettlementPaidAmount(settlement.id)) || 0 : 0;
     const settlementRemaining = settlement && typeof getSettlementRemainingAmount === 'function'
