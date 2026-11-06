@@ -22,11 +22,12 @@ BEGIN
         'buildings', 'residents', 'income', 'expenses', 'notices',
         'audit_logs', 'client_errors', 'building_mutations',
         'cash_transfers', 'notifications', 'profiles',
-        'resident_subscription_rates', 'resident_subscription_rate_changes'
+        'resident_subscription_rates', 'resident_subscription_rate_changes',
+        'resident_adjustments'
       );
     
-    IF table_count < 13 THEN
-        RAISE EXCEPTION 'Missing core tables: found %, expected at least 13', table_count;
+    IF table_count < 14 THEN
+        RAISE EXCEPTION 'Missing core tables: found %, expected at least 14', table_count;
     END IF;
     
     RAISE NOTICE 'Core tables verified: % found', table_count;
@@ -44,7 +45,8 @@ BEGIN
         'buildings', 'residents', 'income', 'expenses', 'notices',
         'audit_logs', 'client_errors', 'building_mutations',
         'cash_transfers', 'notifications', 'profiles',
-        'resident_subscription_rates', 'resident_subscription_rate_changes'
+        'resident_subscription_rates', 'resident_subscription_rate_changes',
+        'resident_adjustments'
       )
       AND rowsecurity = false;
     
@@ -126,6 +128,44 @@ BEGIN
     RAISE NOTICE 'Income purpose mapping verified';
 END $$;
 
+-- Verify the settlement ledger table, its guards and its read policy
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'resident_adjustments'
+    ) THEN
+        RAISE EXCEPTION 'resident_adjustments table missing';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'public.resident_adjustments'::regclass
+          AND conname = 'resident_adjustments_kind_check'
+    ) OR NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'public.resident_adjustments'::regclass
+          AND conname = 'resident_adjustments_amount_check'
+    ) OR NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'public.resident_adjustments'::regclass
+          AND conname = 'resident_adjustments_month_start_check'
+    ) THEN
+        RAISE EXCEPTION 'resident_adjustments constraints missing';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'public'
+          AND tablename = 'resident_adjustments'
+          AND policyname = 'resident_adjustments_manager_or_owner_select'
+    ) THEN
+        RAISE EXCEPTION 'resident_adjustments select policy missing';
+    END IF;
+
+    RAISE NOTICE 'Resident adjustments ledger verified';
+END $$;
+
 -- Verify notifications table exists
 DO $$
 DECLARE
@@ -168,6 +208,8 @@ DECLARE
         'cash_transfers_building_transferred_idx',
         'cash_transfers_request_unique',
         'income_building_purpose_idx',
+        'resident_adjustments_building_month_idx',
+        'resident_adjustments_resident_month_idx',
         'notifications_dedupe_scope_unique',
         'notifications_target_user_id_idx'
     ];
