@@ -20,10 +20,11 @@ test('income collection form is split into three explicit wizard steps', () => {
     assert.match(modal, /<form id="incomeForm" novalidate/);
 });
 
-test('wizard validates each stage and keeps duplicate-submit protection', () => {
+test('wizard validates stages and retains final submit guards', () => {
     assert.match(crud, /function validateIncomeWizardStep\(step\)/);
     assert.match(crud, /function changeIncomeWizardStep\(direction\)/);
-    assert.match(crud, /validateIncomeWizardStep\(1\).*validateIncomeWizardStep\(2\)/s);\n    assert.match(crud, /Object\\.prototype\\.hasOwnProperty\\.call\\(INCOME_PAYMENT_METHOD_LABELS, paymentMethod\\)/);
+    assert.match(crud, /validateIncomeWizardStep\(1\).*validateIncomeWizardStep\(2\)/s);
+    assert.match(crud, /Object\.prototype\.hasOwnProperty\.call\(INCOME_PAYMENT_METHOD_LABELS, paymentMethod\)/);
     assert.match(crud, /if \(!requireManager\(\) \|\| incomeSaving\) return;/);
     assert.match(crud, /setIncomeWizardStep\(1\);/);
 });
