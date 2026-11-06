@@ -42,7 +42,7 @@ test('manager unit profile exposes the adjustment form and keeps it accessible',
     assert.match(html, /id="adjustmentModal" role="dialog" aria-modal="true"/);
     assert.match(html, /aria-labelledby="adjustmentModalTitle"/);
     assert.match(html, /id="adjustmentListBody"/);
-    assert.match(html, /id="adjustmentKind"[\s\S]*?<option value="waiver">إعفاء<\/option>[\s\S]*?<option value="discount">تخفيض<\/option>/);
+    assert.match(html, /id="adjustmentKind"[\s\S]*?<option value="waiver">إعفاء<\/option>[\s\S]*?<option value="discount">تخفيض<\/option>[\s\S]*?<option value="settlement">تسوية متفق عليها<\/option>/);
     assert.match(html, /id="adjustmentMonth" type="month"|type="month" id="adjustmentMonth"/);
     assert.match(html, /id="adjustmentAmount"/);
     assert.match(html, /id="adjustmentReason"/);
@@ -65,6 +65,7 @@ test('adjustment helpers read the month entitlement and exclude the edited row',
     assert.equal(app.getResidentAdjustments('r1')[0].id, 'a3');
     assert.equal(app.getAdjustmentKindLabel('waiver'), 'إعفاء');
     assert.equal(app.getAdjustmentKindLabel('discount'), 'تخفيض');
+    assert.equal(app.getAdjustmentKindLabel('settlement'), 'تسوية متفق عليها');
     assert.equal(app.adjustmentMonthKeyToLabel('2024-03'), 'مارس 2024');
 });
 
