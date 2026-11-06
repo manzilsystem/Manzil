@@ -645,12 +645,18 @@ function updateAdjustmentDueHint() {
             ? Math.round(getSettlementPaidAmount(editingAdjustmentId) * 100) : 0;
         const availableCents = Math.max(0, dueCents - existingCents - subscriptionPaidCents);
         const valid = !settlement && subscriptionPaidCents === 0 && existingCents === 0
-            && enteredCents >= settlementPaidCents && enteredCents <= availableCents;
+            && enteredCents > 0 && enteredCents >= settlementPaidCents && enteredCents <= availableCents;
         hint.textContent = settlement
             ? 'يوجد اتفاق تسوية لهذا الشهر بالفعل.'
             : subscriptionPaidCents > 0 || existingCents > 0
                 ? 'لا يمكن إنشاء تسوية مع وجود تحصيل اشتراك أو إعفاء/تخفيض مسجل لهذا الشهر.'
-                : `المتاح للتسوية: ${formatSubscriptionAmount(availableCents / 100)} ج.م · المدفوع من التسوية: ${formatSubscriptionAmount(settlementPaidCents / 100)} ج.م · المتبقي بعد هذا المبلغ: ${formatSubscriptionAmount(Math.max(0, enteredCents - settlementPaidCents) / 100)} ج.م`;
+                : enteredCents <= 0
+                    ? `المتاح للتسوية: ${formatSubscriptionAmount(availableCents / 100)} ج.م · أدخل مبلغًا أكبر من صفر.`
+                    : enteredCents < settlementPaidCents
+                        ? `لا يمكن خفض الاتفاق عن إجمالي ما تم تحصيله (${formatSubscriptionAmount(settlementPaidCents / 100)} ج.م).`
+                        : enteredCents > availableCents
+                            ? `مبلغ التسوية يتجاوز المستحق المتاح (${formatSubscriptionAmount(availableCents / 100)} ج.م).`
+                            : `المتاح للتسوية: ${formatSubscriptionAmount(availableCents / 100)} ج.م · المدفوع من التسوية: ${formatSubscriptionAmount(settlementPaidCents / 100)} ج.م · المتبقي بعد هذا المبلغ: ${formatSubscriptionAmount(Math.max(0, enteredCents - settlementPaidCents) / 100)} ج.م`;
         hint.className = valid ? 'text-[10px] text-slate-400' : 'text-[10px] text-rose-400';
         return;
     }
