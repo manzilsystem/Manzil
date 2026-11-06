@@ -1,4 +1,4 @@
-const CACHE_NAME = 'manzil-v133';
+const CACHE_NAME = 'manzil-v134';
 const APP_CACHE_PREFIX = 'manzil-';
 const APP_SHELL = [
     './',
@@ -19,6 +19,7 @@ const APP_SHELL = [
     './js/app.js',
     './js/monthly-close.js',
     './js/backup.js',
+    './js/assistant.js',
     './manifest.json',
     './icons/manzil-logo.png',
     './icons/manzil-full-1.png',

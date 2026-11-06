@@ -12,7 +12,7 @@ const app = fs.readFileSync(path.join(root, 'js', 'app.js'), 'utf8');
 
 test('service worker is valid JavaScript and bumps the app cache', () => {
     assert.doesNotThrow(() => new vm.Script(sw, { filename: 'sw.js' }));
-    assert.match(sw, /const CACHE_NAME = 'manzil-v133'/);
+    assert.match(sw, /const CACHE_NAME = 'manzil-v134'/);
 });
 
 test('all runtime modules are pre-cached with the application shell', () => {
@@ -25,6 +25,7 @@ test('all runtime modules are pre-cached with the application shell', () => {
         'cashbox.js',
         'monthly-close.js',
         'backup.js',
+        'assistant.js',
         'notices.js',
         'subscription-rates.js'
     ]) {
