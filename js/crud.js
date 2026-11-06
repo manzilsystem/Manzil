@@ -583,7 +583,7 @@ function openResidentStatementFromProfile(residentId) {
 let adjustmentResidentId = null;
 let editingAdjustmentId = null;
 const ADJUSTMENT_KIND_LABELS = { waiver: 'إعفاء', discount: 'تخفيض', settlement: 'تسوية' };
-const ADJUSTMENT_FORM_KINDS = ['waiver', 'discount'];
+const ADJUSTMENT_FORM_KINDS = ['waiver', 'discount', 'settlement'];
 
 function getAdjustmentKindLabel(kind) {
     return ADJUSTMENT_KIND_LABELS[kind] || 'تسوية';
@@ -609,7 +609,8 @@ function getAdjustmentMonthDue(resident, monthKey) {
 function getAdjustedTotalForMonth(residentId, monthKey, excludeId = null) {
     const prefix = `${monthKey}-01`;
     return getResidentAdjustments(residentId)
-        .filter(adjustment => adjustment.effectiveMonth === prefix && adjustment.id !== excludeId)
+        .filter(adjustment => adjustment.effectiveMonth === prefix && adjustment.id !== excludeId
+            && ['waiver', 'discount'].includes(adjustment.kind))
         .reduce((sum, adjustment) => {
             const amount = Number(adjustment.amount);
             return sum + (Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0);
@@ -632,6 +633,24 @@ function updateAdjustmentDueHint() {
     const existingCents = Math.round(getAdjustedTotalForMonth(resident.id, monthKey, editingAdjustmentId) * 100);
     const entered = Number(amountInput?.value);
     const enteredCents = Number.isFinite(entered) && entered > 0 ? Math.round(entered * 100) : 0;
+    const kind = String(/** @type {HTMLSelectElement | null} */ (document.getElementById('adjustmentKind'))?.value || 'waiver');
+    if (kind === 'settlement') {
+        const settlement = (state.adjustments || []).find(item => item.residentId === resident.id
+            && item.effectiveMonth === `${monthKey}-01` && item.kind === 'settlement' && item.id !== editingAdjustmentId);
+        const subscriptionPaidCents = Math.round(getPaidAmountForMonth(resident.id, adjustmentMonthKeyToLabel(monthKey)) * 100);
+        const settlementPaidCents = editingAdjustmentId && typeof getSettlementPaidAmount === 'function'
+            ? Math.round(getSettlementPaidAmount(editingAdjustmentId) * 100) : 0;
+        const availableCents = Math.max(0, dueCents - existingCents - subscriptionPaidCents);
+        const valid = !settlement && subscriptionPaidCents === 0 && existingCents === 0
+            && enteredCents >= settlementPaidCents && enteredCents <= availableCents;
+        hint.textContent = settlement
+            ? 'يوجد اتفاق تسوية لهذا الشهر بالفعل.'
+            : subscriptionPaidCents > 0 || existingCents > 0
+                ? 'لا يمكن إنشاء تسوية مع وجود تحصيل اشتراك أو إعفاء/تخفيض مسجل لهذا الشهر.'
+                : `المتاح للتسوية: ${formatSubscriptionAmount(availableCents / 100)} ج.م · المدفوع من التسوية: ${formatSubscriptionAmount(settlementPaidCents / 100)} ج.م · المتبقي بعد هذا المبلغ: ${formatSubscriptionAmount(Math.max(0, enteredCents - settlementPaidCents) / 100)} ج.م`;
+        hint.className = valid ? 'text-[10px] text-slate-400' : 'text-[10px] text-rose-400';
+        return;
+    }
     const remainingCents = dueCents - existingCents - enteredCents;
     hint.textContent = `مستحق ${adjustmentMonthKeyToLabel(monthKey)}: ${formatSubscriptionAmount(dueCents / 100)} ج.م · المسجل من إعفاءات وتخفيضات: ${formatSubscriptionAmount(existingCents / 100)} ج.م · المتبقي بعد هذا المبلغ: ${formatSubscriptionAmount(Math.max(0, remainingCents) / 100)} ج.م`;
     hint.className = remainingCents < 0 ? 'text-[10px] text-rose-400' : 'text-[10px] text-slate-400';
@@ -644,9 +663,11 @@ function updateAdjustmentFormState() {
     const title = document.getElementById('adjustmentFormTitle');
     const cancel = document.getElementById('adjustmentCancelEdit');
     const save = document.getElementById('adjustmentSaveButton');
-    if (title) title.textContent = editing ? 'تعديل الإعفاء أو التخفيض' : 'تسجيل إعفاء أو تخفيض';
+    const kind = String(/** @type {HTMLSelectElement | null} */ (document.getElementById('adjustmentKind'))?.value || editing?.kind || 'waiver');
+    const label = kind === 'settlement' ? 'التسوية' : 'الإعفاء أو التخفيض';
+    if (title) title.textContent = editing ? 'تعديل ' + label : 'تسجيل ' + label;
     if (cancel) cancel.classList.toggle('hidden', !editing);
-    if (save) save.textContent = editing ? 'حفظ التعديل' : 'حفظ الإعفاء/التخفيض';
+    if (save) save.textContent = editing ? 'حفظ التعديل' : kind === 'settlement' ? 'حفظ اتفاق التسوية' : 'حفظ الإعفاء/التخفيض';
 }
 
 function renderAdjustmentList(resident) {
