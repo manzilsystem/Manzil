@@ -451,7 +451,7 @@ function isValidBackup(data) {
         );
     })) return false;
     const residentIds = new Set(data.residents.map(r => r.id));
-    if (!data.income.every(i => i && typeof i === 'object' && validId(i.id) && validId(i.residentId) && residentIds.has(i.residentId) && typeof i.month === 'string' && validAmount(i.amount) && (i.notes === undefined || typeof i.notes === 'string') && (i.paymentMethod === undefined || i.paymentMethod === null || ['cash', 'wallet', 'instapay', 'bank_transfer'].includes(i.paymentMethod)) && (i.purposeCode === undefined || i.purposeCode === null || ['subscription', 'services', 'development', 'emergency', 'penalty', 'donation', 'other'].includes(i.purposeCode)))) return false;
+    if (!data.income.every(i => i && typeof i === 'object' && validId(i.id) && validId(i.residentId) && residentIds.has(i.residentId) && typeof i.month === 'string' && validAmount(i.amount) && (i.notes === undefined || typeof i.notes === 'string') && (i.paymentMethod === undefined || i.paymentMethod === null || ['cash', 'wallet', 'instapay', 'bank_transfer'].includes(i.paymentMethod)) && (i.purposeCode === undefined || i.purposeCode === null || ['subscription', 'services', 'development', 'emergency', 'penalty', 'donation', 'other', 'settlement'].includes(i.purposeCode)))) return false;
     if (!hasUnique(data.income.map(i => i.id))) return false;
     if (!data.expenses.every(e => e && typeof e === 'object' && validId(e.id) && typeof e.title === 'string' && typeof e.month === 'string' && validAmount(e.amount) && (e.category === undefined || typeof e.category === 'string') && (e.notes === undefined || typeof e.notes === 'string'))) return false;
     if (!hasUnique(data.expenses.map(e => e.id))) return false;
@@ -468,6 +468,60 @@ function isValidBackup(data) {
             && typeof a.reason === 'string' && a.reason.trim() !== ''
             && (a.createdAt === undefined || a.createdAt === null || typeof a.createdAt === 'string'))) return false;
         if (!hasUnique(data.adjustments.map(a => a.id))) return false;
+    }
+    const adjustments = Array.isArray(data.adjustments) ? data.adjustments : [];
+    const adjustmentById = new Map(adjustments.map(adjustment => [adjustment.id, adjustment]));
+    const monthKeyFromLabel = value => {
+        const text = String(value || '').trim();
+        const iso = text.match(/^(\\d{4})-(0[1-9]|1[0-2])(?:-01)?$/);
+        if (iso) return iso[1] + '-' + iso[2];
+        const [label, year] = text.split(/\\s+/);
+        const monthIndex = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'].indexOf(label);
+        return monthIndex >= 0 && /^\\d{4}$/.test(year || '')
+            ? year + '-' + String(monthIndex + 1).padStart(2, '0') : '';
+    };
+    const settlementKeys = new Set();
+    const settlementPayments = new Map();
+    for (const adjustment of adjustments) {
+        if (adjustment.kind !== 'settlement') continue;
+        const key = adjustment.residentId + ':' + String(adjustment.effectiveMonth).slice(0, 7);
+        if (settlementKeys.has(key)) return false;
+        settlementKeys.add(key);
+        if (adjustments.some(other => other.id !== adjustment.id
+            && other.residentId === adjustment.residentId
+            && String(other.effectiveMonth).slice(0, 7) === String(adjustment.effectiveMonth).slice(0, 7)
+            && ['waiver', 'discount'].includes(other.kind))) return false;
+        const resident = data.residents.find(item => item.id === adjustment.residentId);
+        const monthKey = String(adjustment.effectiveMonth).slice(0, 7);
+        const rates = Array.isArray(resident?.subscriptionRates) ? resident.subscriptionRates : [];
+        const applicableRate = rates.filter(rate => String(rate.effectiveMonth || '').slice(0, 7) <= monthKey)
+            .sort((a, b) => String(a.effectiveMonth).localeCompare(String(b.effectiveMonth))).at(-1);
+        const due = Number(applicableRate?.monthlyAmount ?? resident?.monthlyAmount ?? data.defaultSubscription ?? 0);
+        if (Number(adjustment.amount) > due) return false;
+    }
+    for (const payment of data.income) {
+        const purpose = payment.purposeCode || 'subscription';
+        const link = payment.settlementAdjustmentId || null;
+        if (payment.settlementAdjustmentId !== undefined && payment.settlementAdjustmentId !== null
+            && !validId(payment.settlementAdjustmentId)) return false;
+        if (purpose !== 'settlement') {
+            if (link) return false;
+            if (purpose === 'subscription') {
+                const key = payment.residentId + ':' + monthKeyFromLabel(payment.month);
+                if (settlementKeys.has(key)) return false;
+            }
+            continue;
+        }
+        if (!link) return false;
+        const adjustment = adjustmentById.get(link);
+        if (!adjustment || adjustment.kind !== 'settlement'
+            || adjustment.residentId !== payment.residentId
+            || String(adjustment.effectiveMonth).slice(0, 7) !== monthKeyFromLabel(payment.month)) return false;
+        settlementPayments.set(link, (settlementPayments.get(link) || 0) + Math.round(Number(payment.amount) * 100));
+    }
+    for (const [id, cents] of settlementPayments) {
+        const adjustment = adjustmentById.get(id);
+        if (!adjustment || cents > Math.round(Number(adjustment.amount) * 100)) return false;
     }
     if (data.auditLogs !== undefined && !Array.isArray(data.auditLogs)) return false;
     if (data.currentTheme !== undefined && !['dark','light','emerald','ocean','sand','turquoise'].includes(data.currentTheme)) return false;
