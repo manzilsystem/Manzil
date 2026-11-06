@@ -3,7 +3,6 @@
 
 \ir ../supabase/migrations/20261103165000_revoke_unused_table_grants.sql
 \ir ../supabase/migrations/20261103172000_revoke_direct_financial_table_writes.sql
-\ir ../supabase/migrations/20261106021427_resident_adjustments.sql
 
 DO $grant_checks$
 DECLARE
@@ -126,3 +125,104 @@ $adjustment_visibility$;
 RESET ROLE;
 
 SELECT 'resident adjustment guard and visibility tests passed' AS result;
+
+-- Settlements travel inside the atomic snapshot and survive clients that omit them.
+DO $adjustment_snapshot$
+DECLARE
+    v_building uuid := '20000000-0000-4000-8000-000000000001';
+    v_resident uuid := '30000000-0000-4000-8000-000000000001';
+    v_manager uuid := '10000000-0000-4000-8000-000000000001';
+    v_adjustment uuid := '60000000-0000-4000-8000-000000000001';
+    v_base jsonb;
+    v_payload jsonb;
+    v_version bigint;
+    v_result jsonb;
+BEGIN
+    PERFORM set_config('request.jwt.claim.sub', v_manager::text, true);
+
+    v_base := jsonb_build_object(
+        'building', jsonb_build_object('name', 'Manzil'),
+        'residents', jsonb_build_array(jsonb_build_object(
+            'id', v_resident, 'name', 'Owner A', 'apartment_number', 'A1',
+            'monthly_amount', 100, 'created_at', '2026-11-02T10:00:00Z'
+        )),
+        'income', '[]'::jsonb,
+        'expenses', '[]'::jsonb,
+        'notices', '[]'::jsonb,
+        'audit_logs', '[]'::jsonb
+    );
+
+    SELECT state_version INTO v_version FROM public.buildings WHERE id = v_building;
+    v_payload := jsonb_set(v_base, '{resident_adjustments}', jsonb_build_array(jsonb_build_object(
+        'id', v_adjustment,
+        'resident_id', v_resident,
+        'effective_month', '2026-11-01',
+        'kind', 'waiver',
+        'amount', 25,
+        'reason', 'إعفاء اختباري'
+    )));
+
+    SELECT private.persist_building_snapshot(v_building, v_version, gen_random_uuid(), v_payload)
+    INTO v_result;
+    IF (v_result->>'ok')::boolean IS NOT TRUE THEN
+        RAISE EXCEPTION 'snapshot with a settlement was rejected: %', v_result;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM public.resident_adjustments
+        WHERE id = v_adjustment AND building_id = v_building
+          AND resident_id = v_resident AND amount = 25 AND kind = 'waiver'
+    ) THEN
+        RAISE EXCEPTION 'settlement was not persisted by the snapshot RPC';
+    END IF;
+
+    -- Older clients omit the key: the stored ledger must stay untouched.
+    SELECT state_version INTO v_version FROM public.buildings WHERE id = v_building;
+    SELECT private.persist_building_snapshot(v_building, v_version, gen_random_uuid(), v_base)
+    INTO v_result;
+    IF NOT EXISTS (
+        SELECT 1 FROM public.resident_adjustments WHERE id = v_adjustment
+    ) THEN
+        RAISE EXCEPTION 'omitting resident_adjustments erased the settlement ledger';
+    END IF;
+
+    -- Settlements may not exceed the month subscription entitlement.
+    SELECT state_version INTO v_version FROM public.buildings WHERE id = v_building;
+    v_payload := jsonb_set(v_base, '{resident_adjustments}', jsonb_build_array(jsonb_build_object(
+        'id', v_adjustment,
+        'resident_id', v_resident,
+        'effective_month', '2026-11-01',
+        'kind', 'waiver',
+        'amount', 500,
+        'reason', 'إعفاء أكبر من المستحق'
+    )));
+    BEGIN
+        PERFORM private.persist_building_snapshot(v_building, v_version, gen_random_uuid(), v_payload);
+        RAISE EXCEPTION 'settlement above the month entitlement was accepted';
+    EXCEPTION WHEN SQLSTATE '22023' THEN
+        IF SQLERRM NOT LIKE '%adjustment_exceeds_month_due%' THEN
+            RAISE EXCEPTION 'unexpected settlement rejection: %', SQLERRM;
+        END IF;
+    END;
+
+    -- A settlement must reference a resident included in the snapshot.
+    SELECT state_version INTO v_version FROM public.buildings WHERE id = v_building;
+    v_payload := jsonb_set(v_base, '{resident_adjustments}', jsonb_build_array(jsonb_build_object(
+        'id', v_adjustment,
+        'resident_id', '30000000-0000-4000-8000-000000000099',
+        'effective_month', '2026-11-01',
+        'kind', 'discount',
+        'amount', 10,
+        'reason', 'ساكن خارج اللقطة'
+    )));
+    BEGIN
+        PERFORM private.persist_building_snapshot(v_building, v_version, gen_random_uuid(), v_payload);
+        RAISE EXCEPTION 'settlement for a resident outside the snapshot was accepted';
+    EXCEPTION WHEN SQLSTATE '42501' THEN
+        IF SQLERRM NOT LIKE '%adjustment_resident_not_in_snapshot%' THEN
+            RAISE EXCEPTION 'unexpected settlement rejection: %', SQLERRM;
+        END IF;
+    END;
+END;
+$adjustment_snapshot$;
+
+SELECT 'resident adjustment snapshot and entitlement tests passed' AS result;

@@ -265,6 +265,18 @@ function mapExpense(row) {
     };
 }
 
+function mapResidentAdjustment(row) {
+    return {
+        id: row.id,
+        residentId: row.resident_id,
+        effectiveMonth: row.effective_month,
+        kind: row.kind,
+        amount: Number(row.amount) || 0,
+        reason: row.reason || '',
+        createdAt: row.created_at
+    };
+}
+
 function mapCashTransfer(row) {
     return {
         id: row.id,
@@ -463,6 +475,7 @@ async function loadState() {
             ...state, buildingName: '', managerName: '', managerPhone: '', defaultSubscription: 0,
             startingBalance: 0, floorCount: 0, apartmentsPerFloor: 0,
             residents: [], income: [], expenses: [], notices: [], ownerNotifications: [], auditLogs: [],
+            adjustments: [],
             cashAccountBalances: { main: 0, development: 0, emergency: 0 }, cashTransfers: [],
             currentTheme: 'dark', paymentSettings: getBuildingPaymentSettings(null), subscriptionDueDay: 1, subscriptionGraceDays: 0, paymentAllocationPolicy: 'oldest_first', receiptThankYouTemplate: null, reminderMessageTemplate: null, lastUpdated: Date.now()
         };
@@ -508,10 +521,14 @@ async function loadState() {
             .eq('building_id', activeBuildingId)
             .order('changed_at', { ascending: false })
         : Promise.resolve({ data: [], error: null });
+    const residentAdjustmentsQuery = supabaseClient.from('resident_adjustments')
+        .select('id,resident_id,effective_month,kind,amount,reason,created_at')
+        .eq('building_id', activeBuildingId)
+        .order('effective_month', { ascending: true });
     const [
         residents, income, expenses, notices, auditLogs, residentNotes,
         ownerNotificationsResult, cashboxSummaryResult,
-        subscriptionRatesResult, subscriptionRateHistoryResult
+        subscriptionRatesResult, subscriptionRateHistoryResult, residentAdjustmentsResult
     ] = await Promise.all([
         supabaseQuery('residents', residentColumns),
         supabaseQuery('income', incomeColumns),
@@ -522,13 +539,15 @@ async function loadState() {
         ownerNotificationsQuery,
         cashboxSummaryQuery,
         subscriptionRatesQuery,
-        subscriptionRateHistoryQuery
+        subscriptionRateHistoryQuery,
+        residentAdjustmentsQuery
     ]);
     if (!isCurrentAuthSession(session, generation)) return false;
     if (ownerNotificationsResult.error) throw ownerNotificationsResult.error;
     if (cashboxSummaryResult.error) throw cashboxSummaryResult.error;
     if (subscriptionRatesResult.error) throw subscriptionRatesResult.error;
     if (subscriptionRateHistoryResult.error) throw subscriptionRateHistoryResult.error;
+    if (residentAdjustmentsResult.error) throw residentAdjustmentsResult.error;
     const cashboxSummary = currentUserRole === 'manager'
         ? normalizeCashboxSummary(cashboxSummaryResult.data)
         : { balances: { main: 0, development: 0, emergency: 0 }, transfers: [] };
@@ -550,6 +569,7 @@ async function loadState() {
         apartmentsPerFloor: Number(building.apartments_per_floor) || 0,
         residents: attachResidentSubscriptionHistory(residents.map(mapResident), subscriptionRatesResult.data || [], subscriptionRateHistoryResult.data || []),
         income: income.map(mapIncome), expenses: expenses.map(mapExpense),
+        adjustments: (residentAdjustmentsResult.data || []).map(mapResidentAdjustment),
         notices: notices.map(mapNotice), ownerNotifications: (ownerNotificationsResult.data || []).map(mapNotification),
         auditLogs: auditLogs.map(mapAudit),
         cashAccountBalances: cashboxSummary.balances,
@@ -626,7 +646,16 @@ async function saveState() {
                 effective_month: rate.effectiveMonth,
                 monthly_amount: Number(rate.monthlyAmount)
             }))
-        )
+        ),
+        resident_adjustments: (Array.isArray(state.adjustments) ? state.adjustments : []).map(adjustment => ({
+            id: adjustment.id,
+            resident_id: adjustment.residentId,
+            effective_month: adjustment.effectiveMonth,
+            kind: adjustment.kind,
+            amount: Number(adjustment.amount) || 0,
+            reason: adjustment.reason || '',
+            created_at: toSupabaseTimestamp(adjustment.createdAt)
+        }))
         };
     } catch (error) {
         console.error('Could not prepare Supabase snapshot:', error);
@@ -696,6 +725,7 @@ function clearAuthenticatedState() {
         buildingName: '', managerName: '', managerPhone: '', defaultSubscription: 0,
         startingBalance: 0, floorCount: 0, apartmentsPerFloor: 0,
         residents: [], income: [], expenses: [], notices: [], ownerNotifications: [], auditLogs: [],
+        adjustments: [],
         cashAccountBalances: { main: 0, development: 0, emergency: 0 }, cashTransfers: [],
         currentTheme: 'dark', paymentSettings: getBuildingPaymentSettings(null), subscriptionDueDay: 1, subscriptionGraceDays: 0, paymentAllocationPolicy: 'oldest_first', lastUpdated: 0
     };

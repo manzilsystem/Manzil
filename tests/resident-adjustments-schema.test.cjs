@@ -10,6 +10,7 @@ const migration = fs.readFileSync(
 );
 const restoreVerify = fs.readFileSync(path.join(root, 'tests/post-restore-verify.sql'), 'utf8');
 const pgIntegration = fs.readFileSync(path.join(root, 'tests/table-grants.integration.sql'), 'utf8');
+const atomicHarness = fs.readFileSync(path.join(root, 'tests/atomic-persistence.integration.sql'), 'utf8');
 
 test('resident adjustments keep one ledger row per settlement month', () => {
     assert.match(migration, /CREATE TABLE IF NOT EXISTS public\.resident_adjustments/);
@@ -39,6 +40,6 @@ test('restore verification and CI cover the settlement ledger', () => {
     assert.match(restoreVerify, /'resident_adjustments'/);
     assert.match(restoreVerify, /resident_adjustments table missing/);
     assert.match(restoreVerify, /resident_adjustments_building_month_idx/);
-    assert.match(pgIntegration, /\\ir \.\.\/supabase\/migrations\/20261106021427_resident_adjustments\.sql/);
+    assert.match(atomicHarness, /\\ir \.\.\/supabase\/migrations\/20261106021427_resident_adjustments\.sql/);
     assert.match(pgIntegration, /resident_adjustments/);
 });
