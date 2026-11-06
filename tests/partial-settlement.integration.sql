@@ -107,8 +107,17 @@ BEGIN
     END IF;
 
     -- A settlement purpose cannot be posted without its agreement link.
-    v_payload := jsonb_set(v_payload, '{income,1,settlement_adjustment_id}', 'null'::jsonb);
-    v_payload := jsonb_set(v_payload, '{income,1,amount}', '300'::jsonb);
+    v_payload := jsonb_set(
+        v_payload,
+        '{income}',
+        (v_payload->'income') || jsonb_build_array(jsonb_build_object(
+            'id', '80000000-0000-4000-8000-000000000005',
+            'resident_id', v_resident, 'amount', 1,
+            'month', 'نوفمبر 2026', 'notes', 'تسوية بلا رابط',
+            'payment_method', 'cash', 'purpose_code', 'settlement',
+            'paid_at', '2026-11-06T12:00:00Z'
+        ))
+    );
     BEGIN
         PERFORM private.persist_building_snapshot(
             v_building, v_version, '90000000-0000-4000-8000-000000000006', v_payload
@@ -121,8 +130,7 @@ BEGIN
     END;
 
     -- Ordinary subscription income cannot be mixed with an active settlement month.
-    v_payload := jsonb_set(v_payload, '{income,1,purpose_code}', '"subscription"'::jsonb);
-    v_payload := jsonb_set(v_payload, '{income,1,settlement_adjustment_id}', 'null'::jsonb);
+    v_payload := jsonb_set(v_payload, '{income,2,purpose_code}', '"subscription"'::jsonb);
     BEGIN
         PERFORM private.persist_building_snapshot(
             v_building, v_version, '90000000-0000-4000-8000-000000000007', v_payload
