@@ -233,6 +233,21 @@ test('statement signature changes when payments or the resident change', () => {
     assert.notEqual(app.getResidentStatementSignature('r1'), afterPayment);
 });
 
+test('statement signature and invalidation follow the default subscription', () => {
+    const { app, preview, sandbox } = loadStatement({
+        state: {
+            defaultSubscription: 100,
+            residents: [{ id: 'r1', name: 'أحمد', apartmentNumber: '3', createdAt: '2024-01-01T00:00:00.000Z' }]
+        }
+    });
+    app.generateResidentStatement();
+    const initial = app.getResidentStatementSignature('r1');
+    sandbox.state.defaultSubscription = 250;
+    assert.notEqual(app.getResidentStatementSignature('r1'), initial);
+    app.invalidateResidentStatementIfStale();
+    assert.match(preview.innerHTML, /تغيّرت البيانات/);
+});
+
 test('statement invalidates when its data becomes stale', () => {
     const { app, preview, sandbox } = loadStatement();
     app.generateResidentStatement();
