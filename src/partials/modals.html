@@ -1048,6 +1048,13 @@
                         </div>
                         <span id="incomeMonthsSummary" class="shrink-0 whitespace-nowrap text-[10px] text-slate-400"></span>
                     </div>
+                    <div class="app-input border rounded-xl p-2.5 space-y-1">
+                        <label class="block text-xs space-y-1">
+                            <span class="text-slate-400">شهر التحصيل من الكلندر</span>
+                            <input type="month" id="incomeMonthPicker" aria-label="اختيار شهر التحصيل من الكلندر" onchange="handleIncomeMonthPickerChange()" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
+                        </label>
+                        <p id="incomeMonthPickerHint" role="status" aria-live="polite" class="text-[10px] text-slate-500"></p>
+                    </div>
                     <div class="flex flex-wrap gap-1.5" aria-label="اختيار سريع للشهور">
                         <button type="button" onclick="applyIncomeMonthQuickAction('arrears')" class="min-h-9 rounded-full border border-amber-500/40 px-3 text-[10px] font-bold text-amber-300">المتأخرات</button>
                         <button type="button" onclick="applyIncomeMonthQuickAction('current')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">الشهر الحالي</button>

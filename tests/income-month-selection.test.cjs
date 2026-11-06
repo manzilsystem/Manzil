@@ -28,7 +28,7 @@ function resident(overrides = {}) {
 
 function loadState() {
     return vm.runInNewContext(
-        `${stateSource}\n({ state, getIncomeCollectionMonthLabels, calculateSelectedMonthsAllocation })`,
+        `${stateSource}\n({ state, getIncomeCollectionMonthLabels, calculateSelectedMonthsAllocation, monthKeyToLabel, monthLabelToKey })`,
         { Date: FixedDate },
         { filename: 'income-month-selection.js' }
     );
@@ -60,6 +60,8 @@ function createSubmitHarness(selectedMonths) {
         incomePaymentMethod: makeElement({ value: 'cash' }),
         incomeNotes: makeElement({ value: '' }),
         incomeMonthsGrid: grid,
+        incomeMonthPicker: makeElement({ value: '' }),
+        incomeMonthPickerHint: makeElement(),
         incomeAllocationPreview: makeElement(),
         incomeSubmitButton: makeElement()
     };
@@ -93,11 +95,11 @@ function createSubmitHarness(selectedMonths) {
         + 'state = __testState;\n'
         + 'saveWithRollback = async () => { __testHooks.saved += 1; return true; };\n'
         + 'toast = (...args) => __testHooks.messages.push(args);\n'
-        + '({ handleIncomeSubmit })',
+        + '({ handleIncomeSubmit, handleIncomeMonthPickerChange, syncIncomeMonthPicker, getIncomeMonthPickerStatus, __selected: () => Array.from(incomeSelectedMonths) })',
         sandbox,
         { filename: 'income-month-submit.js' }
     );
-    return { api, state, calls };
+    return { api, state, calls, registry };
 }
 
 test('month labels start at the oldest unpaid month and cover the next twelve months', () => {
@@ -195,4 +197,69 @@ test('saving a subscription collection writes one row per selected month only', 
         [['مارس 2024', 100], ['مايو 2024', 100]]
     );
     assert.ok(harness.state.income.every(item => item.purposeCode === 'subscription'));
+});
+
+test('calendar month keys convert to Arabic labels and back', () => {
+    const app = loadState();
+
+    assert.equal(app.monthKeyToLabel('2026-10'), 'أكتوبر 2026');
+    assert.equal(app.monthKeyToLabel('2026-10-01'), 'أكتوبر 2026');
+    assert.equal(app.monthLabelToKey('أكتوبر 2026'), '2026-10-01');
+    assert.equal(app.monthKeyToLabel('2026-13'), '');
+});
+
+test('an explicitly included month stays visible even when it sits before the arrears window', () => {
+    const app = loadState();
+    app.state.residents = [resident()];
+
+    const labels = Array.from(app.getIncomeCollectionMonthLabels(app.state.residents[0], 12, ['ديسمبر 2023']));
+
+    assert.equal(labels[0], 'ديسمبر 2023');
+    assert.ok(labels.includes('يناير 2024'));
+});
+
+test('the picker selects an old unpaid month and reports it in the hint', () => {
+    const harness = createSubmitHarness([]);
+
+    harness.api.syncIncomeMonthPicker(harness.state.residents[0], 'مارس 2024');
+
+    assert.equal(harness.registry.incomeMonthPicker.value, '2024-03');
+    assert.match(harness.registry.incomeMonthPickerHint.textContent, /متبقٍ 100 ج\.م/);
+    assert.match(harness.registry.incomeMonthPickerHint.textContent, /مستحق 100 ج\.م/);
+});
+
+test('changing the picker to an old unpaid month selects exactly that month', () => {
+    const harness = createSubmitHarness(['مارس 2024']);
+    harness.registry.incomeMonthPicker.value = '2024-03';
+
+    harness.api.handleIncomeMonthPickerChange();
+
+    assert.deepEqual(JSON.parse(JSON.stringify(harness.api.__selected())), ['مارس 2024']);
+    assert.equal(harness.registry.incomeAmount.value, '100');
+    assert.equal(harness.calls.messages.length, 0);
+});
+
+test('changing the picker to a fully paid month clears the selection with an info message', () => {
+    const harness = createSubmitHarness([]);
+    harness.state.income = [{ id: 'i1', residentId: 'r1', month: 'مايو 2024', amount: 100, purposeCode: 'subscription' }];
+    harness.registry.incomeMonthPicker.value = '2024-05';
+
+    harness.api.handleIncomeMonthPickerChange();
+
+    assert.deepEqual(JSON.parse(JSON.stringify(harness.api.__selected())), []);
+    assert.equal(harness.registry.incomeAmount.value, '');
+    assert.equal(harness.calls.messages.at(-1)[1], 'info');
+    assert.match(harness.calls.messages.at(-1)[0], /مسدد بالكامل/);
+});
+
+test('the picker blocks a month before the apartment billing start', () => {
+    const harness = createSubmitHarness([]);
+    harness.registry.incomeMonthPicker.value = '2023-12';
+
+    harness.api.handleIncomeMonthPickerChange();
+
+    assert.deepEqual(JSON.parse(JSON.stringify(harness.api.__selected())), []);
+    assert.equal(harness.calls.messages.at(-1)[1], 'error');
+    assert.match(harness.calls.messages.at(-1)[0], /قبل بداية محاسبة الشقة/);
+    assert.match(harness.registry.incomeMonthPickerHint.textContent, /قبل بداية محاسبة الشقة/);
 });
