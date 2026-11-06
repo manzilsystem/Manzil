@@ -1912,10 +1912,9 @@ let incomeWizardStep = 1;
 const INCOME_WIZARD_LABELS = ['بيانات الساكن', 'المبلغ والتوزيع', 'الدفع والمراجعة'];
 
 function validateIncomeWizardStep(step) {
-    const value = id => String(document.getElementById(id)?.value || '').trim();
-    if (step === 1) {
-        if (!value('incomeResident')) { toast('اختر الشقة أولًا.', 'error'); return false; }
-        if (!value('incomePurpose')) { toast('اختر غرض التحصيل.', 'error'); return false; }
+    const value = id => String((/** @type {HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null} */ (document.getElementById(id)))?.value || '').trim();
+    if (step === 1 && !value('incomeResident')) {
+        toast('اختر الشقة أولًا.', 'error'); return false;
     }
     if (step === 2) {
         const amount = Number(value('incomeAmount'));
@@ -1946,7 +1945,7 @@ function setIncomeWizardStep(step) {
     incomeWizardStep = Math.max(1, Math.min(3, Number(step) || 1));
     for (let index = 1; index <= 3; index++) {
         const panel = document.getElementById('incomeWizardStep' + index);
-        if (panel) panel.classList.toggle('hidden', index !== incomeWizardStep);
+        if (panel?.classList && typeof panel.classList.toggle === 'function') panel.classList.toggle('hidden', index !== incomeWizardStep);
     }
     const progress = document.getElementById('incomeWizardProgress');
     const dots = document.getElementById('incomeWizardStepDots');
@@ -1955,9 +1954,9 @@ function setIncomeWizardStep(step) {
     const submit = document.getElementById('incomeSubmitButton');
     if (progress) progress.textContent = 'الخطوة ' + incomeWizardStep + ' من 3 · ' + INCOME_WIZARD_LABELS[incomeWizardStep - 1];
     if (dots) dots.textContent = [1, 2, 3].map(index => index <= incomeWizardStep ? '●' : '○').join(' ');
-    if (back) back.classList.toggle('hidden', incomeWizardStep === 1);
-    if (next) next.classList.toggle('hidden', incomeWizardStep === 3);
-    if (submit) submit.classList.toggle('hidden', incomeWizardStep !== 3);
+    if (back?.classList && typeof back.classList.toggle === 'function') back.classList.toggle('hidden', incomeWizardStep === 1);
+    if (next?.classList && typeof next.classList.toggle === 'function') next.classList.toggle('hidden', incomeWizardStep === 3);
+    if (submit?.classList && typeof submit.classList.toggle === 'function') submit.classList.toggle('hidden', incomeWizardStep !== 3);
     if (incomeWizardStep === 3) previewIncomeAllocation();
 }
 
@@ -2041,8 +2040,8 @@ function previewIncomeAllocation() {
     const wizardSummary = document.getElementById('incomeWizardSummary');
     if (wizardSummary) {
         const residentName = resident ? (resident.name || crudApartmentLabel(resident.apartmentNumber)) : 'لم يتم اختيار الساكن';
-        const method = document.getElementById('incomePaymentMethod')?.selectedOptions?.[0]?.textContent || 'لم تحدد طريقة الدفع';
-        const cashbox = crudCashAccountLabel(document.getElementById('incomeCashAccount')?.value || 'main');
+        const method = (/** @type {HTMLSelectElement | null} */ (document.getElementById('incomePaymentMethod')))?.selectedOptions?.[0]?.textContent || 'لم تحدد طريقة الدفع';
+        const cashbox = crudCashAccountLabel((/** @type {HTMLSelectElement | null} */ (document.getElementById('incomeCashAccount')))?.value || 'main');
         const base = Number.isFinite(amount) && amount > 0 ? amount : 0;
         const extrasTotal = getIncomeExtraLines().reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
         wizardSummary.textContent = residentName + ' · ' + crudIncomePurposeLabel(purpose) + ' · ' + fmtNum(base + extrasTotal) + ' ج.م · ' + method + ' · ' + cashbox;
