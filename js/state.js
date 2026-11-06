@@ -535,6 +535,7 @@ function getBuildingMonthOptions(count = 12) {
 
 function getIncomeMonthLabels(resident, includeMonths = []) {
     const set = new Set(getActiveBuildingMonths());
+    getRecentMonthLabels(12).forEach(month => set.add(month));
     includeMonths.filter(Boolean).forEach(month => set.add(month));
     if (!resident) return sortMonthLabels(Array.from(set));
 
