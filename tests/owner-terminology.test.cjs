@@ -33,10 +33,10 @@ test('Arabic interface uses owner terminology consistently', () => {
 test('assistant keeps legacy resident wording as input synonyms, not output labels', () => {
     const assistant = read('js/assistant.js');
     assert.match(assistant, /normalized\.match\(\/\(\?:شقه\|وحده\|ساكن\|رقم\)/);
-    const outputLines = assistant.split('\\n').filter(line => /ساكن|سكان/.test(line)
-        && !line.includes('normalized.match(/(?:شقه|وحده|ساكن|رقم)/')
+    const legacyLines = assistant.match(/^.*(?:ساكن|سكان).*$/gm) || [];
+    const nonParserLines = legacyLines.filter(line => !line.includes('normalized.match(/(?:شقه|وحده|ساكن|رقم)/')
         && !line.includes("return 'building';")
         && !line.includes("return 'owner_scope';"));
-    assert.deepEqual(outputLines, []);
+    assert.deepEqual(nonParserLines, []);
     assert.match(assistant, /مالك محذوف/);
 });
