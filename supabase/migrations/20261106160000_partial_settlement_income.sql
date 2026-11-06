@@ -471,6 +471,12 @@ BEGIN
         resident_id = EXCLUDED.resident_id, amount = EXCLUDED.amount,
         month = EXCLUDED.month, notes = EXCLUDED.notes,
         payment_method = EXCLUDED.payment_method,
+        purpose_code = CASE
+            WHEN current_income.settlement_adjustment_id IS NOT NULL
+                 AND EXCLUDED.settlement_adjustment_id IS NULL
+                THEN current_income.purpose_code
+            ELSE EXCLUDED.purpose_code
+        END,
         settlement_adjustment_id = COALESCE(EXCLUDED.settlement_adjustment_id, current_income.settlement_adjustment_id),
         paid_at = EXCLUDED.paid_at
     WHERE current_income.building_id = p_building_id;
