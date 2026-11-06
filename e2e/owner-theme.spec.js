@@ -36,50 +36,90 @@ async function renderOwnerPortalWithTheme(page) {
     await expect(page.locator('#ownerPortal')).toBeVisible();
 }
 
-test('owner portal renders the theme picker and applies the chosen theme', async ({ page }) => {
+async function openThemeMenu(page) {
+    await page.locator('#ownerThemeBtn').click();
+    await expect(page.locator('#ownerThemeMenu')).toBeVisible();
+    await expect(page.locator('#ownerThemeMenu [data-owner-theme-option]')).toHaveCount(6);
+}
+
+test('the header theme button opens a menu of every theme and applies the choice', async ({ page }) => {
     await renderOwnerPortalWithTheme(page);
 
-    const card = page.locator('#ownerPortal section[aria-labelledby="ownerThemeTitle"]');
-    await expect(card).toBeVisible();
-    await expect(card.locator('[data-owner-theme-option]')).toHaveCount(6);
+    await expect(page.locator('#ownerThemeMenu')).toBeHidden();
+    await openThemeMenu(page);
+    await expect(page.locator('#ownerThemeBtn')).toHaveAttribute('aria-expanded', 'true');
 
-    const sand = card.locator('[data-owner-theme-option="sand"]');
+    const sand = page.locator('#ownerThemeMenu [data-owner-theme-option="sand"]');
     await expect(sand).toHaveAttribute('aria-pressed', 'false');
     await sand.click();
 
     await expect(page.locator('body')).toHaveAttribute('data-theme', 'sand');
-    await expect(sand).toHaveAttribute('aria-pressed', 'true');
-    await expect(card.locator('[data-owner-theme-option="dark"]')).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.locator('#ownerThemeCurrent')).toHaveText('رملي');
+    await expect(page.locator('#ownerThemeMenu')).toBeHidden();
+    await expect(page.locator('#ownerThemeBtn')).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('#ownerThemeSwatch')).toHaveClass(/theme-preview-sand/);
+    await expect(page.locator('#ownerThemeBtn')).toHaveAttribute('title', 'مظهرك الحالي: رملي');
     expect(await page.evaluate(() => window.__ownerThemeCalls)).toEqual(['sand']);
+});
+
+test('the theme picker no longer occupies a card inside the owner portal', async ({ page }) => {
+    await renderOwnerPortalWithTheme(page);
+
+    await expect(page.locator('#ownerPortal [data-owner-theme-option]')).toHaveCount(0);
+    await expect(page.locator('#ownerThemeTitle')).toHaveCount(0);
+
+    const buttonBox = await page.locator('#ownerThemeBtn').boundingBox();
+    expect(buttonBox.width).toBeLessThan(120);
+    expect(buttonBox.height).toBeLessThan(56);
 });
 
 test('a failed theme save restores the previous theme and shows an Arabic error', async ({ page }) => {
     await renderOwnerPortalWithTheme(page);
+    await openThemeMenu(page);
     await page.evaluate(() => {
         window.persistOwnerTheme = async () => { throw new Error('offline'); };
     });
 
-    await page.locator('[data-owner-theme-option="ocean"]').click();
+    await page.locator('#ownerThemeMenu [data-owner-theme-option="ocean"]').click();
 
     await expect(page.locator('body')).toHaveAttribute('data-theme', 'dark');
-    await expect(page.locator('[data-owner-theme-option="dark"]')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('[data-owner-theme-option="ocean"]')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('#ownerThemeMenu [data-owner-theme-option="dark"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#ownerThemeMenu [data-owner-theme-option="ocean"]')).toHaveAttribute('aria-pressed', 'false');
     await expect(page.locator('#toastContainer')).toContainText('تعذر حفظ المظهر');
 });
 
-test('theme errors stay inside the owner portal width on mobile', async ({ page }) => {
-    await page.setViewportSize({ width: 393, height: 851 });
+test('the theme menu closes on outside click and on Escape', async ({ page }) => {
     await renderOwnerPortalWithTheme(page);
 
-    const metrics = await page.evaluate(() => ({
-        documentWidth: document.documentElement.scrollWidth,
-        viewport: window.innerWidth,
-        options: Array.from(document.querySelectorAll('[data-owner-theme-option]')).map(option => option.getBoundingClientRect().width)
-    }));
+    await openThemeMenu(page);
+    const size = page.viewportSize();
+    await page.mouse.click(size.width / 2, size.height - 140);
+    await expect(page.locator('#ownerThemeMenu')).toBeHidden();
+
+    await openThemeMenu(page);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#ownerThemeMenu')).toBeHidden();
+});
+
+test('the theme menu stays inside the viewport on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 393, height: 851 });
+    await renderOwnerPortalWithTheme(page);
+    await openThemeMenu(page);
+
+    const metrics = await page.evaluate(() => {
+        const menu = document.getElementById('ownerThemeMenu').getBoundingClientRect();
+        return {
+            documentWidth: document.documentElement.scrollWidth,
+            viewport: window.innerWidth,
+            menuRight: menu.right,
+            menuLeft: menu.left,
+            options: Array.from(document.querySelectorAll('[data-owner-theme-option]')).map(option => option.getBoundingClientRect().width)
+        };
+    });
 
     expect(metrics.documentWidth).toBeLessThanOrEqual(metrics.viewport + 1);
+    expect(metrics.menuLeft).toBeGreaterThanOrEqual(0);
+    expect(metrics.menuRight).toBeLessThanOrEqual(metrics.viewport + 1);
     for (const width of metrics.options) {
-        expect(width).toBeGreaterThan(80);
+        expect(width).toBeGreaterThan(60);
     }
 });

@@ -122,12 +122,17 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(html, /onsubmit="sendAssistantMessage\(event\)"/);
     assert.match(html, /<button type="button" id="assistantFab"[^>]*onclick="openAssistantModal\(\)"/);
     assert.match(html, /aria-label="اسأل عم عبده البواب"/);
-    assert.match(html, /class="assistant-fab-avatar"[^>]*src="icons\/assistant-abbah\.png"/);
+    assert.match(html, /class="assistant-avatar-frame assistant-fab-avatar"[^>]*><img src="icons\/assistant-abbah\.png"/, 'the launcher clips the avatar into a face-centered circle');
     assert.doesNotMatch(html, /assistant-header-button/, 'the launcher left the header for the floating button');
     assert.ok(html.indexOf('js/assistant.js') > -1, 'assistant script is included');
     assert.ok(html.indexOf('js/assistant.js') < html.indexOf('js/app.js'), 'assistant loads before app bootstrap');
     assert.match(css, /\.assistant-fab \{/);
     assert.match(css, /\.assistant-fab\.is-hidden \{/);
+    assert.match(css, /\.assistant-fab\.is-compact \{/);
+    assert.match(css, /\.assistant-fab\.is-compact \.assistant-fab-label \{ max-width: 0; opacity: 0; \}/, 'scrolling shrinks the label instead of the button');
+    assert.match(css, /\.assistant-avatar-frame img \{[\s\S]*transform: scale\(1\.9\);[\s\S]*transform-origin: 50% 26%;/, 'the square avatar is zoomed to the face, not letterboxed');
+    assert.match(assistantSource, /applyAssistantFabState\(false, assistantFabCompactByScroll\)/, 'scroll state only compacts the launcher');
+    assert.doesNotMatch(assistantSource, /assistantFabHiddenByScroll/, 'scrolling must never hide the launcher again');
     assert.match(css, /body\.owner-mode \.assistant-fab/);
     assert.match(css, /@media print \{ \.assistant-fab \{ display: none !important; \} \}/);
     assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.assistant-fab/);
