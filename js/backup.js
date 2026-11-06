@@ -86,13 +86,19 @@ function renderBackupConsole(data, cached = false) {
     if (pendingRestore?.id) activeRestoreRequestId = pendingRestore.id;
     else if (!cached) activeRestoreRequestId = null;
     const pendingBackup = backupRequests.some(item => ['queued', 'dispatched'].includes(item.status));
+    const createStatus = document.getElementById('backupCreateStatus');
+    if (createStatus && !cached) {
+        const latestBackup = backupRequests[0];
+        if (pendingBackup) createStatus.textContent = 'طلب النسخ الاحتياطي قيد التنفيذ.';
+        else if (latestBackup?.status === 'succeeded') createStatus.textContent = 'اكتملت النسخة الاحتياطية. ' + (latestBackup.result_message || 'تم حفظ النسخة على الخادم.');
+        else if (latestBackup?.status === 'failed') createStatus.textContent = 'فشل إنشاء النسخة. ' + (latestBackup.result_message || 'راجع سجل النسخ ثم أعد المحاولة.');
+        else createStatus.textContent = '';
+    }
     const status = document.getElementById('backupRestoreStatus');
     if (status && pendingRestore) {
         status.textContent = pendingRestore.status === 'running'
             ? 'جاري استبدال قاعدة البيانات. يمكنك متابعة الحالة هنا.'
             : 'تم تسجيل طلب الاستعادة، وفي انتظار بدء التنفيذ.';
-    } else if (status && pendingBackup) {
-        status.textContent = 'طلب النسخ الاحتياطي قيد التنفيذ.';
     } else if (status && !cached) {
         const latestRestore = restoreRequests[0];
         if (latestRestore?.status === 'succeeded') {
@@ -304,8 +310,8 @@ async function downloadDatabaseBackup() {
 async function requestDatabaseBackup() {
     if (!requireManager()) return;
     const button = /** @type {HTMLButtonElement} */ (document.getElementById('backupCreateButton'));
-    const status = document.getElementById('backupRestoreStatus');
-    if (!button || button.disabled) return;
+    const status = document.getElementById('backupCreateStatus');
+    if (!button || button.disabled || !status) return;
     button.disabled = true;
     status.textContent = 'جارٍ تسجيل طلب النسخ الاحتياطي...';
     try {
