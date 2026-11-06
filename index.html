@@ -160,9 +160,6 @@
             </div>
             <div class="flex items-center gap-1.5">
                 <button onclick="openSettingsModal()" aria-label="فتح الإعدادات" class="app-card border p-2.5 rounded-xl text-xs transition" title="الإعدادات"><i class="fa-solid fa-gear text-sm"></i></button>
-                
-                <button onclick="openModal('guideModal')" aria-label="فتح دليل الاستخدام" class="app-card border p-2.5 rounded-xl text-xs transition" title="دليل الاستخدام"><i class="fa-solid fa-book-open text-sm"></i></button>
-                <button onclick="printCurrentView()" aria-label="طباعة التقرير" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 p-2.5 rounded-xl text-xs transition hidden sm:flex" title="طباعة"><i class="fa-solid fa-print text-sm"></i></button>
                 <button id="accessSwitchBtn" onclick="lockCurrentSession()" aria-label="تبديل المستخدم أو قفل التطبيق" class="app-card border p-2.5 rounded-xl text-xs transition hidden" title="خروج / تبديل المستخدم"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
             </div>
         </div>
@@ -859,6 +856,9 @@
                             <button type="button" class="settings-card" data-tone="indigo" id="settings-tab-account" aria-controls="settings-panel-account" onclick="switchSettingsTab('account')">
                                 <span class="settings-card-icon"><i class="fa-solid fa-user-shield" aria-hidden="true"></i></span><span class="settings-card-copy"><b>الحساب والصلاحيات</b><small>حساب المدير وإدارة دخول الملاك</small></span><i class="fa-solid fa-arrow-left settings-card-arrow" aria-hidden="true"></i>
                             </button>
+                            <button type="button" class="settings-card" data-tone="sky" aria-haspopup="dialog" onclick="openModal('guideModal')">
+                                <span class="settings-card-icon"><i class="fa-solid fa-book-open" aria-hidden="true"></i></span><span class="settings-card-copy"><b>دليل الاستخدام</b><small>شرح سريع لأقسام التطبيق والتحصيل والتقارير</small></span><i class="fa-solid fa-arrow-left settings-card-arrow" aria-hidden="true"></i>
+                            </button>
                         </div>
                     </div>
                     <div id="settings-content" class="settings-content">
@@ -1141,8 +1141,8 @@
 
                         <section class="settings-brand-preview" aria-labelledby="settingsBrandPreviewTitle">
                             <div class="settings-brand-preview-heading">
-                                <div><h5 id="settingsBrandPreviewTitle">هوية منزل</h5><p>الشعار الكامل وأيقونة التطبيق كما تظهر في الواجهات.</p></div>
-                                <span class="settings-brand-approved"><i class="fa-solid fa-lock" aria-hidden="true"></i> محمية من التغيير</span>
+                                <div><h5 id="settingsBrandPreviewTitle">الشعار والأيقونة</h5><p>الشعار الكامل وأيقونة التطبيق كما تظهر في الواجهات.</p></div>
+                                <span class="settings-brand-approved"><i class="fa-solid fa-lock" aria-hidden="true"></i> الهوية البصرية</span>
                             </div>
                             <div class="settings-brand-preview-grid">
                                 <div class="settings-brand-preview-card settings-brand-preview-dark">
@@ -1661,8 +1661,23 @@
                 <p id="incomePurposeCashHint" class="text-[10px] text-slate-500"></p>
                 <label class="block text-xs space-y-1">
                     <span class="text-slate-400" id="incomeMonthLabel">شهر بداية التوزيع</span>
-                    <select id="incomeMonth" aria-label="شهر بداية التوزيع" onchange="previewIncomeAllocation()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
+                    <select id="incomeMonth" aria-label="شهر بداية التوزيع" onchange="handleIncomeMonthChange()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
                 </label>
+                <p class="text-[10px] text-slate-500">إذا لم يظهر الشهر المطلوب اختر «شهر آخر…» لتسجيل تحصيل قديم.</p>
+                <div id="incomeCustomMonthWrap" class="hidden space-y-2" aria-label="اختيار شهر مخصص">
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="block text-xs space-y-1">
+                            <span class="text-slate-400">الشهر</span>
+                            <select id="incomeCustomMonthSelect" aria-label="شهر التحصيل المخصص" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
+                        </label>
+                        <label class="block text-xs space-y-1">
+                            <span class="text-slate-400">السنة</span>
+                            <select id="incomeCustomYearSelect" aria-label="سنة التحصيل المخصصة" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
+                        </label>
+                    </div>
+                    <button type="button" onclick="applyIncomeCustomMonth()" class="w-full min-h-11 border border-amber-500/40 text-amber-300 rounded-2xl px-3 py-2 text-xs font-bold"><i class="fa-solid fa-calendar-check ml-1" aria-hidden="true"></i> اعتماد الشهر المختار</button>
+                </div>
+                <p id="incomeCustomMonthHint" class="hidden text-[10px] text-emerald-300" role="status" aria-live="polite"></p>
                 <p id="incomeOutstandingHint" role="status" aria-live="polite" class="text-[10px] text-slate-500"></p>
                 <label id="incomeAllocationModeWrap" class="hidden block text-xs space-y-1">
                     <span class="text-slate-400">طريقة التوزيع</span>

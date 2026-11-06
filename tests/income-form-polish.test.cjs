@@ -107,6 +107,14 @@ test('the income form exposes sorted apartment choices, a resident summary and l
     assert.match(html, /id="incomeNotes"[^>]*oninput="previewIncomeAllocation\(\)"/);
     assert.match(html, /setIncomeNoteSuggestion\('سداد متأخرات'\)/);
     assert.match(html, /id="incomeReceiptModal"/);
+    assert.match(html, /id="incomeMonth"[^>]*onchange="handleIncomeMonthChange\(\)"/);
+    assert.match(html, /id="incomeCustomMonthWrap"/);
+    assert.match(html, /id="incomeCustomMonthSelect"/);
+    assert.match(html, /id="incomeCustomYearSelect"/);
+    assert.match(html, /onclick="applyIncomeCustomMonth\(\)"/);
+    assert.match(crudSource, /<option value="__custom__">شهر آخر…<\/option>/);
+    assert.match(crudSource, /function handleIncomeMonthChange\(\)/);
+    assert.match(crudSource, /function applyIncomeCustomMonth\(\)/);
     assert.match(renderSource, /localeCompare\(String\(b\.apartmentNumber \|\| ''\), 'ar', \{ numeric: true \}\)/);
     assert.match(renderSource, /formatApartmentLabel\(r\.apartmentNumber\)/);
     assert.match(renderSource, /openIncomeReceiptModal\('\$\{i\.id\}'\)/);
