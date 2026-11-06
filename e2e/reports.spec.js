@@ -385,7 +385,7 @@ test('resident statement previews one resident and invalidates on data changes',
     await previewStatement(page);
 
     const preview = page.locator('#residentStatementPreview');
-    await expect(preview).toContainText('كشف حساب ساكن');
+    await expect(preview).toContainText('كشف حساب مالك');
     await expect(preview).toContainText('إجمالي المستحق');
     await expect(preview).toContainText('أحمد');
     await expect(page.locator('#statementPrintBtn')).toBeEnabled();
@@ -433,7 +433,7 @@ test('printing a resident statement isolates its card', async ({ page }) => {
     }));
     expect(printed.calls).toBe(1);
     expect(printed.scoped).toBe(true);
-    expect(printed.title).toContain('كشف حساب ساكن');
+    expect(printed.title).toContain('كشف حساب مالك');
     expect(printed.meta).toContain('أحمد');
 
     await page.emulateMedia({ media: 'print' });
@@ -474,7 +474,7 @@ test('resident profile opens the statement for the same resident', async ({ page
     await page.locator('#residentProfileModal').getByRole('button', { name: /كشف حساب/ }).click();
     await expect(page.locator('#tab-reports')).toBeVisible();
     await expect(page.locator('#statementResidentSelect')).toHaveValue('r1');
-    await expect(page.locator('#residentStatementPreview')).toContainText('كشف حساب ساكن');
+    await expect(page.locator('#residentStatementPreview')).toContainText('كشف حساب مالك');
     await expect(page.locator('#residentStatementPreview')).toContainText('أحمد');
 });
 
@@ -816,7 +816,7 @@ test('statement purpose filter scopes movements and hides the dues ledger', asyn
     expect(csv).not.toContain('"الشهر","المستحق","المدفوع","المتبقي","الحالة"');
 
     await page.locator('#statementPurpose').selectOption('');
-    await expect(preview).toContainText('تغيّر الساكن أو الغرض');
+    await expect(preview).toContainText('تغيّر المالك أو الغرض');
     await expect(page.locator('#statementCsvBtn')).toBeDisabled();
 });
 

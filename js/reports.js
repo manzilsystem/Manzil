@@ -702,15 +702,6 @@ function printLandlordReport() {
     window.print();
 }
 
-function printCurrentView() {
-    document.body.classList.remove('print-landlord');
-    const title = document.getElementById('printBuildingTitle');
-    const meta = document.getElementById('printBuildingMeta');
-    if (title) title.textContent = `كشف حساب مالي - ${state.buildingName || 'Manzil'}`;
-    if (meta) meta.textContent = `المدير: ${state.managerName || '—'} • ${getCurrentMonth()}`;
-    window.print();
-}
-
 function escapeCsvCell(value) {
     let text = String(value ?? '');
     if (typeof value === 'string' && /^[\u0000-\u0020]*[=+\-@]/.test(text)) text = `'${text}`;
