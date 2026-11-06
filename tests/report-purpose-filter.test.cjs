@@ -357,7 +357,7 @@ test('statement CSV and signatures follow the purpose filter', () => {
     elements.statementPurpose.value = 'other';
     assert.equal(api.getResidentStatementSnapshot(), null);
     api.invalidateResidentStatementPreview();
-    assert.match(elements.residentStatementPreview.innerHTML, /تغيّر الساكن أو الغرض/);
+    assert.match(elements.residentStatementPreview.innerHTML, /تغيّر المالك أو الغرض/);
 });
 
 test('payment matching treats missing purpose as subscription and accepts known codes', () => {
