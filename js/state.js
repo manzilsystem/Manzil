@@ -221,6 +221,29 @@ function isSubscriptionMonthOverdue(monthLabel, now = new Date()) {
     return Boolean(deadline && Number.isFinite(current.getTime()) && current >= deadline);
 }
 
+const MANZIL_THEME_LIST = ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise'];
+const MANZIL_THEME_NAMES = { dark:'ليلي', light:'نهاري', emerald:'زمردي', ocean:'محيطي', sand:'رملي', turquoise:'فيروزي' };
+const MANZIL_THEME_COLORS = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16', turquoise:'#071f27' };
+
+function normalizeThemeName(value) {
+    return MANZIL_THEME_LIST.includes(value) ? value : null;
+}
+
+function resolveUserTheme(buildingTheme, profileTheme, role) {
+    if (role === 'owner') {
+        const own = normalizeThemeName(profileTheme);
+        if (own) return own;
+    }
+    return normalizeThemeName(buildingTheme) || 'dark';
+}
+
+function applyThemeToDocument(theme) {
+    const next = normalizeThemeName(theme) || 'dark';
+    document.body.setAttribute('data-theme', next);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', MANZIL_THEME_COLORS[next]);
+    return next;
+}
+
 let state = {
     buildingName:'', managerName:'', managerPhone:'', defaultSubscription:0, startingBalance:0,
     floorCount:0, apartmentsPerFloor:0,
@@ -714,16 +737,13 @@ function getResidentCollectionSummary(resident) {
 
 async function setTheme(theme) {
     if (currentUserRole !== 'manager') { toast('تغيير الإعدادات متاح للمدير فقط','error'); return; }
-    if (!['dark','light','emerald','ocean','sand','turquoise'].includes(theme)) theme = 'dark';
+    const next = normalizeThemeName(theme) || 'dark';
     const previousState = cloneStateSnapshot();
-    state.currentTheme = theme;
-    document.body.setAttribute('data-theme', theme);
-    const themeColors = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16', turquoise:'#071f27' };
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[theme]);
+    state.currentTheme = next;
+    applyThemeToDocument(next);
     updateThemeSelection();
     if (!await saveWithRollback(previousState)) {
-        document.body.setAttribute('data-theme', state.currentTheme);
-        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[state.currentTheme] || themeColors.dark);
+        applyThemeToDocument(state.currentTheme);
         updateThemeSelection();
     }
 }

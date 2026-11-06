@@ -2,7 +2,7 @@
 
 تطبيق ويب عربي (RTL) لإدارة الشقق والاشتراكات والتحصيلات والمصروفات والصناديق والتقارير، مع بوابة مالك للقراءة فقط. يعمل كـPWA ويستخدم Supabase للمصادقة وPostgreSQL، وRLS لعزل بيانات كل مبنى.
 
-الإصدار الحي: **manzil-v134** (`sw.js` → `CACHE_NAME`، `js/telemetry.js` → `RELEASE`).
+الإصدار الحي: **manzil-v135** (`sw.js` → `CACHE_NAME`، `js/telemetry.js` → `RELEASE`).
 
 ## التشغيل
 
@@ -25,9 +25,9 @@ npm run check:index   # يفشل إن كان index.html غير محدَّث
 
 | الأمر | التغطية | الحالة |
 |---|---|---|
-| `npm test` | 684 اختبار Node: الحالة، الصلاحيات، التقارير، الحفظ الذري، التحصيل والصناديق، النسخ الاحتياطي، المساعد المحلي | يمر |
+| `npm test` | 691 اختبار Node: الحالة، الصلاحيات، التقارير، الحفظ الذري، التحصيل والصناديق، النسخ الاحتياطي، المساعد المحلي | يمر |
 | `npm run typecheck` | `tsc --noEmit` على وحدات JS المعلَّمة بـ`// @ts-check` | يمر |
-| `npm run e2e` | 114 اختبار Playwright (desktop + mobile) | يمر |
+| `npm run e2e` | 120 اختبار Playwright (desktop + mobile) | يمر |
 | `deno test supabase/functions` | 61 اختبار Edge Functions مع خادم Supabase وهمي | يمر |
 | تكامل PostgreSQL | يعمل في CI عبر `supabase db reset --local` و`tests/post-restore-verify.sql` | يمر |
 
