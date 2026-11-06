@@ -923,7 +923,7 @@
                 <div class="app-input border rounded-2xl overflow-hidden">
                     <div class="px-4 py-3 border-b border-slate-700/50 flex items-center justify-between gap-2">
                         <div>
-                            <p class="text-xs font-bold">الإعفاءات والتخفيضات المسجلة</p>
+                            <p class="text-xs font-bold">الإعفاءات والتخفيضات والتسويات المسجلة</p>
                             <p class="text-[10px] text-slate-500 mt-1">تُخصم من مستحق الشهر ولا تُعدّ تحصيلًا نقديًا، وتبقى محفوظة في السجل.</p>
                         </div>
                         <span id="adjustmentListCount" class="text-[10px] text-slate-500 shrink-0"></span>
@@ -945,15 +945,16 @@
                 </div>
                 <form id="adjustmentForm" onsubmit="handleAdjustmentSubmit(event)" class="app-input border rounded-2xl p-4 space-y-3">
                     <div class="flex items-center justify-between gap-2">
-                        <p id="adjustmentFormTitle" class="text-xs font-bold">تسجيل إعفاء أو تخفيض</p>
+                        <p id="adjustmentFormTitle" class="text-xs font-bold">تسجيل إعفاء أو تخفيض أو تسوية</p>
                         <button type="button" id="adjustmentCancelEdit" onclick="cancelAdjustmentEdit()" class="hidden text-[10px] text-slate-400 hover:text-white border border-slate-600 rounded-lg px-2 py-1">إلغاء التعديل</button>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <label class="text-xs space-y-1">
                             <span class="text-slate-400">النوع</span>
-                            <select id="adjustmentKind" required class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
+                            <select id="adjustmentKind" required onchange="updateAdjustmentFormState(); updateAdjustmentDueHint()" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
                                 <option value="waiver">إعفاء</option>
                                 <option value="discount">تخفيض</option>
+                                <option value="settlement">تسوية متفق عليها</option>
                             </select>
                         </label>
                         <label class="text-xs space-y-1">
@@ -1045,10 +1046,20 @@
                         <option value="subscription">اشتراك شهري</option>
                         <option value="development">تطوير</option>
                         <option value="emergency">صيانة طارئة</option>
+                        <option value="settlement">سداد تسوية</option>
                         <option value="other">أخرى</option>
                     </select>
                 </label>
                 <p class="text-[10px] text-slate-500">اختر «أخرى» لأي غرض غير الاشتراك والتطوير والصيانة الطارئة، واكتب الغرض بالتفصيل في الملاحظات.</p>
+                <div id="incomeSettlementWrap" class="hidden rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+                    <label class="block text-xs space-y-1">
+                        <span class="text-amber-300">اتفاق التسوية</span>
+                        <select id="incomeSettlementSelect" aria-label="اختر اتفاق التسوية" onchange="handleIncomeSettlementChange()" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
+                            <option value="">اختر تسوية مفتوحة</option>
+                        </select>
+                    </label>
+                    <p id="incomeSettlementHint" role="status" aria-live="polite" class="text-[10px] text-slate-400">اختر اتفاقًا لتحديد المبلغ المتبقي.</p>
+                </div>
                 </section>
                 <section id="incomeWizardStep2" data-income-step="2" class="hidden space-y-3">
                 <div id="incomeMonthsWrap" class="rounded-2xl border border-slate-700/60 p-3 space-y-2">

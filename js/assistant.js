@@ -257,14 +257,16 @@ function getAssistantIncomeSnapshot(months) {
     const rows = (Array.isArray(state.income) ? state.income : []).filter(row => !allowed.size || allowed.has(row.month));
     let cents = 0;
     let subscriptionCents = 0;
+    let settlementCents = 0;
     const purposes = new Map();
     rows.forEach(row => {
         const amountCents = typeof toCents === 'function' ? toCents(row.amount) : Math.round((Number(row.amount) || 0) * 100);
         if (amountCents <= 0) return;
         cents += amountCents;
-        const isSubscription = typeof isSubscriptionIncome === 'function' ? isSubscriptionIncome(row) : row.purposeCode === 'subscription';
+        const code = row.purposeCode || 'subscription';
+        const isSubscription = typeof isSubscriptionIncome === 'function' ? isSubscriptionIncome(row) : code === 'subscription';
         if (isSubscription) subscriptionCents += amountCents;
-        const code = row.purposeCode || (isSubscription ? 'subscription' : 'other');
+        if (code === 'settlement') settlementCents += amountCents;
         purposes.set(code, (purposes.get(code) || 0) + amountCents);
     });
     const purposeRows = Array.from(purposes.entries())
@@ -281,7 +283,9 @@ function getAssistantIncomeSnapshot(months) {
         total: cents / 100,
         subscriptionCents,
         subscriptionTotal: subscriptionCents / 100,
-        otherTotal: (cents - subscriptionCents) / 100,
+        settlementCents,
+        settlementTotal: settlementCents / 100,
+        otherTotal: (cents - subscriptionCents - settlementCents) / 100,
         purposes: purposeRows
     };
 }
@@ -311,22 +315,36 @@ function getAssistantMonthSummary(period, now = new Date()) {
     const residents = Array.isArray(state.residents) ? state.residents : [];
     let dueCents = 0;
     let paidCents = 0;
+    let subscriptionPaidCents = 0;
+    let settlementPaidCents = 0;
     let adjustedCents = 0;
     let outstandingCents = 0;
     let paidUnits = 0;
     let partialUnits = 0;
     const unpaid = [];
     residents.forEach(resident => {
-        const due = typeof getSubscriptionAmountForMonth === 'function'
+        const grossDue = typeof getSubscriptionAmountForMonth === 'function'
             ? Number(getSubscriptionAmountForMonth(resident, month)) || 0
             : Number(resident.monthlyAmount ?? state.defaultSubscription) || 0;
-        const paid = typeof getPaidAmountForMonth === 'function' ? Number(getPaidAmountForMonth(resident.id, month)) || 0 : 0;
-        const adjusted = typeof getAdjustmentAmountForMonth === 'function' ? Number(getAdjustmentAmountForMonth(resident.id, month)) || 0 : 0;
+        const due = typeof getMonthlyDueAmountForMonth === 'function'
+            ? Number(getMonthlyDueAmountForMonth(resident, month)) || 0 : grossDue;
+        const paid = typeof getMonthlyDuePaidAmount === 'function'
+            ? Number(getMonthlyDuePaidAmount(resident.id, month)) || 0
+            : typeof getPaidAmountForMonth === 'function' ? Number(getPaidAmountForMonth(resident.id, month)) || 0 : 0;
+        const subscriptionPaid = typeof getPaidAmountForMonth === 'function'
+            ? Number(getPaidAmountForMonth(resident.id, month)) || 0 : 0;
+        const settlement = typeof getSettlementAdjustmentForMonth === 'function'
+            ? getSettlementAdjustmentForMonth(resident.id, month) : null;
+        const settlementPaid = settlement && typeof getSettlementPaidAmount === 'function'
+            ? Number(getSettlementPaidAmount(settlement.id)) || 0 : 0;
+        const adjusted = Math.max(0, grossDue - due);
         const outstanding = typeof getMonthOutstanding === 'function'
             ? Number(getMonthOutstanding(resident, month)) || 0
-            : Math.max(0, due - adjusted - paid);
-        dueCents += Math.round(due * 100);
+            : Math.max(0, due - paid);
+        dueCents += Math.round(grossDue * 100);
         paidCents += Math.round(paid * 100);
+        subscriptionPaidCents += Math.round(subscriptionPaid * 100);
+        settlementPaidCents += Math.round(settlementPaid * 100);
         adjustedCents += Math.round(adjusted * 100);
         outstandingCents += Math.round(outstanding * 100);
         if (due > 0 && outstanding <= 0) paidUnits += 1;
@@ -340,7 +358,9 @@ function getAssistantMonthSummary(period, now = new Date()) {
         expenses,
         net: (income.cents - expenses.cents) / 100,
         dueTotal: dueCents / 100,
-        paidSubscriptionTotal: paidCents / 100,
+        paidSubscriptionTotal: subscriptionPaidCents / 100,
+        paidSettlementTotal: settlementPaidCents / 100,
+        paidDueTotal: paidCents / 100,
         adjustmentsTotal: adjustedCents / 100,
         outstandingTotal: outstandingCents / 100,
         paidUnits,
@@ -405,14 +425,26 @@ function resolveAssistantResident(text) {
 
 function getAssistantResidentSnapshot(resident, now = new Date(), monthLabel = '') {
     const month = monthLabel || getAssistantNowLabel(now);
-    const subscription = typeof getSubscriptionAmountForMonth === 'function'
+    const grossSubscription = typeof getSubscriptionAmountForMonth === 'function'
         ? Number(getSubscriptionAmountForMonth(resident, month)) || 0
         : Number(resident.monthlyAmount ?? state.defaultSubscription) || 0;
-    const paid = typeof getPaidAmountForMonth === 'function' ? Number(getPaidAmountForMonth(resident.id, month)) || 0 : 0;
-    const adjusted = typeof getAdjustmentAmountForMonth === 'function' ? Number(getAdjustmentAmountForMonth(resident.id, month)) || 0 : 0;
+    const settlement = typeof getSettlementAdjustmentForMonth === 'function'
+        ? getSettlementAdjustmentForMonth(resident.id, month) : null;
+    const monthlyDue = typeof getMonthlyDueAmountForMonth === 'function'
+        ? Number(getMonthlyDueAmountForMonth(resident, month)) || 0 : grossSubscription;
+    const subscription = settlement ? monthlyDue : grossSubscription;
+    const paid = typeof getMonthlyDuePaidAmount === 'function'
+        ? Number(getMonthlyDuePaidAmount(resident.id, month)) || 0
+        : typeof getPaidAmountForMonth === 'function'
+            ? Number(getPaidAmountForMonth(resident.id, month)) || 0 : 0;
+    const adjusted = Math.max(0, Math.round((grossSubscription - monthlyDue) * 100)) / 100;
+    const settlementPaid = settlement && typeof getSettlementPaidAmount === 'function'
+        ? Number(getSettlementPaidAmount(settlement.id)) || 0 : 0;
+    const settlementRemaining = settlement && typeof getSettlementRemainingAmount === 'function'
+        ? Number(getSettlementRemainingAmount(settlement)) || 0 : 0;
     const outstanding = typeof getMonthOutstanding === 'function'
         ? Number(getMonthOutstanding(resident, month)) || 0
-        : Math.max(0, subscription - adjusted - paid);
+        : Math.max(0, subscription - paid);
     const debt = typeof calculateCumulativeDebt === 'function'
         ? calculateCumulativeDebt(resident.id)
         : { count: 0, totalDebt: 0, unpaidMonths: [] };
@@ -424,8 +456,12 @@ function getAssistantResidentSnapshot(resident, now = new Date(), monthLabel = '
     return {
         month,
         subscription,
+        grossSubscription,
         paid,
         adjusted,
+        settlement,
+        settlementPaid,
+        settlementRemaining,
         outstanding,
         debt,
         lastPayment: payments[0] || null,
@@ -483,6 +519,7 @@ function buildAssistantIncomeAnswer(period) {
     let html = '';
     html += assistantRow('إجمالي التحصيل', assistantMoney(snapshot.total), snapshot.total > 0 ? 'good' : '');
     html += assistantRow('اشتراكات شهرية', assistantMoney(snapshot.subscriptionTotal));
+    if (snapshot.settlementTotal > 0) html += assistantRow('دفعات تسوية', assistantMoney(snapshot.settlementTotal));
     html += assistantRow('أغراض أخرى', assistantMoney(snapshot.otherTotal));
     html += assistantRow('عدد الدفعات', assistantNumber(snapshot.count));
     if (snapshot.purposes.length) {
@@ -565,10 +602,17 @@ function buildAssistantResidentAnswer(resident, now = new Date()) {
     const snapshot = getAssistantResidentSnapshot(resident, now);
     const title = `${assistantApartmentLabel(resident)} · ${assistantResidentName(resident)}`;
     let html = '';
-    html += assistantRow('اشتراك الشهر', assistantMoney(snapshot.subscription));
-    html += assistantRow('مدفوع هذا الشهر', assistantMoney(snapshot.paid), snapshot.paid > 0 ? 'good' : '');
-    if (snapshot.adjusted > 0) html += assistantRow('إعفاء / تخفيض الشهر', assistantMoney(snapshot.adjusted), 'warn');
-    html += assistantRow('المتبقي هذا الشهر', assistantMoney(snapshot.outstanding), snapshot.outstanding > 0 ? 'bad' : 'good');
+    if (snapshot.settlement) {
+        html += assistantRow('الاشتراك قبل التسوية', assistantMoney(snapshot.grossSubscription));
+        html += assistantRow('قيمة اتفاق التسوية', assistantMoney(snapshot.subscription));
+        html += assistantRow('المسدد من التسوية', assistantMoney(snapshot.settlementPaid), snapshot.settlementPaid > 0 ? 'good' : '');
+        html += assistantRow('المتبقي من التسوية', assistantMoney(snapshot.settlementRemaining), snapshot.settlementRemaining > 0 ? 'warn' : 'good');
+    } else {
+        html += assistantRow('اشتراك الشهر', assistantMoney(snapshot.subscription));
+        html += assistantRow('مدفوع هذا الشهر', assistantMoney(snapshot.paid), snapshot.paid > 0 ? 'good' : '');
+        if (snapshot.adjusted > 0) html += assistantRow('إعفاء / تخفيض الشهر', assistantMoney(snapshot.adjusted), 'warn');
+        html += assistantRow('المتبقي هذا الشهر', assistantMoney(snapshot.outstanding), snapshot.outstanding > 0 ? 'bad' : 'good');
+    }
     html += assistantRow('إجمالي المتأخرات', assistantMoney(snapshot.debt.totalDebt), snapshot.debt.totalDebt > 0 ? 'bad' : 'good');
     html += assistantRow('شهور متأخرة', assistantNumber(snapshot.debt.count));
     if (snapshot.lastPayment) {

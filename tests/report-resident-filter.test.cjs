@@ -16,9 +16,10 @@ const PURPOSE_LABELS = {
     emergency: 'صيانة طارئة',
     penalty: 'أخرى',
     donation: 'أخرى',
-    other: 'أخرى'
+    other: 'أخرى',
+    settlement: 'سداد تسوية'
 };
-const PURPOSE_FORM_CODES = ['subscription', 'development', 'emergency', 'other'];
+const PURPOSE_FORM_CODES = ['subscription', 'development', 'emergency', 'settlement', 'other'];
 const CASH_ACCOUNTS = {
     main: { label: 'الخزنة الرئيسية' },
     development: { label: 'صندوق التطوير' },
