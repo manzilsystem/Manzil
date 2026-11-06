@@ -1,5 +1,5 @@
 (() => {
-    const RELEASE = 'manzil-v146';
+    const RELEASE = 'manzil-v147';
     const STORAGE_KEY = 'manzil-error-log';
     const MAX_STORED = 20;
     const MAX_SENT = 10;

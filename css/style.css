@@ -283,7 +283,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .arrears-amount { flex: 0 0 auto; color: #fb7185; font-size: .78rem; font-weight: 900; }
 [data-theme="light"] .arrears-amount { color: #be123c; }
 .arrears-body { display: flex; flex-direction: column; gap: .4rem; padding: .6rem .85rem .7rem; border-top: 1px solid var(--border-color); }
-.arrears-chip { align-self: flex-start; padding: .2rem .55rem; border: 1px solid var(--report-tone-line); border-radius: 999px; background: var(--report-tone-soft); color: var(--report-tone); font-size: .58rem; font-weight: 800; }
 .audit-log-row { position: relative; padding: .55rem .8rem; padding-inline-start: 1.9rem; border: 1px solid var(--border-color); border-radius: .85rem; background: color-mix(in srgb, var(--bg-input) 55%, transparent); }
 .audit-log-row::before { content: ''; position: absolute; inset-inline-start: .72rem; top: .95rem; width: .45rem; height: .45rem; border-radius: 999px; background: var(--accent-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 22%, transparent); }
 .audit-log-action { color: var(--text-main); font-weight: 800; }
@@ -369,32 +368,9 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     background: #111827;
     border-inline-end: 1px solid rgba(148, 163, 184, .14);
 }
-.auth-brand-mark {
-    width: 2.75rem;
-    height: 2.75rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: .85rem;
-    color: #e0e7ff;
-    background: #273449;
-    border: 1px solid rgba(165, 180, 252, .2);
-}
-.auth-brand-mark svg { width: 1.45rem; height: 1.45rem; }
 .auth-brand-panel h1 { font-size: 1.75rem; }
 .auth-brand-panel h2 { font-size: 1rem; }
 .auth-brand-panel > div:first-child > p { color: #cbd5e1; }
-.auth-feature {
-    display: flex;
-    align-items: center;
-    gap: .65rem;
-    border: 1px solid rgba(148, 163, 184, .16);
-    border-radius: .9rem;
-    padding: .65rem .75rem;
-    color: #e2e8f0;
-    background: rgba(15, 23, 42, .38);
-}
-.auth-feature i { width: 1rem; text-align: center; }
 .auth-trust-note { display: flex; align-items: center; gap: .5rem; color: #cbd5e1; font-size: .72rem; line-height: 1.6; }
 .auth-trust-note i { color: #a5b4fc; }
 .auth-rights { color: #94a3b8; }
@@ -2176,12 +2152,6 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 
 /* ---------- Receipt and reminder editors ---------- */
-#settingsModal .settings-editor-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
-    align-items: start;
-}
 #settingsModal .settings-preview-card {
     position: sticky;
     top: 1rem;
@@ -2501,8 +2471,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
         width: 100%;
     }
     #settingsModal .settings-payment-grid,
-    #settingsModal .settings-backup-grid,
-    #settingsModal .settings-editor-grid {
+    #settingsModal .settings-backup-grid {
         grid-template-columns: minmax(0, 1fr);
     }
     #settingsModal .settings-payment-card-wide {

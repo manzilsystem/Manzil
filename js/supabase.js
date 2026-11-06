@@ -157,10 +157,6 @@ function normalizeOwnerPhone(input) {
     return /^\+[1-9]\d{7,14}$/.test(value) ? value : null;
 }
 
-function ownerAuthEmail(phone) {
-    return `${phone.slice(1)}@phone-login.manzil.invalid`;
-}
-
 function normalizePinDigits(input) {
     return String(input || '').replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632))
         .replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776));
@@ -1151,10 +1147,6 @@ function updateAccessSwitchButton() {
     const button = document.getElementById('accessSwitchBtn');
     if (button) button.classList.toggle('hidden', !activeSession);
 }
-
-function checkPinLockOnStart() { setAuthModal(!activeSession); }
-function verifyPinCode() { return submitSupabaseLogin(event); }
-function handlePinInput() {}
 
 async function initSupabaseApp() {
     try {
