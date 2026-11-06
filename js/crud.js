@@ -342,8 +342,10 @@ function editResident(id) { openResidentModal('edit', id); }
 
 function buildResidentProfileHtml(resident) {
     const currentMonth = getCurrentMonth();
-    const currentAmount = getSubscriptionAmountForMonth(resident, currentMonth);
-    const currentPaid = getPaidAmountForMonth(resident.id, currentMonth);
+    const currentAmount = typeof getMonthlyDueAmountForMonth === 'function'
+        ? getMonthlyDueAmountForMonth(resident, currentMonth) : getSubscriptionAmountForMonth(resident, currentMonth);
+    const currentPaid = typeof getMonthlyDuePaidAmount === 'function'
+        ? getMonthlyDuePaidAmount(resident.id, currentMonth) : getPaidAmountForMonth(resident.id, currentMonth);
     const currentOutstanding = getMonthOutstanding(resident, currentMonth);
     const isOverdue = currentOutstanding > 0 && isSubscriptionMonthOverdue(currentMonth);
     const paymentStatus = currentOutstanding <= 0
@@ -352,7 +354,7 @@ function buildResidentProfileHtml(resident) {
             ? { label: 'متأخر عن السداد', className: 'text-rose-400 bg-rose-500/10 border-rose-500/20' }
             : { label: 'داخل مهلة السداد', className: 'text-sky-400 bg-sky-500/10 border-sky-500/20' };
     const debt = calculateCumulativeDebt(resident.id);
-    const currentAdjustment = getAdjustmentAmountForMonth(resident.id, currentMonth);
+    const currentAdjustment = Math.max(0, getSubscriptionAmountForMonth(resident, currentMonth) - currentAmount);
     const residentAdjustments = getResidentAdjustments(resident.id);
     const unpaidMonths = (debt.unpaidMonths || []).map(month => ({
         month,
