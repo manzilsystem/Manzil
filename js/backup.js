@@ -434,7 +434,7 @@ function isValidBackup(data) {
     const validAmount = value => validNumber(value) && Number(value) >= 0;
     const validOptionalDate = value => value === undefined || value === null || value === ''
         || (typeof value === 'string'
-            && /^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$/.test(value)
+            && /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(value)
             && !Number.isNaN(Date.parse(value + 'T00:00:00Z'))
             && new Date(value + 'T00:00:00Z').toISOString().slice(0, 10) === value);
     if (!data.residents.every(r => r && typeof r === 'object' && validId(r.id) && typeof r.name === 'string' && typeof r.apartmentNumber === 'string' && (r.phone === undefined || typeof r.phone === 'string') && (r.floor === undefined || r.floor === null || typeof r.floor === 'string') && (r.notes === undefined || typeof r.notes === 'string') && validAmount(r.monthlyAmount ?? 0))) return false;
