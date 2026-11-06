@@ -17,7 +17,7 @@ test('owner sessions select only fields required by the read-only portal', () =>
     ), 'owner resident data must retain created_at and the billing start for debt calculations');
 
     assert.ok(loadState.includes(
-        "const incomeColumns = isManager\n        ? 'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,paid_at'\n        : 'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,paid_at'"
+        "const incomeColumns = isManager\n        ? 'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,settlement_adjustment_id,paid_at'\n        : 'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,settlement_adjustment_id,paid_at'"
     ), 'owner payment history needs only payment identity, amount, month, and date');
 
     assert.ok(loadState.includes(
