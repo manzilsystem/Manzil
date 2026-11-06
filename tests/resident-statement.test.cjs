@@ -160,6 +160,40 @@ test('statement treats partial settlement payments as the agreed monthly amount'
     assert.ok(app.getResidentStatementSummaryItems(statement).some(item => item.label === 'المتبقي من التسويات' && item.cents === 4000));
 });
 
+test('settlement details are labeled consistently in preview, PDF, and CSV', () => {
+    const { app, sandbox, preview } = loadStatement({
+        state: {
+            adjustments: [{
+                id: 's1', residentId: 'r1', effectiveMonth: '2024-01-01',
+                kind: 'settlement', amount: 60, reason: 'اتفاق تسوية'
+            }],
+            income: [{
+                id: 'i1', residentId: 'r1', month: 'يناير 2024', amount: 20,
+                purposeCode: 'settlement', settlementAdjustmentId: 's1',
+                paymentMethod: 'cash', notes: 'دفعة التسوية الأولى'
+            }]
+        }
+    });
+    const statement = app.buildResidentStatement('r1');
+    const previewHtml = app.renderResidentStatementHtml(statement);
+    const pdfHtml = app.renderResidentStatementPdfHtml(statement);
+
+    assert.match(previewHtml, /التسويات والإعفاءات والتخفيضات/);
+    assert.match(previewHtml, /دفعات التسوية على اتفاق التسوية المرتبط بها/);
+    assert.match(previewHtml, /دفعة التسوية الأولى/);
+    assert.match(pdfHtml, /التسويات والإعفاءات والتخفيضات/);
+    assert.match(pdfHtml, /دفعات التسوية على اتفاق التسوية المرتبط بها/);
+    assert.equal(statement.totals.settlementPaidCents, 2000);
+    assert.equal(statement.totals.remainingCents, 24000);
+
+    app.generateResidentStatement();
+    app.exportResidentStatementCsv();
+    const csv = sandbox.__download.content;
+    assert.match(csv, /التسويات والإعفاءات والتخفيضات/);
+    assert.match(csv, /\"تسوية\",\"يناير 2024\",\"تسوية\",\"60\",\"اتفاق تسوية\"/);
+    assert.match(preview.innerHTML, /التسويات والإعفاءات والتخفيضات/);
+});
+
 test('statement bills every month from residency start to the current month', () => {
     const { app } = loadStatement();
     const statement = app.buildResidentStatement('r1');
