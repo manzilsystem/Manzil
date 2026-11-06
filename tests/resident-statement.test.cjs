@@ -304,7 +304,7 @@ test('statement preview renders the monthly ledger and the payment ledger', () =
         }
     });
     app.generateResidentStatement();
-    assert.match(preview.innerHTML, /كشف حساب ساكن/);
+    assert.match(preview.innerHTML, /كشف حساب مالك/);
     assert.match(preview.innerHTML, /إجمالي المستحق/);
     assert.match(preview.innerHTML, /300 ج\.م/);
     assert.match(preview.innerHTML, /دفعة أولى/);
@@ -340,7 +340,7 @@ test('statement signature and invalidation follow the default subscription', () 
 test('statement invalidates when its data becomes stale', () => {
     const { app, preview, sandbox } = loadStatement();
     app.generateResidentStatement();
-    assert.match(preview.innerHTML, /كشف حساب ساكن/);
+    assert.match(preview.innerHTML, /كشف حساب مالك/);
     sandbox.state.income.push({ id: 'i1', residentId: 'r1', month: 'يناير 2024', amount: 100, paymentMethod: 'cash' });
     app.invalidateResidentStatementIfStale();
     assert.match(preview.innerHTML, /تغيّرت البيانات/);
@@ -374,7 +374,7 @@ test('statement PDF keeps the same figures as the preview', () => {
     });
     const statement = app.buildResidentStatement('r1');
     const pdfHtml = app.renderResidentStatementPdfHtml(statement);
-    assert.match(pdfHtml, /كشف حساب ساكن/);
+    assert.match(pdfHtml, /كشف حساب مالك/);
     assert.match(pdfHtml, /300 ج\.م/);
     assert.match(pdfHtml, /40 ج\.م/);
     assert.match(pdfHtml, /260 ج\.م/);

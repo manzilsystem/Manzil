@@ -853,7 +853,7 @@ function renderLandlordReportPdfHtml(month, purposeFilter = '', cashAccountFilte
         '<table style="width:100%;border-collapse:collapse;font-size:10px"><tbody>', expenseCategoryRows, '</tbody></table></section>',
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">تفاصيل التحصيلات</h3>',
         '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
-        '<th style="padding:6px;border:1px solid #cbd5e1">الساكن</th><th style="padding:6px;border:1px solid #cbd5e1">الغرض</th><th style="padding:6px;border:1px solid #cbd5e1">طريقة الدفع</th>',
+        '<th style="padding:6px;border:1px solid #cbd5e1">المالك</th><th style="padding:6px;border:1px solid #cbd5e1">الغرض</th><th style="padding:6px;border:1px solid #cbd5e1">طريقة الدفع</th>',
         '<th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th></tr></thead><tbody>', incomeRows, '</tbody></table></section>',
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">تفاصيل المصروفات</h3>',
         '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
@@ -2045,7 +2045,7 @@ function exportAdjustmentsReportCsv() {
     if (!report) return;
     const rows = [
         ['الفترة', report.rangeLabel, 'الشقة', report.residentLabel, 'النوع', report.kindLabel],
-        ['الشقة', 'اسم الساكن', 'الشهر', 'النوع', 'المبلغ', 'السبب']
+        ['الشقة', 'اسم المالك', 'الشهر', 'النوع', 'المبلغ', 'السبب']
     ];
     report.list.forEach(item => rows.push([
         item.apartmentNumber,
@@ -2066,7 +2066,7 @@ function exportAdjustmentsReportCsv() {
 function exportArrearsCSV() {
     if (!requireManager()) return;
     const report = buildArrearsReport(getArrearsReportFilters());
-    const rows = [['الشقة','اسم الساكن','التصنيف','الشهر غير المسدد','المبلغ المستحق']];
+    const rows = [['الشقة','اسم المالك','التصنيف','الشهر غير المسدد','المبلغ المستحق']];
     report.residents.forEach(item => item.unpaidMonths.forEach(month => {
         rows.push([item.resident.apartmentNumber, item.resident.name, item.bucket, month.month, month.amount]);
     }));
@@ -2290,7 +2290,7 @@ function clearResidentStatement(message) {
 
 function invalidateResidentStatementPreview() {
     if (!residentStatementSnapshot) return;
-    clearResidentStatement('تغيّر الساكن أو الغرض — اختر ساكنًا ثم اضغط «معاينة» لعرض الكشف.');
+    clearResidentStatement('تغيّر المالك أو الغرض — اختر مالكًا ثم اضغط «معاينة» لعرض الكشف.');
 }
 
 function invalidateResidentStatementIfStale() {
@@ -2307,7 +2307,7 @@ function getResidentStatementSnapshot() {
     }
     const selected = String(/** @type {HTMLSelectElement} */ (document.getElementById('statementResidentSelect'))?.value || '');
     if (selected && selected !== residentStatementSnapshot.resident.id) {
-        toast('اعرض كشف الساكن المحدد أولًا','error');
+        toast('اعرض كشف المالك المحدد أولًا','error');
         return null;
     }
     if (getReportPurposeFilter('statementPurpose') !== (residentStatementSnapshot.purposeFilter || '')) {
@@ -2387,14 +2387,14 @@ function renderResidentStatementHtml(statement) {
         <div class="space-y-3">
             <header class="report-preview-header">
                 <h3 class="report-preview-title">${esc(state.buildingName || 'العمارة')}</h3>
-                <p class="report-preview-meta">كشف حساب ساكن · ${esc(resident.name)} · شقة ${esc(resident.apartmentNumber || '—')}${resident.floor ? ' · الدور ' + esc(resident.floor) : ''}</p>
+                <p class="report-preview-meta">كشف حساب مالك · ${esc(resident.name)} · شقة ${esc(resident.apartmentNumber || '—')}${resident.floor ? ' · الدور ' + esc(resident.floor) : ''}</p>
                 <p class="report-preview-meta">الفترة: ${esc(statement.rangeLabel)}${statement.purposeFilter ? ' · الغرض: ' + esc(statement.purposeLabel) : ''}</p>
             </header>
             ${statsHtml}
             ${monthsBlock}
             ${adjustmentsBlock}
             <div class="report-block">
-                <p class="report-block-title"><span>حركات الساكن</span><span class="report-block-count">${fmtNum(statement.payments.length)}</span></p>
+                <p class="report-block-title"><span>حركات المالك</span><span class="report-block-count">${fmtNum(statement.payments.length)}</span></p>
                 <div class="report-list">${paymentRows}</div>
             </div>
             <div class="report-note report-divider text-center">
@@ -2411,10 +2411,10 @@ function renderResidentStatementHtml(statement) {
 function generateResidentStatement() {
     if (!requireManager()) return;
     const residentId = String(/** @type {HTMLSelectElement} */ (document.getElementById('statementResidentSelect'))?.value || '');
-    if (!residentId) { toast('اختر ساكنًا','error'); return; }
+    if (!residentId) { toast('اختر مالكًا','error'); return; }
     const purposeFilter = getReportPurposeFilter('statementPurpose');
     const statement = buildResidentStatement(residentId, purposeFilter);
-    if (!statement) { toast('تعذر العثور على الساكن. حدّث البيانات ثم حاول مرة أخرى.','error'); return; }
+    if (!statement) { toast('تعذر العثور على المالك. حدّث البيانات ثم حاول مرة أخرى.','error'); return; }
     const preview = document.getElementById('residentStatementPreview');
     if (!preview) return;
     preview.innerHTML = renderResidentStatementHtml(statement);
@@ -2433,7 +2433,7 @@ function printResidentStatement() {
     const meta = document.getElementById('printBuildingMeta');
     const previousTitle = title ? title.textContent : '';
     const previousMeta = meta ? meta.textContent : '';
-    if (title) title.textContent = `كشف حساب ساكن - ${state.buildingName || 'Manzil'}`;
+    if (title) title.textContent = `كشف حساب مالك - ${state.buildingName || 'Manzil'}`;
     if (meta) meta.textContent = `${statement.resident.name} • شقة ${statement.resident.apartmentNumber || '—'} • ${statement.rangeLabel}`;
     document.body.classList.remove('print-landlord');
     document.body.classList.add('print-statement');
@@ -2526,7 +2526,7 @@ function renderResidentStatementPdfHtml(statement) {
         '<div dir="rtl" lang="ar" style="font-family:Cairo,Arial,sans-serif;color:#111827;background:#fff;line-height:1.8">',
         '<header style="text-align:center;border-bottom:2px solid #334155;padding-bottom:12px;margin-bottom:18px">',
         '<h1 style="font-size:22px;font-weight:800;margin:0">', esc(state.buildingName || 'Manzil'), '</h1>',
-        '<h2 style="font-size:17px;font-weight:700;margin:4px 0">كشف حساب ساكن — ', esc(resident.name), '</h2>',
+        '<h2 style="font-size:17px;font-weight:700;margin:4px 0">كشف حساب مالك — ', esc(resident.name), '</h2>',
         '<p style="font-size:11px;color:#475569;margin:0">',
         'شقة ', esc(resident.apartmentNumber || '—'), resident.floor ? ' • الدور ' + esc(resident.floor) : '',
         ' • الفترة: ', esc(statement.rangeLabel),
@@ -2536,7 +2536,7 @@ function renderResidentStatementPdfHtml(statement) {
         summaryRows,
         '</tbody></table></section>',
         ...monthsSection,
-        '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حركات الساكن</h3>',
+        '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حركات المالك</h3>',
         '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
         '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th>',
         '<th style="padding:6px;border:1px solid #cbd5e1">الغرض</th><th style="padding:6px;border:1px solid #cbd5e1">طريقة الدفع</th><th style="padding:6px;border:1px solid #cbd5e1">الصندوق</th><th style="padding:6px;border:1px solid #cbd5e1">التاريخ</th>',
@@ -2559,7 +2559,7 @@ function renderUnitReportPdfHtml(statement) {
     const profileRows = [
         ['رقم الشقة', esc(resident.apartmentNumber || '—')],
         ['الدور', esc(resident.floor || '—')],
-        ['الساكن', esc(resident.name || '—')],
+        ['المالك', esc(resident.name || '—')],
         ['الهاتف', esc(resident.phone || 'غير مسجل')],
         ['تاريخ إضافة الوحدة', esc(formatDate(resident.createdAt) || '—')],
         ['قيمة الاشتراك الحالية', fmtMoney(currentRate)]
@@ -2619,7 +2619,7 @@ function renderUnitReportPdfHtml(statement) {
         '<th style="padding:6px;border:1px solid #cbd5e1">إعفاء/تخفيض</th><th style="padding:6px;border:1px solid #cbd5e1">الصافي</th>',
         '<th style="padding:6px;border:1px solid #cbd5e1">المدفوع</th><th style="padding:6px;border:1px solid #cbd5e1">المتبقي</th>',
         '<th style="padding:6px;border:1px solid #cbd5e1">الحالة</th></tr></thead><tbody>', renderStatementMonthsPdfBody(statement), '</tbody></table></section>',
-        '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حركات الساكن</h3>',
+        '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حركات المالك</h3>',
         '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
         '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th>',
         '<th style="padding:6px;border:1px solid #cbd5e1">الغرض</th><th style="padding:6px;border:1px solid #cbd5e1">طريقة الدفع</th><th style="padding:6px;border:1px solid #cbd5e1">الصندوق</th><th style="padding:6px;border:1px solid #cbd5e1">التاريخ</th>',

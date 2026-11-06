@@ -2110,7 +2110,7 @@ function resetIncomeFormFields() {
 
 
 let incomeWizardStep = 1;
-const INCOME_WIZARD_LABELS = ['بيانات الساكن', 'المبلغ والتوزيع', 'الدفع والمراجعة'];
+const INCOME_WIZARD_LABELS = ['بيانات المالك', 'المبلغ والتوزيع', 'الدفع والمراجعة'];
 
 function validateIncomeWizardStep(step) {
     const value = id => String((/** @type {HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null} */ (document.getElementById(id)))?.value || '').trim();
@@ -2233,7 +2233,7 @@ function previewIncomeAllocation() {
     }
     const wizardSummary = document.getElementById('incomeWizardSummary');
     if (wizardSummary) {
-        const residentName = resident ? (resident.name || crudApartmentLabel(resident.apartmentNumber)) : 'لم يتم اختيار الساكن';
+        const residentName = resident ? (resident.name || crudApartmentLabel(resident.apartmentNumber)) : 'لم يتم اختيار المالك';
         const method = (/** @type {HTMLSelectElement | null} */ (document.getElementById('incomePaymentMethod')))?.selectedOptions?.[0]?.textContent || 'لم تحدد طريقة الدفع';
         const cashbox = crudCashAccountLabel((/** @type {HTMLSelectElement | null} */ (document.getElementById('incomeCashAccount')))?.value || 'main');
         const base = Number.isFinite(amount) && amount > 0 ? amount : 0;

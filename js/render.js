@@ -191,7 +191,7 @@ function populateStatementResidentSelect() {
         .sort((a, b) => String(a.apartmentNumber || '').localeCompare(String(b.apartmentNumber || ''), 'ar', { numeric: true }))
         .map(resident => `<option value="${esc(resident.id)}">شقة ${esc(resident.apartmentNumber)} · ${esc(resident.name)}</option>`)
         .join('');
-    select.innerHTML = '<option value="">اختر الساكن</option>' + options;
+    select.innerHTML = '<option value="">اختر المالك</option>' + options;
     if (selected && state.residents.some(resident => resident.id === selected)) select.value = selected;
 }
 
