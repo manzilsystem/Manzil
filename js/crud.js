@@ -698,6 +698,133 @@ async function addSubscriptionRateChange(event) {
     toast('تم حفظ تغيير الاشتراك وإضافته إلى السجل التاريخي.', 'success');
 }
 
+let subscriptionPriceSheetMonth = '';
+
+function subscriptionPriceSheetMonthLabel(monthKey) {
+    const [year, month] = String(monthKey || '').split('-');
+    const name = monthsNames[Number(month) - 1];
+    return name && year ? `${name} ${year}` : String(monthKey || '');
+}
+
+function openSubscriptionPriceSheet() {
+    if (!requireManager()) return;
+    subscriptionPriceSheetMonth = getLocalMonthKey();
+    const monthInput = /** @type {any} */ (document.getElementById('subscriptionPriceSheetMonth'));
+    if (monthInput) {
+        monthInput.min = getLocalMonthKey();
+        monthInput.value = subscriptionPriceSheetMonth;
+    }
+    const uniform = /** @type {any} */ (document.getElementById('subscriptionPriceSheetUniform'));
+    if (uniform) uniform.value = '';
+    renderSubscriptionPriceSheet();
+    openModal('subscriptionPriceSheetModal');
+}
+
+function renderSubscriptionPriceSheet() {
+    const body = /** @type {any} */ (document.getElementById('subscriptionPriceSheetBody'));
+    if (!body) return;
+    const monthInput = /** @type {any} */ (document.getElementById('subscriptionPriceSheetMonth'));
+    const selected = String(monthInput?.value || '');
+    subscriptionPriceSheetMonth = isValidEffectiveMonth(selected) ? selected : getLocalMonthKey();
+    if (monthInput && monthInput.value !== subscriptionPriceSheetMonth) monthInput.value = subscriptionPriceSheetMonth;
+    const residents = [...state.residents].sort((a, b) =>
+        String(a.apartmentNumber || '').localeCompare(String(b.apartmentNumber || ''), 'ar', { numeric: true }));
+    if (!residents.length) {
+        body.innerHTML = '<tr><td colspan="3" class="px-3 py-6 text-center text-xs text-slate-500">لا توجد شقق مسجلة بعد.</td></tr>';
+        updateSubscriptionPriceSheetSummary();
+        return;
+    }
+    body.innerHTML = residents.map(resident => {
+        const amount = getSubscriptionAmountForMonthKey(resident, subscriptionPriceSheetMonth);
+        return `<tr class="border-t border-slate-700/40">
+            <td class="px-3 py-2"><span class="font-bold">شقة ${escapeSubscriptionHtml(resident.apartmentNumber || '—')}</span><span class="text-slate-400"> · ${escapeSubscriptionHtml(resident.name || '—')}</span></td>
+            <td class="px-3 py-2 whitespace-nowrap">${formatSubscriptionAmount(amount)}</td>
+            <td class="px-3 py-2">
+                <input type="number" min="0" step="0.01" inputmode="decimal" data-price-sheet-resident="${escapeSubscriptionHtml(resident.id)}" value="${amount}" aria-label="سعر اشتراك شقة ${escapeSubscriptionHtml(resident.apartmentNumber || '')}" oninput="updateSubscriptionPriceSheetSummary()" class="w-full app-input border rounded-xl px-3 py-2 text-sm">
+            </td>
+        </tr>`;
+    }).join('');
+    updateSubscriptionPriceSheetSummary();
+}
+
+function collectSubscriptionPriceSheetChanges() {
+    const changes = [];
+    let invalid = 0;
+    document.querySelectorAll('[data-price-sheet-resident]').forEach(node => {
+        const input = /** @type {any} */ (node);
+        const resident = state.residents.find(item => item.id === input.dataset.priceSheetResident);
+        if (!resident) return;
+        const value = Number(input.value);
+        const valid = input.value !== '' && Number.isFinite(value) && value >= 0;
+        input.classList.toggle('border-rose-500', !valid);
+        if (!valid) { invalid += 1; return; }
+        const current = getSubscriptionAmountForMonthKey(resident, subscriptionPriceSheetMonth);
+        if (Math.round(value * 100) !== Math.round(current * 100)) changes.push({ resident, monthlyAmount: value });
+    });
+    return { changes, invalid };
+}
+
+function updateSubscriptionPriceSheetSummary() {
+    const { changes, invalid } = collectSubscriptionPriceSheetChanges();
+    const summary = document.getElementById('subscriptionPriceSheetSummary');
+    const save = /** @type {HTMLButtonElement | null} */ (document.getElementById('subscriptionPriceSheetSave'));
+    if (summary) {
+        summary.textContent = invalid
+            ? 'أصلح القيم غير الصحيحة أولًا.'
+            : changes.length
+                ? `سيتم تحديث ${changes.length} شقة بدءًا من ${subscriptionPriceSheetMonthLabel(subscriptionPriceSheetMonth)}.`
+                : 'لا توجد تغييرات على الأسعار.';
+        summary.classList.toggle('text-rose-400', invalid > 0);
+        summary.classList.toggle('text-emerald-400', invalid === 0 && changes.length > 0);
+    }
+    if (save) save.disabled = invalid > 0 || changes.length === 0;
+}
+
+function applySubscriptionPriceSheetUniform() {
+    const uniform = /** @type {any} */ (document.getElementById('subscriptionPriceSheetUniform'));
+    const value = Number(uniform?.value);
+    if (uniform?.value === '' || !Number.isFinite(value) || value < 0) {
+        toast('أدخل قيمة صحيحة لتعبئة كل الشقق.', 'error');
+        return;
+    }
+    document.querySelectorAll('[data-price-sheet-resident]').forEach(node => {
+        /** @type {any} */ (node).value = String(value);
+    });
+    updateSubscriptionPriceSheetSummary();
+}
+
+async function saveSubscriptionPriceSheet(event) {
+    event.preventDefault();
+    if (!requireManager()) return;
+    const monthKey = subscriptionPriceSheetMonth;
+    if (!isValidEffectiveMonth(monthKey) || monthKey < getLocalMonthKey()) {
+        toast('اختر الشهر الحالي أو شهرًا قادمًا. لا يمكن تعديل أسعار شهر سابق.', 'error');
+        return;
+    }
+    const { changes, invalid } = collectSubscriptionPriceSheetChanges();
+    if (invalid) {
+        toast('أصلح قيم الاشتراك غير الصحيحة أولًا.', 'error');
+        return;
+    }
+    if (!changes.length) {
+        toast('لا توجد تغييرات على الأسعار.', 'info');
+        return;
+    }
+    const previousState = cloneStateSnapshot();
+    const effectiveDate = monthKey + '-01';
+    changes.forEach(({ resident, monthlyAmount }) => {
+        resident.subscriptionRates = Array.isArray(resident.subscriptionRates) ? resident.subscriptionRates : [];
+        resident.subscriptionRates = resident.subscriptionRates.filter(rate => rate.effectiveMonth !== effectiveDate);
+        resident.subscriptionRates.push({ effectiveMonth: effectiveDate, monthlyAmount });
+        resident.subscriptionRates.sort((a, b) => a.effectiveMonth.localeCompare(b.effectiveMonth));
+        resident.monthlyAmount = getCurrentSubscriptionAmount(resident);
+    });
+    logAction('تحديث ورقة أسعار الاشتراك', `${monthKey}: ${changes.length} شقة`);
+    if (!await saveWithRollback(previousState)) return;
+    closeModal('subscriptionPriceSheetModal');
+    toast(`تم حفظ أسعار ${subscriptionPriceSheetMonthLabel(monthKey)} لعدد ${changes.length} شقة.`, 'success');
+}
+
 async function handleResidentSubmit(e) {
     if (!requireManager()) return;
     e.preventDefault();

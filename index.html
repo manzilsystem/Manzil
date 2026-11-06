@@ -345,9 +345,12 @@
 
         <!-- RESIDENTS -->
         <section id="tab-residents" class="hidden space-y-4">
-            <div class="section-toolbar flex justify-between items-center app-card p-4 rounded-3xl border no-print">
+            <div class="section-toolbar flex flex-wrap justify-between items-center gap-2 app-card p-4 rounded-3xl border no-print">
                 <div><h2 class="font-bold text-base">قائمة الشقق</h2><p class="text-[11px] text-slate-400">الاشتراكات الشهرية</p></div>
-                <button onclick="openResidentModal('add')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-indigo-600/20 transition flex items-center gap-2"><i class="fa-solid fa-user-plus text-sm"></i> شقة جديدة</button>
+                <div class="flex items-center gap-2">
+                    <button onclick="openSubscriptionPriceSheet()" aria-label="ورقة أسعار الاشتراك الشهرية" class="border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 px-3 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2"><i class="fa-solid fa-table-list text-sm"></i> ورقة الأسعار</button>
+                    <button onclick="openResidentModal('add')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-indigo-600/20 transition flex items-center gap-2"><i class="fa-solid fa-user-plus text-sm"></i> شقة جديدة</button>
+                </div>
             </div>
             <div class="app-card p-3 rounded-3xl border space-y-2 no-print">
                 <input type="search" id="searchResidentsInput" aria-label="البحث بالاسم أو رقم الشقة أو الدور" oninput="renderResidentsGrid()" placeholder="ابحث بالاسم أو رقم الشقة أو الدور..." class="w-full app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
@@ -1618,6 +1621,51 @@
                     <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl text-xs font-bold">حفظ التغيير وإضافته للسجل</button>
                 </form>
             </div>
+        </div>
+    </div>
+
+    <!-- Monthly Subscription Price Sheet Modal -->
+    <div id="subscriptionPriceSheetModal" role="dialog" aria-modal="true" aria-labelledby="subscriptionPriceSheetTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center z-[56] p-4">
+        <div class="app-card border w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+            <div class="bg-indigo-800 text-white px-5 py-4 flex justify-between items-center">
+                <div>
+                    <h3 id="subscriptionPriceSheetTitle" class="font-bold text-sm">ورقة أسعار الاشتراك</h3>
+                    <p class="text-[11px] text-white/75 mt-1">تعديل أسعار كل الشقق لشهر واحد، ويُحفظ كل تغيير في سجل الاشتراك تلقائيًا.</p>
+                </div>
+                <button type="button" onclick="closeModal('subscriptionPriceSheetModal')" aria-label="إغلاق ورقة الأسعار" class="text-white/80 hover:text-white min-w-11 min-h-11 rounded-xl"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="subscriptionPriceSheetForm" onsubmit="saveSubscriptionPriceSheet(event)" class="p-5 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label class="text-xs space-y-1">
+                        <span class="text-slate-400">شهر تطبيق السعر</span>
+                        <input type="month" id="subscriptionPriceSheetMonth" required onchange="renderSubscriptionPriceSheet()" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
+                    </label>
+                    <div class="text-xs space-y-1">
+                        <label for="subscriptionPriceSheetUniform" class="text-slate-400">تعبئة كل الشقق بقيمة واحدة</label>
+                        <div class="flex gap-2">
+                            <input type="number" id="subscriptionPriceSheetUniform" min="0" step="0.01" inputmode="decimal" placeholder="القيمة بالجنيه" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
+                            <button type="button" onclick="applySubscriptionPriceSheetUniform()" class="shrink-0 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 px-3 rounded-xl text-xs font-bold transition">تعبئة الكل</button>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-[10px] text-slate-500">لا يمكن تعديل شهر سابق. كل شقة تحتفظ بأسعارها السابقة، والسعر الجديد يسري من الشهر المختار فقط.</p>
+                <div class="app-input border rounded-2xl overflow-x-auto">
+                    <table class="w-full text-xs text-right">
+                        <thead class="text-slate-400 bg-slate-900/40">
+                            <tr>
+                                <th class="px-3 py-2 whitespace-nowrap">الشقة والساكن</th>
+                                <th class="px-3 py-2 whitespace-nowrap">السعر الساري</th>
+                                <th class="px-3 py-2 whitespace-nowrap">السعر الجديد</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subscriptionPriceSheetBody"></tbody>
+                    </table>
+                </div>
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <p id="subscriptionPriceSheetSummary" class="text-xs text-slate-400" aria-live="polite"></p>
+                    <button type="submit" id="subscriptionPriceSheetSave" class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-3 rounded-2xl text-xs font-bold transition">حفظ أسعار الشهر</button>
+                </div>
+            </form>
         </div>
     </div>
 
