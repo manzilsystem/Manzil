@@ -341,7 +341,7 @@ function getAssistantMonthSummary(period, now = new Date()) {
         const outstanding = typeof getMonthOutstanding === 'function'
             ? Number(getMonthOutstanding(resident, month)) || 0
             : Math.max(0, due - paid);
-        dueCents += Math.round(due * 100);
+        dueCents += Math.round(grossDue * 100);
         paidCents += Math.round(paid * 100);
         subscriptionPaidCents += Math.round(subscriptionPaid * 100);
         settlementPaidCents += Math.round(settlementPaid * 100);
