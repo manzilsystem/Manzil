@@ -874,6 +874,7 @@ $income_notification_sync$;
 \ir ../supabase/migrations/20261106021427_resident_adjustments.sql
 \ir ../supabase/migrations/20261106022840_snapshot_resident_adjustments.sql
 \ir ../supabase/migrations/20261106032231_resident_billing_start.sql
+\ir ../supabase/migrations/20261106160000_partial_settlement_income.sql
 
 -- An editable billing start month may precede the creation date, survives a
 -- snapshot that omits the field (older clients), and rejects mid-month dates.
