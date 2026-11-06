@@ -414,7 +414,7 @@ function buildResidentProfileHtml(resident) {
                 </div>
                 <strong class="text-xs text-amber-300 shrink-0">${formatSubscriptionAmount(adjustment.amount)} ج.م</strong>
             </div>`).join('')
-        : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إعفاءات أو تخفيضات مسجلة.</p>';
+        : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إعفاءات أو تخفيضات أو تسويات مسجلة.</p>';
 
     return `
         <div class="space-y-4">
@@ -456,7 +456,7 @@ function buildResidentProfileHtml(resident) {
                     <span class="text-[10px] font-bold border rounded-full px-3 py-1 ${paymentStatus.className}">${paymentStatus.label}</span>
                     <span class="text-[10px] text-slate-500">حالة الشهر الحالي</span>
                 </div>
-                ${currentAdjustment > 0 ? `<p class="text-[10px] text-amber-300">إعفاءات وتخفيضات ${esc(currentMonth)}: ${formatSubscriptionAmount(currentAdjustment)} ج.م</p>` : ''}
+                ${currentAdjustment > 0 ? `<p class="text-[10px] text-amber-300">إعفاءات وتخفيضات وتسويات ${esc(currentMonth)}: ${formatSubscriptionAmount(currentAdjustment)} ج.م</p>` : ''}
             </section>
 
             <section class="app-input border rounded-2xl p-4">
@@ -482,7 +482,7 @@ function buildResidentProfileHtml(resident) {
 
             <section class="app-input border rounded-2xl p-4">
                 <div class="flex items-center justify-between gap-2 mb-2">
-                    <h4 class="text-xs font-black">الإعفاءات والتخفيضات</h4>
+                    <h4 class="text-xs font-black">الإعفاءات والتخفيضات والتسويات</h4>
                     <span class="text-[10px] text-slate-500">${fmtNum(residentAdjustments.length)} تسجيل</span>
                 </div>
                 ${adjustmentsHtml}
@@ -491,7 +491,7 @@ function buildResidentProfileHtml(resident) {
             <section class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                 <button type="button" onclick="openResidentIncomeFromProfile(${residentArg})" class="min-h-11 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-hand-holding-dollar ml-1"></i> تسجيل تحصيل</button>
                 <button type="button" onclick="editResidentFromProfile(${residentArg})" class="min-h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-pen ml-1"></i> تعديل بيانات الشقة</button>
-                <button type="button" onclick="openAdjustmentFromProfile(${residentArg})" class="min-h-11 bg-amber-600/15 border border-amber-500/30 text-amber-300 rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-percent ml-1"></i> إعفاء أو تخفيض</button>
+                <button type="button" onclick="openAdjustmentFromProfile(${residentArg})" class="min-h-11 bg-amber-600/15 border border-amber-500/30 text-amber-300 rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-percent ml-1"></i> إعفاء أو تخفيض أو تسوية</button>
                 <button type="button" onclick="openResidentStatementFromProfile(${residentArg})" class="min-h-11 app-input border rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-file-invoice ml-1"></i> كشف حساب</button>
                 <button type="button" onclick="openSubscriptionRatesFromProfile(${residentArg})" class="min-h-11 app-input border rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-clock-rotate-left ml-1"></i> إدارة سجل الاشتراك</button>
                 ${phone && debt.totalDebt > 0 ? `<button type="button" onclick="sendWhatsAppReminderFromProfile(${residentArg})" class="min-h-11 bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-brands fa-whatsapp ml-1"></i> تذكير بالمتأخرات</button>` : ''}
@@ -680,7 +680,7 @@ function renderAdjustmentList(resident) {
     const count = document.getElementById('adjustmentListCount');
     if (count) count.textContent = list.length ? `${fmtNum(list.length)} تسجيل` : '';
     if (!list.length) {
-        body.innerHTML = '<tr><td colspan="5" class="px-3 py-5 text-center text-xs text-slate-500">لا توجد إعفاءات أو تخفيضات مسجلة.</td></tr>';
+        body.innerHTML = '<tr><td colspan="5" class="px-3 py-5 text-center text-xs text-slate-500">لا توجد إعفاءات أو تخفيضات أو تسويات مسجلة.</td></tr>';
         return;
     }
     body.innerHTML = list.map(adjustment => {
@@ -1551,7 +1551,7 @@ function refreshIncomeSettlementOptions(residentId, preferredId = '') {
     select.disabled = options.length === 0;
     if (hint) hint.textContent = options.length
         ? 'اختر اتفاق التسوية، وسيُحدد شهره والمبلغ المتبقي تلقائيًا.'
-        : 'لا توجد تسويات مفتوحة لهذه الشقة. سجّل اتفاق التسوية أولًا من الإعفاءات والتخفيضات.';
+        : 'لا توجد تسويات مفتوحة لهذه الشقة. سجّل اتفاق التسوية أولًا من الإعفاءات والتخفيضات والتسويات.';
     return options;
 }
 
@@ -1743,7 +1743,7 @@ function updateIncomeMonthPickerHint(resident = null) {
         `مستحق ${fmtNum(status.due)} ج.م`,
         `مدفوع ${fmtNum(status.paid)} ج.م`
     ];
-    if (status.adjusted > 0) parts.push(`إعفاء/تخفيض ${fmtNum(status.adjusted)} ج.م`);
+    if (status.adjusted > 0) parts.push(`إعفاء/تخفيض/تسوية ${fmtNum(status.adjusted)} ج.م`);
     parts.push(`متبقٍ ${fmtNum(status.outstanding)} ج.م`);
     if (status.outstanding <= 0) {
         hint.className = 'text-[10px] text-emerald-300';
