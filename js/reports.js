@@ -529,6 +529,13 @@ function getResidentStatementSummaryItems(statement) {
     }
     return [
         { label: 'مدفوع الغرض', cents: statement.totals.filteredPaidCents, tone: 'emerald' },
+        ...(statement.purposeFilter === 'settlement' && statement.totals.settlementAgreedCents > 0
+            ? [
+                { label: 'إجمالي اتفاقات التسوية', cents: statement.totals.settlementAgreedCents, tone: 'amber' },
+                { label: 'المسدد من التسويات', cents: statement.totals.settlementPaidCents, tone: 'emerald' },
+                { label: 'المتبقي من التسويات', cents: statement.totals.settlementRemainingCents, tone: statement.totals.settlementRemainingCents ? 'rose' : 'emerald' }
+            ]
+            : []),
         { label: 'عدد الحركات', text: fmtNum(statement.payments.length) },
         { label: 'متوسط الحركة', cents: averageCents },
         { label: 'آخر دفعة', text: formatDate(statement.payments[0]?.date) || '—', tone: 'sky' }
@@ -2144,7 +2151,8 @@ function buildResidentStatement(residentId, purposeFilter = '') {
         const month = getStatementMonthLabel(key);
         const isBilled = (!createdKey || key >= createdKey) && (!currentKey || key <= currentKey);
         const rowDueCents = isBilled ? toCents(getSubscriptionAmountForMonth(resident, month)) : 0;
-        const settlement = isBilled && showDues && typeof getSettlementAdjustmentForMonth === 'function'
+        const includeSettlementBalance = showDues || normalizedPurpose === 'settlement';
+        const settlement = isBilled && includeSettlementBalance && typeof getSettlementAdjustmentForMonth === 'function'
             ? getSettlementAdjustmentForMonth(resident.id, month) : null;
         const settlementAmountCents = settlement ? toCents(settlement.amount) : 0;
         const settlementPaidCents = settlement && typeof getSettlementPaidAmount === 'function'
@@ -2203,9 +2211,10 @@ function buildResidentStatement(residentId, purposeFilter = '') {
         purposeTotals.set(label, bucket);
     });
 
-    const adjustments = showDues
+    const adjustments = (showDues || normalizedPurpose === 'settlement')
         ? (Array.isArray(state.adjustments) ? state.adjustments : [])
-            .filter(adjustment => adjustment.residentId === resident.id)
+            .filter(adjustment => adjustment.residentId === resident.id
+                && (normalizedPurpose !== 'settlement' || adjustment.kind === 'settlement'))
             .map(adjustment => ({
                 id: adjustment.id,
                 key: String(adjustment.effectiveMonth || '').slice(0, 7) + '-01',
