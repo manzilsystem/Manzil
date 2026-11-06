@@ -31,12 +31,15 @@ test('tenant details appear only in the manager apartment form and manager profi
     const crud = read('js/crud.js');
     const modal = read('src/partials/modals.html');
     const reports = read('js/reports.js');
+    const restoreVerification = read('tests/post-restore-verify.sql');
     assert.match(modal, /id="residentIsRented"/);
     assert.match(modal, /بيانات المستأجر تظهر للمدير فقط/);
     assert.match(crud, /function openResidentModal\(mode, id\) \{\s*if \(!requireManager\(\)\) return;/);
     assert.match(crud, /function openResidentProfile\(residentId\) \{\s*if \(!requireManager\(\)\) return;/);
     assert.match(crud, /resident\.isRented === true \?/);
     assert.doesNotMatch(reports, /tenantName|tenantPhone|leaseStart|rentAmount|depositAmount/);
+    assert.match(restoreVerification, /resident_lease_details/);
+    assert.match(restoreVerification, /resident_lease_details_manager_select/);
 });
 
 test('legacy JSON backups remain valid and tenant details are normalized on import', () => {
