@@ -729,8 +729,11 @@ function openAdjustmentModal(residentId) {
     editingAdjustmentId = null;
     const form = /** @type {HTMLFormElement | null} */ (document.getElementById('adjustmentForm'));
     form?.reset();
+    const kindSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('adjustmentKind'));
+    if (kindSelect) kindSelect.disabled = false;
     const monthInput = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentMonth'));
     if (monthInput) {
+        monthInput.disabled = false;
         const createdMonth = getIncomeBillingStartKey(resident);
         if (createdMonth) monthInput.min = createdMonth;
         else monthInput.removeAttribute('min');
@@ -917,9 +920,9 @@ async function deleteAdjustment(id) {
     const previousState = cloneStateSnapshot();
     state.adjustments = (Array.isArray(state.adjustments) ? state.adjustments : []).filter(item => item.id !== id);
     const resident = state.residents.find(item => item.id === adjustment.residentId);
-    logAction('حذف إعفاء/تخفيض', `${resident ? resident.name : adjustment.residentId} - ${getAdjustmentKindLabel(adjustment.kind)} ${monthLabel}`);
+    logAction('حذف ' + getAdjustmentKindLabel(adjustment.kind), `${resident ? resident.name : adjustment.residentId} - ${getAdjustmentKindLabel(adjustment.kind)} ${monthLabel}`);
     if (!await saveWithRollback(previousState)) return;
-    toast('تم حذف الإعفاء أو التخفيض.', 'success');
+    toast('تم حذف الإجراء.', 'success');
     if (editingAdjustmentId === id) resetAdjustmentForm();
     if (resident) renderAdjustmentList(resident);
     updateAdjustmentDueHint();
