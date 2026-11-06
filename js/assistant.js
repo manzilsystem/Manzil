@@ -19,6 +19,126 @@ const ASSISTANT_SUGGESTIONS = Object.freeze([
     { label: 'الإعفاءات', query: 'الإعفاءات والتخفيضات' }
 ]);
 
+const ASSISTANT_TYPING_DELAY_MS = 260;
+const ASSISTANT_HISTORY_LIMIT = 30;
+const ASSISTANT_TIME_HINT = /(يناير|فبراير|مارس|ابريل|مايو|يونيو|يوليو|اغسطس|سبتمبر|اكتوبر|نوفمبر|ديسمبر|20[0-9]{2}|الشهر|شهر|السنه|سنه|عام|كل الفتره|كل الشهور|من البدايه)/;
+const ASSISTANT_RESIDENT_FOLLOWUP = /^(هو|هي|وده|دي|وكمان|ودوره|ومن زمان|ولحد دلوقتي|وعليه)/;
+const ASSISTANT_CHAT_STORAGE_PREFIX = 'manzil-assistant-chat';
+const ASSISTANT_CONTEXT_STORAGE_PREFIX = 'manzil-assistant-context';
+
+const ASSISTANT_FOLLOWUPS = Object.freeze({
+    summary: ['مصروفات الشهر', 'مين عليه متأخرات؟', 'رصيد الخزنة كام؟'],
+    income: ['مصروفات نفس الفترة', 'الإعفاءات والتخفيضات', 'مين عليه متأخرات؟'],
+    expenses: ['تحصيل نفس الفترة', 'رصيد الخزنة كام؟', 'ملخص الشهر'],
+    cashbox: ['آخر الحركات', 'ملخص الشهر', 'مين عليه متأخرات؟'],
+    arrears: ['الإعفاءات والتخفيضات', 'تحصيل الشهر', 'رصيد الخزنة كام؟'],
+    adjustments: ['ملخص الشهر', 'مين عليه متأخرات؟'],
+    recent: ['رصيد الخزنة كام؟', 'تحصيل الشهر'],
+    resident: ['مين عليه متأخرات؟', 'ملخص الشهر'],
+    building: ['ملخص الشهر', 'مين عليه متأخرات؟'],
+    reports: ['ملخص الشهر', 'تحصيل الشهر'],
+    help: ['ملخص الشهر', 'رصيد الخزنة كام؟'],
+    greeting: ['ملخص الشهر', 'مين عليه متأخرات؟'],
+    thanks: ['ملخص الشهر', 'رصيد الخزنة كام؟'],
+    unknown: ['ملخص الشهر', 'مين عليه متأخرات؟']
+});
+
+let assistantContext = { period: null, residentId: null };
+let assistantChat = [];
+
+function assistantStorageKeys() {
+    const building = typeof activeBuildingId === 'string' && activeBuildingId ? activeBuildingId : 'local';
+    return {
+        chat: `${ASSISTANT_CHAT_STORAGE_PREFIX}:${building}`,
+        context: `${ASSISTANT_CONTEXT_STORAGE_PREFIX}:${building}`
+    };
+}
+
+function hasAssistantTimeHint(text) {
+    return ASSISTANT_TIME_HINT.test(normalizeAssistantArabic(text));
+}
+
+function assistantFollowsResident(text) {
+    return ASSISTANT_RESIDENT_FOLLOWUP.test(normalizeAssistantArabic(text));
+}
+
+function resolveAssistantPeriodWithContext(text, now = new Date()) {
+    if (!hasAssistantTimeHint(text) && assistantContext.period) return assistantContext.period;
+    return resolveAssistantPeriod(text, now);
+}
+
+function readAssistantStorage(key) {
+    try {
+        const raw = sessionStorage.getItem(key);
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+}
+
+function persistAssistantContext() {
+    const keys = assistantStorageKeys();
+    const period = assistantContext.period;
+    try {
+        sessionStorage.setItem(keys.context, JSON.stringify({
+            period: period ? { type: period.type, label: period.label, months: period.months } : null,
+            residentId: assistantContext.residentId
+        }));
+    } catch {
+        /* a full quota or private mode must never break the chat */
+    }
+}
+
+function persistAssistantChat() {
+    const keys = assistantStorageKeys();
+    try {
+        sessionStorage.setItem(keys.chat, JSON.stringify(assistantChat.slice(-ASSISTANT_HISTORY_LIMIT)));
+    } catch {
+        /* same: the assistant keeps working from memory */
+    }
+}
+
+function isSafeAssistantHtml(html) {
+    return !/<\s*(script|iframe|object|embed)/i.test(html) && !/\son\w+\s*=/i.test(html);
+}
+
+function restoreAssistantSession() {
+    const keys = assistantStorageKeys();
+    const stored = readAssistantStorage(keys.chat);
+    assistantChat = Array.isArray(stored)
+        ? stored.filter(item => item && (item.role === 'user' || item.role === 'bot')
+            && typeof item.html === 'string' && isSafeAssistantHtml(item.html)).slice(-ASSISTANT_HISTORY_LIMIT)
+        : [];
+    const context = readAssistantStorage(keys.context);
+    assistantContext = {
+        period: context && context.period && Array.isArray(context.period.months) ? context.period : null,
+        residentId: context && typeof context.residentId === 'string' ? context.residentId : null
+    };
+}
+
+function rememberAssistantContext(text, period, resident) {
+    if (hasAssistantTimeHint(text)) assistantContext.period = period;
+    assistantContext.residentId = resident ? resident.id : null;
+    persistAssistantContext();
+}
+
+function buildAssistantFollowUps(answerId, period) {
+    const queries = ASSISTANT_FOLLOWUPS[answerId] || ASSISTANT_FOLLOWUPS.unknown;
+    const label = period && period.type === 'month' ? period.label : null;
+    return queries.slice(0, 3).map(query => {
+        const scoped = query.replace(/(نفس الفترة|الشهر)/, label || 'الشهر');
+        return { label: scoped, query: scoped };
+    });
+}
+
+function assistantFollowUpsHtml(answerId, period) {
+    const items = buildAssistantFollowUps(answerId, period);
+    if (!items.length) return '';
+    return `<div class="assistant-followups" aria-label="متابعة مقترحة">${items.map(item =>
+        `<button type="button" class="assistant-chip is-followup" data-assistant-query="${assistantEscape(item.query)}">${assistantEscape(item.label)}</button>`
+    ).join('')}</div>`;
+}
+
 function getAssistantMonthNames() {
     return Array.isArray(monthsNames) && monthsNames.length === 12 ? monthsNames : ASSISTANT_MONTHS;
 }
@@ -572,21 +692,35 @@ function buildAssistantGreetingHtml(now = new Date()) {
     return html;
 }
 
+function assistantRememberedResident() {
+    if (!assistantContext.residentId) return null;
+    return (Array.isArray(state.residents) ? state.residents : [])
+        .find(resident => resident.id === assistantContext.residentId) || null;
+}
+
 function answerAssistantQuery(text, now = new Date()) {
     const normalized = normalizeAssistantArabic(text);
-    if (!normalized) return buildAssistantHelpAnswer();
+    if (!normalized) return withAssistantAnswerMeta(buildAssistantHelpAnswer(), resolveAssistantPeriod(text, now), null);
     const residentMatch = resolveAssistantResident(text);
     if (residentMatch.matches.length > 1) {
-        return {
+        const answer = {
             id: 'resident-choice',
             title: 'في أكتر من ساكن مطابق',
             html: `${assistantList(residentMatch.matches.map(resident =>
                 `${assistantEscape(assistantApartmentLabel(resident))} · ${assistantEscape(assistantResidentName(resident))}`
             ))}${assistantNote('حدد رقم الشقة في سؤالك، مثال: «شقة 3 دفع كام؟».')}`
         };
+        return withAssistantAnswerMeta(answer, resolveAssistantPeriod(text, now), null, text);
     }
-    const intent = detectAssistantIntent(normalized, Boolean(residentMatch.resident));
-    const period = resolveAssistantPeriod(text, now);
+    const remembered = assistantFollowsResident(text) ? assistantRememberedResident() : null;
+    const resident = residentMatch.resident || remembered;
+    const intent = detectAssistantIntent(normalized, Boolean(resident));
+    const period = resolveAssistantPeriodWithContext(text, now);
+    const answer = selectAssistantAnswer(intent, period, resident, now);
+    return withAssistantAnswerMeta(answer, period, resident, text);
+}
+
+function selectAssistantAnswer(intent, period, resident, now) {
     switch (intent) {
         case 'greeting':
             return { id: 'greeting', title: 'وعليكم السلام', html: buildAssistantGreetingHtml(now) };
@@ -613,7 +747,7 @@ function answerAssistantQuery(text, now = new Date()) {
         case 'building':
             return buildAssistantBuildingAnswer();
         case 'resident':
-            return buildAssistantResidentAnswer(residentMatch.resident, now);
+            return buildAssistantResidentAnswer(resident, now);
         default:
             return {
                 id: 'unknown',
@@ -629,18 +763,48 @@ function answerAssistantQuery(text, now = new Date()) {
     }
 }
 
+function withAssistantAnswerMeta(answer, period, resident, text = '') {
+    answer.followUps = buildAssistantFollowUps(answer.id, period);
+    answer.html += assistantFollowUpsHtml(answer.id, period);
+    if (text) rememberAssistantContext(text, period, resident);
+    return answer;
+}
+
 function formatAssistantUserText(text) {
     return assistantEscape(text).replace(/\n/g, '<br>');
 }
 
-function appendAssistantMessage(role, html) {
+function renderAssistantMessage(role, html) {
     const log = document.getElementById('assistantLog');
-    if (!log) return;
+    if (!log) return null;
     const message = document.createElement('div');
     message.className = `assistant-msg is-${role}`;
     message.innerHTML = `<div class="assistant-bubble">${html}</div>`;
     log.appendChild(message);
     log.scrollTop = log.scrollHeight;
+    return message;
+}
+
+function appendAssistantMessage(role, html) {
+    assistantChat.push({ role, html });
+    persistAssistantChat();
+    return renderAssistantMessage(role, html);
+}
+
+function assistantAnswerHtml(answer) {
+    return `<p class="assistant-answer-title">${assistantEscape(answer.title)}</p>${answer.html}`;
+}
+
+function showAssistantTyping() {
+    const log = document.getElementById('assistantLog');
+    if (!log) return null;
+    const message = document.createElement('div');
+    message.className = 'assistant-msg is-bot is-typing';
+    message.setAttribute('aria-hidden', 'true');
+    message.innerHTML = '<div class="assistant-bubble"><span class="assistant-typing-dot"></span><span class="assistant-typing-dot"></span><span class="assistant-typing-dot"></span></div>';
+    log.appendChild(message);
+    log.scrollTop = log.scrollHeight;
+    return message;
 }
 
 function populateAssistantSuggestions() {
@@ -651,13 +815,22 @@ function populateAssistantSuggestions() {
     ).join('');
 }
 
+function restoreAssistantChat() {
+    restoreAssistantSession();
+    if (assistantChat.length) {
+        assistantChat.forEach(item => renderAssistantMessage(item.role, item.html));
+        return;
+    }
+    appendAssistantMessage('bot', buildAssistantGreetingHtml());
+}
+
 function openAssistantModal() {
     if (typeof requireManager === 'function' && !requireManager()) return;
     if (typeof openModal === 'function') openModal('assistantModal');
     syncAssistantFab();
     populateAssistantSuggestions();
     const log = document.getElementById('assistantLog');
-    if (log && !log.children.length) appendAssistantMessage('bot', buildAssistantGreetingHtml());
+    if (log && !log.children.length) restoreAssistantChat();
     requestAnimationFrame(() => {
         const input = document.getElementById('assistantInput');
         if (input && typeof input.focus === 'function') input.focus();
@@ -673,7 +846,13 @@ function sendAssistantMessage(event) {
     input.value = '';
     appendAssistantMessage('user', formatAssistantUserText(text));
     const answer = answerAssistantQuery(text);
-    appendAssistantMessage('bot', `<p class="assistant-answer-title">${assistantEscape(answer.title)}</p>${answer.html}`);
+    const typing = showAssistantTyping();
+    const deliver = () => {
+        if (typing && typing.parentNode) typing.parentNode.removeChild(typing);
+        appendAssistantMessage('bot', assistantAnswerHtml(answer));
+    };
+    if (typeof setTimeout === 'function' && ASSISTANT_TYPING_DELAY_MS > 0) setTimeout(deliver, ASSISTANT_TYPING_DELAY_MS);
+    else deliver();
     if (typeof input.focus === 'function') input.focus();
 }
 
@@ -694,6 +873,10 @@ function handleAssistantSuggestion(event) {
 function resetAssistantChat() {
     const log = document.getElementById('assistantLog');
     if (log) log.innerHTML = '';
+    assistantChat = [];
+    assistantContext = { period: null, residentId: null };
+    persistAssistantChat();
+    persistAssistantContext();
     appendAssistantMessage('bot', buildAssistantGreetingHtml());
 }
 
