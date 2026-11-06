@@ -5,7 +5,7 @@ const test = require('node:test');
 
 const root = path.join(__dirname, '..');
 const migration = fs.readFileSync(
-    path.join(root, 'supabase/migrations/20261106160000_partial_settlement_income.sql'),
+    path.join(root, 'supabase/migrations/20261106203433_partial_settlement_income.sql'),
     'utf8'
 );
 const atomic = fs.readFileSync(path.join(root, 'tests/atomic-persistence.integration.sql'), 'utf8');
