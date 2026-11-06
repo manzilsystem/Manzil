@@ -548,16 +548,22 @@ function buildAssistantReportsAnswer() {
     return { id: 'reports', title, html };
 }
 
+const ASSISTANT_HERO_SRC = 'icons/assistant-abbah-full.png';
+
+function assistantHeroHtml() {
+    return `<img class="assistant-hero" src="${ASSISTANT_HERO_SRC}" alt="" width="74" height="74" decoding="async">`;
+}
+
 function buildAssistantGreetingHtml(now = new Date()) {
     const month = getAssistantNowLabel(now);
     const residents = Array.isArray(state.residents) ? state.residents : [];
     if (!residents.length) {
-        return `<p class="assistant-hello">أهلاً يا أستاذ، أنا <strong>${assistantEscape(ASSISTANT_NAME)}</strong> بواب العمارة ومساعدك المحلي.</p>
+        return `${assistantHeroHtml()}<p class="assistant-hello">أهلاً يا أستاذ، أنا <strong>${assistantEscape(ASSISTANT_NAME)}</strong> بواب العمارة ومساعدك المحلي.</p>
             <p class="assistant-note">لسه مفيش شقق مسجلة. أضف الشقق والاشتراكات، وبعدها أقدر أقولك تحصيل الشهر والمتأخرات وأرصدة الخزائن.</p>`;
     }
     const summary = getAssistantMonthSummary({ type: 'month', label: month, months: [month] }, now);
     const arrears = getAssistantArrearsSnapshot();
-    let html = `<p class="assistant-hello">أهلاً يا أستاذ، أنا <strong>${assistantEscape(ASSISTANT_NAME)}</strong> بواب العمارة ومساعدك المحلي.</p>`;
+    let html = `${assistantHeroHtml()}<p class="assistant-hello">أهلاً يا أستاذ، أنا <strong>${assistantEscape(ASSISTANT_NAME)}</strong> بواب العمارة ومساعدك المحلي.</p>`;
     html += assistantRow('احنا في شهر', month);
     html += assistantRow('تحصيل الشهر', assistantMoney(summary.income.total));
     html += assistantRow('غير محصل الشهر', assistantMoney(summary.outstandingTotal), summary.outstandingTotal > 0 ? 'warn' : 'good');
@@ -648,6 +654,7 @@ function populateAssistantSuggestions() {
 function openAssistantModal() {
     if (typeof requireManager === 'function' && !requireManager()) return;
     if (typeof openModal === 'function') openModal('assistantModal');
+    syncAssistantFab();
     populateAssistantSuggestions();
     const log = document.getElementById('assistantLog');
     if (log && !log.children.length) appendAssistantMessage('bot', buildAssistantGreetingHtml());
@@ -689,3 +696,55 @@ function resetAssistantChat() {
     if (log) log.innerHTML = '';
     appendAssistantMessage('bot', buildAssistantGreetingHtml());
 }
+
+const ASSISTANT_FAB_SCROLL_DEADZONE = 8;
+const ASSISTANT_FAB_TOP_REVEAL = 48;
+let assistantFabLastScrollY = 0;
+let assistantFabHiddenByScroll = false;
+
+function assistantModalIsOpen() {
+    const modal = document.getElementById('assistantModal');
+    return Boolean(modal && !modal.classList.contains('hidden'));
+}
+
+function isAssistantFabAllowed() {
+    if (typeof currentUserRole !== 'undefined' && currentUserRole !== 'manager') return false;
+    if (document.body.classList.contains('session-locked')) return false;
+    return !assistantModalIsOpen();
+}
+
+function applyAssistantFabVisibility(hidden) {
+    const fab = document.getElementById('assistantFab');
+    if (!fab) return;
+    fab.classList.toggle('is-hidden', hidden);
+}
+
+function syncAssistantFab() {
+    if (!isAssistantFabAllowed()) {
+        applyAssistantFabVisibility(true);
+        return;
+    }
+    applyAssistantFabVisibility(assistantFabHiddenByScroll);
+}
+
+function handleAssistantFabScroll() {
+    const y = window.scrollY || document.documentElement.scrollTop || 0;
+    const delta = y - assistantFabLastScrollY;
+    if (Math.abs(delta) < ASSISTANT_FAB_SCROLL_DEADZONE) return;
+    assistantFabLastScrollY = y;
+    assistantFabHiddenByScroll = delta > 0 && y > ASSISTANT_FAB_TOP_REVEAL;
+    syncAssistantFab();
+}
+
+function initAssistantFab() {
+    assistantFabLastScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    const modal = document.getElementById('assistantModal');
+    if (modal && typeof MutationObserver === 'function') {
+        new MutationObserver(() => syncAssistantFab()).observe(modal, { attributes: true, attributeFilter: ['class'] });
+    }
+    window.addEventListener('scroll', handleAssistantFabScroll, { passive: true });
+    window.addEventListener('resize', syncAssistantFab);
+    syncAssistantFab();
+}
+
+document.addEventListener('DOMContentLoaded', initAssistantFab);

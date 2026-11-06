@@ -9,6 +9,7 @@ const stateSource = fs.readFileSync(path.join(root, 'js', 'state.js'), 'utf8');
 const assistantSource = fs.readFileSync(path.join(root, 'js', 'assistant.js'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'css', 'style.css'), 'utf8');
+const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 
 const NOW = new Date(2026, 10, 15, 12, 0, 0);
 
@@ -44,6 +45,7 @@ function createHarness(seed = true) {
         document: {
             getElementById: () => null,
             querySelector: () => null,
+            addEventListener() {},
             body: { classList: { add() {}, remove() {}, toggle() {} }, setAttribute() {} }
         },
         localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
@@ -98,15 +100,40 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(html, /id="assistantInput"[^>]*maxlength="240"/);
     assert.match(html, /id="assistantSuggestions"[^>]*onclick="handleAssistantSuggestion\(event\)"/);
     assert.match(html, /onsubmit="sendAssistantMessage\(event\)"/);
-    assert.match(html, /<button onclick="openAssistantModal\(\)"[^>]*class="[^"]*assistant-header-button/);
+    assert.match(html, /<button type="button" id="assistantFab"[^>]*onclick="openAssistantModal\(\)"/);
     assert.match(html, /aria-label="اسأل عم عبده البواب"/);
-    assert.doesNotMatch(html, /assistantFab/, 'the floating launcher was replaced by the header control');
+    assert.match(html, /class="assistant-fab-avatar"[^>]*src="icons\/assistant-abbah\.png"/);
+    assert.doesNotMatch(html, /assistant-header-button/, 'the launcher left the header for the floating button');
     assert.ok(html.indexOf('js/assistant.js') > -1, 'assistant script is included');
     assert.ok(html.indexOf('js/assistant.js') < html.indexOf('js/app.js'), 'assistant loads before app bootstrap');
-    assert.match(css, /\.assistant-header-button \{ position: relative; \}/);
-    assert.match(css, /body\.owner-mode \.assistant-header-button/);
+    assert.match(css, /\.assistant-fab \{/);
+    assert.match(css, /\.assistant-fab\.is-hidden \{/);
+    assert.match(css, /body\.owner-mode \.assistant-fab/);
+    assert.match(css, /@media print \{ \.assistant-fab \{ display: none !important; \} \}/);
+    assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.assistant-fab/);
+    assert.match(css, /\.assistant-avatar img \{/);
+    assert.match(css, /\.assistant-hero \{/);
+    assert.match(assistantSource, /icons\/assistant-abbah-full\.png/, 'the greeting shows the full-body avatar');
+    assert.match(serviceWorker, /\.\/icons\/assistant-abbah\.png/);
+    assert.match(serviceWorker, /\.\/icons\/assistant-abbah-full\.png/);
+    assert.match(assistantSource, /ASSISTANT_FAB_SCROLL_DEADZONE/, 'scroll direction drives the launcher');
+    assert.match(assistantSource, /window\.addEventListener\('scroll', handleAssistantFabScroll, \{ passive: true \}\)/);
+    assert.match(assistantSource, /new MutationObserver\(\(\) => syncAssistantFab\(\)\)\.observe\(modal/);
+    assert.doesNotMatch(assistantSource, /addEventListener\('focus'/, 'a visibility-hidden launcher is not focusable, so no focus handler is needed');
     assert.match(css, /\.assistant-msg\.is-user \.assistant-bubble/);
     assert.match(css, /@media print \{\s*#assistantModal \{ display: none !important; \}/);
+});
+
+test('avatar art is transparent PNG so it matches every theme', () => {
+    const avatars = ['icons/assistant-abbah.png', 'icons/assistant-abbah-full.png'];
+    for (const relative of avatars) {
+        const bytes = fs.readFileSync(path.join(root, relative));
+        assert.equal(bytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', `${relative} is a PNG`);
+        const colorType = bytes.readUInt8(25);
+        assert.equal(colorType & 4, 4, `${relative} carries a real alpha channel`);
+        assert.ok(bytes.readUInt32BE(16) === bytes.readUInt32BE(20), `${relative} stays square`);
+        assert.ok(bytes.includes(Buffer.from('IEND', 'ascii')), `${relative} is not truncated`);
+    }
 });
 
 test('assistant is local-only and never touches the network', () => {
