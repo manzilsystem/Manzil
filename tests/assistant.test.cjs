@@ -179,7 +179,7 @@ test('assistant resident summary uses the agreed settlement amount and linked pa
         }];
         state.expenses = [];
     `, context);
-    const resident = context.state.residents[0];
+    const resident = vm.runInContext('state.residents[0]', context);
     const snapshot = api.getAssistantResidentSnapshot(resident, NOW);
     assert.equal(snapshot.subscription, 60);
     assert.equal(snapshot.paid, 20);
