@@ -1168,7 +1168,6 @@ function buildResidentStatement(residentId, purposeFilter = '') {
         notes: String(payment.notes || '')
     });
     const paymentRows = payments.map(toPaymentRow);
-    const allPaymentRows = allPayments.map(toPaymentRow);
     const unassignedPaidCents = paymentRows
         .filter(payment => !monthLabelToKey(payment.month))
         .reduce((sum, payment) => sum + payment.amountCents, 0);
@@ -1186,7 +1185,6 @@ function buildResidentStatement(residentId, purposeFilter = '') {
         resident,
         months,
         payments: paymentRows,
-        allPayments: allPaymentRows,
         purposes: Array.from(purposeTotals.values()).sort((a, b) => b.cents - a.cents),
         showDues,
         purposeFilter: normalizedPurpose,
@@ -1496,7 +1494,7 @@ function renderUnitReportPdfHtml(statement) {
         '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
         '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th>',
         '<th style="padding:6px;border:1px solid #cbd5e1">الغرض</th><th style="padding:6px;border:1px solid #cbd5e1">طريقة الدفع</th><th style="padding:6px;border:1px solid #cbd5e1">التاريخ</th>',
-        '<th style="padding:6px;border:1px solid #cbd5e1">ملاحظات</th></tr></thead><tbody>', renderStatementPaymentsPdfBody(statement, statement.allPayments || statement.payments), '</tbody></table></section>',
+        '<th style="padding:6px;border:1px solid #cbd5e1">ملاحظات</th></tr></thead><tbody>', renderStatementPaymentsPdfBody(statement), '</tbody></table></section>',
         '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
         'تقرير وحدة للقراءة فقط ولا يعدل أي بيانات. كل شهر محسوب بقيمة الاشتراك السارية فيه، والمدفوع هو المسجل على الشهر نفسه، ويعرض كل حركات الوحدة بغض النظر عن فلتر الغرض.',
         '</p><footer style="font-size:9px;color:#64748b;margin-top:18px;text-align:center">Manzil — ',
@@ -1564,14 +1562,19 @@ async function exportResidentStatementPdf() {
     );
 }
 
+function buildUnitReportStatement(statement) {
+    return buildResidentStatement(statement.resident.id) || statement;
+}
+
 async function exportUnitReportPdf() {
     if (!requireManager()) return;
     const statement = getResidentStatementSnapshot();
     if (!statement) return;
+    const unitStatement = buildUnitReportStatement(statement);
     await downloadStatementPdf(
-        statement,
-        renderUnitReportPdfHtml(statement),
-        `manzil_unit_${getStatementFileSlug(statement, false)}.pdf`,
+        unitStatement,
+        renderUnitReportPdfHtml(unitStatement),
+        `manzil_unit_${getStatementFileSlug(unitStatement, false)}.pdf`,
         'unitReportPdfBtn',
         'تم إنشاء تقرير الوحدة PDF.',
         'Unit report PDF export failed:'

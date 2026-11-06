@@ -132,7 +132,7 @@ function loadReports(options = {}) {
         Date
     };
     const api = vm.runInNewContext(
-        `${reports}\n({\n            getLandlordReportData, getLandlordReportSignature, generateLandlordReport, exportToCSV,\n            renderLandlordReportPdfHtml, invalidateLandlordReportPreview,\n            buildPeriodReport, getPeriodReportSignature, generatePeriodReport, renderPeriodReportHtml,\n            exportPeriodReportCsv, invalidatePeriodReportPreview, getSelectedPeriodReportSnapshot,\n            buildResidentStatement, getResidentStatementSignature, generateResidentStatement,\n            renderResidentStatementHtml, renderResidentStatementPdfHtml, renderUnitReportPdfHtml,\n            exportResidentStatementCsv, invalidateResidentStatementPreview, getResidentStatementSnapshot,\n            populateReportPurposeFilters, getReportPurposeFilter, reportPaymentMatchesPurpose\n        })`,
+        `${reports}\n({\n            getLandlordReportData, getLandlordReportSignature, generateLandlordReport, exportToCSV,\n            renderLandlordReportPdfHtml, invalidateLandlordReportPreview,\n            buildPeriodReport, getPeriodReportSignature, generatePeriodReport, renderPeriodReportHtml,\n            exportPeriodReportCsv, invalidatePeriodReportPreview, getSelectedPeriodReportSnapshot,\n            buildResidentStatement, getResidentStatementSignature, generateResidentStatement,\n            renderResidentStatementHtml, renderResidentStatementPdfHtml, renderUnitReportPdfHtml, buildUnitReportStatement, exportUnitReportPdf,\n            exportResidentStatementCsv, invalidateResidentStatementPreview, getResidentStatementSnapshot,\n            populateReportPurposeFilters, getReportPurposeFilter, reportPaymentMatchesPurpose\n        })`,
         sandbox,
         { filename: 'js/reports.js' }
     );
@@ -296,7 +296,6 @@ test('statement filters payments and hides the monthly dues table for non-subscr
     assert.equal(statement.showDues, false);
     assert.equal(statement.purposeLabel, 'تطوير');
     assert.deepEqual(statement.payments.map(item => item.id), ['i2', 'i5']);
-    assert.equal(statement.allPayments.length, 5);
     assert.equal(statement.totals.filteredPaidCents, 8000);
     assert.equal(statement.totals.paidCents, 14000);
     const preview = api.renderResidentStatementHtml(statement);
@@ -321,7 +320,11 @@ test('statement subscription filtering keeps the dues ledger and subscription mo
 
 test('unit report ignores the purpose filter and keeps every unit movement', () => {
     const { api } = loadReports();
-    const statement = api.buildResidentStatement('r1', 'development');
+    const filtered = api.buildResidentStatement('r1', 'development');
+    const statement = api.buildUnitReportStatement(filtered);
+    assert.equal(statement.purposeFilter, '');
+    assert.equal(statement.showDues, true);
+    assert.equal(statement.payments.length, 5);
     const preview = api.renderUnitReportPdfHtml(statement);
     assert.match(preview, /خدمات ونظافة/);
     assert.match(preview, /اشتراك شهري/);

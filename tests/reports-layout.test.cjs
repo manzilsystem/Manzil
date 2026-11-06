@@ -211,8 +211,12 @@ test('resident statement scopes a monthly ledger to one resident with gated outp
     assert.match(reports, /manzil_statement_\$\{getStatementFileSlug\(statement\)\}\.csv/);
     assert.match(reports, /manzil_statement_\$\{getStatementFileSlug\(statement\)\}\.pdf/);
     assert.match(reports, /function exportUnitReportPdf\(\)/);
-    assert.match(reports, /manzil_unit_\$\{getStatementFileSlug\(statement, false\)\}\.pdf/);
+    assert.match(reports, /function buildUnitReportStatement\(statement\)/);
+    assert.match(reports, /return buildResidentStatement\(statement\.resident\.id\) \|\| statement/);
+    assert.match(reports, /const unitStatement = buildUnitReportStatement\(statement\)/);
+    assert.match(reports, /manzil_unit_\$\{getStatementFileSlug\(unitStatement, false\)\}\.pdf/);
     assert.match(reports, /function renderUnitReportPdfHtml\(statement\)/);
+    assert.doesNotMatch(reports, /statement\.allPayments/);
     assert.match(reports, /بيانات الوحدة/);
 });
 
