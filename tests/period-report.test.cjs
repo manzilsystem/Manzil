@@ -305,7 +305,7 @@ test('period preview gates print and csv until a fresh preview exists', () => {
     app.generatePeriodReport();
     elements.periodReportTo.value = 'أبريل 2024';
     app.onPeriodReportRangeChange();
-    assert.match(elements.periodReportPreview.innerHTML, /تغيّرت الفترة أو الغرض أو البيانات/);
+    assert.match(elements.periodReportPreview.innerHTML, /تغيّرت الفترة أو الفلتر أو البيانات/);
     assert.equal(sandbox.document.getElementById('periodReportPreset').value, 'custom');
 
     app.printPeriodReport();

@@ -85,7 +85,7 @@ test('report output stays disabled until a fresh preview exists', async ({ page 
     await expect(page.locator('[data-report-nav="landlord"]')).toHaveClass(/is-ready/);
 
     await page.locator('#reportMonthSelect').selectOption('فبراير 2024');
-    await expect(page.locator('#landlordReportPreview')).toContainText('تغيّر الشهر أو الغرض أو البيانات');
+    await expect(page.locator('#landlordReportPreview')).toContainText('تغيّر الشهر أو الفلتر أو البيانات');
     await expect(printButton).toBeDisabled();
     await expect(pdfButton).toBeDisabled();
     await expect(exportButton).toBeDisabled();
@@ -188,7 +188,7 @@ test('period report gates print and csv on the previewed range', async ({ page }
     await expect(exportButton).toBeEnabled();
 
     await page.locator('#periodReportTo').selectOption('يناير 2024');
-    await expect(preview).toContainText('تغيّرت الفترة أو الغرض أو البيانات');
+    await expect(preview).toContainText('تغيّرت الفترة أو الفلتر أو البيانات');
     await expect(printButton).toBeDisabled();
     await expect(exportButton).toBeDisabled();
 
@@ -511,7 +511,50 @@ test('landlord purpose filter scopes collections and replaces dues with purpose 
     expect(csv).not.toContain('"اشتراك شهري"');
 
     await page.locator('#landlordReportPurpose').selectOption('subscription');
-    await expect(preview).toContainText('تغيّر الشهر أو الغرض أو البيانات');
+    await expect(preview).toContainText('تغيّر الشهر أو الفلتر أو البيانات');
+    await expect(page.locator('#reportExportBtn')).toBeDisabled();
+});
+
+test('landlord fund filter scopes movements and expenses and hides building-wide dues', async ({ page }) => {
+    await openReports(page);
+    await page.evaluate(() => {
+        state.income.push({ id: 'i3', residentId: 'r1', month: 'يناير 2024', amount: 50, paymentMethod: 'instapay', purposeCode: 'development', cashAccountCode: 'development' });
+        state.expenses.push(
+            { id: 'e1', month: 'يناير 2024', title: 'دهانات', amount: 5, category: 'تطوير', cashAccountCode: 'development' },
+            { id: 'e2', month: 'يناير 2024', title: 'كهرباء', amount: 10, category: 'مرافق', cashAccountCode: 'main' }
+        );
+        renderAll();
+    });
+
+    await openReportPanel(page, 'landlord');
+    await page.locator('#reportMonthSelect').selectOption('يناير 2024');
+    await page.locator('#landlordReportCashAccount').selectOption('development');
+    await page.locator('#landlordReportPrint').getByRole('button', { name: 'معاينة', exact: true }).click();
+
+    const preview = page.locator('#landlordReportPreview');
+    await expect(preview).toContainText('الصندوق: صندوق التطوير');
+    await expect(preview).toContainText('الحركات معروضة لصندوق «صندوق التطوير» فقط');
+    await expect(preview.locator('.report-stat', { hasText: 'تحصيل الغرض' })).toContainText('50 ج.م');
+    await expect(preview.locator('.report-stat', { hasText: 'مصروف الشهر' })).toContainText('5 ج.م');
+    await expect(preview.locator('.report-stat-label', { hasText: 'المستحق' })).toHaveCount(0);
+    await expect(preview.locator('.report-stat-label', { hasText: 'نسبة التحصيل' })).toHaveCount(0);
+    await expect(preview).toContainText('دهانات');
+    await expect(preview).not.toContainText('كهرباء');
+    await expect(page.locator('#reportExportBtn')).toBeEnabled();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#reportExportBtn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('manzil_report_2024-01_development.csv');
+    const stream = await download.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const csv = Buffer.concat(chunks).toString('utf8');
+    expect(csv).toContain('"صندوق التطوير"');
+    expect(csv).not.toContain('كهرباء');
+
+    await page.locator('#landlordReportCashAccount').selectOption('emergency');
+    await expect(preview).toContainText('تغيّر الشهر أو الفلتر أو البيانات');
     await expect(page.locator('#reportExportBtn')).toBeDisabled();
 });
 
@@ -551,6 +594,52 @@ test('period purpose filter switches to purpose columns and scopes its csv', asy
     expect(csv).toContain('"الشهر","تحصيل الغرض","عدد الحركات","المصروف","الصافي"');
     expect(csv).not.toContain('"المستحق"');
     expect(csv).toContain('"تطوير"');
+});
+
+test('period fund filter scopes income and expenses and exports fund columns', async ({ page }) => {
+    await openReports(page);
+    await page.evaluate(() => {
+        state.income.push(
+            { id: 'i3', residentId: 'r1', month: 'يناير 2024', amount: 50, paymentMethod: 'instapay', purposeCode: 'development', cashAccountCode: 'development' },
+            { id: 'i4', residentId: 'r1', month: 'فبراير 2024', amount: 70, paymentMethod: 'cash', purposeCode: 'development', cashAccountCode: 'development' }
+        );
+        state.expenses.push(
+            { id: 'e1', month: 'يناير 2024', title: 'دهانات', amount: 5, category: 'تطوير', cashAccountCode: 'development' },
+            { id: 'e2', month: 'يناير 2024', title: 'كهرباء', amount: 10, category: 'مرافق', cashAccountCode: 'main' }
+        );
+        renderAll();
+    });
+
+    await openReportPanel(page, 'period');
+    await page.locator('#periodReportPreset').selectOption('custom');
+    await page.locator('#periodReportFrom').selectOption('يناير 2024');
+    await page.locator('#periodReportTo').selectOption('فبراير 2024');
+    await page.locator('#periodReportCashAccount').selectOption('development');
+    await page.locator('#periodReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+
+    const preview = page.locator('#periodReportPreview');
+    await expect(preview).toContainText('الصندوق: صندوق التطوير');
+    await expect(preview.locator('.report-stat-label', { hasText: 'تحصيل الصندوق' })).toBeVisible();
+    await expect(preview.locator('table thead')).toContainText('تحصيل الصندوق');
+    await expect(preview.locator('table thead')).not.toContainText('غير المحصّل');
+    await expect(preview).toContainText('الحركات معروضة لصندوق «صندوق التطوير» فقط');
+    await expect(page.locator('#periodReportExportBtn')).toBeEnabled();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#periodReportExportBtn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('manzil_period_2024-01_2024-02_development.csv');
+    const stream = await download.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const csv = Buffer.concat(chunks).toString('utf8');
+    expect(csv).toContain('"الشهر","تحصيل الصندوق","عدد الحركات","المصروف","الصافي"');
+    expect(csv).toContain('"الصندوق","صندوق التطوير"');
+    expect(csv).not.toContain('"المستحق"');
+
+    await page.locator('#periodReportCashAccount').selectOption('emergency');
+    await expect(preview).toContainText('تغيّرت الفترة أو الفلتر أو البيانات');
+    await expect(page.locator('#periodReportExportBtn')).toBeDisabled();
 });
 
 test('statement purpose filter scopes movements and hides the dues ledger', async ({ page }) => {

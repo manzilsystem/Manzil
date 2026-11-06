@@ -215,7 +215,7 @@ test('changing the purpose invalidates the landlord preview and signature follow
     assert.match(elements.landlordReportPreview.innerHTML, /تحصيل الغرض/);
     elements.landlordReportPurpose.value = 'other';
     api.invalidateLandlordReportPreview();
-    assert.match(elements.landlordReportPreview.innerHTML, /تغيّر الشهر أو الغرض/);
+    assert.match(elements.landlordReportPreview.innerHTML, /تغيّر الشهر أو الفلتر/);
     assert.equal(elements.reportPdfBtn.disabled, true);
     assert.notEqual(
         api.getLandlordReportSignature('يناير 2024', 'development'),
