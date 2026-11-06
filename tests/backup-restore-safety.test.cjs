@@ -156,3 +156,8 @@ test('client prefers browser-managed direct download and retains checksum-verifi
     assert.match(ui, /action: 'download_backup'/);
     assert.match(ui, /crypto\.subtle\.digest\('SHA-256'/);
 });
+
+test('backup download accepts the real UTC release tag format', () => {
+    assert.ok(ui.includes(String.raw`!/^backup-\d{8}T\d{6}Z$/.test(tag)`));
+    assert.doesNotMatch(ui, String.raw`!/^backup-\\d{8}T\\d{6}Z$/.test(tag)`);
+});
