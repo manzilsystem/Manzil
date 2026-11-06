@@ -341,6 +341,12 @@ function monthLabelToKey(month) {
     return `${year}-${String(index + 1).padStart(2, '0')}-01`;
 }
 
+function monthKeyToLabel(monthKey) {
+    const [year, month] = String(monthKey || '').split('-').map(Number);
+    if (!year || !month || month < 1 || month > 12) return '';
+    return `${monthsNames[month - 1]} ${year}`;
+}
+
 function getSubscriptionAmountForMonth(resident, month) {
     if (!resident) return 0;
     const monthKey = monthLabelToKey(month);
@@ -638,8 +644,8 @@ function getIncomeMonthLabels(resident, includeMonths = []) {
     return sortMonthLabels(Array.from(set));
 }
 
-function getIncomeCollectionMonthLabels(resident, futureMonths = 12) {
-    if (!resident) return [];
+function getIncomeCollectionMonthLabels(resident, futureMonths = 12, includeMonths = []) {
+    if (!resident) return sortMonthLabels(Array.isArray(includeMonths) ? includeMonths.filter(Boolean) : []);
     const now = new Date();
     const currentStart = new Date(now.getFullYear(), now.getMonth(), 1);
     let start = currentStart;
@@ -664,7 +670,8 @@ function getIncomeCollectionMonthLabels(resident, futureMonths = 12) {
         labels.push(`${monthsNames[cursor.getMonth()]} ${cursor.getFullYear()}`);
         cursor.setMonth(cursor.getMonth() + 1);
     }
-    return labels;
+    (Array.isArray(includeMonths) ? includeMonths : []).filter(Boolean).forEach(month => labels.push(month));
+    return sortMonthLabels(labels);
 }
 
 function getIncomeMonthOptionLabel(resident, month) {
