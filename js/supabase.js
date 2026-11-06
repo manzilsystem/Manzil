@@ -255,7 +255,7 @@ function attachResidentSubscriptionHistory(residents, rateRows = [], changeRows 
 }
 
 function mapIncome(row) {
-    return { id: row.id, residentId: row.resident_id, amount: Number(row.amount) || 0, month: row.month, notes: row.notes || '', paymentMethod: row.payment_method || null, cashAccountCode: row.cash_account_code || 'main', purposeCode: supabaseIncomePurpose(row.purpose_code), date: row.paid_at };
+    return { id: row.id, residentId: row.resident_id, amount: Number(row.amount) || 0, month: row.month, notes: row.notes || '', paymentMethod: row.payment_method || null, cashAccountCode: row.cash_account_code || 'main', purposeCode: supabaseIncomePurpose(row.purpose_code), settlementAdjustmentId: row.settlement_adjustment_id || null, date: row.paid_at };
 }
 
 function mapExpense(row) {
@@ -522,8 +522,8 @@ async function loadState() {
         ? 'id,user_id,name,apartment_number,floor,phone,monthly_amount,created_at,billing_start_month'
         : 'id,name,apartment_number,floor,monthly_amount,created_at,billing_start_month';
     const incomeColumns = isManager
-        ? 'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,paid_at'
-        : 'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,paid_at';
+        ? 'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,settlement_adjustment_id,paid_at'
+        : 'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,settlement_adjustment_id,paid_at';
     const expenseColumns = 'id,title,amount,category,month,notes,cash_account_code,spent_at';
     const noticeColumns = 'id,text,created_at';
     const auditColumns = 'id,action,details,actor_id,created_at,actor:profiles!audit_logs_actor_id_fkey(full_name)';
@@ -643,6 +643,7 @@ async function saveState() {
             month: i.month, notes: i.notes || null, payment_method: i.paymentMethod || null,
             cash_account_code: i.cashAccountCode || 'main',
             purpose_code: supabaseIncomePurpose(i.purposeCode),
+            settlement_adjustment_id: i.settlementAdjustmentId || null,
             paid_at: toSupabaseTimestamp(i.date)
         })),
         expenses: state.expenses.map(e => ({
