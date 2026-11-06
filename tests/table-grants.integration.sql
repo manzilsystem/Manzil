@@ -28,7 +28,7 @@ BEGIN
            OR has_table_privilege('authenticated', format('public.%I', v_table), 'UPDATE')
            OR has_table_privilege('authenticated', format('public.%I', v_table), 'DELETE')
            OR has_table_privilege('authenticated', format('public.%I', v_table), 'TRUNCATE') THEN
-            RAISE EXCEPTION 'authenticated direct financial table privileges are too broad: %', v_table;
+            RAISE EXCEPTION 'authenticated direct table privileges are too broad: %', v_table;
         END IF;
     END LOOP;
 END;
