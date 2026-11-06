@@ -62,7 +62,7 @@ test('WhatsApp receipt requires a resident phone number', () => {
     app.sendIncomeReceiptOnWhatsApp('payment-1');
 
     assert.equal(opened.length, 0);
-    assert.match(messages[0].message, /أضف رقم هاتف الساكن/);
+    assert.match(messages[0].message, /أضف رقم هاتف المالك/);
 });
 
 test('income cards expose a WhatsApp receipt action for each payment', () => {
