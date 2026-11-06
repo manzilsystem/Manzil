@@ -259,7 +259,7 @@ END $$;
 
 
 -- Verify tenant and lease details are isolated from owner-readable resident data.
-DO $
+DO $tenant_restore$
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM pg_policies
