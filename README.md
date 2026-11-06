@@ -2,7 +2,7 @@
 
 تطبيق ويب عربي (RTL) لإدارة الشقق والاشتراكات والتحصيلات والمصروفات والصناديق والتقارير، مع بوابة مالك للقراءة فقط. يعمل كـPWA ويستخدم Supabase للمصادقة وPostgreSQL، وRLS لعزل بيانات كل مبنى.
 
-الإصدار الحي: **manzil-v147** (`sw.js` → `CACHE_NAME`، `js/telemetry.js` → `RELEASE`).
+الإصدار الحي: يُشتق تلقائيًا بصيغة **`manzil-<10 hex>`** من بصمة SHA-256 لكل الأصول الثابتة (`scripts/build-index.mjs` يكتبه في `sw.js` → `CACHE_NAME`، و`js/telemetry.js` → `RELEASE`). لا يُكتب أي إصدار يدويًا.
 
 ## التشغيل
 
@@ -25,13 +25,13 @@ npm run check:index   # يفشل إن كان index.html غير محدَّث
 
 | الأمر | التغطية | الحالة |
 |---|---|---|
-| `npm test` | 736 اختبار Node: الحالة، الصلاحيات، التقارير، الحفظ الذري، التحصيل والصناديق، النسخ الاحتياطي، المساعد المحلي | يمر |
+| `npm test` | 738 اختبار Node: الحالة، الصلاحيات، التقارير، الحفظ الذري، التحصيل والصناديق، النسخ الاحتياطي، المساعد المحلي، آلية التحديث التلقائي | يمر |
 | `npm run typecheck` | `tsc --noEmit` على وحدات JS المعلَّمة بـ`// @ts-check` | يمر |
-| `npm run e2e` | 146 اختبار Playwright (desktop + mobile) | 109 يمر · 34 قائم مسبقًا على `main` (مؤجَّل) |
+| `npm run e2e` | 152 اختبار Playwright (desktop + mobile) | 115 يمر · 34 قائم مسبقًا على `main` (مؤجَّل) |
 | `deno test supabase/functions` | 61 اختبار Edge Functions مع خادم Supabase وهمي | يمر |
 | تكامل PostgreSQL | يعمل في CI عبر `supabase db reset --local` و`tests/post-restore-verify.sql` | يمر |
 
-CI يعمل على كل Pull Request وتحديث `main`: `node-tests.yml` و`e2e.yml` و`quality-checks.yml` و`supabase-local-seed.yml`.
+CI يعمل على كل Pull Request وتحديث `main`: `node-tests.yml` و`e2e.yml` و`quality-checks.yml` و`lighthouse.yml` و`supabase-local-seed.yml`.
 
 ## الميزات
 
@@ -66,7 +66,7 @@ CI يعمل على كل Pull Request وتحديث `main`: `node-tests.yml` و`e2
 
 ## التحديثات
 
-`sw.js` يعمل بنمط الشبكة أولًا مع `updateViaCache: 'none'`، فيصل كل إصدار عند إعادة الفتح دون مسح كاش. إذا كانت هناك نافذة أو حقل قيد الإدخال، يُؤجَّل التحديث ويُعاد المحاولة دوريًا وعند العودة للتطبيق. لا تُمسح بيانات الجلسة أو المدخلات أثناء التحديث.
+كل أصل ثابت يُبصم ببصمة SHA-256 في رابط `?v=`، فيتغيّر الرابط فقط عند تغيّر المحتوى. `sw.js` يخدم الأصول المُبصّمة cache-first (لأنها غير قابلة للتغيير) ويعيد التحقق من الصفحة والملفات الديناميكية، ويستخدم `updateViaCache: 'none'` مع `skipWaiting` و`clients.claim`. يفحص `js/sw-register.js` إصدارًا جديدًا كل **30 دقيقة** وأيضًا عند العودة للتبويب أو إعادة الفتح، ثم يعرض بطاقة غير مزعجة بخيارَي **تحديث الآن** أو **لاحقًا**؛ وإن لم يختر المستخدم شيئًا يُطبَّق التحديث تلقائيًا عند أول لحظة خمول (لا نافذة ولا حقل قيد الإدخال) فلا تُفقد أي بيانات أو مدخلات. لا حاجة لمسح الكاش يدويًا. التفاصيل الكاملة في [آلية التحديث التلقائي](docs/auto-update.md).
 
 ## حدود حالية
 
@@ -81,3 +81,4 @@ CI يعمل على كل Pull Request وتحديث `main`: `node-tests.yml` و`e2
 - [سجل الجلسات](docs/plan-history.md)
 - [دليل تهيئة Supabase](docs/supabase-rollout.md)
 - [التطوير المحلي](docs/local-development.md)
+- [آلية التحديث التلقائي](docs/auto-update.md)

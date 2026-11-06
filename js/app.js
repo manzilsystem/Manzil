@@ -147,7 +147,7 @@ function ensurePdfLibrary() {
 async function loadSubscriptionRateAdapter() {
     await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'js/subscription-rates.js';
+        script.src = `js/subscription-rates.js?v=${window.MANZIL_RELEASE || ''}`;
         script.onload = resolve;
         script.onerror = () => reject(new Error('تعذر تحميل وحدة تاريخ الاشتراكات'));
         document.head.appendChild(script);

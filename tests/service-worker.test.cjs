@@ -12,7 +12,7 @@ const app = fs.readFileSync(path.join(root, 'js', 'app.js'), 'utf8');
 
 test('service worker is valid JavaScript and bumps the app cache', () => {
     assert.doesNotThrow(() => new vm.Script(sw, { filename: 'sw.js' }));
-    assert.match(sw, /const CACHE_NAME = 'manzil-v147'/);
+    assert.match(sw, /const CACHE_NAME = 'manzil-[0-9a-f]{10}'/);
 });
 
 test('all runtime modules are pre-cached with the application shell', () => {
@@ -29,15 +29,15 @@ test('all runtime modules are pre-cached with the application shell', () => {
         'notices.js',
         'subscription-rates.js'
     ]) {
-        const referencedByHtml = html.includes('<script src="js/' + module + '"></script>');
-        const loadedDynamically = app.includes("script.src = 'js/" + module + "'");
+        const referencedByHtml = html.includes('<script src="js/' + module + '?v=');
+        const loadedDynamically = app.includes('js/' + module + '?v=');
         assert.ok(referencedByHtml || loadedDynamically, module + ' must be loaded by the application');
-        assert.ok(shell[1].includes("'./js/" + module + "'"), module + ' must be in APP_SHELL');
+        assert.ok(shell[1].includes("'./js/" + module + "?v="), module + ' must be in APP_SHELL');
     }
 });
 
 test('the shell reloads for worker updates but not for the first install', () => {
-    assert.ok(html.includes('<script src="js/sw-register.js"></script>'), 'index.html must load the registration script');
+    assert.ok(html.includes('<script src="js/sw-register.js?v='), 'index.html must load the registration script');
     assert.match(swRegister, /const hadController = Boolean\(navigator\.serviceWorker\.controller\)/);
     assert.match(swRegister, /controllerChanges \+= 1;/);
     assert.match(swRegister, /if \(reloading \|\| \(!hadController && controllerChanges === 1\)\) return;/);
@@ -54,17 +54,24 @@ test('navigations revalidate the shell so a release lands without clearing the c
     assert.match(sw, /fetch\(new Request\(request, \{ cache: 'no-cache' \}\)\)/);
 });
 
-test('the page re-checks for a new worker while it stays open', () => {
-    assert.match(swRegister, /updateViaCache: 'none'/);
-    assert.match(swRegister, /setInterval\(\(\) => \{[\s\S]*?refreshWorker\(\);[\s\S]*?\}, 15 \* 60 \* 1000\);/);
+test('content-hashed assets are cached immutably and served without revalidating', () => {
+    assert.match(sw, /if \(url\.searchParams\.has\('v'\)\)/);
+    assert.match(sw, /caches\.match\(request\)\.then\(cached => cached \|\| fetch\(request\)/);
 });
 
-test('new deployments apply automatically once the user is idle, without a cache clear', () => {
+test('the page re-checks for a new worker every thirty minutes while it stays open', () => {
+    assert.match(swRegister, /updateViaCache: 'none'/);
+    assert.match(swRegister, /setInterval\(\(\) => \{[\s\S]*?refreshWorker\(\);[\s\S]*?\}, 30 \* 60 \* 1000\);/);
+});
+
+test('a new deployment offers an in-app refresh instead of a manual cache clear', () => {
     assert.match(swRegister, /let updatePending = false/);
     assert.match(swRegister, /const appIsBusy = \(\) =>/);
     assert.match(swRegister, /document\.querySelector\('\[role="dialog"\]:not\(\.hidden\)'\)/);
-    assert.match(swRegister, /if \(appIsBusy\(\)\) \{ showUpdateBanner\(\); return; \}/);
-    assert.match(swRegister, /updatePending = true;\s*applyPendingUpdate\(\);/);
+    assert.match(swRegister, /if \(appIsBusy\(\)\) \{ showUpdateCard\(\); return; \}/);
+    assert.match(swRegister, /updatePending = true;\s*showUpdateCard\(\);/);
+    assert.match(swRegister, /applyButton\.textContent = 'تحديث الآن'/);
+    assert.match(swRegister, /laterButton\.textContent = 'لاحقًا'/);
+    assert.match(swRegister, /laterButton\.addEventListener\('click', \(\) => \{ updateDeferred = true; closeUpdateCard\(\); \}\)/);
     assert.match(swRegister, /setInterval\(\(\) => \{ if \(updatePending\) applyPendingUpdate\(\); \}, 5000\)/);
-    assert.match(swRegister, /سيُطبّق تلقائيًا فور إنهاء النافذة أو الحقل المفتوح/);
 });

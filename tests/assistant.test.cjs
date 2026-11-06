@@ -216,7 +216,7 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(html, /onsubmit="sendAssistantMessage\(event\)"/);
     assert.match(html, /<button type="button" id="assistantFab"[^>]*onclick="openAssistantModal\(\)"/);
     assert.match(html, /aria-label="اسأل عم عبده البواب"/);
-    assert.match(html, /class="assistant-avatar-frame assistant-fab-avatar"[^>]*><img src="icons\/assistant-abbah\.png"/, 'the launcher clips the avatar into a face-centered circle');
+    assert.match(html, /class="assistant-avatar-frame assistant-fab-avatar"[^>]*><img src="icons\/assistant-abbah\.png\?v=/, 'the launcher clips the avatar into a face-centered circle');
     assert.doesNotMatch(html, /assistant-header-button/, 'the launcher left the header for the floating button');
     assert.ok(html.indexOf('js/assistant.js') > -1, 'assistant script is included');
     assert.ok(html.indexOf('js/assistant.js') < html.indexOf('js/app.js'), 'assistant loads before app bootstrap');
