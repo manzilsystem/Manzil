@@ -226,3 +226,5 @@ END;
 $adjustment_snapshot$;
 
 SELECT 'resident adjustment snapshot and entitlement tests passed' AS result;
+
+\ir partial-settlement.integration.sql
