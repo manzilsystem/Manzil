@@ -883,7 +883,7 @@ function resetAssistantChat() {
 const ASSISTANT_FAB_SCROLL_DEADZONE = 8;
 const ASSISTANT_FAB_TOP_REVEAL = 48;
 let assistantFabLastScrollY = 0;
-let assistantFabHiddenByScroll = false;
+let assistantFabCompactByScroll = false;
 
 function assistantModalIsOpen() {
     const modal = document.getElementById('assistantModal');
@@ -896,18 +896,19 @@ function isAssistantFabAllowed() {
     return !assistantModalIsOpen();
 }
 
-function applyAssistantFabVisibility(hidden) {
+function applyAssistantFabState(hidden, compact) {
     const fab = document.getElementById('assistantFab');
     if (!fab) return;
     fab.classList.toggle('is-hidden', hidden);
+    fab.classList.toggle('is-compact', compact && !hidden);
 }
 
 function syncAssistantFab() {
     if (!isAssistantFabAllowed()) {
-        applyAssistantFabVisibility(true);
+        applyAssistantFabState(true, false);
         return;
     }
-    applyAssistantFabVisibility(assistantFabHiddenByScroll);
+    applyAssistantFabState(false, assistantFabCompactByScroll);
 }
 
 function handleAssistantFabScroll() {
@@ -915,7 +916,7 @@ function handleAssistantFabScroll() {
     const delta = y - assistantFabLastScrollY;
     if (Math.abs(delta) < ASSISTANT_FAB_SCROLL_DEADZONE) return;
     assistantFabLastScrollY = y;
-    assistantFabHiddenByScroll = delta > 0 && y > ASSISTANT_FAB_TOP_REVEAL;
+    assistantFabCompactByScroll = delta > 0 && y > ASSISTANT_FAB_TOP_REVEAL;
     syncAssistantFab();
 }
 

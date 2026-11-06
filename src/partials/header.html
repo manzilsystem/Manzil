@@ -12,6 +12,13 @@
                 </div>
             </div>
             <div class="flex items-center gap-1.5">
+                <div class="owner-theme-control" id="ownerThemeControl">
+                    <button type="button" id="ownerThemeBtn" class="owner-theme-btn app-card border" onclick="toggleOwnerThemeMenu()" aria-haspopup="true" aria-expanded="false" aria-controls="ownerThemeMenu" aria-label="تغيير مظهر البوابة" title="مظهرك المفضل">
+                        <span class="owner-theme-swatch theme-preview-dark" id="ownerThemeSwatch" aria-hidden="true"></span>
+                        <i class="fa-solid fa-palette" aria-hidden="true"></i>
+                    </button>
+                    <div class="owner-theme-menu app-card border hidden" id="ownerThemeMenu" role="group" aria-label="اختيار مظهر البوابة"></div>
+                </div>
                 <button onclick="openSettingsModal()" aria-label="فتح الإعدادات" class="app-card border p-2.5 rounded-xl text-xs transition" title="الإعدادات"><i class="fa-solid fa-gear text-sm"></i></button>
                 <button id="accessSwitchBtn" onclick="lockCurrentSession()" aria-label="تبديل المستخدم أو قفل التطبيق" class="app-card border p-2.5 rounded-xl text-xs transition hidden" title="خروج / تبديل المستخدم"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
             </div>
