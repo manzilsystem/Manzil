@@ -182,7 +182,8 @@ test('monthly report resolves each payment to its resident through the index', (
 });
 
 test('report lookups use a single residents index instead of repeated scans', () => {
-    assert.equal((reports.match(/const residentsById = buildResidentIndex\(\)/g) || []).length, 3);
+    assert.equal((reports.match(/residentsById: buildResidentIndex\(\)/g) || []).length, 1, 'the landlord model indexes residents once');
+    assert.equal((reports.match(/const residentsById = buildResidentIndex\(\)/g) || []).length, 1, 'only the CSV export still builds its own index');
     assert.doesNotMatch(reports, /state\.residents\.find\(/);
 });
 

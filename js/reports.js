@@ -235,6 +235,127 @@ function getExpenseCategoryTotals(expenses) {
     return Array.from(totals.entries()).sort((a, b) => b[1].cents - a[1].cents);
 }
 
+function buildLandlordReportModel(month, purposeFilter = '') {
+    const showDues = reportShowsSubscriptionDues(purposeFilter);
+    const filterLabel = reportPurposeFilterLabel(purposeFilter);
+    const { income: inc, expenses: exp } = getLandlordReportData(month, purposeFilter);
+    const totalIncCents = inc.reduce((sum, i) => sum + toCents(i.amount), 0);
+    const subscriptionIncCents = inc
+        .filter(item => reportIsSubscriptionPayment(item))
+        .reduce((sum, item) => sum + toCents(item.amount), 0);
+    const totalExpCents = exp.reduce((sum, e) => sum + toCents(e.amount), 0);
+    const netCents = totalIncCents - totalExpCents;
+    const { expectedCents, outstandingCents } = showDues
+        ? getMonthlyBillingTotals(month)
+        : { expectedCents: 0, outstandingCents: 0 };
+    const collectionRate = showDues && expectedCents > 0 ? Math.round((subscriptionIncCents / expectedCents) * 100) : null;
+    const paymentMethodTotals = new Map();
+    inc.forEach(payment => {
+        const label = getIncomePaymentMethodLabel(payment.paymentMethod);
+        const totals = paymentMethodTotals.get(label) || { count: 0, cents: 0 };
+        totals.count += 1;
+        totals.cents += toCents(payment.amount);
+        paymentMethodTotals.set(label, totals);
+    });
+    const purposeTotals = new Map();
+    inc.forEach(payment => {
+        const label = reportPurposeLabel(payment.purposeCode);
+        const totals = purposeTotals.get(label) || { count: 0, cents: 0 };
+        totals.count += 1;
+        totals.cents += toCents(payment.amount);
+        purposeTotals.set(label, totals);
+    });
+    return {
+        month,
+        purposeFilter,
+        showDues,
+        filterLabel,
+        inc,
+        exp,
+        residentsById: buildResidentIndex(),
+        totalIncCents,
+        subscriptionIncCents,
+        totalExpCents,
+        netCents,
+        expectedCents,
+        outstandingCents,
+        collectionRate,
+        expenseCategories: getExpenseCategoryTotals(exp),
+        paymentMethodTotals,
+        purposeTotals
+    };
+}
+
+function getLandlordSummaryItems(model) {
+    if (model.showDues) {
+        return [
+            { label: 'تحصيل', cents: model.totalIncCents, tone: 'emerald', detail: { label: 'منها اشتراكات', cents: model.subscriptionIncCents } },
+            { label: 'مصروف', cents: model.totalExpCents, tone: 'rose' },
+            { label: 'صافي', cents: model.netCents, tone: model.netCents >= 0 ? 'emerald' : 'rose' },
+            { label: 'المستحق', cents: model.expectedCents },
+            { label: 'غير المحصّل', cents: model.outstandingCents, tone: model.outstandingCents > 0 ? 'amber' : 'emerald' },
+            { label: 'نسبة التحصيل', text: model.collectionRate === null ? '—' : fmtNum(model.collectionRate) + '%' }
+        ];
+    }
+    return [
+        { label: 'تحصيل الغرض', cents: model.totalIncCents, tone: 'emerald' },
+        { label: 'عدد الحركات', text: fmtNum(model.inc.length) },
+        { label: 'مصروف الشهر', cents: model.totalExpCents, tone: 'rose' },
+        { label: 'صافي الحركة', cents: model.netCents, tone: model.netCents >= 0 ? 'emerald' : 'rose' }
+    ];
+}
+
+function renderReportStatTiles(items, compact = false) {
+    const body = items.map(item => {
+        const value = item.text !== undefined ? esc(item.text) : fmtMoney(item.cents / 100);
+        const tone = item.tone ? ' text-' + item.tone + '-400' : '';
+        return '<div class="report-stat"><p class="report-stat-label">' + esc(item.label) +
+            '</p><p class="report-stat-value' + tone + '">' + value + '</p></div>';
+    }).join('');
+    return '<div class="' + (compact ? 'report-stats report-stats-4' : 'report-stats') + '">' + body + '</div>';
+}
+
+const PDF_SUMMARY_TONE_STYLES = {
+    emerald: 'color:#047857;font-weight:700',
+    rose: 'color:#be123c;font-weight:700',
+    amber: 'color:#b45309;font-weight:700',
+    sky: ''
+};
+
+function renderPdfSummaryRows(items) {
+    return items.map(item => {
+        const value = item.text !== undefined ? esc(item.text) : fmtMoney(item.cents / 100);
+        let row = '<tr>' + statementPdfHeadCell(esc(item.label)) +
+            statementPdfCell(value, PDF_SUMMARY_TONE_STYLES[item.tone] || '') + '</tr>';
+        if (item.detail) {
+            row += '<tr>' + statementPdfHeadCell(esc(item.detail.label)) +
+                statementPdfCell(fmtMoney(item.detail.cents / 100)) + '</tr>';
+        }
+        return row;
+    }).join('');
+}
+
+function getResidentStatementSummaryItems(statement) {
+    const showDues = statement.showDues !== false;
+    const averageCents = statement.payments.length
+        ? Math.round(statement.totals.filteredPaidCents / statement.payments.length)
+        : 0;
+    if (showDues) {
+        return [
+            { label: 'إجمالي المستحق', cents: statement.totals.dueCents },
+            { label: 'إجمالي المدفوع', cents: statement.totals.paidCents, tone: 'emerald' },
+            { label: 'إجمالي المتبقي', cents: statement.totals.remainingCents, tone: statement.totals.remainingCents ? 'rose' : 'emerald' },
+            { label: 'أشهر متأخرة', text: fmtNum(statement.totals.arrearsMonths), tone: statement.totals.arrearsMonths ? 'amber' : 'emerald' }
+        ];
+    }
+    return [
+        { label: 'مدفوع الغرض', cents: statement.totals.filteredPaidCents, tone: 'emerald' },
+        { label: 'عدد الحركات', text: fmtNum(statement.payments.length) },
+        { label: 'متوسط الحركة', cents: averageCents },
+        { label: 'آخر دفعة', text: formatDate(statement.payments[0]?.date) || '—', tone: 'sky' }
+    ];
+}
+
 function getSelectedReportMonth() {
     return String(/** @type {HTMLSelectElement} */ (document.getElementById('reportMonthSelect'))?.value || '');
 }
@@ -287,67 +408,24 @@ function generateLandlordReport() {
     const m = /** @type {HTMLSelectElement} */ (document.getElementById('reportMonthSelect')).value;
     if (!m) { toast('اختر شهر','error'); return; }
     const purposeFilter = getReportPurposeFilter('landlordReportPurpose');
-    const showDues = reportShowsSubscriptionDues(purposeFilter);
-    const filterLabel = reportPurposeFilterLabel(purposeFilter);
-    const { income: inc, expenses: exp } = getLandlordReportData(m, purposeFilter);
-    const residentsById = buildResidentIndex();
-    const totalIncCents = inc.reduce((sum, i) => sum + toCents(i.amount), 0);
-    const subscriptionIncCents = inc
-        .filter(item => reportIsSubscriptionPayment(item))
-        .reduce((sum, item) => sum + toCents(item.amount), 0);
-    const totalExpCents = exp.reduce((sum, e) => sum + toCents(e.amount), 0);
-    const netCents = totalIncCents - totalExpCents;
-    const { expectedCents, outstandingCents } = showDues
-        ? getMonthlyBillingTotals(m)
-        : { expectedCents: 0, outstandingCents: 0 };
-    const collectionRate = showDues && expectedCents > 0 ? Math.round((subscriptionIncCents / expectedCents) * 100) : null;
-    const expenseCategories = getExpenseCategoryTotals(exp);
+    const model = buildLandlordReportModel(m, purposeFilter);
+    const { showDues, filterLabel, inc, exp, residentsById, purposeTotals, paymentMethodTotals, expenseCategories } = model;
     const expenseCategorySummary = expenseCategories.map(([label, totals]) =>
         '<div class="report-list-row"><span class="report-list-title">' +
         esc(label) + ' <span class="report-list-meta">(' + totals.count + ')</span></span>' +
         '<span class="report-list-value text-rose-400 report-amount">' + fmtMoney(totals.cents / 100) + '</span></div>'
     ).join('');
-    const paymentMethodTotals = new Map();
-    inc.forEach(payment => {
-        const label = getIncomePaymentMethodLabel(payment.paymentMethod);
-        const totals = paymentMethodTotals.get(label) || { count: 0, cents: 0 };
-        totals.count += 1;
-        totals.cents += toCents(payment.amount);
-        paymentMethodTotals.set(label, totals);
-    });
     const paymentMethodSummary = Array.from(paymentMethodTotals.entries()).map(([label, totals]) =>
         '<div class="report-list-row"><span class="report-list-title">' +
         esc(label) + ' <span class="report-list-meta">(' + totals.count + ')</span></span>' +
         '<span class="report-list-value text-emerald-400 report-amount">' + fmtMoney(totals.cents / 100) + '</span></div>'
     ).join('');
-    const purposeTotals = new Map();
-    inc.forEach(payment => {
-        const label = reportPurposeLabel(payment.purposeCode);
-        const totals = purposeTotals.get(label) || { count: 0, cents: 0 };
-        totals.count += 1;
-        totals.cents += toCents(payment.amount);
-        purposeTotals.set(label, totals);
-    });
     const purposeSummary = Array.from(purposeTotals.entries()).map(([label, totals]) =>
         '<div class="report-list-row"><span class="report-list-title">' +
         esc(label) + ' <span class="report-list-meta">(' + totals.count + ')</span></span>' +
         '<span class="report-list-value text-emerald-400 report-amount">' + fmtMoney(totals.cents / 100) + '</span></div>'
     ).join('');
-    const statsHtml = showDues
-        ? `<div class="report-stats">
-                <div class="report-stat"><p class="report-stat-label">تحصيل</p><p class="report-stat-value text-emerald-400">${fmtMoney(totalIncCents / 100)}</p></div>
-                <div class="report-stat"><p class="report-stat-label">مصروف</p><p class="report-stat-value text-rose-400">${fmtMoney(totalExpCents / 100)}</p></div>
-                <div class="report-stat"><p class="report-stat-label">صافي</p><p class="report-stat-value ${netCents>=0?'text-emerald-400':'text-rose-400'}">${fmtMoney(netCents / 100)}</p></div>
-                <div class="report-stat"><p class="report-stat-label">المستحق</p><p class="report-stat-value">${fmtMoney(expectedCents / 100)}</p></div>
-                <div class="report-stat"><p class="report-stat-label">غير المحصّل</p><p class="report-stat-value ${outstandingCents > 0 ? 'text-amber-400' : 'text-emerald-400'}">${fmtMoney(outstandingCents / 100)}</p></div>
-                <div class="report-stat"><p class="report-stat-label">نسبة التحصيل</p><p class="report-stat-value">${collectionRate === null ? '—' : fmtNum(collectionRate) + '%'}</p></div>
-            </div>`
-        : `<div class="report-stats report-stats-4">
-                <div class="report-stat"><p class="report-stat-label">تحصيل الغرض</p><p class="report-stat-value text-emerald-400">${fmtMoney(totalIncCents / 100)}</p></div>
-                <div class="report-stat"><p class="report-stat-label">عدد الحركات</p><p class="report-stat-value">${fmtNum(inc.length)}</p></div>
-                <div class="report-stat"><p class="report-stat-label">مصروف الشهر</p><p class="report-stat-value text-rose-400">${fmtMoney(totalExpCents / 100)}</p></div>
-                <div class="report-stat"><p class="report-stat-label">صافي الحركة</p><p class="report-stat-value ${netCents>=0?'text-emerald-400':'text-rose-400'}">${fmtMoney(netCents / 100)}</p></div>
-            </div>`;
+    const statsHtml = renderReportStatTiles(getLandlordSummaryItems(model), !showDues);
     document.getElementById('landlordReportPreview').innerHTML = `
         <div class="space-y-3">
             <header class="report-preview-header">
@@ -469,67 +547,20 @@ function exportToCSV(month = landlordReportMonth, purposeFilter = landlordReport
 }
 
 function renderLandlordReportPdfHtml(month, purposeFilter = '') {
-    const showDues = reportShowsSubscriptionDues(purposeFilter);
-    const filterLabel = reportPurposeFilterLabel(purposeFilter);
-    const { income: inc, expenses: exp } = getLandlordReportData(month, purposeFilter);
-    const residentsById = buildResidentIndex();
-    const totalIncCents = inc.reduce((sum, i) => sum + toCents(i.amount), 0);
-    const subscriptionIncCents = inc
-        .filter(item => reportIsSubscriptionPayment(item))
-        .reduce((sum, item) => sum + toCents(item.amount), 0);
-    const totalExpCents = exp.reduce((sum, e) => sum + toCents(e.amount), 0);
-    const netCents = totalIncCents - totalExpCents;
-    const { expectedCents, outstandingCents } = showDues
-        ? getMonthlyBillingTotals(month)
-        : { expectedCents: 0, outstandingCents: 0 };
-    const collectionRate = showDues && expectedCents > 0 ? Math.round((subscriptionIncCents / expectedCents) * 100) : null;
-    const summaryRow = (label, cents, styles = '') =>
-        '<tr>' + statementPdfHeadCell(esc(label)) + statementPdfCell(fmtMoney(cents / 100), styles) + '</tr>';
-    const summaryRows = showDues
-        ? [
-            summaryRow('إجمالي التحصيلات', totalIncCents, 'color:#047857;font-weight:700'),
-            summaryRow('منها اشتراكات', subscriptionIncCents),
-            summaryRow('إجمالي المصروفات', totalExpCents, 'color:#be123c;font-weight:700'),
-            summaryRow('صافي الحركة', netCents, netCents >= 0 ? 'font-weight:700' : 'color:#be123c;font-weight:700'),
-            summaryRow('إجمالي المستحق', expectedCents),
-            summaryRow('غير المحصّل', outstandingCents, outstandingCents > 0 ? 'color:#b45309;font-weight:700' : ''),
-            '<tr>' + statementPdfHeadCell('نسبة التحصيل') +
-            statementPdfCell(collectionRate === null ? '—' : fmtNum(collectionRate) + '%') + '</tr>'
-        ]
-        : [
-            summaryRow(`إجمالي تحصيلات ${filterLabel}`, totalIncCents, 'color:#047857;font-weight:700'),
-            '<tr>' + statementPdfHeadCell('عدد الحركات') + statementPdfCell(fmtNum(inc.length)) + '</tr>',
-            summaryRow('إجمالي المصروفات', totalExpCents, 'color:#be123c;font-weight:700'),
-            summaryRow('صافي الحركة', netCents, netCents >= 0 ? 'font-weight:700' : 'color:#be123c;font-weight:700')
-        ];
+    const model = buildLandlordReportModel(month, purposeFilter);
+    const { showDues, filterLabel, inc, exp, residentsById, purposeTotals, paymentMethodTotals, expenseCategories } = model;
+    const summaryRows = renderPdfSummaryRows(getLandlordSummaryItems(model));
 
-    const paymentMethodTotals = new Map();
-    inc.forEach(payment => {
-        const label = getIncomePaymentMethodLabel(payment.paymentMethod);
-        const totals = paymentMethodTotals.get(label) || { count: 0, cents: 0 };
-        totals.count += 1;
-        totals.cents += toCents(payment.amount);
-        paymentMethodTotals.set(label, totals);
-    });
     const paymentMethodRows = Array.from(paymentMethodTotals.entries()).map(([label, totals]) =>
         '<tr>' + statementPdfCell(esc(label) + ' (' + totals.count + ')') +
         statementPdfCell(fmtMoney(totals.cents / 100), 'color:#047857;font-weight:700') + '</tr>'
     ).join('') || '<tr><td colspan="2" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">لا يوجد</td></tr>';
 
-    const expenseCategoryTotals = getExpenseCategoryTotals(exp);
-    const expenseCategoryRows = expenseCategoryTotals.map(([label, totals]) =>
+    const expenseCategoryRows = expenseCategories.map(([label, totals]) =>
         '<tr>' + statementPdfCell(esc(label) + ' (' + totals.count + ')') +
         statementPdfCell(fmtMoney(totals.cents / 100), 'color:#be123c;font-weight:700') + '</tr>'
     ).join('') || '<tr><td colspan="2" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">لا يوجد</td></tr>';
 
-    const purposeTotals = new Map();
-    inc.forEach(payment => {
-        const label = reportPurposeLabel(payment.purposeCode);
-        const totals = purposeTotals.get(label) || { count: 0, cents: 0 };
-        totals.count += 1;
-        totals.cents += toCents(payment.amount);
-        purposeTotals.set(label, totals);
-    });
     const purposeRows = Array.from(purposeTotals.entries()).map(([label, totals]) =>
         '<tr>' + statementPdfCell(esc(label) + ' (' + totals.count + ')') +
         statementPdfCell(fmtMoney(totals.cents / 100), 'color:#047857;font-weight:700') + '</tr>'
@@ -566,7 +597,7 @@ function renderLandlordReportPdfHtml(month, purposeFilter = '') {
         ' • تم الإنشاء ', esc(formatDate(new Date().toISOString())), '</p></header>',
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">الملخص المالي</h3>',
         '<table style="width:100%;border-collapse:collapse;font-size:11px"><tbody>',
-        summaryRows.join(''),
+        summaryRows,
         '</tbody></table></section>',
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">التحصيل حسب الغرض</h3>',
         '<table style="width:100%;border-collapse:collapse;font-size:10px"><tbody>', purposeRows, '</tbody></table></section>',
@@ -1263,22 +1294,7 @@ function renderResidentStatementHtml(statement) {
     const unassignedNote = statement.totals.unassignedPaidCents > 0
         ? `<p>مدفوعات بدون شهر استحقاق قابل للقراءة: ${fmtMoney(statement.totals.unassignedPaidCents / 100)}</p>`
         : '';
-    const averageCents = statement.payments.length
-        ? Math.round(statement.totals.filteredPaidCents / statement.payments.length)
-        : 0;
-    const statsHtml = showDues
-        ? `<div class="report-stats report-stats-4">
-                <div class="report-stat"><p class="report-stat-label">إجمالي المستحق</p><p class="report-stat-value">${fmtMoney(statement.totals.dueCents / 100)}</p></div>
-                <div class="report-stat"><p class="report-stat-label">إجمالي المدفوع</p><p class="report-stat-value text-emerald-400">${fmtMoney(statement.totals.paidCents / 100)}</p></div>
-                <div class="report-stat"><p class="report-stat-label">إجمالي المتبقي</p><p class="report-stat-value ${statement.totals.remainingCents ? 'text-rose-400' : 'text-emerald-400'}">${fmtMoney(statement.totals.remainingCents / 100)}</p></div>
-                <div class="report-stat"><p class="report-stat-label">أشهر متأخرة</p><p class="report-stat-value ${statement.totals.arrearsMonths ? 'text-amber-400' : 'text-emerald-400'}">${fmtNum(statement.totals.arrearsMonths)}</p></div>
-            </div>`
-        : `<div class="report-stats report-stats-4">
-                <div class="report-stat"><p class="report-stat-label">مدفوع الغرض</p><p class="report-stat-value text-emerald-400">${fmtMoney(statement.totals.filteredPaidCents / 100)}</p></div>
-                <div class="report-stat"><p class="report-stat-label">عدد الحركات</p><p class="report-stat-value">${fmtNum(statement.payments.length)}</p></div>
-                <div class="report-stat"><p class="report-stat-label">متوسط الحركة</p><p class="report-stat-value">${fmtMoney(averageCents / 100)}</p></div>
-                <div class="report-stat"><p class="report-stat-label">آخر دفعة</p><p class="report-stat-value text-sky-400">${esc(formatDate(statement.payments[0]?.date) || '—')}</p></div>
-            </div>`;
+    const statsHtml = renderReportStatTiles(getResidentStatementSummaryItems(statement), true);
     const monthsBlock = showDues
         ? `<div class="report-table-wrap">
                 <table class="statement-table">
@@ -1389,22 +1405,7 @@ function renderResidentStatementPdfHtml(statement) {
     const showDues = statement.showDues !== false;
     const monthRows = renderStatementMonthsPdfBody(statement);
     const paymentRows = renderStatementPaymentsPdfBody(statement);
-    const averageCents = statement.payments.length
-        ? Math.round(statement.totals.filteredPaidCents / statement.payments.length)
-        : 0;
-    const summaryRows = showDues
-        ? [
-            '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">إجمالي المستحق</th><td style="padding:7px;border:1px solid #cbd5e1">' + fmtMoney(statement.totals.dueCents / 100) + '</td></tr>',
-            '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">إجمالي المدفوع</th><td style="padding:7px;border:1px solid #cbd5e1;color:#047857;font-weight:700">' + fmtMoney(statement.totals.paidCents / 100) + '</td></tr>',
-            '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">إجمالي المتبقي</th><td style="padding:7px;border:1px solid #cbd5e1;font-weight:700">' + fmtMoney(statement.totals.remainingCents / 100) + '</td></tr>',
-            '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">أشهر متأخرة</th><td style="padding:7px;border:1px solid #cbd5e1">' + fmtNum(statement.totals.arrearsMonths) + '</td></tr>'
-        ]
-        : [
-            '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">مدفوع الغرض</th><td style="padding:7px;border:1px solid #cbd5e1;color:#047857;font-weight:700">' + fmtMoney(statement.totals.filteredPaidCents / 100) + '</td></tr>',
-            '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">عدد الحركات</th><td style="padding:7px;border:1px solid #cbd5e1">' + fmtNum(statement.payments.length) + '</td></tr>',
-            '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">متوسط الحركة</th><td style="padding:7px;border:1px solid #cbd5e1">' + fmtMoney(averageCents / 100) + '</td></tr>',
-            '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">آخر دفعة</th><td style="padding:7px;border:1px solid #cbd5e1">' + esc(formatDate(statement.payments[0]?.date) || '—') + '</td></tr>'
-        ];
+    const summaryRows = renderPdfSummaryRows(getResidentStatementSummaryItems(statement));
     const monthsSection = showDues
         ? [
             '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حساب الشهور</h3>',
@@ -1426,7 +1427,7 @@ function renderResidentStatementPdfHtml(statement) {
         statement.purposeFilter ? ' • الغرض: ' + esc(statement.purposeLabel) : '', '</p></header>',
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">الملخص</h3>',
         '<table style="width:100%;border-collapse:collapse;font-size:11px"><tbody>',
-        summaryRows.join(''),
+        summaryRows,
         '</tbody></table></section>',
         ...monthsSection,
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حركات الساكن</h3>',

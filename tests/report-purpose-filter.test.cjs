@@ -226,7 +226,7 @@ test('landlord CSV and PDF outputs follow the selected purpose', () => {
 
     const pdf = api.renderLandlordReportPdfHtml('يناير 2024', 'development');
     assert.match(pdf, /تقرير الملاك — يناير 2024 • الغرض: تطوير/);
-    assert.match(pdf, /إجمالي تحصيلات تطوير/);
+    assert.match(pdf, /تحصيل الغرض/);
     assert.doesNotMatch(pdf, /إجمالي المستحق/);
 });
 
