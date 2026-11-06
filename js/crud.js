@@ -2005,18 +2005,25 @@ function renderIncomeResidentSummary() {
 
 function handleIncomeResidentChange() {
     const resident = getIncomeResidentFromForm();
+    const purpose = crudIncomePurpose(/** @type {HTMLSelectElement | null} */ (document.getElementById('incomePurpose'))?.value);
     incomeSelectedMonths = new Set();
     incomeAmountManual = false;
-    refreshIncomeMonthOptions(resident?.id || '', getCurrentMonth());
     const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
+    if (monthSelect) monthSelect.disabled = false;
+    refreshIncomeMonthOptions(resident?.id || '', getCurrentMonth());
     if (monthSelect) monthSelect.value = getCurrentMonth();
-    selectFirstUnpaidIncomeMonth(resident);
-    renderIncomeMonthsGrid(resident);
-    if (!resident) {
-        const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
-        if (amountInput) amountInput.value = '';
+    if (purpose === 'settlement') {
+        const options = refreshIncomeSettlementOptions(resident?.id || '');
+        if (options.length) handleIncomeSettlementChange();
     } else {
-        syncIncomeAmountFromSelection();
+        selectFirstUnpaidIncomeMonth(resident);
+        renderIncomeMonthsGrid(resident);
+        if (!resident) {
+            const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
+            if (amountInput) amountInput.value = '';
+        } else if (purpose === 'subscription') {
+            syncIncomeAmountFromSelection();
+        }
     }
     renderIncomeResidentSummary();
     previewIncomeAllocation();
@@ -2037,6 +2044,18 @@ function resetIncomeFormFields() {
     if (residentSelect) residentSelect.value = '';
     const purposeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomePurpose'));
     if (purposeSelect) purposeSelect.value = 'subscription';
+    const settlementSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeSettlementSelect'));
+    if (settlementSelect) {
+        settlementSelect.innerHTML = '<option value="">اختر تسوية مفتوحة</option>';
+        settlementSelect.value = '';
+        settlementSelect.disabled = true;
+    }
+    const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
+    if (monthSelect) monthSelect.disabled = false;
+    const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
+    if (amountInput) amountInput.removeAttribute('max');
+    const settlementHint = document.getElementById('incomeSettlementHint');
+    if (settlementHint) settlementHint.textContent = 'اختر اتفاقًا لتحديد المبلغ المتبقي.';
     incomeSelectedMonths = new Set();
     incomeAmountManual = false;
     refreshIncomeMonthOptions('', getCurrentMonth());
