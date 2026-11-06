@@ -24,6 +24,6 @@ test('owner sessions skip manager-only data queries', () => {
     ));
 
     for (const [table, columns] of [['residents', 'residentColumns'], ['income', 'incomeColumns'], ['notices', 'noticeColumns']]) {
-        assert.ok(loadState.includes(`supabaseQuery('${table}', ${columns})`));
+        assert.ok(loadState.includes(table === 'income' ? `supabaseQueryAllById('${table}', ${columns})` : `supabaseQuery('${table}', ${columns})`));
     }
 });
