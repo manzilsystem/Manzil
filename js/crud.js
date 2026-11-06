@@ -5,11 +5,12 @@ let editingIncomeId = null;
 let expenseSaving = false;
 let editingExpenseId = null;
 
-const CRUD_INCOME_PURPOSES = ['subscription', 'services', 'development', 'emergency', 'penalty', 'donation', 'other'];
-const CRUD_INCOME_PURPOSE_FORM_CODES = ['subscription', 'development', 'emergency', 'other'];
+const CRUD_INCOME_PURPOSES = ['subscription', 'services', 'development', 'emergency', 'penalty', 'donation', 'other', 'settlement'];
+const CRUD_INCOME_PURPOSE_FORM_CODES = ['subscription', 'development', 'emergency', 'settlement', 'other'];
 const CRUD_INCOME_PURPOSE_LABELS = {
     subscription: 'اشتراك شهري', services: 'أخرى', development: 'تطوير',
-    emergency: 'صيانة طارئة', penalty: 'أخرى', donation: 'أخرى', other: 'أخرى'
+    emergency: 'صيانة طارئة', penalty: 'أخرى', donation: 'أخرى', other: 'أخرى',
+    settlement: 'سداد تسوية'
 };
 
 function crudIncomePurpose(purpose) {
@@ -1667,6 +1668,10 @@ function getIncomeMonthStatus(resident, month) {
     const key = monthLabelToKey(month);
     const currentKey = getLocalMonthKey();
     const outstanding = getMonthOutstanding(resident, month);
+    const settlement = resident && typeof getSettlementAdjustmentForMonth === 'function'
+        ? getSettlementAdjustmentForMonth(resident.id, month) : null;
+    const settlementPaid = settlement && typeof getSettlementPaidAmount === 'function'
+        ? getSettlementPaidAmount(settlement.id) : 0;
     const monthKey = key ? key.slice(0, 7) : '';
     const future = Boolean(monthKey && monthKey > currentKey);
     const late = Boolean(monthKey && monthKey < currentKey)
@@ -1676,8 +1681,10 @@ function getIncomeMonthStatus(resident, month) {
         outstanding,
         late,
         future,
-        disabled: outstanding <= 0,
-        status: outstanding <= 0 ? 'مسدد' : future ? 'قادم' : late ? 'متأخر' : 'مستحق'
+        disabled: outstanding <= 0 || Boolean(settlement),
+        status: settlement
+            ? outstanding <= 0 ? 'التسوية مسددة' : settlementPaid > 0 ? 'تسوية جزئية' : 'تسوية قائمة'
+            : outstanding <= 0 ? 'مسدد' : future ? 'قادم' : late ? 'متأخر' : 'مستحق'
     };
 }
 
@@ -1714,8 +1721,11 @@ function renderIncomeMonthsGrid(resident) {
                 : info.future
                     ? 'text-sky-300 border-sky-500/30'
                     : 'text-emerald-300 border-emerald-500/30';
-        const due = getSubscriptionAmountForMonth(resident, month);
-        const paid = getPaidAmountForMonth(resident.id, month);
+        const settlement = typeof getSettlementAdjustmentForMonth === 'function'
+            ? getSettlementAdjustmentForMonth(resident.id, month) : null;
+        const due = settlement ? Number(settlement.amount) || 0 : getSubscriptionAmountForMonth(resident, month);
+        const paid = settlement && typeof getSettlementPaidAmount === 'function'
+            ? getSettlementPaidAmount(settlement.id) : getPaidAmountForMonth(resident.id, month);
         return `<label class="income-month-row flex items-start gap-2 rounded-xl border px-2.5 py-2 text-[11px] ${info.disabled ? 'border-slate-800/60 opacity-60' : 'border-slate-700/60'}">
             <input type="checkbox" data-income-month="${crudHtmlEscape(month)}" ${checked ? 'checked' : ''} ${info.disabled ? 'disabled' : ''} onchange="handleIncomeMonthToggle(this)" aria-label="${crudHtmlEscape(`${month} ${info.status}`)}" class="mt-0.5 h-4 w-4 accent-emerald-500">
             <span class="flex-1 min-w-0">
