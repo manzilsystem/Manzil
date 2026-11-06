@@ -58,6 +58,7 @@ test('application links each settlement payment to one agreement and displays th
     assert.match(crud, /settlementAdjustmentId: row\.settlementAdjustmentId/);
     assert.match(crud, /getSettlementRemainingAmount\(settlementAdjustment\)/);
     assert.match(crud, /purpose !== 'settlement'\) amountInput\?\.removeAttribute\('max'\)/);
+    assert.match(crud, /refreshIncomeSettlementOptions\(resident\?\.id \|\| ''\);\s*handleIncomeSettlementChange\(\);/);
     assert.match(state, /function getSettlementRemainingAmount/);
     assert.match(supabase, /settlement_adjustment_id: i\.settlementAdjustmentId/);
     assert.match(reports, /settlementAgreedCents/);
