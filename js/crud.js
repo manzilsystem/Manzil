@@ -294,6 +294,14 @@ function populateResidentFloorOptions(currentFloor = '') {
     select.value = selectedFloor;
 }
 
+function toggleResidentTenantFields() {
+    const enabled = /** @type {HTMLInputElement | null} */ (document.getElementById('residentIsRented'))?.checked === true;
+    const fields = document.getElementById('residentTenantFields');
+    fields?.classList.toggle('hidden', !enabled);
+    const tenantName = /** @type {HTMLInputElement | null} */ (document.getElementById('residentTenantName'));
+    if (tenantName) tenantName.required = enabled;
+}
+
 function openResidentModal(mode, id) {
     if (!requireManager()) return;
     const isEdit = mode === 'edit';
@@ -312,6 +320,14 @@ function openResidentModal(mode, id) {
             populateResidentFloorOptions(resident.floor || '');
             updateResidentApartmentOptions(resident.apartmentNumber || '');
             /** @type {any} */ (document.getElementById('residentPhone')).value = resident.phone || '';
+            /** @type {HTMLInputElement} */ (document.getElementById('residentIsRented')).checked = resident.isRented === true;
+            /** @type {HTMLInputElement} */ (document.getElementById('residentTenantName')).value = resident.tenantName || '';
+            /** @type {HTMLInputElement} */ (document.getElementById('residentTenantPhone')).value = resident.tenantPhone || '';
+            /** @type {HTMLInputElement} */ (document.getElementById('residentLeaseStart')).value = resident.leaseStart || '';
+            /** @type {HTMLInputElement} */ (document.getElementById('residentLeaseEnd')).value = resident.leaseEnd || '';
+            /** @type {HTMLInputElement} */ (document.getElementById('residentRentAmount')).value = resident.rentAmount ?? '';
+            /** @type {HTMLInputElement} */ (document.getElementById('residentDepositAmount')).value = resident.depositAmount ?? '';
+            toggleResidentTenantFields();
             amountInput.value = getCurrentSubscriptionAmount(resident);
             amountInput.readOnly = false;
             amountInput.removeAttribute('aria-readonly');
@@ -329,6 +345,7 @@ function openResidentModal(mode, id) {
         /** @type {any} */ (document.getElementById('residentForm')).reset();
         populateResidentFloorOptions();
         updateResidentApartmentOptions();
+        toggleResidentTenantFields();
         amountInput.value = state.defaultSubscription || '';
         amountInput.readOnly = false;
         amountInput.removeAttribute('aria-readonly');
@@ -356,6 +373,21 @@ function buildResidentProfileHtml(resident) {
     const debt = calculateCumulativeDebt(resident.id);
     const currentAdjustment = Math.max(0, getSubscriptionAmountForMonth(resident, currentMonth) - currentAmount);
     const residentAdjustments = getResidentAdjustments(resident.id);
+    const tenantHtml = resident.isRented === true ? `
+        <section class="app-input border border-amber-500/20 rounded-2xl p-4 space-y-2">
+            <div class="flex items-center justify-between gap-2">
+                <h4 class="text-xs font-black">بيانات المستأجر</h4>
+                <span class="text-[10px] text-amber-300">مؤجرة</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                <div><p class="text-[10px] text-slate-500">اسم المستأجر</p><p class="font-bold mt-1 break-words">${esc(resident.tenantName || '—')}</p></div>
+                <div><p class="text-[10px] text-slate-500">هاتف المستأجر</p><p class="font-bold mt-1 break-words">${esc(resident.tenantPhone || '—')}</p></div>
+                <div><p class="text-[10px] text-slate-500">بداية الإيجار</p><p class="font-bold mt-1">${esc(resident.leaseStart ? formatDate(resident.leaseStart) : '—')}</p></div>
+                <div><p class="text-[10px] text-slate-500">نهاية الإيجار</p><p class="font-bold mt-1">${esc(resident.leaseEnd ? formatDate(resident.leaseEnd) : '—')}</p></div>
+                <div><p class="text-[10px] text-slate-500">قيمة الإيجار</p><p class="font-bold mt-1">${resident.rentAmount == null ? '—' : fmtNum(resident.rentAmount) + ' ج.م'}</p></div>
+                <div><p class="text-[10px] text-slate-500">التأمين</p><p class="font-bold mt-1">${resident.depositAmount == null ? '—' : fmtNum(resident.depositAmount) + ' ج.م'}</p></div>
+            </div>
+        </section>` : '';
     const unpaidMonths = (debt.unpaidMonths || []).map(month => ({
         month,
         amount: getMonthOutstanding(resident, month)
@@ -443,6 +475,8 @@ function buildResidentProfileHtml(resident) {
                 </div>
                 ${resident.notes ? `<p class="text-xs text-slate-400 border-t border-slate-700/40 pt-2 break-words"><strong>ملاحظات:</strong> ${esc(resident.notes)}</p>` : ''}
             </section>
+
+            ${tenantHtml}
 
             <section class="space-y-2">
                 <h4 class="text-xs font-black">حساب الاشتراك — ${esc(currentMonth)}</h4>
@@ -1226,6 +1260,15 @@ async function handleResidentSubmit(e) {
     const amountInput = /** @type {any} */ (document.getElementById('residentAmount')).value.trim();
     const monthlyAmount = amountInput === '' ? Number(state.defaultSubscription) || 0 : Number(amountInput);
     const notes = /** @type {any} */ (document.getElementById('residentNotes')).value.trim();
+    const isRented = /** @type {HTMLInputElement} */ (document.getElementById('residentIsRented')).checked === true;
+    const tenantName = /** @type {HTMLInputElement} */ (document.getElementById('residentTenantName')).value.trim();
+    const tenantPhone = /** @type {HTMLInputElement} */ (document.getElementById('residentTenantPhone')).value.trim();
+    const leaseStart = /** @type {HTMLInputElement} */ (document.getElementById('residentLeaseStart')).value || null;
+    const leaseEnd = /** @type {HTMLInputElement} */ (document.getElementById('residentLeaseEnd')).value || null;
+    const rentValue = String(/** @type {HTMLInputElement} */ (document.getElementById('residentRentAmount')).value || '').trim();
+    const depositValue = String(/** @type {HTMLInputElement} */ (document.getElementById('residentDepositAmount')).value || '').trim();
+    const rentAmount = rentValue === '' ? null : Number(rentValue);
+    const depositAmount = depositValue === '' ? null : Number(depositValue);
     const billingStartValue = String(/** @type {any} */ (document.getElementById('residentBillingStart'))?.value || '').trim();
     if (billingStartValue && !isValidEffectiveMonth(billingStartValue)) {
         toast('اختر شهرًا صحيحًا لبداية المحاسبة.', 'error');
@@ -1251,6 +1294,23 @@ async function handleResidentSubmit(e) {
         return;
     }
     if (!Number.isFinite(monthlyAmount) || monthlyAmount < 0) { toast('قيمة الاشتراك يجب أن تكون صفراً أو أكثر','error'); return; }
+    if (isRented && !tenantName) { toast('أدخل اسم المستأجر للشقة المؤجرة.', 'error'); return; }
+    if (tenantName.length > 200 || tenantPhone.length > 60) { toast('بيانات المستأجر أطول من الحد المسموح.', 'error'); return; }
+    if (leaseStart && leaseEnd && leaseEnd < leaseStart) { toast('نهاية الإيجار لا يمكن أن تسبق بدايته.', 'error'); return; }
+    if ((rentAmount !== null && (!Number.isFinite(rentAmount) || rentAmount < 0))
+        || (depositAmount !== null && (!Number.isFinite(depositAmount) || depositAmount < 0))) {
+        toast('قيمة الإيجار والتأمين يجب أن تكون صفرًا أو أكثر.', 'error');
+        return;
+    }
+    const tenantDetails = {
+        isRented,
+        tenantName: isRented ? tenantName : '',
+        tenantPhone: isRented ? tenantPhone : '',
+        leaseStart: isRented ? leaseStart : null,
+        leaseEnd: isRented ? leaseEnd : null,
+        rentAmount: isRented ? rentAmount : null,
+        depositAmount: isRented ? depositAmount : null
+    };
     if (shouldProvisionOwner && !normalizeOwnerPhone(phone)) { toast('أدخل رقم جوال صحيحًا أولاً؛ مثال مصري: 01012345678','error'); return; }
     const normalizedApartment = normalizeApartmentNumberKey(apartmentNumber);
     if (state.residents.some(r => r.id !== editingResidentId && normalizeApartmentNumberKey(r.apartmentNumber) === normalizedApartment)) {
@@ -1264,7 +1324,7 @@ async function handleResidentSubmit(e) {
             const previousBillingStart = r.billingStartMonth || '';
             const nextBillingStart = billingStartMonth || '';
             const subscriptionChanged = Math.round(previousAmount * 100) !== Math.round(monthlyAmount * 100);
-            Object.assign(r, { name, apartmentNumber, floor, phone, notes, billingStartMonth });
+            Object.assign(r, { name, apartmentNumber, floor, phone, notes, billingStartMonth, ...tenantDetails });
             if (nextBillingStart !== previousBillingStart) {
                 const backfilled = ensureSubscriptionRateFromBillingStart(r);
                 let details = `${name} - شقة ${apartmentNumber}: ${billingStartMonth ? monthKeyToLabel(billingStartMonth) : 'من تاريخ الإضافة'}`;
@@ -1293,7 +1353,7 @@ async function handleResidentSubmit(e) {
         const createdMonthKey = getLocalMonthKey(createdAt) + '-01';
         const rateMonthKey = billingStartMonth && billingStartMonth < createdMonthKey ? billingStartMonth : createdMonthKey;
         const resident = {
-            id: generateId(), name, apartmentNumber, floor, phone, monthlyAmount, notes,
+            id: generateId(), name, apartmentNumber, floor, phone, monthlyAmount, notes, ...tenantDetails,
             createdAt: createdAt.toISOString(),
             billingStartMonth,
             subscriptionRates: [{ effectiveMonth: rateMonthKey, monthlyAmount }]
