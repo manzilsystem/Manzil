@@ -34,7 +34,7 @@ test('assistant keeps legacy resident wording as input synonyms, not output labe
     const assistant = read('js/assistant.js');
     assert.match(assistant, /normalized\.match\(\/\(\?:شقه\|وحده\|ساكن\|رقم\)/);
     const legacyLines = assistant.match(/^.*(?:ساكن|سكان).*$/gm) || [];
-    const nonParserLines = legacyLines.filter(line => !line.includes('normalized.match(/(?:شقه|وحده|ساكن|رقم)/')
+    const nonParserLines = legacyLines.filter(line => !line.includes('normalized.match(/(?:شقه|وحده|ساكن|رقم)')
         && !line.includes("return 'building';")
         && !line.includes("return 'owner_scope';"));
     assert.deepEqual(nonParserLines, []);
