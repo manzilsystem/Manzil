@@ -384,26 +384,26 @@ function getIncomeListBatchKey(item) {
     return reference ? `${item.residentId}:${item.date}:${reference}` : `income:${item.id}`;
 }
 
-function renderIncomeListRow(item, resident) {
-    const displayNotes = stripIncomeBatchNote(item.notes);
+function renderIncomeListRow(i, resident) {
+    const displayNotes = stripIncomeBatchNote(i.notes);
     return `
         <div class="flex justify-between items-center gap-2 py-2 border-t border-slate-500/10 first:border-t-0">
             <div class="flex items-center gap-2 min-w-0">
                 <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xs font-bold shrink-0">${esc(resident?.apartmentNumber || '?')}</div>
                 <div class="min-w-0">
                     <p class="text-xs font-bold truncate">${esc(resident?.name || 'محذوف')}</p>
-                    <p class="text-[10px] text-slate-500">${esc(formatApartmentLabel(resident?.apartmentNumber))} • ${esc(item.month || '')} • ${formatDate(item.date)} • ${esc(getIncomePaymentMethodLabel(item.paymentMethod))}</p>
-                    <span class="cash-account-tag mt-1">${esc(renderPurposeLabel(item.purposeCode))}</span>
-                    <span class="cash-account-tag mt-1"><i class="fa-solid fa-vault" aria-hidden="true"></i>${esc(renderCashAccountLabel(item.cashAccountCode))}</span>
+                    <p class="text-[10px] text-slate-500">${esc(formatApartmentLabel(resident?.apartmentNumber))} • ${esc(i.month || '')} • ${formatDate(i.date)} • ${esc(getIncomePaymentMethodLabel(i.paymentMethod))}</p>
+                    <span class="cash-account-tag mt-1">${esc(renderPurposeLabel(i.purposeCode))}</span>
+                    <span class="cash-account-tag mt-1"><i class="fa-solid fa-vault" aria-hidden="true"></i>${esc(renderCashAccountLabel(i.cashAccountCode))}</span>
                     ${displayNotes ? `<p class="mt-1 text-[10px] text-slate-400 truncate"><i class="fa-solid fa-note-sticky ml-1" aria-hidden="true"></i>${esc(displayNotes)}</p>` : ''}
                 </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-                <span class="text-sm font-black text-emerald-400">${fmtNum(item.amount)}</span>
-                <button onclick="openIncomeReceiptModal('${item.id}')" aria-label="عرض إيصال ${esc(resident?.name || '')}" title="عرض الإيصال وطباعته" class="text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-print text-sm"></i></button>
-                <button onclick="sendIncomeReceiptOnWhatsApp('${item.id}')" aria-label="إرسال إيصال واتساب إلى ${esc(resident?.name || '')}" title="إرسال إيصال واتساب" class="text-emerald-400 hover:text-emerald-300 p-1"><i class="fa-brands fa-whatsapp text-sm"></i></button>
-                <button onclick="openIncomeEditModal('${item.id}')" aria-label="تعديل التحصيل ${esc(item.month || '')}" class="icon-action text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-pen text-xs"></i></button>
-                <button onclick="deleteIncome('${item.id}')" aria-label="حذف التحصيل ${esc(item.month || '')}" class="icon-action text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash text-xs"></i></button>
+                <span class="text-sm font-black text-emerald-400">${fmtNum(i.amount)}</span>
+                <button onclick="openIncomeReceiptModal('${i.id}')" aria-label="عرض إيصال ${esc(resident?.name || '')}" title="عرض الإيصال وطباعته" class="text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-print text-sm"></i></button>
+                <button onclick="sendIncomeReceiptOnWhatsApp('${i.id}')" aria-label="إرسال إيصال واتساب إلى ${esc(resident?.name || '')}" title="إرسال إيصال واتساب" class="text-emerald-400 hover:text-emerald-300 p-1"><i class="fa-brands fa-whatsapp text-sm"></i></button>
+                <button onclick="openIncomeEditModal('${i.id}')" aria-label="تعديل التحصيل ${esc(i.month || '')}" class="icon-action text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-pen text-xs"></i></button>
+                <button onclick="deleteIncome('${i.id}')" aria-label="حذف التحصيل ${esc(i.month || '')}" class="icon-action text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash text-xs"></i></button>
             </div>
         </div>`;
 }
