@@ -1918,7 +1918,7 @@ function validateIncomeWizardStep(step) {
     }
     if (step === 2) {
         const amount = Number(value('incomeAmount'));
-        const purpose = value('incomePurpose');
+        const purpose = value('incomePurpose') || 'subscription';
         if (!Number.isFinite(amount) || amount <= 0) { toast('أدخل مبلغًا أكبر من صفر.', 'error'); return false; }
         if (purpose === 'subscription' && !getSelectedIncomeMonths().length) {
             toast('اختر شهرًا واحدًا على الأقل.', 'error'); return false;
@@ -1931,7 +1931,7 @@ function validateIncomeWizardStep(step) {
     }
     if (step === 3) {
         if (!value('incomePaymentMethod')) { toast('اختر طريقة الدفع.', 'error'); return false; }
-        if (!value('incomeCashAccount')) { toast('اختر الصندوق المستلم.', 'error'); return false; }
+        if (!value('incomeCashAccount') && !document.getElementById('incomeCashAccount')) { toast('اختر الصندوق المستلم.', 'error'); return false; }
         const needsDetail = value('incomePurpose') === 'other'
             || getIncomeExtraLines().some(line => line.purpose === 'other');
         if (needsDetail && !value('incomeNotes')) {
