@@ -1404,6 +1404,7 @@ function quickPayResident(residentId) {
     renderIncomeResidentSummary();
 
     previewIncomeAllocation();
+    setIncomeWizardStep(1);
     openModal('incomeModal');
 }
 
