@@ -946,21 +946,6 @@
                     <span class="text-slate-400" id="incomeMonthLabel">شهر بداية التوزيع</span>
                     <select id="incomeMonth" aria-label="شهر بداية التوزيع" onchange="handleIncomeMonthChange()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
                 </label>
-                <p class="text-[10px] text-slate-500">إذا لم يظهر الشهر المطلوب اختر «شهر آخر…» لتسجيل تحصيل قديم.</p>
-                <div id="incomeCustomMonthWrap" class="hidden space-y-2" aria-label="اختيار شهر مخصص">
-                    <div class="grid grid-cols-2 gap-2">
-                        <label class="block text-xs space-y-1">
-                            <span class="text-slate-400">الشهر</span>
-                            <select id="incomeCustomMonthSelect" aria-label="شهر التحصيل المخصص" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
-                        </label>
-                        <label class="block text-xs space-y-1">
-                            <span class="text-slate-400">السنة</span>
-                            <select id="incomeCustomYearSelect" aria-label="سنة التحصيل المخصصة" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
-                        </label>
-                    </div>
-                    <button type="button" onclick="applyIncomeCustomMonth()" class="w-full min-h-11 border border-amber-500/40 text-amber-300 rounded-2xl px-3 py-2 text-xs font-bold"><i class="fa-solid fa-calendar-check ml-1" aria-hidden="true"></i> اعتماد الشهر المختار</button>
-                </div>
-                <p id="incomeCustomMonthHint" class="hidden text-[10px] text-emerald-300" role="status" aria-live="polite"></p>
                 <p id="incomeOutstandingHint" role="status" aria-live="polite" class="text-[10px] text-slate-500"></p>
                 <label id="incomeAllocationModeWrap" class="hidden block text-xs space-y-1">
                     <span class="text-slate-400">طريقة التوزيع</span>
@@ -968,7 +953,7 @@
                         <option value="policy">حسب سياسة العمارة</option>
                         <option value="selected">ابدأ بالشهر المحدد</option>
                     </select>
-                    <span class="text-[10px] text-slate-500">اختر «ابدأ بالشهر المحدد» إذا كان العميل يسدد شهرًا متأخرًا بعينه.</span>
+                    <span class="text-[10px] text-slate-500">عند اختيار شهر سابق يُبدأ به تلقائيًا.</span>
                 </label>
                 <p id="incomeAllocationPolicyHelp" class="text-[10px] text-slate-500">يُوزّع المبلغ وفق سياسة العمارة. راجع المعاينة قبل الحفظ.</p>
                 <div class="rounded-2xl border border-slate-700/60 p-3 space-y-2">
