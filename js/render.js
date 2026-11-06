@@ -245,11 +245,16 @@ function renderDashboard() {
     netEl.textContent = fmtNum(net)+' ج.م';
     netEl.className = `text-2xl sm:text-3xl font-black mt-0.5 ${net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
     const currentMonth = getCurrentMonth();
-    const currentMonthDue = state.residents.reduce((sum, resident) => sum + getSubscriptionAmountForMonth(resident, currentMonth), 0);
-    const currentMonthPaid = state.residents.reduce((sum, resident) => sum + getPaidAmountForMonth(resident.id, currentMonth), 0);
+    const currentMonthDue = state.residents.reduce((sum, resident) => sum + (typeof getMonthlyDueAmountForMonth === 'function'
+        ? getMonthlyDueAmountForMonth(resident, currentMonth) : getSubscriptionAmountForMonth(resident, currentMonth)), 0);
+    const currentMonthPaid = state.residents.reduce((sum, resident) => sum + (typeof getMonthlyDuePaidAmount === 'function'
+        ? getMonthlyDuePaidAmount(resident.id, currentMonth) : getPaidAmountForMonth(resident.id, currentMonth)), 0);
     const partialPayments = state.residents.filter(resident => {
-        const paid = getPaidAmountForMonth(resident.id, currentMonth);
-        return paid > 0 && paid < (Number(resident.monthlyAmount ?? state.defaultSubscription) || 0);
+        const paid = typeof getMonthlyDuePaidAmount === 'function'
+            ? getMonthlyDuePaidAmount(resident.id, currentMonth) : getPaidAmountForMonth(resident.id, currentMonth);
+        const due = typeof getMonthlyDueAmountForMonth === 'function'
+            ? getMonthlyDueAmountForMonth(resident, currentMonth) : getSubscriptionAmountForMonth(resident, currentMonth);
+        return paid > 0 && paid < due;
     }).length;
     const collectionRate = currentMonthDue > 0 ? Math.min(100, Math.round((currentMonthPaid / currentMonthDue) * 100)) : 0;
     const rateEl = document.getElementById('collectionRateDisplay');
