@@ -702,7 +702,10 @@ function resetAdjustmentForm() {
     editingAdjustmentId = null;
     const form = /** @type {HTMLFormElement | null} */ (document.getElementById('adjustmentForm'));
     form?.reset();
+    const kindSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('adjustmentKind'));
+    if (kindSelect) kindSelect.disabled = false;
     const monthInput = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentMonth'));
+    if (monthInput) monthInput.disabled = false;
     if (monthInput) monthInput.value = getLocalMonthKey();
     updateAdjustmentFormState();
     updateAdjustmentDueHint();
@@ -755,6 +758,11 @@ function editAdjustment(id) {
     if (amountInput) amountInput.value = String(Number(adjustment.amount) || '');
     const reasonInput = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentReason'));
     if (reasonInput) reasonInput.value = adjustment.reason || '';
+    const hasPayments = adjustment.kind === 'settlement'
+        && typeof getSettlementPaidAmount === 'function'
+        && getSettlementPaidAmount(adjustment.id) > 0;
+    if (kindSelect) kindSelect.disabled = hasPayments;
+    if (monthInput) monthInput.disabled = hasPayments;
     updateAdjustmentFormState();
     updateAdjustmentDueHint();
     reasonInput?.focus();
@@ -893,6 +901,11 @@ async function deleteAdjustment(id) {
     const adjustment = (Array.isArray(state.adjustments) ? state.adjustments : []).find(item => item.id === id);
     if (!adjustment || adjustment.residentId !== adjustmentResidentId) return;
     const monthLabel = adjustmentMonthKeyToLabel(String(adjustment.effectiveMonth || '').slice(0, 7));
+    if (adjustment.kind === 'settlement' && typeof getSettlementPaidAmount === 'function'
+        && getSettlementPaidAmount(adjustment.id) > 0) {
+        toast('لا يمكن حذف تسوية سُجلت عليها دفعات. احذف حركاتها أولًا وفق إجراءات التصحيح.', 'error');
+        return;
+    }
     if (!confirmRecordDeletion(`${getAdjustmentKindLabel(adjustment.kind)} شهر ${monthLabel} بقيمة ${formatSubscriptionAmount(adjustment.amount)} ج.م`)) return;
     const previousState = cloneStateSnapshot();
     state.adjustments = (Array.isArray(state.adjustments) ? state.adjustments : []).filter(item => item.id !== id);
