@@ -15,7 +15,7 @@ const restore = fs.readFileSync(path.join(root, 'tests/post-restore-verify.sql')
 
 test('settlement income has a nullable FK and remains in the existing income ledger', () => {
     assert.match(migration, /ADD COLUMN IF NOT EXISTS settlement_adjustment_id uuid/);
-    assert.match(migration, /FOREIGN KEY \(settlement_adjustment_id\)[\s\S]*ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED/);
+    assert.match(migration, /FOREIGN KEY \(settlement_adjustment_id\)[\s\S]*ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED/);
     assert.match(migration, /income_settlement_adjustment_id_idx/);
     assert.match(migration, /'other', 'settlement'/);
     assert.match(migration, /resident_adjustments_one_settlement_per_month_idx/);
