@@ -86,7 +86,7 @@ test('income form shows the selected resident outstanding balance before saving'
     assert.match(html, /id="incomeOutstandingHint"/);
     assert.match(crud, /getMonthOutstanding\(resident, month\)/);
     assert.match(crud, /calculateCumulativeDebt\(resident\.id\)/);
-    assert.match(crud, /متأخرات سابقة/);
+    assert.match(crud, /متأخرات حالية/);
 });
 
 test('hasValidCashboxBalances validates all required cash accounts', () => {

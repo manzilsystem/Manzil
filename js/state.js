@@ -381,7 +381,67 @@ function calculateCumulativeDebt(residentId) {
     return { count: unpaidMonths.length, totalDebt: totalDebtCents / 100, unpaidMonths: unpaidMonths.map(item => item.month) };
 }
 
-function calculateIncomeAllocationPreview(residentId, amount, selectedMonth, maxMonths = 120, policyOverride = '') {
+function calculateSelectedMonthsAllocation(residentId, selectedMonths, amount, futureMonths = 12) {
+    const resident = state.residents.find(item => item.id === residentId);
+    const amountCents = Number.isFinite(Number(amount)) ? Math.round(Number(amount) * 100) : 0;
+    const invalid = { allocations: [], totalAllocated: 0, remainingAmount: Math.max(0, amountCents) / 100, remainingCents: Math.max(0, amountCents), invalid: true };
+    if (!resident || amountCents <= 0 || !Array.isArray(selectedMonths) || !selectedMonths.length) {
+        return invalid;
+    }
+    const createdAt = new Date(resident.createdAt || Date.now());
+    const createdKey = Number.isNaN(createdAt.getTime())
+        ? null
+        : `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}-01`;
+    const selectedKeys = [];
+    for (const month of selectedMonths) {
+        const key = monthLabelToKey(month);
+        if (!key || selectedKeys.includes(key)) continue;
+        if (createdKey && key < createdKey) {
+            return { allocations: [], totalAllocated: 0, remainingAmount: amountCents / 100, remainingCents: amountCents, invalid: true, invalidStart: true };
+        }
+        selectedKeys.push(key);
+    }
+    if (!selectedKeys.length) return invalid;
+    selectedKeys.sort((a, b) => a.localeCompare(b));
+
+    const targets = selectedKeys.slice();
+    const futureLimit = Math.min(24, Math.max(0, Number(futureMonths) || 0));
+    const [lastYear, lastMonth] = selectedKeys[selectedKeys.length - 1].split('-').map(Number);
+    const cursor = new Date(Date.UTC(lastYear, lastMonth - 1, 1));
+    for (let offset = 0; offset < futureLimit; offset += 1) {
+        cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+        const key = `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, '0')}-01`;
+        if (!targets.includes(key)) targets.push(key);
+    }
+
+    const allocations = [];
+    let remainingCents = amountCents;
+    for (const key of targets) {
+        if (remainingCents <= 0) break;
+        const [year, monthNumber] = key.split('-').map(Number);
+        const monthLabel = `${monthsNames[monthNumber - 1]} ${year}`;
+        const outstandingCents = Math.max(0, Math.round(getMonthOutstanding(resident, monthLabel) * 100));
+        if (outstandingCents <= 0) continue;
+        const allocationCents = Math.min(remainingCents, outstandingCents);
+        allocations.push({ month: monthLabel, amount: allocationCents / 100, amountCents: allocationCents });
+        remainingCents -= allocationCents;
+    }
+
+    return {
+        allocations,
+        totalAllocated: (amountCents - remainingCents) / 100,
+        remainingAmount: remainingCents / 100,
+        remainingCents,
+        startMonth: allocations[0]?.month || null,
+        invalid: false,
+        horizonExceeded: remainingCents > 0
+    };
+}
+
+function calculateIncomeAllocationPreview(residentId, amount, selectedMonth, maxMonths = 120, policyOverride = '', selectedMonths = null) {
+    if (Array.isArray(selectedMonths) && selectedMonths.length) {
+        return calculateSelectedMonthsAllocation(residentId, selectedMonths, amount, 12);
+    }
     const resident = state.residents.find(item => item.id === residentId);
     const amountCents = Number.isFinite(Number(amount)) ? Math.round(Number(amount) * 100) : 0;
     const selectedKey = monthLabelToKey(selectedMonth);
@@ -562,6 +622,35 @@ function getIncomeMonthLabels(resident, includeMonths = []) {
         cursor.setMonth(cursor.getMonth() + 1);
     }
     return sortMonthLabels(Array.from(set));
+}
+
+function getIncomeCollectionMonthLabels(resident, futureMonths = 12) {
+    if (!resident) return [];
+    const now = new Date();
+    const currentStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    let start = currentStart;
+    const created = new Date(resident.createdAt || '');
+    if (!Number.isNaN(created.getTime())) {
+        const createdStart = new Date(created.getFullYear(), created.getMonth(), 1);
+        if (createdStart < start) start = createdStart;
+    }
+    let firstUnpaid = null;
+    const scan = new Date(start);
+    while (scan < currentStart) {
+        const label = `${monthsNames[scan.getMonth()]} ${scan.getFullYear()}`;
+        if (getMonthOutstanding(resident, label) > 0) { firstUnpaid = new Date(scan); break; }
+        scan.setMonth(scan.getMonth() + 1);
+    }
+    start = firstUnpaid || currentStart;
+    const future = Math.min(24, Math.max(0, Number(futureMonths) || 0));
+    const end = new Date(now.getFullYear(), now.getMonth() + future, 1);
+    const labels = [];
+    const cursor = new Date(start);
+    while (cursor <= end) {
+        labels.push(`${monthsNames[cursor.getMonth()]} ${cursor.getFullYear()}`);
+        cursor.setMonth(cursor.getMonth() + 1);
+    }
+    return labels;
 }
 
 function getIncomeMonthOptionLabel(resident, month) {

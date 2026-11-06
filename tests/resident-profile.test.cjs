@@ -140,19 +140,18 @@ test('opening a unit profile is manager-only and opens the accessible profile di
     assert.equal(owner.content.innerHTML, '');
 });
 
-test('profile collection action opens the existing income form for its unit without preselecting payment method', () => {
+test('profile collection action opens the income form prefilled for its unit without choosing a payment method', () => {
     const { api, controls, opened, closed } = createProfileHarness();
     api.openResidentIncomeFromProfile('resident-1');
     assert.equal(controls.incomeResident.value, 'resident-1');
-    assert.equal(controls.incomeAmount.value, '');
+    assert.equal(controls.incomeAmount.value, '50');
     assert.equal(controls.incomeMonth.value, 'نوفمبر 2026');
     assert.equal(controls.incomePaymentMethod.value, '');
     assert.equal(controls.incomeNotes.value, '');
     assert.equal(closed.at(-1), 'residentProfileModal');
     assert.equal(opened.at(-1), 'incomeModal');
-    assert.ok(controls.incomeAllocationPreview.classList.added.includes('hidden'));
 });
 
 test('profile feature refreshes the installed application cache', () => {
-    assert.match(sw, /CACHE_NAME = 'manzil-v121'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v122'/);
 });
