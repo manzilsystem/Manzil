@@ -65,6 +65,23 @@ BEGIN
         RAISE EXCEPTION 'settlement payment did not enter the income/cash ledger';
     END IF;
 
+    -- Old clients do not know the settlement purpose or link columns.
+    -- Their full-snapshot save must not rewrite an existing linked settlement.
+    SELECT state_version INTO v_version FROM public.buildings WHERE id = v_building;
+    v_payload := jsonb_set(v_payload, '{income,0,purpose_code}', '"subscription"'::jsonb);
+    v_payload := v_payload #- '{income,0,settlement_adjustment_id}';
+    v_result := private.persist_building_snapshot(
+        v_building, v_version, '91000000-0000-4000-8000-000000000011', v_payload
+    );
+    IF v_result->>'ok' IS DISTINCT FROM 'true'
+       OR NOT EXISTS (
+           SELECT 1 FROM public.income
+           WHERE id = v_payment_one AND purpose_code = 'settlement'
+             AND settlement_adjustment_id = v_settlement AND amount = 200
+       ) THEN
+        RAISE EXCEPTION 'older client snapshot rewrote a linked settlement: %', v_result;
+    END IF;
+
     SELECT state_version INTO v_version FROM public.buildings WHERE id = v_building;
     v_payload := jsonb_set(
         v_payload,
