@@ -6,11 +6,12 @@ let landlordReportCashAccountFilter = '';
 let landlordReportPaymentMethodFilter = '';
 let landlordReportResidentFilter = '';
 
-const REPORT_TABS = ['landlord', 'period', 'expenses', 'statement', 'monthlyClose', 'arrears', 'audit'];
+const REPORT_TABS = ['landlord', 'period', 'expenses', 'adjustments', 'statement', 'monthlyClose', 'arrears', 'audit'];
 const REPORT_PANEL_IDS = {
     landlord: 'landlordReportPrint',
     period: 'periodReportCard',
     expenses: 'expensesReportCard',
+    adjustments: 'adjustmentsReportCard',
     statement: 'residentStatementCard',
     monthlyClose: 'monthlyClosePanel',
     arrears: 'arrearsPanel',
@@ -20,6 +21,7 @@ const REPORT_OUTPUT_BUTTON_IDS = {
     landlord: 'reportPrintBtn',
     period: 'periodReportPrintBtn',
     expenses: 'expensesReportPrintBtn',
+    adjustments: 'adjustmentsReportPrintBtn',
     statement: 'statementPrintBtn',
     monthlyClose: 'monthlyClosePdfButton'
 };
@@ -28,7 +30,7 @@ const REPORT_TONE_CLASSES = ['report-tone-indigo', 'report-tone-emerald', 'repor
 
 const REPORT_PURPOSE_FILTER_IDS = ['landlordReportPurpose', 'periodReportPurpose', 'statementPurpose'];
 const REPORT_CASH_ACCOUNT_FILTER_IDS = ['landlordReportCashAccount', 'periodReportCashAccount', 'expensesReportCashAccount'];
-const REPORT_RESIDENT_FILTER_IDS = ['landlordReportResident', 'periodReportResident'];
+const REPORT_RESIDENT_FILTER_IDS = ['landlordReportResident', 'periodReportResident', 'adjustmentsReportResident'];
 
 function reportPurposeLabel(purposeCode) {
     return typeof getIncomePurposeLabel === 'function' ? getIncomePurposeLabel(purposeCode) : 'اشتراك شهري';
@@ -1705,6 +1707,339 @@ function exportExpensesReportCsv() {
     const categorySuffix = report.categoryFilter ? `_${report.categoryFilter.replace(/\s+/g, '-')}` : '';
     downloadCsv(`manzil_expenses_${getPeriodReportFileSlug(report)}${cashSuffix}${categorySuffix}.csv`, rows);
     toast('تم تصدير تقرير المصروفات','success');
+}
+
+let adjustmentsReportSnapshot = null;
+let adjustmentsReportSignature = '';
+
+const ADJUSTMENT_REPORT_KINDS = ['waiver', 'discount'];
+const ADJUSTMENT_REPORT_KIND_LABELS = { waiver: 'إعفاء', discount: 'تخفيض' };
+
+function getAdjustmentReportKindLabel(kind) {
+    return typeof getAdjustmentKindLabel === 'function'
+        ? getAdjustmentKindLabel(kind)
+        : (ADJUSTMENT_REPORT_KIND_LABELS[kind] || 'تسوية');
+}
+
+function normalizeAdjustmentReportKindFilter(value) {
+    const kind = String(value || '').trim();
+    return ADJUSTMENT_REPORT_KINDS.includes(kind) ? kind : '';
+}
+
+function getAdjustmentsReportSelection() {
+    const fromSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('adjustmentsReportFrom'));
+    const toSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('adjustmentsReportTo'));
+    return {
+        from: String(fromSelect?.value || ''),
+        to: String(toSelect?.value || '')
+    };
+}
+
+function getAdjustmentReportKindFilter() {
+    if (typeof document === 'undefined') return '';
+    const select = /** @type {HTMLSelectElement | null} */ (document.getElementById('adjustmentsReportKind'));
+    return normalizeAdjustmentReportKindFilter(select?.value || '');
+}
+
+function populateAdjustmentsReportFilters(months, current = getCurrentMonth()) {
+    const adjustmentMonths = (state.adjustments || [])
+        .map(adjustment => getStatementMonthLabel(String(adjustment.effectiveMonth || '').slice(0, 7) + '-01'))
+        .filter(Boolean);
+    const options = Array.from(new Set([...(months || []), ...adjustmentMonths]))
+        .sort((a, b) => String(monthLabelToKey(a) || '').localeCompare(String(monthLabelToKey(b) || '')));
+    const currentKey = monthLabelToKey(current) || '';
+    const defaultFrom = currentKey ? (getStatementMonthLabel(shiftStatementMonthKey(currentKey, -5)) || current) : current;
+    const defaults = { adjustmentsReportFrom: defaultFrom, adjustmentsReportTo: current };
+    ['adjustmentsReportFrom', 'adjustmentsReportTo'].forEach(id => {
+        const select = /** @type {HTMLSelectElement | null} */ (document.getElementById(id));
+        if (!select) return;
+        select.innerHTML = options.map(month => `<option value="${esc(month)}">${esc(month)}</option>`).join('');
+        const currentValue = select.value || defaults[id];
+        select.value = options.includes(currentValue) ? currentValue : defaults[id];
+    });
+}
+
+function buildAdjustmentsReport(fromMonth, toMonth, residentFilter = '', kindFilter = '') {
+    const keys = buildPeriodMonthKeys(fromMonth, toMonth);
+    if (!keys) return null;
+    const keySet = new Set(keys);
+    const normalizedResident = normalizeReportResidentFilter(residentFilter);
+    const normalizedKind = normalizeAdjustmentReportKindFilter(kindFilter);
+    const residentIndex = buildResidentIndex();
+    const list = (Array.isArray(state.adjustments) ? state.adjustments : [])
+        .map(adjustment => {
+            const monthKey = String(adjustment.effectiveMonth || '').slice(0, 7);
+            if (!/^\d{4}-\d{2}$/.test(monthKey)) return null;
+            const key = `${monthKey}-01`;
+            if (!keySet.has(key)) return null;
+            if (normalizedResident && adjustment.residentId !== normalizedResident) return null;
+            if (normalizedKind && adjustment.kind !== normalizedKind) return null;
+            const resident = residentIndex.get(adjustment.residentId) || null;
+            return {
+                id: adjustment.id,
+                effectiveMonth: key,
+                month: getStatementMonthLabel(key),
+                kind: adjustment.kind || 'settlement',
+                kindLabel: getAdjustmentReportKindLabel(adjustment.kind),
+                amountCents: toCents(adjustment.amount),
+                reason: String(adjustment.reason || '').trim(),
+                residentId: adjustment.residentId,
+                residentName: resident?.name || '—',
+                apartmentNumber: resident?.apartmentNumber || '—'
+            };
+        })
+        .filter(Boolean)
+        .sort((a, b) =>
+            b.effectiveMonth.localeCompare(a.effectiveMonth) ||
+            String(a.apartmentNumber).localeCompare(String(b.apartmentNumber), 'ar', { numeric: true }));
+    const amountCents = list.reduce((sum, item) => sum + item.amountCents, 0);
+    const kindTotals = new Map();
+    list.forEach(item => {
+        const bucket = kindTotals.get(item.kind) || { kind: item.kind, label: item.kindLabel, count: 0, cents: 0 };
+        bucket.count += 1;
+        bucket.cents += item.amountCents;
+        kindTotals.set(item.kind, bucket);
+    });
+    const kinds = Array.from(kindTotals.values())
+        .sort((a, b) => b.cents - a.cents)
+        .map(item => ({ ...item, share: amountCents > 0 ? Math.round((item.cents / amountCents) * 100) : null }));
+    const months = keys.map(key => {
+        const monthItems = list.filter(item => item.effectiveMonth === key);
+        return {
+            key,
+            month: getStatementMonthLabel(key),
+            count: monthItems.length,
+            amountCents: monthItems.reduce((sum, item) => sum + item.amountCents, 0)
+        };
+    });
+    return {
+        fromMonth,
+        toMonth,
+        rangeLabel: `${fromMonth} – ${toMonth}`,
+        residentFilter: normalizedResident,
+        residentLabel: normalizedResident ? reportResidentFilterLabel(normalizedResident) : 'كل الشقق',
+        kindFilter: normalizedKind,
+        kindLabel: normalizedKind ? getAdjustmentReportKindLabel(normalizedKind) : 'كل الأنواع',
+        totals: {
+            amountCents,
+            count: list.length,
+            residentCount: new Set(list.map(item => item.residentId)).size,
+            monthCount: months.filter(row => row.count > 0).length
+        },
+        kinds,
+        months,
+        list,
+        generatedAt: new Date().toISOString()
+    };
+}
+
+function getAdjustmentsReportSignature(fromMonth, toMonth, residentFilter = '', kindFilter = '') {
+    const keys = new Set(buildPeriodMonthKeys(fromMonth, toMonth) || []);
+    return JSON.stringify([
+        state.buildingName || '',
+        state.managerName || '',
+        state.residents || [],
+        (state.adjustments || []).filter(item => keys.has(String(item.effectiveMonth || ''))),
+        String(residentFilter || '').trim(),
+        normalizeAdjustmentReportKindFilter(kindFilter)
+    ]);
+}
+
+function setAdjustmentsReportActionsEnabled(enabled) {
+    ['adjustmentsReportPrintBtn', 'adjustmentsReportExportBtn'].forEach(id => {
+        const button = /** @type {HTMLButtonElement} */ (document.getElementById(id));
+        if (button) button.disabled = !enabled;
+    });
+}
+
+function clearAdjustmentsReportPreview(message) {
+    adjustmentsReportSnapshot = null;
+    adjustmentsReportSignature = '';
+    setAdjustmentsReportActionsEnabled(false);
+    const preview = document.getElementById('adjustmentsReportPreview');
+    if (!preview) return;
+    preview.innerHTML = `<p class="report-preview-empty">${esc(message)}</p>`;
+    preview.dataset.stale = 'false';
+}
+
+function renderAdjustmentsReportHtml(report) {
+    const totals = report.totals;
+    const kindSummary = report.kinds.map(item => `
+        <div class="report-list-row">
+            <span class="report-list-title">${esc(item.label)} <span class="report-list-meta">· ${fmtNum(item.count)} تسجيل · ${item.share === null ? '—' : fmtNum(item.share) + '%'}</span></span>
+            <span class="report-list-value text-amber-400 report-amount">${fmtMoney(item.cents / 100)}</span>
+        </div>`).join('');
+    const monthRows = report.months.map(row => `
+        <tr>
+            <td>${esc(row.month)}</td>
+            <td>${fmtNum(row.count)}</td>
+            <td class="${row.amountCents ? 'text-amber-400' : ''}">${fmtMoney(row.amountCents / 100)}</td>
+            <td>${totals.amountCents > 0 ? fmtNum(Math.round((row.amountCents / totals.amountCents) * 100)) + '%' : '—'}</td>
+        </tr>`).join('');
+    const detailSummary = report.list.map(item => `
+        <div class="report-list-row">
+            <span class="report-list-title">شقة ${esc(item.apartmentNumber)} · ${esc(item.residentName)} <span class="report-list-meta">· ${esc(item.kindLabel)} · ${esc(item.month)}${item.reason ? ' · ' + esc(item.reason) : ''}</span></span>
+            <span class="report-list-value text-amber-400 report-amount">${fmtMoney(item.amountCents / 100)}</span>
+        </div>`).join('');
+    const residentNote = report.residentFilter
+        ? `<p>المعروض لشقة «${esc(report.residentLabel)}» فقط.</p>`
+        : '';
+    const kindNote = report.kindFilter
+        ? `<p>المعروض لنوع «${esc(report.kindLabel)}» فقط.</p>`
+        : '';
+    return `
+        <div class="space-y-3">
+            <header class="report-preview-header">
+                <h3 class="report-preview-title">${esc(state.buildingName || 'العمارة')}</h3>
+                <p class="report-preview-meta">تقرير الإعفاءات والتخفيضات ${esc(report.rangeLabel)}${report.residentFilter ? ' • الشقة: ' + esc(report.residentLabel) : ''}${report.kindFilter ? ' • النوع: ' + esc(report.kindLabel) : ''} • تم الإنشاء ${esc(formatDate(report.generatedAt))}</p>
+            </header>
+            <div class="report-stats report-stats-4">
+                <div class="report-stat"><p class="report-stat-label">إجمالي الإعفاءات والتخفيضات</p><p class="report-stat-value text-amber-400">${fmtMoney(totals.amountCents / 100)}</p></div>
+                <div class="report-stat"><p class="report-stat-label">عدد التسجيلات</p><p class="report-stat-value">${fmtNum(totals.count)}</p></div>
+                <div class="report-stat"><p class="report-stat-label">الشقق المستفيدة</p><p class="report-stat-value">${fmtNum(totals.residentCount)}</p></div>
+                <div class="report-stat"><p class="report-stat-label">أشهر مشمولة</p><p class="report-stat-value">${fmtNum(totals.monthCount)}</p></div>
+            </div>
+            <div class="report-block">
+                <p class="report-block-title"><span>التوزيع حسب النوع</span><span class="report-block-count">${fmtNum(report.kinds.length)}</span></p>
+                ${kindSummary ? '<div class="report-list">' + kindSummary + '</div>' : '<p class="report-note">لا يوجد</p>'}
+            </div>
+            <div class="report-table-wrap">
+                <table class="statement-table">
+                    <thead><tr><th>الشهر</th><th>عدد التسجيلات</th><th>المبلغ</th><th>نسبته من الفترة</th></tr></thead>
+                    <tbody>${monthRows}</tbody>
+                    <tfoot><tr><td>الإجمالي</td><td>${fmtNum(totals.count)}</td><td>${fmtMoney(totals.amountCents / 100)}</td><td>100%</td></tr></tfoot>
+                </table>
+            </div>
+            <div class="report-block">
+                <p class="report-block-title"><span>تفاصيل الإعفاءات والتخفيضات</span><span class="report-block-count">${fmtNum(report.list.length)}</span></p>
+                ${detailSummary ? '<div class="report-list">' + detailSummary + '</div>' : '<p class="report-note">لا يوجد</p>'}
+            </div>
+            <div class="report-note report-divider text-center">
+                <p>تقرير للقراءة فقط ولا يعدل أي بيانات. تُخصم الإعفاءات والتخفيضات من مستحق الشهر المسجل فيه الاستحقاق.</p>
+                ${residentNote}
+                ${kindNote}
+            </div>
+        </div>`;
+}
+
+function generateAdjustmentsReport() {
+    if (!requireManager()) return;
+    const { from, to } = getAdjustmentsReportSelection();
+    if (!from || !to) { toast('اختر شهر البداية والنهاية','error'); return; }
+    const residentFilter = getReportResidentFilter('adjustmentsReportResident');
+    const kindFilter = getAdjustmentReportKindFilter();
+    const report = buildAdjustmentsReport(from, to, residentFilter, kindFilter);
+    if (!report) {
+        const message = getPeriodRangeError(from, to) || 'الفترة غير صحيحة.';
+        clearAdjustmentsReportPreview(message);
+        toast(message, 'error');
+        return;
+    }
+    const preview = document.getElementById('adjustmentsReportPreview');
+    if (!preview) return;
+    preview.innerHTML = renderAdjustmentsReportHtml(report);
+    preview.dataset.stale = 'false';
+    adjustmentsReportSnapshot = report;
+    adjustmentsReportSignature = getAdjustmentsReportSignature(from, to, residentFilter, kindFilter);
+    setAdjustmentsReportActionsEnabled(true);
+}
+
+function invalidateAdjustmentsReportPreview() {
+    if (adjustmentsReportSnapshot) {
+        clearAdjustmentsReportPreview('تغيّر الشهر أو الفلتر أو البيانات — اضغط «معاينة» لتحديث التقرير.');
+        const preview = document.getElementById('adjustmentsReportPreview');
+        if (preview) preview.dataset.stale = 'true';
+    }
+    syncReportNavStatus();
+}
+
+function invalidateAdjustmentsReportIfStale() {
+    if (!adjustmentsReportSnapshot) return;
+    if (getAdjustmentsReportSignature(
+        adjustmentsReportSnapshot.fromMonth,
+        adjustmentsReportSnapshot.toMonth,
+        adjustmentsReportSnapshot.residentFilter,
+        adjustmentsReportSnapshot.kindFilter
+    ) !== adjustmentsReportSignature) {
+        clearAdjustmentsReportPreview('تغيّرت البيانات — اضغط «معاينة» لتحديث التقرير.');
+    }
+}
+
+function getSelectedAdjustmentsReportSnapshot() {
+    if (!adjustmentsReportSnapshot) {
+        toast('اعرض معاينة تقرير الإعفاءات والتخفيضات أولًا','error');
+        return null;
+    }
+    const selected = getAdjustmentsReportSelection();
+    if ((selected.from && selected.from !== adjustmentsReportSnapshot.fromMonth) ||
+        (selected.to && selected.to !== adjustmentsReportSnapshot.toMonth)) {
+        toast('اعرض معاينة الفترة المحددة أولًا','error');
+        return null;
+    }
+    if (getReportResidentFilter('adjustmentsReportResident') !== (adjustmentsReportSnapshot.residentFilter || '')) {
+        toast('اعرض معاينة الشقة المحددة أولًا','error');
+        return null;
+    }
+    if (getAdjustmentReportKindFilter() !== (adjustmentsReportSnapshot.kindFilter || '')) {
+        toast('اعرض معاينة النوع المحدد أولًا','error');
+        return null;
+    }
+    if (getAdjustmentsReportSignature(
+        adjustmentsReportSnapshot.fromMonth,
+        adjustmentsReportSnapshot.toMonth,
+        adjustmentsReportSnapshot.residentFilter,
+        adjustmentsReportSnapshot.kindFilter
+    ) !== adjustmentsReportSignature) {
+        clearAdjustmentsReportPreview('تغيّرت البيانات — اضغط «معاينة» لتحديث التقرير.');
+        toast('تغيّرت البيانات — اضغط «معاينة» لتحديث التقرير.','error');
+        return null;
+    }
+    return adjustmentsReportSnapshot;
+}
+
+function printAdjustmentsReport() {
+    if (!requireManager()) return;
+    const report = getSelectedAdjustmentsReportSnapshot();
+    if (!report) return;
+    const title = document.getElementById('printBuildingTitle');
+    const meta = document.getElementById('printBuildingMeta');
+    const previousTitle = title ? title.textContent : '';
+    const previousMeta = meta ? meta.textContent : '';
+    if (title) title.textContent = `تقرير الإعفاءات والتخفيضات - ${state.buildingName || 'Manzil'}`;
+    if (meta) meta.textContent = `الفترة ${report.rangeLabel}${report.residentFilter ? ' • الشقة: ' + report.residentLabel : ''}${report.kindFilter ? ' • النوع: ' + report.kindLabel : ''} • المدير: ${state.managerName || '—'}`;
+    document.body.classList.remove('print-landlord', 'print-statement', 'print-period', 'print-expenses');
+    document.body.classList.add('print-adjustments');
+    const restore = () => {
+        document.body.classList.remove('print-adjustments');
+        if (title) title.textContent = previousTitle;
+        if (meta) meta.textContent = previousMeta;
+    };
+    window.addEventListener('afterprint', restore, { once: true });
+    window.print();
+}
+
+function exportAdjustmentsReportCsv() {
+    if (!requireManager()) return;
+    const report = getSelectedAdjustmentsReportSnapshot();
+    if (!report) return;
+    const rows = [
+        ['الفترة', report.rangeLabel, 'الشقة', report.residentLabel, 'النوع', report.kindLabel],
+        ['الشقة', 'اسم الساكن', 'الشهر', 'النوع', 'المبلغ', 'السبب']
+    ];
+    report.list.forEach(item => rows.push([
+        item.apartmentNumber,
+        item.residentName,
+        item.month,
+        item.kindLabel,
+        item.amountCents / 100,
+        item.reason
+    ]));
+    rows.push(['الإجمالي', '', '', '', report.totals.amountCents / 100, '']);
+    const residentSlug = reportResidentFileSlug(report.residentFilter);
+    const residentSuffix = residentSlug ? `_apt_${residentSlug}` : '';
+    const kindSuffix = report.kindFilter ? `_${report.kindFilter}` : '';
+    downloadCsv(`manzil_adjustments_${getPeriodReportFileSlug(report)}${residentSuffix}${kindSuffix}.csv`, rows);
+    toast('تم تصدير تقرير الإعفاءات والتخفيضات','success');
 }
 
 function exportArrearsCSV() {

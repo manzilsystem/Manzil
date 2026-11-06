@@ -294,7 +294,7 @@
                 <div>
                     <p class="report-section-eyebrow"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> مركز التقارير</p>
                     <h2 class="report-section-title">التقارير والكشوفات</h2>
-                    <p class="report-section-subtitle">تقرير شهري للملاك، تقرير فترة للمصاريف، كشف حساب لكل ساكن، تقرير وحدة، إقفال شهري، ومتأخرات — وكل الأرقام تُحسب من نفس بيانات التطبيق.</p>
+                    <p class="report-section-subtitle">تقرير شهري للملاك، تقرير فترة للمصاريف والإعفاءات، كشف حساب لكل ساكن، تقرير وحدة، إقفال شهري، ومتأخرات — وكل الأرقام تُحسب من نفس بيانات التطبيق.</p>
                 </div>
                 <nav class="report-nav no-print" aria-label="أنواع التقارير" onkeydown="handleReportTabKeydown(event)">
                     <button type="button" class="report-nav-item report-tone-indigo" data-report-nav="landlord" aria-controls="landlordReportPrint" onclick="switchReportTab('landlord')">
@@ -308,6 +308,10 @@
                     <button type="button" class="report-nav-item report-tone-rose" data-report-nav="expenses" aria-controls="expensesReportCard" onclick="switchReportTab('expenses')">
                         <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-receipt"></i></span>
                         <span class="report-nav-copy"><b>تقرير المصروفات</b><small>فترة · طباعة وCSV</small></span>
+                    </button>
+                    <button type="button" class="report-nav-item report-tone-amber" data-report-nav="adjustments" aria-controls="adjustmentsReportCard" onclick="switchReportTab('adjustments')">
+                        <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-hand-holding-dollar"></i></span>
+                        <span class="report-nav-copy"><b>الإعفاءات والتخفيضات</b><small>فترة · طباعة وCSV</small></span>
                     </button>
                     <button type="button" class="report-nav-item report-tone-emerald" data-report-nav="statement" aria-controls="residentStatementCard" onclick="switchReportTab('statement')">
                         <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-user-check"></i></span>
@@ -471,6 +475,49 @@
                     <button type="button" id="expensesReportExportBtn" onclick="exportExpensesReportCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                 </div>
                 <p class="report-hint no-print">تغيير الفترة أو الصندوق أو التصنيف يعطّل الطباعة والتصدير حتى معاينة جديدة. أقصى مدة 60 شهرًا.</p>
+            </div>
+            <div id="adjustmentsReportCard" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
+                <div class="report-card-head no-print">
+                    <div class="report-card-heading">
+                        <span class="report-card-icon report-tone-amber" aria-hidden="true"><i class="fa-solid fa-hand-holding-dollar"></i></span>
+                        <div class="min-w-0">
+                            <h2 class="report-card-title">الإعفاءات والتخفيضات</h2>
+                            <p class="report-card-subtitle">إعفاءات وتخفيضات فترة كاملة حسب الشقة والنوع، مع أثرها على المستحق.</p>
+                        </div>
+                    </div>
+                    <span class="report-card-badge report-tone-amber">فترة</span>
+                </div>
+                <div class="report-toolbar no-print">
+                    <label class="report-field" for="adjustmentsReportFrom">
+                        <span class="report-field-label">من شهر</span>
+                        <select id="adjustmentsReportFrom" aria-label="من شهر" onchange="invalidateAdjustmentsReportPreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field" for="adjustmentsReportTo">
+                        <span class="report-field-label">إلى شهر</span>
+                        <select id="adjustmentsReportTo" aria-label="إلى شهر" onchange="invalidateAdjustmentsReportPreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field report-field-narrow" for="adjustmentsReportResident">
+                        <span class="report-field-label">الشقة</span>
+                        <select id="adjustmentsReportResident" aria-label="فلتر الشقة" onchange="invalidateAdjustmentsReportPreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field report-field-narrow" for="adjustmentsReportKind">
+                        <span class="report-field-label">النوع</span>
+                        <select id="adjustmentsReportKind" aria-label="فلتر نوع الإعفاء" onchange="invalidateAdjustmentsReportPreview()" class="report-control app-input border focus:outline-none">
+                            <option value="">كل الأنواع</option>
+                            <option value="waiver">إعفاء</option>
+                            <option value="discount">تخفيض</option>
+                        </select>
+                    </label>
+                    <button type="button" onclick="generateAdjustmentsReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
+                </div>
+                <div id="adjustmentsReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
+                    <p class="report-preview-empty">اضغط «معاينة» لعرض إعفاءات وتخفيضات الفترة المحددة.</p>
+                </div>
+                <div class="report-actions report-actions-2 no-print">
+                    <button type="button" id="adjustmentsReportPrintBtn" onclick="printAdjustmentsReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة PDF</button>
+                    <button type="button" id="adjustmentsReportExportBtn" onclick="exportAdjustmentsReportCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
+                </div>
+                <p class="report-hint no-print">تغيير الفترة أو الشقة أو النوع يعطّل الطباعة والتصدير حتى معاينة جديدة. أقصى مدة 60 شهرًا.</p>
             </div>
             <div id="residentStatementCard" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
                 <div class="report-card-head no-print">
