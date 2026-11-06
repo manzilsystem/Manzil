@@ -190,7 +190,7 @@ test('settlement details are labeled consistently in preview, PDF, and CSV', () 
     app.exportResidentStatementCsv();
     const csv = sandbox.__download.content;
     assert.match(csv, /التسويات والإعفاءات والتخفيضات/);
-    assert.match(csv, /\"تعديل\",\"يناير 2024\",\"تسوية\",\"60\",\"اتفاق تسوية\"/);
+    assert.match(csv, /\"تسوية\",\"يناير 2024\",\"تسوية\",\"60\",\"اتفاق تسوية\"/);
     assert.match(preview.innerHTML, /التسويات والإعفاءات والتخفيضات/);
 });
 
