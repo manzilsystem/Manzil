@@ -159,7 +159,6 @@
                 </div>
             </div>
             <div class="flex items-center gap-1.5">
-                <button onclick="openAssistantModal()" aria-label="اسأل عم عبده البواب" class="app-card border p-2.5 rounded-xl text-xs transition assistant-header-button" title="اسأل عم عبده البواب"><i class="fa-solid fa-user-tie text-sm" aria-hidden="true"></i></button>
                 <button onclick="openSettingsModal()" aria-label="فتح الإعدادات" class="app-card border p-2.5 rounded-xl text-xs transition" title="الإعدادات"><i class="fa-solid fa-gear text-sm"></i></button>
                 <button id="accessSwitchBtn" onclick="lockCurrentSession()" aria-label="تبديل المستخدم أو قفل التطبيق" class="app-card border p-2.5 rounded-xl text-xs transition hidden" title="خروج / تبديل المستخدم"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
             </div>
@@ -826,6 +825,12 @@
         <button onclick="switchTab('residents')" id="btn-residents" class="tab-btn flex flex-col items-center gap-1 text-slate-400 transition"><i class="fa-solid fa-users text-lg"></i><span class="text-[10px] font-semibold">الشقق</span></button>
         <button onclick="switchTab('reports')" id="btn-reports" class="tab-btn flex flex-col items-center gap-1 text-slate-400 transition"><i class="fa-solid fa-file-invoice text-lg"></i><span class="text-[10px] font-semibold">التقارير</span></button>
     </nav>
+
+    <!-- Assistant launcher — slides away while scrolling down, returns when scrolling up -->
+    <button type="button" id="assistantFab" class="app-card assistant-fab" onclick="openAssistantModal()" aria-label="اسأل عم عبده البواب" title="اسأل عم عبده البواب">
+        <img class="assistant-fab-avatar" src="icons/assistant-abbah.png" alt="" width="44" height="44" decoding="async">
+        <span class="assistant-fab-label">اسأل عم عبده</span>
+    </button>
 
     <!-- Notice Modal -->
     <div id="noticeModal" role="dialog" aria-modal="true" aria-labelledby="noticeModalTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
@@ -2063,7 +2068,7 @@
     <div id="assistantModal" role="dialog" aria-modal="true" aria-labelledby="assistantModalTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
         <div class="app-card assistant-shell border rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
             <header class="assistant-head">
-                <span class="assistant-avatar" aria-hidden="true"><i class="fa-solid fa-user-tie"></i></span>
+                <span class="assistant-avatar"><img src="icons/assistant-abbah.png" alt="" width="38" height="38" decoding="async"></span>
                 <div class="assistant-head-copy">
                     <h3 id="assistantModalTitle">عم عبده البواب</h3>
                     <p><span class="assistant-online-dot" aria-hidden="true"></span> مساعد محلي — يقرأ بيانات التطبيق فقط</p>

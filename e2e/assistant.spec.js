@@ -32,7 +32,7 @@ async function seedAndOpenAssistant(page) {
         state.adjustments = [];
         renderAll();
     });
-    await page.locator('.assistant-header-button').click();
+    await page.locator('#assistantFab').click();
     await expect(page.locator('#assistantModal')).toBeVisible();
     await expect(page.locator('#assistantLog')).toContainText('عم عبده البواب');
 }
@@ -76,7 +76,78 @@ test('assistant reset, escape close, and launcher restore behave', async ({ page
     await page.keyboard.press('Escape');
     await expect(modal).toBeHidden();
 
-    await page.locator('.assistant-header-button').click();
+    await page.locator('#assistantFab').click();
     await expect(modal).toBeVisible();
     await expect(page.locator('#assistantLog .assistant-msg')).toHaveCount(1);
+});
+
+test.describe('assistant floating launcher', () => {
+    test.beforeEach(async ({ page }) => {
+        await loadShell(page);
+        await page.waitForFunction(() => typeof window.syncAssistantFab === 'function' && typeof renderAll === 'function');
+        await page.evaluate(() => {
+            window.currentUserRole = 'manager';
+            document.body.classList.remove('session-locked', 'modal-open', 'owner-mode');
+            document.getElementById('pinLockModal').classList.add('hidden');
+            state.buildingName = 'عمارة الاختبار';
+            state.residents = Array.from({ length: 60 }, (_, i) => ({
+                id: `r${i}`,
+                name: `ساكن ${i + 1}`,
+                apartmentNumber: String(i + 1),
+                monthlyAmount: 100,
+                billingStartMonth: '2026-11-01',
+                createdAt: '2026-11-01T00:00:00.000Z'
+            }));
+            state.income = [];
+            state.expenses = [];
+            state.adjustments = [];
+            renderAll();
+            switchTab('residents');
+        });
+    });
+
+    test('clears the bottom nav, hides on scroll down and returns on scroll up', async ({ page }) => {
+        const fab = page.locator('#assistantFab');
+        await expect(fab).toBeVisible();
+        await expect(fab.locator('img.assistant-fab-avatar')).toHaveAttribute('src', 'icons/assistant-abbah.png');
+        await expect(fab).not.toHaveClass(/is-hidden/);
+
+        const box = await fab.boundingBox();
+        const navBox = await page.locator('nav[aria-label="التنقل الرئيسي"]').boundingBox();
+        expect(box.y + box.height).toBeLessThanOrEqual(navBox.y + 1);
+
+        const scrollRoom = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
+        expect(scrollRoom).toBeGreaterThan(400);
+
+        await page.mouse.wheel(0, 500);
+        await expect(fab).toHaveClass(/is-hidden/);
+
+        await page.mouse.wheel(0, -300);
+        await expect(fab).not.toHaveClass(/is-hidden/);
+        await expect(fab).toBeVisible();
+    });
+
+    test('stays out of the way while the assistant modal is open', async ({ page }) => {
+        const fab = page.locator('#assistantFab');
+        await fab.click();
+        await expect(page.locator('#assistantModal')).toBeVisible();
+        await expect(fab).toHaveClass(/is-hidden/);
+
+        await page.keyboard.press('Escape');
+        await expect(page.locator('#assistantModal')).toBeHidden();
+        await expect(fab).not.toHaveClass(/is-hidden/);
+    });
+
+    test('disappears for the owner portal and locked sessions', async ({ page }) => {
+        const fab = page.locator('#assistantFab');
+        await page.evaluate(() => document.body.classList.add('owner-mode'));
+        await expect(fab).toBeHidden();
+
+        await page.evaluate(() => {
+            document.body.classList.remove('owner-mode');
+            document.body.classList.add('session-locked');
+            window.syncAssistantFab();
+        });
+        await expect(fab).toBeHidden();
+    });
 });

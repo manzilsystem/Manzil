@@ -56,6 +56,7 @@ function renderAll() {
     if (typeof invalidateAdjustmentsReportIfStale === 'function') invalidateAdjustmentsReportIfStale();
     syncReportNavStatus();
     renderCashbox();
+    if (typeof syncAssistantFab === 'function') syncAssistantFab();
 }
 
 function getArrearsReportFilters() {

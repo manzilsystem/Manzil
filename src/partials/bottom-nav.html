@@ -7,3 +7,9 @@
         <button onclick="switchTab('residents')" id="btn-residents" class="tab-btn flex flex-col items-center gap-1 text-slate-400 transition"><i class="fa-solid fa-users text-lg"></i><span class="text-[10px] font-semibold">الشقق</span></button>
         <button onclick="switchTab('reports')" id="btn-reports" class="tab-btn flex flex-col items-center gap-1 text-slate-400 transition"><i class="fa-solid fa-file-invoice text-lg"></i><span class="text-[10px] font-semibold">التقارير</span></button>
     </nav>
+
+    <!-- Assistant launcher — slides away while scrolling down, returns when scrolling up -->
+    <button type="button" id="assistantFab" class="app-card assistant-fab" onclick="openAssistantModal()" aria-label="اسأل عم عبده البواب" title="اسأل عم عبده البواب">
+        <img class="assistant-fab-avatar" src="icons/assistant-abbah.png" alt="" width="44" height="44" decoding="async">
+        <span class="assistant-fab-label">اسأل عم عبده</span>
+    </button>
