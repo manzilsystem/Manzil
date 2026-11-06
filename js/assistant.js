@@ -510,7 +510,7 @@ function assistantApartmentLabel(resident) {
 }
 
 function assistantResidentName(resident) {
-    return String(resident?.name || 'ساكن محذوف');
+    return String(resident?.name || 'مالك محذوف');
 }
 
 function buildAssistantIncomeAnswer(period) {
@@ -621,7 +621,7 @@ function buildAssistantResidentAnswer(resident, now = new Date()) {
         const dateLabel = typeof formatDate === 'function' ? formatDate(last.date) : String(last.date || '');
         html += assistantRow('آخر دفعة', `${assistantMoney(last.amount)} · ${purpose}${dateLabel ? ` · ${dateLabel}` : ''}`);
     } else {
-        html += assistantNote('مفيش دفعات مسجلة للساكن ده حتى الآن.');
+        html += assistantNote('مفيش دفعات مسجلة للمالك ده حتى الآن.');
     }
     if (snapshot.monthPayments.length > 1) {
         html += assistantNote(`في ${assistantNumber(snapshot.monthPayments.length)} دفعات مسجلة على شهر ${snapshot.month}.`);
@@ -723,7 +723,7 @@ function buildAssistantHelpAnswer() {
         'المتأخرات: مين عليه كام وعدد الشهور.',
         'تحصيل أو مصروفات شهر معين، أو سنة كاملة.',
         'رصيد الخزنة الرئيسية وصندوق التطوير وصندوق الطوارئ.',
-        'حساب ساكن بالاسم أو برقم الشقة.',
+        'حساب مالك بالاسم أو برقم الشقة.',
         'الإعفاءات والتخفيضات المسجلة.',
         'آخر الحركات وبيانات العمارة.',
         'أماكن التقارير وكيف تطبع أو تصدّر CSV.'
@@ -738,7 +738,7 @@ function buildAssistantReportsAnswer() {
         'تقرير فترة: مقارنة مجموعة شهور مع فلاتر.',
         'تقرير المصروفات: حسب الفترة والصندوق والتصنيف.',
         'تقرير الإعفاءات والتخفيضات: حسب الفترة والشقة والنوع.',
-        'كشف حساب ساكن: حركات الشهر والمستحق والمتأخرات.',
+        'كشف حساب مالك: حركات الشهر والمستحق والمتأخرات.',
         'الإقفال الشهري والمتأخرات وسجل التدقيق.'
     ])}${assistantNote('افتح قسم «التقارير» من الشريط السفلي، وكل تقرير له معاينة وطباعة وتصدير CSV.')}`;
     return { id: 'reports', title, html };
@@ -1140,7 +1140,7 @@ function answerAssistantQuery(text, now = new Date()) {
     if (residentMatch.matches.length > 1) {
         const answer = {
             id: 'resident-choice',
-            title: 'في أكتر من ساكن مطابق',
+            title: 'في أكتر من مالك مطابق',
             html: `${assistantList(residentMatch.matches.map(resident =>
                 `${assistantEscape(assistantApartmentLabel(resident))} · ${assistantEscape(assistantResidentName(resident))}`
             ))}${assistantNote('حدد رقم الشقة في سؤالك، مثال: «شقة 3 دفع كام؟».')}`
@@ -1191,7 +1191,7 @@ function selectAssistantAnswer(intent, period, resident, now) {
                     'ملخص الشهر أو تحصيل شهر معين.',
                     'مين عليه متأخرات.',
                     'رصيد الخزنة.',
-                    'حساب ساكن بالاسم أو رقم الشقة.',
+                    'حساب مالك بالاسم أو رقم الشقة.',
                     'الإعفاءات والتخفيضات.'
                 ])}`
             };
