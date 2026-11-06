@@ -22,6 +22,7 @@ function makeGetPaidAmountForMonth(state) {
     return (residentId, month) => {
         const paidCents = (state.income || []).reduce((sum, payment) => {
             if (payment.residentId !== residentId || payment.month !== month) return sum;
+            if (payment.purposeCode && payment.purposeCode !== 'subscription') return sum;
             const amount = Number(payment.amount);
             return sum + (Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0);
         }, 0);
