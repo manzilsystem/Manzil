@@ -2148,10 +2148,12 @@ function previewIncomeAllocation() {
         hintId: 'incomePurposeCashHint'
     });
     const isSubscription = purpose === 'subscription';
+    const isSettlement = purpose === 'settlement';
+    const settlement = isSettlement ? getIncomeSettlementFromForm() : null;
     syncIncomePurposeUi();
     const monthLabel = document.getElementById('incomeMonthLabel');
     const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
-    if (monthLabel) monthLabel.textContent = isSubscription ? 'شهر بداية التوزيع' : 'شهر تسجيل التحصيل';
+    if (monthLabel) monthLabel.textContent = isSubscription ? 'شهر بداية التوزيع' : isSettlement ? 'شهر التسوية' : 'شهر تسجيل التحصيل';
     if (monthSelect && typeof monthSelect.setAttribute === 'function') {
         monthSelect.setAttribute('aria-label', isSubscription ? 'شهر بداية التوزيع' : 'شهر تسجيل التحصيل');
     }
@@ -2220,7 +2222,8 @@ function previewIncomeAllocation() {
     const extraValidation = validateIncomeExtraLines(extraLines);
     const hasExtras = extraLines.length > 0;
     const mixedTotal = document.getElementById('incomeMixedTotal');
-    const ready = Boolean(residentId && Number.isFinite(amount) && amount > 0 && (isSubscription ? selectedMonths.length : month));
+    const ready = Boolean(residentId && Number.isFinite(amount) && amount > 0
+        && (isSubscription ? selectedMonths.length : isSettlement ? settlement && month : month));
     const baseCents = Number.isFinite(amount) ? Math.round(amount * 100) : 0;
     const collectedCents = ready && extraValidation.valid ? baseCents + extraValidation.totalCents : 0;
     const setSubmitLabel = label => {
@@ -2263,6 +2266,32 @@ function previewIncomeAllocation() {
     const cashRowsHtml = `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>رصيد ${esc(crudCashAccountLabel(cashAccountCode))} قبل التحصيل</span><strong>${fmtNum(accountBalance)} ج.م</strong></div>`
         + `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${hasExtras ? 'الرصيد بعد إضافة البند الأساسي' : 'الرصيد بعد التحصيل'}</span><strong class="text-emerald-400">${fmtNum(balanceAfter)} ج.م</strong></div>`;
     const notesRowHtml = `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>ملاحظات الدفع</span><strong class="text-left">${esc(notes || '—')}</strong></div>`;
+
+    if (isSettlement) {
+        preview.classList.remove('hidden');
+        const remaining = settlement ? getSettlementRemainingAmount(settlement) : 0;
+        const paid = settlement ? getSettlementPaidAmount(settlement.id) : 0;
+        const validAmount = Boolean(settlement && Number.isFinite(amount) && amount > 0
+            && Math.round(amount * 100) <= Math.round(remaining * 100) && !hasExtras);
+        summary.textContent = !settlement
+            ? 'اختر اتفاق تسوية مفتوحًا.'
+            : hasExtras
+                ? 'لا يمكن دمج بنود إضافية مع سداد التسوية.'
+                : !validAmount
+                    ? 'المبلغ أكبر من المتبقي في اتفاق التسوية (' + fmtNum(remaining) + ' ج.م).'
+                    : 'سيتم تسجيل دفعة نقدية على اتفاق التسوية لشهر ' + month + '.';
+        rows.innerHTML = settlement
+            ? `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>اتفاق التسوية</span><strong>${esc(month)} · ${esc(settlement.reason || '')}</strong></div>`
+                + `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>المبلغ المتفق عليه</span><strong>${fmtNum(settlement.amount)} ج.م</strong></div>`
+                + `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>المدفوع سابقًا</span><strong>${fmtNum(paid)} ج.م</strong></div>`
+                + `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>المتبقي بعد الدفعة</span><strong class="text-emerald-400">${fmtNum(Math.max(0, remaining - (Number.isFinite(amount) ? amount : 0)))} ج.م</strong></div>`
+                + `<div class="flex justify-between items-center gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`
+                + cashRowsHtml + notesRowHtml
+            : '';
+        if (submit) submit.disabled = !validAmount;
+        setSubmitLabel('تسجيل دفعة التسوية');
+        return;
+    }
 
     if (!isSubscription) {
         preview.classList.remove('hidden');
