@@ -46,9 +46,16 @@ test('changing the report month invalidates the preview and output actions', () 
 
 test('export is scoped to the previewed month and uses a month-based filename', () => {
     assert.match(reports, /function exportToCSV\(month = landlordReportMonth, purposeFilter = landlordReportPurposeFilter\)/);
+    assert.match(reports, /if \(landlordReportSignature && getLandlordReportSignature\(reportMonth, purposeFilter\) !== landlordReportSignature\)/);
     assert.match(reports, /const \{ income: inc, expenses: exp \} = getLandlordReportData\(reportMonth, purposeFilter\)/);
     assert.match(reports, /manzil_report_\$\{monthKey \? monthKey\.slice\(0, 7\) : Date\.now\(\)\}\$\{purposeSuffix\}\.csv/);
     assert.doesNotMatch(reports, /state\.income\.forEach\(i =>/);
+});
+
+test('statement PDF downloader only takes the rendered html and file metadata', () => {
+    assert.match(reports, /async function downloadStatementPdf\(html, filename, buttonId, successMessage, logLabel\)/);
+    assert.doesNotMatch(reports, /downloadStatementPdf\(\s*statement,/);
+    assert.doesNotMatch(reports, /downloadStatementPdf\(\s*unitStatement,/);
 });
 
 test('landlord report aggregates money in cents and formats with fmtMoney', () => {

@@ -1021,10 +1021,91 @@ function refreshIncomeMonthOptions(residentId, preferredMonth = '') {
     const labels = crudIncomeMonthLabels(resident, [previous]);
     select.innerHTML = labels
         .map(month => `<option value="${crudHtmlEscape(month)}">${crudHtmlEscape(crudIncomeMonthOptionLabel(resident, month))}</option>`)
-        .join('');
-    if (labels.includes(previous)) select.value = previous;
+        .join('') + '<option value="__custom__">شهر آخر…</option>';
+    if (previous !== '__custom__' && labels.includes(previous)) select.value = previous;
     else if (labels.includes(currentMonth)) select.value = currentMonth;
     else if (labels.length) select.value = labels[labels.length - 1];
+    if (select.dataset) select.dataset.previousMonth = select.value;
+    hideIncomeCustomMonth();
+}
+
+function hideIncomeCustomMonth() {
+    document.getElementById('incomeCustomMonthWrap')?.classList.add('hidden');
+    document.getElementById('incomeCustomMonthHint')?.classList.add('hidden');
+}
+
+function populateIncomeCustomMonthControls(preferredMonth = '') {
+    const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeCustomMonthSelect'));
+    const yearSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeCustomYearSelect'));
+    if (!monthSelect || !yearSelect) return;
+    const monthNames = typeof monthsNames !== 'undefined' ? monthsNames : [];
+    const now = new Date();
+    const key = typeof monthLabelToKey === 'function' ? monthLabelToKey(preferredMonth) : null;
+    const sourceYear = key ? Number(key.slice(0, 4)) : now.getFullYear();
+    const sourceMonth = key ? Number(key.slice(5, 7)) - 1 : now.getMonth();
+    if (!monthSelect.options.length) {
+        monthSelect.innerHTML = monthNames
+            .map((name, index) => `<option value="${index}">${crudHtmlEscape(name)}</option>`)
+            .join('');
+    }
+    const years = [];
+    for (let year = now.getFullYear() + 1; year >= now.getFullYear() - 10; year -= 1) years.push(year);
+    if (!years.includes(sourceYear)) years.push(sourceYear);
+    yearSelect.innerHTML = years
+        .sort((a, b) => b - a)
+        .map(year => `<option value="${year}">${crudHtmlEscape(String(year))}</option>`)
+        .join('');
+    monthSelect.value = String(sourceMonth >= 0 ? sourceMonth : 0);
+    yearSelect.value = String(sourceYear);
+}
+
+function handleIncomeMonthChange() {
+    const select = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
+    if (!select) return;
+    if (select.value === '__custom__') {
+        const previous = select.dataset?.previousMonth && select.dataset.previousMonth !== '__custom__'
+            ? select.dataset.previousMonth
+            : getCurrentMonth();
+        select.value = previous;
+        populateIncomeCustomMonthControls(previous);
+        document.getElementById('incomeCustomMonthWrap')?.classList.remove('hidden');
+        return;
+    }
+    if (select.dataset) select.dataset.previousMonth = select.value;
+    hideIncomeCustomMonth();
+    previewIncomeAllocation();
+}
+
+function applyIncomeCustomMonth() {
+    const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeCustomMonthSelect'));
+    const yearSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeCustomYearSelect'));
+    const incomeSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
+    if (!monthSelect || !yearSelect || !incomeSelect) return;
+    const monthIndex = Number(monthSelect.value);
+    const year = Number(yearSelect.value);
+    if (!Number.isInteger(monthIndex) || monthIndex < 0 || monthIndex > 11 || !Number.isInteger(year)) return;
+    const monthName = (typeof monthsNames !== 'undefined' ? monthsNames : [])[monthIndex];
+    if (!monthName) return;
+    const label = `${monthName} ${year}`;
+    if (typeof monthLabelToKey === 'function' && !monthLabelToKey(label)) return;
+    const residentId = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeResident'))?.value || '';
+    const resident = state.residents.find(item => item.id === residentId) || null;
+    let option = Array.from(incomeSelect.options || []).find(item => item.value === label);
+    if (!option) {
+        option = document.createElement('option');
+        option.value = label;
+        option.textContent = crudIncomeMonthOptionLabel(resident, label);
+        incomeSelect.appendChild(option);
+    }
+    incomeSelect.value = label;
+    if (incomeSelect.dataset) incomeSelect.dataset.previousMonth = label;
+    hideIncomeCustomMonth();
+    const hint = document.getElementById('incomeCustomMonthHint');
+    if (hint) {
+        hint.textContent = `الشهر المختار: ${label}`;
+        hint.classList.remove('hidden');
+    }
+    previewIncomeAllocation();
 }
 
 function getIncomeAllocationPolicyOverride() {

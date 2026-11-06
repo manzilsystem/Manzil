@@ -530,6 +530,10 @@ function exportToCSV(month = landlordReportMonth, purposeFilter = landlordReport
         toast('اعرض معاينة الغرض المحدد أولًا','error');
         return;
     }
+    if (landlordReportSignature && getLandlordReportSignature(reportMonth, purposeFilter) !== landlordReportSignature) {
+        toast('تغيّرت البيانات — اضغط «معاينة» لتحديث التقرير.','error');
+        return;
+    }
     const { income: inc, expenses: exp } = getLandlordReportData(reportMonth, purposeFilter);
     const residentsById = buildResidentIndex();
     const rows = [['النوع','الوصف','الشقة','الشهر','المبلغ','الغرض','الصندوق','طريقة الدفع','ملاحظات']];
@@ -1523,7 +1527,7 @@ function renderUnitReportPdfHtml(statement) {
     ].join('');
 }
 
-async function downloadStatementPdf(statement, html, filename, buttonId, successMessage, logLabel) {
+async function downloadStatementPdf(html, filename, buttonId, successMessage, logLabel) {
     let root = null;
     const button = /** @type {HTMLButtonElement} */ (document.getElementById(buttonId));
     if (button) button.disabled = true;
@@ -1574,7 +1578,6 @@ async function exportResidentStatementPdf() {
     const statement = getResidentStatementSnapshot();
     if (!statement) return;
     await downloadStatementPdf(
-        statement,
         renderResidentStatementPdfHtml(statement),
         `manzil_statement_${getStatementFileSlug(statement)}.pdf`,
         'statementPdfBtn',
@@ -1593,7 +1596,6 @@ async function exportUnitReportPdf() {
     if (!statement) return;
     const unitStatement = buildUnitReportStatement(statement);
     await downloadStatementPdf(
-        unitStatement,
         renderUnitReportPdfHtml(unitStatement),
         `manzil_unit_${getStatementFileSlug(unitStatement, false)}.pdf`,
         'unitReportPdfBtn',
