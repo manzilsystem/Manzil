@@ -16,9 +16,10 @@ const PURPOSE_LABELS = {
     emergency: 'صيانة طارئة',
     penalty: 'أخرى',
     donation: 'أخرى',
-    other: 'أخرى'
+    other: 'أخرى',
+    settlement: 'سداد تسوية'
 };
-const PURPOSE_FORM_CODES = ['subscription', 'development', 'emergency', 'other'];
+const PURPOSE_FORM_CODES = ['subscription', 'development', 'emergency', 'settlement', 'other'];
 
 function toCents(value) {
     const amount = Number(value);
@@ -174,6 +175,7 @@ test('the purpose dropdown lists the four main purposes plus the unfiltered opti
     assert.equal((select.innerHTML.match(/<option/g) || []).length, 5);
     assert.match(select.innerHTML, /<option value="">كل الأغراض<\/option>/);
     assert.match(select.innerHTML, /<option value="development">تطوير<\/option>/);
+    assert.match(select.innerHTML, /<option value="settlement">سداد تسوية<\/option>/);
     assert.equal(select.value, '');
 });
 
