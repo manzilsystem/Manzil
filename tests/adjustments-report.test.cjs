@@ -199,7 +199,7 @@ test('adjustments CSV includes metadata, details and apartment/kind suffixes', (
     api.exportAdjustmentsReportCsv();
     assert.equal(calls.download.filename, 'manzil_adjustments_2024-01_2024-03_apt_10_waiver.csv');
     assert.match(calls.download.content, /"الفترة","يناير 2024 – مارس 2024","الشقة","شقة 10 · سعيد","النوع","إعفاء"/);
-    assert.match(calls.download.content, /"الشقة","اسم الساكن","الشهر","النوع","المبلغ","السبب"/);
+    assert.match(calls.download.content, /"الشقة","اسم المالك","الشهر","النوع","المبلغ","السبب"/);
     assert.match(calls.download.content, /"10","سعيد","فبراير 2024","إعفاء","200","إعفاء كامل"/);
     assert.match(calls.download.content, /"الإجمالي","","","","200"/);
     assert.doesNotMatch(calls.download.content, /خصم أخوة/);

@@ -118,7 +118,7 @@
             </div>
 
             <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
-                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-amber-400"></i> متأخرات السكان</h3>
+                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-amber-400"></i> متأخرات الملاك</h3>
                 <div id="unpaidResidentsContainer" class="space-y-2"></div>
             </div>
 
@@ -150,7 +150,7 @@
         <!-- INCOME -->
         <section id="tab-income" class="hidden space-y-4">
             <div class="section-toolbar flex justify-between items-center app-card p-4 rounded-3xl border no-print">
-                <div><h2 class="font-bold text-base">سجل التحصيلات</h2><p class="text-[11px] text-slate-400">اشتراكات السكان</p></div>
+                <div><h2 class="font-bold text-base">سجل التحصيلات</h2><p class="text-[11px] text-slate-400">اشتراكات الملاك</p></div>
                 <button onclick="openNewIncomeModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-emerald-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> تحصيل جديد</button>
             </div>
             <div class="list-filters app-card p-3 rounded-3xl border grid grid-cols-2 md:grid-cols-4 gap-2 no-print">
@@ -298,7 +298,7 @@
                 <div>
                     <p class="report-section-eyebrow"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> مركز التقارير</p>
                     <h2 class="report-section-title">التقارير والكشوفات</h2>
-                    <p class="report-section-subtitle">تقرير شهري للملاك، تقرير فترة للمصاريف والإعفاءات، كشف حساب لكل ساكن، تقرير وحدة، إقفال شهري، ومتأخرات — وكل الأرقام تُحسب من نفس بيانات التطبيق.</p>
+                    <p class="report-section-subtitle">تقرير شهري للملاك، تقرير فترة للمصاريف والإعفاءات، كشف حساب لكل مالك، تقرير وحدة، إقفال شهري، ومتأخرات — وكل الأرقام تُحسب من نفس بيانات التطبيق.</p>
                 </div>
                 <nav class="report-nav no-print" aria-label="أنواع التقارير" onkeydown="handleReportTabKeydown(event)">
                     <button type="button" class="report-nav-item report-tone-indigo" data-report-nav="landlord" aria-controls="landlordReportPrint" onclick="switchReportTab('landlord')">
@@ -319,7 +319,7 @@
                     </button>
                     <button type="button" class="report-nav-item report-tone-emerald" data-report-nav="statement" aria-controls="residentStatementCard" onclick="switchReportTab('statement')">
                         <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-user-check"></i></span>
-                        <span class="report-nav-copy"><b>كشف حساب ساكن</b><small>لكل ساكن · كشف ووحدة</small></span>
+                        <span class="report-nav-copy"><b>كشف حساب مالك</b><small>لكل مالك · كشف ووحدة</small></span>
                     </button>
                     <button type="button" class="report-nav-item report-tone-emerald" data-report-nav="monthlyClose" aria-controls="monthlyClosePanel" onclick="switchReportTab('monthlyClose')">
                         <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-scale-balanced"></i></span>
@@ -528,17 +528,17 @@
                     <div class="report-card-heading">
                         <span class="report-card-icon report-tone-emerald" aria-hidden="true"><i class="fa-solid fa-user-check"></i></span>
                         <div class="min-w-0">
-                            <h2 class="report-card-title">كشف حساب ساكن</h2>
-                            <p class="report-card-subtitle">مستحق ومدفوع ومتبقٍ لكل شهر، مع سجل حركات الساكن.</p>
+                            <h2 class="report-card-title">كشف حساب مالك</h2>
+                            <p class="report-card-subtitle">مستحق ومدفوع ومتبقٍ لكل شهر، مع سجل حركات المالك.</p>
                         </div>
                     </div>
-                    <span class="report-card-badge report-tone-emerald">لكل ساكن</span>
+                    <span class="report-card-badge report-tone-emerald">لكل مالك</span>
                 </div>
                 <div class="report-toolbar no-print">
                     <label class="report-field" for="statementResidentSelect">
-                        <span class="report-field-label">الساكن</span>
+                        <span class="report-field-label">المالك</span>
                         <select id="statementResidentSelect" onchange="invalidateResidentStatementPreview()" class="report-control app-input border">
-                            <option value="">اختر الساكن</option>
+                            <option value="">اختر المالك</option>
                         </select>
                     </label>
                     <label class="report-field report-field-narrow" for="statementPurpose">
@@ -548,7 +548,7 @@
                     <button type="button" onclick="generateResidentStatement()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
                 </div>
                 <div id="residentStatementPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
-                    <p class="report-preview-empty">اختر ساكنًا ثم اضغط «معاينة» لعرض كشف الحساب.</p>
+                    <p class="report-preview-empty">اختر مالكًا ثم اضغط «معاينة» لعرض كشف الحساب.</p>
                 </div>
                 <div class="report-actions report-actions-4 no-print">
                     <button type="button" id="statementPrintBtn" onclick="printResidentStatement()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة / حفظ PDF</button>
@@ -556,7 +556,7 @@
                     <button type="button" id="unitReportPdfBtn" onclick="exportUnitReportPdf()" disabled class="report-action report-tone-sky"><i class="fa-solid fa-building-user" aria-hidden="true"></i> تقرير الوحدة PDF</button>
                     <button type="button" id="statementCsvBtn" onclick="exportResidentStatementCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                 </div>
-                <p class="report-hint no-print">الكشف يغطي كل شهر من إضافة الساكن حتى الشهر الحالي، والمخرجات تعرض نفس الأرقام المعروضة هنا.</p>
+                <p class="report-hint no-print">الكشف يغطي كل شهر من إضافة المالك حتى الشهر الحالي، والمخرجات تعرض نفس الأرقام المعروضة هنا.</p>
             </div>
             <div id="monthlyClosePanel" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
                 <div class="report-card-head no-print">

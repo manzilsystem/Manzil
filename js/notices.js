@@ -4,7 +4,7 @@ function openNoticeModal() { if (!requireManager()) return; /** @type {HTMLInput
 function applyNoticeTemplate(type) {
     if (!requireManager()) return;
     const t = {
-        monthly_sub: `السادة سكان العمارة،\nنذكركم بضرورة سداد اشتراك شهر ${getCurrentMonth()} وقدره ${fmtNum(state.defaultSubscription)} جنيه.\nشاكرين تعاونكم.`,
+        monthly_sub: `السادة ملاك العمارة،\nنذكركم بضرورة سداد اشتراك شهر ${getCurrentMonth()} وقدره ${fmtNum(state.defaultSubscription)} جنيه.\nشاكرين تعاونكم.`,
         cleaning: `إعلان هام:\nسيتم عمل حملة نظافة للعمارة يوم ____ القادم.\nنرجو التعاون وإزالة أي عوائق من أمام الأبواب.`,
         elevator: `إعلان:\nنظراً لأعمال الصيانة الدورية، سيكون الأسانسير متوقفاً يوم ____ من الساعة __ إلى __.\nنعتذر عن الإزعاج.`,
         eid: `كل عام وأنتم بخير بمناسبة ____.\nأعاده الله عليكم باليمن والبركات.\nإدارة العمارة.`
@@ -64,12 +64,12 @@ function sendWhatsAppReminder(residentId) {
     if (!resident) return;
     const debt = calculateCumulativeDebt(residentId);
     if (!debt.count || !(Number(debt.totalDebt) > 0)) {
-        toast('لا توجد متأخرات مستحقة لهذا الساكن.', 'info');
+        toast('لا توجد متأخرات مستحقة لهذا المالك.', 'info');
         return;
     }
     const phone = cleanPhone(resident.phone);
     if (!phone) {
-        toast('أضف رقم هاتف الساكن أولاً لإرسال التذكير', 'error');
+        toast('أضف رقم هاتف المالك أولاً لإرسال التذكير', 'error');
         return;
     }
     const message = renderReminderTemplate(getReminderMessageTemplate(), {
@@ -99,7 +99,7 @@ function sendIncomeReceiptOnWhatsApp(incomeId) {
     }
     const phone = cleanPhone(resident.phone);
     if (!phone) {
-        toast('أضف رقم هاتف الساكن أولاً لإرسال الإيصال.', 'error');
+        toast('أضف رقم هاتف المالك أولاً لإرسال الإيصال.', 'error');
         return;
     }
 
