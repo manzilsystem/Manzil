@@ -2420,7 +2420,7 @@ async function handleIncomeSubmit(e) {
     }
     if (purpose === 'settlement') {
         const remainingCents = Math.round(getSettlementRemainingAmount(settlementAdjustment) * 100);
-        if (!settlementAdjustment || amountCentsForSettlement(amount) > remainingCents) {
+        if (!settlementAdjustment || Math.round(Number(amount) * 100) > remainingCents) {
             toast('المبلغ أكبر من المتبقي في اتفاق التسوية أو أن الاتفاق لم يعد مفتوحًا.', 'error');
             return;
         }
