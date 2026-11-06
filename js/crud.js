@@ -181,15 +181,15 @@ function clearIncomeExtraLines() {
 
 function buildIncomePaymentRows(options) {
     const rows = [];
-    const appendRow = (amount, month, purposeCode, cashAccountCode) => {
-        rows.push({ amount, month, purposeCode, cashAccountCode });
+    const appendRow = (amount, month, purposeCode, cashAccountCode, settlementAdjustmentId = null) => {
+        rows.push({ amount, month, purposeCode, cashAccountCode, settlementAdjustmentId });
     };
     if (options.isSubscription && options.allocation) {
         options.allocation.allocations.forEach(item => {
             appendRow(item.amount, item.month, 'subscription', options.cashAccountCode);
         });
     } else {
-        appendRow(options.amount, options.month, options.purpose, options.cashAccountCode);
+        appendRow(options.amount, options.month, options.purpose, options.cashAccountCode, options.settlementAdjustmentId || null);
     }
     (options.extraLines || []).forEach(line => {
         appendRow(line.amount, options.month, line.purpose, line.cashAccountCode);
@@ -211,6 +211,7 @@ function buildIncomePaymentRows(options) {
             paymentMethod: options.paymentMethod,
             cashAccountCode: row.cashAccountCode,
             purposeCode: row.purposeCode,
+            settlementAdjustmentId: row.settlementAdjustmentId || null,
             notes: note
         };
     });
@@ -2219,6 +2220,10 @@ function previewIncomeAllocation() {
         wizardSummary.textContent = residentName + ' · ' + crudIncomePurposeLabel(purpose) + ' · ' + fmtNum(base + extrasTotal) + ' ج.م · ' + method + ' · ' + cashbox;
     }
     const extraLines = getIncomeExtraLines();
+    if (purpose === 'settlement' && extraLines.length) {
+        toast('سداد التسوية يُسجل كبند مستقل؛ احذف البنود الإضافية ثم أعد المحاولة.', 'error');
+        return;
+    }
     const extraValidation = validateIncomeExtraLines(extraLines);
     const hasExtras = extraLines.length > 0;
     const mixedTotal = document.getElementById('incomeMixedTotal');
@@ -2381,9 +2386,12 @@ async function handleIncomeSubmit(e) {
         hintId: 'incomePurposeCashHint'
     });
     const isSubscription = purpose === 'subscription';
+    const settlementAdjustment = purpose === 'settlement' ? getIncomeSettlementFromForm() : null;
+    const settlementAdjustmentId = settlementAdjustment?.id || null;
     const selectedMonths = isSubscription ? getSelectedIncomeMonths() : [];
     const registrationMonth = /** @type {any} */ (document.getElementById('incomeMonth'))?.value || '';
-    const month = isSubscription ? (selectedMonths[0] || registrationMonth || getCurrentMonth()) : registrationMonth;
+    let month = isSubscription ? (selectedMonths[0] || registrationMonth || getCurrentMonth()) : registrationMonth;
+    if (settlementAdjustment) month = monthKeyToLabel(String(settlementAdjustment.effectiveMonth || '').slice(0, 7));
     const cashAccountCode = /** @type {any} */ (document.getElementById('incomeCashAccount'))?.value || 'main';
     const paymentMethodEnabled = typeof isIncomePaymentMethodEnabled === 'function'
         ? isIncomePaymentMethodEnabled(paymentMethod)
@@ -2392,6 +2400,7 @@ async function handleIncomeSubmit(e) {
         || (isSubscription ? !selectedMonths.length : !month)
         || !Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod)
         || !CRUD_INCOME_PURPOSES.includes(purpose)
+        || (purpose === 'settlement' && (!settlementAdjustment || settlementAdjustment.residentId !== residentId))
         || !['main', 'development', 'emergency'].includes(cashAccountCode)
         || !paymentMethodEnabled) {
         toast(isSubscription && residentId && !selectedMonths.length
@@ -2408,6 +2417,13 @@ async function handleIncomeSubmit(e) {
         || (purpose === 'emergency' && cashAccountCode !== 'emergency')) {
         toast('الغرض المحدد يتطلب صندوقه الخاص. اختر الصندوق المطابق ثم أعد المحاولة.', 'error');
         return;
+    }
+    if (purpose === 'settlement') {
+        const remainingCents = Math.round(getSettlementRemainingAmount(settlementAdjustment) * 100);
+        if (!settlementAdjustment || amountCentsForSettlement(amount) > remainingCents) {
+            toast('المبلغ أكبر من المتبقي في اتفاق التسوية أو أن الاتفاق لم يعد مفتوحًا.', 'error');
+            return;
+        }
     }
 
     const allocation = isSubscription
@@ -2454,6 +2470,7 @@ async function handleIncomeSubmit(e) {
         paymentMethod,
         purpose,
         cashAccountCode,
+        settlementAdjustmentId,
         isSubscription,
         allocation,
         extraLines,
