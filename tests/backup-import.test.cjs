@@ -15,7 +15,12 @@ function createImportHarness(fileContent, options = {}) {
             income: [],
             expenses: [],
             notices: [],
-            auditLogs: []
+            auditLogs: [],
+            adjustments: options.adjustments || []
+        },
+        normalizeBillingStartMonth: value => {
+            const match = String(value || '').trim().match(/^(\d{4})-(0[1-9]|1[0-2])(?:-01)?$/);
+            return match ? `${match[1]}-${match[2]}-01` : null;
         },
         requireManager: () => true,
         activeBuildingId: 'building-id',
@@ -111,6 +116,55 @@ test('failed persistence rolls JSON import back to the previous state', async ()
     assert.equal(harness.calls.closes, 0);
     assert.equal(harness.event.target.value, '');
     assert.equal(harness.calls.toasts.at(-1).type, 'error');
+});
+
+test('importing a file without adjustments clears the current settlement ledger', async () => {
+    const valid = {
+        buildingName: 'Imported building',
+        residents: [],
+        income: [],
+        expenses: [],
+        notices: []
+    };
+    const harness = createImportHarness(JSON.stringify(valid), {
+        adjustments: [{ id: 'adjustment-old', residentId: 'resident-old', effectiveMonth: '2026-01-01', kind: 'waiver', amount: 50, reason: 'قديم' }]
+    });
+
+    harness.api.importJSON(harness.event);
+    await harness.sandbox.reader.done;
+
+    assert.deepEqual(JSON.parse(JSON.stringify(harness.sandbox.state.adjustments)), []);
+    assert.equal(harness.calls.saves, 1);
+});
+
+test('imported adjustments are normalized before they are persisted', async () => {
+    const valid = {
+        buildingName: 'Imported building',
+        residents: [{ id: 'resident-1', name: 'ساكن', apartmentNumber: '1', monthlyAmount: 100 }],
+        income: [],
+        expenses: [],
+        notices: [],
+        adjustments: [{
+            id: 'adjustment-1',
+            residentId: 'resident-1',
+            effectiveMonth: '2026-10',
+            kind: 'discount',
+            amount: '25.005',
+            reason: '  تخفيض تعاوني  '
+        }]
+    };
+    const harness = createImportHarness(JSON.stringify(valid));
+
+    harness.api.importJSON(harness.event);
+    await harness.sandbox.reader.done;
+
+    const [adjustment] = harness.sandbox.state.adjustments;
+    assert.equal(adjustment.effectiveMonth, '2026-10-01');
+    assert.equal(adjustment.amount, 25.01);
+    assert.equal(adjustment.reason, 'تخفيض تعاوني');
+    assert.equal(typeof adjustment.createdAt, 'string');
+    assert.equal(harness.calls.saves, 1);
+    assert.equal(harness.calls.toasts.at(-1).type, 'success');
 });
 
 test('successful JSON import validates, persists, renders and closes the backup dialog', async () => {
