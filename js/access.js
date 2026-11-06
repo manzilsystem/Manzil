@@ -449,12 +449,31 @@ function renderOwnerPortal() {
             </div>
         </article>`).join('') : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إشعارات حتى الآن.</p>';
 
+    const activeOwnerTheme = normalizeThemeName(state.currentTheme) || 'dark';
+    const ownerThemeCard = `
+        <section class="app-card border rounded-3xl p-4 space-y-3" aria-labelledby="ownerThemeTitle">
+            <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <h3 id="ownerThemeTitle" class="font-bold text-sm">مظهرك المفضل</h3>
+                    <p class="text-[10px] text-slate-500 mt-1">يُحفظ لحسابك على كل أجهزتك، ولا يغيّر مظهر بقية الملاك.</p>
+                </div>
+                <span id="ownerThemeCurrent" class="shrink-0 text-[10px] font-bold text-indigo-300">${esc(MANZIL_THEME_NAMES[activeOwnerTheme])}</span>
+            </div>
+            <div class="owner-theme-grid" role="group" aria-label="اختيار ثيم بوابة المالك">
+                ${MANZIL_THEME_LIST.map(theme => `
+                <button type="button" class="owner-theme-option${theme === activeOwnerTheme ? ' active' : ''}" data-owner-theme-option="${theme}" aria-pressed="${theme === activeOwnerTheme}" onclick="setOwnerTheme('${theme}')">
+                    <span class="owner-theme-swatch theme-preview-${theme}" aria-hidden="true"></span>
+                    <span>${esc(MANZIL_THEME_NAMES[theme])}</span>
+                </button>`).join('')}
+            </div>
+        </section>`;
     portal.innerHTML = `
         <div class="app-card border rounded-3xl p-5 sm:p-6 space-y-2">
             <p class="text-[10px] font-bold text-indigo-400">بوابة المالك • قراءة فقط</p>
             <h2 id="ownerPortalTitle" class="text-xl font-black">أهلاً ${esc(resident.name)}</h2>
             <p class="text-xs text-slate-400">الشقة ${esc(resident.apartmentNumber)}${state.buildingName ? ` • ${esc(state.buildingName)}` : ''}</p>
         </div>
+        ${ownerThemeCard}
         ${managerContact}
         <section class="app-card border rounded-3xl p-5 space-y-4" aria-label="ملخص حساب الشقة">
             <div class="flex items-center justify-between"><h3 class="font-bold text-sm">ملخص ${esc(month)}</h3><span class="text-[10px] text-slate-500">اشتراكك الشهري ${fmtNum(dueThisMonth)} ج.م</span></div>
@@ -505,6 +524,47 @@ function renderOwnerPortal() {
     updateAccessSwitchButton();
 }
 
+
+function updateOwnerThemeSelection() {
+    const active = normalizeThemeName(state.currentTheme) || 'dark';
+    document.querySelectorAll('[data-owner-theme-option]').forEach(button => {
+        const el = /** @type {HTMLElement} */ (button);
+        const isActive = el.dataset.ownerThemeOption === active;
+        el.classList.toggle('active', isActive);
+        el.setAttribute('aria-pressed', String(isActive));
+    });
+    const label = document.getElementById('ownerThemeCurrent');
+    if (label) label.textContent = MANZIL_THEME_NAMES[active];
+}
+
+async function persistOwnerTheme(theme) {
+    const { error } = await supabaseClient.rpc('set_my_theme', { p_theme: theme });
+    if (error) throw error;
+}
+
+async function setOwnerTheme(theme) {
+    if (currentUserRole !== 'owner') {
+        toast('اختيار المظهر متاح من بوابة المالك.', 'error');
+        return;
+    }
+    const next = normalizeThemeName(theme);
+    if (!next) return;
+    const previous = normalizeThemeName(state.currentTheme) || 'dark';
+    if (next === previous) return;
+    state.currentTheme = next;
+    applyThemeToDocument(next);
+    updateOwnerThemeSelection();
+    try {
+        await persistOwnerTheme(next);
+        toast('تم حفظ المظهر لحسابك.', 'success');
+    } catch (error) {
+        state.currentTheme = previous;
+        applyThemeToDocument(previous);
+        updateOwnerThemeSelection();
+        toast('تعذر حفظ المظهر. حاول مرة أخرى.', 'error');
+        console.error('Owner theme error:', error);
+    }
+}
 
 async function markOwnerNotificationRead(notificationId) {
     if (currentUserRole !== 'owner' || !activeSession || !activeBuildingId) return;

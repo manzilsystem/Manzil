@@ -114,6 +114,9 @@ test('owner portal uses the effective subscription rate for the current month', 
         esc: value => String(value ?? ''),
         fmtNum: value => String(value),
         formatDate: () => '',
+        normalizeThemeName: value => ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise'].includes(value) ? value : null,
+        MANZIL_THEME_LIST: ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise'],
+        MANZIL_THEME_NAMES: { dark: 'ليلي', light: 'نهاري', emerald: 'زمردي', ocean: 'محيطي', sand: 'رملي', turquoise: 'فيروزي' },
         updateAccessSwitchButton() {},
     };
     const renderOwnerPortal = vm.runInNewContext(`${accessSource}\nrenderOwnerPortal`, sandbox, {
