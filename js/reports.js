@@ -720,12 +720,21 @@ function onPeriodReportRangeChange() {
     invalidatePeriodReportPreview();
 }
 
+const PERIOD_REPORT_MAX_MONTHS = 60;
+
+function getPeriodMonthSpan(fromKey, toKey) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fromKey) || !/^\d{4}-\d{2}-\d{2}$/.test(toKey)) return null;
+    return (Number(toKey.slice(0, 4)) - Number(fromKey.slice(0, 4))) * 12 +
+        (Number(toKey.slice(5, 7)) - Number(fromKey.slice(5, 7))) + 1;
+}
+
 function buildPeriodMonthKeys(fromMonth, toMonth) {
     const fromKey = monthLabelToKey(fromMonth);
     const toKey = monthLabelToKey(toMonth);
     if (!fromKey || !toKey || fromKey > toKey) return null;
+    if (getPeriodMonthSpan(fromKey, toKey) > PERIOD_REPORT_MAX_MONTHS) return null;
     const keys = [];
-    for (let key = fromKey; key <= toKey && keys.length < 60; key = shiftStatementMonthKey(key, 1)) keys.push(key);
+    for (let key = fromKey; key <= toKey; key = shiftStatementMonthKey(key, 1)) keys.push(key);
     return keys.length ? keys : null;
 }
 
@@ -980,6 +989,17 @@ function renderPeriodReportHtml(report) {
         </div>`;
 }
 
+function getPeriodRangeError(fromMonth, toMonth) {
+    const fromKey = monthLabelToKey(fromMonth);
+    const toKey = monthLabelToKey(toMonth);
+    if (!fromKey || !toKey) return 'الفترة غير صحيحة: اختر شهر البداية والنهاية.';
+    if (fromKey > toKey) return 'الفترة غير صحيحة: شهر البداية بعد شهر النهاية.';
+    if (getPeriodMonthSpan(fromKey, toKey) > PERIOD_REPORT_MAX_MONTHS) {
+        return `أقصى مدة لتقرير الفترة ${PERIOD_REPORT_MAX_MONTHS} شهرًا. اختر فترة أقصر.`;
+    }
+    return '';
+}
+
 function generatePeriodReport() {
     if (!requireManager()) return;
     const { from, to } = getPeriodReportSelection();
@@ -987,8 +1007,9 @@ function generatePeriodReport() {
     const purposeFilter = getReportPurposeFilter('periodReportPurpose');
     const report = buildPeriodReport(from, to, purposeFilter);
     if (!report) {
-        clearPeriodReportPreview('الفترة غير صحيحة: شهر البداية بعد شهر النهاية.');
-        toast('شهر البداية بعد شهر النهاية','error');
+        const message = getPeriodRangeError(from, to) || 'الفترة غير صحيحة.';
+        clearPeriodReportPreview(message);
+        toast(message, 'error');
         return;
     }
     const preview = document.getElementById('periodReportPreview');
