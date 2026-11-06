@@ -2543,6 +2543,7 @@ function openIncomeEditModal(id) {
     monthSelect.innerHTML = crudIncomeMonthLabels(resident, [payment.month])
         .map(month => '<option value="' + crudHtmlEscape(month) + '">' + crudHtmlEscape(crudIncomeMonthOptionLabel(resident, month)) + '</option>').join('');
     monthSelect.value = payment.month;
+    monthSelect.disabled = Boolean(payment.settlementAdjustmentId);
     /** @type {any} */ (document.getElementById('incomeEditAmount')).value = payment.amount;
     const paymentMethodSelect = /** @type {any} */ (document.getElementById('incomeEditPaymentMethod'));
     if (typeof populatePaymentMethodOptions === 'function') {
@@ -2562,8 +2563,11 @@ function openIncomeEditModal(id) {
     const distributionNote = String(payment.notes || '').match(/^(دفعة موزعة\s+[A-Z0-9]+\s+\(\d+\/\d+\))(?:\s+·\s+([\s\S]*))?$/i);
     const mixedBatch = isMixedIncomeBatch(payment);
     if (purposeSelect) {
-        purposeSelect.disabled = Boolean(distributionNote);
-        if (distributionNote) {
+        purposeSelect.disabled = Boolean(distributionNote || payment.settlementAdjustmentId);
+        if (payment.settlementAdjustmentId) {
+            const hint = document.getElementById('incomeEditPurposeHint');
+            if (hint) hint.textContent = 'دفعة مرتبطة باتفاق تسوية؛ لا يمكن تغيير غرضها أو شهرها أو رابط التسوية.';
+        } else if (distributionNote) {
             purposeSelect.value = crudIncomePurposeFormCode(payment.purposeCode);
             const hint = document.getElementById('incomeEditPurposeHint');
             if (hint) hint.textContent = mixedBatch
@@ -2643,6 +2647,19 @@ async function handleIncomeEditSubmit(event) {
     const createdMonth = getIncomeBillingStartKey(resident);
     if (createdMonth && monthKey.slice(0, 7) < createdMonth) {
         toast('لا يمكن تسجيل تحصيل قبل بداية محاسبة الشقة.', 'error');
+        return;
+    }
+    if (payment.settlementAdjustmentId) {
+        const settlement = (Array.isArray(state.adjustments) ? state.adjustments : [])
+            .find(item => item.id === payment.settlementAdjustmentId && item.kind === 'settlement');
+        const availableCents = settlement
+            ? Math.round(getSettlementRemainingAmount(settlement, payment.id) * 100) : 0;
+        if (purpose !== 'settlement' || month !== payment.month || !settlement || amountCents > availableCents) {
+            toast('لا يمكن تغيير رابط أو شهر دفعة التسوية، ولا يجوز أن يتجاوز تعديلها المتبقي في الاتفاق.', 'error');
+            return;
+        }
+    } else if (purpose === 'settlement') {
+        toast('لا يمكن تحويل تحصيل عادي إلى سداد تسوية من شاشة التعديل. سجّل دفعة جديدة من اتفاق التسوية.', 'error');
         return;
     }
     if (purpose === 'subscription') {
