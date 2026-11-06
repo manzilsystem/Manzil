@@ -52,6 +52,7 @@ function createProfileHarness(isManager = true) {
     };
     const state = {
         defaultSubscription: 100,
+        adjustments: [],
         residents: [resident],
         income: [
             { id: 'payment-1', residentId: 'resident-1', month: 'أكتوبر 2026', amount: 100, paymentMethod: 'cash', date: '2026-10-02T00:00:00.000Z', notes: 'سداد يدوي' },
@@ -65,6 +66,7 @@ function createProfileHarness(isManager = true) {
         getSubscriptionAmountForMonth: () => 100,
         getPaidAmountForMonth: () => 50,
         getMonthOutstanding: (_resident, month) => month === 'نوفمبر 2026' ? 50 : 100,
+        getAdjustmentAmountForMonth: () => 0,
         calculateCumulativeDebt: () => ({ count: 2, totalDebt: 200, unpaidMonths: ['سبتمبر 2026', 'أكتوبر 2026'] }),
         isSubscriptionMonthOverdue: () => true,
         getIncomePaymentMethodLabel: () => 'نقدًا',
@@ -153,5 +155,5 @@ test('profile collection action opens the income form prefilled for its unit wit
 });
 
 test('profile feature refreshes the installed application cache', () => {
-    assert.match(sw, /CACHE_NAME = 'manzil-v123'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v124'/);
 });
