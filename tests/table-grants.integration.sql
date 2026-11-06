@@ -22,13 +22,13 @@ BEGIN
         RAISE EXCEPTION 'authenticated audit log privileges are not append-only';
     END IF;
 
-    FOREACH v_table IN ARRAY ARRAY['residents', 'income', 'expenses', 'resident_adjustments'] LOOP
+    FOREACH v_table IN ARRAY ARRAY['residents', 'income', 'expenses', 'resident_adjustments', 'resident_lease_details'] LOOP
         IF NOT has_table_privilege('authenticated', format('public.%I', v_table), 'SELECT')
            OR has_table_privilege('authenticated', format('public.%I', v_table), 'INSERT')
            OR has_table_privilege('authenticated', format('public.%I', v_table), 'UPDATE')
            OR has_table_privilege('authenticated', format('public.%I', v_table), 'DELETE')
            OR has_table_privilege('authenticated', format('public.%I', v_table), 'TRUNCATE') THEN
-            RAISE EXCEPTION 'authenticated direct financial table privileges are too broad: %', v_table;
+            RAISE EXCEPTION 'authenticated direct table privileges are too broad: %', v_table;
         END IF;
     END LOOP;
 END;

@@ -392,7 +392,7 @@ DECLARE
     v_building uuid := '20000000-0000-4000-8000-000000000001';
     v_resident uuid := '30000000-0000-4000-8000-000000000001';
     v_manager uuid := '10000000-0000-4000-8000-000000000001';
-    v_owner uuid := '10000000-0000-4000-8000-000000000002';
+    v_owner uuid := '10000000-0000-4000-8000-000000000004';
     v_version bigint;
     v_summary jsonb;
     v_transfer jsonb;
@@ -875,6 +875,136 @@ $income_notification_sync$;
 \ir ../supabase/migrations/20261106022840_snapshot_resident_adjustments.sql
 \ir ../supabase/migrations/20261106032231_resident_billing_start.sql
 \ir ../supabase/migrations/20261106203433_partial_settlement_income.sql
+
+\ir ../supabase/migrations/20261106215500_resident_lease_details.sql
+
+-- Tenant details are persisted atomically but remain invisible to unit owners.
+RESET ROLE;
+INSERT INTO auth.users (id)
+VALUES ('10000000-0000-4000-8000-000000000004');
+INSERT INTO public.profiles (id)
+VALUES ('10000000-0000-4000-8000-000000000004');
+INSERT INTO public.buildings (id, name)
+VALUES ('20000000-0000-4000-8000-000000000005', 'Tenant details integration');
+INSERT INTO public.building_members (building_id, user_id, role)
+VALUES ('20000000-0000-4000-8000-000000000005',
+        '10000000-0000-4000-8000-000000000001', 'manager');
+
+SET request.jwt.claim.sub = '10000000-0000-4000-8000-000000000001';
+SET ROLE authenticated;
+DO $tenant_details$
+DECLARE
+    v_building uuid := '20000000-0000-4000-8000-000000000005';
+    v_resident uuid := '30000000-0000-4000-8000-000000000005';
+    v_manager uuid := '10000000-0000-4000-8000-000000000001';
+    v_owner uuid := '10000000-0000-4000-8000-000000000004';
+    v_version bigint;
+    v_payload jsonb;
+    v_legacy_payload jsonb;
+    v_result jsonb;
+    v_visible integer;
+BEGIN
+    v_payload := jsonb_build_object(
+        'building', jsonb_build_object('name', 'Tenant details integration'),
+        'residents', jsonb_build_array(jsonb_build_object(
+            'id', v_resident,
+            'user_id', v_owner,
+            'name', 'Owner A',
+            'apartment_number', 'T1',
+            'monthly_amount', 100,
+            'created_at', '2026-11-06T10:00:00Z',
+            'is_rented', true,
+            'tenant_name', 'Tenant A',
+            'tenant_phone', '01000000000',
+            'lease_start', '2026-01-01',
+            'lease_end', '2027-01-01',
+            'rent_amount', 5000,
+            'deposit_amount', 10000
+        )),
+        'income', '[]'::jsonb,
+        'expenses', '[]'::jsonb,
+        'notices', '[]'::jsonb,
+        'audit_logs', '[]'::jsonb
+    );
+
+    SELECT state_version INTO v_version FROM public.buildings WHERE id = v_building;
+    v_result := public.persist_building_snapshot(v_building, v_version, gen_random_uuid(), v_payload);
+    IF v_result->>'ok' <> 'true' THEN
+        RAISE EXCEPTION 'tenant details snapshot failed: %', v_result;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM public.resident_lease_details
+        WHERE resident_id = v_resident AND building_id = v_building
+          AND is_rented IS TRUE AND tenant_name = 'Tenant A'
+          AND tenant_phone = '01000000000'
+          AND lease_start = DATE '2026-01-01'
+          AND lease_end = DATE '2027-01-01'
+          AND rent_amount = 5000 AND deposit_amount = 10000
+    ) THEN
+        RAISE EXCEPTION 'tenant details were not persisted by the atomic snapshot';
+    END IF;
+
+    IF has_table_privilege('authenticated', 'public.resident_lease_details', 'INSERT')
+       OR has_table_privilege('authenticated', 'public.resident_lease_details', 'UPDATE')
+       OR has_table_privilege('authenticated', 'public.resident_lease_details', 'DELETE') THEN
+        RAISE EXCEPTION 'authenticated users can write tenant details directly';
+    END IF;
+
+    PERFORM set_config('request.jwt.claim.sub', v_owner::text, true);
+    SELECT count(*) INTO v_visible FROM public.resident_lease_details;
+    IF v_visible <> 0 THEN
+        RAISE EXCEPTION 'unit owner can read manager-only tenant details (saw %)', v_visible;
+    END IF;
+
+    BEGIN
+        INSERT INTO public.resident_lease_details
+            (building_id, resident_id, is_rented, tenant_name)
+        VALUES (v_building, v_resident, true, 'Direct write');
+        RAISE EXCEPTION 'authenticated direct tenant-detail write was accepted';
+    EXCEPTION WHEN insufficient_privilege THEN
+        NULL;
+    END;
+
+    PERFORM set_config('request.jwt.claim.sub', v_manager::text, true);
+    SELECT state_version INTO v_version FROM public.buildings WHERE id = v_building;
+    v_legacy_payload := jsonb_set(v_payload, '{residents,0}',
+        (v_payload#>'{residents,0}') - ARRAY[
+            'is_rented','tenant_name','tenant_phone','lease_start','lease_end','rent_amount','deposit_amount'
+        ]::text[]);
+    v_result := public.persist_building_snapshot(v_building, v_version, gen_random_uuid(), v_legacy_payload);
+    IF v_result->>'ok' <> 'true'
+       OR NOT EXISTS (
+           SELECT 1 FROM public.resident_lease_details
+           WHERE resident_id = v_resident AND tenant_name = 'Tenant A'
+             AND rent_amount = 5000 AND is_rented IS TRUE
+       ) THEN
+        RAISE EXCEPTION 'older snapshot payload erased tenant details';
+    END IF;
+
+    SELECT state_version INTO v_version FROM public.buildings WHERE id = v_building;
+    BEGIN
+        PERFORM public.persist_building_snapshot(
+            v_building, v_version, gen_random_uuid(),
+            jsonb_set(v_payload, '{residents,0,rent_amount}', '-1')
+        );
+        RAISE EXCEPTION 'negative tenant rent amount was accepted';
+    EXCEPTION WHEN check_violation THEN
+        NULL;
+    END;
+
+    IF (SELECT state_version FROM public.buildings WHERE id = v_building) <> v_version
+       OR NOT EXISTS (
+           SELECT 1 FROM public.resident_lease_details
+           WHERE resident_id = v_resident AND rent_amount = 5000
+       ) THEN
+        RAISE EXCEPTION 'invalid tenant details did not roll back the snapshot';
+    END IF;
+END;
+$tenant_details$;
+RESET ROLE;
+
+SELECT 'manager-only tenant details snapshot and RLS tests passed' AS result;
 
 -- An editable billing start month may precede the creation date, survives a
 -- snapshot that omits the field (older clients), and rejects mid-month dates.
