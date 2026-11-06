@@ -310,8 +310,10 @@ function renderOwnerPortal() {
         return;
     }
     const month = getCurrentMonth();
-    const paidThisMonth = getPaidAmountForMonth(resident.id, month);
-    const dueThisMonth = getSubscriptionAmountForMonth(resident, month);
+    const paidThisMonth = typeof getMonthlyDuePaidAmount === 'function'
+        ? getMonthlyDuePaidAmount(resident.id, month) : getPaidAmountForMonth(resident.id, month);
+    const dueThisMonth = typeof getMonthlyDueAmountForMonth === 'function'
+        ? getMonthlyDueAmountForMonth(resident, month) : getSubscriptionAmountForMonth(resident, month);
     const remainingThisMonth = getMonthOutstanding(resident, month);
     const debt = calculateCumulativeDebt(resident.id);
     const paymentMethodLabels = typeof INCOME_PAYMENT_METHOD_LABELS !== 'undefined'
