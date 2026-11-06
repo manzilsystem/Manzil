@@ -12,6 +12,11 @@ const atomic = fs.readFileSync(path.join(root, 'tests/atomic-persistence.integra
 const integration = fs.readFileSync(path.join(root, 'tests/partial-settlement.integration.sql'), 'utf8');
 const tableGrants = fs.readFileSync(path.join(root, 'tests/table-grants.integration.sql'), 'utf8');
 const restore = fs.readFileSync(path.join(root, 'tests/post-restore-verify.sql'), 'utf8');
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const state = fs.readFileSync(path.join(root, 'js/state.js'), 'utf8');
+const crud = fs.readFileSync(path.join(root, 'js/crud.js'), 'utf8');
+const supabase = fs.readFileSync(path.join(root, 'js/supabase.js'), 'utf8');
+const reports = fs.readFileSync(path.join(root, 'js/reports.js'), 'utf8');
 
 test('settlement income has a nullable FK and remains in the existing income ledger', () => {
     assert.match(migration, /ADD COLUMN IF NOT EXISTS settlement_adjustment_id uuid/);
@@ -41,4 +46,16 @@ test('PostgreSQL integration harness applies and tests the settlement migration'
 test('restore verification requires the settlement link and its index', () => {
     assert.match(restore, /settlement_adjustment_id/);
     assert.match(restore, /income_settlement_adjustment_id_idx/);
+});
+
+test('application links each settlement payment to one agreement and displays the remaining balance', () => {
+    assert.match(html, /id="incomeSettlementSelect"/);
+    assert.match(html, /<option value="settlement">سداد تسوية<\/option>/);
+    assert.match(html, /<option value="settlement">تسوية متفق عليها<\/option>/);
+    assert.match(crud, /settlementAdjustmentId: row\.settlementAdjustmentId/);
+    assert.match(crud, /getSettlementRemainingAmount\(settlementAdjustment\)/);
+    assert.match(state, /function getSettlementRemainingAmount/);
+    assert.match(supabase, /settlement_adjustment_id: i\.settlementAdjustmentId/);
+    assert.match(reports, /settlementAgreedCents/);
+    assert.match(reports, /settlementRemainingCents/);
 });
