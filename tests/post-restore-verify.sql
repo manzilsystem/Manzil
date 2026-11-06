@@ -23,11 +23,11 @@ BEGIN
         'audit_logs', 'client_errors', 'building_mutations',
         'cash_transfers', 'notifications', 'profiles',
         'resident_subscription_rates', 'resident_subscription_rate_changes',
-        'resident_adjustments'
+        'resident_adjustments', 'resident_lease_details'
       );
     
-    IF table_count < 14 THEN
-        RAISE EXCEPTION 'Missing core tables: found %, expected at least 14', table_count;
+    IF table_count < 15 THEN
+        RAISE EXCEPTION 'Missing core tables: found %, expected at least 15', table_count;
     END IF;
     
     RAISE NOTICE 'Core tables verified: % found', table_count;
@@ -46,7 +46,7 @@ BEGIN
         'audit_logs', 'client_errors', 'building_mutations',
         'cash_transfers', 'notifications', 'profiles',
         'resident_subscription_rates', 'resident_subscription_rate_changes',
-        'resident_adjustments'
+        'resident_adjustments', 'resident_lease_details'
       )
       AND rowsecurity = false;
     
@@ -257,6 +257,37 @@ BEGIN
     RAISE NOTICE 'Notifications table verified';
 END $$;
 
+
+-- Verify tenant and lease details are isolated from owner-readable resident data.
+DO $tenant_restore$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'public'
+          AND tablename = 'resident_lease_details'
+          AND policyname = 'resident_lease_details_manager_select'
+    ) THEN
+        RAISE EXCEPTION 'resident_lease_details manager-only policy missing';
+    END IF;
+
+    IF NOT has_table_privilege('authenticated', 'public.resident_lease_details', 'SELECT')
+       OR has_table_privilege('authenticated', 'public.resident_lease_details', 'INSERT')
+       OR has_table_privilege('authenticated', 'public.resident_lease_details', 'UPDATE')
+       OR has_table_privilege('authenticated', 'public.resident_lease_details', 'DELETE') THEN
+        RAISE EXCEPTION 'resident_lease_details grants are not manager-read-only';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_proc
+        WHERE oid = 'public.persist_building_snapshot(uuid,bigint,uuid,jsonb)'::regprocedure
+          AND prosecdef IS TRUE
+    ) THEN
+        RAISE EXCEPTION 'snapshot wrapper is not security definer for atomic tenant persistence';
+    END IF;
+
+    RAISE NOTICE 'Manager-only tenant details verified';
+END $tenant_restore$;
+
 -- Verify at least one building exists (for seeded data)
 DO $$
 DECLARE
@@ -287,7 +318,8 @@ DECLARE
         'resident_adjustments_building_month_idx',
         'resident_adjustments_resident_month_idx',
         'notifications_dedupe_scope_unique',
-        'notifications_target_user_id_idx'
+        'notifications_target_user_id_idx',
+        'resident_lease_details_building_idx'
     ];
     missing_indexes text[];
 BEGIN

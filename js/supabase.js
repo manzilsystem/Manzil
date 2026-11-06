@@ -194,6 +194,13 @@ function mapResident(row) {
         floor: row.floor || '',
         phone: row.phone || '',
         monthlyAmount: Number(row.monthly_amount) || 0,
+        isRented: false,
+        tenantName: '',
+        tenantPhone: '',
+        leaseStart: null,
+        leaseEnd: null,
+        rentAmount: null,
+        depositAmount: null,
         notes: row.notes || '',
         createdAt: row.created_at,
         billingStartMonth: row.billing_start_month || null,
@@ -537,6 +544,11 @@ async function loadState() {
             .eq('building_id', activeBuildingId)
             .order('changed_at', { ascending: false })
         : Promise.resolve({ data: [], error: null });
+    const residentLeaseDetailsQuery = isManager
+        ? supabaseClient.from('resident_lease_details')
+            .select('resident_id,is_rented,tenant_name,tenant_phone,lease_start,lease_end,rent_amount,deposit_amount')
+            .eq('building_id', activeBuildingId)
+        : Promise.resolve({ data: [], error: null });
     const residentAdjustmentsQuery = supabaseClient.from('resident_adjustments')
         .select('id,resident_id,effective_month,kind,amount,reason,created_at')
         .eq('building_id', activeBuildingId)
@@ -544,7 +556,8 @@ async function loadState() {
     const [
         residents, income, expenses, notices, auditLogs, residentNotes,
         ownerNotificationsResult, cashboxSummaryResult,
-        subscriptionRatesResult, subscriptionRateHistoryResult, residentAdjustmentsResult
+        subscriptionRatesResult, subscriptionRateHistoryResult, residentAdjustmentsResult,
+        residentLeaseDetailsResult
     ] = await Promise.all([
         supabaseQuery('residents', residentColumns),
         supabaseQueryAllById('income', incomeColumns),
@@ -556,7 +569,8 @@ async function loadState() {
         cashboxSummaryQuery,
         subscriptionRatesQuery,
         subscriptionRateHistoryQuery,
-        residentAdjustmentsQuery
+        residentAdjustmentsQuery,
+        residentLeaseDetailsQuery
     ]);
     if (!isCurrentAuthSession(session, generation)) return false;
     if (ownerNotificationsResult.error) throw ownerNotificationsResult.error;
@@ -564,6 +578,7 @@ async function loadState() {
     if (subscriptionRatesResult.error) throw subscriptionRatesResult.error;
     if (subscriptionRateHistoryResult.error) throw subscriptionRateHistoryResult.error;
     if (residentAdjustmentsResult.error) throw residentAdjustmentsResult.error;
+    if (residentLeaseDetailsResult.error) throw residentLeaseDetailsResult.error;
     const cashboxSummary = currentUserRole === 'manager'
         ? normalizeCashboxSummary(cashboxSummaryResult.data)
         : { balances: { main: 0, development: 0, emergency: 0 }, transfers: [] };
@@ -594,8 +609,18 @@ async function loadState() {
     };
     if (currentUserRole === 'manager') {
         const notesByResident = new Map(residentNotes.map(row => [row.resident_id, row.notes || '']));
+        const leaseDetailsByResident = new Map((residentLeaseDetailsResult.data || []).map(row => [row.resident_id, row]));
         state.residents.forEach(resident => {
             resident.notes = notesByResident.get(resident.id) || '';
+            const lease = leaseDetailsByResident.get(resident.id);
+            if (!lease) return;
+            resident.isRented = lease.is_rented === true;
+            resident.tenantName = lease.tenant_name || '';
+            resident.tenantPhone = lease.tenant_phone || '';
+            resident.leaseStart = lease.lease_start || null;
+            resident.leaseEnd = lease.lease_end || null;
+            resident.rentAmount = lease.rent_amount == null ? null : Number(lease.rent_amount);
+            resident.depositAmount = lease.deposit_amount == null ? null : Number(lease.deposit_amount);
         });
     }
     persistedAuditLogIds = new Set(auditLogs.map(row => row.id));
@@ -636,7 +661,16 @@ async function saveState() {
             apartment_number: r.apartmentNumber, floor: r.floor || null, phone: r.phone || null,
             monthly_amount: Number(r.monthlyAmount) || 0, notes: r.notes || null,
             created_at: toSupabaseTimestamp(r.createdAt),
-            billing_start_month: r.billingStartMonth || null
+            billing_start_month: r.billingStartMonth || null,
+            ...(r.isRented !== undefined ? {
+                is_rented: r.isRented === true,
+                tenant_name: r.tenantName || null,
+                tenant_phone: r.tenantPhone || null,
+                lease_start: r.leaseStart || null,
+                lease_end: r.leaseEnd || null,
+                rent_amount: r.rentAmount === '' || r.rentAmount == null ? null : Number(r.rentAmount),
+                deposit_amount: r.depositAmount === '' || r.depositAmount == null ? null : Number(r.depositAmount)
+            } : {})
         })),
         income: state.income.map(i => ({
             id: i.id, resident_id: i.residentId, amount: Number(i.amount) || 0,
