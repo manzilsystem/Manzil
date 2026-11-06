@@ -294,7 +294,7 @@
                 <div>
                     <p class="report-section-eyebrow"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> مركز التقارير</p>
                     <h2 class="report-section-title">التقارير والكشوفات</h2>
-                    <p class="report-section-subtitle">تقرير شهري للملاك، كشف حساب لكل ساكن، تقرير وحدة، إقفال شهري، ومتأخرات — وكل الأرقام تُحسب من نفس بيانات التطبيق.</p>
+                    <p class="report-section-subtitle">تقرير شهري للملاك، تقرير فترة للمصاريف، كشف حساب لكل ساكن، تقرير وحدة، إقفال شهري، ومتأخرات — وكل الأرقام تُحسب من نفس بيانات التطبيق.</p>
                 </div>
                 <nav class="report-nav no-print" aria-label="أنواع التقارير" onkeydown="handleReportTabKeydown(event)">
                     <button type="button" class="report-nav-item report-tone-indigo" data-report-nav="landlord" aria-controls="landlordReportPrint" onclick="switchReportTab('landlord')">
@@ -304,6 +304,10 @@
                     <button type="button" class="report-nav-item report-tone-sky" data-report-nav="period" aria-controls="periodReportCard" onclick="switchReportTab('period')">
                         <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-chart-column"></i></span>
                         <span class="report-nav-copy"><b>تقرير الفترة</b><small>عدة أشهر · PDF وCSV</small></span>
+                    </button>
+                    <button type="button" class="report-nav-item report-tone-rose" data-report-nav="expenses" aria-controls="expensesReportCard" onclick="switchReportTab('expenses')">
+                        <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-receipt"></i></span>
+                        <span class="report-nav-copy"><b>تقرير المصروفات</b><small>فترة · طباعة وCSV</small></span>
                     </button>
                     <button type="button" class="report-nav-item report-tone-emerald" data-report-nav="statement" aria-controls="residentStatementCard" onclick="switchReportTab('statement')">
                         <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-user-check"></i></span>
@@ -416,6 +420,45 @@
                     <button type="button" id="periodReportExportBtn" onclick="exportPeriodReportCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                 </div>
                 <p class="report-hint no-print">تغيير الفترة أو البيانات يعطّل الطباعة والتصدير حتى معاينة جديدة، والأرقام تطابق تقرير الملاك لكل شهر. أقصى مدة 60 شهرًا.</p>
+            </div>
+            <div id="expensesReportCard" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
+                <div class="report-card-head no-print">
+                    <div class="report-card-heading">
+                        <span class="report-card-icon report-tone-rose" aria-hidden="true"><i class="fa-solid fa-receipt"></i></span>
+                        <div class="min-w-0">
+                            <h2 class="report-card-title">تقرير المصروفات</h2>
+                            <p class="report-card-subtitle">مصروفات فترة كاملة حسب الصندوق والتصنيف، مع التفاصيل والتصدير.</p>
+                        </div>
+                    </div>
+                    <span class="report-card-badge report-tone-rose">فترة</span>
+                </div>
+                <div class="report-toolbar no-print">
+                    <label class="report-field" for="expensesReportFrom">
+                        <span class="report-field-label">من شهر</span>
+                        <select id="expensesReportFrom" aria-label="من شهر" onchange="onExpensesReportRangeChange()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field" for="expensesReportTo">
+                        <span class="report-field-label">إلى شهر</span>
+                        <select id="expensesReportTo" aria-label="إلى شهر" onchange="onExpensesReportRangeChange()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field report-field-narrow" for="expensesReportCashAccount">
+                        <span class="report-field-label">الصندوق</span>
+                        <select id="expensesReportCashAccount" aria-label="فلتر الصندوق" onchange="invalidateExpensesReportPreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field report-field-narrow" for="expensesReportCategory">
+                        <span class="report-field-label">التصنيف</span>
+                        <select id="expensesReportCategory" aria-label="فلتر التصنيف" onchange="invalidateExpensesReportPreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <button type="button" onclick="generateExpensesReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
+                </div>
+                <div id="expensesReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
+                    <p class="report-preview-empty">اضغط «معاينة» لعرض مصروفات الفترة المحددة.</p>
+                </div>
+                <div class="report-actions report-actions-2 no-print">
+                    <button type="button" id="expensesReportPrintBtn" onclick="printExpensesReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+                    <button type="button" id="expensesReportExportBtn" onclick="exportExpensesReportCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
+                </div>
+                <p class="report-hint no-print">تغيير الفترة أو الصندوق أو التصنيف يعطّل الطباعة والتصدير حتى معاينة جديدة. أقصى مدة 60 شهرًا.</p>
             </div>
             <div id="residentStatementCard" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
                 <div class="report-card-head no-print">

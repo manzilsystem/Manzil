@@ -642,6 +642,52 @@ test('period fund filter scopes income and expenses and exports fund columns', a
     await expect(page.locator('#periodReportExportBtn')).toBeDisabled();
 });
 
+test('expenses report scopes by period, fund and category and exports csv', async ({ page }) => {
+    await openReports(page);
+    await page.evaluate(() => {
+        state.expenses.push(
+            { id: 'e1', month: 'يناير 2024', title: 'دهانات', amount: 5, category: 'تطوير', cashAccountCode: 'development' },
+            { id: 'e2', month: 'يناير 2024', title: 'كهرباء', amount: 10, category: 'مرافق', cashAccountCode: 'main' },
+            { id: 'e3', month: 'فبراير 2024', title: 'بلاط', amount: 25, category: 'تطوير', cashAccountCode: 'development' }
+        );
+        renderAll();
+    });
+
+    await openReportPanel(page, 'expenses');
+    await page.locator('#expensesReportFrom').selectOption('يناير 2024');
+    await page.locator('#expensesReportTo').selectOption('فبراير 2024');
+    await page.locator('#expensesReportCashAccount').selectOption('development');
+    await page.locator('#expensesReportCategory').selectOption('تطوير');
+    await page.locator('#expensesReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+
+    const preview = page.locator('#expensesReportPreview');
+    await expect(preview).toContainText('تقرير المصروفات يناير 2024 – فبراير 2024');
+    await expect(preview).toContainText('الصندوق: صندوق التطوير');
+    await expect(preview).toContainText('التصنيف: تطوير');
+    await expect(preview.locator('.report-stat', { hasText: 'إجمالي المصروف' })).toContainText('30 ج.م');
+    await expect(preview).toContainText('المصروفات معروضة لصندوق «صندوق التطوير» فقط');
+    await expect(preview).toContainText('المصروفات معروضة لتصنيف «تطوير» فقط');
+    await expect(preview).not.toContainText('كهرباء');
+    await expect(page.locator('#expensesReportExportBtn')).toBeEnabled();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#expensesReportExportBtn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('manzil_expenses_2024-01_2024-02_development_تطوير.csv');
+    const stream = await download.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const csv = Buffer.concat(chunks).toString('utf8');
+    expect(csv).toContain('"الفترة","يناير 2024 – فبراير 2024","الصندوق","صندوق التطوير","التصنيف","تطوير"');
+    expect(csv).toContain('"فبراير 2024","بلاط","تطوير","صندوق التطوير","25"');
+    expect(csv).toContain('"الإجمالي","","","","30"');
+    expect(csv).not.toContain('كهرباء');
+
+    await page.locator('#expensesReportCategory').selectOption('');
+    await expect(preview).toContainText('تغيّرت الفترة أو الفلتر');
+    await expect(page.locator('#expensesReportExportBtn')).toBeDisabled();
+});
+
 test('statement purpose filter scopes movements and hides the dues ledger', async ({ page }) => {
     await openReports(page);
     await page.evaluate(() => {

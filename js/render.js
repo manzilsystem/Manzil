@@ -52,6 +52,7 @@ function renderAll() {
     invalidateLandlordReportIfStale();
     invalidateResidentStatementIfStale();
     invalidatePeriodReportIfStale();
+    if (typeof invalidateExpensesReportIfStale === 'function') invalidateExpensesReportIfStale();
     syncReportNavStatus();
     renderCashbox();
 }
@@ -158,6 +159,7 @@ function populateSelects() {
     if (typeof populateIncomePurposeOptions === 'function') populateIncomePurposeOptions(purposeSelect, purposeSelect?.value || 'subscription');
     populateStatementResidentSelect();
     populatePeriodReportSelects(months, current);
+    if (typeof populateExpensesReportFilters === 'function') populateExpensesReportFilters(months, current);
     if (typeof populateReportPurposeFilters === 'function') populateReportPurposeFilters();
     if (typeof populateReportCashAccountFilters === 'function') populateReportCashAccountFilters();
 }

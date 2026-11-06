@@ -505,6 +505,13 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     body.print-period #periodReportCard .statement-table th,
     body.print-period #periodReportCard .statement-table td { border-color: #cbd5e1 !important; }
     body.print-period #periodReportCard .report-table-wrap { overflow: visible !important; }
+    body.print-expenses #printableArea > section:not(#tab-reports) { display: none !important; }
+    body.print-expenses #tab-reports > :not(#expensesReportCard) { display: none !important; }
+    body.print-expenses #expensesReportCard { padding: 0 !important; border: 0 !important; background: #fff !important; box-shadow: none !important; }
+    body.print-expenses #expensesReportCard .statement-table th,
+    body.print-expenses #expensesReportCard .statement-table td { border-color: #cbd5e1 !important; }
+    body.print-expenses #expensesReportCard .report-table-wrap { overflow: visible !important; }
+    #expensesReportPreview { break-inside: avoid; }
     #periodReportPreview { break-inside: avoid; }
     button { display: none !important; }
 }
