@@ -425,14 +425,25 @@ function resolveAssistantResident(text) {
 
 function getAssistantResidentSnapshot(resident, now = new Date(), monthLabel = '') {
     const month = monthLabel || getAssistantNowLabel(now);
-    const subscription = typeof getSubscriptionAmountForMonth === 'function'
+    const grossSubscription = typeof getSubscriptionAmountForMonth === 'function'
         ? Number(getSubscriptionAmountForMonth(resident, month)) || 0
         : Number(resident.monthlyAmount ?? state.defaultSubscription) || 0;
-    const paid = typeof getPaidAmountForMonth === 'function' ? Number(getPaidAmountForMonth(resident.id, month)) || 0 : 0;
-    const adjusted = typeof getAdjustmentAmountForMonth === 'function' ? Number(getAdjustmentAmountForMonth(resident.id, month)) || 0 : 0;
+    const settlement = typeof getSettlementAdjustmentForMonth === 'function'
+        ? getSettlementAdjustmentForMonth(resident.id, month) : null;
+    const subscription = typeof getMonthlyDueAmountForMonth === 'function'
+        ? Number(getMonthlyDueAmountForMonth(resident, month)) || 0 : grossSubscription;
+    const paid = typeof getMonthlyDuePaidAmount === 'function'
+        ? Number(getMonthlyDuePaidAmount(resident.id, month)) || 0
+        : typeof getPaidAmountForMonth === 'function'
+            ? Number(getPaidAmountForMonth(resident.id, month)) || 0 : 0;
+    const adjusted = Math.max(0, Math.round((grossSubscription - subscription) * 100)) / 100;
+    const settlementPaid = settlement && typeof getSettlementPaidAmount === 'function'
+        ? Number(getSettlementPaidAmount(settlement.id)) || 0 : 0;
+    const settlementRemaining = settlement && typeof getSettlementRemainingAmount === 'function'
+        ? Number(getSettlementRemainingAmount(settlement)) || 0 : 0;
     const outstanding = typeof getMonthOutstanding === 'function'
         ? Number(getMonthOutstanding(resident, month)) || 0
-        : Math.max(0, subscription - adjusted - paid);
+        : Math.max(0, subscription - paid);
     const debt = typeof calculateCumulativeDebt === 'function'
         ? calculateCumulativeDebt(resident.id)
         : { count: 0, totalDebt: 0, unpaidMonths: [] };
@@ -444,8 +455,12 @@ function getAssistantResidentSnapshot(resident, now = new Date(), monthLabel = '
     return {
         month,
         subscription,
+        grossSubscription,
         paid,
         adjusted,
+        settlement,
+        settlementPaid,
+        settlementRemaining,
         outstanding,
         debt,
         lastPayment: payments[0] || null,
@@ -503,6 +518,7 @@ function buildAssistantIncomeAnswer(period) {
     let html = '';
     html += assistantRow('إجمالي التحصيل', assistantMoney(snapshot.total), snapshot.total > 0 ? 'good' : '');
     html += assistantRow('اشتراكات شهرية', assistantMoney(snapshot.subscriptionTotal));
+    if (snapshot.settlementTotal > 0) html += assistantRow('دفعات تسوية', assistantMoney(snapshot.settlementTotal));
     html += assistantRow('أغراض أخرى', assistantMoney(snapshot.otherTotal));
     html += assistantRow('عدد الدفعات', assistantNumber(snapshot.count));
     if (snapshot.purposes.length) {
@@ -585,9 +601,15 @@ function buildAssistantResidentAnswer(resident, now = new Date()) {
     const snapshot = getAssistantResidentSnapshot(resident, now);
     const title = `${assistantApartmentLabel(resident)} · ${assistantResidentName(resident)}`;
     let html = '';
-    html += assistantRow('اشتراك الشهر', assistantMoney(snapshot.subscription));
+    html += assistantRow(snapshot.settlement ? 'المبلغ المتفق عليه' : 'اشتراك الشهر', assistantMoney(snapshot.subscription));
     html += assistantRow('مدفوع هذا الشهر', assistantMoney(snapshot.paid), snapshot.paid > 0 ? 'good' : '');
-    if (snapshot.adjusted > 0) html += assistantRow('إعفاء / تخفيض الشهر', assistantMoney(snapshot.adjusted), 'warn');
+    if (snapshot.settlement) {
+        html += assistantRow('إجمالي اتفاق التسوية', assistantMoney(snapshot.settlement.amount));
+        html += assistantRow('المسدد من التسوية', assistantMoney(snapshot.settlementPaid), 'good');
+        html += assistantRow('المتبقي من التسوية', assistantMoney(snapshot.settlementRemaining), snapshot.settlementRemaining > 0 ? 'warn' : 'good');
+    } else if (snapshot.adjusted > 0) {
+        html += assistantRow('إعفاء / تخفيض الشهر', assistantMoney(snapshot.adjusted), 'warn');
+    }
     html += assistantRow('المتبقي هذا الشهر', assistantMoney(snapshot.outstanding), snapshot.outstanding > 0 ? 'bad' : 'good');
     html += assistantRow('إجمالي المتأخرات', assistantMoney(snapshot.debt.totalDebt), snapshot.debt.totalDebt > 0 ? 'bad' : 'good');
     html += assistantRow('شهور متأخرة', assistantNumber(snapshot.debt.count));
