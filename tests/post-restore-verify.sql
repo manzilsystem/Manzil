@@ -124,6 +124,14 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'income_purpose_code_check constraint missing';
     END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'public.income'::regclass
+          AND conname = 'income_purpose_code_check'
+          AND pg_get_constraintdef(oid) LIKE '%settlement%'
+    ) THEN
+        RAISE EXCEPTION 'income purpose constraint does not allow settlement';
+    END IF;
 
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
