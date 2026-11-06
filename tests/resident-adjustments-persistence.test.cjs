@@ -9,7 +9,7 @@ const root = path.join(__dirname, '..');
 const stateSource = fs.readFileSync(path.join(root, 'js', 'state.js'), 'utf8');
 const supabaseSource = fs.readFileSync(path.join(root, 'js', 'supabase.js'), 'utf8');
 const migration = fs.readFileSync(
-    path.join(root, 'supabase/migrations/20261106060000_snapshot_resident_adjustments.sql'),
+    path.join(root, 'supabase/migrations/20261106022840_snapshot_resident_adjustments.sql'),
     'utf8'
 );
 
