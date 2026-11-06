@@ -17,7 +17,8 @@ function loadState() {
             getIncomePurposeFormCode, isSubscriptionIncome, getIncomePurposeCashAccount,
             isIncomePurposeCashAccountLocked, populateIncomePurposeOptions,
             getSettlementAdjustmentForMonth, getSettlementPaidAmount, getSettlementRemainingAmount,
-            getMonthOutstanding, getAdjustmentAmountForMonth, calculateSelectedMonthsAllocation
+            getMonthOutstanding, getAdjustmentAmountForMonth, getMonthlyDueAmountForMonth,
+            getMonthlyDuePaidAmount, calculateSelectedMonthsAllocation
         })`,
         {},
         { filename: 'js/state.js' }
@@ -234,6 +235,8 @@ test('settlement agreement balance decreases only by linked settlement income', 
     ];
     assert.equal(app.getSettlementPaidAmount('s1'), 25);
     assert.equal(app.getSettlementRemainingAmount(settlement), 55);
+    assert.equal(app.getMonthlyDueAmountForMonth(app.state.residents[0], 'يناير 2024'), 80);
+    assert.equal(app.getMonthlyDuePaidAmount('r1', 'يناير 2024'), 25);
     assert.equal(app.getMonthOutstanding(app.state.residents[0], 'يناير 2024'), 55);
     assert.equal(app.getAdjustmentAmountForMonth('r1', 'يناير 2024'), 0);
     assert.equal(app.getSettlementRemainingAmount(settlement, 'p1'), 80);
