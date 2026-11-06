@@ -432,7 +432,23 @@ function isValidBackup(data) {
     const validNumber = value => (typeof value === 'number' && Number.isFinite(value)) ||
         (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value)));
     const validAmount = value => validNumber(value) && Number(value) >= 0;
+    const validOptionalDate = value => value === undefined || value === null || value === ''
+        || (typeof value === 'string'
+            && /^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$/.test(value)
+            && !Number.isNaN(Date.parse(value + 'T00:00:00Z'))
+            && new Date(value + 'T00:00:00Z').toISOString().slice(0, 10) === value);
     if (!data.residents.every(r => r && typeof r === 'object' && validId(r.id) && typeof r.name === 'string' && typeof r.apartmentNumber === 'string' && (r.phone === undefined || typeof r.phone === 'string') && (r.floor === undefined || r.floor === null || typeof r.floor === 'string') && (r.notes === undefined || typeof r.notes === 'string') && validAmount(r.monthlyAmount ?? 0))) return false;
+    if (!data.residents.every(r =>
+        (r.isRented === undefined || typeof r.isRented === 'boolean')
+        && (r.tenantName === undefined || r.tenantName === null || typeof r.tenantName === 'string' && r.tenantName.length <= 200)
+        && (r.tenantPhone === undefined || r.tenantPhone === null || typeof r.tenantPhone === 'string' && r.tenantPhone.length <= 60)
+        && validOptionalDate(r.leaseStart)
+        && validOptionalDate(r.leaseEnd)
+        && (r.rentAmount === undefined || r.rentAmount === null || validAmount(r.rentAmount))
+        && (r.depositAmount === undefined || r.depositAmount === null || validAmount(r.depositAmount))
+        && (r.isRented !== true || typeof r.tenantName === 'string' && r.tenantName.trim() !== '')
+        && (!r.leaseStart || !r.leaseEnd || r.leaseEnd >= r.leaseStart)
+    )) return false;
     if (!data.residents.every(r => r.userId === undefined || r.userId === null || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(r.userId)))) return false;
     if (!data.residents.every(r => r.billingStartMonth === undefined || r.billingStartMonth === null || r.billingStartMonth === ''
         || /^\d{4}-(0[1-9]|1[0-2])(-01)?$/.test(String(r.billingStartMonth)))) return false;
@@ -558,7 +574,14 @@ function importJSON(ev) {
             state = { ...state, ...data, auditLogs: Array.isArray(data.auditLogs) ? data.auditLogs : [] };
             state.residents = state.residents.map(r => ({
                 ...r,
-                billingStartMonth: normalizeBillingStartMonth(r.billingStartMonth)
+                billingStartMonth: normalizeBillingStartMonth(r.billingStartMonth),
+                isRented: r.isRented === true,
+                tenantName: typeof r.tenantName === 'string' ? r.tenantName : '',
+                tenantPhone: typeof r.tenantPhone === 'string' ? r.tenantPhone : '',
+                leaseStart: r.leaseStart || null,
+                leaseEnd: r.leaseEnd || null,
+                rentAmount: r.rentAmount == null ? null : Number(r.rentAmount),
+                depositAmount: r.depositAmount == null ? null : Number(r.depositAmount)
             }));
             // Older files predate the adjustments ledger. Importing one must not
             // carry the current building's settlements into the replaced data.
