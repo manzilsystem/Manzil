@@ -897,7 +897,7 @@ DECLARE
     v_building uuid := '20000000-0000-4000-8000-000000000005';
     v_resident uuid := '30000000-0000-4000-8000-000000000005';
     v_manager uuid := '10000000-0000-4000-8000-000000000001';
-    v_owner uuid := '10000000-0000-4000-8000-000000000002';
+    v_owner uuid := '10000000-0000-4000-8000-000000000004';
     v_version bigint;
     v_payload jsonb;
     v_legacy_payload jsonb;
