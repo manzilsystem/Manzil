@@ -3523,8 +3523,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transform: scale(1.9);
-    transform-origin: 50% 26%;
+    transform: scale(1.7);
+    transform-origin: 50% 28%;
 }
 .assistant-fab-avatar {
     width: 2.75rem;
@@ -3610,8 +3610,8 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transform: scale(1.9);
-    transform-origin: 50% 26%;
+    transform: scale(1.7);
+    transform-origin: 50% 28%;
 }
 .assistant-hero {
     float: inline-start;
