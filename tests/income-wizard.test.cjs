@@ -23,7 +23,7 @@ test('income collection form is split into three explicit wizard steps', () => {
 test('wizard validates each stage and keeps duplicate-submit protection', () => {
     assert.match(crud, /function validateIncomeWizardStep\(step\)/);
     assert.match(crud, /function changeIncomeWizardStep\(direction\)/);
-    assert.match(crud, /validateIncomeWizardStep\(1\).*validateIncomeWizardStep\(2\).*validateIncomeWizardStep\(3\)/s);
+    assert.match(crud, /validateIncomeWizardStep\(1\).*validateIncomeWizardStep\(2\)/s);\n    assert.match(crud, /Object\\.prototype\\.hasOwnProperty\\.call\\(INCOME_PAYMENT_METHOD_LABELS, paymentMethod\\)/);
     assert.match(crud, /if \(!requireManager\(\) \|\| incomeSaving\) return;/);
     assert.match(crud, /setIncomeWizardStep\(1\);/);
 });
