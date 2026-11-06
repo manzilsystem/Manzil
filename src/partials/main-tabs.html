@@ -178,9 +178,12 @@
 
         <!-- RESIDENTS -->
         <section id="tab-residents" class="hidden space-y-4">
-            <div class="section-toolbar flex justify-between items-center app-card p-4 rounded-3xl border no-print">
+            <div class="section-toolbar flex flex-wrap justify-between items-center gap-2 app-card p-4 rounded-3xl border no-print">
                 <div><h2 class="font-bold text-base">قائمة الشقق</h2><p class="text-[11px] text-slate-400">الاشتراكات الشهرية</p></div>
-                <button onclick="openResidentModal('add')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-indigo-600/20 transition flex items-center gap-2"><i class="fa-solid fa-user-plus text-sm"></i> شقة جديدة</button>
+                <div class="flex items-center gap-2">
+                    <button onclick="openSubscriptionPriceSheet()" aria-label="ورقة أسعار الاشتراك الشهرية" class="border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 px-3 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2"><i class="fa-solid fa-table-list text-sm"></i> ورقة الأسعار</button>
+                    <button onclick="openResidentModal('add')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-indigo-600/20 transition flex items-center gap-2"><i class="fa-solid fa-user-plus text-sm"></i> شقة جديدة</button>
+                </div>
             </div>
             <div class="app-card p-3 rounded-3xl border space-y-2 no-print">
                 <input type="search" id="searchResidentsInput" aria-label="البحث بالاسم أو رقم الشقة أو الدور" oninput="renderResidentsGrid()" placeholder="ابحث بالاسم أو رقم الشقة أو الدور..." class="w-full app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
