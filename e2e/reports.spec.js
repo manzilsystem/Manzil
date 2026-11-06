@@ -558,6 +558,47 @@ test('landlord fund filter scopes movements and expenses and hides building-wide
     await expect(page.locator('#reportExportBtn')).toBeDisabled();
 });
 
+test('landlord payment method filter scopes collections and hides building-wide dues', async ({ page }) => {
+    await openReports(page);
+    await page.evaluate(() => {
+        state.income.push(
+            { id: 'i3', residentId: 'r1', month: 'يناير 2024', amount: 50, paymentMethod: 'wallet', purposeCode: 'subscription' },
+            { id: 'i4', residentId: 'r1', month: 'يناير 2024', amount: 70, paymentMethod: 'instapay', purposeCode: 'development', cashAccountCode: 'development' }
+        );
+        state.expenses.push({ id: 'e1', month: 'يناير 2024', title: 'دهانات', amount: 5, category: 'تطوير', cashAccountCode: 'development' });
+        renderAll();
+    });
+
+    await openReportPanel(page, 'landlord');
+    await page.locator('#reportMonthSelect').selectOption('يناير 2024');
+    await page.locator('#landlordReportPaymentMethod').selectOption('wallet');
+    await page.locator('#landlordReportPrint').getByRole('button', { name: 'معاينة', exact: true }).click();
+
+    const preview = page.locator('#landlordReportPreview');
+    await expect(preview).toContainText('طريقة الدفع: محفظة إلكترونية');
+    await expect(preview).toContainText('التحصيلات معروضة لطريقة «محفظة إلكترونية» فقط');
+    await expect(preview.locator('.report-stat', { hasText: 'تحصيل الطريقة' })).toContainText('50 ج.م');
+    await expect(preview.locator('.report-stat-label', { hasText: 'المستحق' })).toHaveCount(0);
+    await expect(preview.locator('.report-stat-label', { hasText: 'نسبة التحصيل' })).toHaveCount(0);
+    await expect(preview).not.toContainText('نقدًا');
+    await expect(page.locator('#reportExportBtn')).toBeEnabled();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#reportExportBtn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('manzil_report_2024-01_pay_wallet.csv');
+    const stream = await download.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const csv = Buffer.concat(chunks).toString('utf8');
+    expect(csv).toContain('"محفظة إلكترونية"');
+    expect(csv).not.toContain('"نقدًا"');
+
+    await page.locator('#landlordReportPaymentMethod').selectOption('instapay');
+    await expect(preview).toContainText('تغيّر الشهر أو الفلتر أو البيانات');
+    await expect(page.locator('#reportExportBtn')).toBeDisabled();
+});
+
 test('period purpose filter switches to purpose columns and scopes its csv', async ({ page }) => {
     await openReports(page);
     await page.evaluate(() => {

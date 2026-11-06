@@ -527,6 +527,10 @@
                         <span class="report-field-label">الصندوق</span>
                         <select id="landlordReportCashAccount" aria-label="فلتر الصندوق" onchange="invalidateLandlordReportPreview()" class="report-control app-input border focus:outline-none"></select>
                     </label>
+                    <label class="report-field report-field-narrow" for="landlordReportPaymentMethod">
+                        <span class="report-field-label">طريقة الدفع</span>
+                        <select id="landlordReportPaymentMethod" aria-label="فلتر طريقة الدفع" onchange="invalidateLandlordReportPreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
                     <button type="button" onclick="generateLandlordReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
                 </div>
                 <div id="landlordReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">

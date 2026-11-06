@@ -45,10 +45,10 @@ test('changing the report month invalidates the preview and output actions', () 
 });
 
 test('export is scoped to the previewed month and uses a month-based filename', () => {
-    assert.match(reports, /function exportToCSV\(month = landlordReportMonth, purposeFilter = landlordReportPurposeFilter, cashAccountFilter = landlordReportCashAccountFilter\)/);
-    assert.match(reports, /if \(landlordReportSignature && getLandlordReportSignature\(reportMonth, purposeFilter, cashAccountFilter\) !== landlordReportSignature\)/);
-    assert.match(reports, /const \{ income: inc, expenses: exp \} = getLandlordReportData\(reportMonth, purposeFilter, cashAccountFilter\)/);
-    assert.match(reports, /manzil_report_\$\{monthKey \? monthKey\.slice\(0, 7\) : Date\.now\(\)\}\$\{purposeSuffix\}\$\{cashSuffix\}\.csv/);
+    assert.match(reports, /function exportToCSV\(month = landlordReportMonth, purposeFilter = landlordReportPurposeFilter, cashAccountFilter = landlordReportCashAccountFilter, paymentMethodFilter = landlordReportPaymentMethodFilter\)/);
+    assert.match(reports, /if \(landlordReportSignature && getLandlordReportSignature\(reportMonth, purposeFilter, cashAccountFilter, paymentMethodFilter\) !== landlordReportSignature\)/);
+    assert.match(reports, /const \{ income: inc, expenses: exp \} = getLandlordReportData\(reportMonth, purposeFilter, cashAccountFilter, paymentMethodFilter\)/);
+    assert.match(reports, /manzil_report_\$\{monthKey \? monthKey\.slice\(0, 7\) : Date\.now\(\)\}\$\{purposeSuffix\}\$\{cashSuffix\}\$\{paymentSuffix\}\.csv/);
     assert.doesNotMatch(reports, /state\.income\.forEach\(i =>/);
 });
 
@@ -83,7 +83,7 @@ test('reports surface shares card headers, stat tiles, and tabular numerals', ()
 });
 
 test('landlord and statement previews share one summary model with their PDFs', () => {
-    assert.match(reports, /function buildLandlordReportModel\(month, purposeFilter = '', cashAccountFilter = ''\)/);
+    assert.match(reports, /function buildLandlordReportModel\(month, purposeFilter = '', cashAccountFilter = '', paymentMethodFilter = ''\)/);
     assert.match(reports, /function getLandlordSummaryItems\(model\)/);
     assert.match(reports, /function getResidentStatementSummaryItems\(statement\)/);
     assert.equal((reports.match(/const statsHtml = renderReportStatTiles\(/g) || []).length, 2, 'both previews render from the shared tile helper');
