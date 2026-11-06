@@ -11,7 +11,7 @@ const crudSource = fs.readFileSync(path.join(root, 'js', 'crud.js'), 'utf8');
 const supabaseSource = fs.readFileSync(path.join(root, 'js', 'supabase.js'), 'utf8');
 const backupSource = fs.readFileSync(path.join(root, 'js', 'backup.js'), 'utf8');
 const template = fs.readFileSync(path.join(root, 'src', 'partials', 'modals.html'), 'utf8');
-const migration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261106050000_resident_billing_start.sql'), 'utf8');
+const migration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261106032231_resident_billing_start.sql'), 'utf8');
 const fixedNow = new Date('2024-05-15T12:00:00.000Z');
 
 class FixedDate extends Date {
