@@ -380,7 +380,7 @@ function populateIncomeListFilters() {
 function getIncomeListBatchKey(item) {
     const reference = typeof getIncomeBatchReference === 'function'
         ? getIncomeBatchReference(item)
-        : String(item.notes || '').match(/^دفعة موزعة\\s+([A-Z0-9]+)\\s+\\(\\d+\\/\\d+\\)/i)?.[1] || '';
+        : '';
     return reference ? `${item.residentId}:${item.date}:${reference}` : `income:${item.id}`;
 }
 
