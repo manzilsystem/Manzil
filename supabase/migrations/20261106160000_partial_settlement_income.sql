@@ -676,8 +676,8 @@ BEGIN
                       WHEN 'أبريل' THEN 4 WHEN 'مايو' THEN 5 WHEN 'يونيو' THEN 6
                       WHEN 'يوليو' THEN 7 WHEN 'أغسطس' THEN 8 WHEN 'سبتمبر' THEN 9
                       WHEN 'أكتوبر' THEN 10 WHEN 'نوفمبر' THEN 11 WHEN 'ديسمبر' THEN 12
-                      ELSE NULL END <> EXTRACT(MONTH FROM settlement.effective_month)
-                  OR split_part(btrim(payment.month), ' ', 2) <> EXTRACT(YEAR FROM settlement.effective_month)::text
+                      ELSE NULL END IS DISTINCT FROM EXTRACT(MONTH FROM settlement.effective_month)
+                  OR split_part(btrim(payment.month), ' ', 2) IS DISTINCT FROM EXTRACT(YEAR FROM settlement.effective_month)::text
               ))
               OR (payment.purpose_code <> 'settlement' AND payment.settlement_adjustment_id IS NOT NULL)
           )
