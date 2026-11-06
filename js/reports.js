@@ -4,10 +4,11 @@ let landlordReportSignature = '';
 let landlordReportPurposeFilter = '';
 let landlordReportCashAccountFilter = '';
 
-const REPORT_TABS = ['landlord', 'period', 'statement', 'monthlyClose', 'arrears', 'audit'];
+const REPORT_TABS = ['landlord', 'period', 'expenses', 'statement', 'monthlyClose', 'arrears', 'audit'];
 const REPORT_PANEL_IDS = {
     landlord: 'landlordReportPrint',
     period: 'periodReportCard',
+    expenses: 'expensesReportCard',
     statement: 'residentStatementCard',
     monthlyClose: 'monthlyClosePanel',
     arrears: 'arrearsPanel',
@@ -16,6 +17,7 @@ const REPORT_PANEL_IDS = {
 const REPORT_OUTPUT_BUTTON_IDS = {
     landlord: 'reportPrintBtn',
     period: 'periodReportPrintBtn',
+    expenses: 'expensesReportPrintBtn',
     statement: 'statementPrintBtn',
     monthlyClose: 'monthlyClosePdfButton'
 };
@@ -23,7 +25,7 @@ const REPORT_OUTPUT_BUTTON_IDS = {
 const REPORT_TONE_CLASSES = ['report-tone-indigo', 'report-tone-emerald', 'report-tone-amber', 'report-tone-rose', 'report-tone-sky'];
 
 const REPORT_PURPOSE_FILTER_IDS = ['landlordReportPurpose', 'periodReportPurpose', 'statementPurpose'];
-const REPORT_CASH_ACCOUNT_FILTER_IDS = ['landlordReportCashAccount', 'periodReportCashAccount'];
+const REPORT_CASH_ACCOUNT_FILTER_IDS = ['landlordReportCashAccount', 'periodReportCashAccount', 'expensesReportCashAccount'];
 
 function reportPurposeLabel(purposeCode) {
     return typeof getIncomePurposeLabel === 'function' ? getIncomePurposeLabel(purposeCode) : 'اشتراك شهري';
@@ -1205,6 +1207,330 @@ function exportPeriodReportCsv() {
     const cashSuffix = report.cashAccountFilter ? `_${report.cashAccountFilter}` : '';
     downloadCsv(`manzil_period_${getPeriodReportFileSlug(report)}${purposeSuffix}${cashSuffix}.csv`, rows);
     toast('تم تصدير تقرير الفترة','success');
+}
+
+let expensesReportSnapshot = null;
+let expensesReportSignature = '';
+
+function getExpenseCategoryValue(expense) {
+    return String(expense?.category || '').trim() || 'غير مصنف';
+}
+
+function getExpensesReportSelection() {
+    const fromSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('expensesReportFrom'));
+    const toSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('expensesReportTo'));
+    return {
+        from: String(fromSelect?.value || ''),
+        to: String(toSelect?.value || '')
+    };
+}
+
+function getExpensesReportCategoryFilter() {
+    const select = typeof document !== 'undefined'
+        ? /** @type {HTMLSelectElement | null} */ (document.getElementById('expensesReportCategory'))
+        : null;
+    return String(select?.value || '').trim();
+}
+
+function getExpenseCategoryOptions() {
+    const categories = new Set();
+    (state.expenses || []).forEach(expense => categories.add(getExpenseCategoryValue(expense)));
+    return Array.from(categories).sort((a, b) => a.localeCompare(b, 'ar'));
+}
+
+function populateExpensesReportFilters(months, current = getCurrentMonth()) {
+    const currentKey = monthLabelToKey(current) || '';
+    const defaultFrom = currentKey ? (getStatementMonthLabel(shiftStatementMonthKey(currentKey, -5)) || current) : current;
+    const defaults = { expensesReportFrom: defaultFrom, expensesReportTo: current };
+    ['expensesReportFrom', 'expensesReportTo'].forEach(id => {
+        const select = /** @type {HTMLSelectElement | null} */ (document.getElementById(id));
+        if (!select) return;
+        select.innerHTML = months.map(month => `<option value="${esc(month)}">${esc(month)}</option>`).join('');
+        const currentValue = select.value || defaults[id];
+        select.value = months.includes(currentValue) ? currentValue : defaults[id];
+    });
+    const categorySelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('expensesReportCategory'));
+    if (categorySelect) {
+        const selected = String(categorySelect.value || '').trim();
+        const categories = getExpenseCategoryOptions();
+        categorySelect.innerHTML = '<option value="">كل التصنيفات</option>' + categories
+            .map(category => `<option value="${esc(category)}">${esc(category)}</option>`)
+            .join('');
+        categorySelect.value = categories.includes(selected) ? selected : '';
+    }
+}
+
+function buildExpensesReport(fromMonth, toMonth, cashAccountFilter = '', categoryFilter = '') {
+    const keys = buildPeriodMonthKeys(fromMonth, toMonth);
+    if (!keys) return null;
+    const normalizedCashAccount = normalizeReportCashAccountFilter(cashAccountFilter);
+    const normalizedCategory = String(categoryFilter || '').trim();
+    const rangeLabels = new Set(keys.map(key => getStatementMonthLabel(key)));
+    const expenses = (state.expenses || []).filter(expense =>
+        rangeLabels.has(expense.month) &&
+        reportCashAccountMatches(expense, normalizedCashAccount) &&
+        (!normalizedCategory || getExpenseCategoryValue(expense) === normalizedCategory));
+    const categoryTotals = new Map();
+    const fundTotals = new Map();
+    expenses.forEach(expense => {
+        const category = getExpenseCategoryValue(expense);
+        const categoryBucket = categoryTotals.get(category) || { label: category, count: 0, cents: 0 };
+        categoryBucket.count += 1;
+        categoryBucket.cents += toCents(expense.amount);
+        categoryTotals.set(category, categoryBucket);
+        const fundCode = String(expense.cashAccountCode || '').trim() || 'main';
+        const fundBucket = fundTotals.get(fundCode) || { code: fundCode, label: reportCashAccountLabel(fundCode), count: 0, cents: 0 };
+        fundBucket.count += 1;
+        fundBucket.cents += toCents(expense.amount);
+        fundTotals.set(fundCode, fundBucket);
+    });
+    const months = keys.map(key => {
+        const month = getStatementMonthLabel(key);
+        const monthExpenses = expenses.filter(expense => expense.month === month);
+        return {
+            key,
+            month,
+            count: monthExpenses.length,
+            expenseCents: monthExpenses.reduce((sum, expense) => sum + toCents(expense.amount), 0)
+        };
+    });
+    const expenseCents = expenses.reduce((sum, expense) => sum + toCents(expense.amount), 0);
+    const totals = {
+        expenseCents,
+        count: expenses.length,
+        monthCount: months.filter(row => row.count > 0).length,
+        averageCents: months.length ? Math.round(expenseCents / months.length) : 0
+    };
+    const withShare = item => ({
+        ...item,
+        share: expenseCents > 0 ? Math.round((item.cents / expenseCents) * 100) : null
+    });
+    const categories = Array.from(categoryTotals.values()).sort((a, b) => b.cents - a.cents).map(withShare);
+    const funds = Array.from(fundTotals.values()).sort((a, b) => b.cents - a.cents).map(withShare);
+    const list = expenses.slice().sort((a, b) =>
+        String(monthLabelToKey(b.month) || '').localeCompare(String(monthLabelToKey(a.month) || '')) ||
+        toCents(b.amount) - toCents(a.amount));
+    return {
+        fromMonth,
+        toMonth,
+        months,
+        totals,
+        categories,
+        funds,
+        list,
+        cashAccountFilter: normalizedCashAccount,
+        cashAccountLabel: reportCashAccountFilterLabel(normalizedCashAccount),
+        categoryFilter: normalizedCategory,
+        categoryLabel: normalizedCategory || 'كل التصنيفات',
+        rangeLabel: `${fromMonth} – ${toMonth}`,
+        generatedAt: new Date().toISOString()
+    };
+}
+
+function getExpensesReportSignature(fromMonth, toMonth, cashAccountFilter = '', categoryFilter = '') {
+    const labels = new Set([fromMonth, toMonth]);
+    const keys = new Set(buildPeriodMonthKeys(fromMonth, toMonth) || []);
+    keys.forEach(key => labels.add(getStatementMonthLabel(key)));
+    return JSON.stringify([
+        state.buildingName || '',
+        state.managerName || '',
+        (state.expenses || []).filter(item => labels.has(item.month)),
+        String(cashAccountFilter || '').trim(),
+        String(categoryFilter || '').trim()
+    ]);
+}
+
+function setExpensesReportActionsEnabled(enabled) {
+    ['expensesReportPrintBtn', 'expensesReportExportBtn'].forEach(id => {
+        const button = /** @type {HTMLButtonElement} */ (document.getElementById(id));
+        if (button) button.disabled = !enabled;
+    });
+}
+
+function clearExpensesReportPreview(message) {
+    expensesReportSnapshot = null;
+    expensesReportSignature = '';
+    setExpensesReportActionsEnabled(false);
+    const preview = document.getElementById('expensesReportPreview');
+    if (preview) preview.innerHTML = `<p class="report-preview-empty">${esc(message)}</p>`;
+}
+
+function invalidateExpensesReportPreview() {
+    if (!expensesReportSnapshot) return;
+    clearExpensesReportPreview('تغيّرت الفترة أو الفلتر — اضغط «معاينة» لتحديث التقرير.');
+}
+
+function onExpensesReportRangeChange() {
+    invalidateExpensesReportPreview();
+}
+
+function invalidateExpensesReportIfStale() {
+    if (!expensesReportSnapshot) return;
+    const signature = getExpensesReportSignature(
+        expensesReportSnapshot.fromMonth,
+        expensesReportSnapshot.toMonth,
+        expensesReportSnapshot.cashAccountFilter,
+        expensesReportSnapshot.categoryFilter
+    );
+    if (signature !== expensesReportSignature) {
+        clearExpensesReportPreview('تغيّرت البيانات — اضغط «معاينة» لتحديث التقرير.');
+    }
+}
+
+function getSelectedExpensesReportSnapshot() {
+    if (!expensesReportSnapshot) {
+        toast('اعرض معاينة تقرير المصروفات أولًا','error');
+        return null;
+    }
+    const selected = getExpensesReportSelection();
+    if ((selected.from && selected.from !== expensesReportSnapshot.fromMonth) ||
+        (selected.to && selected.to !== expensesReportSnapshot.toMonth)) {
+        toast('اعرض معاينة الفترة المحددة أولًا','error');
+        return null;
+    }
+    if (getReportCashAccountFilter('expensesReportCashAccount') !== (expensesReportSnapshot.cashAccountFilter || '')) {
+        toast('اعرض معاينة الصندوق المحدد أولًا','error');
+        return null;
+    }
+    if (getExpensesReportCategoryFilter() !== (expensesReportSnapshot.categoryFilter || '')) {
+        toast('اعرض معاينة التصنيف المحدد أولًا','error');
+        return null;
+    }
+    return expensesReportSnapshot;
+}
+
+function renderExpensesReportHtml(report) {
+    const totals = report.totals;
+    const categorySummary = report.categories.map(item => `
+        <div class="report-list-row">
+            <span class="report-list-title">${esc(item.label)} <span class="report-list-meta">· ${fmtNum(item.count)} حركة · ${item.share === null ? '—' : fmtNum(item.share) + '%'}</span></span>
+            <span class="report-list-value text-rose-400 report-amount">${fmtMoney(item.cents / 100)}</span>
+        </div>`).join('');
+    const fundSummary = report.funds.map(item => `
+        <div class="report-list-row">
+            <span class="report-list-title">${esc(item.label)} <span class="report-list-meta">· ${fmtNum(item.count)} حركة · ${item.share === null ? '—' : fmtNum(item.share) + '%'}</span></span>
+            <span class="report-list-value text-rose-400 report-amount">${fmtMoney(item.cents / 100)}</span>
+        </div>`).join('');
+    const detailSummary = report.list.map(expense => `
+        <div class="report-list-row">
+            <span class="report-list-title">${esc(expense.title)} <span class="report-list-meta">· ${esc(expense.month)} · ${esc(getExpenseCategoryValue(expense))} · ${esc(reportCashAccountLabel(expense.cashAccountCode))}</span></span>
+            <span class="report-list-value text-rose-400 report-amount">${fmtMoney(toCents(expense.amount) / 100)}</span>
+        </div>`).join('');
+    const monthRows = report.months.map(row => `
+        <tr>
+            <td>${esc(row.month)}</td>
+            <td>${fmtNum(row.count)}</td>
+            <td class="${row.expenseCents ? 'text-rose-400' : ''}">${fmtMoney(row.expenseCents / 100)}</td>
+            <td>${totals.expenseCents > 0 ? fmtNum(Math.round((row.expenseCents / totals.expenseCents) * 100)) + '%' : '—'}</td>
+        </tr>`).join('');
+    const fundNote = report.cashAccountFilter
+        ? `<p>المصروفات معروضة لصندوق «${esc(report.cashAccountLabel)}» فقط.</p>`
+        : '';
+    const categoryNote = report.categoryFilter
+        ? `<p>المصروفات معروضة لتصنيف «${esc(report.categoryLabel)}» فقط.</p>`
+        : '';
+    return `
+        <div class="space-y-3">
+            <header class="report-preview-header">
+                <h3 class="report-preview-title">${esc(state.buildingName || 'العمارة')}</h3>
+                <p class="report-preview-meta">تقرير المصروفات ${esc(report.rangeLabel)}${report.cashAccountFilter ? ' • الصندوق: ' + esc(report.cashAccountLabel) : ''}${report.categoryFilter ? ' • التصنيف: ' + esc(report.categoryLabel) : ''} • تم الإنشاء ${esc(formatDate(report.generatedAt))}</p>
+            </header>
+            <div class="report-stats report-stats-4">
+                <div class="report-stat"><p class="report-stat-label">إجمالي المصروف</p><p class="report-stat-value text-rose-400">${fmtMoney(totals.expenseCents / 100)}</p></div>
+                <div class="report-stat"><p class="report-stat-label">عدد الحركات</p><p class="report-stat-value">${fmtNum(totals.count)}</p></div>
+                <div class="report-stat"><p class="report-stat-label">متوسط الشهر</p><p class="report-stat-value">${fmtMoney(totals.averageCents / 100)}</p></div>
+                <div class="report-stat"><p class="report-stat-label">أشهر فيها مصروف</p><p class="report-stat-value">${fmtNum(totals.monthCount)}</p></div>
+            </div>
+            <div class="report-block">
+                <p class="report-block-title"><span>المصروف حسب التصنيف</span><span class="report-block-count">${fmtNum(report.categories.length)}</span></p>
+                ${categorySummary ? '<div class="report-list">' + categorySummary + '</div>' : '<p class="report-note">لا يوجد</p>'}
+            </div>
+            <div class="report-block">
+                <p class="report-block-title"><span>المصروف حسب الصندوق</span><span class="report-block-count">${fmtNum(report.funds.length)}</span></p>
+                ${fundSummary ? '<div class="report-list">' + fundSummary + '</div>' : '<p class="report-note">لا يوجد</p>'}
+            </div>
+            <div class="report-table-wrap">
+                <table class="statement-table">
+                    <thead><tr><th>الشهر</th><th>عدد الحركات</th><th>المصروف</th><th>نسبته من الفترة</th></tr></thead>
+                    <tbody>${monthRows}</tbody>
+                    <tfoot><tr><td>الإجمالي</td><td>${fmtNum(totals.count)}</td><td>${fmtMoney(totals.expenseCents / 100)}</td><td>100%</td></tr></tfoot>
+                </table>
+            </div>
+            <div class="report-block">
+                <p class="report-block-title"><span>تفاصيل المصروفات</span><span class="report-block-count">${fmtNum(report.list.length)}</span></p>
+                ${detailSummary ? '<div class="report-list">' + detailSummary + '</div>' : '<p class="report-note">لا يوجد</p>'}
+            </div>
+            <div class="report-note report-divider text-center">
+                <p>تقرير للقراءة فقط ولا يعدل أي بيانات. المصروفات محسوبة على شهر استحقاقها المسجل.</p>
+                ${fundNote}
+                ${categoryNote}
+            </div>
+        </div>`;
+}
+
+function generateExpensesReport() {
+    if (!requireManager()) return;
+    const { from, to } = getExpensesReportSelection();
+    if (!from || !to) { toast('اختر شهر البداية والنهاية','error'); return; }
+    const cashAccountFilter = getReportCashAccountFilter('expensesReportCashAccount');
+    const categoryFilter = getExpensesReportCategoryFilter();
+    const report = buildExpensesReport(from, to, cashAccountFilter, categoryFilter);
+    if (!report) {
+        const message = getPeriodRangeError(from, to) || 'الفترة غير صحيحة.';
+        clearExpensesReportPreview(message);
+        toast(message, 'error');
+        return;
+    }
+    const preview = document.getElementById('expensesReportPreview');
+    if (!preview) return;
+    preview.innerHTML = renderExpensesReportHtml(report);
+    expensesReportSnapshot = report;
+    expensesReportSignature = getExpensesReportSignature(from, to, cashAccountFilter, categoryFilter);
+    setExpensesReportActionsEnabled(true);
+}
+
+function printExpensesReport() {
+    if (!requireManager()) return;
+    const report = getSelectedExpensesReportSnapshot();
+    if (!report) return;
+    const title = document.getElementById('printBuildingTitle');
+    const meta = document.getElementById('printBuildingMeta');
+    const previousTitle = title ? title.textContent : '';
+    const previousMeta = meta ? meta.textContent : '';
+    if (title) title.textContent = `تقرير المصروفات - ${state.buildingName || 'Manzil'}`;
+    if (meta) meta.textContent = `الفترة ${report.rangeLabel}${report.cashAccountFilter ? ' • الصندوق: ' + report.cashAccountLabel : ''}${report.categoryFilter ? ' • التصنيف: ' + report.categoryLabel : ''} • المدير: ${state.managerName || '—'}`;
+    document.body.classList.remove('print-landlord', 'print-statement', 'print-period');
+    document.body.classList.add('print-expenses');
+    const restore = () => {
+        document.body.classList.remove('print-expenses');
+        if (title) title.textContent = previousTitle;
+        if (meta) meta.textContent = previousMeta;
+    };
+    window.addEventListener('afterprint', restore, { once: true });
+    window.print();
+}
+
+function exportExpensesReportCsv() {
+    if (!requireManager()) return;
+    const report = getSelectedExpensesReportSnapshot();
+    if (!report) return;
+    const rows = [
+        ['الفترة', report.rangeLabel, 'الصندوق', report.cashAccountLabel, 'التصنيف', report.categoryLabel],
+        ['الشهر', 'البيان', 'التصنيف', 'الصندوق', 'المبلغ', 'ملاحظات']
+    ];
+    report.list.forEach(expense => rows.push([
+        expense.month,
+        expense.title,
+        getExpenseCategoryValue(expense),
+        reportCashAccountLabel(expense.cashAccountCode),
+        toCents(expense.amount) / 100,
+        expense.notes || ''
+    ]));
+    rows.push(['الإجمالي', '', '', '', report.totals.expenseCents / 100, '']);
+    const cashSuffix = report.cashAccountFilter ? `_${report.cashAccountFilter}` : '';
+    const categorySuffix = report.categoryFilter ? `_${report.categoryFilter.replace(/\s+/g, '-')}` : '';
+    downloadCsv(`manzil_expenses_${getPeriodReportFileSlug(report)}${cashSuffix}${categorySuffix}.csv`, rows);
+    toast('تم تصدير تقرير المصروفات','success');
 }
 
 function exportArrearsCSV() {
