@@ -1087,6 +1087,17 @@
                     <input type="number" id="incomeAmount" min="0.01" step="0.01" inputmode="decimal" aria-label="المبلغ المدفوع الآن" placeholder="المبلغ المدفوع الآن" oninput="handleIncomeAmountInput()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 </label>
                 <p id="incomeSelectionHint" class="text-[10px] text-slate-500"></p>
+                <div class="rounded-2xl border border-slate-700/60 p-3 space-y-2">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-xs font-bold">بنود الدفعة</p>
+                            <p class="text-[10px] text-slate-500">أضف بندًا أو أكثر يُحصَّل مع نفس الدفعة. الاشتراك يبقى في الحقل الأساسي ويُوزَّع على الأشهر.</p>
+                        </div>
+                        <button type="button" onclick="addIncomeLine()" aria-label="إضافة بند إضافي للدفعة" class="shrink-0 min-h-11 border border-emerald-500/40 text-emerald-300 rounded-xl px-3 py-2 text-xs font-bold"><i class="fa-solid fa-plus ml-1"></i> بند آخر</button>
+                    </div>
+                    <div id="incomeExtraLines" class="space-y-2"></div>
+                    <p id="incomeMixedTotal" class="hidden text-xs font-bold text-emerald-400" role="status" aria-live="polite"></p>
+                </div>
                 </section>
                 <section id="incomeWizardStep3" data-income-step="3" class="hidden space-y-3">
                 <label class="block text-xs space-y-1">
@@ -1104,17 +1115,6 @@
                     </select>
                 </label>
                 <p id="incomePurposeCashHint" class="text-[10px] text-slate-500"></p>
-                <div class="rounded-2xl border border-slate-700/60 p-3 space-y-2">
-                    <div class="flex items-start justify-between gap-3">
-                        <div>
-                            <p class="text-xs font-bold">بنود الدفعة</p>
-                            <p class="text-[10px] text-slate-500">أضف بندًا أو أكثر يُحصَّل مع نفس الدفعة. الاشتراك يبقى في الحقل الأساسي ويُوزَّع على الأشهر.</p>
-                        </div>
-                        <button type="button" onclick="addIncomeLine()" aria-label="إضافة بند إضافي للدفعة" class="shrink-0 min-h-11 border border-emerald-500/40 text-emerald-300 rounded-xl px-3 py-2 text-xs font-bold"><i class="fa-solid fa-plus ml-1"></i> بند آخر</button>
-                    </div>
-                    <div id="incomeExtraLines" class="space-y-2"></div>
-                    <p id="incomeMixedTotal" class="hidden text-xs font-bold text-emerald-400" role="status" aria-live="polite"></p>
-                </div>
                 <div id="incomeAllocationPreview" aria-live="polite" class="hidden app-input border rounded-2xl p-3 space-y-2">
                     <p id="incomeAllocationSummary" class="text-xs font-bold"></p>
                     <div id="incomeAllocationRows" class="space-y-1"></div>
@@ -1127,11 +1127,11 @@
                 </div>
                 <textarea id="incomeNotes" aria-label="ملاحظات التحصيل" rows="2" placeholder="ملاحظات التحصيل — اكتب الغرض بالتفصيل عند اختيار «أخرى»" oninput="previewIncomeAllocation()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
 
+                </section>
                 <div class="sticky bottom-0 rounded-xl border border-slate-700/60 bg-slate-900/95 p-3">
                     <p class="text-[10px] text-slate-400">مراجعة قبل الحفظ</p>
                     <p id="incomeWizardSummary" class="text-xs font-bold" aria-live="polite">اختر الساكن والغرض والمبلغ لعرض ملخص التحصيل.</p>
                 </div>
-                </section>
                 <div class="grid grid-cols-2 gap-2 pt-2">
                     <button type="button" id="incomeWizardBack" onclick="changeIncomeWizardStep(-1)" class="hidden min-h-11 rounded-xl border border-slate-700/60 px-3 text-sm font-bold">رجوع</button>
                     <button type="button" id="incomeWizardNext" onclick="changeIncomeWizardStep(1)" class="min-h-11 rounded-xl bg-emerald-700 px-3 text-sm font-bold text-white">التالي</button>
