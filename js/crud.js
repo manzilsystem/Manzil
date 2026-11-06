@@ -1611,9 +1611,8 @@ function handleIncomePurposeChange() {
         renderIncomeMonthsGrid(resident);
         if (!incomeAmountManual) syncIncomeAmountFromSelection();
     } else if (purpose === 'settlement') {
-        const options = refreshIncomeSettlementOptions(resident?.id || '');
-        if (options.length) handleIncomeSettlementChange();
-        else previewIncomeAllocation();
+        refreshIncomeSettlementOptions(resident?.id || '');
+        handleIncomeSettlementChange();
     } else {
         const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
         if (monthSelect) monthSelect.disabled = false;
@@ -2033,8 +2032,8 @@ function handleIncomeResidentChange() {
     refreshIncomeMonthOptions(resident?.id || '', getCurrentMonth());
     if (monthSelect) monthSelect.value = getCurrentMonth();
     if (purpose === 'settlement') {
-        const options = refreshIncomeSettlementOptions(resident?.id || '');
-        if (options.length) handleIncomeSettlementChange();
+        refreshIncomeSettlementOptions(resident?.id || '');
+        handleIncomeSettlementChange();
     } else {
         selectFirstUnpaidIncomeMonth(resident);
         renderIncomeMonthsGrid(resident);
