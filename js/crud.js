@@ -765,7 +765,7 @@ function cancelAdjustmentEdit() {
     resetAdjustmentForm();
 }
 
-async function handleAdjustmentSubmit(event) {
+async async function handleAdjustmentSubmit(event) {
     if (!requireManager()) return;
     event.preventDefault();
     const resident = state.residents.find(item => item.id === adjustmentResidentId);
@@ -783,7 +783,7 @@ async function handleAdjustmentSubmit(event) {
     const reason = String(reasonInput?.value || '').trim();
 
     if (!ADJUSTMENT_FORM_KINDS.includes(kind)) {
-        toast('اختر نوع الإعفاء أو التخفيض.', 'error');
+        toast('اختر نوع الإعفاء أو التخفيض أو التسوية.', 'error');
         return;
     }
     if (!isValidEffectiveMonth(monthKey)) {
@@ -792,7 +792,7 @@ async function handleAdjustmentSubmit(event) {
     }
     const createdMonth = getIncomeBillingStartKey(resident);
     if (createdMonth && monthKey < createdMonth) {
-        toast('لا يمكن تسجيل إعفاء أو تخفيض قبل بداية محاسبة الشقة.', 'error');
+        toast('لا يمكن تسجيل تسوية أو إعفاء قبل بداية محاسبة الشقة.', 'error');
         return;
     }
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -800,36 +800,72 @@ async function handleAdjustmentSubmit(event) {
         return;
     }
     if (!reason) {
-        toast('اكتب سبب الإعفاء أو التخفيض.', 'error');
-        return;
-    }
-    const dueCents = Math.round(getAdjustmentMonthDue(resident, monthKey) * 100);
-    if (dueCents <= 0) {
-        toast('لا يوجد اشتراك مستحق لهذا الشهر، فلا يمكن تسجيل إعفاء أو تخفيض.', 'error');
-        return;
-    }
-    const existingCents = Math.round(getAdjustedTotalForMonth(resident.id, monthKey, editingAdjustmentId) * 100);
-    const amountCents = Math.round(amount * 100);
-    if (existingCents + amountCents > dueCents) {
-        toast(`مجموع الإعفاءات والتخفيضات يتجاوز مستحق الشهر (${formatSubscriptionAmount(dueCents / 100)} ج.م).`, 'error');
+        toast('اكتب سبب الإجراء.', 'error');
         return;
     }
 
-    const previousState = cloneStateSnapshot();
+    const dueCents = Math.round(getAdjustmentMonthDue(resident, monthKey) * 100);
+    if (dueCents <= 0) {
+        toast('لا يوجد اشتراك مستحق لهذا الشهر.', 'error');
+        return;
+    }
     const effectiveMonth = `${monthKey}-01`;
+    const amountCents = Math.round(amount * 100);
+    const existingSettlement = (Array.isArray(state.adjustments) ? state.adjustments : []).find(item =>
+        item.residentId === resident.id && item.effectiveMonth === effectiveMonth
+        && item.kind === 'settlement' && item.id !== editingAdjustmentId
+    );
+    const existingDiscounts = Math.round(getAdjustedTotalForMonth(resident.id, monthKey, editingAdjustmentId) * 100);
+    const subscriptionPaidCents = Math.round(getPaidAmountForMonth(resident.id, adjustmentMonthKeyToLabel(monthKey)) * 100);
+    const editing = editingAdjustmentId
+        ? (Array.isArray(state.adjustments) ? state.adjustments : []).find(item => item.id === editingAdjustmentId)
+        : null;
+    const editingSettlementPaidCents = editing?.kind === 'settlement' && typeof getSettlementPaidAmount === 'function'
+        ? Math.round(getSettlementPaidAmount(editing.id) * 100) : 0;
+
+    if (editing?.kind === 'settlement' && editingSettlementPaidCents > 0
+        && (kind !== 'settlement' || effectiveMonth !== editing.effectiveMonth)) {
+        toast('لا يمكن تغيير نوع أو شهر تسوية بدأ سدادها. عدّل المبلغ فقط.', 'error');
+        return;
+    }
+    if (kind === 'settlement') {
+        if (existingSettlement) {
+            toast('يوجد اتفاق تسوية لهذا الشهر بالفعل.', 'error');
+            return;
+        }
+        if (existingDiscounts > 0 || subscriptionPaidCents > 0) {
+            toast('لا يمكن إنشاء تسوية مع وجود إعفاء/تخفيض أو تحصيل اشتراك مسجل لهذا الشهر.', 'error');
+            return;
+        }
+        if (amountCents < editingSettlementPaidCents || amountCents > dueCents) {
+            toast(`مبلغ التسوية يجب أن يكون بين ${formatSubscriptionAmount(editingSettlementPaidCents / 100)} و${formatSubscriptionAmount(dueCents / 100)} ج.م.`, 'error');
+            return;
+        }
+    } else {
+        if (existingSettlement) {
+            toast('يوجد اتفاق تسوية لهذا الشهر؛ لا يمكن إضافة إعفاء أو تخفيض معه.', 'error');
+            return;
+        }
+        if (existingDiscounts + amountCents > dueCents) {
+            toast(`مجموع الإعفاءات والتخفيضات يتجاوز مستحق الشهر (${formatSubscriptionAmount(dueCents / 100)} ج.م). `, 'error');
+            return;
+        }
+    }
+
+    const previousState = cloneStateSnapshot();
     const label = adjustmentMonthKeyToLabel(monthKey);
     state.adjustments = Array.isArray(state.adjustments) ? state.adjustments : [];
     if (editingAdjustmentId) {
         const target = state.adjustments.find(item => item.id === editingAdjustmentId);
         if (!target || target.residentId !== resident.id) {
-            toast('تعذر العثور على الإعفاء المطلوب تعديله. أعد فتح النافذة.', 'error');
+            toast('تعذر العثور على الإجراء المطلوب تعديله. أعد فتح النافذة.', 'error');
             return;
         }
         target.kind = kind;
         target.effectiveMonth = effectiveMonth;
         target.amount = amountCents / 100;
         target.reason = reason;
-        logAction('تعديل إعفاء/تخفيض', `${resident.name} - شقة ${resident.apartmentNumber} - ${getAdjustmentKindLabel(kind)} ${label} - ${formatSubscriptionAmount(target.amount)} ج.م`);
+        logAction('تعديل ' + getAdjustmentKindLabel(kind), `${resident.name} - شقة ${resident.apartmentNumber} - ${label} - ${formatSubscriptionAmount(target.amount)} ج.م`);
     } else {
         state.adjustments.push({
             id: generateId(),
@@ -840,15 +876,18 @@ async function handleAdjustmentSubmit(event) {
             reason,
             createdAt: new Date().toISOString()
         });
-        logAction('إضافة إعفاء/تخفيض', `${resident.name} - شقة ${resident.apartmentNumber} - ${getAdjustmentKindLabel(kind)} ${label} - ${formatSubscriptionAmount(amountCents / 100)} ج.م`);
+        logAction('إضافة ' + getAdjustmentKindLabel(kind), `${resident.name} - شقة ${resident.apartmentNumber} - ${label} - ${formatSubscriptionAmount(amountCents / 100)} ج.م`);
     }
 
     if (!await saveWithRollback(previousState)) return;
-    toast(editingAdjustmentId ? 'تم تحديث الإعفاء أو التخفيض.' : 'تم حفظ الإعفاء أو التخفيض وخصمه من المستحق.', 'success');
+    toast(editingAdjustmentId
+        ? 'تم تحديث الإجراء.'
+        : kind === 'settlement'
+            ? 'تم حفظ اتفاق التسوية. سجّل الدفعات عليه من غرض «سداد تسوية».'
+            : 'تم حفظ الإعفاء أو التخفيض وخصمه من المستحق.', 'success');
     resetAdjustmentForm();
     renderAdjustmentList(resident);
 }
-
 async function deleteAdjustment(id) {
     if (!requireManager()) return;
     const adjustment = (Array.isArray(state.adjustments) ? state.adjustments : []).find(item => item.id === id);
