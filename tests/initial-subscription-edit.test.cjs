@@ -18,7 +18,7 @@ function createApp() {
     };
     const values = {
         residentName: 'ساكن', residentApartment: '1', residentFloor: '1',
-        residentPhone: '', residentAmount: '175', residentNotes: ''
+        residentPhone: '', residentAmount: '175', residentNotes: '', residentBillingStart: ''
     };
     const elements = Object.fromEntries(Object.entries(values).map(([id, value]) => [id, {
         value, readOnly: false, textContent: '', innerHTML: '',
@@ -37,6 +37,15 @@ function createApp() {
         cloneStateSnapshot: () => JSON.parse(JSON.stringify(sandbox.state)),
         saveWithRollback: async () => true,
         logAction() {}, toast() {}, generateId: () => 'new-resident',
+        getResidentBillingStartKey: resident => resident.billingStartMonth
+            || String(resident.createdAt || '').slice(0, 10),
+        fmtNum: value => String(value),
+        monthKeyToLabel: key => {
+            const match = String(key || '').match(/^(\d{4})-(0[1-9]|1[0-2])/);
+            return match
+                ? `${['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'][Number(match[2]) - 1]} ${match[1]}`
+                : '';
+        },
         INCOME_PAYMENT_METHOD_LABELS: {},
         esc: value => String(value ?? '')
     };
@@ -51,6 +60,21 @@ test('active subscription amount stays editable in the apartment form', () => {
     assert.match(elements.residentAmountHelp.textContent, /تعديل الاشتراك مباشرة/);
     assert.ok(html.includes('id="manageSubscriptionRatesBtn"'));
     assert.ok(html.includes('تحديد / تعديل الاشتراك وسجله التاريخي'));
+});
+
+test('moving the billing start earlier adds a historical rate so earlier months become payable', async () => {
+    const { app, sandbox, elements } = createApp();
+    sandbox.state.residents[0].subscriptionRates = [{ effectiveMonth: '2024-01-01', monthlyAmount: 100 }];
+    elements.residentAmount.value = '100';
+    elements.residentBillingStart.value = '2023-10';
+    await app.handleResidentSubmit({ preventDefault() {} });
+
+    const resident = sandbox.state.residents[0];
+    assert.equal(resident.billingStartMonth, '2023-10-01');
+    assert.deepEqual(JSON.parse(JSON.stringify(resident.subscriptionRates)), [
+        { effectiveMonth: '2023-10-01', monthlyAmount: 100 },
+        { effectiveMonth: '2024-01-01', monthlyAmount: 100 }
+    ]);
 });
 
 test('changing the apartment amount records a new current-month rate and preserves historical rates', async () => {

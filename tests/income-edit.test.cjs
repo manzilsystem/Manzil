@@ -35,6 +35,7 @@ function createHarness({ income = [], values = {}, saveResult = true } = {}) {
             'فبراير 2024': '2024-02-01'
         })[month] || null,
         getLocalMonthKey: () => '2024-01',
+        getResidentBillingStartKey: resident => (resident.billingStartMonth || '2024-01-01'),
         getSubscriptionAmountForMonth: () => 100,
         cloneStateSnapshot: () => JSON.parse(JSON.stringify(state)),
         saveWithRollback: async () => { calls.save += 1; return saveResult; },
@@ -124,7 +125,7 @@ test('editing rejects payments dated before the apartment creation month', async
 
     assert.equal(h.calls.save, 0);
     assert.equal(h.state.income[0].month, 'يناير 2024');
-    assert.match(h.messages.at(-1)[0], /قبل تاريخ إنشاء الشقة/);
+    assert.match(h.messages.at(-1)[0], /قبل بداية محاسبة الشقة/);
 });
 
 test('editing rejects an invalid month and missing payment without saving', async () => {

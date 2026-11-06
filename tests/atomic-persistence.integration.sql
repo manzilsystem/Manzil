@@ -873,3 +873,72 @@ $income_notification_sync$;
 -- Latest snapshot body and its settlement ledger, replayed for the harness guard.
 \ir ../supabase/migrations/20261106021427_resident_adjustments.sql
 \ir ../supabase/migrations/20261106022840_snapshot_resident_adjustments.sql
+\ir ../supabase/migrations/20261106050000_resident_billing_start.sql
+
+-- An editable billing start month may precede the creation date, survives a
+-- snapshot that omits the field (older clients), and rejects mid-month dates.
+RESET ROLE;
+INSERT INTO public.buildings (id, name)
+VALUES ('20000000-0000-4000-8000-000000000003', 'Billing start')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.building_members (building_id, user_id, role)
+VALUES ('20000000-0000-4000-8000-000000000003',
+        '10000000-0000-4000-8000-000000000001', 'manager')
+ON CONFLICT DO NOTHING;
+SET ROLE authenticated;
+
+DO $billing_start$
+DECLARE
+    v_building uuid := '20000000-0000-4000-8000-000000000003';
+    v_resident uuid := '30000000-0000-4000-8000-000000000201';
+    v_version bigint;
+    v_result jsonb;
+    v_payload jsonb;
+BEGIN
+    SELECT state_version INTO v_version FROM public.buildings WHERE id = v_building;
+    v_payload := jsonb_build_object(
+        'building', '{"name":"Billing start"}'::jsonb,
+        'residents', jsonb_build_array(jsonb_build_object(
+            'id', v_resident,
+            'name', 'Billing resident',
+            'apartment_number', 'B1',
+            'monthly_amount', 100,
+            'created_at', '2026-10-15T00:00:00Z',
+            'billing_start_month', '2026-08-01'
+        )),
+        'income', '[]'::jsonb,
+        'expenses', '[]'::jsonb,
+        'notices', '[]'::jsonb,
+        'audit_logs', '[]'::jsonb
+    );
+
+    v_result := public.persist_building_snapshot(
+        v_building, v_version, '40000000-0000-4000-8000-000000000101', v_payload);
+    IF v_result->>'ok' <> 'true'
+       OR (SELECT billing_start_month FROM public.residents WHERE id = v_resident) <> DATE '2026-08-01' THEN
+        RAISE EXCEPTION 'billing start month was not persisted: %', v_result;
+    END IF;
+
+    v_payload := jsonb_set(v_payload, '{residents,0}',
+        (v_payload#>'{residents,0}') - 'billing_start_month');
+    v_result := public.persist_building_snapshot(
+        v_building, v_version + 1, '40000000-0000-4000-8000-000000000102', v_payload);
+    IF v_result->>'ok' <> 'true'
+       OR (SELECT billing_start_month FROM public.residents WHERE id = v_resident) <> DATE '2026-08-01' THEN
+        RAISE EXCEPTION 'omitting billing start from an older client erased the stored month';
+    END IF;
+
+    BEGIN
+        PERFORM public.persist_building_snapshot(
+            v_building, v_version + 2, '40000000-0000-4000-8000-000000000103',
+            jsonb_set(v_payload, '{residents,0,billing_start_month}', '"2026-08-15"'));
+        RAISE EXCEPTION 'mid-month billing start was accepted';
+    EXCEPTION WHEN SQLSTATE '22023' THEN
+        NULL;
+    END;
+    IF (SELECT billing_start_month FROM public.residents WHERE id = v_resident) <> DATE '2026-08-01'
+       OR (SELECT state_version FROM public.buildings WHERE id = v_building) <> v_version + 2 THEN
+        RAISE EXCEPTION 'invalid billing start did not roll back the snapshot';
+    END IF;
+END;
+$billing_start$;

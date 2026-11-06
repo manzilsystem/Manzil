@@ -77,6 +77,14 @@ function loadReport(options = {}) {
         monthsNames: monthNames,
         getCurrentMonth: () => options.currentMonth || 'مارس 2024',
         monthLabelToKey,
+        getResidentBillingStartKey: resident => {
+            const stored = String(resident?.billingStartMonth || '').match(/^(\d{4})-(0[1-9]|1[0-2])(?:-01)?$/);
+            if (stored) return `${stored[1]}-${stored[2]}-01`;
+            const created = new Date(resident?.createdAt || Date.now());
+            return Number.isNaN(created.getTime())
+                ? null
+                : `${created.getFullYear()}-${String(created.getMonth() + 1).padStart(2, '0')}-01`;
+        },
         toCents,
         fmtNum: value => String(Number(value) || 0),
         fmtMoney: value => `${String(Number(value) || 0)} ج.م`,

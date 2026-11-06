@@ -25,7 +25,10 @@ async function seedManager(page) {
                 subscriptionRates: [{ effectiveMonth: `${twoMonthsAgo.getFullYear()}-${String(twoMonthsAgo.getMonth() + 1).padStart(2, '0')}-01`, monthlyAmount: 100 }]
             },
             { id: 'r2', name: 'منى', apartmentNumber: '2', monthlyAmount: 100, createdAt: twoMonthsAgo.toISOString() },
-            { id: 'r1', name: 'أحمد', apartmentNumber: '1', monthlyAmount: 100, createdAt: twoMonthsAgo.toISOString() }
+            {
+                id: 'r1', name: 'أحمد', apartmentNumber: '1', monthlyAmount: 100, createdAt: twoMonthsAgo.toISOString(),
+                subscriptionRates: [{ effectiveMonth: `${twoMonthsAgo.getFullYear()}-${String(twoMonthsAgo.getMonth() + 1).padStart(2, '0')}-01`, monthlyAmount: 100 }]
+            }
         ];
         state.income = [{
             id: 'i1',
@@ -206,7 +209,7 @@ test('the calendar picker settles an older unpaid month even after the month has
     expect(saved).toEqual([months.previous]);
 });
 
-test('the calendar picker refuses a fully paid month and a month before the billing start', async ({ page }) => {
+test('the calendar picker refuses a fully paid month and confirms a month before the billing start', async ({ page }) => {
     await seedManager(page);
     const months = await monthNames(page);
     const previousKey = await page.evaluate(months => {
@@ -218,6 +221,10 @@ test('the calendar picker refuses a fully paid month and a month before the bill
         const target = new Date(date.getFullYear(), date.getMonth() - 4, 1);
         return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}`;
     });
+    const beforeStartLabel = await page.evaluate(key => {
+        const [year, month] = key.split('-').map(Number);
+        return `${monthsNames[month - 1]} ${year}`;
+    }, beforeStartKey);
     await page.evaluate(() => openNewIncomeModal());
     await page.locator('#incomeResident').selectOption('r1');
 
@@ -226,11 +233,52 @@ test('the calendar picker refuses a fully paid month and a month before the bill
     await expect(page.locator('#incomeMonthsGrid input[data-income-month]:checked')).toHaveCount(0);
     await expect(page.locator('#toastContainer')).toContainText('مسدد بالكامل');
 
+    page.once('dialog', dialog => dialog.dismiss());
     await page.locator('#incomeMonthPicker').fill(beforeStartKey);
     await page.locator('#incomeMonthPicker').dispatchEvent('change');
     await expect(page.locator('#incomeMonthsGrid input[data-income-month]:checked')).toHaveCount(0);
-    await expect(page.locator('#toastContainer')).toContainText('قبل بداية محاسبة الشقة');
     await expect(page.locator('#incomeMonthPickerHint')).toContainText('قبل بداية محاسبة الشقة');
+    expect(await page.evaluate(() => state.residents.find(item => item.id === 'r1').billingStartMonth)).toBeUndefined();
+
+    page.once('dialog', dialog => dialog.accept());
+    await page.locator('#incomeMonthPicker').dispatchEvent('change');
+    await expect(page.locator(`#incomeMonthsGrid input[data-income-month="${beforeStartLabel}"]`)).toBeChecked();
+    await expect(page.locator('#incomeAmount')).toHaveValue('100');
+    await expect(page.locator('#toastContainer')).toContainText('تم تعديل بداية المحاسبة');
+    const resident = await page.evaluate(() => {
+        const item = state.residents.find(entry => entry.id === 'r1');
+        return { billingStartMonth: item.billingStartMonth, rates: item.subscriptionRates };
+    });
+    expect(resident.billingStartMonth).toBe(`${beforeStartKey}-01`);
+    expect(resident.rates).toHaveLength(2);
+    expect(resident.rates[0]).toEqual({ effectiveMonth: `${beforeStartKey}-01`, monthlyAmount: 100 });
+    expect(resident.rates[1].monthlyAmount).toBe(100);
+});
+
+test('the apartment form stores a billing start that predates creation and backfills its rate', async ({ page }) => {
+    await seedManager(page);
+    await page.evaluate(() => {
+        const twoMonthsAgo = new Date(new Date().getFullYear(), new Date().getMonth() - 2, 1);
+        const startKey = `${twoMonthsAgo.getFullYear()}-${String(twoMonthsAgo.getMonth() + 1).padStart(2, '0')}-01`;
+        state.residents.find(item => item.id === 'r1').subscriptionRates = [{ effectiveMonth: startKey, monthlyAmount: 100 }];
+        openResidentModal('edit', 'r1');
+    });
+    const olderKey = await page.evaluate(() => {
+        const date = new Date();
+        const target = new Date(date.getFullYear(), date.getMonth() - 5, 1);
+        return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}`;
+    });
+    await page.locator('#residentBillingStart').fill(olderKey);
+    await page.locator('#residentModal').getByRole('button', { name: /حفظ بيانات الشقة/ }).click();
+    await expect(page.locator('#residentModal')).toBeHidden();
+
+    const resident = await page.evaluate(() => {
+        const item = state.residents.find(entry => entry.id === 'r1');
+        return { billingStartMonth: item.billingStartMonth, rates: item.subscriptionRates };
+    });
+    expect(resident.billingStartMonth).toBe(`${olderKey}-01`);
+    expect(resident.rates).toHaveLength(2);
+    expect(resident.rates[0]).toEqual({ effectiveMonth: `${olderKey}-01`, monthlyAmount: 100 });
 });
 
 test('payment notes can be picked quickly and appear in the manager receipt', async ({ page }) => {
