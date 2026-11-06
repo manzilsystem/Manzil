@@ -155,7 +155,7 @@ test('income forms, snapshots and accounting carry the destination cash account'
     assert.match(crud, /cashAccountCode = cashAccountSelect\?\.value \|\| 'main'/);
     assert.match(crud, /appendRow\(item\.amount, item\.month, 'subscription', options\.cashAccountCode\)/);
     assert.match(supabase, /cash_account_code: i\.cashAccountCode \|\| 'main'/);
-    assert.match(supabase, /id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,paid_at/);
+    assert.match(supabase, /id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,settlement_adjustment_id,paid_at/);
     assert.match(cashbox, /income: byAccount\(\)/);
     assert.match(cashbox, /next\.income\[code\] - previous\.income\[code\]/);
     assert.match(render, /renderCashAccountLabel\(i\.cashAccountCode\)/);
