@@ -91,7 +91,7 @@ test('owner theme changes apply instantly and persist through the guarded RPC', 
 });
 
 test('owner sessions load the theme preference with the profile', () => {
-    assert.match(supabaseSource, /\.select\('must_change_pin,theme_preference'\)/);
+    assert.match(supabaseSource, /\.select\('must_change_pin,theme_preference,full_name'\)/);
     assert.match(supabaseSource, /currentTheme: resolveUserTheme\(building\.current_theme, profile\?\.theme_preference, currentUserRole\)/);
 });
 

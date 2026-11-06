@@ -41,6 +41,7 @@ test('assistant opens from the launcher and answers local questions', async ({ p
     await seedAndOpenAssistant(page);
     const botMessages = page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble');
     await expect(botMessages.first()).toContainText('أهلاً يا أستاذ');
+    await expect(page.locator('#assistantInput')).toHaveAttribute('placeholder', /الخزنة/);
 
     await page.locator('[data-assistant-query="رصيد الخزنة كام؟"]').click();
     await expect(botMessages.last()).toContainText('الخزنة الرئيسية');
@@ -146,10 +147,16 @@ test.describe('assistant floating launcher', () => {
         await expect(fab).not.toHaveClass(/is-hidden/);
     });
 
-    test('disappears for the owner portal and locked sessions', async ({ page }) => {
+    test('stays in the owner portal and hides only for locked sessions', async ({ page }) => {
         const fab = page.locator('#assistantFab');
-        await page.evaluate(() => document.body.classList.add('owner-mode'));
-        await expect(fab).toBeHidden();
+        await page.evaluate(() => {
+            document.body.classList.add('owner-mode');
+            window.syncAssistantFab();
+        });
+        await expect(fab).toBeVisible();
+        await expect(page.locator('nav[aria-label="التنقل الرئيسي"]')).toBeHidden();
+        const ownerBox = await fab.boundingBox();
+        expect(ownerBox.y + ownerBox.height).toBeLessThanOrEqual(page.viewportSize().height);
 
         await page.evaluate(() => {
             document.body.classList.remove('owner-mode');
@@ -207,5 +214,124 @@ test.describe('assistant remembers the conversation', () => {
         await page.getByRole('button', { name: 'بدء محادثة جديدة' }).click();
         await expect(messages).toHaveCount(1);
         await expect(page.locator('#assistantLog')).toContainText('أهلاً يا أستاذ');
+    });
+});
+
+test.describe('assistant inside the owner portal', () => {
+    async function seedOwnerAssistant(page) {
+        await loadShell(page);
+        await page.waitForFunction(() => typeof window.openAssistantModal === 'function' && typeof renderAll === 'function');
+        await page.evaluate(() => {
+            window.currentUserRole = 'owner';
+            window.currentProfileName = null;
+            window.currentResidentId = 'r1';
+            document.body.classList.remove('session-locked', 'modal-open');
+            document.body.classList.add('owner-mode');
+            document.getElementById('pinLockModal').classList.add('hidden');
+            const now = new Date();
+            const currentMonth = `${monthsNames[now.getMonth()]} ${now.getFullYear()}`;
+            const currentStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+            state.buildingName = 'عمارة الاختبار';
+            state.managerName = 'مدير الاختبار';
+            state.managerPhone = '01000000000';
+            state.defaultSubscription = 100;
+            state.subscriptionDueDay = 5;
+            state.subscriptionGraceDays = 3;
+            state.paymentSettings = normalizePaymentSettings({
+                cash: { enabled: true },
+                wallet: { enabled: false, provider: 'فودافون كاش', accountName: 'مدير', number: '01000000000' },
+                instapay: { enabled: true, accountName: 'منزل للاشتراكات', address: 'MANZIL.PAY' },
+                bank_transfer: { enabled: false }
+            });
+            state.residents = [
+                { id: 'r1', name: 'أحمد علي', apartmentNumber: '3', floor: '2', monthlyAmount: 100, billingStartMonth: currentStart, createdAt: `${currentStart}T00:00:00.000Z` }
+            ];
+            state.income = [
+                { id: 'i1', residentId: 'r1', month: currentMonth, amount: 100, purposeCode: 'subscription', cashAccountCode: 'main', paymentMethod: 'cash', date: new Date().toISOString() }
+            ];
+            state.expenses = [];
+            state.adjustments = [];
+            state.notices = [{ id: 'n1', text: 'قراءة العدادات الأسبوع الجاي', date: new Date().toISOString() }];
+            state.ownerNotifications = [{ id: 'on1', title: 'تذكير بالاشتراك', body: 'الموعد آخر الشهر', readAt: null, createdAt: new Date().toISOString() }];
+            state.cashAccountBalances = { main: 0, development: 0, emergency: 0 };
+            renderAll();
+            window.syncAssistantFab();
+        });
+        const fab = page.locator('#assistantFab');
+        await expect(fab).toBeVisible();
+        await fab.click();
+        await expect(page.locator('#assistantModal')).toBeVisible();
+        return page.locator('#assistantLog .assistant-msg.is-bot:not(.is-typing) .assistant-bubble');
+    }
+
+    test('the launcher stays in the owner portal and greets the owner by name', async ({ page }) => {
+        const botMessages = await seedOwnerAssistant(page);
+        await expect(botMessages.first()).toContainText('أهلاً يا أحمد علي');
+        await expect(page.locator('#assistantSuggestions [data-assistant-query="عليّا كام الشهر ده؟"]')).toBeVisible();
+        await expect(page.locator('#assistantSuggestions [data-assistant-query="رصيد الخزنة كام؟"]')).toHaveCount(0);
+        await expect(page.locator('#assistantInput')).toHaveAttribute('placeholder', 'اسألني عن حسابك، إيصالاتك، ميعاد الدفع…');
+
+        const fabBox = await page.locator('#assistantFab').boundingBox();
+        const viewport = page.viewportSize();
+        expect(fabBox.y + fabBox.height).toBeLessThanOrEqual(viewport.height);
+    });
+
+    test('the owner gets their own bill, receipts and due window', async ({ page }) => {
+        const botMessages = await seedOwnerAssistant(page);
+
+        await page.locator('#assistantInput').fill('عليّا كام الشهر ده؟');
+        await page.locator('#assistantInput').press('Enter');
+        await expect(botMessages.last()).toContainText('حسابك');
+        await expect(botMessages.last()).toContainText('شقة 3');
+        await expect(botMessages.last()).toContainText('100 ج.م');
+        await expect(botMessages.last()).toContainText('ميعاد المستحق');
+
+        await page.locator('#assistantInput').fill('إيصالاتي');
+        await page.locator('#assistantInput').press('Enter');
+        await expect(botMessages.last()).toContainText('عدد الإيصالات');
+        await expect(botMessages.last()).toContainText('نقدًا');
+
+        await page.locator('#assistantInput').fill('آخر يوم للدفع كام؟');
+        await page.locator('#assistantInput').press('Enter');
+        await expect(botMessages.last()).toContainText('يوم 5 من كل شهر');
+        await expect(botMessages.last()).toContainText('فترة السماح');
+    });
+
+    test('building-wide questions are refused without leaking any other number', async ({ page }) => {
+        const botMessages = await seedOwnerAssistant(page);
+
+        for (const question of ['رصيد الخزنة كام؟', 'مصروفات الشهر', 'إجمالي تحصيل العمارة', 'تقرير المالك']) {
+            await page.locator('#assistantInput').fill(question);
+            await page.locator('#assistantInput').press('Enter');
+            await expect(botMessages.last(), question).toContainText('ده يخص الإدارة');
+            await expect(botMessages.last(), question).not.toContainText('ج.م');
+        }
+
+        await page.locator('#assistantInput').fill('مين عليه متأخرات؟');
+        await page.locator('#assistantInput').press('Enter');
+        await expect(botMessages.last()).toContainText('متأخرات على شقتك');
+    });
+
+    test('the owner reaches notices, enabled payment methods and the manager', async ({ page }) => {
+        const botMessages = await seedOwnerAssistant(page);
+
+        await page.locator('#assistantInput').fill('إعلانات المبنى');
+        await page.locator('#assistantInput').press('Enter');
+        await expect(botMessages.last()).toContainText('قراءة العدادات الأسبوع الجاي');
+
+        await page.locator('#assistantInput').fill('إشعاراتي');
+        await page.locator('#assistantInput').press('Enter');
+        await expect(botMessages.last()).toContainText('تذكير بالاشتراك');
+        await expect(botMessages.last()).toContainText('جديد');
+
+        await page.locator('#assistantInput').fill('أقدر أدفع بإيه؟');
+        await page.locator('#assistantInput').press('Enter');
+        await expect(botMessages.last()).toContainText('InstaPay');
+        await expect(botMessages.last()).not.toContainText('فودافون كاش');
+
+        await page.locator('#assistantInput').fill('رقم المدير');
+        await page.locator('#assistantInput').press('Enter');
+        await expect(botMessages.last()).toContainText('مدير الاختبار');
+        await expect(botMessages.last().locator('a[href="tel:01000000000"]')).toHaveCount(1);
     });
 });
