@@ -506,9 +506,16 @@ function getResidentStatementSummaryItems(statement) {
         return [
             { label: 'إجمالي المستحق', cents: statement.totals.dueCents },
             ...(statement.totals.adjustmentCents > 0
-                ? [{ label: 'إعفاء/تخفيض', cents: statement.totals.adjustmentCents, tone: 'amber' }]
+                ? [{ label: 'إعفاء/تخفيض/تسوية', cents: statement.totals.adjustmentCents, tone: 'amber' }]
                 : []),
-            { label: 'مدفوع الاشتراكات', cents: statement.totals.paidCents, tone: 'emerald' },
+            { label: 'مدفوع الاشتراكات والتسويات', cents: statement.totals.paidCents, tone: 'emerald' },
+            ...(statement.totals.settlementAgreedCents > 0
+                ? [
+                    { label: 'إجمالي اتفاقات التسوية', cents: statement.totals.settlementAgreedCents, tone: 'amber' },
+                    { label: 'المسدد من التسويات', cents: statement.totals.settlementPaidCents, tone: 'emerald' },
+                    { label: 'المتبقي من التسويات', cents: statement.totals.settlementRemainingCents, tone: statement.totals.settlementRemainingCents ? 'rose' : 'emerald' }
+                ]
+                : []),
             ...(!statement.purposeFilter ? [{ label: 'إجمالي حركات التحصيل', cents: statement.totals.filteredPaidCents, tone: 'emerald' }] : []),
             { label: 'إجمالي المتبقي', cents: statement.totals.remainingCents, tone: statement.totals.remainingCents ? 'rose' : 'emerald' },
             { label: 'أشهر متأخرة', text: fmtNum(statement.totals.arrearsMonths), tone: statement.totals.arrearsMonths ? 'amber' : 'emerald' }
@@ -2131,11 +2138,21 @@ function buildResidentStatement(residentId, purposeFilter = '') {
         const month = getStatementMonthLabel(key);
         const isBilled = (!createdKey || key >= createdKey) && (!currentKey || key <= currentKey);
         const rowDueCents = isBilled ? toCents(getSubscriptionAmountForMonth(resident, month)) : 0;
-        const rowAdjustmentCents = isBilled && showDues && typeof getAdjustmentAmountForMonth === 'function'
-            ? toCents(getAdjustmentAmountForMonth(resident.id, month))
-            : 0;
-        const rowNetDueCents = Math.max(0, rowDueCents - rowAdjustmentCents);
-        const rowPaidCents = toCents(getPaidAmountForMonth(resident.id, month));
+        const settlement = isBilled && showDues && typeof getSettlementAdjustmentForMonth === 'function'
+            ? getSettlementAdjustmentForMonth(resident.id, month) : null;
+        const settlementAmountCents = settlement ? toCents(settlement.amount) : 0;
+        const settlementPaidCents = settlement && typeof getSettlementPaidAmount === 'function'
+            ? toCents(getSettlementPaidAmount(settlement.id)) : 0;
+        const subscriptionPaidCents = toCents(getPaidAmountForMonth(resident.id, month));
+        const rowAdjustmentCents = isBilled && showDues && settlement
+            ? Math.max(0, rowDueCents - settlementAmountCents)
+            : isBilled && showDues && typeof getAdjustmentAmountForMonth === 'function'
+                ? toCents(getAdjustmentAmountForMonth(resident.id, month))
+                : 0;
+        const rowNetDueCents = settlement
+            ? settlementAmountCents
+            : Math.max(0, rowDueCents - rowAdjustmentCents);
+        const rowPaidCents = settlement ? settlementPaidCents : subscriptionPaidCents;
         const rowRemainingCents = Math.max(0, rowNetDueCents - rowPaidCents);
         dueCents += rowDueCents;
         adjustmentCents += rowAdjustmentCents;
@@ -2146,6 +2163,9 @@ function buildResidentStatement(residentId, purposeFilter = '') {
             month,
             dueCents: rowDueCents,
             adjustmentCents: rowAdjustmentCents,
+            settlementAmountCents,
+            settlementPaidCents,
+            settlementRemainingCents: Math.max(0, settlementAmountCents - settlementPaidCents),
             netDueCents: rowNetDueCents,
             paidCents: rowPaidCents,
             remainingCents: rowRemainingCents,
@@ -2211,6 +2231,9 @@ function buildResidentStatement(residentId, purposeFilter = '') {
             dueCents,
             adjustmentCents,
             paidCents,
+            settlementAgreedCents: months.reduce((sum, row) => sum + row.settlementAmountCents, 0),
+            settlementPaidCents: months.reduce((sum, row) => sum + row.settlementPaidCents, 0),
+            settlementRemainingCents: months.reduce((sum, row) => sum + row.settlementRemainingCents, 0),
             remainingCents,
             filteredPaidCents,
             arrearsMonths: months.filter(row => row.remainingCents > 0 && row.key < currentKey).length,
