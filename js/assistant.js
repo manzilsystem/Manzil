@@ -601,16 +601,17 @@ function buildAssistantResidentAnswer(resident, now = new Date()) {
     const snapshot = getAssistantResidentSnapshot(resident, now);
     const title = `${assistantApartmentLabel(resident)} · ${assistantResidentName(resident)}`;
     let html = '';
-    html += assistantRow(snapshot.settlement ? 'المبلغ المتفق عليه' : 'اشتراك الشهر', assistantMoney(snapshot.subscription));
-    html += assistantRow('مدفوع هذا الشهر', assistantMoney(snapshot.paid), snapshot.paid > 0 ? 'good' : '');
     if (snapshot.settlement) {
-        html += assistantRow('إجمالي اتفاق التسوية', assistantMoney(snapshot.settlement.amount));
-        html += assistantRow('المسدد من التسوية', assistantMoney(snapshot.settlementPaid), 'good');
+        html += assistantRow('الاشتراك قبل التسوية', assistantMoney(snapshot.grossSubscription));
+        html += assistantRow('قيمة اتفاق التسوية', assistantMoney(snapshot.subscription));
+        html += assistantRow('المسدد من التسوية', assistantMoney(snapshot.settlementPaid), snapshot.settlementPaid > 0 ? 'good' : '');
         html += assistantRow('المتبقي من التسوية', assistantMoney(snapshot.settlementRemaining), snapshot.settlementRemaining > 0 ? 'warn' : 'good');
-    } else if (snapshot.adjusted > 0) {
-        html += assistantRow('إعفاء / تخفيض الشهر', assistantMoney(snapshot.adjusted), 'warn');
+    } else {
+        html += assistantRow('اشتراك الشهر', assistantMoney(snapshot.subscription));
+        html += assistantRow('مدفوع هذا الشهر', assistantMoney(snapshot.paid), snapshot.paid > 0 ? 'good' : '');
+        if (snapshot.adjusted > 0) html += assistantRow('إعفاء / تخفيض الشهر', assistantMoney(snapshot.adjusted), 'warn');
+        html += assistantRow('المتبقي هذا الشهر', assistantMoney(snapshot.outstanding), snapshot.outstanding > 0 ? 'bad' : 'good');
     }
-    html += assistantRow('المتبقي هذا الشهر', assistantMoney(snapshot.outstanding), snapshot.outstanding > 0 ? 'bad' : 'good');
     html += assistantRow('إجمالي المتأخرات', assistantMoney(snapshot.debt.totalDebt), snapshot.debt.totalDebt > 0 ? 'bad' : 'good');
     html += assistantRow('شهور متأخرة', assistantNumber(snapshot.debt.count));
     if (snapshot.lastPayment) {
