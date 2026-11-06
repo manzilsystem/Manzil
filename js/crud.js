@@ -1857,7 +1857,9 @@ function selectFirstUnpaidIncomeMonth(resident) {
     const labels = typeof getIncomeCollectionMonthLabels === 'function'
         ? getIncomeCollectionMonthLabels(resident, 12)
         : [];
-    const first = labels.find(month => getMonthOutstanding(resident, month) > 0);
+    const first = labels.find(month => getMonthOutstanding(resident, month) > 0
+        && !(typeof getSettlementAdjustmentForMonth === 'function'
+            && getSettlementAdjustmentForMonth(resident.id, month)));
     incomeSelectedMonths = new Set(first ? [first] : []);
     syncIncomeMonthPicker(resident, first || getCurrentMonth());
 }
@@ -1873,7 +1875,9 @@ function renderIncomeMonthsGrid(resident) {
     const labels = typeof getIncomeCollectionMonthLabels === 'function'
         ? getIncomeCollectionMonthLabels(resident, 12, getIncomePickerLabel() ? [getIncomePickerLabel()] : [])
         : [];
-    const payable = new Set(labels.filter(month => getMonthOutstanding(resident, month) > 0));
+    const payable = new Set(labels.filter(month => getMonthOutstanding(resident, month) > 0
+        && !(typeof getSettlementAdjustmentForMonth === 'function'
+            && getSettlementAdjustmentForMonth(resident.id, month))));
     incomeSelectedMonths = new Set(Array.from(incomeSelectedMonths).filter(month => payable.has(month)));
     grid.innerHTML = labels.map(month => {
         const info = getIncomeMonthStatus(resident, month);
