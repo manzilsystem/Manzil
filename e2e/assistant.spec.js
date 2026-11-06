@@ -110,7 +110,7 @@ test.describe('assistant floating launcher', () => {
     test('clears the bottom nav, shrinks on scroll down and widens on scroll up', async ({ page }) => {
         const fab = page.locator('#assistantFab');
         await expect(fab).toBeVisible();
-        await expect(fab.locator('.assistant-fab-avatar img')).toHaveAttribute('src', 'icons/assistant-abbah.png');
+        await expect(fab.locator('.assistant-fab-avatar img')).toHaveAttribute('src', /^icons\/assistant-abbah\.png\?v=[0-9a-f]{10}$/);
         await expect(fab).not.toHaveClass(/is-hidden|is-compact/);
 
         const box = await fab.boundingBox();

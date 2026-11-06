@@ -34,7 +34,7 @@
 | الإصدار | مشتق تلقائيًا `manzil-<10 hex>` من بصمة SHA-256 لكل الأصول (`scripts/build-index.mjs`) |
 | الفروع | `main` فقط (محليًا وبعيدًا)؛ لا PRs مفتوحة |
 | الاختبارات | Node **738/738** · Deno **61/61** · typecheck ✅ · check:index ✅ |
-| Chromium E2E | 115 ناجح / 34 فاشل — الفاشل قائم مسبقًا على `main` (اختبارات لم تُحدَّث بعد إعادة تصميم نافذة التحصيل S1/S2)؛ `reports.spec.js` يمر 30/30 بعد إصلاح 4 تأكيدات قديمة؛ `service-worker-update.spec.js` يمر 6/6 |
+| Chromium E2E | 126 ناجح / 26 فاشل — الفاشل قائم مسبقًا على `main` (اختبارات لم تُحدَّث بعد إعادة تصميم نافذة التحصيل S1/S2)؛ `reports.spec.js` يمر 30/30؛ `assistant.spec.js` و`service-worker-update.spec.js` يمران بالكامل |
 | Migrations | **60/60** على Supabase؛ أحدثها `20261106215500_resident_lease_details` |
 | Edge Functions | 5 نشطة (owner-login, manage-owner-access, complete-owner-pin-change, monitor-client-errors, backup-console) |
 | الجدولة | `pg_cron` + `pg_net`؛ `manzil-daily-error-check` يوميًا 06:00 UTC |
