@@ -2167,7 +2167,7 @@ function previewIncomeAllocation() {
     const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
     if (monthLabel) monthLabel.textContent = isSubscription ? 'شهر بداية التوزيع' : isSettlement ? 'شهر التسوية' : 'شهر تسجيل التحصيل';
     if (monthSelect && typeof monthSelect.setAttribute === 'function') {
-        monthSelect.setAttribute('aria-label', isSubscription ? 'شهر بداية التوزيع' : 'شهر تسجيل التحصيل');
+        monthSelect.setAttribute('aria-label', isSubscription ? 'شهر بداية التوزيع' : isSettlement ? 'شهر التسوية' : 'شهر تسجيل التحصيل');
     }
     const preview = /** @type {any} */ (document.getElementById('incomeAllocationPreview'));
     const summary = /** @type {any} */ (document.getElementById('incomeAllocationSummary'));
@@ -2231,10 +2231,6 @@ function previewIncomeAllocation() {
         wizardSummary.textContent = residentName + ' · ' + crudIncomePurposeLabel(purpose) + ' · ' + fmtNum(base + extrasTotal) + ' ج.م · ' + method + ' · ' + cashbox;
     }
     const extraLines = getIncomeExtraLines();
-    if (purpose === 'settlement' && extraLines.length) {
-        toast('سداد التسوية يُسجل كبند مستقل؛ احذف البنود الإضافية ثم أعد المحاولة.', 'error');
-        return;
-    }
     const extraValidation = validateIncomeExtraLines(extraLines);
     const hasExtras = extraLines.length > 0;
     const mixedTotal = document.getElementById('incomeMixedTotal');
@@ -2451,6 +2447,10 @@ async function handleIncomeSubmit(e) {
         return;
     }
     const extraLines = getIncomeExtraLines();
+    if (purpose === 'settlement' && extraLines.length) {
+        toast('سداد التسوية يُسجل كبند مستقل؛ احذف البنود الإضافية ثم أعد المحاولة.', 'error');
+        return;
+    }
     const extraValidation = validateIncomeExtraLines(extraLines);
     if (!extraValidation.valid) {
         toast(extraValidation.message, 'error');
@@ -2529,7 +2529,7 @@ async function handleIncomeSubmit(e) {
         incomeSaving = false;
         if (submit) {
             submit.disabled = false;
-            submit.textContent = hasExtras ? 'حفظ الدفعة المختلطة' : 'حفظ التحصيل وتوزيعه';
+            submit.textContent = hasExtras ? 'حفظ الدفعة المختلطة' : purpose === 'settlement' ? 'تسجيل دفعة التسوية' : 'حفظ التحصيل وتوزيعه';
         }
     }
 }
