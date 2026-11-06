@@ -3,6 +3,7 @@ let landlordReportMonth = '';
 let landlordReportSignature = '';
 let landlordReportPurposeFilter = '';
 let landlordReportCashAccountFilter = '';
+let landlordReportPaymentMethodFilter = '';
 
 const REPORT_TABS = ['landlord', 'period', 'expenses', 'statement', 'monthlyClose', 'arrears', 'audit'];
 const REPORT_PANEL_IDS = {
@@ -51,11 +52,12 @@ function reportPaymentMatchesPurpose(payment, purposeFilter) {
     return purpose === purposeFilter;
 }
 
-function filterReportIncome(income, purposeFilter, cashAccountFilter = '') {
-    if (!purposeFilter && !cashAccountFilter) return income;
+function filterReportIncome(income, purposeFilter, cashAccountFilter = '', paymentMethodFilter = '') {
+    if (!purposeFilter && !cashAccountFilter && !paymentMethodFilter) return income;
     return income.filter(payment =>
         reportPaymentMatchesPurpose(payment, purposeFilter) &&
-        reportCashAccountMatches(payment, cashAccountFilter));
+        reportCashAccountMatches(payment, cashAccountFilter) &&
+        reportPaymentMatchesMethod(payment, paymentMethodFilter));
 }
 
 function filterReportExpenses(expenses, cashAccountFilter = '') {
@@ -131,6 +133,46 @@ function populateReportCashAccountFilters() {
         select.innerHTML = '<option value="">كل الصناديق</option>' + options;
         select.value = selected;
     });
+}
+
+function reportPaymentMethodLabel(code) {
+    return typeof getIncomePaymentMethodLabel === 'function' ? getIncomePaymentMethodLabel(code) : String(code || '');
+}
+
+function normalizeReportPaymentMethodFilter(value) {
+    const code = String(value || '').trim();
+    if (!code) return '';
+    const labels = typeof INCOME_PAYMENT_METHOD_LABELS !== 'undefined' ? INCOME_PAYMENT_METHOD_LABELS : null;
+    if (labels) return Object.prototype.hasOwnProperty.call(labels, code) ? code : '';
+    return ['cash', 'wallet', 'instapay', 'bank_transfer'].includes(code) ? code : '';
+}
+
+function getReportPaymentMethodFilter(id) {
+    if (typeof document === 'undefined') return '';
+    const select = /** @type {HTMLSelectElement | null} */ (document.getElementById(id));
+    return normalizeReportPaymentMethodFilter(select?.value || '');
+}
+
+function reportPaymentMethodFilterLabel(paymentMethodFilter) {
+    return paymentMethodFilter ? reportPaymentMethodLabel(paymentMethodFilter) : 'كل الطرق';
+}
+
+function reportPaymentMatchesMethod(payment, paymentMethodFilter) {
+    if (!paymentMethodFilter) return true;
+    return String(payment?.paymentMethod || '').trim() === paymentMethodFilter;
+}
+
+function populateReportPaymentMethodFilters() {
+    const labels = typeof INCOME_PAYMENT_METHOD_LABELS !== 'undefined' ? INCOME_PAYMENT_METHOD_LABELS : null;
+    if (!labels) return;
+    const options = Object.keys(labels)
+        .map(code => `<option value="${esc(code)}">${esc(reportPaymentMethodLabel(code))}</option>`)
+        .join('');
+    const select = /** @type {HTMLSelectElement | null} */ (document.getElementById('landlordReportPaymentMethod'));
+    if (!select) return;
+    const selected = normalizeReportPaymentMethodFilter(select.value || '');
+    select.innerHTML = '<option value="">كل الطرق</option>' + options;
+    select.value = selected;
 }
 
 function getReportView() {
@@ -241,9 +283,9 @@ function syncReportNavStatus() {
     });
 }
 
-function getLandlordReportData(month, purposeFilter = '', cashAccountFilter = '') {
+function getLandlordReportData(month, purposeFilter = '', cashAccountFilter = '', paymentMethodFilter = '') {
     return {
-        income: filterReportIncome(state.income.filter(i => i.month === month), purposeFilter, cashAccountFilter),
+        income: filterReportIncome(state.income.filter(i => i.month === month), purposeFilter, cashAccountFilter, paymentMethodFilter),
         expenses: filterReportExpenses(state.expenses.filter(e => e.month === month), cashAccountFilter)
     };
 }
@@ -289,11 +331,12 @@ function getExpenseCategoryTotals(expenses) {
     return Array.from(totals.entries()).sort((a, b) => b[1].cents - a[1].cents);
 }
 
-function buildLandlordReportModel(month, purposeFilter = '', cashAccountFilter = '') {
-    const showDues = reportShowsSubscriptionDues(purposeFilter) && !cashAccountFilter;
+function buildLandlordReportModel(month, purposeFilter = '', cashAccountFilter = '', paymentMethodFilter = '') {
+    const showDues = reportShowsSubscriptionDues(purposeFilter) && !cashAccountFilter && !paymentMethodFilter;
     const filterLabel = reportPurposeFilterLabel(purposeFilter);
     const cashAccountLabel = reportCashAccountFilterLabel(cashAccountFilter);
-    const { income: inc, expenses: exp } = getLandlordReportData(month, purposeFilter, cashAccountFilter);
+    const paymentMethodLabel = reportPaymentMethodFilterLabel(paymentMethodFilter);
+    const { income: inc, expenses: exp } = getLandlordReportData(month, purposeFilter, cashAccountFilter, paymentMethodFilter);
     const totalIncCents = inc.reduce((sum, i) => sum + toCents(i.amount), 0);
     const subscriptionIncCents = inc
         .filter(item => reportIsSubscriptionPayment(item))
@@ -325,6 +368,8 @@ function buildLandlordReportModel(month, purposeFilter = '', cashAccountFilter =
         purposeFilter,
         cashAccountFilter,
         cashAccountLabel,
+        paymentMethodFilter,
+        paymentMethodLabel,
         showDues,
         filterLabel,
         inc,
@@ -359,7 +404,7 @@ function getLandlordSummaryItems(model) {
         ];
     }
     return [
-        { label: 'تحصيل الغرض', cents: model.totalIncCents, tone: 'emerald' },
+        { label: model.paymentMethodFilter ? 'تحصيل الطريقة' : 'تحصيل الغرض', cents: model.totalIncCents, tone: 'emerald' },
         { label: 'عدد الحركات', text: fmtNum(model.inc.length) },
         { label: 'مصروف الشهر', cents: model.totalExpCents, tone: 'rose' },
         { label: 'صافي الحركة', cents: model.netCents, tone: model.netCents >= 0 ? 'emerald' : 'rose' }
@@ -424,8 +469,8 @@ function getSelectedReportMonth() {
     return String(/** @type {HTMLSelectElement} */ (document.getElementById('reportMonthSelect'))?.value || '');
 }
 
-function getLandlordReportSignature(month, purposeFilter = '', cashAccountFilter = '') {
-    const { income, expenses } = getLandlordReportData(month, purposeFilter, cashAccountFilter);
+function getLandlordReportSignature(month, purposeFilter = '', cashAccountFilter = '', paymentMethodFilter = '') {
+    const { income, expenses } = getLandlordReportData(month, purposeFilter, cashAccountFilter, paymentMethodFilter);
     const monthKey = monthLabelToKey(month);
     const adjustments = (state.adjustments || [])
         .filter(item => String(item.effectiveMonth || '') === monthKey);
@@ -438,7 +483,8 @@ function getLandlordReportSignature(month, purposeFilter = '', cashAccountFilter
         expenses,
         adjustments,
         purposeFilter || '',
-        cashAccountFilter || ''
+        cashAccountFilter || '',
+        paymentMethodFilter || ''
     ]);
 }
 
@@ -456,6 +502,7 @@ function clearLandlordReportPreview(message) {
     landlordReportSignature = '';
     landlordReportPurposeFilter = '';
     landlordReportCashAccountFilter = '';
+    landlordReportPaymentMethodFilter = '';
     setLandlordReportActionsEnabled(false);
     const preview = document.getElementById('landlordReportPreview');
     if (preview) preview.innerHTML = `<p class="report-preview-empty">${esc(message)}</p>`;
@@ -468,7 +515,7 @@ function invalidateLandlordReportPreview() {
 
 function invalidateLandlordReportIfStale() {
     if (!landlordReportMonth) return;
-    if (getLandlordReportSignature(landlordReportMonth, landlordReportPurposeFilter, landlordReportCashAccountFilter) !== landlordReportSignature) {
+    if (getLandlordReportSignature(landlordReportMonth, landlordReportPurposeFilter, landlordReportCashAccountFilter, landlordReportPaymentMethodFilter) !== landlordReportSignature) {
         clearLandlordReportPreview('تغيّرت البيانات — اضغط «معاينة» لتحديث التقرير.');
     }
 }
@@ -479,8 +526,9 @@ function generateLandlordReport() {
     if (!m) { toast('اختر شهر','error'); return; }
     const purposeFilter = getReportPurposeFilter('landlordReportPurpose');
     const cashAccountFilter = getReportCashAccountFilter('landlordReportCashAccount');
-    const model = buildLandlordReportModel(m, purposeFilter, cashAccountFilter);
-    const { showDues, filterLabel, cashAccountLabel, inc, exp, residentsById, purposeTotals, paymentMethodTotals, expenseCategories } = model;
+    const paymentMethodFilter = getReportPaymentMethodFilter('landlordReportPaymentMethod');
+    const model = buildLandlordReportModel(m, purposeFilter, cashAccountFilter, paymentMethodFilter);
+    const { showDues, filterLabel, cashAccountLabel, paymentMethodLabel, inc, exp, residentsById, purposeTotals, paymentMethodTotals, expenseCategories } = model;
     const expenseCategorySummary = expenseCategories.map(([label, totals]) =>
         '<div class="report-list-row"><span class="report-list-title">' +
         esc(label) + ' <span class="report-list-meta">(' + totals.count + ')</span></span>' +
@@ -501,7 +549,7 @@ function generateLandlordReport() {
         <div class="space-y-3">
             <header class="report-preview-header">
                 <h3 class="report-preview-title">${esc(state.buildingName||'العمارة')}</h3>
-                <p class="report-preview-meta">تقرير ${esc(m)}${purposeFilter ? ' • الغرض: ' + esc(filterLabel) : ''}${cashAccountFilter ? ' • الصندوق: ' + esc(cashAccountLabel) : ''} • تم الإنشاء ${formatDate(new Date().toISOString())}</p>
+                <p class="report-preview-meta">تقرير ${esc(m)}${purposeFilter ? ' • الغرض: ' + esc(filterLabel) : ''}${cashAccountFilter ? ' • الصندوق: ' + esc(cashAccountLabel) : ''}${paymentMethodFilter ? ' • طريقة الدفع: ' + esc(paymentMethodLabel) : ''} • تم الإنشاء ${formatDate(new Date().toISOString())}</p>
             </header>
             ${statsHtml}
             <div class="report-block">
@@ -526,16 +574,19 @@ function generateLandlordReport() {
             </div>
             <div class="report-note report-divider text-center"><p>${cashAccountFilter
                 ? 'الحركات معروضة لصندوق «' + esc(cashAccountLabel) + '» فقط، والمستحق ونسبة التحصيل يخصان العمارة كلها لذلك يُخفيان عند تصفية الصندوق.'
-                : purposeFilter
-                    ? (showDues
-                        ? 'المستحق ونسبة التحصيل يعتمدان على اشتراكات الشهر، والحركات معروضة للاشتراكات فقط.'
-                        : 'المعروض يشمل تحصيلات غرض «' + esc(filterLabel) + '» فقط. المستحق ونسبة التحصيل مرتبطان باشتراكات الشهر لذلك يُخفيان عند تصفية غرض آخر، والمصروفات معروضة كاملة لأنها غير مرتبطة بأغراض التحصيل.')
-                    : 'المستحق محسوب بقيمة الاشتراك السارية في شهر التقرير، ونسبة التحصيل تعتمد على تحصيلات الاشتراك فقط.'}</p></div>
+                : paymentMethodFilter
+                    ? 'التحصيلات معروضة لطريقة «' + esc(paymentMethodLabel) + '» فقط. المستحق ونسبة التحصيل مرتبطان بكل اشتراكات الشهر لذلك يُخفيان عند تصفية طريقة الدفع، والمصروفات معروضة كاملة لأنها غير مرتبطة بطريقة التحصيل.'
+                    : purposeFilter
+                        ? (showDues
+                            ? 'المستحق ونسبة التحصيل يعتمدان على اشتراكات الشهر، والحركات معروضة للاشتراكات فقط.'
+                            : 'المعروض يشمل تحصيلات غرض «' + esc(filterLabel) + '» فقط. المستحق ونسبة التحصيل مرتبطان باشتراكات الشهر لذلك يُخفيان عند تصفية غرض آخر، والمصروفات معروضة كاملة لأنها غير مرتبطة بأغراض التحصيل.')
+                        : 'المستحق محسوب بقيمة الاشتراك السارية في شهر التقرير، ونسبة التحصيل تعتمد على تحصيلات الاشتراك فقط.'}</p></div>
         </div>`;
     landlordReportMonth = m;
     landlordReportPurposeFilter = purposeFilter;
     landlordReportCashAccountFilter = cashAccountFilter;
-    landlordReportSignature = getLandlordReportSignature(m, purposeFilter, cashAccountFilter);
+    landlordReportPaymentMethodFilter = paymentMethodFilter;
+    landlordReportSignature = getLandlordReportSignature(m, purposeFilter, cashAccountFilter, paymentMethodFilter);
     setLandlordReportActionsEnabled(true);
 }
 
@@ -551,7 +602,7 @@ function printLandlordReport() {
     const previousTitle = title ? title.textContent : '';
     const previousMeta = meta ? meta.textContent : '';
     if (title) title.textContent = `تقرير الملاك - ${state.buildingName || 'Manzil'}`;
-    if (meta) meta.textContent = `تقرير ${landlordReportMonth} • المدير: ${state.managerName || '—'}`;
+    if (meta) meta.textContent = `تقرير ${landlordReportMonth}${landlordReportPaymentMethodFilter ? ' • طريقة الدفع: ' + reportPaymentMethodLabel(landlordReportPaymentMethodFilter) : ''} • المدير: ${state.managerName || '—'}`;
     document.body.classList.add('print-landlord');
     const restore = () => {
         document.body.classList.remove('print-landlord');
@@ -591,7 +642,7 @@ function downloadCsv(filename, rows) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function exportToCSV(month = landlordReportMonth, purposeFilter = landlordReportPurposeFilter, cashAccountFilter = landlordReportCashAccountFilter) {
+function exportToCSV(month = landlordReportMonth, purposeFilter = landlordReportPurposeFilter, cashAccountFilter = landlordReportCashAccountFilter, paymentMethodFilter = landlordReportPaymentMethodFilter) {
     if (!requireManager()) return;
     const reportMonth = String(month || '');
     if (!reportMonth) { toast('اعرض معاينة التقرير أولًا','error'); return; }
@@ -611,11 +662,18 @@ function exportToCSV(month = landlordReportMonth, purposeFilter = landlordReport
         toast('اعرض معاينة الصندوق المحدد أولًا','error');
         return;
     }
-    if (landlordReportSignature && getLandlordReportSignature(reportMonth, purposeFilter, cashAccountFilter) !== landlordReportSignature) {
+    const methodSelect = typeof document !== 'undefined'
+        ? /** @type {HTMLSelectElement | null} */ (document.getElementById('landlordReportPaymentMethod'))
+        : null;
+    if (methodSelect && normalizeReportPaymentMethodFilter(methodSelect.value) !== paymentMethodFilter) {
+        toast('اعرض معاينة طريقة الدفع المحددة أولًا','error');
+        return;
+    }
+    if (landlordReportSignature && getLandlordReportSignature(reportMonth, purposeFilter, cashAccountFilter, paymentMethodFilter) !== landlordReportSignature) {
         toast('تغيّرت البيانات — اضغط «معاينة» لتحديث التقرير.','error');
         return;
     }
-    const { income: inc, expenses: exp } = getLandlordReportData(reportMonth, purposeFilter, cashAccountFilter);
+    const { income: inc, expenses: exp } = getLandlordReportData(reportMonth, purposeFilter, cashAccountFilter, paymentMethodFilter);
     const residentsById = buildResidentIndex();
     const rows = [['النوع','الوصف','الشقة','الشهر','المبلغ','الغرض','الصندوق','طريقة الدفع','ملاحظات']];
     inc.forEach(i => {
@@ -628,13 +686,14 @@ function exportToCSV(month = landlordReportMonth, purposeFilter = landlordReport
     const monthKey = monthLabelToKey(reportMonth);
     const purposeSuffix = purposeFilter ? `_${purposeFilter}` : '';
     const cashSuffix = cashAccountFilter ? `_${cashAccountFilter}` : '';
-    downloadCsv(`manzil_report_${monthKey ? monthKey.slice(0, 7) : Date.now()}${purposeSuffix}${cashSuffix}.csv`, rows);
+    const paymentSuffix = paymentMethodFilter ? `_pay_${paymentMethodFilter}` : '';
+    downloadCsv(`manzil_report_${monthKey ? monthKey.slice(0, 7) : Date.now()}${purposeSuffix}${cashSuffix}${paymentSuffix}.csv`, rows);
     toast(`تم تصدير تقرير ${reportMonth}`,'success');
 }
 
-function renderLandlordReportPdfHtml(month, purposeFilter = '', cashAccountFilter = '') {
-    const model = buildLandlordReportModel(month, purposeFilter, cashAccountFilter);
-    const { showDues, filterLabel, cashAccountLabel, inc, exp, residentsById, purposeTotals, paymentMethodTotals, expenseCategories } = model;
+function renderLandlordReportPdfHtml(month, purposeFilter = '', cashAccountFilter = '', paymentMethodFilter = '') {
+    const model = buildLandlordReportModel(month, purposeFilter, cashAccountFilter, paymentMethodFilter);
+    const { showDues, filterLabel, cashAccountLabel, paymentMethodLabel, inc, exp, residentsById, purposeTotals, paymentMethodTotals, expenseCategories } = model;
     const summaryRows = renderPdfSummaryRows(getLandlordSummaryItems(model));
 
     const paymentMethodRows = Array.from(paymentMethodTotals.entries()).map(([label, totals]) =>
@@ -679,7 +738,8 @@ function renderLandlordReportPdfHtml(month, purposeFilter = '', cashAccountFilte
         '<h1 style="font-size:22px;font-weight:800;margin:0">', esc(state.buildingName || 'Manzil'), '</h1>',
         '<h2 style="font-size:17px;font-weight:700;margin:4px 0">تقرير الملاك — ', esc(month),
         purposeFilter ? ' • الغرض: ' + esc(filterLabel) : '',
-        cashAccountFilter ? ' • الصندوق: ' + esc(cashAccountLabel) : '', '</h2>',
+        cashAccountFilter ? ' • الصندوق: ' + esc(cashAccountLabel) : '',
+        paymentMethodFilter ? ' • طريقة الدفع: ' + esc(paymentMethodLabel) : '', '</h2>',
         '<p style="font-size:11px;color:#475569;margin:0">المدير: ', esc(state.managerName || '—'),
         ' • تم الإنشاء ', esc(formatDate(new Date().toISOString())), '</p></header>',
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">الملخص المالي</h3>',
@@ -704,7 +764,9 @@ function renderLandlordReportPdfHtml(month, purposeFilter = '', cashAccountFilte
         'تقرير للقراءة فقط ولا يعدل أي بيانات. ',
         cashAccountFilter
             ? 'الحركات معروضة لصندوق «' + esc(cashAccountLabel) + '» فقط. المستحق ونسبة التحصيل يخصان العمارة كلها لذلك لا يظهران عند تصفية الصندوق.'
-            : showDues
+            : paymentMethodFilter
+                ? 'التحصيلات معروضة لطريقة «' + esc(paymentMethodLabel) + '» فقط، بينما المصروفات كاملة لأنها غير مرتبطة بطريقة التحصيل. المستحق ونسبة التحصيل يخصان كل اشتراكات الشهر لذلك لا يظهران في هذا العرض.'
+                : showDues
                 ? 'المستحق محسوب بقيمة الاشتراك السارية في شهر التقرير بعد الإعفاءات والتخفيضات، والتحصيلات والمصروفات محسوبة على شهر استحقاقها المسجل.'
                 : 'التحصيلات معروضة لغرض «' + esc(filterLabel) + '» فقط، بينما المصروفات كاملة لأنها غير مرتبطة بأغراض التحصيل. المستحق ونسبة التحصيل يخصان الاشتراكات لذلك لا يظهران في هذا العرض.',
         '</p><footer style="font-size:9px;color:#64748b;margin-top:18px;text-align:center">Manzil — ',
@@ -719,7 +781,7 @@ async function exportLandlordReportPdf() {
         toast('اعرض معاينة الشهر المحدد أولًا', 'error');
         return;
     }
-    if (getLandlordReportSignature(landlordReportMonth, landlordReportPurposeFilter, landlordReportCashAccountFilter) !== landlordReportSignature) {
+    if (getLandlordReportSignature(landlordReportMonth, landlordReportPurposeFilter, landlordReportCashAccountFilter, landlordReportPaymentMethodFilter) !== landlordReportSignature) {
         toast('تغيّرت البيانات — اضغط «معاينة» لتحديث التقرير.', 'error');
         return;
     }
@@ -727,7 +789,8 @@ async function exportLandlordReportPdf() {
     const monthKey = monthLabelToKey(landlordReportMonth);
     const purposeSuffix = landlordReportPurposeFilter ? `_${landlordReportPurposeFilter}` : '';
     const cashSuffix = landlordReportCashAccountFilter ? `_${landlordReportCashAccountFilter}` : '';
-    const filename = `manzil_landlord_report_${monthKey ? monthKey.slice(0, 7) : 'report'}${purposeSuffix}${cashSuffix}.pdf`;
+    const paymentSuffix = landlordReportPaymentMethodFilter ? `_pay_${landlordReportPaymentMethodFilter}` : '';
+    const filename = `manzil_landlord_report_${monthKey ? monthKey.slice(0, 7) : 'report'}${purposeSuffix}${cashSuffix}${paymentSuffix}.pdf`;
     const button = /** @type {HTMLButtonElement} */ (document.getElementById('reportPdfBtn'));
     if (button) button.disabled = true;
     let root = null;
@@ -740,7 +803,7 @@ async function exportLandlordReportPdf() {
         root.dir = 'rtl';
         root.lang = 'ar';
         root.style.cssText = 'position:fixed;top:0;left:0;width:190mm;padding:8mm;box-sizing:border-box;background:#fff;z-index:-1';
-        root.innerHTML = renderLandlordReportPdfHtml(landlordReportMonth, landlordReportPurposeFilter, landlordReportCashAccountFilter);
+        root.innerHTML = renderLandlordReportPdfHtml(landlordReportMonth, landlordReportPurposeFilter, landlordReportCashAccountFilter, landlordReportPaymentMethodFilter);
         document.body.appendChild(root);
 
         const pdfBlob = await window.html2pdf().set({
