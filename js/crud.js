@@ -1563,7 +1563,7 @@ function handleIncomeSettlementChange() {
     const hint = document.getElementById('incomeSettlementHint');
     if (!adjustment || !resident) {
         if (monthSelect) monthSelect.disabled = false;
-        if (amountInput) amountInput.removeAttribute('max');
+        if (amountInput) amountInput.max = '';
         if (hint && resident) hint.textContent = 'اختر اتفاق تسوية مفتوحًا.';
         previewIncomeAllocation();
         return;
