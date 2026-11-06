@@ -103,22 +103,36 @@ test('a late selected month can be settled first without changing the building p
     assert.equal(app.state.paymentAllocationPolicy, 'oldest_first');
 });
 
-test('the income form exposes sorted apartment choices, a resident summary and late-month controls', () => {
+test('the income form exposes sorted apartment choices, a resident summary and an explicit month grid', () => {
     assert.match(html, /id="incomeResident"[^>]*onchange="handleIncomeResidentChange\(\)"/);
     assert.match(html, /id="incomeResidentSummary"/);
-    assert.match(html, /id="incomeAllocationMode"/);
-    assert.match(html, /value="selected"/);
+    assert.match(html, /id="incomeMonthsWrap"/);
+    assert.match(html, /id="incomeMonthsGrid" role="group"/);
+    assert.match(html, /id="incomeMonthsSummary"/);
+    assert.match(html, /applyIncomeMonthQuickAction\('arrears'\)/);
+    assert.match(html, /applyIncomeMonthQuickAction\('current'\)/);
+    assert.match(html, /applyIncomeMonthQuickAction\('two'\)/);
+    assert.match(html, /applyIncomeMonthQuickAction\('three'\)/);
+    assert.match(html, /applyIncomeMonthQuickAction\('clear'\)/);
+    assert.match(html, /id="incomeAmount"[^>]*oninput="handleIncomeAmountInput\(\)"/);
     assert.match(html, /id="incomeNotes"[^>]*oninput="previewIncomeAllocation\(\)"/);
     assert.match(html, /setIncomeNoteSuggestion\('سداد متأخرات'\)/);
     assert.match(html, /id="incomeReceiptModal"/);
-    assert.match(html, /id="incomeMonth"[^>]*onchange="handleIncomeMonthChange\(\)"/);
+    assert.match(html, /id="incomeMonth"[^>]*onchange="previewIncomeAllocation\(\)"/);
+    assert.doesNotMatch(html, /incomeAllocationMode/);
+    assert.doesNotMatch(html, /incomeAllocationPolicyHelp/);
     assert.doesNotMatch(html, /incomeCustomMonthWrap/);
     assert.doesNotMatch(html, /incomeCustomMonthSelect/);
     assert.doesNotMatch(html, /incomeCustomYearSelect/);
     assert.doesNotMatch(crudSource, /__custom__/);
     assert.doesNotMatch(crudSource, /applyIncomeCustomMonth/);
-    assert.match(crudSource, /function syncIncomeAllocationMode\(\)[\s\S]*?month !== getCurrentMonth\(\) \? 'selected' : 'policy'/);
-    assert.match(crudSource, /function handleIncomeMonthChange\(\)[\s\S]*?syncIncomeAllocationMode\(\)/);
+    assert.doesNotMatch(crudSource, /syncIncomeAllocationMode/);
+    assert.doesNotMatch(crudSource, /getIncomeAllocationPolicyOverride/);
+    assert.match(crudSource, /function getSelectedIncomeMonths\(\)/);
+    assert.match(crudSource, /function renderIncomeMonthsGrid\(resident\)/);
+    assert.match(crudSource, /function applyIncomeMonthQuickAction\(action\)/);
+    assert.match(crudSource, /function handleIncomeMonthToggle\(input\)/);
+    assert.match(crudSource, /calculateIncomeAllocationPreview\(residentId, amount, month, 120, '', selectedMonths\)/);
     assert.match(renderSource, /localeCompare\(String\(b\.apartmentNumber \|\| ''\), 'ar', \{ numeric: true \}\)/);
     assert.match(renderSource, /formatApartmentLabel\(r\.apartmentNumber\)/);
     assert.match(renderSource, /openIncomeReceiptModal\('\$\{i\.id\}'\)/);
@@ -136,5 +150,4 @@ test('income preview, list and receipts surface payment notes', () => {
 
 test('saving a collection opens the manager receipt automatically', () => {
     assert.match(crudSource, /openIncomeReceiptModal\(rows\[0\]\.id\)/);
-    assert.match(crudSource, /policyOverride === 'selected_month_first'/);
 });

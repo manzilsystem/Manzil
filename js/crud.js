@@ -502,14 +502,17 @@ function openResidentIncomeFromProfile(residentId) {
     }
     residentSelect.value = residentId;
     refreshIncomeMonthOptions(residentId, getCurrentMonth());
-    amountInput.value = '';
     monthSelect.value = getCurrentMonth();
     paymentMethodSelect.value = '';
-    const modeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeAllocationMode'));
-    if (modeSelect) modeSelect.value = 'policy';
     const purposeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomePurpose'));
     if (purposeSelect) purposeSelect.value = 'subscription';
     if (notesInput) notesInput.value = '';
+    incomeSelectedMonths = new Set();
+    incomeAmountManual = false;
+    selectFirstUnpaidIncomeMonth(resident);
+    renderIncomeMonthsGrid(resident);
+    syncIncomeAmountFromSelection();
+    syncIncomePurposeUi();
     syncIncomePurposeCashAccount('incomePurpose', 'incomeCashAccount', {
         resetUnlocked: true,
         hintId: 'incomePurposeCashHint'
@@ -1039,8 +1042,17 @@ function quickPayResident(residentId) {
         return;
     }
 
-    const month = getCurrentMonth();
-    const amount = getMonthOutstanding(resident, month);
+    const currentMonth = getCurrentMonth();
+    let month = currentMonth;
+    let amount = getMonthOutstanding(resident, currentMonth);
+    if (amount <= 0 && typeof getIncomeCollectionMonthLabels === 'function') {
+        const unpaid = getIncomeCollectionMonthLabels(resident, 12)
+            .find(item => getMonthOutstanding(resident, item) > 0);
+        if (unpaid) {
+            month = unpaid;
+            amount = getMonthOutstanding(resident, unpaid);
+        }
+    }
     if (amount <= 0) {
         toast('تم سداد اشتراك الشهر بالكامل.', 'info');
         return;
@@ -1062,11 +1074,13 @@ function quickPayResident(residentId) {
     amountInput.value = amount.toFixed(2);
     monthSelect.value = month;
     paymentMethodSelect.value = '';
-    const modeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeAllocationMode'));
-    if (modeSelect) modeSelect.value = 'policy';
     const purposeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomePurpose'));
     if (purposeSelect) purposeSelect.value = 'subscription';
     if (notesInput) notesInput.value = 'دفع سريع';
+    incomeSelectedMonths = new Set([month]);
+    incomeAmountManual = false;
+    renderIncomeMonthsGrid(resident);
+    syncIncomePurposeUi();
     if (typeof syncIncomePurposeCashAccount === 'function') {
         syncIncomePurposeCashAccount('incomePurpose', 'incomeCashAccount', {
             resetUnlocked: true,
@@ -1112,11 +1126,22 @@ function syncIncomePurposeCashAccount(purposeSelectId, cashAccountSelectId, opti
 }
 
 function handleIncomePurposeChange() {
-    syncIncomePurposeCashAccount('incomePurpose', 'incomeCashAccount', {
+    const purpose = syncIncomePurposeCashAccount('incomePurpose', 'incomeCashAccount', {
         resetUnlocked: true,
         hintId: 'incomePurposeCashHint'
     });
-    syncIncomeAllocationMode();
+    syncIncomePurposeUi();
+    const resident = getIncomeResidentFromForm();
+    if (purpose === 'subscription' && resident) {
+        if (!incomeSelectedMonths.size) selectFirstUnpaidIncomeMonth(resident);
+        renderIncomeMonthsGrid(resident);
+        if (!incomeAmountManual) syncIncomeAmountFromSelection();
+    } else if (purpose !== 'subscription') {
+        refreshIncomeMonthOptions(resident?.id || '', getCurrentMonth());
+        const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
+        if (monthSelect && !monthSelect.value) monthSelect.value = getCurrentMonth();
+    }
+    renderIncomeResidentSummary();
     previewIncomeAllocation();
 }
 
@@ -1164,23 +1189,161 @@ function refreshIncomeMonthOptions(residentId, preferredMonth = '') {
     else if (labels.length) select.value = labels[labels.length - 1];
 }
 
-function syncIncomeAllocationMode() {
-    const month = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'))?.value || '';
-    const purpose = crudIncomePurpose(/** @type {HTMLSelectElement | null} */ (document.getElementById('incomePurpose'))?.value);
-    const mode = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeAllocationMode'));
-    if (mode) {
-        mode.value = purpose === 'subscription' && month && month !== getCurrentMonth() ? 'selected' : 'policy';
-    }
+let incomeSelectedMonths = new Set();
+let incomeAmountManual = false;
+
+function getIncomeResidentFromForm() {
+    const residentId = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeResident'))?.value || '';
+    return state.residents.find(item => item.id === residentId) || null;
 }
 
-function handleIncomeMonthChange() {
-    syncIncomeAllocationMode();
+function getSelectedIncomeMonths() {
+    const grid = document.getElementById('incomeMonthsGrid');
+    if (!grid || typeof grid.querySelectorAll !== 'function') {
+        const fallback = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'))?.value || '';
+        return fallback ? [fallback] : [];
+    }
+    return Array.from(grid.querySelectorAll('input[data-income-month]:checked'))
+        .map(input => input.getAttribute('data-income-month') || '')
+        .filter(Boolean);
+}
+
+function getIncomeMonthStatus(resident, month) {
+    const key = monthLabelToKey(month);
+    const currentKey = getLocalMonthKey();
+    const outstanding = getMonthOutstanding(resident, month);
+    const monthKey = key ? key.slice(0, 7) : '';
+    const future = Boolean(monthKey && monthKey > currentKey);
+    const late = Boolean(monthKey && monthKey < currentKey)
+        || (typeof isSubscriptionMonthOverdue === 'function' && isSubscriptionMonthOverdue(month));
+    return {
+        key,
+        outstanding,
+        late,
+        future,
+        disabled: outstanding <= 0,
+        status: outstanding <= 0 ? 'مسدد' : future ? 'قادم' : late ? 'متأخر' : 'مستحق'
+    };
+}
+
+function selectFirstUnpaidIncomeMonth(resident) {
+    if (!resident) return;
+    const labels = typeof getIncomeCollectionMonthLabels === 'function'
+        ? getIncomeCollectionMonthLabels(resident, 12)
+        : [];
+    const first = labels.find(month => getMonthOutstanding(resident, month) > 0);
+    incomeSelectedMonths = new Set(first ? [first] : []);
+}
+
+function renderIncomeMonthsGrid(resident) {
+    const grid = document.getElementById('incomeMonthsGrid');
+    if (!grid) return;
+    if (!resident) {
+        incomeSelectedMonths.clear();
+        grid.innerHTML = '<p class="text-[11px] text-slate-500">اختر الشقة أولًا لعرض الشهور.</p>';
+        return;
+    }
+    const labels = typeof getIncomeCollectionMonthLabels === 'function'
+        ? getIncomeCollectionMonthLabels(resident, 12)
+        : [];
+    const payable = new Set(labels.filter(month => getMonthOutstanding(resident, month) > 0));
+    incomeSelectedMonths = new Set(Array.from(incomeSelectedMonths).filter(month => payable.has(month)));
+    grid.innerHTML = labels.map(month => {
+        const info = getIncomeMonthStatus(resident, month);
+        const checked = incomeSelectedMonths.has(month) && !info.disabled;
+        const badgeClass = info.disabled
+            ? 'text-slate-500 border-slate-700/60'
+            : info.late
+                ? 'text-amber-300 border-amber-500/40'
+                : info.future
+                    ? 'text-sky-300 border-sky-500/30'
+                    : 'text-emerald-300 border-emerald-500/30';
+        const due = getSubscriptionAmountForMonth(resident, month);
+        const paid = getPaidAmountForMonth(resident.id, month);
+        return `<label class="income-month-row flex items-start gap-2 rounded-xl border px-2.5 py-2 text-[11px] ${info.disabled ? 'border-slate-800/60 opacity-60' : 'border-slate-700/60'}">
+            <input type="checkbox" data-income-month="${crudHtmlEscape(month)}" ${checked ? 'checked' : ''} ${info.disabled ? 'disabled' : ''} onchange="handleIncomeMonthToggle(this)" aria-label="${crudHtmlEscape(`${month} ${info.status}`)}" class="mt-0.5 h-4 w-4 accent-emerald-500">
+            <span class="flex-1 min-w-0">
+                <span class="font-bold">${crudHtmlEscape(month)}</span>
+                <span class="mx-1 rounded-full border px-1.5 py-0.5 text-[9px] ${badgeClass}">${info.status}</span>
+                <span class="block text-[10px] text-slate-500">مستحق ${fmtNum(due)} · مدفوع ${fmtNum(paid)} · متبقٍ ${fmtNum(info.outstanding)}</span>
+            </span>
+        </label>`;
+    }).join('');
+}
+
+function handleIncomeMonthToggle(input) {
+    const month = input?.getAttribute?.('data-income-month') || '';
+    if (!month) return;
+    if (input.checked) incomeSelectedMonths.add(month);
+    else incomeSelectedMonths.delete(month);
+    if (!incomeAmountManual) syncIncomeAmountFromSelection();
     previewIncomeAllocation();
 }
 
-function getIncomeAllocationPolicyOverride() {
-    const mode = /** @type {HTMLSelectElement} */ (document.getElementById('incomeAllocationMode'))?.value || 'policy';
-    return mode === 'selected' ? 'selected_month_first' : '';
+function syncIncomeAmountFromSelection() {
+    const resident = getIncomeResidentFromForm();
+    const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
+    if (!resident || !amountInput) return;
+    const totalCents = getSelectedIncomeMonths().reduce(
+        (sum, month) => sum + Math.round(getMonthOutstanding(resident, month) * 100),
+        0
+    );
+    amountInput.value = totalCents > 0 ? String(totalCents / 100) : '';
+    incomeAmountManual = false;
+}
+
+function handleIncomeAmountInput() {
+    incomeAmountManual = true;
+    previewIncomeAllocation();
+}
+
+function applyIncomeMonthQuickAction(action) {
+    const resident = getIncomeResidentFromForm();
+    if (!resident) {
+        toast('اختر الشقة أولًا.', 'error');
+        return;
+    }
+    const labels = typeof getIncomeCollectionMonthLabels === 'function'
+        ? getIncomeCollectionMonthLabels(resident, 12)
+        : [];
+    const unpaid = labels.filter(month => getMonthOutstanding(resident, month) > 0);
+    const currentKey = getLocalMonthKey();
+    const currentMonth = getCurrentMonth();
+    if (action === 'clear') {
+        incomeSelectedMonths.clear();
+    } else if (action === 'current') {
+        incomeSelectedMonths = new Set(unpaid.includes(currentMonth) ? [currentMonth] : []);
+        if (!unpaid.includes(currentMonth)) toast('الشهر الحالي مسدد بالكامل.', 'info');
+    } else if (action === 'arrears') {
+        const arrears = unpaid.filter(month => {
+            const key = monthLabelToKey(month);
+            return Boolean(key && key.slice(0, 7) < currentKey)
+                || (typeof isSubscriptionMonthOverdue === 'function' && isSubscriptionMonthOverdue(month));
+        });
+        incomeSelectedMonths = new Set(arrears);
+        if (!arrears.length) toast('لا توجد متأخرات مستحقة.', 'info');
+    } else if (action === 'two' || action === 'three') {
+        const count = action === 'two' ? 2 : 3;
+        incomeSelectedMonths = new Set(unpaid.slice(0, count));
+        if (!unpaid.length) toast('لا توجد شهور مستحقة.', 'info');
+    }
+    incomeAmountManual = false;
+    renderIncomeMonthsGrid(resident);
+    syncIncomeAmountFromSelection();
+    previewIncomeAllocation();
+}
+
+function syncIncomePurposeUi() {
+    const purpose = crudIncomePurpose(/** @type {HTMLSelectElement | null} */ (document.getElementById('incomePurpose'))?.value);
+    const isSubscription = purpose === 'subscription';
+    const monthsWrap = document.getElementById('incomeMonthsWrap');
+    const registrationWrap = document.getElementById('incomeNonSubscriptionMonthWrap');
+    if (monthsWrap?.classList && typeof monthsWrap.classList.toggle === 'function') {
+        monthsWrap.classList.toggle('hidden', !isSubscription);
+    }
+    if (registrationWrap?.classList && typeof registrationWrap.classList.toggle === 'function') {
+        registrationWrap.classList.toggle('hidden', isSubscription);
+    }
 }
 
 function renderIncomeResidentSummary() {
@@ -1217,10 +1380,20 @@ function renderIncomeResidentSummary() {
 }
 
 function handleIncomeResidentChange() {
-    const residentId = /** @type {HTMLSelectElement} */ (document.getElementById('incomeResident'))?.value || '';
-    const mode = /** @type {HTMLSelectElement} */ (document.getElementById('incomeAllocationMode'));
-    if (mode) mode.value = 'policy';
-    refreshIncomeMonthOptions(residentId, getCurrentMonth());
+    const resident = getIncomeResidentFromForm();
+    incomeSelectedMonths = new Set();
+    incomeAmountManual = false;
+    refreshIncomeMonthOptions(resident?.id || '', getCurrentMonth());
+    const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
+    if (monthSelect) monthSelect.value = getCurrentMonth();
+    selectFirstUnpaidIncomeMonth(resident);
+    renderIncomeMonthsGrid(resident);
+    if (!resident) {
+        const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
+        if (amountInput) amountInput.value = '';
+    } else {
+        syncIncomeAmountFromSelection();
+    }
     renderIncomeResidentSummary();
     previewIncomeAllocation();
 }
@@ -1240,20 +1413,26 @@ function resetIncomeFormFields() {
     if (residentSelect) residentSelect.value = '';
     const purposeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomePurpose'));
     if (purposeSelect) purposeSelect.value = 'subscription';
-    const modeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeAllocationMode'));
-    if (modeSelect) modeSelect.value = 'policy';
+    incomeSelectedMonths = new Set();
+    incomeAmountManual = false;
     refreshIncomeMonthOptions('', getCurrentMonth());
     const monthSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeMonth'));
     const currentMonth = getCurrentMonth();
     if (monthSelect?.options && Array.from(monthSelect.options).some(option => option.value === currentMonth)) {
         monthSelect.value = currentMonth;
     }
+    syncIncomePurposeUi();
     syncIncomePurposeCashAccount('incomePurpose', 'incomeCashAccount', {
         resetUnlocked: true,
         hintId: 'incomePurposeCashHint'
     });
+    renderIncomeMonthsGrid(null);
     clearIncomeExtraLines();
     renderIncomeResidentSummary();
+    for (const id of ['incomeOutstandingHint', 'incomeSelectionHint', 'incomeMonthsSummary']) {
+        const hint = document.getElementById(id);
+        if (hint) hint.textContent = '';
+    }
     /** @type {HTMLElement} */ (document.getElementById('incomeAllocationPreview'))?.classList.add('hidden');
 }
 
@@ -1269,23 +1448,12 @@ function previewIncomeAllocation() {
         hintId: 'incomePurposeCashHint'
     });
     const isSubscription = purpose === 'subscription';
-    const policyOverride = getIncomeAllocationPolicyOverride();
-    const effectivePolicy = policyOverride || state.paymentAllocationPolicy;
+    syncIncomePurposeUi();
     const monthLabel = document.getElementById('incomeMonthLabel');
-    const monthSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeMonth'));
-    const modeWrap = document.getElementById('incomeAllocationModeWrap');
-    if (modeWrap) modeWrap.classList.toggle('hidden', !isSubscription);
+    const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
     if (monthLabel) monthLabel.textContent = isSubscription ? 'شهر بداية التوزيع' : 'شهر تسجيل التحصيل';
     if (monthSelect && typeof monthSelect.setAttribute === 'function') {
         monthSelect.setAttribute('aria-label', isSubscription ? 'شهر بداية التوزيع' : 'شهر تسجيل التحصيل');
-    }
-    const policyHelp = /** @type {any} */ (document.getElementById('incomeAllocationPolicyHelp'));
-    if (policyHelp) {
-        policyHelp.textContent = isSubscription
-            ? (effectivePolicy === 'selected_month_first'
-                ? 'سيُسدد الشهر المحدد أولًا، ثم تُسوّى الشهور الأقدم، وبعدها الشهور التالية. راجع المعاينة قبل الحفظ.'
-                : 'سيُسدد أقدم شهر غير مسدد أولًا، ثم الأشهر التالية بالترتيب. راجع المعاينة قبل الحفظ.')
-            : 'هذا الغرض لا يُوزَّع على أشهر الاشتراك؛ يُسجل كمبلغ مستقل في الصندوق المحدد.';
     }
     const preview = /** @type {any} */ (document.getElementById('incomeAllocationPreview'));
     const summary = /** @type {any} */ (document.getElementById('incomeAllocationSummary'));
@@ -1295,26 +1463,47 @@ function previewIncomeAllocation() {
 
     const residentId = /** @type {any} */ (document.getElementById('incomeResident'))?.value || '';
     const amount = Number(/** @type {any} */ (document.getElementById('incomeAmount'))?.value);
-    const month = /** @type {any} */ (document.getElementById('incomeMonth'))?.value || '';
+    const selectedMonths = isSubscription ? getSelectedIncomeMonths() : [];
+    const registrationMonth = /** @type {any} */ (monthSelect)?.value || '';
+    const month = isSubscription ? (selectedMonths[0] || registrationMonth || getCurrentMonth()) : registrationMonth;
     const notes = String(/** @type {any} */ (document.getElementById('incomeNotes'))?.value || '').trim();
     const resident = state.residents.find(item => item.id === residentId) || null;
-    const monthKey = typeof monthLabelToKey === 'function' ? monthLabelToKey(month) : null;
     const currentKey = typeof monthLabelToKey === 'function' ? monthLabelToKey(getCurrentMonth()) : null;
-    const selectedMonthLate = Boolean(monthKey && currentKey && monthKey < currentKey);
+    const monthKeyOf = label => (typeof monthLabelToKey === 'function' ? monthLabelToKey(label) : null);
+    const selectedTotalCents = resident
+        ? selectedMonths.reduce((sum, item) => sum + Math.round(getMonthOutstanding(resident, item) * 100), 0)
+        : 0;
+    const selectedMonthLate = selectedMonths.some(label => {
+        const key = monthKeyOf(label);
+        return Boolean(key && currentKey && key < currentKey);
+    });
     const outstandingHint = document.getElementById('incomeOutstandingHint');
+    const selectionHint = document.getElementById('incomeSelectionHint');
+    const monthsSummary = document.getElementById('incomeMonthsSummary');
+    if (monthsSummary) {
+        monthsSummary.textContent = selectedMonths.length
+            ? `${fmtNum(selectedMonths.length)} شهر · مستحق ${fmtNum(selectedTotalCents / 100)} ج.م`
+            : '';
+    }
+    if (selectionHint) {
+        if (!resident || !isSubscription) {
+            selectionHint.textContent = '';
+        } else if (!selectedMonths.length) {
+            selectionHint.textContent = 'اختر شهرًا واحدًا على الأقل من قائمة شهور السداد.';
+        } else {
+            selectionHint.textContent = `المحدد: ${fmtNum(selectedMonths.length)} شهر · المستحق ${fmtNum(selectedTotalCents / 100)} ج.م · المدفوع الآن ${Number.isFinite(amount) ? fmtNum(amount) : 0} ج.م`;
+        }
+    }
     if (outstandingHint) {
-        if (!resident || !month || !isSubscription) {
+        if (!resident || !isSubscription) {
             outstandingHint.textContent = '';
         } else {
-            const outstanding = getMonthOutstanding(resident, month);
-            const debt = calculateCumulativeDebt(resident.id);
+            const debt = typeof calculateCumulativeDebt === 'function' ? calculateCumulativeDebt(resident.id) : { count: 0, totalDebt: 0 };
             const parts = [];
-            if (outstanding > 0) {
-                parts.push(`${selectedMonthLate ? 'شهر متأخر — ' : ''}المتبقي على ${resident.name} في ${month}: ${fmtNum(outstanding)} ج.م`);
-            } else {
-                parts.push(`لا يوجد متبقٍ على ${resident.name} في ${month}`);
+            if (selectedMonths.length) {
+                parts.push(`${selectedMonthLate ? 'ضمن المحدد شهور متأخرة — ' : ''}مستحق الشهور المحددة: ${fmtNum(selectedTotalCents / 100)} ج.م`);
             }
-            if (debt.count > 0) parts.push(`متأخرات سابقة: ${fmtNum(debt.totalDebt)} ج.م (${debt.count} شهر)`);
+            if (debt.count > 0) parts.push(`متأخرات حالية: ${fmtNum(debt.totalDebt)} ج.م (${fmtNum(debt.count)} شهر)`);
             outstandingHint.textContent = parts.join(' · ');
         }
     }
@@ -1322,7 +1511,7 @@ function previewIncomeAllocation() {
     const extraValidation = validateIncomeExtraLines(extraLines);
     const hasExtras = extraLines.length > 0;
     const mixedTotal = document.getElementById('incomeMixedTotal');
-    const ready = Boolean(residentId && month && Number.isFinite(amount) && amount > 0);
+    const ready = Boolean(residentId && Number.isFinite(amount) && amount > 0 && (isSubscription ? selectedMonths.length : month));
     const baseCents = Number.isFinite(amount) ? Math.round(amount * 100) : 0;
     const collectedCents = ready && extraValidation.valid ? baseCents + extraValidation.totalCents : 0;
     const setSubmitLabel = label => {
@@ -1379,7 +1568,7 @@ function previewIncomeAllocation() {
     }
 
     const allocation = typeof calculateIncomeAllocationPreview === 'function'
-        ? calculateIncomeAllocationPreview(residentId, amount, month, 120, policyOverride)
+        ? calculateIncomeAllocationPreview(residentId, amount, month, 120, '', selectedMonths)
         : null;
     preview.classList.remove('hidden');
     if (!allocation) {
@@ -1392,39 +1581,53 @@ function previewIncomeAllocation() {
         ? calculateCumulativeDebt(resident.id).totalDebt
         : 0;
     const overduePaid = /** @type {Array<{ month: string, amount: number, amountCents: number }>} */ (allocation.allocations).reduce((sum, item) => {
-        const key = typeof monthLabelToKey === 'function' ? monthLabelToKey(item.month) : null;
+        const key = monthKeyOf(item.month);
         const overdue = (typeof isSubscriptionMonthOverdue === 'function' && isSubscriptionMonthOverdue(item.month))
             || Boolean(key && currentKey && key < currentKey);
         return sum + (overdue ? item.amount : 0);
     }, 0);
+    const prepaidCents = /** @type {Array<{ month: string, amount: number, amountCents: number }>} */ (allocation.allocations).reduce((sum, item) => {
+        const key = monthKeyOf(item.month);
+        return sum + (key && currentKey && key > currentKey ? item.amountCents : 0);
+    }, 0);
     const debtAfter = Math.max(0, debtBefore - overduePaid);
     const debtRowsHtml = `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${selectedMonthLate || overduePaid > 0 ? 'المتأخرات بعد الدفعة' : 'المتأخرات الحالية'}</span><strong class="${debtAfter > 0 ? 'text-amber-300' : 'text-emerald-400'}">${fmtNum(Math.max(0, debtAfter))} ج.م</strong></div>`;
     if (allocation.invalidStart) {
-        summary.textContent = 'لا يمكن توزيع التحصيل قبل تاريخ إنشاء الشقة.';
+        summary.textContent = 'لا يمكن اختيار شهر قبل تاريخ إنشاء الشقة.';
         rows.innerHTML = '';
         if (submit) submit.disabled = true;
         return;
     }
     if (allocation.invalid || !allocation.allocations.length) {
-        summary.textContent = 'لا توجد اشتراكات مستحقة يمكن توزيع المبلغ عليها من هذا الشهر.';
+        summary.textContent = selectedMonths.length
+            ? 'الشهور المختارة مسددة بالكامل. اختر شهورًا أخرى من القائمة.'
+            : 'اختر شهرًا واحدًا على الأقل من قائمة شهور السداد.';
         rows.innerHTML = '';
         if (submit) submit.disabled = true;
         return;
     }
 
-    const startDescription = effectivePolicy === 'selected_month_first' ? 'بدءًا من الشهر المحدد' : 'بدءًا من أقدم شهر غير مسدد';
+    const prepaidRowsHtml = prepaidCents > 0
+        ? `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>منها دفعة مقدمة</span><strong class="text-sky-300">${fmtNum(prepaidCents / 100)} ج.م</strong></div>`
+        : '';
     summary.textContent = allocation.remainingCents > 0
-        ? `تم توزيع ${fmtNum(allocation.totalAllocated)} من ${fmtNum(amount)} ج.م. المتبقي ${fmtNum(allocation.remainingAmount)} ج.م خارج نطاق التوزيع؛ قلّل المبلغ.`
-        : `سيتم توزيع ${fmtNum(allocation.totalAllocated)} ج.م على ${allocation.allocations.length} شهر، ${startDescription}.`
-            + (selectedMonthLate ? ' الدفعة ستُسدد شهرًا متأخرًا.' : '')
+        ? `تم توزيع ${fmtNum(allocation.totalAllocated)} من ${fmtNum(amount)} ج.م. المتبقي ${fmtNum(allocation.remainingAmount)} ج.م أكبر من المستحق في الشهور المختارة والشهور الـ12 التالية؛ قلّل المبلغ أو أضف شهورًا.`
+        : `سيتم توزيع ${fmtNum(allocation.totalAllocated)} ج.م على ${fmtNum(allocation.allocations.length)} شهر${prepaidCents > 0 ? '، منها دفعة مقدمة' : ''}.`
+            + (selectedMonthLate ? ' الدفعة تشمل شهورًا متأخرة.' : '')
             + (hasExtras ? ` إجمالي الدفعة ${fmtNum(collectedCents / 100)} ج.م.` : '');
     rows.innerHTML = allocation.allocations.map(item => {
-        const key = typeof monthLabelToKey === 'function' ? monthLabelToKey(item.month) : null;
+        const key = monthKeyOf(item.month);
         const late = Boolean(key && currentKey && key < currentKey);
-        return `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${esc(item.month)}${late ? ' <span class="text-amber-300">· متأخر</span>' : ''}</span><strong class="text-emerald-400">${fmtNum(item.amount)} ج.م</strong></div>`;
+        const future = Boolean(key && currentKey && key > currentKey);
+        const badge = late
+            ? ' <span class="text-amber-300">· متأخر</span>'
+            : future
+                ? ' <span class="text-sky-300">· دفعة مقدمة</span>'
+                : '';
+        return `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${esc(item.month)}${badge}</span><strong class="text-emerald-400">${fmtNum(item.amount)} ج.م</strong></div>`;
     }).join('') + extraRowsHtml
         + `<div class="flex justify-between items-center gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`
-        + cashRowsHtml + debtRowsHtml + notesRowHtml + totalRowsHtml;
+        + cashRowsHtml + debtRowsHtml + prepaidRowsHtml + notesRowHtml + totalRowsHtml;
     if (submit) submit.disabled = allocation.remainingCents > 0 || (hasExtras && !extraValidation.valid);
 }
 
@@ -1433,22 +1636,28 @@ async function handleIncomeSubmit(e) {
     e.preventDefault();
     const residentId = /** @type {any} */ (document.getElementById('incomeResident')).value;
     const amount = Number(/** @type {any} */ (document.getElementById('incomeAmount')).value);
-    const month = /** @type {any} */ (document.getElementById('incomeMonth')).value;
     const notes = /** @type {any} */ (document.getElementById('incomeNotes')).value.trim();
     const paymentMethod = /** @type {any} */ (document.getElementById('incomePaymentMethod')).value;
     const purpose = syncIncomePurposeCashAccount('incomePurpose', 'incomeCashAccount', {
         hintId: 'incomePurposeCashHint'
     });
+    const isSubscription = purpose === 'subscription';
+    const selectedMonths = isSubscription ? getSelectedIncomeMonths() : [];
+    const registrationMonth = /** @type {any} */ (document.getElementById('incomeMonth'))?.value || '';
+    const month = isSubscription ? (selectedMonths[0] || registrationMonth || getCurrentMonth()) : registrationMonth;
     const cashAccountCode = /** @type {any} */ (document.getElementById('incomeCashAccount'))?.value || 'main';
     const paymentMethodEnabled = typeof isIncomePaymentMethodEnabled === 'function'
         ? isIncomePaymentMethodEnabled(paymentMethod)
         : Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod);
-    if (!residentId || !Number.isFinite(amount) || amount <= 0 || !month
+    if (!residentId || !Number.isFinite(amount) || amount <= 0
+        || (isSubscription ? !selectedMonths.length : !month)
         || !Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod)
         || !CRUD_INCOME_PURPOSES.includes(purpose)
         || !['main', 'development', 'emergency'].includes(cashAccountCode)
         || !paymentMethodEnabled) {
-        toast('اختر الشقة والغرض وطريقة الدفع والشهر والصندوق، وأدخل مبلغاً أكبر من صفر.', 'error');
+        toast(isSubscription && residentId && !selectedMonths.length
+            ? 'اختر شهرًا واحدًا على الأقل من قائمة شهور السداد.'
+            : 'اختر الشقة والغرض وطريقة الدفع والشهور والصندوق، وأدخل مبلغاً أكبر من صفر.', 'error');
         return;
     }
     const resident = state.residents.find(item => item.id === residentId);
@@ -1462,12 +1671,17 @@ async function handleIncomeSubmit(e) {
         return;
     }
 
-    const isSubscription = purpose === 'subscription';
-    const policyOverride = isSubscription ? getIncomeAllocationPolicyOverride() : '';
-    const allocation = isSubscription ? calculateIncomeAllocationPreview(residentId, amount, month, 120, policyOverride) : null;
+    const allocation = isSubscription
+        ? calculateIncomeAllocationPreview(residentId, amount, month, 120, '', selectedMonths)
+        : null;
+    if (isSubscription && (!allocation || allocation.invalidStart)) {
+        previewIncomeAllocation();
+        toast('لا يمكن اختيار شهر قبل تاريخ إنشاء الشقة.', 'error');
+        return;
+    }
     if (isSubscription && (!allocation || allocation.invalid || !allocation.allocations.length || allocation.remainingCents > 0)) {
         previewIncomeAllocation();
-        toast('تعذر توزيع كامل المبلغ على فترات الاشتراك. راجع المعاينة أو قلّل المبلغ.', 'error');
+        toast('تعذر توزيع كامل المبلغ على الشهور المختارة. راجع المعاينة أو عدّل المبلغ والشهور.', 'error');
         return;
     }
     const extraLines = getIncomeExtraLines();
@@ -1521,7 +1735,7 @@ async function handleIncomeSubmit(e) {
     } else if (isSubscription && allocation) {
         logAction(
             'تحصيل موزع',
-            `${resident.name} - ${fmtNum(amount)} ج.م - ${getIncomePaymentMethodLabel(paymentMethod)} - ${crudCashAccountLabel(cashAccountCode)} - ${allocation.allocations.length} شهر${policyOverride === 'selected_month_first' ? ' - الشهر المحدد أولًا' : ''} - ${paymentReference}`
+            `${resident.name} - ${fmtNum(amount)} ج.م - ${getIncomePaymentMethodLabel(paymentMethod)} - ${crudCashAccountLabel(cashAccountCode)} - ${allocation.allocations.length} شهر - ${paymentReference}`
         );
     } else {
         logAction(
