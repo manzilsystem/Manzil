@@ -493,6 +493,7 @@ BEGIN
     )
     WHERE purposed_income.building_id = p_building_id
       AND purposed_income.id = purposed_source.id
+      AND purposed_income.settlement_adjustment_id IS NULL
       AND NULLIF(btrim(COALESCE(purposed_source.purpose_code, '')), '') IS NOT NULL;
 
     -- Settlements are written in the same transaction as their collections.
