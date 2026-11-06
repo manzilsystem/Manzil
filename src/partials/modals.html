@@ -920,14 +920,12 @@
                     <span class="text-slate-400">غرض التحصيل</span>
                     <select id="incomePurpose" aria-label="غرض التحصيل" onchange="handleIncomePurposeChange()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                         <option value="subscription">اشتراك شهري</option>
-                        <option value="services">خدمات ونظافة</option>
                         <option value="development">تطوير</option>
                         <option value="emergency">صيانة طارئة</option>
-                        <option value="penalty">غرامة</option>
-                        <option value="donation">تبرع</option>
                         <option value="other">أخرى</option>
                     </select>
                 </label>
+                <p class="text-[10px] text-slate-500">اختر «أخرى» لأي غرض غير الاشتراك والتطوير والصيانة الطارئة، واكتب الغرض بالتفصيل في الملاحظات.</p>
                 <input type="number" id="incomeAmount" min="0.01" step="0.01" inputmode="decimal" aria-label="مبلغ التحصيل" placeholder="مبلغ التحصيل" oninput="previewIncomeAllocation()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 <label class="block text-xs space-y-1">
                     <span class="text-slate-400">طريقة الدفع</span>
@@ -994,7 +992,7 @@
                     <button type="button" onclick="setIncomeNoteSuggestion('تسوية حساب')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">تسوية حساب</button>
                     <button type="button" onclick="setIncomeNoteSuggestion('إيصال بدل فاقد')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">إيصال بدل فاقد</button>
                 </div>
-                <textarea id="incomeNotes" aria-label="ملاحظات التحصيل" rows="2" placeholder="ملاحظات التحصيل" oninput="previewIncomeAllocation()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
+                <textarea id="incomeNotes" aria-label="ملاحظات التحصيل" rows="2" placeholder="ملاحظات التحصيل — اكتب الغرض بالتفصيل عند اختيار «أخرى»" oninput="previewIncomeAllocation()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
                 <button type="submit" id="incomeSubmitButton" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-2xl font-bold transition">حفظ التحصيل وتوزيعه</button>
             </form>
         </div>
@@ -1020,15 +1018,13 @@
                     <span class="text-slate-400">غرض التحصيل</span>
                     <select id="incomeEditPurpose" aria-label="غرض التحصيل" onchange="handleIncomeEditPurposeChange()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm">
                         <option value="subscription">اشتراك شهري</option>
-                        <option value="services">خدمات ونظافة</option>
                         <option value="development">تطوير</option>
                         <option value="emergency">صيانة طارئة</option>
-                        <option value="penalty">غرامة</option>
-                        <option value="donation">تبرع</option>
                         <option value="other">أخرى</option>
                     </select>
                 </label>
                 <p id="incomeEditPurposeHint" class="text-[10px] text-slate-500"></p>
+                <p class="text-[10px] text-slate-500">عند اختيار «أخرى» اكتب الغرض بالتفصيل في الملاحظات.</p>
                 <label class="block text-xs space-y-1">
                     <span class="text-slate-400">طريقة الدفع</span>
                     <select id="incomeEditPaymentMethod" aria-label="طريقة الدفع" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm">
@@ -1051,7 +1047,7 @@
                     <span class="text-slate-400">المبلغ</span>
                     <input type="number" id="incomeEditAmount" min="0.01" step="0.01" inputmode="decimal" aria-label="مبلغ التحصيل" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm">
                 </label>
-                <textarea id="incomeEditNotes" aria-label="ملاحظات التحصيل" rows="2" placeholder="ملاحظات التحصيل" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm"></textarea>
+                <textarea id="incomeEditNotes" aria-label="ملاحظات التحصيل" rows="2" placeholder="ملاحظات التحصيل — اكتب الغرض بالتفصيل عند اختيار «أخرى»" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm"></textarea>
                 <p class="text-[10px] text-slate-500">لا يمكن أن يتجاوز المبلغ المتبقي من اشتراك الشهر عند اختيار غرض «اشتراك شهري». تاريخ تسجيل التحصيل الأصلي لا يتغير.</p>
                 <button type="submit" id="incomeEditSubmitButton" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">حفظ التعديل</button>
             </form>

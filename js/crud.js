@@ -6,15 +6,22 @@ let expenseSaving = false;
 let editingExpenseId = null;
 
 const CRUD_INCOME_PURPOSES = ['subscription', 'services', 'development', 'emergency', 'penalty', 'donation', 'other'];
+const CRUD_INCOME_PURPOSE_FORM_CODES = ['subscription', 'development', 'emergency', 'other'];
 const CRUD_INCOME_PURPOSE_LABELS = {
-    subscription: 'اشتراك شهري', services: 'خدمات ونظافة', development: 'تطوير',
-    emergency: 'صيانة طارئة', penalty: 'غرامة', donation: 'تبرع', other: 'أخرى'
+    subscription: 'اشتراك شهري', services: 'أخرى', development: 'تطوير',
+    emergency: 'صيانة طارئة', penalty: 'أخرى', donation: 'أخرى', other: 'أخرى'
 };
 
 function crudIncomePurpose(purpose) {
     const value = String(purpose || '').trim();
     if (typeof normalizeIncomePurpose === 'function') return normalizeIncomePurpose(value);
     return CRUD_INCOME_PURPOSES.includes(value) ? value : 'subscription';
+}
+
+function crudIncomePurposeFormCode(purpose) {
+    if (typeof getIncomePurposeFormCode === 'function') return getIncomePurposeFormCode(purpose);
+    const normalized = crudIncomePurpose(purpose);
+    return CRUD_INCOME_PURPOSE_FORM_CODES.includes(normalized) ? normalized : 'other';
 }
 
 function crudIncomePurposeLabel(purpose) {
@@ -30,8 +37,8 @@ function crudIncomePurposeCashAccount(purpose) {
 
 function crudIncomePurposeLocked(purpose) {
     if (typeof isIncomePurposeCashAccountLocked === 'function') return isIncomePurposeCashAccountLocked(purpose);
-    const normalized = crudIncomePurpose(purpose);
-    return normalized !== 'services' && normalized !== 'other';
+    const normalized = crudIncomePurposeFormCode(purpose);
+    return normalized !== 'other';
 }
 
 function crudIsSubscriptionIncome(payment) {
@@ -43,7 +50,7 @@ function crudCashAccountLabel(code) {
     return typeof getCashAccountLabel === 'function' ? getCashAccountLabel(code || 'main') : 'الخزنة الرئيسية';
 }
 
-const CRUD_EXTRA_INCOME_PURPOSES = ['services', 'development', 'emergency', 'penalty', 'donation', 'other'];
+const CRUD_EXTRA_INCOME_PURPOSES = ['development', 'emergency', 'other'];
 
 function incomeExtraLineElements() {
     const container = document.getElementById('incomeExtraLines');
@@ -72,7 +79,7 @@ function incomeExtraLineMarkup(index = 1) {
     </div>`;
 }
 
-function addIncomeLine(purpose = 'services') {
+function addIncomeLine(purpose = 'other') {
     const container = document.getElementById('incomeExtraLines');
     if (!container || typeof document.createElement !== 'function') return null;
     const index = incomeExtraLineElements().length + 1;
@@ -112,8 +119,8 @@ function renumberIncomeLines() {
 
 function syncIncomeLineCashAccount(line) {
     const element = line?.closest?.('[data-income-line]') || (line?.querySelector ? line : null);
-    if (!element) return 'services';
-    const purpose = String(element.querySelector('.income-line-purpose')?.value || 'services');
+    if (!element) return 'other';
+    const purpose = String(element.querySelector('.income-line-purpose')?.value || 'other');
     const cashAccountSelect = element.querySelector('.income-line-cash-account');
     const hint = element.querySelector('.income-line-hint');
     if (cashAccountSelect) {
@@ -947,8 +954,10 @@ function quickPayResident(residentId) {
 }
 
 function getIncomePurposeCashHint(purpose, forEdit) {
-    if (purpose === 'development') return 'غرض التطوير يُودع في صندوق التطوير فقط.';
-    if (purpose === 'emergency') return 'غرض الصيانة الطارئة يُودع في صندوق الصيانة الطارئة فقط.';
+    const code = crudIncomePurposeFormCode(purpose);
+    if (code === 'development') return 'غرض التطوير يُودع في صندوق التطوير فقط.';
+    if (code === 'emergency') return 'غرض الصيانة الطارئة يُودع في صندوق الصيانة الطارئة فقط.';
+    if (code === 'other' && !forEdit) return 'غرض «أخرى» يُكتب بالتفصيل في الملاحظات، ويمكن اختيار الصندوق المستلم.';
     if (forEdit) return 'يمكنك تعديل الصندوق مع الحفاظ على تاريخ التحصيل.';
     if (crudIncomePurposeLocked(purpose)) {
         return 'غرض «' + crudIncomePurposeLabel(purpose) + '» يُودع في الخزنة الرئيسية.';
@@ -1406,6 +1415,11 @@ async function handleIncomeSubmit(e) {
         toast(extraValidation.message, 'error');
         return;
     }
+    const needsPurposeDetail = purpose === 'other' || extraLines.some(line => line.purpose === 'other');
+    if (needsPurposeDetail && !notes) {
+        toast('غرض «أخرى» يتطلب كتابة الغرض بالتفصيل في الملاحظات.', 'error');
+        return;
+    }
     const hasExtras = extraLines.length > 0;
     const allocatedCount = allocation ? allocation.allocations.length : 1;
 
@@ -1519,7 +1533,7 @@ function openIncomeEditModal(id) {
     if (purposeSelect) {
         purposeSelect.disabled = Boolean(distributionNote);
         if (distributionNote) {
-            purposeSelect.value = crudIncomePurpose(payment.purposeCode);
+            purposeSelect.value = crudIncomePurposeFormCode(payment.purposeCode);
             const hint = document.getElementById('incomeEditPurposeHint');
             if (hint) hint.textContent = mixedBatch
                 ? 'هذه دفعة مختلطة؛ لا يمكن تغيير غرض البند أو صندوقه من هنا.'
@@ -1585,7 +1599,7 @@ async function handleIncomeEditSubmit(event) {
         toast('الغرض المحدد يتطلب صندوقه الخاص. اختر الصندوق المطابق ثم أعد المحاولة.', 'error');
         return;
     }
-    if (distributionMatch && purpose !== crudIncomePurpose(payment.purposeCode)) {
+    if (distributionMatch && purpose !== crudIncomePurposeFormCode(payment.purposeCode)) {
         toast(mixedBatch
             ? 'لا يمكن تغيير غرض بند داخل دفعة مختلطة؛ احذف البند وأعد تسجيله إن لزم.'
             : 'لا يمكن تغيير غرض دفعة موزعة على أشهر الاشتراك.', 'error');
@@ -1618,8 +1632,12 @@ async function handleIncomeEditSubmit(event) {
         && month === payment.month && notes === (payment.notes || '')
         && paymentMethod === (payment.paymentMethod || '')
         && cashAccountCode === (payment.cashAccountCode || 'main')
-        && purpose === crudIncomePurpose(payment.purposeCode)) {
+        && purpose === crudIncomePurposeFormCode(payment.purposeCode)) {
         toast('لم يتم تغيير بيانات التحصيل.', 'info');
+        return;
+    }
+    if (purpose === 'other' && !notes) {
+        toast('غرض «أخرى» يتطلب كتابة الغرض بالتفصيل في الملاحظات.', 'error');
         return;
     }
 
