@@ -335,3 +335,60 @@ test.describe('assistant inside the owner portal', () => {
         await expect(botMessages.last().locator('a[href="tel:01000000000"]')).toHaveCount(1);
     });
 });
+
+test('the doorman art stays transparent and the circular crop never cuts the cap', async ({ page }) => {
+    await loadShell(page);
+    await page.waitForFunction(() => typeof window.syncAssistantFab === 'function');
+
+    const measure = (src) => page.evaluate(async (url) => {
+        const img = new Image();
+        img.src = url;
+        await img.decode();
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let minX = canvas.width, minY = canvas.height, maxX = -1, maxY = -1;
+        for (let y = 0; y < canvas.height; y += 1) {
+            for (let x = 0; x < canvas.width; x += 1) {
+                if (data[(y * canvas.width + x) * 4 + 3] > 24) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+        return {
+            cornerAlpha: data[3],
+            top: minY / canvas.height,
+            left: minX / canvas.width,
+            right: (maxX + 1) / canvas.width
+        };
+    }, src);
+
+    const crop = () => page.evaluate(() => {
+        const styles = getComputedStyle(document.querySelector('#assistantFab .assistant-avatar-frame img'));
+        const matrix = new DOMMatrixReadOnly(styles.transform);
+        const [originX, originY] = styles.transformOrigin.split(' ').map(value => parseFloat(value) / 100);
+        const visible = 1 / matrix.a;
+        return { top: originY - visible / 2, bottom: originY + visible / 2, left: originX - visible / 2, right: originX + visible / 2 };
+    });
+
+    for (const src of ['icons/assistant-abbah.png', 'icons/assistant-abbah-full.png']) {
+        const box = await measure(src);
+        expect(box.cornerAlpha, `${src} must keep a transparent background`).toBe(0);
+        expect(box.top, `${src} needs empty space above the cap`).toBeGreaterThan(0.02);
+        expect(box.left, `${src} must not touch the left edge`).toBeGreaterThan(0.01);
+        expect(box.right, `${src} must not touch the right edge`).toBeLessThan(0.99);
+    }
+
+    const launcher = await crop();
+    const bust = await measure('icons/assistant-abbah.png');
+    expect(launcher.top, 'the circle opens above the turban').toBeLessThanOrEqual(bust.top - 0.01);
+    expect(launcher.bottom, 'the circle still frames the face').toBeGreaterThan(bust.top + 0.2);
+    expect(launcher.left, 'the circle must not clip the shoulders sideways').toBeLessThanOrEqual(bust.left);
+    expect(launcher.right, 'the circle must not clip the shoulders sideways').toBeGreaterThanOrEqual(bust.right);
+});
