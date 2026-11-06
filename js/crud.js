@@ -2228,7 +2228,7 @@ function previewIncomeAllocation() {
     const hasExtras = extraLines.length > 0;
     const mixedTotal = document.getElementById('incomeMixedTotal');
     const ready = Boolean(residentId && Number.isFinite(amount) && amount > 0
-        && (isSubscription ? selectedMonths.length : isSettlement ? settlement && month : month));
+        && (isSubscription ? selectedMonths.length : month));
     const baseCents = Number.isFinite(amount) ? Math.round(amount * 100) : 0;
     const collectedCents = ready && extraValidation.valid ? baseCents + extraValidation.totalCents : 0;
     const setSubmitLabel = label => {
