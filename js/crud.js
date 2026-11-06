@@ -2065,7 +2065,7 @@ function resetIncomeFormFields() {
     const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
     if (monthSelect) monthSelect.disabled = false;
     const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
-    if (amountInput) amountInput.removeAttribute('max');
+    if (amountInput) amountInput.max = '';
     const settlementHint = document.getElementById('incomeSettlementHint');
     if (settlementHint) settlementHint.textContent = 'اختر اتفاقًا لتحديد المبلغ المتبقي.';
     incomeSelectedMonths = new Set();
