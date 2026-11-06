@@ -13,8 +13,8 @@ test('owner sessions select only fields required by the read-only portal', () =>
     assert.notEqual(end, -1, 'loadState must end before saveState');
 
     assert.ok(loadState.includes(
-        "const residentColumns = isManager\n        ? 'id,user_id,name,apartment_number,floor,phone,monthly_amount,created_at'\n        : 'id,name,apartment_number,floor,monthly_amount,created_at'"
-    ), 'owner resident data must retain created_at for cumulative debt calculations');
+        "const residentColumns = isManager\n        ? 'id,user_id,name,apartment_number,floor,phone,monthly_amount,created_at,billing_start_month'\n        : 'id,name,apartment_number,floor,monthly_amount,created_at,billing_start_month'"
+    ), 'owner resident data must retain created_at and the billing start for debt calculations');
 
     assert.ok(loadState.includes(
         "const incomeColumns = isManager\n        ? 'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,paid_at'\n        : 'id,resident_id,amount,month,payment_method,purpose_code,paid_at'"

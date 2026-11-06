@@ -205,11 +205,12 @@ function buildResidentIndex() {
 
 function isResidentActiveInMonth(resident, monthKey) {
     if (!resident || !monthKey) return false;
-    if (!resident.createdAt) return true;
-    const createdAt = new Date(resident.createdAt);
-    if (Number.isNaN(createdAt.getTime())) return true;
-    const createdKey = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}-01`;
-    return createdKey <= monthKey;
+    if (!resident.createdAt && !resident.billingStartMonth) return true;
+    const startKey = typeof getResidentBillingStartKey === 'function'
+        ? getResidentBillingStartKey(resident)
+        : null;
+    if (!startKey) return true;
+    return startKey <= monthKey;
 }
 
 function getMonthlyBillingTotals(month) {
@@ -1150,7 +1151,9 @@ function buildResidentStatement(residentId, purposeFilter = '') {
         .map(payment => monthLabelToKey(payment.month))
         .filter(Boolean)
         .sort();
-    const createdKey = getStatementMonthKeyFromDate(new Date(resident.createdAt || ''));
+    const createdKey = typeof getResidentBillingStartKey === 'function'
+        ? getResidentBillingStartKey(resident)
+        : getStatementMonthKeyFromDate(new Date(resident.createdAt || ''));
     let startKey = createdKey || paymentKeys[0] || currentKey;
     let endKey = currentKey || startKey;
     paymentKeys.forEach(key => {
