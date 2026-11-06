@@ -312,7 +312,7 @@ function renderOwnerPortal() {
     const month = getCurrentMonth();
     const paidThisMonth = getPaidAmountForMonth(resident.id, month);
     const dueThisMonth = getSubscriptionAmountForMonth(resident, month);
-    const remainingThisMonth = Math.max(0, dueThisMonth - paidThisMonth);
+    const remainingThisMonth = getMonthOutstanding(resident, month);
     const debt = calculateCumulativeDebt(resident.id);
     const paymentMethodLabels = typeof INCOME_PAYMENT_METHOD_LABELS !== 'undefined'
         ? INCOME_PAYMENT_METHOD_LABELS
@@ -352,8 +352,7 @@ function renderOwnerPortal() {
     const subscriptionGraceDays = Math.min(31, Math.max(0, Number(state.subscriptionGraceDays) || 0));
     const ownPayments = state.income
         .filter(payment => payment.residentId === resident.id)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 12);
+        .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
     const ownerReceipts = groupOwnerPaymentsIntoReceipts(resident.id);
     const ownerReceiptRows = ownerReceipts.length ? ownerReceipts.map(receipt => {
         const allocationRows = receipt.payments.map(payment => `

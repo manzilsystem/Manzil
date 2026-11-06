@@ -335,6 +335,20 @@ async function supabaseQuery(table, columns = '*') {
     return data || [];
 }
 
+async function supabaseQueryAllById(table, columns = '*', pageSize = 1000) {
+    const rows = [];
+    for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await supabaseClient.from(table)
+            .select(columns)
+            .order('id', { ascending: true })
+            .range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        const page = data || [];
+        rows.push(...page);
+        if (page.length < pageSize) return rows;
+    }
+}
+
 function stopOwnerNotificationsRealtime() {
     if (!ownerNotificationsChannel) return;
     const channel = ownerNotificationsChannel;
@@ -509,7 +523,7 @@ async function loadState() {
         : 'id,name,apartment_number,floor,monthly_amount,created_at,billing_start_month';
     const incomeColumns = isManager
         ? 'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,paid_at'
-        : 'id,resident_id,amount,month,payment_method,purpose_code,paid_at';
+        : 'id,resident_id,amount,month,notes,payment_method,cash_account_code,purpose_code,paid_at';
     const expenseColumns = 'id,title,amount,category,month,notes,cash_account_code,spent_at';
     const noticeColumns = 'id,text,created_at';
     const auditColumns = 'id,action,details,actor_id,created_at,actor:profiles!audit_logs_actor_id_fkey(full_name)';
@@ -533,7 +547,7 @@ async function loadState() {
         subscriptionRatesResult, subscriptionRateHistoryResult, residentAdjustmentsResult
     ] = await Promise.all([
         supabaseQuery('residents', residentColumns),
-        supabaseQuery('income', incomeColumns),
+        supabaseQueryAllById('income', incomeColumns),
         isManager ? supabaseQuery('expenses', expenseColumns) : Promise.resolve([]),
         supabaseQuery('notices', noticeColumns),
         isManager ? supabaseQuery('audit_logs', auditColumns) : Promise.resolve([]),
