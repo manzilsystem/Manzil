@@ -216,27 +216,37 @@ jobs:
               --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 \
               -c "UPDATE public.backup_requests SET status='succeeded',finished_at=now(),result_message='تم إنشاء النسخة الاحتياطية وفحصها بنجاح' WHERE id='$BACKUP_REQUEST_ID' AND status='dispatched'"
 
-      - name: Retain backups for 30 days and prune catalog
+      - name: Retain the latest 30 backups and prune catalog
         env:
           GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
         run: |
           set -euo pipefail
 
-          # The database catalog records the real backup timestamp; GitHub release metadata
-          # may reflect tag import time and is not used for retention decisions.
+          # Keep the newest 30 registered backups, regardless of extra manual backups
+          # created on the same day. Rank by the trusted database timestamp, not release metadata.
           old_tags="$(docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \
             postgres:17-alpine psql --no-password --host="$PGHOST" --port="$PGPORT" \
               --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 \
-              -At -c "SELECT tag FROM public.backup_catalog WHERE created_at < now() - interval '30 days' ORDER BY created_at ASC")"
+              -At -c "SELECT tag FROM (SELECT tag, row_number() OVER (ORDER BY created_at DESC, tag DESC) AS backup_rank FROM public.backup_catalog) ranked WHERE backup_rank > 30 ORDER BY backup_rank DESC")"
 
           while IFS= read -r tag; do
             [ -n "$tag" ] || continue
             [[ "$tag" =~ ^backup-[0-9]{8}T[0-9]{6}Z$ ]]
-            gh release delete "$tag" --repo manzilsystem/manzil_backups --yes --cleanup-tag
+
+            response="$(gh api --include "repos/manzilsystem/manzil_backups/releases/tags/$tag" 2>&1 || true)"
+            http_status="$(sed -n '1s#^HTTP/[0-9.]* \\([0-9][0-9][0-9]\\).*#\\1#p' <<< "$response")"
+            if [[ "$http_status" == "200" ]]; then
+              gh release delete "$tag" --repo manzilsystem/manzil_backups --yes --cleanup-tag
+            elif [[ "$http_status" == "404" ]]; then
+              echo "Backup release already missing; pruning its catalog row: $tag"
+            else
+              echo "Unable to verify backup release $tag (HTTP ${http_status:-unknown}); keeping catalog intact."
+              exit 1
+            fi
           done <<< "$old_tags"
 
-          # Prune catalog rows only after all corresponding release deletions succeeded.
+          # Prune catalog rows only after every old release was deleted or confirmed missing.
           docker run --rm -e PGPASSWORD -e PGHOST -e PGPORT -e PGDATABASE -e PGSSLMODE \
             postgres:17-alpine psql --no-password --host="$PGHOST" --port="$PGPORT" \
               --username="postgres.musvcrkljccubwbcrtjs" --dbname="$PGDATABASE" -v ON_ERROR_STOP=1 \
-              -c "DELETE FROM public.backup_catalog WHERE created_at < now() - interval '30 days'"
+              -c "DELETE FROM public.backup_catalog WHERE tag IN (SELECT tag FROM (SELECT tag, row_number() OVER (ORDER BY created_at DESC, tag DESC) AS backup_rank FROM public.backup_catalog) ranked WHERE backup_rank > 30)"
