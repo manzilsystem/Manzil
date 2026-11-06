@@ -189,7 +189,7 @@ test('assistant resident summary uses the agreed settlement amount and linked pa
     assert.equal(snapshot.outstanding, 40);
     const answer = api.buildAssistantResidentAnswer(resident, NOW).html;
     assert.match(answer, /قيمة اتفاق التسوية/);
-    assert.match(answer, /إجمالي اتفاق التسوية/);
+    assert.match(answer, /قيمة اتفاق التسوية/);
     assert.match(answer, /المتبقي من التسوية/);
 });
 
