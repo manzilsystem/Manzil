@@ -11,3 +11,7 @@ coverage/
 .DS_Store
 test-results/
 playwright-report/
+
+# Local verification artifacts
+reports/
+.screenshots/
