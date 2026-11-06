@@ -429,6 +429,22 @@ function getSettlementRemainingAmount(adjustment, excludeIncomeId = '') {
     return Math.max(0, totalCents - paidCents) / 100;
 }
 
+function getMonthlyDueAmountForMonth(resident, month) {
+    if (!resident) return 0;
+    const settlement = getSettlementAdjustmentForMonth(resident.id, month);
+    if (settlement) return Math.max(0, Number(settlement.amount) || 0);
+    const due = Number(getSubscriptionAmountForMonth(resident, month)) || 0;
+    const adjusted = Number(getAdjustmentAmountForMonth(resident.id, month)) || 0;
+    return Math.max(0, Math.round((due - adjusted) * 100)) / 100;
+}
+
+function getMonthlyDuePaidAmount(residentId, month) {
+    const settlement = getSettlementAdjustmentForMonth(residentId, month);
+    return settlement
+        ? getSettlementPaidAmount(settlement.id)
+        : getPaidAmountForMonth(residentId, month);
+}
+
 function getAdjustmentAmountForMonth(residentId, month) {
     const monthKey = monthLabelToKey(month);
     if (!residentId || !monthKey) return 0;
@@ -444,13 +460,9 @@ function getAdjustmentAmountForMonth(residentId, month) {
 
 function getMonthOutstanding(resident, month) {
     if (!resident) return 0;
-    const settlement = getSettlementAdjustmentForMonth(resident.id, month);
-    if (settlement) return getSettlementRemainingAmount(settlement);
-    const due = getSubscriptionAmountForMonth(resident, month);
-    const dueCents = Number.isFinite(due) ? Math.round(due * 100) : 0;
-    const paidCents = Math.round(getPaidAmountForMonth(resident.id, month) * 100);
-    const adjustedCents = Math.round(getAdjustmentAmountForMonth(resident.id, month) * 100);
-    return Math.max(0, dueCents - adjustedCents - paidCents) / 100;
+    const dueCents = Math.round(getMonthlyDueAmountForMonth(resident, month) * 100);
+    const paidCents = Math.round(getMonthlyDuePaidAmount(resident.id, month) * 100);
+    return Math.max(0, dueCents - paidCents) / 100;
 }
 
 function calculateCumulativeDebt(residentId) {
