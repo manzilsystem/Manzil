@@ -5,16 +5,18 @@ const test = require('node:test');
 
 const workflow = fs.readFileSync(path.join(__dirname, '..', '.github/workflows/supabase-backup.yml'), 'utf8');
 
-test('backup retention uses the catalog creation time and deletes releases before catalog rows', () => {
-    const cutoffQuery = workflow.indexOf("SELECT tag FROM public.backup_catalog WHERE created_at < now() - interval '30 days'");
+test('backup retention keeps the newest 30 catalog entries and deletes releases before catalog rows', () => {
+    const rankQuery = "row_number() OVER (ORDER BY created_at DESC, tag DESC) AS backup_rank";
+    const cutoffQuery = workflow.indexOf('WHERE backup_rank > 30 ORDER BY backup_rank DESC');
     const releaseDelete = workflow.indexOf('gh release delete "$tag" --repo manzilsystem/manzil_backups --yes --cleanup-tag', cutoffQuery);
-    const catalogDelete = workflow.indexOf("DELETE FROM public.backup_catalog WHERE created_at < now() - interval '30 days'");
+    const catalogDelete = workflow.lastIndexOf('DELETE FROM public.backup_catalog WHERE tag IN');
     assert.ok(cutoffQuery >= 0);
     assert.ok(releaseDelete > cutoffQuery);
     assert.ok(catalogDelete > releaseDelete);
-    assert.ok(workflow.includes('ORDER BY created_at ASC'));
+    assert.equal(workflow.split(rankQuery).length - 1, 2);
+    assert.doesNotMatch(workflow, /interval '30 days'/);
+    assert.match(workflow, /ORDER BY backup_rank DESC/);
     assert.doesNotMatch(workflow, /createdAt|fromdateiso8601|\.\[30:\]/);
-    assert.doesNotMatch(workflow, /ORDER BY created_at DESC LIMIT 30/);
 });
 
 test('retention only deletes releases with the expected backup tag format', () => {

@@ -81,12 +81,16 @@ test('backup and restore requests are mutually exclusive and protected against d
     assert.match(restoreWorkflow, /backup_requests WHERE status IN \('queued','dispatched'\)/);
 });
 
-test('backup retention deletes release assets before pruning catalog records', () => {
-    assert.match(backupWorkflow, /interval '30 days'/);
-    const releaseDelete = backupWorkflow.indexOf('gh release delete "$tag"');
-    const catalogDelete = backupWorkflow.lastIndexOf('DELETE FROM public.backup_catalog');
+test('backup retention keeps exactly the latest 30 catalog entries and prunes catalog after releases', () => {
+    assert.match(backupWorkflow, /row_number\(\) OVER \(ORDER BY created_at DESC, tag DESC\)/);
+    assert.equal((backupWorkflow.match(/WHERE backup_rank > 30/g) || []).length, 2);
+    assert.doesNotMatch(backupWorkflow, /interval '30 days'/);
+    const releaseDelete = backupWorkflow.indexOf('gh release delete "$tag"', backupWorkflow.indexOf('Retain the latest 30 backups'));
+    const catalogDelete = backupWorkflow.lastIndexOf('DELETE FROM public.backup_catalog WHERE tag IN');
     assert.ok(releaseDelete >= 0);
     assert.ok(catalogDelete > releaseDelete);
+    assert.match(backupWorkflow, /http_status.*"404"/);
+    assert.match(backupWorkflow, /Unable to verify backup release/);
 });
 
 
