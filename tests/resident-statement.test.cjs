@@ -76,12 +76,27 @@ function loadStatement(options = {}) {
         getAdjustmentAmountForMonth: (residentId, month) => {
             const monthKey = monthLabelToKey(month);
             const cents = (state.adjustments || []).reduce((sum, adjustment) => {
-                if (adjustment.residentId !== residentId || adjustment.effectiveMonth !== monthKey) return sum;
+                if (adjustment.residentId !== residentId || adjustment.effectiveMonth !== monthKey
+                    || !['waiver', 'discount'].includes(adjustment.kind)) return sum;
                 const amount = Number(adjustment.amount);
                 return sum + (Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0);
             }, 0);
             return cents / 100;
         },
+        getSettlementAdjustmentForMonth: (residentId, month) => {
+            const monthKey = monthLabelToKey(month);
+            return (state.adjustments || []).find(adjustment => adjustment.residentId === residentId
+                && adjustment.effectiveMonth === monthKey && adjustment.kind === 'settlement') || null;
+        },
+        getSettlementPaidAmount: adjustmentId => {
+            const cents = (state.income || []).reduce((sum, payment) => {
+                if (payment.purposeCode !== 'settlement' || payment.settlementAdjustmentId !== adjustmentId) return sum;
+                const amount = Number(payment.amount);
+                return sum + (Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0);
+            }, 0);
+            return cents / 100;
+        },
+        getIncomePurposeLabel: purpose => purpose === 'settlement' ? 'سداد تسوية' : 'اشتراك شهري',
         getSubscriptionAmountForMonth: (resident, month) => getSubscriptionAmountForMonth(state, resident, month),
         requireManager: () => true,
         toast() {},
@@ -117,6 +132,33 @@ function loadStatement(options = {}) {
     };
     return { app, sandbox, preview, select, buttons };
 }
+
+test('statement treats partial settlement payments as the agreed monthly amount', () => {
+    const { app } = loadStatement({
+        state: {
+            adjustments: [{
+                id: 's1', residentId: 'r1', effectiveMonth: '2024-01-01',
+                kind: 'settlement', amount: 60, reason: 'اتفاق تسوية'
+            }],
+            income: [{
+                id: 'i1', residentId: 'r1', month: 'يناير 2024', amount: 20,
+                purposeCode: 'settlement', settlementAdjustmentId: 's1', paymentMethod: 'cash'
+            }]
+        }
+    });
+    const statement = app.buildResidentStatement('r1');
+    const january = statement.months.find(row => row.month === 'يناير 2024');
+    assert.equal(january.dueCents, 10000);
+    assert.equal(january.adjustmentCents, 4000);
+    assert.equal(january.settlementAmountCents, 6000);
+    assert.equal(january.settlementPaidCents, 2000);
+    assert.equal(january.remainingCents, 4000);
+    assert.equal(statement.totals.settlementAgreedCents, 6000);
+    assert.equal(statement.totals.settlementPaidCents, 2000);
+    assert.equal(statement.totals.settlementRemainingCents, 4000);
+    assert.equal(statement.totals.remainingCents, 24000);
+    assert.ok(app.getResidentStatementSummaryItems(statement).some(item => item.label === 'المتبقي من التسويات' && item.cents === 4000));
+});
 
 test('statement bills every month from residency start to the current month', () => {
     const { app } = loadStatement();
