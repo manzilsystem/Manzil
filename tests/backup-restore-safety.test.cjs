@@ -159,5 +159,5 @@ test('client prefers browser-managed direct download and retains checksum-verifi
 
 test('backup download accepts the real UTC release tag format', () => {
     assert.ok(ui.includes(String.raw`!/^backup-\d{8}T\d{6}Z$/.test(tag)`));
-    assert.doesNotMatch(ui, String.raw`!/^backup-\\d{8}T\\d{6}Z$/.test(tag)`);
+    assert.ok(!ui.includes(String.raw`!/^backup-\\d{8}T\\d{6}Z$/.test(tag)`), 'the source must not contain a double-escaped tag matcher');
 });
