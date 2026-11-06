@@ -18,7 +18,7 @@ test('income list exposes month, purpose, cashbox and payment method filters', (
 
 test('income list totals only the filtered movements and shows a live summary', () => {
     assert.match(render, /items\.reduce\(\(sum, item\) => sum \+ \(Number\(item\.amount\) \|\| 0\), 0\)/);
-    assert.match(render, /id="incomeResultsSummary"/);
+    assert.match(render, /getElementById\('incomeResultsSummary'\)/);
     assert.match(render, /إجمالي النتائج/);
     assert.match(render, /عدد الحركات/);
 });
