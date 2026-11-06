@@ -971,7 +971,35 @@
                     </select>
                 </label>
                 <p class="text-[10px] text-slate-500">اختر «أخرى» لأي غرض غير الاشتراك والتطوير والصيانة الطارئة، واكتب الغرض بالتفصيل في الملاحظات.</p>
-                <input type="number" id="incomeAmount" min="0.01" step="0.01" inputmode="decimal" aria-label="مبلغ التحصيل" placeholder="مبلغ التحصيل" oninput="previewIncomeAllocation()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                <div id="incomeMonthsWrap" class="rounded-2xl border border-slate-700/60 p-3 space-y-2">
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <p class="text-xs font-bold">شهور السداد</p>
+                            <p class="text-[10px] text-slate-500">اختر الشهور التي تريد سدادها. الشهور القادمة تُسجَّل كدفعة مقدمة.</p>
+                        </div>
+                        <span id="incomeMonthsSummary" class="shrink-0 whitespace-nowrap text-[10px] text-slate-400"></span>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5" aria-label="اختيار سريع للشهور">
+                        <button type="button" onclick="applyIncomeMonthQuickAction('arrears')" class="min-h-9 rounded-full border border-amber-500/40 px-3 text-[10px] font-bold text-amber-300">المتأخرات</button>
+                        <button type="button" onclick="applyIncomeMonthQuickAction('current')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">الشهر الحالي</button>
+                        <button type="button" onclick="applyIncomeMonthQuickAction('two')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">شهرين</button>
+                        <button type="button" onclick="applyIncomeMonthQuickAction('three')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">3 أشهر</button>
+                        <button type="button" onclick="applyIncomeMonthQuickAction('clear')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-400">مسح</button>
+                    </div>
+                    <div id="incomeMonthsGrid" role="group" aria-label="شهور السداد" class="max-h-72 overflow-y-auto overflow-x-hidden space-y-1.5"></div>
+                </div>
+                <p id="incomeOutstandingHint" role="status" aria-live="polite" class="text-[10px] text-slate-500"></p>
+                <div id="incomeNonSubscriptionMonthWrap" class="hidden">
+                    <label class="block text-xs space-y-1">
+                        <span class="text-slate-400" id="incomeMonthLabel">شهر تسجيل التحصيل</span>
+                        <select id="incomeMonth" aria-label="شهر تسجيل التحصيل" onchange="previewIncomeAllocation()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
+                    </label>
+                </div>
+                <label class="block text-xs space-y-1">
+                    <span class="text-slate-400">المبلغ المدفوع الآن</span>
+                    <input type="number" id="incomeAmount" min="0.01" step="0.01" inputmode="decimal" aria-label="المبلغ المدفوع الآن" placeholder="المبلغ المدفوع الآن" oninput="handleIncomeAmountInput()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                </label>
+                <p id="incomeSelectionHint" class="text-[10px] text-slate-500"></p>
                 <label class="block text-xs space-y-1">
                     <span class="text-slate-400">طريقة الدفع</span>
                     <select id="incomePaymentMethod" aria-label="طريقة الدفع" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
@@ -987,20 +1015,6 @@
                     </select>
                 </label>
                 <p id="incomePurposeCashHint" class="text-[10px] text-slate-500"></p>
-                <label class="block text-xs space-y-1">
-                    <span class="text-slate-400" id="incomeMonthLabel">شهر بداية التوزيع</span>
-                    <select id="incomeMonth" aria-label="شهر بداية التوزيع" onchange="handleIncomeMonthChange()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></select>
-                </label>
-                <p id="incomeOutstandingHint" role="status" aria-live="polite" class="text-[10px] text-slate-500"></p>
-                <label id="incomeAllocationModeWrap" class="hidden block text-xs space-y-1">
-                    <span class="text-slate-400">طريقة التوزيع</span>
-                    <select id="incomeAllocationMode" aria-label="طريقة توزيع التحصيل" onchange="previewIncomeAllocation()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
-                        <option value="policy">حسب سياسة العمارة</option>
-                        <option value="selected">ابدأ بالشهر المحدد</option>
-                    </select>
-                    <span class="text-[10px] text-slate-500">عند اختيار شهر سابق يُبدأ به تلقائيًا.</span>
-                </label>
-                <p id="incomeAllocationPolicyHelp" class="text-[10px] text-slate-500">يُوزّع المبلغ وفق سياسة العمارة. راجع المعاينة قبل الحفظ.</p>
                 <div class="rounded-2xl border border-slate-700/60 p-3 space-y-2">
                     <div class="flex items-start justify-between gap-3">
                         <div>

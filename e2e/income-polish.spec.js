@@ -47,6 +47,23 @@ async function seedManager(page) {
     });
 }
 
+async function monthNames(page) {
+    return page.evaluate(() => {
+        const now = new Date();
+        const current = new Date(now.getFullYear(), now.getMonth(), 1);
+        const previous = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        const twoMonthsBack = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+        const label = date => `${monthsNames[date.getMonth()]} ${date.getFullYear()}`;
+        return {
+            current: label(current),
+            previous: label(previous),
+            next: label(next),
+            twoMonthsBack: label(twoMonthsBack)
+        };
+    });
+}
+
 test('apartment choices are sorted, labelled and summarized before collecting', async ({ page }) => {
     await seedManager(page);
     await page.evaluate(() => openNewIncomeModal());
@@ -62,66 +79,104 @@ test('apartment choices are sorted, labelled and summarized before collecting', 
     await expect(summary).toContainText('المتأخرات');
 });
 
-test('month choices cover the recent year and show payment status', async ({ page }) => {
+test('the month grid shows payment status and preselects the oldest unpaid month', async ({ page }) => {
     await seedManager(page);
+    const months = await monthNames(page);
     await page.evaluate(() => openNewIncomeModal());
     await page.locator('#incomeResident').selectOption('r1');
 
-    const months = await page.locator('#incomeMonth option').allTextContents();
-    expect(months.length).toBe(12);
-    expect(months.some(month => month.includes('شهر آخر'))).toBe(false);
-    expect(months.some(month => month.includes('2021'))).toBe(false);
-    expect(months.at(-1)).toContain('100 ج.م');
-    expect(months.at(-2)).toContain('مسدد');
+    const grid = page.locator('#incomeMonthsGrid');
+    await expect(grid.locator('input[data-income-month]').first()).toBeVisible();
+    await expect(grid.locator(`input[data-income-month="${months.previous}"]`)).not.toBeChecked();
+    await expect(grid.locator('.income-month-row').filter({ hasText: months.previous })).toContainText('مسدد');
 
-    await page.locator('#incomeMonth').selectOption({ index: months.length - 3 });
-    await expect(page.locator('#incomeAllocationModeWrap')).toBeVisible();
-    await expect(page.locator('#incomeAllocationMode')).toHaveValue('selected');
-    await expect(page.locator('#incomeOutstandingHint')).toContainText('شهر متأخر');
+    const oldestUnpaid = grid.locator('input[data-income-month]:checked');
+    await expect(oldestUnpaid).toHaveCount(1);
+    await expect(oldestUnpaid).toHaveValue(/./);
+    const selectedMonth = await oldestUnpaid.getAttribute('data-income-month');
+    expect(selectedMonth).not.toBe(months.previous);
+    await expect(page.locator('#incomeAmount')).toHaveValue('100');
+    await expect(page.locator('#incomeMonthsSummary')).toContainText('شهر');
+    await expect(page.locator('#incomeOutstandingHint')).toContainText('متأخرات');
 });
 
-test('a past month is offered directly and settled first without extra choices', async ({ page }) => {
+test('quick month actions select arrears, the current month, two or three months, and clear', async ({ page }) => {
     await seedManager(page);
+    const months = await monthNames(page);
     await page.evaluate(() => openNewIncomeModal());
     await page.locator('#incomeResident').selectOption('r2');
 
-    const target = await page.evaluate(() => {
-        const d = new Date();
-        d.setMonth(d.getMonth() - 1);
-        return `${monthsNames[d.getMonth()]} ${d.getFullYear()}`;
-    });
-    await page.locator('#incomeMonth').selectOption(target);
-    await expect(page.locator('#incomeAllocationMode')).toHaveValue('selected');
-    await expect(page.locator('#incomeMonth option:checked')).toContainText(target);
+    await page.getByRole('button', { name: 'المتأخرات' }).click();
+    await expect(page.locator('#incomeMonthsGrid input[data-income-month]:checked')).toHaveCount(2);
+    await expect(page.locator('#incomeAmount')).toHaveValue('200');
 
-    await page.locator('#incomeAmount').fill('100');
+    await page.getByRole('button', { name: 'الشهر الحالي' }).click();
+    await expect(page.locator('#incomeMonthsGrid input[data-income-month]:checked')).toHaveCount(1);
+    await expect(page.locator(`#incomeMonthsGrid input[data-income-month="${months.current}"]`)).toBeChecked();
+    await expect(page.locator('#incomeAmount')).toHaveValue('100');
+
+    await page.getByRole('button', { name: '3 أشهر' }).click();
+    await expect(page.locator('#incomeMonthsGrid input[data-income-month]:checked')).toHaveCount(3);
+    await expect(page.locator('#incomeAmount')).toHaveValue('300');
+
+    await page.getByRole('button', { name: 'شهرين' }).click();
+    await expect(page.locator('#incomeMonthsGrid input[data-income-month]:checked')).toHaveCount(2);
+    await expect(page.locator(`#incomeMonthsGrid input[data-income-month="${months.twoMonthsBack}"]`)).toBeChecked();
+    await expect(page.locator(`#incomeMonthsGrid input[data-income-month="${months.current}"]`)).not.toBeChecked();
+    await expect(page.locator('#incomeAmount')).toHaveValue('200');
+
+    await page.getByRole('button', { name: 'مسح' }).click();
+    await expect(page.locator('#incomeMonthsGrid input[data-income-month]:checked')).toHaveCount(0);
+    await expect(page.locator('#incomeAmount')).toHaveValue('');
+    await expect(page.locator('#incomeAllocationPreview')).toBeHidden();
+});
+
+test('paying last month and the current month records both months', async ({ page }) => {
+    await seedManager(page);
+    const months = await monthNames(page);
+    await page.evaluate(() => openNewIncomeModal());
+    await page.locator('#incomeResident').selectOption('r2');
+
+    await page.getByRole('button', { name: 'مسح' }).click();
+    await page.locator(`#incomeMonthsGrid input[data-income-month="${months.previous}"]`).check();
+    await page.locator(`#incomeMonthsGrid input[data-income-month="${months.current}"]`).check();
+
+    await expect(page.locator('#incomeAmount')).toHaveValue('200');
+    await expect(page.locator('#incomeAllocationSummary')).toContainText('2 شهر');
+    await expect(page.locator('#incomeAllocationRows')).toContainText(months.previous);
+    await expect(page.locator('#incomeAllocationRows')).toContainText(months.current);
+
     await page.locator('#incomePaymentMethod').selectOption('cash');
-    await expect(page.locator('#incomeAllocationSummary')).toContainText('بدءًا من الشهر المحدد');
-    await expect(page.locator('#incomeAllocationRows')).toContainText(target);
-
     await page.locator('#incomeSubmitButton').click();
     await expect(page.locator('#incomeModal')).toBeHidden();
-    const savedMonths = await page.evaluate(() => state.income.map(item => item.month));
-    expect(savedMonths).toContain(target);
+
+    const saved = await page.evaluate(() => state.income
+        .filter(item => item.residentId === 'r2')
+        .map(item => ({ month: item.month, amount: item.amount })));
+    expect(saved).toHaveLength(2);
+    expect(new Set(saved.map(item => item.month))).toEqual(new Set([months.previous, months.current]));
+    expect(saved.every(item => item.amount === 100)).toBe(true);
 });
 
-test('the allocation mode can still return to the building policy', async ({ page }) => {
+test('a late month can be settled alone and is marked as overdue in the preview', async ({ page }) => {
     await seedManager(page);
+    const months = await monthNames(page);
     await page.evaluate(() => openNewIncomeModal());
     await page.locator('#incomeResident').selectOption('r2');
 
-    const target = await page.evaluate(() => {
-        const d = new Date();
-        d.setMonth(d.getMonth() - 1);
-        return `${monthsNames[d.getMonth()]} ${d.getFullYear()}`;
-    });
-    await page.locator('#incomeMonth').selectOption(target);
-    await page.locator('#incomeAmount').fill('100');
-    await page.locator('#incomePaymentMethod').selectOption('cash');
+    await page.getByRole('button', { name: 'مسح' }).click();
+    await page.locator(`#incomeMonthsGrid input[data-income-month="${months.previous}"]`).check();
 
-    await expect(page.locator('#incomeAllocationSummary')).toContainText('بدءًا من الشهر المحدد');
-    await page.locator('#incomeAllocationMode').selectOption('policy');
-    await expect(page.locator('#incomeAllocationSummary')).toContainText('أقدم شهر غير مسدد');
+    await expect(page.locator('#incomeAmount')).toHaveValue('100');
+    await expect(page.locator('#incomeAllocationSummary')).toContainText('شهورًا متأخرة');
+    await expect(page.locator('#incomeAllocationRows')).toContainText('متأخر');
+
+    await page.locator('#incomePaymentMethod').selectOption('cash');
+    await page.locator('#incomeSubmitButton').click();
+    await expect(page.locator('#incomeModal')).toBeHidden();
+    expect(await page.evaluate(() => state.income
+        .filter(item => item.residentId === 'r2')
+        .map(item => item.month))).toEqual([months.previous]);
 });
 
 test('payment notes can be picked quickly and appear in the manager receipt', async ({ page }) => {
