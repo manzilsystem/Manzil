@@ -142,6 +142,45 @@ BEGIN
             RAISE EXCEPTION 'unexpected subscription/settlement rejection: %', SQLERRM;
         END IF;
     END;
+
+    -- An agreement cannot exceed the original monthly subscription entitlement.
+    v_payload := jsonb_set(v_payload, '{income}', jsonb_build_array(v_payload#>'{income,0}', v_payload#>'{income,1}'));
+    v_payload := jsonb_set(v_payload, '{resident_adjustments,0,amount}', '501'::jsonb);
+    BEGIN
+        PERFORM private.persist_building_snapshot(
+            v_building, v_version, '91000000-0000-4000-8000-000000000009', v_payload
+        );
+        RAISE EXCEPTION 'settlement agreement above the monthly due was accepted';
+    EXCEPTION WHEN SQLSTATE '22023' THEN
+        IF SQLERRM NOT LIKE '%settlement_exceeds_month_due%' THEN
+            RAISE EXCEPTION 'unexpected settlement agreement cap rejection: %', SQLERRM;
+        END IF;
+    END;
+
+    -- A settlement cannot coexist with a waiver or discount for the same month.
+    v_payload := jsonb_set(v_payload, '{resident_adjustments,0,amount}', '500'::jsonb);
+    v_payload := jsonb_set(
+        v_payload,
+        '{resident_adjustments}',
+        (v_payload->'resident_adjustments') || jsonb_build_array(jsonb_build_object(
+            'id', '70000000-0000-4000-8000-000000000005',
+            'resident_id', v_resident,
+            'effective_month', '2026-11-01',
+            'kind', 'discount',
+            'amount', 10,
+            'reason', 'تخفيض متعارض'
+        ))
+    );
+    BEGIN
+        PERFORM private.persist_building_snapshot(
+            v_building, v_version, '91000000-0000-4000-8000-000000000010', v_payload
+        );
+        RAISE EXCEPTION 'settlement with a discount was accepted';
+    EXCEPTION WHEN SQLSTATE '22023' THEN
+        IF SQLERRM NOT LIKE '%settlement_conflicts_with_adjustment%' THEN
+            RAISE EXCEPTION 'unexpected settlement/discount rejection: %', SQLERRM;
+        END IF;
+    END;
 END;
 $partial_settlement$;
 
