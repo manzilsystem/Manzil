@@ -141,5 +141,5 @@ test('printing owner receipts is unavailable to the manager role', () => {
 });
 
 test('owner portal feature refreshes the installed application cache', () => {
-    assert.match(sw, /CACHE_NAME = 'manzil-v143'/);
+    assert.match(sw, /CACHE_NAME = 'manzil-v144'/);
 });
