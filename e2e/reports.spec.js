@@ -414,7 +414,7 @@ test('resident statement CSV downloads a single-resident ledger', async ({ page 
     const chunks = [];
     for await (const chunk of stream) chunks.push(chunk);
     const csv = Buffer.concat(chunks).toString('utf8');
-    expect(csv).toContain('"يناير 2024","100","100","0","مسدد"');
+    expect(csv).toContain('"يناير 2024","100","0","100","100","0","مسدد"');
     expect(csv).toContain('"الحركات"');
     expect(csv).not.toContain('سارة');
 });

@@ -76,7 +76,7 @@ test('reports surface shares card headers, stat tiles, and tabular numerals', ()
     assert.match(css, /#printableArea \.app-card, #printableArea \.app-input, #printableArea \.report-stat \{/);
     assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 6);
     assert.equal((reportTab.match(/class="report-card-badge /g) || []).length, 6);
-    assert.equal((reports.match(/class="report-stat"/g) || []).length, 12, 'landlord and statement tiles come from the shared helper');
+    assert.equal((reports.match(/class="report-stat"/g) || []).length, 13, 'landlord, statement and conditional adjustment tiles come from the shared helpers');
     assert.equal((render.match(/class="report-stat"/g) || []).length, 4);
     assert.match(reports, /text-emerald-400 report-amount/);
     assert.match(render, /text-rose-400 report-amount/);
@@ -175,7 +175,7 @@ test('landlord report compares expected dues with collections', () => {
     assert.match(reports, /function getMonthlyBillingTotals\(month\)/);
     assert.match(reports, /getSubscriptionAmountForMonth\(resident, month\)/);
     assert.match(reports, /getMonthOutstanding\(resident, month\)/);
-    assert.match(reports, /const \{ expectedCents, outstandingCents \} = showDues\s*\? getMonthlyBillingTotals\(month\)/);
+    assert.match(reports, /const \{ expectedCents, outstandingCents, adjustmentCents \} = showDues\s*\? getMonthlyBillingTotals\(month\)/);
     assert.match(reports, /collectionRate/);
     assert.match(reports, /isResidentActiveInMonth/);
     assert.match(reports, /function getExpenseCategoryTotals\(expenses\)/);
@@ -206,7 +206,7 @@ test('resident statement scopes a monthly ledger to one resident with gated outp
     }
     assert.match(reports, /function buildResidentStatement\(residentId, purposeFilter = ''\)/);
     assert.match(reports, /function getResidentStatementSignature\(residentId, purposeFilter = ''\)/);
-    assert.match(reports, /\[resident, payments, state\.defaultSubscription \?\? '', purposeFilter \|\| ''\]/);
+    assert.match(reports, /\[resident, payments, adjustments, state\.defaultSubscription \?\? '', purposeFilter \|\| ''\]/);
     assert.match(reports, /function invalidateResidentStatementIfStale\(\)/);
     assert.match(render, /invalidateResidentStatementIfStale\(\)/);
     assert.match(render, /function populateStatementResidentSelect\(\)/);
@@ -240,7 +240,7 @@ test('period report rolls the monthly landlord figures across a range with gated
         assert.match(reportTab, new RegExp('id="' + id + '"[^>]*disabled'));
     }
     assert.match(reports, /function buildPeriodReport\(fromMonth, toMonth, purposeFilter = ''\)/);
-    assert.match(reports, /const \{ expectedCents, outstandingCents \} = showDues\s*\? getMonthlyBillingTotals\(month\)/);
+    assert.match(reports, /const \{ expectedCents, outstandingCents, adjustmentCents \} = showDues\s*\? getMonthlyBillingTotals\(month\)/);
     assert.match(reports, /function getPeriodReportSignature\(fromMonth, toMonth, purposeFilter = ''\)/);
     assert.match(reports, /function invalidatePeriodReportIfStale\(\)/);
     assert.match(render, /invalidatePeriodReportIfStale\(\)/);

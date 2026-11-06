@@ -67,6 +67,7 @@ function loadReport(options = {}) {
             { id: 'i2', residentId: 'r1', month: 'فبراير 2024', amount: 40, paymentMethod: 'cash' }
         ],
         expenses: [{ id: 'e1', month: 'فبراير 2024', title: 'كهرباء', amount: 25, category: 'صيانة' }],
+        adjustments: [],
         ...options.state
     };
     const calls = { print: 0, toasts: [] };
@@ -97,10 +98,22 @@ function loadReport(options = {}) {
         }[method] || 'غير محدد'),
         getPaidAmountForMonth: getPaid,
         getSubscriptionAmountForMonth: getSub,
+        getAdjustmentAmountForMonth: (residentId, month) => {
+            const monthKey = monthLabelToKey(month);
+            return (state.adjustments || []).reduce((sum, adjustment) => {
+                if (adjustment.residentId !== residentId || adjustment.effectiveMonth !== monthKey) return sum;
+                return sum + toCents(adjustment.amount);
+            }, 0) / 100;
+        },
         getMonthOutstanding: (resident, month) => {
             const dueCents = toCents(getSub(resident, month));
             const paidCents = toCents(getPaid(resident.id, month));
-            return Math.max(0, dueCents - paidCents) / 100;
+            const monthKey = monthLabelToKey(month);
+            const adjustmentCents = (state.adjustments || []).reduce((sum, adjustment) => {
+                if (adjustment.residentId !== resident.id || adjustment.effectiveMonth !== monthKey) return sum;
+                return sum + toCents(adjustment.amount);
+            }, 0);
+            return Math.max(0, dueCents - adjustmentCents - paidCents) / 100;
         },
         requireManager: () => true,
         toast: (message, kind) => calls.toasts.push(`${kind}:${message}`),
@@ -148,6 +161,29 @@ test('period report bills every month in the range and totals in cents', () => {
     assert.equal(report.totals.unpaidMonths, 2);
     assert.equal(report.totals.rate, 47);
     assert.equal(report.rangeLabel, 'يناير 2024 – مارس 2024');
+});
+
+test('period report nets waivers and discounts out of expected dues', () => {
+    const { app, sandbox } = loadReport({
+        state: {
+            adjustments: [
+                { id: 'a1', residentId: 'r1', effectiveMonth: '2024-02-01', kind: 'waiver', amount: 30, reason: 'إعفاء' }
+            ]
+        }
+    });
+    const report = app.buildPeriodReport('يناير 2024', 'مارس 2024');
+    assert.equal(report.months.map(row => row.expectedCents).join('|'), '10000|7000|10000');
+    assert.equal(report.months.map(row => row.adjustmentCents).join('|'), '0|3000|0');
+    assert.equal(report.months[1].outstandingCents, 3000);
+    assert.equal(report.totals.expectedCents, 27000);
+    assert.equal(report.totals.adjustmentCents, 3000);
+    assert.equal(report.totals.outstandingCents, 13000);
+    assert.match(app.renderPeriodReportHtml(report), /إعفاء\/تخفيض/);
+    const signature = app.getPeriodReportSignature('يناير 2024', 'مارس 2024');
+    sandbox.state.adjustments.push({
+        id: 'a2', residentId: 'r1', effectiveMonth: '2024-01-01', kind: 'discount', amount: 10, reason: 'خصم'
+    });
+    assert.notEqual(app.getPeriodReportSignature('يناير 2024', 'مارس 2024'), signature);
 });
 
 test('period report crosses year boundaries without dropping months', () => {

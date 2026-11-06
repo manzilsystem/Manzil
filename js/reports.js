@@ -215,12 +215,16 @@ function isResidentActiveInMonth(resident, monthKey) {
 
 function getMonthlyBillingTotals(month) {
     const monthKey = monthLabelToKey(month);
-    const totals = { expectedCents: 0, outstandingCents: 0 };
+    const totals = { grossExpectedCents: 0, adjustmentCents: 0, expectedCents: 0, outstandingCents: 0 };
     (state.residents || []).forEach(resident => {
         if (!isResidentActiveInMonth(resident, monthKey)) return;
-        totals.expectedCents += toCents(getSubscriptionAmountForMonth(resident, month));
+        totals.grossExpectedCents += toCents(getSubscriptionAmountForMonth(resident, month));
+        if (typeof getAdjustmentAmountForMonth === 'function') {
+            totals.adjustmentCents += toCents(getAdjustmentAmountForMonth(resident.id, month));
+        }
         totals.outstandingCents += toCents(getMonthOutstanding(resident, month));
     });
+    totals.expectedCents = Math.max(0, totals.grossExpectedCents - totals.adjustmentCents);
     return totals;
 }
 
@@ -246,9 +250,9 @@ function buildLandlordReportModel(month, purposeFilter = '') {
         .reduce((sum, item) => sum + toCents(item.amount), 0);
     const totalExpCents = exp.reduce((sum, e) => sum + toCents(e.amount), 0);
     const netCents = totalIncCents - totalExpCents;
-    const { expectedCents, outstandingCents } = showDues
+    const { expectedCents, outstandingCents, adjustmentCents } = showDues
         ? getMonthlyBillingTotals(month)
-        : { expectedCents: 0, outstandingCents: 0 };
+        : { expectedCents: 0, outstandingCents: 0, adjustmentCents: 0 };
     const collectionRate = showDues && expectedCents > 0 ? Math.round((subscriptionIncCents / expectedCents) * 100) : null;
     const paymentMethodTotals = new Map();
     inc.forEach(payment => {
@@ -280,6 +284,7 @@ function buildLandlordReportModel(month, purposeFilter = '') {
         netCents,
         expectedCents,
         outstandingCents,
+        adjustmentCents,
         collectionRate,
         expenseCategories: getExpenseCategoryTotals(exp),
         paymentMethodTotals,
@@ -294,6 +299,9 @@ function getLandlordSummaryItems(model) {
             { label: 'مصروف', cents: model.totalExpCents, tone: 'rose' },
             { label: 'صافي', cents: model.netCents, tone: model.netCents >= 0 ? 'emerald' : 'rose' },
             { label: 'المستحق', cents: model.expectedCents },
+            ...(model.adjustmentCents > 0
+                ? [{ label: 'إعفاء/تخفيض', cents: model.adjustmentCents, tone: 'amber' }]
+                : []),
             { label: 'غير المحصّل', cents: model.outstandingCents, tone: model.outstandingCents > 0 ? 'amber' : 'emerald' },
             { label: 'نسبة التحصيل', text: model.collectionRate === null ? '—' : fmtNum(model.collectionRate) + '%' }
         ];
@@ -344,6 +352,9 @@ function getResidentStatementSummaryItems(statement) {
     if (showDues) {
         return [
             { label: 'إجمالي المستحق', cents: statement.totals.dueCents },
+            ...(statement.totals.adjustmentCents > 0
+                ? [{ label: 'إعفاء/تخفيض', cents: statement.totals.adjustmentCents, tone: 'amber' }]
+                : []),
             { label: 'إجمالي المدفوع', cents: statement.totals.paidCents, tone: 'emerald' },
             { label: 'إجمالي المتبقي', cents: statement.totals.remainingCents, tone: statement.totals.remainingCents ? 'rose' : 'emerald' },
             { label: 'أشهر متأخرة', text: fmtNum(statement.totals.arrearsMonths), tone: statement.totals.arrearsMonths ? 'amber' : 'emerald' }
@@ -363,6 +374,9 @@ function getSelectedReportMonth() {
 
 function getLandlordReportSignature(month, purposeFilter = '') {
     const { income, expenses } = getLandlordReportData(month, purposeFilter);
+    const monthKey = monthLabelToKey(month);
+    const adjustments = (state.adjustments || [])
+        .filter(item => String(item.effectiveMonth || '') === monthKey);
     return JSON.stringify([
         state.buildingName || '',
         state.managerName || '',
@@ -370,6 +384,7 @@ function getLandlordReportSignature(month, purposeFilter = '') {
         state.residents || [],
         income,
         expenses,
+        adjustments,
         purposeFilter || ''
     ]);
 }
@@ -621,7 +636,7 @@ function renderLandlordReportPdfHtml(month, purposeFilter = '') {
         '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
         'تقرير للقراءة فقط ولا يعدل أي بيانات. ',
         showDues
-            ? 'المستحق محسوب بقيمة الاشتراك السارية في شهر التقرير، والتحصيلات والمصروفات محسوبة على شهر استحقاقها المسجل.'
+            ? 'المستحق محسوب بقيمة الاشتراك السارية في شهر التقرير بعد الإعفاءات والتخفيضات، والتحصيلات والمصروفات محسوبة على شهر استحقاقها المسجل.'
             : 'التحصيلات معروضة لغرض «' + esc(filterLabel) + '» فقط، بينما المصروفات كاملة لأنها غير مرتبطة بأغراض التحصيل. المستحق ونسبة التحصيل يخصان الاشتراكات لذلك لا يظهران في هذا العرض.',
         '</p><footer style="font-size:9px;color:#64748b;margin-top:18px;text-align:center">Manzil — ',
         esc(formatDate(new Date().toISOString())), '</footer></div>'
@@ -763,13 +778,14 @@ function buildPeriodReport(fromMonth, toMonth, purposeFilter = '') {
         const expenseCents = (state.expenses || [])
             .filter(item => item.month === month)
             .reduce((sum, item) => sum + toCents(item.amount), 0);
-        const { expectedCents, outstandingCents } = showDues
+        const { expectedCents, outstandingCents, adjustmentCents } = showDues
             ? getMonthlyBillingTotals(month)
-            : { expectedCents: 0, outstandingCents: 0 };
+            : { expectedCents: 0, outstandingCents: 0, adjustmentCents: 0 };
         return {
             key,
             month,
             expectedCents,
+            adjustmentCents,
             totalIncomeCents,
             movementCount: monthIncome.length,
             collectedCents,
@@ -782,6 +798,7 @@ function buildPeriodReport(fromMonth, toMonth, purposeFilter = '') {
     });
     const totals = months.reduce((acc, row) => {
         acc.expectedCents += row.expectedCents;
+        acc.adjustmentCents += row.adjustmentCents;
         acc.totalIncomeCents += row.totalIncomeCents;
         acc.movementCount += row.movementCount;
         acc.collectedCents += row.collectedCents;
@@ -790,7 +807,7 @@ function buildPeriodReport(fromMonth, toMonth, purposeFilter = '') {
         acc.expenseCents += row.expenseCents;
         if (row.outstandingCents > 0) acc.unpaidMonths += 1;
         return acc;
-    }, { expectedCents: 0, totalIncomeCents: 0, movementCount: 0, collectedCents: 0, otherIncomeCents: 0, outstandingCents: 0, expenseCents: 0, unpaidMonths: 0, netCents: 0, rate: null });
+    }, { expectedCents: 0, adjustmentCents: 0, totalIncomeCents: 0, movementCount: 0, collectedCents: 0, otherIncomeCents: 0, outstandingCents: 0, expenseCents: 0, unpaidMonths: 0, netCents: 0, rate: null });
     totals.netCents = totals.totalIncomeCents - totals.expenseCents;
     totals.rate = showDues ? getPeriodCollectionRate(totals.expectedCents, totals.collectedCents) : null;
     const rangeLabels = new Set(months.map(row => row.month));
@@ -837,7 +854,8 @@ function buildPeriodReport(fromMonth, toMonth, purposeFilter = '') {
 
 function getPeriodReportSignature(fromMonth, toMonth, purposeFilter = '') {
     const labels = new Set([fromMonth, toMonth]);
-    (buildPeriodMonthKeys(fromMonth, toMonth) || []).forEach(key => labels.add(getStatementMonthLabel(key)));
+    const keys = new Set(buildPeriodMonthKeys(fromMonth, toMonth) || []);
+    keys.forEach(key => labels.add(getStatementMonthLabel(key)));
     return JSON.stringify([
         state.buildingName || '',
         state.managerName || '',
@@ -845,6 +863,7 @@ function getPeriodReportSignature(fromMonth, toMonth, purposeFilter = '') {
         state.residents || [],
         (state.income || []).filter(item => labels.has(item.month)),
         (state.expenses || []).filter(item => labels.has(item.month)),
+        (state.adjustments || []).filter(item => keys.has(String(item.effectiveMonth || ''))),
         purposeFilter || ''
     ]);
 }
@@ -931,12 +950,16 @@ function renderPeriodReportHtml(report) {
     const unpaidNote = showDues && totals.unpaidMonths > 0
         ? `<p>${fmtNum(totals.unpaidMonths)} شهر من الفترة فيه متبقٍّ غير محصّل.</p>`
         : '';
+    const adjustmentNote = showDues && totals.adjustmentCents > 0
+        ? `<p>المستحق بعد إعفاءات وتخفيضات بقيمة ${fmtMoney(totals.adjustmentCents / 100)}.</p>`
+        : '';
     const filterNote = report.purposeFilter
         ? `<p>التحصيلات معروضة لغرض «${esc(report.purposeLabel)}» فقط.</p>`
         : '';
     const statsHtml = showDues
         ? `<div class="report-stats">
                 <div class="report-stat"><p class="report-stat-label">المستحق</p><p class="report-stat-value">${fmtMoney(totals.expectedCents / 100)}</p></div>
+                ${totals.adjustmentCents > 0 ? `<div class="report-stat"><p class="report-stat-label">إعفاء/تخفيض</p><p class="report-stat-value text-amber-400">${fmtMoney(totals.adjustmentCents / 100)}</p></div>` : ''}
                 <div class="report-stat"><p class="report-stat-label">المحصّل</p><p class="report-stat-value text-emerald-400">${fmtMoney(totals.collectedCents / 100)}</p></div>
                 <div class="report-stat"><p class="report-stat-label">غير المحصّل</p><p class="report-stat-value ${totals.outstandingCents > 0 ? 'text-amber-400' : 'text-emerald-400'}">${fmtMoney(totals.outstandingCents / 100)}</p></div>
                 <div class="report-stat"><p class="report-stat-label">نسبة التحصيل</p><p class="report-stat-value">${totals.rate === null ? '—' : fmtNum(totals.rate) + '%'}</p></div>
@@ -990,6 +1013,7 @@ function renderPeriodReportHtml(report) {
                 <p>توزيع الطرق يغطي كل تحصيلات أشهر الفترة، ومجموعه يساوي إجمالي التحصيل.</p>
                 ${filterNote}
                 ${unpaidNote}
+                ${adjustmentNote}
             </div>
         </div>`;
 }
@@ -1119,7 +1143,10 @@ function shiftStatementMonthKey(monthKey, offset) {
     return `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, '0')}-01`;
 }
 
-function getResidentStatementStatus(dueCents, paidCents, monthKey, currentKey) {
+function getResidentStatementStatus(dueCents, paidCents, monthKey, currentKey, adjustmentCents = 0) {
+    if (dueCents === 0 && paidCents === 0 && adjustmentCents > 0) {
+        return { label: 'مغطى بإعفاء/تخفيض', className: 'text-amber-400' };
+    }
     if (dueCents === 0 && paidCents === 0) {
         return monthKey > currentKey
             ? { label: 'لم يحن بعد', className: 'text-slate-500' }
@@ -1165,24 +1192,32 @@ function buildResidentStatement(residentId, purposeFilter = '') {
 
     const months = [];
     let dueCents = 0;
+    let adjustmentCents = 0;
     let paidCents = 0;
     let remainingCents = 0;
     for (let key = startKey; key <= endKey; key = shiftStatementMonthKey(key, 1)) {
         const month = getStatementMonthLabel(key);
         const isBilled = (!createdKey || key >= createdKey) && (!currentKey || key <= currentKey);
         const rowDueCents = isBilled ? toCents(getSubscriptionAmountForMonth(resident, month)) : 0;
+        const rowAdjustmentCents = isBilled && showDues && typeof getAdjustmentAmountForMonth === 'function'
+            ? toCents(getAdjustmentAmountForMonth(resident.id, month))
+            : 0;
+        const rowNetDueCents = Math.max(0, rowDueCents - rowAdjustmentCents);
         const rowPaidCents = toCents(getPaidAmountForMonth(resident.id, month));
-        const rowRemainingCents = Math.max(0, rowDueCents - rowPaidCents);
+        const rowRemainingCents = Math.max(0, rowNetDueCents - rowPaidCents);
         dueCents += rowDueCents;
+        adjustmentCents += rowAdjustmentCents;
         paidCents += rowPaidCents;
         remainingCents += rowRemainingCents;
         months.push({
             key,
             month,
             dueCents: rowDueCents,
+            adjustmentCents: rowAdjustmentCents,
+            netDueCents: rowNetDueCents,
             paidCents: rowPaidCents,
             remainingCents: rowRemainingCents,
-            status: getResidentStatementStatus(rowDueCents, rowPaidCents, key, currentKey)
+            status: getResidentStatementStatus(rowNetDueCents, rowPaidCents, key, currentKey, rowAdjustmentCents)
         });
     }
 
@@ -1209,9 +1244,30 @@ function buildResidentStatement(residentId, purposeFilter = '') {
         purposeTotals.set(label, bucket);
     });
 
+    const adjustments = showDues
+        ? (Array.isArray(state.adjustments) ? state.adjustments : [])
+            .filter(adjustment => adjustment.residentId === resident.id)
+            .map(adjustment => ({
+                id: adjustment.id,
+                key: String(adjustment.effectiveMonth || '').slice(0, 7) + '-01',
+                kind: String(adjustment.kind || ''),
+                amountCents: toCents(adjustment.amount),
+                reason: String(adjustment.reason || '')
+            }))
+            .filter(adjustment => adjustment.amountCents > 0
+                && adjustment.key >= startKey && adjustment.key <= endKey)
+            .map(adjustment => ({
+                ...adjustment,
+                month: getStatementMonthLabel(adjustment.key.slice(0, 7) + '-01'),
+                kindLabel: reportAdjustmentKindLabel(adjustment.kind)
+            }))
+            .sort((a, b) => b.key.localeCompare(a.key))
+        : [];
+
     return {
         resident,
         months,
+        adjustments,
         payments: paymentRows,
         purposes: Array.from(purposeTotals.values()).sort((a, b) => b.cents - a.cents),
         showDues,
@@ -1220,6 +1276,7 @@ function buildResidentStatement(residentId, purposeFilter = '') {
         rangeLabel: `${months[0].month} – ${months[months.length - 1].month}`,
         totals: {
             dueCents,
+            adjustmentCents,
             paidCents,
             remainingCents,
             filteredPaidCents,
@@ -1230,11 +1287,16 @@ function buildResidentStatement(residentId, purposeFilter = '') {
     };
 }
 
+function reportAdjustmentKindLabel(kind) {
+    return ({ waiver: 'إعفاء', discount: 'تخفيض', settlement: 'تسوية' }[kind] || 'تسوية');
+}
+
 function getResidentStatementSignature(residentId, purposeFilter = '') {
     const resident = buildResidentIndex().get(String(residentId || ''));
     if (!resident) return '';
     const payments = (state.income || []).filter(payment => payment.residentId === resident.id);
-    return JSON.stringify([resident, payments, state.defaultSubscription ?? '', purposeFilter || '']);
+    const adjustments = (state.adjustments || []).filter(adjustment => adjustment.residentId === resident.id);
+    return JSON.stringify([resident, payments, adjustments, state.defaultSubscription ?? '', purposeFilter || '']);
 }
 
 function setResidentStatementActionsEnabled(enabled) {
@@ -1302,6 +1364,8 @@ function renderResidentStatementHtml(statement) {
         <tr>
             <td>${esc(row.month)}</td>
             <td>${fmtMoney(row.dueCents / 100)}</td>
+            <td class="text-amber-400">${row.adjustmentCents ? fmtMoney(row.adjustmentCents / 100) : '—'}</td>
+            <td>${fmtMoney(row.netDueCents / 100)}</td>
             <td class="text-emerald-400">${fmtMoney(row.paidCents / 100)}</td>
             <td class="${row.remainingCents ? 'text-rose-400' : ''}">${fmtMoney(row.remainingCents / 100)}</td>
             <td class="${row.status.className}">${esc(row.status.label)}</td>
@@ -1324,9 +1388,25 @@ function renderResidentStatementHtml(statement) {
     const monthsBlock = showDues
         ? `<div class="report-table-wrap">
                 <table class="statement-table">
-                    <thead><tr><th>الشهر</th><th>المستحق</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th></tr></thead>
+                    <thead><tr><th>الشهر</th><th>المستحق</th><th>إعفاء/تخفيض</th><th>الصافي</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th></tr></thead>
                     <tbody>${monthRows}</tbody>
                 </table>
+            </div>`
+        : '';
+    const adjustmentRows = statement.adjustments.length
+        ? statement.adjustments.map(adjustment => `
+            <div class="report-list-row items-start">
+                <div class="min-w-0">
+                    <p class="report-list-title">${esc(adjustment.month)} · ${esc(adjustment.kindLabel)}</p>
+                    ${adjustment.reason ? `<p class="report-list-meta break-words">${esc(adjustment.reason)}</p>` : ''}
+                </div>
+                <strong class="report-list-value text-amber-400 report-amount">${fmtMoney(adjustment.amountCents / 100)}</strong>
+            </div>`).join('')
+        : '';
+    const adjustmentsBlock = showDues && statement.adjustments.length
+        ? `<div class="report-block">
+                <p class="report-block-title"><span>الإعفاءات والتخفيضات</span><span class="report-block-count">${fmtNum(statement.adjustments.length)}</span></p>
+                <div class="report-list">${adjustmentRows}</div>
             </div>`
         : '';
     return `
@@ -1338,13 +1418,14 @@ function renderResidentStatementHtml(statement) {
             </header>
             ${statsHtml}
             ${monthsBlock}
+            ${adjustmentsBlock}
             <div class="report-block">
                 <p class="report-block-title"><span>حركات الساكن</span><span class="report-block-count">${fmtNum(statement.payments.length)}</span></p>
                 <div class="report-list">${paymentRows}</div>
             </div>
             <div class="report-note report-divider text-center">
                 ${showDues
-                    ? '<p>كل شهر محسوب بقيمة الاشتراك السارية فيه، والمدفوع هو المسجل على الشهر نفسه.</p>'
+                    ? '<p>كل شهر محسوب بقيمة الاشتراك السارية فيه، ويُخصم الإعفاء أو التخفيض المسجل على الشهر قبل احتساب المتبقي، والمدفوع هو المسجل على الشهر نفسه.</p>'
                     : '<p>المستحق الشهري يخص الاشتراكات فقط، لذلك تُعرض هنا حركات غرض «' + esc(statement.purposeLabel) + '» دون جدول المستحقات.</p>'}
                 ${showDues && statement.purposeFilter ? '<p>الحركات معروضة للاشتراكات فقط.</p>' : ''}
                 ${showDues ? unassignedNote : ''}
@@ -1404,6 +1485,8 @@ function renderStatementMonthsPdfBody(statement) {
         '<tr>',
         statementPdfHeadCell(esc(row.month)),
         statementPdfCell(fmtMoney(row.dueCents / 100)),
+        statementPdfCell(row.adjustmentCents ? fmtMoney(row.adjustmentCents / 100) : '—', 'color:#b45309'),
+        statementPdfCell(fmtMoney(row.netDueCents / 100)),
         statementPdfCell(fmtMoney(row.paidCents / 100)),
         statementPdfCell(fmtMoney(row.remainingCents / 100), row.remainingCents ? 'color:#be123c;font-weight:700' : ''),
         statementPdfCell(esc(row.status.label)),
@@ -1437,8 +1520,27 @@ function renderResidentStatementPdfHtml(statement) {
             '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حساب الشهور</h3>',
             '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
             '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المستحق</th>',
+            '<th style="padding:6px;border:1px solid #cbd5e1">إعفاء/تخفيض</th><th style="padding:6px;border:1px solid #cbd5e1">الصافي</th>',
             '<th style="padding:6px;border:1px solid #cbd5e1">المدفوع</th><th style="padding:6px;border:1px solid #cbd5e1">المتبقي</th>',
-            '<th style="padding:6px;border:1px solid #cbd5e1">الحالة</th></tr></thead><tbody>', monthRows, '</tbody></table></section>'
+            '<th style="padding:6px;border:1px solid #cbd5e1">الحالة</th></tr></thead><tbody>', monthRows, '</tbody></table></section>',
+            statement.adjustments.length
+                ? [
+                    '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">الإعفاءات والتخفيضات</h3>',
+                    '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
+                    '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">النوع</th>',
+                    '<th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th><th style="padding:6px;border:1px solid #cbd5e1">السبب</th>',
+                    '</tr></thead><tbody>',
+                    statement.adjustments.map(adjustment => [
+                        '<tr>',
+                        statementPdfCell(esc(adjustment.month)),
+                        statementPdfCell(esc(adjustment.kindLabel)),
+                        statementPdfCell(fmtMoney(adjustment.amountCents / 100), 'color:#b45309;font-weight:700'),
+                        statementPdfCell(esc(adjustment.reason || '—')),
+                        '</tr>'
+                    ].join('')).join(''),
+                    '</tbody></table></section>'
+                ].join('')
+                : ''
         ]
         : [];
 
@@ -1488,7 +1590,7 @@ function renderUnitReportPdfHtml(statement) {
         ? unpaidRows.map(row => '<tr>' + statementPdfCell(esc(row.month)) + statementPdfCell(fmtMoney(row.remainingCents / 100), 'color:#be123c;font-weight:700') + '</tr>').join('')
         : '<tr><td colspan="2" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#047857">لا توجد أشهر غير مسددة.</td></tr>';
     const currentSummary = currentRow
-        ? `${currentMonth}: مستحق ${fmtMoney(currentRow.dueCents / 100)} • مدفوع ${fmtMoney(currentRow.paidCents / 100)} • متبقٍ ${fmtMoney(currentRow.remainingCents / 100)}`
+        ? `${currentMonth}: مستحق ${fmtMoney(currentRow.dueCents / 100)}${currentRow.adjustmentCents ? ' • إعفاء/تخفيض ' + fmtMoney(currentRow.adjustmentCents / 100) : ''} • مدفوع ${fmtMoney(currentRow.paidCents / 100)} • متبقٍ ${fmtMoney(currentRow.remainingCents / 100)}`
         : 'لا يوجد استحقاق للشهر الحالي.';
 
     return [
@@ -1504,6 +1606,7 @@ function renderUnitReportPdfHtml(statement) {
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">الوضع المالي</h3>',
         '<table style="width:100%;border-collapse:collapse;font-size:11px"><tbody>',
         '<tr>', statementPdfHeadCell('إجمالي المستحق'), statementPdfCell(fmtMoney(statement.totals.dueCents / 100)), '</tr>',
+        '<tr>', statementPdfHeadCell('إعفاء/تخفيض'), statementPdfCell(fmtMoney((statement.totals.adjustmentCents || 0) / 100), 'color:#b45309;font-weight:700'), '</tr>',
         '<tr>', statementPdfHeadCell('إجمالي المدفوع'), statementPdfCell(fmtMoney(statement.totals.paidCents / 100), 'color:#047857;font-weight:700'), '</tr>',
         '<tr>', statementPdfHeadCell('إجمالي المتبقي'), statementPdfCell(fmtMoney(statement.totals.remainingCents / 100), 'font-weight:700'), '</tr>',
         '<tr>', statementPdfHeadCell('أشهر متأخرة'), statementPdfCell(fmtNum(statement.totals.arrearsMonths)), '</tr>',
@@ -1513,9 +1616,28 @@ function renderUnitReportPdfHtml(statement) {
         '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
         '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المتبقي</th>',
         '</tr></thead><tbody>', unpaidHtml, '</tbody></table></section>',
+        statement.adjustments.length
+            ? [
+                '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">الإعفاءات والتخفيضات</h3>',
+                '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
+                '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">النوع</th>',
+                '<th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th><th style="padding:6px;border:1px solid #cbd5e1">السبب</th>',
+                '</tr></thead><tbody>',
+                statement.adjustments.map(adjustment => [
+                    '<tr>',
+                    statementPdfCell(esc(adjustment.month)),
+                    statementPdfCell(esc(adjustment.kindLabel)),
+                    statementPdfCell(fmtMoney(adjustment.amountCents / 100), 'color:#b45309;font-weight:700'),
+                    statementPdfCell(esc(adjustment.reason || '—')),
+                    '</tr>'
+                ].join('')).join(''),
+                '</tbody></table></section>'
+            ].join('')
+            : '',
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حساب الشهور</h3>',
         '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
         '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المستحق</th>',
+        '<th style="padding:6px;border:1px solid #cbd5e1">إعفاء/تخفيض</th><th style="padding:6px;border:1px solid #cbd5e1">الصافي</th>',
         '<th style="padding:6px;border:1px solid #cbd5e1">المدفوع</th><th style="padding:6px;border:1px solid #cbd5e1">المتبقي</th>',
         '<th style="padding:6px;border:1px solid #cbd5e1">الحالة</th></tr></thead><tbody>', renderStatementMonthsPdfBody(statement), '</tbody></table></section>',
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حركات الساكن</h3>',
@@ -1612,12 +1734,19 @@ function exportResidentStatementCsv() {
     const statement = getResidentStatementSnapshot();
     if (!statement) return;
     const showDues = statement.showDues !== false;
-    const rows = showDues ? [['الشهر','المستحق','المدفوع','المتبقي','الحالة']] : [];
+    const rows = showDues ? [['الشهر','المستحق','إعفاء/تخفيض','الصافي','المدفوع','المتبقي','الحالة']] : [];
     if (showDues) {
         statement.months.forEach(row => {
-            rows.push([row.month, row.dueCents / 100, row.paidCents / 100, row.remainingCents / 100, row.status.label]);
+            rows.push([row.month, row.dueCents / 100, row.adjustmentCents / 100, row.netDueCents / 100, row.paidCents / 100, row.remainingCents / 100, row.status.label]);
         });
         rows.push([]);
+        if (statement.adjustments.length) {
+            rows.push(['الإعفاءات والتخفيضات','الشهر','النوع','المبلغ','السبب']);
+            statement.adjustments.forEach(adjustment => {
+                rows.push(['تسوية', adjustment.month, adjustment.kindLabel, adjustment.amountCents / 100, adjustment.reason]);
+            });
+            rows.push([]);
+        }
     } else {
         rows.push(['الغرض', statement.purposeLabel]);
         rows.push([]);
