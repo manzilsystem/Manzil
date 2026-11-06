@@ -392,7 +392,7 @@ DECLARE
     v_building uuid := '20000000-0000-4000-8000-000000000001';
     v_resident uuid := '30000000-0000-4000-8000-000000000001';
     v_manager uuid := '10000000-0000-4000-8000-000000000001';
-    v_owner uuid := '10000000-0000-4000-8000-000000000002';
+    v_owner uuid := '10000000-0000-4000-8000-000000000004';
     v_version bigint;
     v_summary jsonb;
     v_transfer jsonb;
@@ -880,6 +880,10 @@ $income_notification_sync$;
 
 -- Tenant details are persisted atomically but remain invisible to unit owners.
 RESET ROLE;
+INSERT INTO auth.users (id)
+VALUES ('10000000-0000-4000-8000-000000000004');
+INSERT INTO public.profiles (id)
+VALUES ('10000000-0000-4000-8000-000000000004');
 INSERT INTO public.buildings (id, name)
 VALUES ('20000000-0000-4000-8000-000000000005', 'Tenant details integration');
 INSERT INTO public.building_members (building_id, user_id, role)
