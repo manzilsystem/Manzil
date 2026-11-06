@@ -357,39 +357,114 @@ function renderNotices() {
         </div>`).join('');
 }
 
-function renderIncomeTable() {
-    const c = document.getElementById('incomeCardsList');
-    const s = (/** @type {HTMLInputElement} */ (document.getElementById('searchIncomeInput'))?.value||'').toLowerCase();
-    const fm = /** @type {HTMLSelectElement} */ (document.getElementById('filterIncomeMonth'))?.value||'';
-    const filterSel = /** @type {HTMLSelectElement} */ (document.getElementById('filterIncomeMonth'));
-    if (filterSel) { const v = filterSel.value; filterSel.innerHTML = '<option value="">كل الشهور</option>' + getActiveBuildingMonths().map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join(''); filterSel.value = v; }
-    let items = [...state.income].sort((a,b) => new Date(b.date).getTime()-new Date(a.date).getTime());
-    if (fm) items = items.filter(i => i.month === fm);
-    if (s) items = items.filter(i => {
-        const r = state.residents.find(x => x.id === i.residentId);
-        return [r?.name, r?.apartmentNumber, i.month, i.notes, i.amount, getIncomePaymentMethodLabel(i.paymentMethod), renderPurposeLabel(i.purposeCode), renderCashAccountLabel(i.cashAccountCode)].some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(s));
+function populateIncomeListFilters() {
+    const definitions = [
+        { id: 'filterIncomeMonth', label: 'كل الشهور', values: [...new Set((state.income || []).map(item => item.month).filter(Boolean))], format: value => value },
+        { id: 'filterIncomePurpose', label: 'كل الأغراض', values: [...new Set((state.income || []).map(item => item.purposeCode || 'subscription'))], format: renderPurposeLabel },
+        { id: 'filterIncomeCashbox', label: 'كل الصناديق', values: [...new Set((state.income || []).map(item => item.cashAccountCode || 'main'))], format: renderCashAccountLabel },
+        { id: 'filterIncomePaymentMethod', label: 'كل طرق الدفع', values: [...new Set((state.income || []).map(item => item.paymentMethod || '__unspecified__'))], format: value => value === '__unspecified__' ? 'غير محدد' : getIncomePaymentMethodLabel(value) }
+    ];
+    definitions.forEach(definition => {
+        const select = /** @type {HTMLSelectElement} */ (document.getElementById(definition.id));
+        if (!select) return;
+        const selected = select.value;
+        const options = definition.values
+            .sort((a, b) => String(definition.format(a)).localeCompare(String(definition.format(b)), 'ar-EG'))
+            .map(value => `<option value="${esc(value)}">${esc(definition.format(value))}</option>`)
+            .join('');
+        select.innerHTML = `<option value="">${definition.label}</option>` + options;
+        select.value = definition.values.includes(selected) ? selected : '';
     });
-    if (!items.length) {
-        c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center space-y-3"><div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto"><i class="fa-solid fa-hand-holding-dollar"></i></div><div><p class="text-sm font-bold">لا توجد تحصيلات مطابقة</p><p class="text-xs text-slate-500 mt-1">سجّل أول تحصيل أو غيّر الفلتر الحالي.</p></div><button onclick="openNewIncomeModal()" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition"><i class="fa-solid fa-plus"></i> تسجيل تحصيل</button></div>';
-        return;
-    }
-    c.innerHTML = items.map(i => {
-        const r = state.residents.find(x => x.id === i.residentId);
-        const displayNotes = stripIncomeBatchNote(i.notes);
-        return `
-        <div class="app-card p-3 rounded-2xl border flex justify-between items-center gap-2">
+}
+
+function getIncomeListBatchKey(item) {
+    const reference = typeof getIncomeBatchReference === 'function'
+        ? getIncomeBatchReference(item)
+        : '';
+    return reference ? `${item.residentId}:${item.date}:${reference}` : `income:${item.id}`;
+}
+
+function renderIncomeListRow(i, resident) {
+    const displayNotes = stripIncomeBatchNote(i.notes);
+    return `
+        <div class="flex justify-between items-center gap-2 py-2 border-t border-slate-500/10 first:border-t-0">
             <div class="flex items-center gap-2 min-w-0">
-                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xs font-bold shrink-0">${esc(r?.apartmentNumber||'?')}</div>
-                <div class="min-w-0"><p class="text-xs font-bold truncate">${esc(r?.name||'محذوف')}</p><p class="text-[10px] text-slate-500">${esc(formatApartmentLabel(r?.apartmentNumber))} • ${esc(i.month||'')} • ${formatDate(i.date)} • ${esc(getIncomePaymentMethodLabel(i.paymentMethod))}</p><span class="cash-account-tag mt-1"><i class="fa-solid fa-tag" aria-hidden="true"></i>${esc(renderPurposeLabel(i.purposeCode))}</span><span class="cash-account-tag mt-1"><i class="fa-solid fa-vault" aria-hidden="true"></i>${esc(renderCashAccountLabel(i.cashAccountCode))}</span>${displayNotes ? `<p class="mt-1 text-[10px] text-slate-400 truncate"><i class="fa-solid fa-note-sticky ml-1" aria-hidden="true"></i>${esc(displayNotes)}</p>` : ''}</div>
+                <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xs font-bold shrink-0">${esc(resident?.apartmentNumber || '?')}</div>
+                <div class="min-w-0">
+                    <p class="text-xs font-bold truncate">${esc(resident?.name || 'محذوف')}</p>
+                    <p class="text-[10px] text-slate-500">${esc(formatApartmentLabel(resident?.apartmentNumber))} • ${esc(i.month || '')} • ${formatDate(i.date)} • ${esc(getIncomePaymentMethodLabel(i.paymentMethod))}</p>
+                    <span class="cash-account-tag mt-1">${esc(renderPurposeLabel(i.purposeCode))}</span>
+                    <span class="cash-account-tag mt-1"><i class="fa-solid fa-vault" aria-hidden="true"></i>${esc(renderCashAccountLabel(i.cashAccountCode))}</span>
+                    ${displayNotes ? `<p class="mt-1 text-[10px] text-slate-400 truncate"><i class="fa-solid fa-note-sticky ml-1" aria-hidden="true"></i>${esc(displayNotes)}</p>` : ''}
+                </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <span class="text-sm font-black text-emerald-400">${fmtNum(i.amount)}</span>
-                <button onclick="openIncomeReceiptModal('${i.id}')" aria-label="عرض إيصال ${esc(r?.name || '')}" title="عرض الإيصال وطباعته" class="text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-print text-sm"></i></button>
-                <button onclick="sendIncomeReceiptOnWhatsApp('${i.id}')" aria-label="إرسال إيصال واتساب إلى ${esc(r?.name || '')}" title="إرسال إيصال واتساب" class="text-emerald-400 hover:text-emerald-300 p-1"><i class="fa-brands fa-whatsapp text-sm"></i></button>
-                <button onclick="openIncomeEditModal('${i.id}')" aria-label="تعديل التحصيل ${i.month}" class="icon-action text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-pen text-xs"></i></button>
-                <button onclick="deleteIncome('${i.id}')" aria-label="حذف التحصيل ${i.month}" class="icon-action text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash text-xs"></i></button>
+                <button onclick="openIncomeReceiptModal('${i.id}')" aria-label="عرض إيصال ${esc(resident?.name || '')}" title="عرض الإيصال وطباعته" class="text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-print text-sm"></i></button>
+                <button onclick="sendIncomeReceiptOnWhatsApp('${i.id}')" aria-label="إرسال إيصال واتساب إلى ${esc(resident?.name || '')}" title="إرسال إيصال واتساب" class="text-emerald-400 hover:text-emerald-300 p-1"><i class="fa-brands fa-whatsapp text-sm"></i></button>
+                <button onclick="openIncomeEditModal('${i.id}')" aria-label="تعديل التحصيل ${esc(i.month || '')}" class="icon-action text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-pen text-xs"></i></button>
+                <button onclick="deleteIncome('${i.id}')" aria-label="حذف التحصيل ${esc(i.month || '')}" class="icon-action text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash text-xs"></i></button>
             </div>
-        </div>`; }).join('');
+        </div>`;
+}
+
+function renderIncomeTable() {
+    const c = document.getElementById('incomeCardsList');
+    if (!c) return;
+    populateIncomeListFilters();
+    const search = (/** @type {HTMLInputElement} */ (document.getElementById('searchIncomeInput'))?.value || '').toLocaleLowerCase('ar-EG');
+    const month = /** @type {HTMLSelectElement} */ (document.getElementById('filterIncomeMonth'))?.value || '';
+    const purpose = /** @type {HTMLSelectElement} */ (document.getElementById('filterIncomePurpose'))?.value || '';
+    const cashbox = /** @type {HTMLSelectElement} */ (document.getElementById('filterIncomeCashbox'))?.value || '';
+    const paymentMethod = /** @type {HTMLSelectElement} */ (document.getElementById('filterIncomePaymentMethod'))?.value || '';
+    let items = [...(state.income || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    if (month) items = items.filter(item => item.month === month);
+    if (purpose) items = items.filter(item => (item.purposeCode || 'subscription') === purpose);
+    if (cashbox) items = items.filter(item => (item.cashAccountCode || 'main') === cashbox);
+    if (paymentMethod) items = items.filter(item => paymentMethod === '__unspecified__'
+        ? !item.paymentMethod
+        : item.paymentMethod === paymentMethod);
+    if (search) items = items.filter(item => {
+        const resident = state.residents.find(person => person.id === item.residentId);
+        return [resident?.name, resident?.apartmentNumber, item.month, item.notes, item.amount,
+            getIncomePaymentMethodLabel(item.paymentMethod), renderPurposeLabel(item.purposeCode),
+            renderCashAccountLabel(item.cashAccountCode)]
+            .some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(search));
+    });
+
+    const summary = document.getElementById('incomeResultsSummary');
+    if (summary) {
+        const total = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        summary.classList.toggle('hidden', false);
+        summary.innerHTML = `
+            <div><p class="text-slate-500">عدد الحركات</p><p class="font-bold text-sm">${fmtNum(items.length)}</p></div>
+            <div><p class="text-slate-500">إجمالي النتائج</p><p class="font-black text-sm text-emerald-400">${fmtNum(total)} ج.م</p></div>`;
+    }
+    if (!items.length) {
+        c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center space-y-3"><div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto"><i class="fa-solid fa-hand-holding-dollar"></i></div><div><p class="text-sm font-bold">لا توجد تحصيلات مطابقة</p><p class="text-xs text-slate-500 mt-1">سجّل أول تحصيل أو غيّر الفلاتر الحالية.</p></div><button onclick="openNewIncomeModal()" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition"><i class="fa-solid fa-plus"></i> تسجيل تحصيل</button></div>';
+        return;
+    }
+
+    const groups = new Map();
+    items.forEach(item => {
+        const key = getIncomeListBatchKey(item);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(item);
+    });
+    c.innerHTML = [...groups.values()].map(group => {
+        const first = group[0];
+        const resident = state.residents.find(person => person.id === first.residentId);
+        if (group.length === 1) return `<div class="app-card p-3 rounded-2xl border">${renderIncomeListRow(first, resident)}</div>`;
+        const batchTotal = group.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        return `
+            <section class="app-card p-3 rounded-2xl border">
+                <div class="flex justify-between items-center gap-2 pb-2">
+                    <div class="min-w-0"><p class="text-xs font-bold">${esc(resident?.name || 'محذوف')} · شقة ${esc(resident?.apartmentNumber || '?')}</p><p class="text-[10px] text-slate-500">دفعة مجمعة · ${formatDate(first.date)} · ${fmtNum(group.length)} بنود</p></div>
+                    <p class="text-sm font-black text-emerald-400 shrink-0">${fmtNum(batchTotal)} ج.م</p>
+                </div>
+                ${group.map(item => renderIncomeListRow(item, resident)).join('')}
+            </section>`;
+    }).join('');
 }
 
 function renderExpenseTable() {
