@@ -6,8 +6,8 @@ DECLARE
     v_resident uuid := '30000000-0000-4000-8000-000000000004';
     v_manager uuid := '10000000-0000-4000-8000-000000000001';
     v_settlement uuid := '70000000-0000-4000-8000-000000000004';
-    v_payment_one uuid := '80000000-0000-4000-8000-000000000006';
-    v_payment_two uuid := '80000000-0000-4000-8000-000000000006';
+    v_payment_one uuid := '80000000-0000-4000-8000-000000000004';
+    v_payment_two uuid := '80000000-0000-4000-8000-000000000005';
     v_version bigint;
     v_payload jsonb;
     v_result jsonb;
