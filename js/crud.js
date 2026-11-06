@@ -1513,6 +1513,70 @@ function syncIncomePurposeCashAccount(purposeSelectId, cashAccountSelectId, opti
     return purpose;
 }
 
+function getIncomeSettlementFromForm() {
+    const id = String(/** @type {HTMLSelectElement | null} */ (document.getElementById('incomeSettlementSelect'))?.value || '');
+    return (Array.isArray(state.adjustments) ? state.adjustments : []).find(item =>
+        item.id === id && item.kind === 'settlement'
+    ) || null;
+}
+
+function refreshIncomeSettlementOptions(residentId, preferredId = '') {
+    const select = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeSettlementSelect'));
+    const hint = document.getElementById('incomeSettlementHint');
+    if (!select) return [];
+    const options = (Array.isArray(state.adjustments) ? state.adjustments : [])
+        .filter(item => item.residentId === residentId && item.kind === 'settlement')
+        .map(item => ({ adjustment: item, remaining: getSettlementRemainingAmount(item) }))
+        .filter(item => item.remaining > 0)
+        .sort((a, b) => String(a.adjustment.effectiveMonth || '').localeCompare(String(b.adjustment.effectiveMonth || '')));
+    select.innerHTML = '<option value="">اختر تسوية مفتوحة</option>' + options.map(({ adjustment, remaining }) => {
+        const month = adjustmentMonthKeyToLabel(String(adjustment.effectiveMonth || '').slice(0, 7));
+        return '<option value="' + crudHtmlEscape(adjustment.id) + '">'
+            + crudHtmlEscape(month + ' · متبقٍ ' + formatSubscriptionAmount(remaining) + ' ج.م · ' + (adjustment.reason || '')) + '</option>';
+    }).join('');
+    const selected = options.find(item => item.adjustment.id === preferredId) || options[0];
+    select.value = selected ? selected.adjustment.id : '';
+    select.disabled = options.length === 0;
+    if (hint) hint.textContent = options.length
+        ? 'اختر اتفاق التسوية، وسيُحدد شهره والمبلغ المتبقي تلقائيًا.'
+        : 'لا توجد تسويات مفتوحة لهذه الشقة. سجّل اتفاق التسوية أولًا من الإعفاءات والتخفيضات.';
+    return options;
+}
+
+function handleIncomeSettlementChange() {
+    const adjustment = getIncomeSettlementFromForm();
+    const resident = getIncomeResidentFromForm();
+    const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
+    const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
+    const hint = document.getElementById('incomeSettlementHint');
+    if (!adjustment || !resident) {
+        if (monthSelect) monthSelect.disabled = false;
+        if (amountInput) amountInput.removeAttribute('max');
+        if (hint && resident) hint.textContent = 'اختر اتفاق تسوية مفتوحًا.';
+        previewIncomeAllocation();
+        return;
+    }
+    const month = monthKeyToLabel(String(adjustment.effectiveMonth || '').slice(0, 7));
+    refreshIncomeMonthOptions(resident.id, month);
+    if (monthSelect) {
+        monthSelect.value = month;
+        monthSelect.disabled = true;
+    }
+    const remaining = getSettlementRemainingAmount(adjustment);
+    const paid = getSettlementPaidAmount(adjustment.id);
+    if (amountInput) {
+        amountInput.max = remaining.toFixed(2);
+        if (!incomeAmountManual || Number(amountInput.value) > remaining) {
+            amountInput.value = remaining > 0 ? remaining.toFixed(2) : '';
+            incomeAmountManual = false;
+        }
+    }
+    if (hint) hint.textContent = 'المبلغ المتفق عليه: ' + formatSubscriptionAmount(adjustment.amount)
+        + ' ج.م · المدفوع: ' + formatSubscriptionAmount(paid)
+        + ' ج.م · المتبقي: ' + formatSubscriptionAmount(remaining) + ' ج.م';
+    previewIncomeAllocation();
+}
+
 function handleIncomePurposeChange() {
     const purpose = syncIncomePurposeCashAccount('incomePurpose', 'incomeCashAccount', {
         resetUnlocked: true,
@@ -1521,13 +1585,21 @@ function handleIncomePurposeChange() {
     syncIncomePurposeUi();
     const resident = getIncomeResidentFromForm();
     if (purpose === 'subscription' && resident) {
+        const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
+        if (monthSelect) monthSelect.disabled = false;
         if (!incomeSelectedMonths.size) selectFirstUnpaidIncomeMonth(resident);
         renderIncomeMonthsGrid(resident);
         if (!incomeAmountManual) syncIncomeAmountFromSelection();
-    } else if (purpose !== 'subscription') {
-        refreshIncomeMonthOptions(resident?.id || '', getCurrentMonth());
+    } else if (purpose === 'settlement') {
+        const options = refreshIncomeSettlementOptions(resident?.id || '');
+        if (options.length) handleIncomeSettlementChange();
+        else previewIncomeAllocation();
+    } else {
         const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
+        if (monthSelect) monthSelect.disabled = false;
+        refreshIncomeMonthOptions(resident?.id || '', getCurrentMonth());
         if (monthSelect && !monthSelect.value) monthSelect.value = getCurrentMonth();
+        previewIncomeAllocation();
     }
     renderIncomeResidentSummary();
     previewIncomeAllocation();
@@ -1883,13 +1955,18 @@ function applyIncomeMonthQuickAction(action) {
 function syncIncomePurposeUi() {
     const purpose = crudIncomePurpose(/** @type {HTMLSelectElement | null} */ (document.getElementById('incomePurpose'))?.value);
     const isSubscription = purpose === 'subscription';
+    const isSettlement = purpose === 'settlement';
     const monthsWrap = document.getElementById('incomeMonthsWrap');
     const registrationWrap = document.getElementById('incomeNonSubscriptionMonthWrap');
+    const settlementWrap = document.getElementById('incomeSettlementWrap');
     if (monthsWrap?.classList && typeof monthsWrap.classList.toggle === 'function') {
         monthsWrap.classList.toggle('hidden', !isSubscription);
     }
     if (registrationWrap?.classList && typeof registrationWrap.classList.toggle === 'function') {
         registrationWrap.classList.toggle('hidden', isSubscription);
+    }
+    if (settlementWrap?.classList && typeof settlementWrap.classList.toggle === 'function') {
+        settlementWrap.classList.toggle('hidden', !isSettlement);
     }
 }
 
