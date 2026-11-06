@@ -228,6 +228,7 @@ let state = {
     subscriptionDueDay:1, subscriptionGraceDays:0, paymentAllocationPolicy:'oldest_first',
     currentTheme:'dark',
     residents:[], income:[], expenses:[], notices:[], ownerNotifications:[], auditLogs:[],
+    adjustments: [],
     cashAccountBalances: { main: 0, development: 0, emergency: 0 }, cashTransfers: [], lastUpdated:0
 };
 const DEFAULT_RECEIPT_THANK_YOU = 'شكراً لالتزامكم، ونسعد دائماً بخدمتكم.';
@@ -353,12 +354,25 @@ function getSubscriptionAmountForMonth(resident, month) {
         : 0;
 }
 
+function getAdjustmentAmountForMonth(residentId, month) {
+    const monthKey = monthLabelToKey(month);
+    if (!residentId || !monthKey) return 0;
+    const adjustments = Array.isArray(state.adjustments) ? state.adjustments : [];
+    const adjustedCents = adjustments.reduce((sum, adjustment) => {
+        if (adjustment.residentId !== residentId || adjustment.effectiveMonth !== monthKey) return sum;
+        const amount = Number(adjustment.amount);
+        return sum + (Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0);
+    }, 0);
+    return adjustedCents / 100;
+}
+
 function getMonthOutstanding(resident, month) {
     if (!resident) return 0;
     const due = getSubscriptionAmountForMonth(resident, month);
     const dueCents = Number.isFinite(due) ? Math.round(due * 100) : 0;
     const paidCents = Math.round(getPaidAmountForMonth(resident.id, month) * 100);
-    return Math.max(0, dueCents - paidCents) / 100;
+    const adjustedCents = Math.round(getAdjustmentAmountForMonth(resident.id, month) * 100);
+    return Math.max(0, dueCents - adjustedCents - paidCents) / 100;
 }
 
 function calculateCumulativeDebt(residentId) {
