@@ -951,9 +951,10 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <label class="text-xs space-y-1">
                             <span class="text-slate-400">النوع</span>
-                            <select id="adjustmentKind" required class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
+                            <select id="adjustmentKind" required onchange="updateAdjustmentFormState(); updateAdjustmentDueHint()" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
                                 <option value="waiver">إعفاء</option>
                                 <option value="discount">تخفيض</option>
+                                <option value="settlement">تسوية متفق عليها</option>
                             </select>
                         </label>
                         <label class="text-xs space-y-1">
@@ -1045,10 +1046,20 @@
                         <option value="subscription">اشتراك شهري</option>
                         <option value="development">تطوير</option>
                         <option value="emergency">صيانة طارئة</option>
+                        <option value="settlement">سداد تسوية</option>
                         <option value="other">أخرى</option>
                     </select>
                 </label>
                 <p class="text-[10px] text-slate-500">اختر «أخرى» لأي غرض غير الاشتراك والتطوير والصيانة الطارئة، واكتب الغرض بالتفصيل في الملاحظات.</p>
+                <div id="incomeSettlementWrap" class="hidden rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+                    <label class="block text-xs space-y-1">
+                        <span class="text-amber-300">اتفاق التسوية</span>
+                        <select id="incomeSettlementSelect" aria-label="اختر اتفاق التسوية" onchange="handleIncomeSettlementChange()" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
+                            <option value="">اختر تسوية مفتوحة</option>
+                        </select>
+                    </label>
+                    <p id="incomeSettlementHint" role="status" aria-live="polite" class="text-[10px] text-slate-400">اختر اتفاقًا لتحديد المبلغ المتبقي.</p>
+                </div>
                 </section>
                 <section id="incomeWizardStep2" data-income-step="2" class="hidden space-y-3">
                 <div id="incomeMonthsWrap" class="rounded-2xl border border-slate-700/60 p-3 space-y-2">
