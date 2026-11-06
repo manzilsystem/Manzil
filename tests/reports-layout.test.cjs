@@ -57,7 +57,7 @@ test('landlord report aggregates money in cents and formats with fmtMoney', () =
     assert.match(reports, /const totalIncCents = inc\.reduce\(\(sum, i\) => sum \+ toCents\(i\.amount\), 0\)/);
     assert.match(reports, /const totalExpCents = exp\.reduce\(\(sum, e\) => sum \+ toCents\(e\.amount\), 0\)/);
     assert.match(reports, /totals\.cents \+= toCents\(payment\.amount\)/);
-    assert.match(reports, /fmtMoney\(netCents \/ 100\)/);
+    assert.match(reports, /fmtMoney\(item\.cents \/ 100\)/);
     assert.doesNotMatch(reports, /parseFloat\(i\.amount\)/);
 });
 
@@ -69,10 +69,18 @@ test('reports surface shares card headers, stat tiles, and tabular numerals', ()
     assert.match(css, /#printableArea \.app-card, #printableArea \.app-input, #printableArea \.report-stat \{/);
     assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 6);
     assert.equal((reportTab.match(/class="report-card-badge /g) || []).length, 6);
-    assert.equal((reports.match(/class="report-stat"/g) || []).length, 29);
+    assert.equal((reports.match(/class="report-stat"/g) || []).length, 12, 'landlord and statement tiles come from the shared helper');
     assert.equal((render.match(/class="report-stat"/g) || []).length, 4);
     assert.match(reports, /text-emerald-400 report-amount/);
     assert.match(render, /text-rose-400 report-amount/);
+});
+
+test('landlord and statement previews share one summary model with their PDFs', () => {
+    assert.match(reports, /function buildLandlordReportModel\(month, purposeFilter = ''\)/);
+    assert.match(reports, /function getLandlordSummaryItems\(model\)/);
+    assert.match(reports, /function getResidentStatementSummaryItems\(statement\)/);
+    assert.equal((reports.match(/const statsHtml = renderReportStatTiles\(/g) || []).length, 2, 'both previews render from the shared tile helper');
+    assert.equal((reports.match(/const summaryRows = renderPdfSummaryRows\(/g) || []).length, 2, 'both PDFs render from the shared summary helper');
 });
 
 test('reports section has a header, an icon nav, and unified actions', () => {
@@ -149,7 +157,7 @@ test('the nav marker follows the same freshness gate as the output buttons', () 
 test('generated previews use the shared report blocks and theme-safe styles', () => {
     assert.doesNotMatch(reports, /border-slate-800 py-1/);
     assert.match(reports, /class="report-preview-header"/);
-    assert.match(reports, /class="report-stats report-stats-4"/);
+    assert.match(reports, /'report-stats report-stats-4'/);
     assert.match(reports, /class="report-block-title"/);
     assert.match(render, /class="arrears-card" open/);
     assert.match(render, /class="arrears-badge"/);
@@ -160,7 +168,7 @@ test('landlord report compares expected dues with collections', () => {
     assert.match(reports, /function getMonthlyBillingTotals\(month\)/);
     assert.match(reports, /getSubscriptionAmountForMonth\(resident, month\)/);
     assert.match(reports, /getMonthOutstanding\(resident, month\)/);
-    assert.match(reports, /const \{ expectedCents, outstandingCents \} = showDues\s*\? getMonthlyBillingTotals\(m\)/);
+    assert.match(reports, /const \{ expectedCents, outstandingCents \} = showDues\s*\? getMonthlyBillingTotals\(month\)/);
     assert.match(reports, /collectionRate/);
     assert.match(reports, /isResidentActiveInMonth/);
     assert.match(reports, /function getExpenseCategoryTotals\(expenses\)/);
