@@ -2,12 +2,12 @@
 
 DO $partial_settlement$
 DECLARE
-    v_building uuid := '20000000-0000-4000-8000-000000000003';
-    v_resident uuid := '30000000-0000-4000-8000-000000000003';
+    v_building uuid := '20000000-0000-4000-8000-000000000004';
+    v_resident uuid := '30000000-0000-4000-8000-000000000004';
     v_manager uuid := '10000000-0000-4000-8000-000000000001';
-    v_settlement uuid := '70000000-0000-4000-8000-000000000003';
-    v_payment_one uuid := '80000000-0000-4000-8000-000000000003';
-    v_payment_two uuid := '80000000-0000-4000-8000-000000000004';
+    v_settlement uuid := '70000000-0000-4000-8000-000000000004';
+    v_payment_one uuid := '80000000-0000-4000-8000-000000000006';
+    v_payment_two uuid := '80000000-0000-4000-8000-000000000006';
     v_version bigint;
     v_payload jsonb;
     v_result jsonb;
@@ -52,7 +52,7 @@ BEGIN
     );
 
     v_result := private.persist_building_snapshot(
-        v_building, v_version, '90000000-0000-4000-8000-000000000003', v_payload
+        v_building, v_version, '91000000-0000-4000-8000-000000000004', v_payload
     );
     IF v_result->>'ok' IS DISTINCT FROM 'true' THEN
         RAISE EXCEPTION 'first partial settlement payment failed: %', v_result;
@@ -78,7 +78,7 @@ BEGIN
         ))
     );
     v_result := private.persist_building_snapshot(
-        v_building, v_version, '90000000-0000-4000-8000-000000000004', v_payload
+        v_building, v_version, '91000000-0000-4000-8000-000000000005', v_payload
     );
     IF v_result->>'ok' IS DISTINCT FROM 'true'
        OR (SELECT SUM(amount) FROM public.income WHERE settlement_adjustment_id = v_settlement) <> 500 THEN
@@ -93,7 +93,7 @@ BEGIN
     );
     BEGIN
         PERFORM private.persist_building_snapshot(
-            v_building, v_version, '90000000-0000-4000-8000-000000000005', v_payload
+            v_building, v_version, '91000000-0000-4000-8000-000000000006', v_payload
         );
         RAISE EXCEPTION 'settlement overpayment was accepted';
     EXCEPTION WHEN SQLSTATE '22023' THEN
@@ -112,7 +112,7 @@ BEGIN
         v_payload,
         '{income}',
         (v_payload->'income') || jsonb_build_array(jsonb_build_object(
-            'id', '80000000-0000-4000-8000-000000000005',
+            'id', '80000000-0000-4000-8000-000000000006',
             'resident_id', v_resident, 'amount', 1,
             'month', 'نوفمبر 2026', 'notes', 'تسوية بلا رابط',
             'payment_method', 'cash', 'purpose_code', 'settlement',
@@ -121,7 +121,7 @@ BEGIN
     );
     BEGIN
         PERFORM private.persist_building_snapshot(
-            v_building, v_version, '90000000-0000-4000-8000-000000000006', v_payload
+            v_building, v_version, '91000000-0000-4000-8000-000000000007', v_payload
         );
         RAISE EXCEPTION 'unlinked settlement income was accepted';
     EXCEPTION WHEN SQLSTATE '22023' THEN
@@ -134,7 +134,7 @@ BEGIN
     v_payload := jsonb_set(v_payload, '{income,2,purpose_code}', '"subscription"'::jsonb);
     BEGIN
         PERFORM private.persist_building_snapshot(
-            v_building, v_version, '90000000-0000-4000-8000-000000000007', v_payload
+            v_building, v_version, '91000000-0000-4000-8000-000000000008', v_payload
         );
         RAISE EXCEPTION 'subscription income was accepted for a settlement month';
     EXCEPTION WHEN SQLSTATE '22023' THEN
