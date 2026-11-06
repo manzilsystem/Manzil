@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const source = fs.readFileSync(path.join(__dirname, '..', 'js', 'crud.js'), 'utf8');
 
-function createHarness({ income = [], values = {}, saveResult = true } = {}) {
+function createHarness({ income = [], values = {}, saveResult = true, adjustmentAmount = 0 } = {}) {
     const messages = [];
     const calls = { save: 0, opened: [], closed: [], actions: [] };
     const elements = {
@@ -37,6 +37,7 @@ function createHarness({ income = [], values = {}, saveResult = true } = {}) {
         getLocalMonthKey: () => '2024-01',
         getResidentBillingStartKey: resident => (resident.billingStartMonth || '2024-01-01'),
         getSubscriptionAmountForMonth: () => 100,
+        getAdjustmentAmountForMonth: () => adjustmentAmount,
         cloneStateSnapshot: () => JSON.parse(JSON.stringify(state)),
         saveWithRollback: async () => { calls.save += 1; return saveResult; },
         logAction: (...args) => calls.actions.push(args),
@@ -160,4 +161,21 @@ test('editing one part of a distributed collection preserves its reference and u
     assert.equal(h.state.income[0].notes, 'دفعة موزعة ABC123 (1/2) · ملاحظة');
     assert.equal(h.state.income[0].paymentMethod, 'wallet');
     assert.equal(h.state.income[1].paymentMethod, 'wallet');
+});
+
+
+test('editing a subscription payment respects waivers and discounts', async () => {
+    const h = createHarness({
+        income: [{ id: 'i1', residentId: 'r1', amount: 40, month: 'يناير 2024', notes: '', paymentMethod: 'cash', date: '2024-01-15T10:00:00.000Z' }],
+        values: { amount: '90', month: 'يناير 2024' },
+        adjustmentAmount: 20
+    });
+
+    h.api.openIncomeEditModal('i1');
+    h.elements.incomeEditAmount.value = '90';
+    await h.api.handleIncomeEditSubmit({ preventDefault() {} });
+
+    assert.equal(h.calls.save, 0);
+    assert.equal(h.state.income[0].amount, 40);
+    assert.match(h.messages.at(-1)[0], /المتبقي لهذا الشهر \(80 ج\.م\)/);
 });
