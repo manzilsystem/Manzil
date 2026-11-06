@@ -77,14 +77,14 @@ test('saving an adjustment validates the month, amount, reason and monthly cap',
     assert.match(crud, /!Number\.isFinite\(amount\) \|\| amount <= 0/);
     assert.match(crud, /!reason/);
     assert.match(crud, /dueCents <= 0/);
-    assert.match(crud, /existingCents \+ amountCents > dueCents/);
+    assert.match(crud, /existingDiscounts \+ amountCents > dueCents/);
     assert.match(crud, /amountCents = Math\.round\(amount \* 100\)/);
 });
 
 test('adjustment writes go through the atomic snapshot and the audit log', () => {
-    assert.match(crud, /logAction\('إضافة إعفاء\/تخفيض'/);
-    assert.match(crud, /logAction\('تعديل إعفاء\/تخفيض'/);
-    assert.match(crud, /logAction\('حذف إعفاء\/تخفيض'/);
+    assert.ok(crud.includes("logAction('إضافة ' + getAdjustmentKindLabel(kind)"));
+    assert.ok(crud.includes("logAction('تعديل ' + getAdjustmentKindLabel(kind)"));
+    assert.ok(crud.includes("logAction('حذف ' + getAdjustmentKindLabel(adjustment.kind)"));
     assert.match(crud, /saveWithRollback\(previousState\)/);
     assert.match(crud, /confirmRecordDeletion\(/);
     assert.match(crud, /function deleteAdjustment\(id\)/);
