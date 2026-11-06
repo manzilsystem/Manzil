@@ -51,6 +51,7 @@ function loadStatement(options = {}) {
             createdAt: '2024-01-01T00:00:00.000Z'
         }],
         income: [],
+        adjustments: [],
         ...options.state
     };
     const sandbox = {
@@ -69,6 +70,15 @@ function loadStatement(options = {}) {
             cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي'
         }[method] || 'غير محدد'),
         getPaidAmountForMonth: makeGetPaidAmountForMonth(state),
+        getAdjustmentAmountForMonth: (residentId, month) => {
+            const monthKey = monthLabelToKey(month);
+            const cents = (state.adjustments || []).reduce((sum, adjustment) => {
+                if (adjustment.residentId !== residentId || adjustment.effectiveMonth !== monthKey) return sum;
+                const amount = Number(adjustment.amount);
+                return sum + (Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0);
+            }, 0);
+            return cents / 100;
+        },
         getSubscriptionAmountForMonth: (resident, month) => getSubscriptionAmountForMonth(state, resident, month),
         requireManager: () => true,
         toast() {},
@@ -269,8 +279,8 @@ test('statement CSV exports cents and a monthly-then-transactions layout', () =>
     app.exportResidentStatementCsv();
     assert.equal(sandbox.__download.filename, 'manzil_statement_3_2024-03.csv');
     const csv = sandbox.__download.content;
-    assert.match(csv, /"الشهر","المستحق","المدفوع","المتبقي","الحالة"/);
-    assert.match(csv, /"يناير 2024","100","100","0","مسدد"/);
+    assert.match(csv, /"الشهر","المستحق","إعفاء\/تخفيض","الصافي","المدفوع","المتبقي","الحالة"/);
+    assert.match(csv, /"يناير 2024","100","0","100","100","0","مسدد"/);
     assert.match(csv, /\r\n\r\n/);
     assert.match(csv, /"الحركات","الشهر","المبلغ","الغرض","طريقة الدفع","التاريخ","ملاحظات"/);
     assert.match(csv, /"تحصيل","يناير 2024","100","اشتراك شهري","نقدًا"/);
@@ -290,6 +300,84 @@ test('statement PDF keeps the same figures as the preview', () => {
     assert.match(pdfHtml, /40 ج\.م/);
     assert.match(pdfHtml, /260 ج\.م/);
     assert.match(pdfHtml, /نقدًا/);
+});
+
+test('statement deducts waivers and discounts before calculating the remaining balance', () => {
+    const { app } = loadStatement({
+        state: {
+            income: [{ id: 'i1', residentId: 'r1', month: 'يناير 2024', amount: 40, paymentMethod: 'cash' }],
+            adjustments: [
+                { id: 'a1', residentId: 'r1', effectiveMonth: '2024-01-01', kind: 'discount', amount: 30, reason: 'تخفيض' },
+                { id: 'a2', residentId: 'r1', effectiveMonth: '2024-02-01', kind: 'waiver', amount: 100, reason: 'إعفاء كامل' }
+            ]
+        }
+    });
+    const statement = app.buildResidentStatement('r1');
+    const january = statement.months.find(row => row.month === 'يناير 2024');
+    const february = statement.months.find(row => row.month === 'فبراير 2024');
+    assert.equal(january.dueCents, 10000);
+    assert.equal(january.adjustmentCents, 3000);
+    assert.equal(january.netDueCents, 7000);
+    assert.equal(january.remainingCents, 3000);
+    assert.equal(february.netDueCents, 0);
+    assert.equal(february.remainingCents, 0);
+    assert.equal(february.status.label, 'مغطى بإعفاء/تخفيض');
+    assert.equal(statement.totals.adjustmentCents, 13000);
+    assert.equal(statement.totals.remainingCents, 13000);
+    assert.equal(statement.adjustments.length, 2);
+    assert.equal(statement.adjustments[0].month, 'فبراير 2024');
+    assert.equal(statement.adjustments[0].kindLabel, 'إعفاء');
+});
+
+test('statement preview and PDF list the registered adjustments', () => {
+    const { app } = loadStatement({
+        state: {
+            adjustments: [{ id: 'a1', residentId: 'r1', effectiveMonth: '2024-02-01', kind: 'waiver', amount: 100, reason: 'ظرف صحي' }]
+        }
+    });
+    const statement = app.buildResidentStatement('r1');
+    const html = app.renderResidentStatementHtml(statement);
+    const pdf = app.renderResidentStatementPdfHtml(statement);
+    assert.match(html, /الإعفاءات والتخفيضات/);
+    assert.match(html, /ظرف صحي/);
+    assert.match(html, /إعفاء · فبراير 2024|فبراير 2024 · إعفاء/);
+    assert.match(html, /إعفاء\/تخفيض/);
+    assert.match(pdf, /الإعفاءات والتخفيضات/);
+    assert.match(pdf, /ظرف صحي/);
+    assert.match(pdf, /إعفاء\/تخفيض/);
+});
+
+test('statement CSV includes adjustment columns and rows', () => {
+    const { app, sandbox } = loadStatement({
+        state: {
+            adjustments: [{ id: 'a1', residentId: 'r1', effectiveMonth: '2024-02-01', kind: 'waiver', amount: 100, reason: 'ظرف صحي' }]
+        }
+    });
+    app.generateResidentStatement();
+    app.exportResidentStatementCsv();
+    const csv = sandbox.__download.content;
+    assert.match(csv, /"فبراير 2024","100","100","0","0","0","مغطى بإعفاء\/تخفيض"/);
+    assert.match(csv, /"الإعفاءات والتخفيضات","الشهر","النوع","المبلغ","السبب"/);
+    assert.match(csv, /"تسوية","فبراير 2024","إعفاء","100","ظرف صحي"/);
+});
+
+test('statement signature changes when the adjustment ledger changes', () => {
+    const { app, sandbox } = loadStatement();
+    const initial = app.getResidentStatementSignature('r1');
+    sandbox.state.adjustments.push({ id: 'a1', residentId: 'r1', effectiveMonth: '2024-01-01', kind: 'discount', amount: 10, reason: 'تخفيض' });
+    assert.notEqual(app.getResidentStatementSignature('r1'), initial);
+});
+
+test('unit report PDF shows the adjustment total and month columns', () => {
+    const { app } = loadStatement({
+        state: {
+            adjustments: [{ id: 'a1', residentId: 'r1', effectiveMonth: '2024-01-01', kind: 'discount', amount: 25, reason: 'تخفيض' }]
+        }
+    });
+    const statement = app.buildResidentStatement('r1');
+    const html = app.renderUnitReportPdfHtml(statement);
+    assert.match(html, /إعفاء\/تخفيض/);
+    assert.match(html, /الإعفاءات والتخفيضات/);
 });
 
 test('statement builder uses the shared residents index instead of repeated scans', () => {
