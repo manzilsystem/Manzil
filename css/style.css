@@ -3565,8 +3565,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 .assistant-fab.is-compact .assistant-fab-label { max-width: 0; opacity: 0; }
 .assistant-fab.is-compact::after { display: none; }
-body.owner-mode .assistant-fab,
 body.session-locked .assistant-fab { display: none; }
+body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-bottom, 0px)); }
 @media (max-width: 560px) {
     .assistant-fab { padding: .28rem; inset-inline-start: .6rem; }
     .assistant-fab-label { display: none; }

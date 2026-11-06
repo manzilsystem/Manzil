@@ -11,7 +11,7 @@ test('backup is available in settings without a duplicate header shortcut', () =
     assert.match(html, /id="settings-tab-backup"[^>]*onclick="switchSettingsTab\('backup'\)"/);
     assert.match(html, /id="settings-panel-backup"/);
     assert.doesNotMatch(html, /aria-label="فتح النسخ الاحتياطي"/);
-    assert.match(serviceWorker, /const CACHE_NAME = 'manzil-v138';/);
+    assert.match(serviceWorker, /const CACHE_NAME = 'manzil-v139';/);
 });
 
 test('header keeps settings and session controls while the assistant floats above the nav', () => {

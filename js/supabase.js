@@ -463,12 +463,13 @@ async function loadState() {
     const membership = await chooseBuildingMembership(memberships, session, generation);
     if (!membership || !isCurrentAuthSession(session, generation)) return false;
     const { data: profile, error: profileError } = await supabaseClient.from('profiles')
-        .select('must_change_pin,theme_preference').eq('id', session.user.id).maybeSingle();
+        .select('must_change_pin,theme_preference,full_name').eq('id', session.user.id).maybeSingle();
     if (!isCurrentAuthSession(session, generation)) return false;
     if (profileError) throw profileError;
     activeBuildingId = membership.building_id;
     activeBuildingVersion = 1;
     currentUserRole = membership.role;
+    currentProfileName = typeof profile?.full_name === 'string' ? profile.full_name.trim() || null : null;
     ownerMustChangePin = currentUserRole === 'owner' && profile?.must_change_pin === true;
     if (ownerMustChangePin) {
         stopOwnerNotificationsRealtime();
@@ -721,6 +722,7 @@ function clearAuthenticatedState() {
     ownerMustChangePin = false;
     currentUserRole = null;
     currentResidentId = null;
+    currentProfileName = null;
     persistedAuditLogIds = new Set();
     state = {
         ...state,
@@ -1084,6 +1086,7 @@ async function openAuthenticatedApp() {
         renderOwnerPortal();
     }
     updateAccessSwitchButton();
+    if (typeof syncAssistantFab === 'function') syncAssistantFab();
     const status = document.getElementById('syncStatus');
     if (status) status.textContent = currentUserRole === 'manager' ? 'Supabase — مدير' : 'Supabase — مالك للعرض فقط';
 }
