@@ -11,13 +11,14 @@ const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'م�
 
 const PURPOSE_LABELS = {
     subscription: 'اشتراك شهري',
-    services: 'خدمات ونظافة',
+    services: 'أخرى',
     development: 'تطوير',
     emergency: 'صيانة طارئة',
-    penalty: 'غرامة',
-    donation: 'تبرع',
+    penalty: 'أخرى',
+    donation: 'أخرى',
     other: 'أخرى'
 };
+const PURPOSE_FORM_CODES = ['subscription', 'development', 'emergency', 'other'];
 
 function toCents(value) {
     const amount = Number(value);
@@ -33,6 +34,11 @@ function monthLabelToKey(month) {
 function normalizeIncomePurpose(purpose) {
     const value = String(purpose || '').trim();
     return Object.prototype.hasOwnProperty.call(PURPOSE_LABELS, value) ? value : 'subscription';
+}
+
+function getIncomePurposeFormCode(purpose) {
+    const normalized = normalizeIncomePurpose(purpose);
+    return PURPOSE_FORM_CODES.includes(normalized) ? normalized : 'other';
 }
 
 function loadReports(options = {}) {
@@ -69,7 +75,7 @@ function loadReports(options = {}) {
             { id: 'i1', residentId: 'r1', month: 'يناير 2024', amount: 100, paymentMethod: 'cash', purposeCode: 'subscription' },
             { id: 'i2', residentId: 'r1', month: 'يناير 2024', amount: 50, paymentMethod: 'cash', purposeCode: 'development' },
             { id: 'i3', residentId: 'r1', month: 'فبراير 2024', amount: 40, paymentMethod: 'cash', purposeCode: 'subscription' },
-            { id: 'i4', residentId: 'r1', month: 'فبراير 2024', amount: 60, paymentMethod: 'instapay', purposeCode: 'services' },
+            { id: 'i4', residentId: 'r1', month: 'فبراير 2024', amount: 60, paymentMethod: 'instapay', purposeCode: 'other' },
             { id: 'i5', residentId: 'r1', month: 'مارس 2024', amount: 30, paymentMethod: 'cash', purposeCode: 'development' }
         ],
         expenses: [
@@ -82,10 +88,12 @@ function loadReports(options = {}) {
         state,
         monthsNames: monthNames,
         INCOME_PURPOSE_LABELS: PURPOSE_LABELS,
+        INCOME_PURPOSE_FORM_CODES: PURPOSE_FORM_CODES,
         getCurrentMonth: () => 'مارس 2024',
         monthLabelToKey,
         toCents,
         normalizeIncomePurpose,
+        getIncomePurposeFormCode,
         getIncomePurposeLabel: purpose => PURPOSE_LABELS[normalizeIncomePurpose(purpose)],
         isSubscriptionIncome: payment => normalizeIncomePurpose(payment?.purposeCode) === 'subscription',
         getPaidAmountForMonth: (residentId, month) => {
@@ -159,11 +167,11 @@ test('purpose filter markup sits in the three report toolbars and is populated c
     assert.match(render, /populateReportPurposeFilters\(\)/);
 });
 
-test('the purpose dropdown lists all purposes plus the unfiltered option', () => {
+test('the purpose dropdown lists the four main purposes plus the unfiltered option', () => {
     const { api, elements } = loadReports();
     const select = elements.landlordReportPurpose;
     api.populateReportPurposeFilters();
-    assert.equal((select.innerHTML.match(/<option/g) || []).length, 8);
+    assert.equal((select.innerHTML.match(/<option/g) || []).length, 5);
     assert.match(select.innerHTML, /<option value="">كل الأغراض<\/option>/);
     assert.match(select.innerHTML, /<option value="development">تطوير<\/option>/);
     assert.equal(select.value, '');
@@ -205,13 +213,13 @@ test('changing the purpose invalidates the landlord preview and signature follow
     const { api, elements } = loadReports({ purpose: 'development' });
     api.generateLandlordReport();
     assert.match(elements.landlordReportPreview.innerHTML, /تحصيل الغرض/);
-    elements.landlordReportPurpose.value = 'services';
+    elements.landlordReportPurpose.value = 'other';
     api.invalidateLandlordReportPreview();
     assert.match(elements.landlordReportPreview.innerHTML, /تغيّر الشهر أو الغرض/);
     assert.equal(elements.reportPdfBtn.disabled, true);
     assert.notEqual(
         api.getLandlordReportSignature('يناير 2024', 'development'),
-        api.getLandlordReportSignature('يناير 2024', 'services')
+        api.getLandlordReportSignature('يناير 2024', 'other')
     );
 });
 
@@ -282,10 +290,10 @@ test('period signature and snapshot guard include the purpose filter', () => {
     const { api, elements, calls } = loadReports({ purpose: 'development' });
     assert.notEqual(
         api.getPeriodReportSignature('يناير 2024', 'مارس 2024', 'development'),
-        api.getPeriodReportSignature('يناير 2024', 'مارس 2024', 'services')
+        api.getPeriodReportSignature('يناير 2024', 'مارس 2024', 'other')
     );
     api.generatePeriodReport();
-    elements.periodReportPurpose.value = 'services';
+    elements.periodReportPurpose.value = 'other';
     assert.equal(api.getSelectedPeriodReportSnapshot(), null);
     assert.ok(calls.toasts.some(entry => entry.includes('اعرض معاينة الغرض المحدد أولًا')));
 });
@@ -302,7 +310,7 @@ test('statement filters payments and hides the monthly dues table for non-subscr
     assert.match(preview, /مدفوع الغرض/);
     assert.match(preview, /80 ج\.م/);
     assert.doesNotMatch(preview, /statement-table/);
-    assert.doesNotMatch(preview, /خدمات ونظافة/);
+    assert.doesNotMatch(preview, /أخرى/);
     assert.doesNotMatch(preview, /إجمالي المستحق/);
 });
 
@@ -314,7 +322,7 @@ test('statement subscription filtering keeps the dues ledger and subscription mo
     const preview = api.renderResidentStatementHtml(statement);
     assert.match(preview, /statement-table/);
     assert.match(preview, /إجمالي المستحق/);
-    assert.doesNotMatch(preview, /خدمات ونظافة/);
+    assert.doesNotMatch(preview, /أخرى/);
     assert.doesNotMatch(preview, /تطوير/);
 });
 
@@ -326,7 +334,7 @@ test('unit report ignores the purpose filter and keeps every unit movement', () 
     assert.equal(statement.showDues, true);
     assert.equal(statement.payments.length, 5);
     const preview = api.renderUnitReportPdfHtml(statement);
-    assert.match(preview, /خدمات ونظافة/);
+    assert.match(preview, /أخرى/);
     assert.match(preview, /اشتراك شهري/);
     assert.match(preview, /تطوير/);
     assert.match(preview, /بغض النظر عن فلتر الغرض/);
@@ -342,9 +350,9 @@ test('statement CSV and signatures follow the purpose filter', () => {
     assert.doesNotMatch(calls.download.content, /"المستحق"/);
     assert.notEqual(
         api.getResidentStatementSignature('r1', 'development'),
-        api.getResidentStatementSignature('r1', 'services')
+        api.getResidentStatementSignature('r1', 'other')
     );
-    elements.statementPurpose.value = 'services';
+    elements.statementPurpose.value = 'other';
     assert.equal(api.getResidentStatementSnapshot(), null);
     api.invalidateResidentStatementPreview();
     assert.match(elements.residentStatementPreview.innerHTML, /تغيّر الساكن أو الغرض/);
@@ -354,6 +362,6 @@ test('payment matching treats missing purpose as subscription and accepts known 
     const { api } = loadReports();
     assert.equal(api.reportPaymentMatchesPurpose({ purposeCode: '' }, 'subscription'), true);
     assert.equal(api.reportPaymentMatchesPurpose({ purposeCode: 'development' }, 'development'), true);
-    assert.equal(api.reportPaymentMatchesPurpose({ purposeCode: 'development' }, 'services'), false);
+    assert.equal(api.reportPaymentMatchesPurpose({ purposeCode: 'development' }, 'other'), false);
     assert.equal(api.reportPaymentMatchesPurpose({ purposeCode: 'development' }, ''), true);
 });

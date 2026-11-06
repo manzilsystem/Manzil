@@ -14,7 +14,8 @@ function loadState() {
     return vm.runInNewContext(
         `${stateSource}\n({
             state, getPaidAmountForMonth, normalizeIncomePurpose, getIncomePurposeLabel,
-            isSubscriptionIncome, getIncomePurposeCashAccount, isIncomePurposeCashAccountLocked
+            getIncomePurposeFormCode, isSubscriptionIncome, getIncomePurposeCashAccount,
+            isIncomePurposeCashAccountLocked, populateIncomePurposeOptions
         })`,
         {},
         { filename: 'js/state.js' }
@@ -112,8 +113,23 @@ test('legacy collections without a purpose behave as monthly subscriptions', () 
     assert.equal(app.normalizeIncomePurpose(''), 'subscription');
     assert.equal(app.normalizeIncomePurpose('not-a-purpose'), 'subscription');
     assert.equal(app.getIncomePurposeLabel('development'), 'تطوير');
+    assert.equal(app.getIncomePurposeLabel('services'), 'أخرى');
+    assert.equal(app.getIncomePurposeLabel('penalty'), 'أخرى');
+    assert.equal(app.getIncomePurposeLabel('donation'), 'أخرى');
+    assert.equal(app.getIncomePurposeFormCode('services'), 'other');
+    assert.equal(app.getIncomePurposeFormCode('development'), 'development');
     assert.equal(app.isSubscriptionIncome({ purposeCode: undefined }), true);
     assert.equal(app.isSubscriptionIncome({ purposeCode: 'development' }), false);
+});
+
+test('the purpose form offers only three main purposes plus other', () => {
+    const app = loadState();
+    const select = makeElement();
+    app.populateIncomePurposeOptions(select, 'services');
+    assert.equal(select.value, 'other');
+    const options = Array.from(select.innerHTML.matchAll(/<option value="([^"]+)">([^<]+)<\/option>/g));
+    assert.deepEqual(options.map(match => match[1]), ['subscription', 'development', 'emergency', 'other']);
+    assert.deepEqual(options.map(match => match[2]), ['اشتراك شهري', 'تطوير', 'صيانة طارئة', 'أخرى']);
 });
 
 test('paid-month totals only count subscription collections', () => {
@@ -172,8 +188,9 @@ test('development purpose pins the collection to the development fund', () => {
 test('non-subscription collections save once without monthly allocation', async () => {
     const harness = createCrudHarness({ elements: {
         incomeAmount: makeElement({ value: '500' }),
-        incomePurpose: makeElement({ value: 'services' }),
-        incomeCashAccount: makeElement({ value: 'main' })
+        incomePurpose: makeElement({ value: 'other' }),
+        incomeCashAccount: makeElement({ value: 'main' }),
+        incomeNotes: makeElement({ value: 'نظافة المبنى' })
     } });
 
     await harness.api.handleIncomeSubmit({ preventDefault() {} });
@@ -181,10 +198,25 @@ test('non-subscription collections save once without monthly allocation', async 
     assert.equal(harness.calls.allocations, 0);
     assert.equal(harness.calls.save, 1);
     assert.equal(harness.state.income.length, 1);
-    assert.equal(harness.state.income[0].purposeCode, 'services');
+    assert.equal(harness.state.income[0].purposeCode, 'other');
     assert.equal(harness.state.income[0].cashAccountCode, 'main');
     assert.equal(harness.state.income[0].amount, 500);
     assert.equal(harness.state.income[0].month, 'يناير 2024');
+});
+
+test('the other purpose requires its detailed reason in the notes', async () => {
+    const harness = createCrudHarness({ elements: {
+        incomeAmount: makeElement({ value: '500' }),
+        incomePurpose: makeElement({ value: 'other' }),
+        incomeCashAccount: makeElement({ value: 'main' }),
+        incomeNotes: makeElement({ value: '' })
+    } });
+
+    await harness.api.handleIncomeSubmit({ preventDefault() {} });
+
+    assert.equal(harness.calls.save, 0);
+    assert.equal(harness.state.income.length, 0);
+    assert.match(harness.messages.at(-1)[0], /الغرض بالتفصيل في الملاحظات/);
 });
 
 test('subscription collections still distribute over unpaid months', async () => {
