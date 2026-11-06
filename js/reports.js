@@ -2399,7 +2399,7 @@ function renderResidentStatementHtml(statement) {
             </div>
             <div class="report-note report-divider text-center">
                 ${showDues
-                    ? '<p>كل شهر محسوب بقيمة الاشتراك السارية فيه. يُخصم الإعفاء أو التخفيض، وتُحتسب دفعات التسوية على اتفاق التسوية المرتبط بها، دون إضافتها مرة أخرى إلى مدفوع الاشتراك.</p>'
+                    ? '<p>كل شهر محسوب بقيمة الاشتراك السارية فيه. يُخصم الإعفاء أو التخفيض، وتُحتسب دفعات التسوية على اتفاق التسوية المرتبط بها، دون تكرارها ضمن مدفوع الاشتراك.</p>'
                     : '<p>المستحق الشهري يخص الاشتراكات فقط، لذلك تُعرض هنا حركات غرض «' + esc(statement.purposeLabel) + '» دون جدول المستحقات.</p>'}
                 ${showDues && statement.purposeFilter ? '<p>الحركات معروضة للاشتراكات فقط.</p>' : ''}
                 ${showDues ? unassignedNote : ''}
@@ -2543,7 +2543,7 @@ function renderResidentStatementPdfHtml(statement) {
         '<th style="padding:6px;border:1px solid #cbd5e1">ملاحظات</th></tr></thead><tbody>', paymentRows, '</tbody></table></section>',
         '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
         showDues
-            ? 'كل شهر محسوب بقيمة الاشتراك السارية فيه. تُحتسب دفعات التسوية على اتفاق التسوية المرتبط بها، ولا تُضاف مرة أخرى إلى مدفوع الاشتراك. هذا الكشف للقراءة فقط ولا يعدل أي بيانات.'
+            ? 'كل شهر محسوب بقيمة الاشتراك السارية فيه. تُحتسب دفعات التسوية على اتفاق التسوية المرتبط بها، ولا تُكرر ضمن مدفوع الاشتراك. هذا الكشف للقراءة فقط ولا يعدل أي بيانات.'
             : 'المستحق الشهري يخص الاشتراكات فقط، لذلك يعرض الكشف حركات الغرض المحدد دون جدول المستحقات. هذا الكشف للقراءة فقط ولا يعدل أي بيانات.',
         '</p><footer style="font-size:9px;color:#64748b;margin-top:18px;text-align:center">Manzil — ',
         esc(formatDate(statement.generatedAt)), '</footer></div>'
@@ -2725,7 +2725,7 @@ function exportResidentStatementCsv() {
                 : 'الإعفاءات والتخفيضات';
             rows.push([adjustmentsTitle,'الشهر','النوع','المبلغ','السبب']);
             statement.adjustments.forEach(adjustment => {
-                rows.push(['تعديل', adjustment.month, adjustment.kindLabel, adjustment.amountCents / 100, adjustment.reason]);
+                rows.push(['تسوية', adjustment.month, adjustment.kindLabel, adjustment.amountCents / 100, adjustment.reason]);
             });
             rows.push([]);
         }
