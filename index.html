@@ -1668,7 +1668,7 @@
                 <h3 id="residentModalTitle" class="font-bold text-sm">شقة جديدة</h3>
                 <button onclick="closeModal('residentModal')" aria-label="إغلاق نافذة بيانات الشقة" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <form id="residentForm" onsubmit="handleResidentSubmit(event)" class="p-5 space-y-3">
+            <form id="residentForm" onsubmit="handleResidentSubmit(event)" class="p-5 space-y-3 max-h-[80vh] overflow-y-auto">
                 <input type="text" id="residentName" aria-label="اسم المالك" placeholder="اسم المالك" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 <div class="grid grid-cols-2 gap-2">
                     <select id="residentFloor" aria-label="الدور" onchange="updateResidentApartmentOptions()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر الدور</option></select>
@@ -1679,6 +1679,23 @@
                 <p id="residentAmountHelp" class="hidden text-[10px] text-slate-500 -mt-1"></p>
                 <label class="block text-xs space-y-1"><span class="text-slate-400">بداية المحاسبة (اختياري)</span><input type="month" id="residentBillingStart" aria-label="بداية محاسبة الشقة" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></label>
                 <p class="text-[10px] text-slate-500 -mt-1">اتركها فارغة لتبدأ المحاسبة من تاريخ إضافة الشقة، أو اختر شهرًا أقدم لتحصيل متأخرات سابقة.</p>
+                <section class="app-input border rounded-2xl p-3 space-y-3">
+                    <label class="flex items-center gap-2 text-xs font-bold cursor-pointer">
+                        <input type="checkbox" id="residentIsRented" onchange="toggleResidentTenantFields()" class="w-4 h-4">
+                        الشقة مؤجرة
+                    </label>
+                    <div id="residentTenantFields" class="hidden space-y-2">
+                        <p class="text-[10px] text-slate-500">بيانات المستأجر تظهر للمدير فقط ولا تدخل في حساب الاشتراك أو بوابة المالك.</p>
+                        <input type="text" id="residentTenantName" maxlength="200" aria-label="اسم المستأجر" placeholder="اسم المستأجر" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
+                        <input type="tel" id="residentTenantPhone" maxlength="60" aria-label="هاتف المستأجر" placeholder="هاتف المستأجر" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="block text-[10px] text-slate-500 space-y-1">بداية الإيجار<input type="date" id="residentLeaseStart" aria-label="بداية الإيجار" class="w-full app-input border rounded-xl px-2 py-2 text-xs"></label>
+                            <label class="block text-[10px] text-slate-500 space-y-1">نهاية الإيجار<input type="date" id="residentLeaseEnd" aria-label="نهاية الإيجار" class="w-full app-input border rounded-xl px-2 py-2 text-xs"></label>
+                            <label class="block text-[10px] text-slate-500 space-y-1">قيمة الإيجار<input type="number" id="residentRentAmount" min="0" step="0.01" inputmode="decimal" aria-label="قيمة الإيجار" class="w-full app-input border rounded-xl px-2 py-2 text-xs"></label>
+                            <label class="block text-[10px] text-slate-500 space-y-1">التأمين<input type="number" id="residentDepositAmount" min="0" step="0.01" inputmode="decimal" aria-label="مبلغ التأمين" class="w-full app-input border rounded-xl px-2 py-2 text-xs"></label>
+                        </div>
+                    </div>
+                </section>
                 <button type="button" id="manageSubscriptionRatesBtn" onclick="openSubscriptionRateModal(editingResidentId)" class="hidden w-full border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 py-2.5 rounded-xl text-xs font-bold">تحديد / تعديل الاشتراك وسجله التاريخي</button>
                 <textarea id="residentNotes" aria-label="ملاحظات الشقة" rows="2" placeholder="ملاحظات" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
                 <div class="app-input border rounded-2xl p-3 space-y-2">
