@@ -729,6 +729,60 @@ test('expenses report scopes by period, fund and category and exports csv', asyn
     await expect(page.locator('#expensesReportExportBtn')).toBeDisabled();
 });
 
+test('adjustments report scopes the period to one apartment and exports csv', async ({ page }) => {
+    await openReports(page);
+    await page.evaluate(() => {
+        state.residents.push({ id: 'r2', name: 'سعيد', apartmentNumber: '10', monthlyAmount: 200, createdAt: '2024-01-01T00:00:00.000Z' });
+        state.adjustments = [
+            { id: 'x1', residentId: 'r1', kind: 'waiver', effectiveMonth: '2024-01-01', amount: 30, reason: 'حالة وفاة' },
+            { id: 'x2', residentId: 'r1', kind: 'discount', effectiveMonth: '2024-02-01', amount: 10, reason: 'خصم أخوة' },
+            { id: 'x3', residentId: 'r2', kind: 'waiver', effectiveMonth: '2024-02-01', amount: 200, reason: 'إعفاء كامل' }
+        ];
+        renderAll();
+    });
+
+    await openReportPanel(page, 'adjustments');
+    await page.locator('#adjustmentsReportFrom').selectOption('يناير 2024');
+    await page.locator('#adjustmentsReportTo').selectOption('فبراير 2024');
+    await page.locator('#adjustmentsReportResident').selectOption('r2');
+    await page.locator('#adjustmentsReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+
+    const preview = page.locator('#adjustmentsReportPreview');
+    await expect(preview).toContainText('تقرير الإعفاءات والتخفيضات يناير 2024 – فبراير 2024');
+    await expect(preview).toContainText('الشقة: شقة 10 · سعيد');
+    await expect(preview.locator('.report-stat', { hasText: 'إجمالي الإعفاءات والتخفيضات' })).toContainText('200 ج.م');
+    await expect(preview).toContainText('المعروض لشقة «شقة 10 · سعيد» فقط');
+    await expect(preview).toContainText('إعفاء كامل');
+    await expect(preview).not.toContainText('حالة وفاة');
+    await expect(page.locator('#adjustmentsReportExportBtn')).toBeEnabled();
+
+    await page.locator('#adjustmentsReportKind').selectOption('waiver');
+    await expect(preview).toContainText('تغيّر الشهر أو الفلتر');
+    await expect(page.locator('#adjustmentsReportExportBtn')).toBeDisabled();
+
+    await page.locator('#adjustmentsReportKind').selectOption('');
+    await page.locator('#adjustmentsReportResident').selectOption('r1');
+    await page.locator('#adjustmentsReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await expect(preview.locator('.report-stat', { hasText: 'إجمالي الإعفاءات والتخفيضات' })).toContainText('40 ج.م');
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#adjustmentsReportExportBtn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('manzil_adjustments_2024-01_2024-02_apt_3.csv');
+    const stream = await download.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const csv = Buffer.concat(chunks).toString('utf8');
+    expect(csv).toContain('"الفترة","يناير 2024 – فبراير 2024","الشقة","شقة 3 · أحمد","النوع","كل الأنواع"');
+    expect(csv).toContain('"3","أحمد","فبراير 2024","تخفيض","10","خصم أخوة"');
+    expect(csv).toContain('"الإجمالي","","","","40"');
+    expect(csv).not.toContain('سعيد');
+
+    await page.locator('#adjustmentsReportTo').selectOption('يناير 2024');
+    await expect(preview).toContainText('تغيّر الشهر أو الفلتر');
+    await expect(page.locator('#adjustmentsReportExportBtn')).toBeDisabled();
+});
+
 test('statement purpose filter scopes movements and hides the dues ledger', async ({ page }) => {
     await openReports(page);
     await page.evaluate(() => {
