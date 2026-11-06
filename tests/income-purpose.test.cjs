@@ -244,7 +244,7 @@ test('regular subscription allocation skips months covered by a settlement agree
     app.state.adjustments = [
         { id: 's1', residentId: 'r1', effectiveMonth: '2024-01-01', kind: 'settlement', amount: 80 }
     ];
-    const allocation = app.calculateSelectedMonthsAllocation('r1', ['يناير 2024'], 100, 0);
+    const allocation = app.calculateSelectedMonthsAllocation('r1', ['يناير 2024'], 100, 1);
     assert.deepEqual(
         Array.from(allocation.allocations, row => row.month),
         ['فبراير 2024']
