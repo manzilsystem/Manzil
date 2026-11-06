@@ -33,6 +33,8 @@ test('snapshot RPC validates linked settlement income and cumulative cap atomica
     assert.match(migration, /settlement_exceeds_month_due/);
     assert.match(migration, /FOR UPDATE/);
     assert.match(migration, /COALESCE\(EXCLUDED\.settlement_adjustment_id, current_income\.settlement_adjustment_id\)/);
+    assert.match(migration, /WHEN current_income\.settlement_adjustment_id IS NOT NULL[\\s\\S]*?THEN current_income\.purpose_code/);
+
 });
 
 test('PostgreSQL integration harness applies and tests the settlement migration', () => {
