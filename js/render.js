@@ -163,6 +163,7 @@ function populateSelects() {
     if (typeof populateReportPurposeFilters === 'function') populateReportPurposeFilters();
     if (typeof populateReportCashAccountFilters === 'function') populateReportCashAccountFilters();
     if (typeof populateReportPaymentMethodFilters === 'function') populateReportPaymentMethodFilters();
+    if (typeof populateReportResidentFilters === 'function') populateReportResidentFilters();
 }
 
 function populatePeriodReportSelects(months, current = getCurrentMonth()) {

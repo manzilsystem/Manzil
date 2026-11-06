@@ -45,10 +45,10 @@ test('changing the report month invalidates the preview and output actions', () 
 });
 
 test('export is scoped to the previewed month and uses a month-based filename', () => {
-    assert.match(reports, /function exportToCSV\(month = landlordReportMonth, purposeFilter = landlordReportPurposeFilter, cashAccountFilter = landlordReportCashAccountFilter, paymentMethodFilter = landlordReportPaymentMethodFilter\)/);
-    assert.match(reports, /if \(landlordReportSignature && getLandlordReportSignature\(reportMonth, purposeFilter, cashAccountFilter, paymentMethodFilter\) !== landlordReportSignature\)/);
-    assert.match(reports, /const \{ income: inc, expenses: exp \} = getLandlordReportData\(reportMonth, purposeFilter, cashAccountFilter, paymentMethodFilter\)/);
-    assert.match(reports, /manzil_report_\$\{monthKey \? monthKey\.slice\(0, 7\) : Date\.now\(\)\}\$\{purposeSuffix\}\$\{cashSuffix\}\$\{paymentSuffix\}\.csv/);
+    assert.match(reports, /function exportToCSV\(month = landlordReportMonth, purposeFilter = landlordReportPurposeFilter, cashAccountFilter = landlordReportCashAccountFilter, paymentMethodFilter = landlordReportPaymentMethodFilter, residentFilter = landlordReportResidentFilter\)/);
+    assert.match(reports, /if \(landlordReportSignature && getLandlordReportSignature\(reportMonth, purposeFilter, cashAccountFilter, paymentMethodFilter, residentFilter\) !== landlordReportSignature\)/);
+    assert.match(reports, /const \{ income: inc, expenses: exp \} = getLandlordReportData\(reportMonth, purposeFilter, cashAccountFilter, paymentMethodFilter, residentFilter\)/);
+    assert.match(reports, /manzil_report_\$\{monthKey \? monthKey\.slice\(0, 7\) : Date\.now\(\)\}\$\{purposeSuffix\}\$\{cashSuffix\}\$\{paymentSuffix\}\$\{residentSuffix\}\.csv/);
     assert.doesNotMatch(reports, /state\.income\.forEach\(i =>/);
 });
 
@@ -83,7 +83,7 @@ test('reports surface shares card headers, stat tiles, and tabular numerals', ()
 });
 
 test('landlord and statement previews share one summary model with their PDFs', () => {
-    assert.match(reports, /function buildLandlordReportModel\(month, purposeFilter = '', cashAccountFilter = '', paymentMethodFilter = ''\)/);
+    assert.match(reports, /function buildLandlordReportModel\(month, purposeFilter = '', cashAccountFilter = '', paymentMethodFilter = '', residentFilter = ''\)/);
     assert.match(reports, /function getLandlordSummaryItems\(model\)/);
     assert.match(reports, /function getResidentStatementSummaryItems\(statement\)/);
     assert.equal((reports.match(/const statsHtml = renderReportStatTiles\(/g) || []).length, 2, 'both previews render from the shared tile helper');
@@ -172,10 +172,10 @@ test('generated previews use the shared report blocks and theme-safe styles', ()
 });
 
 test('landlord report compares expected dues with collections', () => {
-    assert.match(reports, /function getMonthlyBillingTotals\(month\)/);
+    assert.match(reports, /function getMonthlyBillingTotals\(month, residentFilter = ''\)/);
     assert.match(reports, /getSubscriptionAmountForMonth\(resident, month\)/);
     assert.match(reports, /getMonthOutstanding\(resident, month\)/);
-    assert.match(reports, /const \{ expectedCents, outstandingCents, adjustmentCents \} = showDues\s*\? getMonthlyBillingTotals\(month\)/);
+    assert.match(reports, /const \{ expectedCents, outstandingCents, adjustmentCents \} = showDues\s*\? getMonthlyBillingTotals\(month, residentFilter\)/);
     assert.match(reports, /collectionRate/);
     assert.match(reports, /isResidentActiveInMonth/);
     assert.match(reports, /function getExpenseCategoryTotals\(expenses\)/);
@@ -239,13 +239,13 @@ test('period report rolls the monthly landlord figures across a range with gated
     for (const id of ['periodReportPrintBtn', 'periodReportExportBtn']) {
         assert.match(reportTab, new RegExp('id="' + id + '"[^>]*disabled'));
     }
-    assert.match(reports, /function buildPeriodReport\(fromMonth, toMonth, purposeFilter = '', cashAccountFilter = ''\)/);
-    assert.match(reports, /const \{ expectedCents, outstandingCents, adjustmentCents \} = showDues\s*\? getMonthlyBillingTotals\(month\)/);
-    assert.match(reports, /function getPeriodReportSignature\(fromMonth, toMonth, purposeFilter = '', cashAccountFilter = ''\)/);
+    assert.match(reports, /function buildPeriodReport\(fromMonth, toMonth, purposeFilter = '', cashAccountFilter = '', residentFilter = ''\)/);
+    assert.match(reports, /const \{ expectedCents, outstandingCents, adjustmentCents \} = showDues\s*\? getMonthlyBillingTotals\(month, normalizedResident\)/);
+    assert.match(reports, /function getPeriodReportSignature\(fromMonth, toMonth, purposeFilter = '', cashAccountFilter = '', residentFilter = ''\)/);
     assert.match(reports, /function invalidatePeriodReportIfStale\(\)/);
     assert.match(render, /invalidatePeriodReportIfStale\(\)/);
     assert.match(render, /function populatePeriodReportSelects\(months/);
-    assert.match(reports, /manzil_period_\$\{getPeriodReportFileSlug\(report\)\}\$\{purposeSuffix\}\$\{cashSuffix\}\.csv/);
+    assert.match(reports, /manzil_period_\$\{getPeriodReportFileSlug\(report\)\}\$\{purposeSuffix\}\$\{cashSuffix\}\$\{residentSuffix\}\.csv/);
     assert.match(reports, /document\.body\.classList\.add\('print-period'\)/);
     assert.match(css, /body\.print-period #tab-reports > :not\(#periodReportCard\) \{ display: none !important; \}/);
     assert.match(css, /body\.print-period #periodReportCard \{/);

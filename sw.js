@@ -1,4 +1,4 @@
-const CACHE_NAME = 'manzil-v131';
+const CACHE_NAME = 'manzil-v132';
 const APP_CACHE_PREFIX = 'manzil-';
 const APP_SHELL = [
     './',

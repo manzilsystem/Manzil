@@ -786,3 +786,90 @@ test('audit log reports the visible count and loads more entries', async ({ page
     await expect(container).toContainText('عرض 60 من 60');
     await expect(container.getByRole('button', { name: /عرض المزيد/ })).toHaveCount(0);
 });
+
+test('landlord apartment filter scopes the month to one flat and exports it', async ({ page }) => {
+    await openReports(page);
+    await page.evaluate(() => {
+        state.residents.push({ id: 'r2', name: 'سعيد', apartmentNumber: '10', monthlyAmount: 200, createdAt: '2024-01-01T00:00:00.000Z' });
+        state.income.push(
+            { id: 'i3', residentId: 'r2', month: 'يناير 2024', amount: 50, paymentMethod: 'cash', purposeCode: 'subscription', cashAccountCode: 'main' },
+            { id: 'i4', residentId: 'r2', month: 'يناير 2024', amount: 30, paymentMethod: 'cash', purposeCode: 'emergency', cashAccountCode: 'emergency' }
+        );
+        state.expenses.push({ id: 'e1', month: 'يناير 2024', title: 'كهرباء', amount: 10, category: 'مرافق', cashAccountCode: 'main' });
+        renderAll();
+    });
+
+    await openReportPanel(page, 'landlord');
+    await page.locator('#reportMonthSelect').selectOption('يناير 2024');
+    await page.locator('#landlordReportResident').selectOption('r2');
+    await page.locator('#landlordReportPrint').getByRole('button', { name: 'معاينة', exact: true }).click();
+
+    const preview = page.locator('#landlordReportPreview');
+    await expect(preview).toContainText('الشقة: شقة 10 · سعيد');
+    await expect(preview).toContainText('التحصيلات معروضة لشقة «شقة 10 · سعيد» فقط');
+    await expect(preview).toContainText('80 ج.م');
+    await expect(preview.locator('.report-stat', { hasText: 'المستحق' })).toContainText('200 ج.م');
+    await expect(preview.locator('.report-stat', { hasText: 'نسبة التحصيل' })).toContainText('25%');
+    await expect(preview).not.toContainText('أحمد');
+    await expect(preview).toContainText('كهرباء');
+    await expect(page.locator('#reportExportBtn')).toBeEnabled();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#reportExportBtn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('manzil_report_2024-01_apt_10.csv');
+    const stream = await download.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const csv = Buffer.concat(chunks).toString('utf8');
+    expect(csv).toContain('"سعيد","10"');
+    expect(csv).not.toContain('"أحمد"');
+
+    await page.locator('#landlordReportResident').selectOption('r1');
+    await expect(preview).toContainText('تغيّر الشهر أو الفلتر أو البيانات');
+    await expect(page.locator('#reportExportBtn')).toBeDisabled();
+});
+
+test('period apartment filter scopes months, dues and csv to one flat', async ({ page }) => {
+    await openReports(page);
+    await page.evaluate(() => {
+        state.residents.push({ id: 'r2', name: 'سعيد', apartmentNumber: '10', monthlyAmount: 200, createdAt: '2024-01-01T00:00:00.000Z' });
+        state.income.push(
+            { id: 'i3', residentId: 'r2', month: 'يناير 2024', amount: 50, paymentMethod: 'cash', purposeCode: 'subscription' },
+            { id: 'i4', residentId: 'r2', month: 'فبراير 2024', amount: 200, paymentMethod: 'cash', purposeCode: 'subscription' }
+        );
+        state.expenses.push({ id: 'e1', month: 'يناير 2024', title: 'كهرباء', amount: 10, category: 'مرافق', cashAccountCode: 'main' });
+        renderAll();
+    });
+
+    await openReportPanel(page, 'period');
+    await page.locator('#periodReportPreset').selectOption('custom');
+    await page.locator('#periodReportFrom').selectOption('يناير 2024');
+    await page.locator('#periodReportTo').selectOption('فبراير 2024');
+    await page.locator('#periodReportResident').selectOption('r2');
+    await page.locator('#periodReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+
+    const preview = page.locator('#periodReportPreview');
+    await expect(preview).toContainText('الشقة: شقة 10 · سعيد');
+    await expect(preview).toContainText('المستحق ونسبة التحصيل يخصان الشقة المحددة');
+    await expect(preview.locator('.report-stat', { hasText: 'المستحق' })).toContainText('400 ج.م');
+    await expect(preview).toContainText('250 ج.م');
+    await expect(preview).toContainText('150 ج.م');
+    await expect(preview).not.toContainText('أحمد');
+    await expect(page.locator('#periodReportExportBtn')).toBeEnabled();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#periodReportExportBtn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('manzil_period_2024-01_2024-02_apt_10.csv');
+    const stream = await download.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const csv = Buffer.concat(chunks).toString('utf8');
+    expect(csv).toContain('"الشقة","شقة 10 · سعيد"');
+    expect(csv).not.toContain('"أحمد"');
+
+    await page.locator('#periodReportResident').selectOption('r1');
+    await expect(preview).toContainText('تغيّرت الفترة أو الفلتر أو البيانات');
+    await expect(page.locator('#periodReportExportBtn')).toBeDisabled();
+});
