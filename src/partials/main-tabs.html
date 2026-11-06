@@ -153,10 +153,14 @@
                 <div><h2 class="font-bold text-base">سجل التحصيلات</h2><p class="text-[11px] text-slate-400">اشتراكات السكان</p></div>
                 <button onclick="openNewIncomeModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-emerald-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> تحصيل جديد</button>
             </div>
-            <div class="list-filters app-card p-3 rounded-3xl border flex gap-2 no-print">
-                <input type="search" id="searchIncomeInput" aria-label="البحث في التحصيلات" oninput="renderIncomeTable()" placeholder="ابحث في التحصيلات..." class="flex-grow app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
+            <div class="list-filters app-card p-3 rounded-3xl border grid grid-cols-2 md:grid-cols-4 gap-2 no-print">
+                <input type="search" id="searchIncomeInput" aria-label="البحث في التحصيلات" oninput="renderIncomeTable()" placeholder="ابحث في التحصيلات..." class="col-span-2 app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
                 <select id="filterIncomeMonth" aria-label="تصفية التحصيلات حسب الشهر" onchange="renderIncomeTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold"><option value="">كل الشهور</option></select>
+                <select id="filterIncomePurpose" aria-label="تصفية التحصيلات حسب الغرض" onchange="renderIncomeTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold"><option value="">كل الأغراض</option></select>
+                <select id="filterIncomeCashbox" aria-label="تصفية التحصيلات حسب الصندوق" onchange="renderIncomeTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold"><option value="">كل الصناديق</option></select>
+                <select id="filterIncomePaymentMethod" aria-label="تصفية التحصيلات حسب طريقة الدفع" onchange="renderIncomeTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold"><option value="">كل طرق الدفع</option></select>
             </div>
+            <div id="incomeResultsSummary" class="hidden app-card p-3 rounded-2xl border text-xs grid grid-cols-2 gap-2 no-print" aria-live="polite"></div>
             <div id="incomeCardsList" class="space-y-3"></div>
         </section>
 
