@@ -473,11 +473,11 @@ function isValidBackup(data) {
     const adjustmentById = new Map(adjustments.map(adjustment => [adjustment.id, adjustment]));
     const monthKeyFromLabel = value => {
         const text = String(value || '').trim();
-        const iso = text.match(/^(\\d{4})-(0[1-9]|1[0-2])(?:-01)?$/);
+        const iso = text.match(/^(\d{4})-(0[1-9]|1[0-2])(?:-01)?$/);
         if (iso) return iso[1] + '-' + iso[2];
-        const [label, year] = text.split(/\\s+/);
+        const [label, year] = text.split(/\s+/);
         const monthIndex = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'].indexOf(label);
-        return monthIndex >= 0 && /^\\d{4}$/.test(year || '')
+        return monthIndex >= 0 && /^\d{4}$/.test(year || '')
             ? year + '-' + String(monthIndex + 1).padStart(2, '0') : '';
     };
     const settlementKeys = new Set();
