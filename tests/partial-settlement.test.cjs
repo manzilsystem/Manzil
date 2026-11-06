@@ -38,7 +38,7 @@ test('snapshot RPC validates linked settlement income and cumulative cap atomica
 });
 
 test('PostgreSQL integration harness applies and tests the settlement migration', () => {
-    assert.match(atomic, /20261106160000_partial_settlement_income\.sql/);
+    assert.match(atomic, /20261106203433_partial_settlement_income\.sql/);
     assert.match(tableGrants, /partial-settlement\.integration\.sql/);
     assert.match(integration, /settlement_payment_exceeds_agreement/);
     assert.match(integration, /settlement_exceeds_month_due/);
