@@ -124,7 +124,29 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'income_purpose_code_check constraint missing';
     END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'public.income'::regclass
+          AND conname = 'income_purpose_code_check'
+          AND pg_get_constraintdef(oid) LIKE '%settlement%'
+    ) THEN
+        RAISE EXCEPTION 'income purpose constraint does not allow settlement';
+    END IF;
 
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'income'
+          AND column_name = 'settlement_adjustment_id'
+    ) THEN
+        RAISE EXCEPTION 'income.settlement_adjustment_id column missing';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'public.income'::regclass
+          AND conname = 'income_settlement_adjustment_id_fkey'
+    ) THEN
+        RAISE EXCEPTION 'income_settlement_adjustment_id_fkey missing';
+    END IF;
     RAISE NOTICE 'Income purpose mapping verified';
 END $$;
 
@@ -260,6 +282,8 @@ DECLARE
         'cash_transfers_building_transferred_idx',
         'cash_transfers_request_unique',
         'income_building_purpose_idx',
+        'income_settlement_adjustment_id_idx',
+        'resident_adjustments_one_settlement_per_month_idx',
         'resident_adjustments_building_month_idx',
         'resident_adjustments_resident_month_idx',
         'notifications_dedupe_scope_unique',

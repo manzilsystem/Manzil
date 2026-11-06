@@ -29,7 +29,7 @@ function resident(id = 'r1') {
     };
 }
 
-test('monthly outstanding subtracts settlements for the same resident and month only', () => {
+test('monthly outstanding uses the agreed settlement amount for that resident and month', () => {
     const app = loadState();
     app.state.residents = [resident()];
     app.state.income = [{ id: 'i1', residentId: 'r1', month: 'يناير 2024', amount: 30 }];
@@ -42,7 +42,7 @@ test('monthly outstanding subtracts settlements for the same resident and month 
 
     assert.equal(app.getAdjustmentAmountForMonth('r1', 'يناير 2024'), 30.5);
     assert.equal(app.getMonthOutstanding(app.state.residents[0], 'يناير 2024'), 39.5);
-    assert.equal(app.getMonthOutstanding(app.state.residents[0], 'فبراير 2024'), 60);
+    assert.equal(app.getMonthOutstanding(app.state.residents[0], 'فبراير 2024'), 40);
 });
 
 test('settlements never push the monthly outstanding below zero', () => {

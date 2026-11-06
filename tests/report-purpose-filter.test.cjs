@@ -16,9 +16,10 @@ const PURPOSE_LABELS = {
     emergency: 'صيانة طارئة',
     penalty: 'أخرى',
     donation: 'أخرى',
-    other: 'أخرى'
+    other: 'أخرى',
+    settlement: 'سداد تسوية'
 };
-const PURPOSE_FORM_CODES = ['subscription', 'development', 'emergency', 'other'];
+const PURPOSE_FORM_CODES = ['subscription', 'development', 'emergency', 'settlement', 'other'];
 
 function toCents(value) {
     const amount = Number(value);
@@ -167,13 +168,14 @@ test('purpose filter markup sits in the three report toolbars and is populated c
     assert.match(render, /populateReportPurposeFilters\(\)/);
 });
 
-test('the purpose dropdown lists the four main purposes plus the unfiltered option', () => {
+test('the purpose dropdown lists the five main purposes plus the unfiltered option', () => {
     const { api, elements } = loadReports();
     const select = elements.landlordReportPurpose;
     api.populateReportPurposeFilters();
-    assert.equal((select.innerHTML.match(/<option/g) || []).length, 5);
+    assert.equal((select.innerHTML.match(/<option/g) || []).length, 6);
     assert.match(select.innerHTML, /<option value="">كل الأغراض<\/option>/);
     assert.match(select.innerHTML, /<option value="development">تطوير<\/option>/);
+    assert.match(select.innerHTML, /<option value="settlement">سداد تسوية<\/option>/);
     assert.equal(select.value, '');
 });
 

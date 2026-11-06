@@ -5,11 +5,12 @@ let editingIncomeId = null;
 let expenseSaving = false;
 let editingExpenseId = null;
 
-const CRUD_INCOME_PURPOSES = ['subscription', 'services', 'development', 'emergency', 'penalty', 'donation', 'other'];
-const CRUD_INCOME_PURPOSE_FORM_CODES = ['subscription', 'development', 'emergency', 'other'];
+const CRUD_INCOME_PURPOSES = ['subscription', 'services', 'development', 'emergency', 'penalty', 'donation', 'other', 'settlement'];
+const CRUD_INCOME_PURPOSE_FORM_CODES = ['subscription', 'development', 'emergency', 'settlement', 'other'];
 const CRUD_INCOME_PURPOSE_LABELS = {
     subscription: 'اشتراك شهري', services: 'أخرى', development: 'تطوير',
-    emergency: 'صيانة طارئة', penalty: 'أخرى', donation: 'أخرى', other: 'أخرى'
+    emergency: 'صيانة طارئة', penalty: 'أخرى', donation: 'أخرى', other: 'أخرى',
+    settlement: 'سداد تسوية'
 };
 
 function crudIncomePurpose(purpose) {
@@ -180,15 +181,15 @@ function clearIncomeExtraLines() {
 
 function buildIncomePaymentRows(options) {
     const rows = [];
-    const appendRow = (amount, month, purposeCode, cashAccountCode) => {
-        rows.push({ amount, month, purposeCode, cashAccountCode });
+    const appendRow = (amount, month, purposeCode, cashAccountCode, settlementAdjustmentId = null) => {
+        rows.push({ amount, month, purposeCode, cashAccountCode, settlementAdjustmentId });
     };
     if (options.isSubscription && options.allocation) {
         options.allocation.allocations.forEach(item => {
             appendRow(item.amount, item.month, 'subscription', options.cashAccountCode);
         });
     } else {
-        appendRow(options.amount, options.month, options.purpose, options.cashAccountCode);
+        appendRow(options.amount, options.month, options.purpose, options.cashAccountCode, options.settlementAdjustmentId || null);
     }
     (options.extraLines || []).forEach(line => {
         appendRow(line.amount, options.month, line.purpose, line.cashAccountCode);
@@ -210,6 +211,7 @@ function buildIncomePaymentRows(options) {
             paymentMethod: options.paymentMethod,
             cashAccountCode: row.cashAccountCode,
             purposeCode: row.purposeCode,
+            settlementAdjustmentId: row.settlementAdjustmentId || null,
             notes: note
         };
     });
@@ -340,8 +342,10 @@ function editResident(id) { openResidentModal('edit', id); }
 
 function buildResidentProfileHtml(resident) {
     const currentMonth = getCurrentMonth();
-    const currentAmount = getSubscriptionAmountForMonth(resident, currentMonth);
-    const currentPaid = getPaidAmountForMonth(resident.id, currentMonth);
+    const currentAmount = typeof getMonthlyDueAmountForMonth === 'function'
+        ? getMonthlyDueAmountForMonth(resident, currentMonth) : getSubscriptionAmountForMonth(resident, currentMonth);
+    const currentPaid = typeof getMonthlyDuePaidAmount === 'function'
+        ? getMonthlyDuePaidAmount(resident.id, currentMonth) : getPaidAmountForMonth(resident.id, currentMonth);
     const currentOutstanding = getMonthOutstanding(resident, currentMonth);
     const isOverdue = currentOutstanding > 0 && isSubscriptionMonthOverdue(currentMonth);
     const paymentStatus = currentOutstanding <= 0
@@ -350,7 +354,7 @@ function buildResidentProfileHtml(resident) {
             ? { label: 'متأخر عن السداد', className: 'text-rose-400 bg-rose-500/10 border-rose-500/20' }
             : { label: 'داخل مهلة السداد', className: 'text-sky-400 bg-sky-500/10 border-sky-500/20' };
     const debt = calculateCumulativeDebt(resident.id);
-    const currentAdjustment = getAdjustmentAmountForMonth(resident.id, currentMonth);
+    const currentAdjustment = Math.max(0, getSubscriptionAmountForMonth(resident, currentMonth) - currentAmount);
     const residentAdjustments = getResidentAdjustments(resident.id);
     const unpaidMonths = (debt.unpaidMonths || []).map(month => ({
         month,
@@ -410,7 +414,7 @@ function buildResidentProfileHtml(resident) {
                 </div>
                 <strong class="text-xs text-amber-300 shrink-0">${formatSubscriptionAmount(adjustment.amount)} ج.م</strong>
             </div>`).join('')
-        : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إعفاءات أو تخفيضات مسجلة.</p>';
+        : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إعفاءات أو تخفيضات أو تسويات مسجلة.</p>';
 
     return `
         <div class="space-y-4">
@@ -452,7 +456,7 @@ function buildResidentProfileHtml(resident) {
                     <span class="text-[10px] font-bold border rounded-full px-3 py-1 ${paymentStatus.className}">${paymentStatus.label}</span>
                     <span class="text-[10px] text-slate-500">حالة الشهر الحالي</span>
                 </div>
-                ${currentAdjustment > 0 ? `<p class="text-[10px] text-amber-300">إعفاءات وتخفيضات ${esc(currentMonth)}: ${formatSubscriptionAmount(currentAdjustment)} ج.م</p>` : ''}
+                ${currentAdjustment > 0 ? `<p class="text-[10px] text-amber-300">إعفاءات وتخفيضات وتسويات ${esc(currentMonth)}: ${formatSubscriptionAmount(currentAdjustment)} ج.م</p>` : ''}
             </section>
 
             <section class="app-input border rounded-2xl p-4">
@@ -478,7 +482,7 @@ function buildResidentProfileHtml(resident) {
 
             <section class="app-input border rounded-2xl p-4">
                 <div class="flex items-center justify-between gap-2 mb-2">
-                    <h4 class="text-xs font-black">الإعفاءات والتخفيضات</h4>
+                    <h4 class="text-xs font-black">الإعفاءات والتخفيضات والتسويات</h4>
                     <span class="text-[10px] text-slate-500">${fmtNum(residentAdjustments.length)} تسجيل</span>
                 </div>
                 ${adjustmentsHtml}
@@ -487,7 +491,7 @@ function buildResidentProfileHtml(resident) {
             <section class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                 <button type="button" onclick="openResidentIncomeFromProfile(${residentArg})" class="min-h-11 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-hand-holding-dollar ml-1"></i> تسجيل تحصيل</button>
                 <button type="button" onclick="editResidentFromProfile(${residentArg})" class="min-h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-pen ml-1"></i> تعديل بيانات الشقة</button>
-                <button type="button" onclick="openAdjustmentFromProfile(${residentArg})" class="min-h-11 bg-amber-600/15 border border-amber-500/30 text-amber-300 rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-percent ml-1"></i> إعفاء أو تخفيض</button>
+                <button type="button" onclick="openAdjustmentFromProfile(${residentArg})" class="min-h-11 bg-amber-600/15 border border-amber-500/30 text-amber-300 rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-percent ml-1"></i> إعفاء أو تخفيض أو تسوية</button>
                 <button type="button" onclick="openResidentStatementFromProfile(${residentArg})" class="min-h-11 app-input border rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-file-invoice ml-1"></i> كشف حساب</button>
                 <button type="button" onclick="openSubscriptionRatesFromProfile(${residentArg})" class="min-h-11 app-input border rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-solid fa-clock-rotate-left ml-1"></i> إدارة سجل الاشتراك</button>
                 ${phone && debt.totalDebt > 0 ? `<button type="button" onclick="sendWhatsAppReminderFromProfile(${residentArg})" class="min-h-11 bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 rounded-xl px-3 py-3 text-xs font-bold"><i class="fa-brands fa-whatsapp ml-1"></i> تذكير بالمتأخرات</button>` : ''}
@@ -582,7 +586,7 @@ function openResidentStatementFromProfile(residentId) {
 let adjustmentResidentId = null;
 let editingAdjustmentId = null;
 const ADJUSTMENT_KIND_LABELS = { waiver: 'إعفاء', discount: 'تخفيض', settlement: 'تسوية' };
-const ADJUSTMENT_FORM_KINDS = ['waiver', 'discount'];
+const ADJUSTMENT_FORM_KINDS = ['waiver', 'discount', 'settlement'];
 
 function getAdjustmentKindLabel(kind) {
     return ADJUSTMENT_KIND_LABELS[kind] || 'تسوية';
@@ -608,7 +612,8 @@ function getAdjustmentMonthDue(resident, monthKey) {
 function getAdjustedTotalForMonth(residentId, monthKey, excludeId = null) {
     const prefix = `${monthKey}-01`;
     return getResidentAdjustments(residentId)
-        .filter(adjustment => adjustment.effectiveMonth === prefix && adjustment.id !== excludeId)
+        .filter(adjustment => adjustment.effectiveMonth === prefix && adjustment.id !== excludeId
+            && ['waiver', 'discount'].includes(adjustment.kind))
         .reduce((sum, adjustment) => {
             const amount = Number(adjustment.amount);
             return sum + (Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0);
@@ -631,6 +636,30 @@ function updateAdjustmentDueHint() {
     const existingCents = Math.round(getAdjustedTotalForMonth(resident.id, monthKey, editingAdjustmentId) * 100);
     const entered = Number(amountInput?.value);
     const enteredCents = Number.isFinite(entered) && entered > 0 ? Math.round(entered * 100) : 0;
+    const kind = String(/** @type {HTMLSelectElement | null} */ (document.getElementById('adjustmentKind'))?.value || 'waiver');
+    if (kind === 'settlement') {
+        const settlement = (state.adjustments || []).find(item => item.residentId === resident.id
+            && item.effectiveMonth === `${monthKey}-01` && item.kind === 'settlement' && item.id !== editingAdjustmentId);
+        const subscriptionPaidCents = Math.round(getPaidAmountForMonth(resident.id, adjustmentMonthKeyToLabel(monthKey)) * 100);
+        const settlementPaidCents = editingAdjustmentId && typeof getSettlementPaidAmount === 'function'
+            ? Math.round(getSettlementPaidAmount(editingAdjustmentId) * 100) : 0;
+        const availableCents = Math.max(0, dueCents - existingCents - subscriptionPaidCents);
+        const valid = !settlement && subscriptionPaidCents === 0 && existingCents === 0
+            && enteredCents > 0 && enteredCents >= settlementPaidCents && enteredCents <= availableCents;
+        hint.textContent = settlement
+            ? 'يوجد اتفاق تسوية لهذا الشهر بالفعل.'
+            : subscriptionPaidCents > 0 || existingCents > 0
+                ? 'لا يمكن إنشاء تسوية مع وجود تحصيل اشتراك أو إعفاء/تخفيض مسجل لهذا الشهر.'
+                : enteredCents <= 0
+                    ? `المتاح للتسوية: ${formatSubscriptionAmount(availableCents / 100)} ج.م · أدخل مبلغًا أكبر من صفر.`
+                    : enteredCents < settlementPaidCents
+                        ? `لا يمكن خفض الاتفاق عن إجمالي ما تم تحصيله (${formatSubscriptionAmount(settlementPaidCents / 100)} ج.م).`
+                        : enteredCents > availableCents
+                            ? `مبلغ التسوية يتجاوز المستحق المتاح (${formatSubscriptionAmount(availableCents / 100)} ج.م).`
+                            : `المتاح للتسوية: ${formatSubscriptionAmount(availableCents / 100)} ج.م · المدفوع من التسوية: ${formatSubscriptionAmount(settlementPaidCents / 100)} ج.م · المتبقي بعد هذا المبلغ: ${formatSubscriptionAmount(Math.max(0, enteredCents - settlementPaidCents) / 100)} ج.م`;
+        hint.className = valid ? 'text-[10px] text-slate-400' : 'text-[10px] text-rose-400';
+        return;
+    }
     const remainingCents = dueCents - existingCents - enteredCents;
     hint.textContent = `مستحق ${adjustmentMonthKeyToLabel(monthKey)}: ${formatSubscriptionAmount(dueCents / 100)} ج.م · المسجل من إعفاءات وتخفيضات: ${formatSubscriptionAmount(existingCents / 100)} ج.م · المتبقي بعد هذا المبلغ: ${formatSubscriptionAmount(Math.max(0, remainingCents) / 100)} ج.م`;
     hint.className = remainingCents < 0 ? 'text-[10px] text-rose-400' : 'text-[10px] text-slate-400';
@@ -643,9 +672,11 @@ function updateAdjustmentFormState() {
     const title = document.getElementById('adjustmentFormTitle');
     const cancel = document.getElementById('adjustmentCancelEdit');
     const save = document.getElementById('adjustmentSaveButton');
-    if (title) title.textContent = editing ? 'تعديل الإعفاء أو التخفيض' : 'تسجيل إعفاء أو تخفيض';
+    const kind = String(/** @type {HTMLSelectElement | null} */ (document.getElementById('adjustmentKind'))?.value || editing?.kind || 'waiver');
+    const label = kind === 'settlement' ? 'التسوية' : 'الإعفاء أو التخفيض';
+    if (title) title.textContent = editing ? 'تعديل ' + label : 'تسجيل ' + label;
     if (cancel) cancel.classList.toggle('hidden', !editing);
-    if (save) save.textContent = editing ? 'حفظ التعديل' : 'حفظ الإعفاء/التخفيض';
+    if (save) save.textContent = editing ? 'حفظ التعديل' : kind === 'settlement' ? 'حفظ اتفاق التسوية' : 'حفظ الإعفاء/التخفيض';
 }
 
 function renderAdjustmentList(resident) {
@@ -655,7 +686,7 @@ function renderAdjustmentList(resident) {
     const count = document.getElementById('adjustmentListCount');
     if (count) count.textContent = list.length ? `${fmtNum(list.length)} تسجيل` : '';
     if (!list.length) {
-        body.innerHTML = '<tr><td colspan="5" class="px-3 py-5 text-center text-xs text-slate-500">لا توجد إعفاءات أو تخفيضات مسجلة.</td></tr>';
+        body.innerHTML = '<tr><td colspan="5" class="px-3 py-5 text-center text-xs text-slate-500">لا توجد إعفاءات أو تخفيضات أو تسويات مسجلة.</td></tr>';
         return;
     }
     body.innerHTML = list.map(adjustment => {
@@ -663,10 +694,16 @@ function renderAdjustmentList(resident) {
         const monthLabel = adjustmentMonthKeyToLabel(monthKey);
         const kindLabel = getAdjustmentKindLabel(adjustment.kind);
         const argument = esc(JSON.stringify(String(adjustment.id)));
+        const settlementPaid = adjustment.kind === 'settlement' ? getSettlementPaidAmount(adjustment.id) : 0;
+        const settlementRemaining = adjustment.kind === 'settlement'
+            ? getSettlementRemainingAmount(adjustment) : 0;
+        const amountCell = adjustment.kind === 'settlement'
+            ? `<strong>${formatSubscriptionAmount(adjustment.amount)} ج.م</strong><span class="block text-[10px] text-slate-500">مدفوع ${formatSubscriptionAmount(settlementPaid)} · متبقٍ ${formatSubscriptionAmount(settlementRemaining)}</span>`
+            : `${formatSubscriptionAmount(adjustment.amount)} ج.م`;
         return `<tr class="border-t border-slate-700/40">
             <td class="px-3 py-2 whitespace-nowrap">${esc(monthLabel || '—')}</td>
             <td class="px-3 py-2 whitespace-nowrap">${esc(kindLabel)}</td>
-            <td class="px-3 py-2 whitespace-nowrap font-bold text-amber-300">${formatSubscriptionAmount(adjustment.amount)} ج.م</td>
+            <td class="px-3 py-2 whitespace-nowrap font-bold text-amber-300">${amountCell}</td>
             <td class="px-3 py-2 max-w-[220px] break-words">${esc(adjustment.reason || '—')}</td>
             <td class="px-3 py-2 whitespace-nowrap">
                 <button type="button" onclick="editAdjustment(${argument})" aria-label="تعديل ${esc(kindLabel)} شهر ${esc(monthLabel)}" class="icon-action rounded-lg text-sky-400 hover:text-sky-300 hover:bg-sky-500/10"><i class="fa-solid fa-pen"></i></button>
@@ -680,7 +717,10 @@ function resetAdjustmentForm() {
     editingAdjustmentId = null;
     const form = /** @type {HTMLFormElement | null} */ (document.getElementById('adjustmentForm'));
     form?.reset();
+    const kindSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('adjustmentKind'));
+    if (kindSelect) kindSelect.disabled = false;
     const monthInput = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentMonth'));
+    if (monthInput) monthInput.disabled = false;
     if (monthInput) monthInput.value = getLocalMonthKey();
     updateAdjustmentFormState();
     updateAdjustmentDueHint();
@@ -697,8 +737,11 @@ function openAdjustmentModal(residentId) {
     editingAdjustmentId = null;
     const form = /** @type {HTMLFormElement | null} */ (document.getElementById('adjustmentForm'));
     form?.reset();
+    const kindSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('adjustmentKind'));
+    if (kindSelect) kindSelect.disabled = false;
     const monthInput = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentMonth'));
     if (monthInput) {
+        monthInput.disabled = false;
         const createdMonth = getIncomeBillingStartKey(resident);
         if (createdMonth) monthInput.min = createdMonth;
         else monthInput.removeAttribute('min');
@@ -733,6 +776,11 @@ function editAdjustment(id) {
     if (amountInput) amountInput.value = String(Number(adjustment.amount) || '');
     const reasonInput = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentReason'));
     if (reasonInput) reasonInput.value = adjustment.reason || '';
+    const hasPayments = adjustment.kind === 'settlement'
+        && typeof getSettlementPaidAmount === 'function'
+        && getSettlementPaidAmount(adjustment.id) > 0;
+    if (kindSelect) kindSelect.disabled = hasPayments;
+    if (monthInput) monthInput.disabled = hasPayments;
     updateAdjustmentFormState();
     updateAdjustmentDueHint();
     reasonInput?.focus();
@@ -761,7 +809,7 @@ async function handleAdjustmentSubmit(event) {
     const reason = String(reasonInput?.value || '').trim();
 
     if (!ADJUSTMENT_FORM_KINDS.includes(kind)) {
-        toast('اختر نوع الإعفاء أو التخفيض.', 'error');
+        toast('اختر نوع الإعفاء أو التخفيض أو التسوية.', 'error');
         return;
     }
     if (!isValidEffectiveMonth(monthKey)) {
@@ -770,7 +818,7 @@ async function handleAdjustmentSubmit(event) {
     }
     const createdMonth = getIncomeBillingStartKey(resident);
     if (createdMonth && monthKey < createdMonth) {
-        toast('لا يمكن تسجيل إعفاء أو تخفيض قبل بداية محاسبة الشقة.', 'error');
+        toast('لا يمكن تسجيل تسوية أو إعفاء قبل بداية محاسبة الشقة.', 'error');
         return;
     }
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -778,36 +826,72 @@ async function handleAdjustmentSubmit(event) {
         return;
     }
     if (!reason) {
-        toast('اكتب سبب الإعفاء أو التخفيض.', 'error');
-        return;
-    }
-    const dueCents = Math.round(getAdjustmentMonthDue(resident, monthKey) * 100);
-    if (dueCents <= 0) {
-        toast('لا يوجد اشتراك مستحق لهذا الشهر، فلا يمكن تسجيل إعفاء أو تخفيض.', 'error');
-        return;
-    }
-    const existingCents = Math.round(getAdjustedTotalForMonth(resident.id, monthKey, editingAdjustmentId) * 100);
-    const amountCents = Math.round(amount * 100);
-    if (existingCents + amountCents > dueCents) {
-        toast(`مجموع الإعفاءات والتخفيضات يتجاوز مستحق الشهر (${formatSubscriptionAmount(dueCents / 100)} ج.م).`, 'error');
+        toast('اكتب سبب الإجراء.', 'error');
         return;
     }
 
-    const previousState = cloneStateSnapshot();
+    const dueCents = Math.round(getAdjustmentMonthDue(resident, monthKey) * 100);
+    if (dueCents <= 0) {
+        toast('لا يوجد اشتراك مستحق لهذا الشهر.', 'error');
+        return;
+    }
     const effectiveMonth = `${monthKey}-01`;
+    const amountCents = Math.round(amount * 100);
+    const existingSettlement = (Array.isArray(state.adjustments) ? state.adjustments : []).find(item =>
+        item.residentId === resident.id && item.effectiveMonth === effectiveMonth
+        && item.kind === 'settlement' && item.id !== editingAdjustmentId
+    );
+    const existingDiscounts = Math.round(getAdjustedTotalForMonth(resident.id, monthKey, editingAdjustmentId) * 100);
+    const subscriptionPaidCents = Math.round(getPaidAmountForMonth(resident.id, adjustmentMonthKeyToLabel(monthKey)) * 100);
+    const editing = editingAdjustmentId
+        ? (Array.isArray(state.adjustments) ? state.adjustments : []).find(item => item.id === editingAdjustmentId)
+        : null;
+    const editingSettlementPaidCents = editing?.kind === 'settlement' && typeof getSettlementPaidAmount === 'function'
+        ? Math.round(getSettlementPaidAmount(editing.id) * 100) : 0;
+
+    if (editing?.kind === 'settlement' && editingSettlementPaidCents > 0
+        && (kind !== 'settlement' || effectiveMonth !== editing.effectiveMonth)) {
+        toast('لا يمكن تغيير نوع أو شهر تسوية بدأ سدادها. عدّل المبلغ فقط.', 'error');
+        return;
+    }
+    if (kind === 'settlement') {
+        if (existingSettlement) {
+            toast('يوجد اتفاق تسوية لهذا الشهر بالفعل.', 'error');
+            return;
+        }
+        if (existingDiscounts > 0 || subscriptionPaidCents > 0) {
+            toast('لا يمكن إنشاء تسوية مع وجود إعفاء/تخفيض أو تحصيل اشتراك مسجل لهذا الشهر.', 'error');
+            return;
+        }
+        if (amountCents < editingSettlementPaidCents || amountCents > dueCents) {
+            toast(`مبلغ التسوية يجب أن يكون بين ${formatSubscriptionAmount(editingSettlementPaidCents / 100)} و${formatSubscriptionAmount(dueCents / 100)} ج.م.`, 'error');
+            return;
+        }
+    } else {
+        if (existingSettlement) {
+            toast('يوجد اتفاق تسوية لهذا الشهر؛ لا يمكن إضافة إعفاء أو تخفيض معه.', 'error');
+            return;
+        }
+        if (existingDiscounts + amountCents > dueCents) {
+            toast(`مجموع الإعفاءات والتخفيضات يتجاوز مستحق الشهر (${formatSubscriptionAmount(dueCents / 100)} ج.م). `, 'error');
+            return;
+        }
+    }
+
+    const previousState = cloneStateSnapshot();
     const label = adjustmentMonthKeyToLabel(monthKey);
     state.adjustments = Array.isArray(state.adjustments) ? state.adjustments : [];
     if (editingAdjustmentId) {
         const target = state.adjustments.find(item => item.id === editingAdjustmentId);
         if (!target || target.residentId !== resident.id) {
-            toast('تعذر العثور على الإعفاء المطلوب تعديله. أعد فتح النافذة.', 'error');
+            toast('تعذر العثور على الإجراء المطلوب تعديله. أعد فتح النافذة.', 'error');
             return;
         }
         target.kind = kind;
         target.effectiveMonth = effectiveMonth;
         target.amount = amountCents / 100;
         target.reason = reason;
-        logAction('تعديل إعفاء/تخفيض', `${resident.name} - شقة ${resident.apartmentNumber} - ${getAdjustmentKindLabel(kind)} ${label} - ${formatSubscriptionAmount(target.amount)} ج.م`);
+        logAction('تعديل ' + getAdjustmentKindLabel(kind), `${resident.name} - شقة ${resident.apartmentNumber} - ${label} - ${formatSubscriptionAmount(target.amount)} ج.م`);
     } else {
         state.adjustments.push({
             id: generateId(),
@@ -818,27 +902,35 @@ async function handleAdjustmentSubmit(event) {
             reason,
             createdAt: new Date().toISOString()
         });
-        logAction('إضافة إعفاء/تخفيض', `${resident.name} - شقة ${resident.apartmentNumber} - ${getAdjustmentKindLabel(kind)} ${label} - ${formatSubscriptionAmount(amountCents / 100)} ج.م`);
+        logAction('إضافة ' + getAdjustmentKindLabel(kind), `${resident.name} - شقة ${resident.apartmentNumber} - ${label} - ${formatSubscriptionAmount(amountCents / 100)} ج.م`);
     }
 
     if (!await saveWithRollback(previousState)) return;
-    toast(editingAdjustmentId ? 'تم تحديث الإعفاء أو التخفيض.' : 'تم حفظ الإعفاء أو التخفيض وخصمه من المستحق.', 'success');
+    toast(editingAdjustmentId
+        ? 'تم تحديث الإجراء.'
+        : kind === 'settlement'
+            ? 'تم حفظ اتفاق التسوية. سجّل الدفعات عليه من غرض «سداد تسوية».'
+            : 'تم حفظ الإعفاء أو التخفيض وخصمه من المستحق.', 'success');
     resetAdjustmentForm();
     renderAdjustmentList(resident);
 }
-
 async function deleteAdjustment(id) {
     if (!requireManager()) return;
     const adjustment = (Array.isArray(state.adjustments) ? state.adjustments : []).find(item => item.id === id);
     if (!adjustment || adjustment.residentId !== adjustmentResidentId) return;
     const monthLabel = adjustmentMonthKeyToLabel(String(adjustment.effectiveMonth || '').slice(0, 7));
+    if (adjustment.kind === 'settlement' && typeof getSettlementPaidAmount === 'function'
+        && getSettlementPaidAmount(adjustment.id) > 0) {
+        toast('لا يمكن حذف تسوية سُجلت عليها دفعات. احذف حركاتها أولًا وفق إجراءات التصحيح.', 'error');
+        return;
+    }
     if (!confirmRecordDeletion(`${getAdjustmentKindLabel(adjustment.kind)} شهر ${monthLabel} بقيمة ${formatSubscriptionAmount(adjustment.amount)} ج.م`)) return;
     const previousState = cloneStateSnapshot();
     state.adjustments = (Array.isArray(state.adjustments) ? state.adjustments : []).filter(item => item.id !== id);
     const resident = state.residents.find(item => item.id === adjustment.residentId);
-    logAction('حذف إعفاء/تخفيض', `${resident ? resident.name : adjustment.residentId} - ${getAdjustmentKindLabel(adjustment.kind)} ${monthLabel}`);
+    logAction('حذف ' + getAdjustmentKindLabel(adjustment.kind), `${resident ? resident.name : adjustment.residentId} - ${getAdjustmentKindLabel(adjustment.kind)} ${monthLabel}`);
     if (!await saveWithRollback(previousState)) return;
-    toast('تم حذف الإعفاء أو التخفيض.', 'success');
+    toast('تم حذف الإجراء.', 'success');
     if (editingAdjustmentId === id) resetAdjustmentForm();
     if (resident) renderAdjustmentList(resident);
     updateAdjustmentDueHint();
@@ -1439,6 +1531,70 @@ function syncIncomePurposeCashAccount(purposeSelectId, cashAccountSelectId, opti
     return purpose;
 }
 
+function getIncomeSettlementFromForm() {
+    const id = String(/** @type {HTMLSelectElement | null} */ (document.getElementById('incomeSettlementSelect'))?.value || '');
+    return (Array.isArray(state.adjustments) ? state.adjustments : []).find(item =>
+        item.id === id && item.kind === 'settlement'
+    ) || null;
+}
+
+function refreshIncomeSettlementOptions(residentId, preferredId = '') {
+    const select = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeSettlementSelect'));
+    const hint = document.getElementById('incomeSettlementHint');
+    if (!select) return [];
+    const options = (Array.isArray(state.adjustments) ? state.adjustments : [])
+        .filter(item => item.residentId === residentId && item.kind === 'settlement')
+        .map(item => ({ adjustment: item, remaining: getSettlementRemainingAmount(item) }))
+        .filter(item => item.remaining > 0)
+        .sort((a, b) => String(a.adjustment.effectiveMonth || '').localeCompare(String(b.adjustment.effectiveMonth || '')));
+    select.innerHTML = '<option value="">اختر تسوية مفتوحة</option>' + options.map(({ adjustment, remaining }) => {
+        const month = adjustmentMonthKeyToLabel(String(adjustment.effectiveMonth || '').slice(0, 7));
+        return '<option value="' + crudHtmlEscape(adjustment.id) + '">'
+            + crudHtmlEscape(month + ' · متبقٍ ' + formatSubscriptionAmount(remaining) + ' ج.م · ' + (adjustment.reason || '')) + '</option>';
+    }).join('');
+    const selected = options.find(item => item.adjustment.id === preferredId) || options[0];
+    select.value = selected ? selected.adjustment.id : '';
+    select.disabled = options.length === 0;
+    if (hint) hint.textContent = options.length
+        ? 'اختر اتفاق التسوية، وسيُحدد شهره والمبلغ المتبقي تلقائيًا.'
+        : 'لا توجد تسويات مفتوحة لهذه الشقة. سجّل اتفاق التسوية أولًا من الإعفاءات والتخفيضات والتسويات.';
+    return options;
+}
+
+function handleIncomeSettlementChange() {
+    const adjustment = getIncomeSettlementFromForm();
+    const resident = getIncomeResidentFromForm();
+    const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
+    const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
+    const hint = document.getElementById('incomeSettlementHint');
+    if (!adjustment || !resident) {
+        if (monthSelect) monthSelect.disabled = false;
+        if (amountInput) amountInput.max = '';
+        if (hint && resident) hint.textContent = 'اختر اتفاق تسوية مفتوحًا.';
+        previewIncomeAllocation();
+        return;
+    }
+    const month = monthKeyToLabel(String(adjustment.effectiveMonth || '').slice(0, 7));
+    refreshIncomeMonthOptions(resident.id, month);
+    if (monthSelect) {
+        monthSelect.value = month;
+        monthSelect.disabled = true;
+    }
+    const remaining = getSettlementRemainingAmount(adjustment);
+    const paid = getSettlementPaidAmount(adjustment.id);
+    if (amountInput) {
+        amountInput.max = remaining.toFixed(2);
+        if (!incomeAmountManual || Number(amountInput.value) > remaining) {
+            amountInput.value = remaining > 0 ? remaining.toFixed(2) : '';
+            incomeAmountManual = false;
+        }
+    }
+    if (hint) hint.textContent = 'المبلغ المتفق عليه: ' + formatSubscriptionAmount(adjustment.amount)
+        + ' ج.م · المدفوع: ' + formatSubscriptionAmount(paid)
+        + ' ج.م · المتبقي: ' + formatSubscriptionAmount(remaining) + ' ج.م';
+    previewIncomeAllocation();
+}
+
 function handleIncomePurposeChange() {
     const purpose = syncIncomePurposeCashAccount('incomePurpose', 'incomeCashAccount', {
         resetUnlocked: true,
@@ -1446,14 +1602,23 @@ function handleIncomePurposeChange() {
     });
     syncIncomePurposeUi();
     const resident = getIncomeResidentFromForm();
+    const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
+    if (purpose !== 'settlement') amountInput?.removeAttribute('max');
     if (purpose === 'subscription' && resident) {
+        const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
+        if (monthSelect) monthSelect.disabled = false;
         if (!incomeSelectedMonths.size) selectFirstUnpaidIncomeMonth(resident);
         renderIncomeMonthsGrid(resident);
         if (!incomeAmountManual) syncIncomeAmountFromSelection();
-    } else if (purpose !== 'subscription') {
-        refreshIncomeMonthOptions(resident?.id || '', getCurrentMonth());
+    } else if (purpose === 'settlement') {
+        refreshIncomeSettlementOptions(resident?.id || '');
+        handleIncomeSettlementChange();
+    } else {
         const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
+        if (monthSelect) monthSelect.disabled = false;
+        refreshIncomeMonthOptions(resident?.id || '', getCurrentMonth());
         if (monthSelect && !monthSelect.value) monthSelect.value = getCurrentMonth();
+        previewIncomeAllocation();
     }
     renderIncomeResidentSummary();
     previewIncomeAllocation();
@@ -1585,7 +1750,7 @@ function updateIncomeMonthPickerHint(resident = null) {
         `مستحق ${fmtNum(status.due)} ج.م`,
         `مدفوع ${fmtNum(status.paid)} ج.م`
     ];
-    if (status.adjusted > 0) parts.push(`إعفاء/تخفيض ${fmtNum(status.adjusted)} ج.م`);
+    if (status.adjusted > 0) parts.push(`إعفاء/تخفيض/تسوية ${fmtNum(status.adjusted)} ج.م`);
     parts.push(`متبقٍ ${fmtNum(status.outstanding)} ج.م`);
     if (status.outstanding <= 0) {
         hint.className = 'text-[10px] text-emerald-300';
@@ -1667,6 +1832,10 @@ function getIncomeMonthStatus(resident, month) {
     const key = monthLabelToKey(month);
     const currentKey = getLocalMonthKey();
     const outstanding = getMonthOutstanding(resident, month);
+    const settlement = resident && typeof getSettlementAdjustmentForMonth === 'function'
+        ? getSettlementAdjustmentForMonth(resident.id, month) : null;
+    const settlementPaid = settlement && typeof getSettlementPaidAmount === 'function'
+        ? getSettlementPaidAmount(settlement.id) : 0;
     const monthKey = key ? key.slice(0, 7) : '';
     const future = Boolean(monthKey && monthKey > currentKey);
     const late = Boolean(monthKey && monthKey < currentKey)
@@ -1676,8 +1845,10 @@ function getIncomeMonthStatus(resident, month) {
         outstanding,
         late,
         future,
-        disabled: outstanding <= 0,
-        status: outstanding <= 0 ? 'مسدد' : future ? 'قادم' : late ? 'متأخر' : 'مستحق'
+        disabled: outstanding <= 0 || Boolean(settlement),
+        status: settlement
+            ? outstanding <= 0 ? 'التسوية مسددة' : settlementPaid > 0 ? 'تسوية جزئية' : 'تسوية قائمة'
+            : outstanding <= 0 ? 'مسدد' : future ? 'قادم' : late ? 'متأخر' : 'مستحق'
     };
 }
 
@@ -1686,7 +1857,9 @@ function selectFirstUnpaidIncomeMonth(resident) {
     const labels = typeof getIncomeCollectionMonthLabels === 'function'
         ? getIncomeCollectionMonthLabels(resident, 12)
         : [];
-    const first = labels.find(month => getMonthOutstanding(resident, month) > 0);
+    const first = labels.find(month => getMonthOutstanding(resident, month) > 0
+        && !(typeof getSettlementAdjustmentForMonth === 'function'
+            && getSettlementAdjustmentForMonth(resident.id, month)));
     incomeSelectedMonths = new Set(first ? [first] : []);
     syncIncomeMonthPicker(resident, first || getCurrentMonth());
 }
@@ -1702,7 +1875,9 @@ function renderIncomeMonthsGrid(resident) {
     const labels = typeof getIncomeCollectionMonthLabels === 'function'
         ? getIncomeCollectionMonthLabels(resident, 12, getIncomePickerLabel() ? [getIncomePickerLabel()] : [])
         : [];
-    const payable = new Set(labels.filter(month => getMonthOutstanding(resident, month) > 0));
+    const payable = new Set(labels.filter(month => getMonthOutstanding(resident, month) > 0
+        && !(typeof getSettlementAdjustmentForMonth === 'function'
+            && getSettlementAdjustmentForMonth(resident.id, month))));
     incomeSelectedMonths = new Set(Array.from(incomeSelectedMonths).filter(month => payable.has(month)));
     grid.innerHTML = labels.map(month => {
         const info = getIncomeMonthStatus(resident, month);
@@ -1714,8 +1889,11 @@ function renderIncomeMonthsGrid(resident) {
                 : info.future
                     ? 'text-sky-300 border-sky-500/30'
                     : 'text-emerald-300 border-emerald-500/30';
-        const due = getSubscriptionAmountForMonth(resident, month);
-        const paid = getPaidAmountForMonth(resident.id, month);
+        const settlement = typeof getSettlementAdjustmentForMonth === 'function'
+            ? getSettlementAdjustmentForMonth(resident.id, month) : null;
+        const due = settlement ? Number(settlement.amount) || 0 : getSubscriptionAmountForMonth(resident, month);
+        const paid = settlement && typeof getSettlementPaidAmount === 'function'
+            ? getSettlementPaidAmount(settlement.id) : getPaidAmountForMonth(resident.id, month);
         return `<label class="income-month-row flex items-start gap-2 rounded-xl border px-2.5 py-2 text-[11px] ${info.disabled ? 'border-slate-800/60 opacity-60' : 'border-slate-700/60'}">
             <input type="checkbox" data-income-month="${crudHtmlEscape(month)}" ${checked ? 'checked' : ''} ${info.disabled ? 'disabled' : ''} onchange="handleIncomeMonthToggle(this)" aria-label="${crudHtmlEscape(`${month} ${info.status}`)}" class="mt-0.5 h-4 w-4 accent-emerald-500">
             <span class="flex-1 min-w-0">
@@ -1800,13 +1978,18 @@ function applyIncomeMonthQuickAction(action) {
 function syncIncomePurposeUi() {
     const purpose = crudIncomePurpose(/** @type {HTMLSelectElement | null} */ (document.getElementById('incomePurpose'))?.value);
     const isSubscription = purpose === 'subscription';
+    const isSettlement = purpose === 'settlement';
     const monthsWrap = document.getElementById('incomeMonthsWrap');
     const registrationWrap = document.getElementById('incomeNonSubscriptionMonthWrap');
+    const settlementWrap = document.getElementById('incomeSettlementWrap');
     if (monthsWrap?.classList && typeof monthsWrap.classList.toggle === 'function') {
         monthsWrap.classList.toggle('hidden', !isSubscription);
     }
     if (registrationWrap?.classList && typeof registrationWrap.classList.toggle === 'function') {
         registrationWrap.classList.toggle('hidden', isSubscription);
+    }
+    if (settlementWrap?.classList && typeof settlementWrap.classList.toggle === 'function') {
+        settlementWrap.classList.toggle('hidden', !isSettlement);
     }
 }
 
@@ -1845,18 +2028,25 @@ function renderIncomeResidentSummary() {
 
 function handleIncomeResidentChange() {
     const resident = getIncomeResidentFromForm();
+    const purpose = crudIncomePurpose(/** @type {HTMLSelectElement | null} */ (document.getElementById('incomePurpose'))?.value);
     incomeSelectedMonths = new Set();
     incomeAmountManual = false;
-    refreshIncomeMonthOptions(resident?.id || '', getCurrentMonth());
     const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
+    if (monthSelect) monthSelect.disabled = false;
+    refreshIncomeMonthOptions(resident?.id || '', getCurrentMonth());
     if (monthSelect) monthSelect.value = getCurrentMonth();
-    selectFirstUnpaidIncomeMonth(resident);
-    renderIncomeMonthsGrid(resident);
-    if (!resident) {
-        const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
-        if (amountInput) amountInput.value = '';
+    if (purpose === 'settlement') {
+        refreshIncomeSettlementOptions(resident?.id || '');
+        handleIncomeSettlementChange();
     } else {
-        syncIncomeAmountFromSelection();
+        selectFirstUnpaidIncomeMonth(resident);
+        renderIncomeMonthsGrid(resident);
+        if (!resident) {
+            const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
+            if (amountInput) amountInput.value = '';
+        } else if (purpose === 'subscription') {
+            syncIncomeAmountFromSelection();
+        }
     }
     renderIncomeResidentSummary();
     previewIncomeAllocation();
@@ -1877,10 +2067,21 @@ function resetIncomeFormFields() {
     if (residentSelect) residentSelect.value = '';
     const purposeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomePurpose'));
     if (purposeSelect) purposeSelect.value = 'subscription';
+    const settlementSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeSettlementSelect'));
+    if (settlementSelect) {
+        settlementSelect.innerHTML = '<option value="">اختر تسوية مفتوحة</option>';
+        settlementSelect.value = '';
+        settlementSelect.disabled = true;
+    }
+    const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
+    if (monthSelect) monthSelect.disabled = false;
+    const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
+    if (amountInput) amountInput.max = '';
+    const settlementHint = document.getElementById('incomeSettlementHint');
+    if (settlementHint) settlementHint.textContent = 'اختر اتفاقًا لتحديد المبلغ المتبقي.';
     incomeSelectedMonths = new Set();
     incomeAmountManual = false;
     refreshIncomeMonthOptions('', getCurrentMonth());
-    const monthSelect = /** @type {HTMLSelectElement} */ (document.getElementById('incomeMonth'));
     const currentMonth = getCurrentMonth();
     if (monthSelect?.options && Array.from(monthSelect.options).some(option => option.value === currentMonth)) {
         monthSelect.value = currentMonth;
@@ -1969,12 +2170,14 @@ function previewIncomeAllocation() {
         hintId: 'incomePurposeCashHint'
     });
     const isSubscription = purpose === 'subscription';
+    const isSettlement = purpose === 'settlement';
+    const settlement = isSettlement ? getIncomeSettlementFromForm() : null;
     syncIncomePurposeUi();
     const monthLabel = document.getElementById('incomeMonthLabel');
     const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
-    if (monthLabel) monthLabel.textContent = isSubscription ? 'شهر بداية التوزيع' : 'شهر تسجيل التحصيل';
+    if (monthLabel) monthLabel.textContent = isSubscription ? 'شهر بداية التوزيع' : isSettlement ? 'شهر التسوية' : 'شهر تسجيل التحصيل';
     if (monthSelect && typeof monthSelect.setAttribute === 'function') {
-        monthSelect.setAttribute('aria-label', isSubscription ? 'شهر بداية التوزيع' : 'شهر تسجيل التحصيل');
+        monthSelect.setAttribute('aria-label', isSubscription ? 'شهر بداية التوزيع' : isSettlement ? 'شهر التسوية' : 'شهر تسجيل التحصيل');
     }
     const preview = /** @type {any} */ (document.getElementById('incomeAllocationPreview'));
     const summary = /** @type {any} */ (document.getElementById('incomeAllocationSummary'));
@@ -2041,7 +2244,8 @@ function previewIncomeAllocation() {
     const extraValidation = validateIncomeExtraLines(extraLines);
     const hasExtras = extraLines.length > 0;
     const mixedTotal = document.getElementById('incomeMixedTotal');
-    const ready = Boolean(residentId && Number.isFinite(amount) && amount > 0 && (isSubscription ? selectedMonths.length : month));
+    const ready = Boolean(residentId && Number.isFinite(amount) && amount > 0
+        && (isSubscription ? selectedMonths.length : month));
     const baseCents = Number.isFinite(amount) ? Math.round(amount * 100) : 0;
     const collectedCents = ready && extraValidation.valid ? baseCents + extraValidation.totalCents : 0;
     const setSubmitLabel = label => {
@@ -2084,6 +2288,32 @@ function previewIncomeAllocation() {
     const cashRowsHtml = `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>رصيد ${esc(crudCashAccountLabel(cashAccountCode))} قبل التحصيل</span><strong>${fmtNum(accountBalance)} ج.م</strong></div>`
         + `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${hasExtras ? 'الرصيد بعد إضافة البند الأساسي' : 'الرصيد بعد التحصيل'}</span><strong class="text-emerald-400">${fmtNum(balanceAfter)} ج.م</strong></div>`;
     const notesRowHtml = `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>ملاحظات الدفع</span><strong class="text-left">${esc(notes || '—')}</strong></div>`;
+
+    if (isSettlement) {
+        preview.classList.remove('hidden');
+        const remaining = settlement ? getSettlementRemainingAmount(settlement) : 0;
+        const paid = settlement ? getSettlementPaidAmount(settlement.id) : 0;
+        const validAmount = Boolean(settlement && Number.isFinite(amount) && amount > 0
+            && Math.round(amount * 100) <= Math.round(remaining * 100) && !hasExtras);
+        summary.textContent = !settlement
+            ? 'اختر اتفاق تسوية مفتوحًا.'
+            : hasExtras
+                ? 'لا يمكن دمج بنود إضافية مع سداد التسوية.'
+                : !validAmount
+                    ? 'المبلغ أكبر من المتبقي في اتفاق التسوية (' + fmtNum(remaining) + ' ج.م).'
+                    : 'سيتم تسجيل دفعة نقدية على اتفاق التسوية لشهر ' + month + '.';
+        rows.innerHTML = settlement
+            ? `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>اتفاق التسوية</span><strong>${esc(month)} · ${esc(settlement.reason || '')}</strong></div>`
+                + `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>المبلغ المتفق عليه</span><strong>${fmtNum(settlement.amount)} ج.م</strong></div>`
+                + `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>المدفوع سابقًا</span><strong>${fmtNum(paid)} ج.م</strong></div>`
+                + `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>المتبقي بعد الدفعة</span><strong class="text-emerald-400">${fmtNum(Math.max(0, remaining - (Number.isFinite(amount) ? amount : 0)))} ج.م</strong></div>`
+                + `<div class="flex justify-between items-center gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`
+                + cashRowsHtml + notesRowHtml
+            : '';
+        if (submit) submit.disabled = !validAmount;
+        setSubmitLabel('تسجيل دفعة التسوية');
+        return;
+    }
 
     if (!isSubscription) {
         preview.classList.remove('hidden');
@@ -2173,9 +2403,12 @@ async function handleIncomeSubmit(e) {
         hintId: 'incomePurposeCashHint'
     });
     const isSubscription = purpose === 'subscription';
+    const settlementAdjustment = purpose === 'settlement' ? getIncomeSettlementFromForm() : null;
+    const settlementAdjustmentId = settlementAdjustment?.id || null;
     const selectedMonths = isSubscription ? getSelectedIncomeMonths() : [];
     const registrationMonth = /** @type {any} */ (document.getElementById('incomeMonth'))?.value || '';
-    const month = isSubscription ? (selectedMonths[0] || registrationMonth || getCurrentMonth()) : registrationMonth;
+    let month = isSubscription ? (selectedMonths[0] || registrationMonth || getCurrentMonth()) : registrationMonth;
+    if (settlementAdjustment) month = monthKeyToLabel(String(settlementAdjustment.effectiveMonth || '').slice(0, 7));
     const cashAccountCode = /** @type {any} */ (document.getElementById('incomeCashAccount'))?.value || 'main';
     const paymentMethodEnabled = typeof isIncomePaymentMethodEnabled === 'function'
         ? isIncomePaymentMethodEnabled(paymentMethod)
@@ -2184,6 +2417,7 @@ async function handleIncomeSubmit(e) {
         || (isSubscription ? !selectedMonths.length : !month)
         || !Object.prototype.hasOwnProperty.call(INCOME_PAYMENT_METHOD_LABELS, paymentMethod)
         || !CRUD_INCOME_PURPOSES.includes(purpose)
+        || (purpose === 'settlement' && (!settlementAdjustment || settlementAdjustment.residentId !== residentId))
         || !['main', 'development', 'emergency'].includes(cashAccountCode)
         || !paymentMethodEnabled) {
         toast(isSubscription && residentId && !selectedMonths.length
@@ -2201,6 +2435,13 @@ async function handleIncomeSubmit(e) {
         toast('الغرض المحدد يتطلب صندوقه الخاص. اختر الصندوق المطابق ثم أعد المحاولة.', 'error');
         return;
     }
+    if (purpose === 'settlement') {
+        const remainingCents = Math.round(getSettlementRemainingAmount(settlementAdjustment) * 100);
+        if (!settlementAdjustment || Math.round(Number(amount) * 100) > remainingCents) {
+            toast('المبلغ أكبر من المتبقي في اتفاق التسوية أو أن الاتفاق لم يعد مفتوحًا.', 'error');
+            return;
+        }
+    }
 
     const allocation = isSubscription
         ? calculateIncomeAllocationPreview(residentId, amount, month, 120, '', selectedMonths)
@@ -2216,6 +2457,10 @@ async function handleIncomeSubmit(e) {
         return;
     }
     const extraLines = getIncomeExtraLines();
+    if (purpose === 'settlement' && extraLines.length) {
+        toast('سداد التسوية يُسجل كبند مستقل؛ احذف البنود الإضافية ثم أعد المحاولة.', 'error');
+        return;
+    }
     const extraValidation = validateIncomeExtraLines(extraLines);
     if (!extraValidation.valid) {
         toast(extraValidation.message, 'error');
@@ -2246,6 +2491,7 @@ async function handleIncomeSubmit(e) {
         paymentMethod,
         purpose,
         cashAccountCode,
+        settlementAdjustmentId,
         isSubscription,
         allocation,
         extraLines,
@@ -2293,7 +2539,7 @@ async function handleIncomeSubmit(e) {
         incomeSaving = false;
         if (submit) {
             submit.disabled = false;
-            submit.textContent = hasExtras ? 'حفظ الدفعة المختلطة' : 'حفظ التحصيل وتوزيعه';
+            submit.textContent = hasExtras ? 'حفظ الدفعة المختلطة' : purpose === 'settlement' ? 'تسجيل دفعة التسوية' : 'حفظ التحصيل وتوزيعه';
         }
     }
 }
@@ -2318,6 +2564,7 @@ function openIncomeEditModal(id) {
     monthSelect.innerHTML = crudIncomeMonthLabels(resident, [payment.month])
         .map(month => '<option value="' + crudHtmlEscape(month) + '">' + crudHtmlEscape(crudIncomeMonthOptionLabel(resident, month)) + '</option>').join('');
     monthSelect.value = payment.month;
+    monthSelect.disabled = Boolean(payment.settlementAdjustmentId);
     /** @type {any} */ (document.getElementById('incomeEditAmount')).value = payment.amount;
     const paymentMethodSelect = /** @type {any} */ (document.getElementById('incomeEditPaymentMethod'));
     if (typeof populatePaymentMethodOptions === 'function') {
@@ -2337,8 +2584,11 @@ function openIncomeEditModal(id) {
     const distributionNote = String(payment.notes || '').match(/^(دفعة موزعة\s+[A-Z0-9]+\s+\(\d+\/\d+\))(?:\s+·\s+([\s\S]*))?$/i);
     const mixedBatch = isMixedIncomeBatch(payment);
     if (purposeSelect) {
-        purposeSelect.disabled = Boolean(distributionNote);
-        if (distributionNote) {
+        purposeSelect.disabled = Boolean(distributionNote || payment.settlementAdjustmentId);
+        if (payment.settlementAdjustmentId) {
+            const hint = document.getElementById('incomeEditPurposeHint');
+            if (hint) hint.textContent = 'دفعة مرتبطة باتفاق تسوية؛ لا يمكن تغيير غرضها أو شهرها أو رابط التسوية.';
+        } else if (distributionNote) {
             purposeSelect.value = crudIncomePurposeFormCode(payment.purposeCode);
             const hint = document.getElementById('incomeEditPurposeHint');
             if (hint) hint.textContent = mixedBatch
@@ -2418,6 +2668,19 @@ async function handleIncomeEditSubmit(event) {
     const createdMonth = getIncomeBillingStartKey(resident);
     if (createdMonth && monthKey.slice(0, 7) < createdMonth) {
         toast('لا يمكن تسجيل تحصيل قبل بداية محاسبة الشقة.', 'error');
+        return;
+    }
+    if (payment.settlementAdjustmentId) {
+        const settlement = (Array.isArray(state.adjustments) ? state.adjustments : [])
+            .find(item => item.id === payment.settlementAdjustmentId && item.kind === 'settlement');
+        const availableCents = settlement
+            ? Math.round(getSettlementRemainingAmount(settlement, payment.id) * 100) : 0;
+        if (purpose !== 'settlement' || month !== payment.month || !settlement || amountCents > availableCents) {
+            toast('لا يمكن تغيير رابط أو شهر دفعة التسوية، ولا يجوز أن يتجاوز تعديلها المتبقي في الاتفاق.', 'error');
+            return;
+        }
+    } else if (purpose === 'settlement') {
+        toast('لا يمكن تحويل تحصيل عادي إلى سداد تسوية من شاشة التعديل. سجّل دفعة جديدة من اتفاق التسوية.', 'error');
         return;
     }
     if (purpose === 'subscription') {

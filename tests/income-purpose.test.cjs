@@ -15,7 +15,10 @@ function loadState() {
         `${stateSource}\n({
             state, getPaidAmountForMonth, normalizeIncomePurpose, getIncomePurposeLabel,
             getIncomePurposeFormCode, isSubscriptionIncome, getIncomePurposeCashAccount,
-            isIncomePurposeCashAccountLocked, populateIncomePurposeOptions
+            isIncomePurposeCashAccountLocked, populateIncomePurposeOptions,
+            getSettlementAdjustmentForMonth, getSettlementPaidAmount, getSettlementRemainingAmount,
+            getMonthOutstanding, getAdjustmentAmountForMonth, getMonthlyDueAmountForMonth,
+            getMonthlyDuePaidAmount, calculateSelectedMonthsAllocation
         })`,
         {},
         { filename: 'js/state.js' }
@@ -114,6 +117,7 @@ test('legacy collections without a purpose behave as monthly subscriptions', () 
     assert.equal(app.normalizeIncomePurpose(''), 'subscription');
     assert.equal(app.normalizeIncomePurpose('not-a-purpose'), 'subscription');
     assert.equal(app.getIncomePurposeLabel('development'), 'تطوير');
+    assert.equal(app.getIncomePurposeLabel('settlement'), 'سداد تسوية');
     assert.equal(app.getIncomePurposeLabel('services'), 'أخرى');
     assert.equal(app.getIncomePurposeLabel('penalty'), 'أخرى');
     assert.equal(app.getIncomePurposeLabel('donation'), 'أخرى');
@@ -129,8 +133,8 @@ test('the purpose form offers only three main purposes plus other', () => {
     app.populateIncomePurposeOptions(select, 'services');
     assert.equal(select.value, 'other');
     const options = Array.from(select.innerHTML.matchAll(/<option value="([^"]+)">([^<]+)<\/option>/g));
-    assert.deepEqual(options.map(match => match[1]), ['subscription', 'development', 'emergency', 'other']);
-    assert.deepEqual(options.map(match => match[2]), ['اشتراك شهري', 'تطوير', 'صيانة طارئة', 'أخرى']);
+    assert.deepEqual(options.map(match => match[1]), ['subscription', 'development', 'emergency', 'settlement', 'other']);
+    assert.deepEqual(options.map(match => match[2]), ['اشتراك شهري', 'تطوير', 'صيانة طارئة', 'سداد تسوية', 'أخرى']);
 });
 
 test('paid-month totals only count subscription collections', () => {
@@ -218,6 +222,38 @@ test('the other purpose requires its detailed reason in the notes', async () => 
     assert.equal(harness.calls.save, 0);
     assert.equal(harness.state.income.length, 0);
     assert.match(harness.messages.at(-1)[0], /الغرض بالتفصيل في الملاحظات/);
+});
+
+
+test('settlement agreement balance decreases only by linked settlement income', () => {
+    const app = loadState();
+    const settlement = { id: 's1', residentId: 'r1', effectiveMonth: '2024-01-01', kind: 'settlement', amount: 80 };
+    app.state.residents = [{ id: 'r1', name: 'Resident', createdAt: '2024-01-01', monthlyAmount: 100 }];
+    app.state.adjustments = [settlement];
+    app.state.income = [
+        { id: 'p1', residentId: 'r1', month: 'يناير 2024', amount: 25, purposeCode: 'settlement', settlementAdjustmentId: 's1' },
+        { id: 'p2', residentId: 'r1', month: 'يناير 2024', amount: 10, purposeCode: 'other' }
+    ];
+    assert.equal(app.getSettlementPaidAmount('s1'), 25);
+    assert.equal(app.getSettlementRemainingAmount(settlement), 55);
+    assert.equal(app.getMonthlyDueAmountForMonth(app.state.residents[0], 'يناير 2024'), 80);
+    assert.equal(app.getMonthlyDuePaidAmount('r1', 'يناير 2024'), 25);
+    assert.equal(app.getMonthOutstanding(app.state.residents[0], 'يناير 2024'), 55);
+    assert.equal(app.getAdjustmentAmountForMonth('r1', 'يناير 2024'), 0);
+    assert.equal(app.getSettlementRemainingAmount(settlement, 'p1'), 80);
+});
+
+test('regular subscription allocation skips months covered by a settlement agreement', () => {
+    const app = loadState();
+    app.state.residents = [{ id: 'r1', name: 'Resident', createdAt: '2024-01-01', monthlyAmount: 100 }];
+    app.state.adjustments = [
+        { id: 's1', residentId: 'r1', effectiveMonth: '2024-01-01', kind: 'settlement', amount: 80 }
+    ];
+    const allocation = app.calculateSelectedMonthsAllocation('r1', ['يناير 2024'], 100, 1);
+    assert.deepEqual(
+        Array.from(allocation.allocations, row => row.month),
+        ['فبراير 2024']
+    );
 });
 
 test('subscription collections still distribute over unpaid months', async () => {

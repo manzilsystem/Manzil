@@ -80,10 +80,11 @@ const INCOME_PURPOSE_LABELS = Object.freeze({
     emergency: 'صيانة طارئة',
     penalty: 'أخرى',
     donation: 'أخرى',
-    other: 'أخرى'
+    other: 'أخرى',
+    settlement: 'سداد تسوية'
 });
 
-const INCOME_PURPOSE_FORM_CODES = Object.freeze(['subscription', 'development', 'emergency', 'other']);
+const INCOME_PURPOSE_FORM_CODES = Object.freeze(['subscription', 'development', 'emergency', 'settlement', 'other']);
 
 const INCOME_PURPOSE_DEFAULT_CASH_ACCOUNT = Object.freeze({
     subscription: 'main',
@@ -92,7 +93,8 @@ const INCOME_PURPOSE_DEFAULT_CASH_ACCOUNT = Object.freeze({
     emergency: 'emergency',
     penalty: 'main',
     donation: 'main',
-    other: 'main'
+    other: 'main',
+    settlement: 'main'
 });
 
 const INCOME_PURPOSE_LOCKED_CASH_ACCOUNT = Object.freeze({
@@ -102,7 +104,8 @@ const INCOME_PURPOSE_LOCKED_CASH_ACCOUNT = Object.freeze({
     emergency: true,
     penalty: true,
     donation: true,
-    other: false
+    other: false,
+    settlement: false
 });
 
 function normalizeIncomePurpose(purpose) {
@@ -397,12 +400,58 @@ function getSubscriptionAmountForMonth(resident, month) {
         : 0;
 }
 
+function getSettlementAdjustmentForMonth(residentId, month) {
+    const monthKey = monthLabelToKey(month);
+    if (!residentId || !monthKey) return null;
+    return (Array.isArray(state.adjustments) ? state.adjustments : []).find(adjustment =>
+        adjustment.residentId === residentId
+        && adjustment.effectiveMonth === monthKey
+        && adjustment.kind === 'settlement'
+    ) || null;
+}
+
+function getSettlementPaidAmount(adjustmentId, excludeIncomeId = '') {
+    if (!adjustmentId) return 0;
+    const paidCents = (Array.isArray(state.income) ? state.income : []).reduce((sum, payment) => {
+        if (payment.id === excludeIncomeId
+            || payment.purposeCode !== 'settlement'
+            || payment.settlementAdjustmentId !== adjustmentId) return sum;
+        const amount = Number(payment.amount);
+        return sum + (Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0);
+    }, 0);
+    return paidCents / 100;
+}
+
+function getSettlementRemainingAmount(adjustment, excludeIncomeId = '') {
+    if (!adjustment || adjustment.kind !== 'settlement') return 0;
+    const totalCents = Math.max(0, Math.round((Number(adjustment.amount) || 0) * 100));
+    const paidCents = Math.round(getSettlementPaidAmount(adjustment.id, excludeIncomeId) * 100);
+    return Math.max(0, totalCents - paidCents) / 100;
+}
+
+function getMonthlyDueAmountForMonth(resident, month) {
+    if (!resident) return 0;
+    const settlement = getSettlementAdjustmentForMonth(resident.id, month);
+    if (settlement) return Math.max(0, Number(settlement.amount) || 0);
+    const due = Number(getSubscriptionAmountForMonth(resident, month)) || 0;
+    const adjusted = Number(getAdjustmentAmountForMonth(resident.id, month)) || 0;
+    return Math.max(0, Math.round((due - adjusted) * 100)) / 100;
+}
+
+function getMonthlyDuePaidAmount(residentId, month) {
+    const settlement = getSettlementAdjustmentForMonth(residentId, month);
+    return settlement
+        ? getSettlementPaidAmount(settlement.id)
+        : getPaidAmountForMonth(residentId, month);
+}
+
 function getAdjustmentAmountForMonth(residentId, month) {
     const monthKey = monthLabelToKey(month);
     if (!residentId || !monthKey) return 0;
     const adjustments = Array.isArray(state.adjustments) ? state.adjustments : [];
     const adjustedCents = adjustments.reduce((sum, adjustment) => {
-        if (adjustment.residentId !== residentId || adjustment.effectiveMonth !== monthKey) return sum;
+        if (adjustment.residentId !== residentId || adjustment.effectiveMonth !== monthKey
+            || !['waiver', 'discount'].includes(adjustment.kind)) return sum;
         const amount = Number(adjustment.amount);
         return sum + (Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0);
     }, 0);
@@ -411,11 +460,9 @@ function getAdjustmentAmountForMonth(residentId, month) {
 
 function getMonthOutstanding(resident, month) {
     if (!resident) return 0;
-    const due = getSubscriptionAmountForMonth(resident, month);
-    const dueCents = Number.isFinite(due) ? Math.round(due * 100) : 0;
-    const paidCents = Math.round(getPaidAmountForMonth(resident.id, month) * 100);
-    const adjustedCents = Math.round(getAdjustmentAmountForMonth(resident.id, month) * 100);
-    return Math.max(0, dueCents - adjustedCents - paidCents) / 100;
+    const dueCents = Math.round(getMonthlyDueAmountForMonth(resident, month) * 100);
+    const paidCents = Math.round(getMonthlyDuePaidAmount(resident.id, month) * 100);
+    return Math.max(0, dueCents - paidCents) / 100;
 }
 
 function calculateCumulativeDebt(residentId) {
@@ -476,7 +523,7 @@ function calculateSelectedMonthsAllocation(residentId, selectedMonths, amount, f
         const [year, monthNumber] = key.split('-').map(Number);
         const monthLabel = `${monthsNames[monthNumber - 1]} ${year}`;
         const outstandingCents = Math.max(0, Math.round(getMonthOutstanding(resident, monthLabel) * 100));
-        if (outstandingCents <= 0) continue;
+        if (outstandingCents <= 0 || getSettlementAdjustmentForMonth(resident.id, monthLabel)) continue;
         const allocationCents = Math.min(remainingCents, outstandingCents);
         allocations.push({ month: monthLabel, amount: allocationCents / 100, amountCents: allocationCents });
         remainingCents -= allocationCents;
@@ -546,7 +593,7 @@ function calculateIncomeAllocationPreview(residentId, amount, selectedMonth, max
         const [year, monthNumber] = key.split('-').map(Number);
         const monthLabel = `${monthsNames[monthNumber - 1]} ${year}`;
         const outstandingCents = Math.max(0, Math.round(getMonthOutstanding(resident, monthLabel) * 100));
-        if (outstandingCents > 0) {
+        if (outstandingCents > 0 && !getSettlementAdjustmentForMonth(resident.id, monthLabel)) {
             const allocationCents = Math.min(remainingCents, outstandingCents);
             allocations.push({ month: monthLabel, amount: allocationCents / 100, amountCents: allocationCents });
             remainingCents -= allocationCents;

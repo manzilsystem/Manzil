@@ -93,8 +93,9 @@ function populateReportPurposeFilters() {
 }
 
 function reportIsSubscriptionPayment(payment) {
-    if (typeof isSubscriptionIncome === 'function') return isSubscriptionIncome(payment);
     const purpose = String(payment?.purposeCode || '').trim();
+    if (purpose === 'settlement') return true;
+    if (typeof isSubscriptionIncome === 'function') return isSubscriptionIncome(payment);
     return !purpose || purpose === 'subscription';
 }
 
@@ -362,8 +363,13 @@ function getMonthlyBillingTotals(month, residentFilter = '') {
     (state.residents || []).forEach(resident => {
         if (residentFilter && resident.id !== residentFilter) return;
         if (!isResidentActiveInMonth(resident, monthKey)) return;
-        totals.grossExpectedCents += toCents(getSubscriptionAmountForMonth(resident, month));
-        if (typeof getAdjustmentAmountForMonth === 'function') {
+        const grossCents = toCents(getSubscriptionAmountForMonth(resident, month));
+        totals.grossExpectedCents += grossCents;
+        const settlement = typeof getSettlementAdjustmentForMonth === 'function'
+            ? getSettlementAdjustmentForMonth(resident.id, month) : null;
+        if (settlement) {
+            totals.adjustmentCents += Math.max(0, grossCents - toCents(settlement.amount));
+        } else if (typeof getAdjustmentAmountForMonth === 'function') {
             totals.adjustmentCents += toCents(getAdjustmentAmountForMonth(resident.id, month));
         }
         totals.outstandingCents += toCents(getMonthOutstanding(resident, month));
@@ -448,12 +454,12 @@ function buildLandlordReportModel(month, purposeFilter = '', cashAccountFilter =
 function getLandlordSummaryItems(model) {
     if (model.showDues) {
         return [
-            { label: 'تحصيل', cents: model.totalIncCents, tone: 'emerald', detail: { label: 'منها اشتراكات', cents: model.subscriptionIncCents } },
+            { label: 'تحصيل', cents: model.totalIncCents, tone: 'emerald', detail: { label: 'منها اشتراكات وتسويات', cents: model.subscriptionIncCents } },
             { label: 'مصروف', cents: model.totalExpCents, tone: 'rose' },
             { label: 'صافي', cents: model.netCents, tone: model.netCents >= 0 ? 'emerald' : 'rose' },
             { label: 'المستحق', cents: model.expectedCents },
             ...(model.adjustmentCents > 0
-                ? [{ label: 'إعفاء/تخفيض', cents: model.adjustmentCents, tone: 'amber' }]
+                ? [{ label: 'إعفاء/تخفيض/تسوية', cents: model.adjustmentCents, tone: 'amber' }]
                 : []),
             { label: 'غير المحصّل', cents: model.outstandingCents, tone: model.outstandingCents > 0 ? 'amber' : 'emerald' },
             { label: 'نسبة التحصيل', text: model.collectionRate === null ? '—' : fmtNum(model.collectionRate) + '%' }
@@ -506,9 +512,16 @@ function getResidentStatementSummaryItems(statement) {
         return [
             { label: 'إجمالي المستحق', cents: statement.totals.dueCents },
             ...(statement.totals.adjustmentCents > 0
-                ? [{ label: 'إعفاء/تخفيض', cents: statement.totals.adjustmentCents, tone: 'amber' }]
+                ? [{ label: 'إعفاء/تخفيض/تسوية', cents: statement.totals.adjustmentCents, tone: 'amber' }]
                 : []),
-            { label: 'مدفوع الاشتراكات', cents: statement.totals.paidCents, tone: 'emerald' },
+            { label: 'مدفوع الاشتراكات والتسويات', cents: statement.totals.paidCents, tone: 'emerald' },
+            ...(statement.totals.settlementAgreedCents > 0
+                ? [
+                    { label: 'إجمالي اتفاقات التسوية', cents: statement.totals.settlementAgreedCents, tone: 'amber' },
+                    { label: 'المسدد من التسويات', cents: statement.totals.settlementPaidCents, tone: 'emerald' },
+                    { label: 'المتبقي من التسويات', cents: statement.totals.settlementRemainingCents, tone: statement.totals.settlementRemainingCents ? 'rose' : 'emerald' }
+                ]
+                : []),
             ...(!statement.purposeFilter ? [{ label: 'إجمالي حركات التحصيل', cents: statement.totals.filteredPaidCents, tone: 'emerald' }] : []),
             { label: 'إجمالي المتبقي', cents: statement.totals.remainingCents, tone: statement.totals.remainingCents ? 'rose' : 'emerald' },
             { label: 'أشهر متأخرة', text: fmtNum(statement.totals.arrearsMonths), tone: statement.totals.arrearsMonths ? 'amber' : 'emerald' }
@@ -516,6 +529,13 @@ function getResidentStatementSummaryItems(statement) {
     }
     return [
         { label: 'مدفوع الغرض', cents: statement.totals.filteredPaidCents, tone: 'emerald' },
+        ...(statement.purposeFilter === 'settlement' && statement.totals.settlementAgreedCents > 0
+            ? [
+                { label: 'إجمالي اتفاقات التسوية', cents: statement.totals.settlementAgreedCents, tone: 'amber' },
+                { label: 'المسدد من التسويات', cents: statement.totals.settlementPaidCents, tone: 'emerald' },
+                { label: 'المتبقي من التسويات', cents: statement.totals.settlementRemainingCents, tone: statement.totals.settlementRemainingCents ? 'rose' : 'emerald' }
+            ]
+            : []),
         { label: 'عدد الحركات', text: fmtNum(statement.payments.length) },
         { label: 'متوسط الحركة', cents: averageCents },
         { label: 'آخر دفعة', text: formatDate(statement.payments[0]?.date) || '—', tone: 'sky' }
@@ -2131,11 +2151,22 @@ function buildResidentStatement(residentId, purposeFilter = '') {
         const month = getStatementMonthLabel(key);
         const isBilled = (!createdKey || key >= createdKey) && (!currentKey || key <= currentKey);
         const rowDueCents = isBilled ? toCents(getSubscriptionAmountForMonth(resident, month)) : 0;
-        const rowAdjustmentCents = isBilled && showDues && typeof getAdjustmentAmountForMonth === 'function'
-            ? toCents(getAdjustmentAmountForMonth(resident.id, month))
-            : 0;
-        const rowNetDueCents = Math.max(0, rowDueCents - rowAdjustmentCents);
-        const rowPaidCents = toCents(getPaidAmountForMonth(resident.id, month));
+        const includeSettlementBalance = showDues || normalizedPurpose === 'settlement';
+        const settlement = isBilled && includeSettlementBalance && typeof getSettlementAdjustmentForMonth === 'function'
+            ? getSettlementAdjustmentForMonth(resident.id, month) : null;
+        const settlementAmountCents = settlement ? toCents(settlement.amount) : 0;
+        const settlementPaidCents = settlement && typeof getSettlementPaidAmount === 'function'
+            ? toCents(getSettlementPaidAmount(settlement.id)) : 0;
+        const subscriptionPaidCents = toCents(getPaidAmountForMonth(resident.id, month));
+        const rowAdjustmentCents = isBilled && showDues && settlement
+            ? Math.max(0, rowDueCents - settlementAmountCents)
+            : isBilled && showDues && typeof getAdjustmentAmountForMonth === 'function'
+                ? toCents(getAdjustmentAmountForMonth(resident.id, month))
+                : 0;
+        const rowNetDueCents = settlement
+            ? settlementAmountCents
+            : Math.max(0, rowDueCents - rowAdjustmentCents);
+        const rowPaidCents = settlement ? settlementPaidCents : subscriptionPaidCents;
         const rowRemainingCents = Math.max(0, rowNetDueCents - rowPaidCents);
         dueCents += rowDueCents;
         adjustmentCents += rowAdjustmentCents;
@@ -2146,6 +2177,9 @@ function buildResidentStatement(residentId, purposeFilter = '') {
             month,
             dueCents: rowDueCents,
             adjustmentCents: rowAdjustmentCents,
+            settlementAmountCents,
+            settlementPaidCents,
+            settlementRemainingCents: Math.max(0, settlementAmountCents - settlementPaidCents),
             netDueCents: rowNetDueCents,
             paidCents: rowPaidCents,
             remainingCents: rowRemainingCents,
@@ -2177,9 +2211,10 @@ function buildResidentStatement(residentId, purposeFilter = '') {
         purposeTotals.set(label, bucket);
     });
 
-    const adjustments = showDues
+    const adjustments = (showDues || normalizedPurpose === 'settlement')
         ? (Array.isArray(state.adjustments) ? state.adjustments : [])
-            .filter(adjustment => adjustment.residentId === resident.id)
+            .filter(adjustment => adjustment.residentId === resident.id
+                && (normalizedPurpose !== 'settlement' || adjustment.kind === 'settlement'))
             .map(adjustment => ({
                 id: adjustment.id,
                 key: String(adjustment.effectiveMonth || '').slice(0, 7) + '-01',
@@ -2211,6 +2246,9 @@ function buildResidentStatement(residentId, purposeFilter = '') {
             dueCents,
             adjustmentCents,
             paidCents,
+            settlementAgreedCents: months.reduce((sum, row) => sum + row.settlementAmountCents, 0),
+            settlementPaidCents: months.reduce((sum, row) => sum + row.settlementPaidCents, 0),
+            settlementRemainingCents: months.reduce((sum, row) => sum + row.settlementRemainingCents, 0),
             remainingCents,
             filteredPaidCents,
             arrearsMonths: months.filter(row => row.remainingCents > 0 && row.key < currentKey).length,
