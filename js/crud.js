@@ -1906,10 +1906,70 @@ function resetIncomeFormFields() {
     /** @type {HTMLElement} */ (document.getElementById('incomeAllocationPreview'))?.classList.add('hidden');
 }
 
+
+let incomeWizardStep = 1;
+const INCOME_WIZARD_LABELS = ['بيانات الساكن', 'المبلغ والتوزيع', 'الدفع والمراجعة'];
+
+function validateIncomeWizardStep(step) {
+    const value = id => String(document.getElementById(id)?.value || '').trim();
+    if (step === 1) {
+        if (!value('incomeResident')) { toast('اختر الشقة أولًا.', 'error'); return false; }
+        if (!value('incomePurpose')) { toast('اختر غرض التحصيل.', 'error'); return false; }
+    }
+    if (step === 2) {
+        const amount = Number(value('incomeAmount'));
+        const purpose = value('incomePurpose');
+        if (!Number.isFinite(amount) || amount <= 0) { toast('أدخل مبلغًا أكبر من صفر.', 'error'); return false; }
+        if (purpose === 'subscription' && !getSelectedIncomeMonths().length) {
+            toast('اختر شهرًا واحدًا على الأقل.', 'error'); return false;
+        }
+        if (purpose !== 'subscription' && !value('incomeMonth')) {
+            toast('اختر شهر تسجيل التحصيل.', 'error'); return false;
+        }
+        const validation = validateIncomeExtraLines(getIncomeExtraLines());
+        if (!validation.valid) { toast(validation.message, 'error'); return false; }
+    }
+    if (step === 3) {
+        if (!value('incomePaymentMethod')) { toast('اختر طريقة الدفع.', 'error'); return false; }
+        if (!value('incomeCashAccount')) { toast('اختر الصندوق المستلم.', 'error'); return false; }
+        const needsDetail = value('incomePurpose') === 'other'
+            || getIncomeExtraLines().some(line => line.purpose === 'other');
+        if (needsDetail && !value('incomeNotes')) {
+            toast('غرض «أخرى» يتطلب كتابة الغرض بالتفصيل في الملاحظات.', 'error'); return false;
+        }
+    }
+    return true;
+}
+
+function setIncomeWizardStep(step) {
+    incomeWizardStep = Math.max(1, Math.min(3, Number(step) || 1));
+    for (let index = 1; index <= 3; index++) {
+        const panel = document.getElementById('incomeWizardStep' + index);
+        if (panel) panel.classList.toggle('hidden', index !== incomeWizardStep);
+    }
+    const progress = document.getElementById('incomeWizardProgress');
+    const dots = document.getElementById('incomeWizardStepDots');
+    const back = document.getElementById('incomeWizardBack');
+    const next = document.getElementById('incomeWizardNext');
+    const submit = document.getElementById('incomeSubmitButton');
+    if (progress) progress.textContent = 'الخطوة ' + incomeWizardStep + ' من 3 · ' + INCOME_WIZARD_LABELS[incomeWizardStep - 1];
+    if (dots) dots.textContent = [1, 2, 3].map(index => index <= incomeWizardStep ? '●' : '○').join(' ');
+    if (back) back.classList.toggle('hidden', incomeWizardStep === 1);
+    if (next) next.classList.toggle('hidden', incomeWizardStep === 3);
+    if (submit) submit.classList.toggle('hidden', incomeWizardStep !== 3);
+    if (incomeWizardStep === 3) previewIncomeAllocation();
+}
+
+function changeIncomeWizardStep(direction) {
+    if (direction > 0 && !validateIncomeWizardStep(incomeWizardStep)) return;
+    setIncomeWizardStep(incomeWizardStep + direction);
+}
+
 function openNewIncomeModal() {
     if (!requireManager()) return;
     if (typeof populateSelects === 'function') populateSelects();
     resetIncomeFormFields();
+    setIncomeWizardStep(1);
     openModal('incomeModal');
 }
 
@@ -1976,6 +2036,15 @@ function previewIncomeAllocation() {
             if (debt.count > 0) parts.push(`متأخرات حالية: ${fmtNum(debt.totalDebt)} ج.م (${fmtNum(debt.count)} شهر)`);
             outstandingHint.textContent = parts.join(' · ');
         }
+    }
+    const wizardSummary = document.getElementById('incomeWizardSummary');
+    if (wizardSummary) {
+        const residentName = resident ? (resident.name || crudApartmentLabel(resident.apartmentNumber)) : 'لم يتم اختيار الساكن';
+        const method = document.getElementById('incomePaymentMethod')?.selectedOptions?.[0]?.textContent || 'لم تحدد طريقة الدفع';
+        const cashbox = crudCashAccountLabel(document.getElementById('incomeCashAccount')?.value || 'main');
+        const base = Number.isFinite(amount) && amount > 0 ? amount : 0;
+        const extrasTotal = getIncomeExtraLines().reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
+        wizardSummary.textContent = residentName + ' · ' + crudIncomePurposeLabel(purpose) + ' · ' + fmtNum(base + extrasTotal) + ' ج.م · ' + method + ' · ' + cashbox;
     }
     const extraLines = getIncomeExtraLines();
     const extraValidation = validateIncomeExtraLines(extraLines);
@@ -2104,6 +2173,7 @@ function previewIncomeAllocation() {
 async function handleIncomeSubmit(e) {
     if (!requireManager() || incomeSaving) return;
     e.preventDefault();
+    if (!validateIncomeWizardStep(1) || !validateIncomeWizardStep(2) || !validateIncomeWizardStep(3)) return;
     const residentId = /** @type {any} */ (document.getElementById('incomeResident')).value;
     const amount = Number(/** @type {any} */ (document.getElementById('incomeAmount')).value);
     const notes = /** @type {any} */ (document.getElementById('incomeNotes')).value.trim();
