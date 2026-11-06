@@ -482,7 +482,7 @@ test('statement distinguishes subscription payments from all collected movements
     assert.equal(statement.totals.paidCents, 10000);
     assert.equal(statement.totals.filteredPaidCents, 15000);
     const summary = app.getResidentStatementSummaryItems(statement);
-    assert.equal(summary.find(item => item.label === 'مدفوع الاشتراكات').cents, 10000);
+    assert.equal(summary.find(item => item.label === 'مدفوع الاشتراكات والتسويات').cents, 10000);
     assert.equal(summary.find(item => item.label === 'إجمالي حركات التحصيل').cents, 15000);
 });
 
