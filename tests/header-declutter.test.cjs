@@ -11,12 +11,13 @@ test('backup is available in settings without a duplicate header shortcut', () =
     assert.match(html, /id="settings-tab-backup"[^>]*onclick="switchSettingsTab\('backup'\)"/);
     assert.match(html, /id="settings-panel-backup"/);
     assert.doesNotMatch(html, /aria-label="فتح النسخ الاحتياطي"/);
-    assert.match(serviceWorker, /const CACHE_NAME = 'manzil-v133';/);
+    assert.match(serviceWorker, /const CACHE_NAME = 'manzil-v134';/);
 });
 
-test('header keeps only settings and session controls', () => {
+test('header keeps the assistant, settings and session controls only', () => {
     assert.doesNotMatch(html, /aria-label="فتح دليل الاستخدام"/);
     assert.doesNotMatch(html, /aria-label="طباعة التقرير"/);
+    assert.match(html, /aria-label="اسأل عم عبده البواب"[^>]*class="[^"]*assistant-header-button/);
     assert.match(html, /class="settings-card"[^>]*onclick="openModal\('guideModal'\)"/);
     assert.match(html, /id="settingsBrandPreviewTitle">الشعار والأيقونة</);
     assert.doesNotMatch(html, /هوية منزل/);

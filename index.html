@@ -159,6 +159,7 @@
                 </div>
             </div>
             <div class="flex items-center gap-1.5">
+                <button onclick="openAssistantModal()" aria-label="اسأل عم عبده البواب" class="app-card border p-2.5 rounded-xl text-xs transition assistant-header-button" title="اسأل عم عبده البواب"><i class="fa-solid fa-user-tie text-sm" aria-hidden="true"></i></button>
                 <button onclick="openSettingsModal()" aria-label="فتح الإعدادات" class="app-card border p-2.5 rounded-xl text-xs transition" title="الإعدادات"><i class="fa-solid fa-gear text-sm"></i></button>
                 <button id="accessSwitchBtn" onclick="lockCurrentSession()" aria-label="تبديل المستخدم أو قفل التطبيق" class="app-card border p-2.5 rounded-xl text-xs transition hidden" title="خروج / تبديل المستخدم"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
             </div>
@@ -2058,6 +2059,29 @@
         </div>
     </div>
 
+    <!-- Local Assistant Modal -->
+    <div id="assistantModal" role="dialog" aria-modal="true" aria-labelledby="assistantModalTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="app-card assistant-shell border rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+            <header class="assistant-head">
+                <span class="assistant-avatar" aria-hidden="true"><i class="fa-solid fa-user-tie"></i></span>
+                <div class="assistant-head-copy">
+                    <h3 id="assistantModalTitle">عم عبده البواب</h3>
+                    <p><span class="assistant-online-dot" aria-hidden="true"></span> مساعد محلي — يقرأ بيانات التطبيق فقط</p>
+                </div>
+                <button type="button" class="assistant-icon-button" onclick="resetAssistantChat()" aria-label="بدء محادثة جديدة" title="محادثة جديدة"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>
+                <button type="button" class="assistant-icon-button" onclick="closeModal('assistantModal')" aria-label="إغلاق مساعد عم عبده"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            </header>
+            <div id="assistantLog" class="assistant-log" role="log" aria-live="polite" aria-label="محادثة عم عبده البواب"></div>
+            <div id="assistantSuggestions" class="assistant-suggestions" aria-label="أسئلة مقترحة" onclick="handleAssistantSuggestion(event)"></div>
+            <form class="assistant-form" onsubmit="sendAssistantMessage(event)">
+                <label for="assistantInput" class="sr-only">اكتب سؤالك لعم عبده</label>
+                <input type="text" id="assistantInput" class="app-input" maxlength="240" autocomplete="off" enterkeyhint="send" placeholder="اسألني عن التحصيل، المتأخرات، الخزنة…">
+                <button type="submit" class="assistant-send-button" aria-label="إرسال السؤال"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
+            </form>
+            <p class="assistant-footnote"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> كل الردود محسوبة داخل جهازك من بيانات التطبيق، بدون إنترنت أو خدمات خارجية.</p>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/telemetry.js"></script>
     <script src="js/state.js"></script>
@@ -2072,6 +2096,7 @@
     <script src="js/cashbox.js"></script>
     <script src="js/monthly-close.js"></script>
     <script src="js/backup.js"></script>
+    <script src="js/assistant.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
