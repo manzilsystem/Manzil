@@ -93,8 +93,9 @@ function populateReportPurposeFilters() {
 }
 
 function reportIsSubscriptionPayment(payment) {
-    if (typeof isSubscriptionIncome === 'function') return isSubscriptionIncome(payment);
     const purpose = String(payment?.purposeCode || '').trim();
+    if (purpose === 'settlement') return true;
+    if (typeof isSubscriptionIncome === 'function') return isSubscriptionIncome(payment);
     return !purpose || purpose === 'subscription';
 }
 
@@ -362,8 +363,13 @@ function getMonthlyBillingTotals(month, residentFilter = '') {
     (state.residents || []).forEach(resident => {
         if (residentFilter && resident.id !== residentFilter) return;
         if (!isResidentActiveInMonth(resident, monthKey)) return;
-        totals.grossExpectedCents += toCents(getSubscriptionAmountForMonth(resident, month));
-        if (typeof getAdjustmentAmountForMonth === 'function') {
+        const grossCents = toCents(getSubscriptionAmountForMonth(resident, month));
+        totals.grossExpectedCents += grossCents;
+        const settlement = typeof getSettlementAdjustmentForMonth === 'function'
+            ? getSettlementAdjustmentForMonth(resident.id, month) : null;
+        if (settlement) {
+            totals.adjustmentCents += Math.max(0, grossCents - toCents(settlement.amount));
+        } else if (typeof getAdjustmentAmountForMonth === 'function') {
             totals.adjustmentCents += toCents(getAdjustmentAmountForMonth(resident.id, month));
         }
         totals.outstandingCents += toCents(getMonthOutstanding(resident, month));
@@ -448,12 +454,12 @@ function buildLandlordReportModel(month, purposeFilter = '', cashAccountFilter =
 function getLandlordSummaryItems(model) {
     if (model.showDues) {
         return [
-            { label: 'تحصيل', cents: model.totalIncCents, tone: 'emerald', detail: { label: 'منها اشتراكات', cents: model.subscriptionIncCents } },
+            { label: 'تحصيل', cents: model.totalIncCents, tone: 'emerald', detail: { label: 'منها اشتراكات وتسويات', cents: model.subscriptionIncCents } },
             { label: 'مصروف', cents: model.totalExpCents, tone: 'rose' },
             { label: 'صافي', cents: model.netCents, tone: model.netCents >= 0 ? 'emerald' : 'rose' },
             { label: 'المستحق', cents: model.expectedCents },
             ...(model.adjustmentCents > 0
-                ? [{ label: 'إعفاء/تخفيض', cents: model.adjustmentCents, tone: 'amber' }]
+                ? [{ label: 'إعفاء/تخفيض/تسوية', cents: model.adjustmentCents, tone: 'amber' }]
                 : []),
             { label: 'غير المحصّل', cents: model.outstandingCents, tone: model.outstandingCents > 0 ? 'amber' : 'emerald' },
             { label: 'نسبة التحصيل', text: model.collectionRate === null ? '—' : fmtNum(model.collectionRate) + '%' }
