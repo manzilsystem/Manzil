@@ -496,7 +496,9 @@ function isValidBackup(data) {
         const rates = Array.isArray(resident?.subscriptionRates) ? resident.subscriptionRates : [];
         const applicableRate = rates.filter(rate => String(rate.effectiveMonth || '').slice(0, 7) <= monthKey)
             .sort((a, b) => String(a.effectiveMonth).localeCompare(String(b.effectiveMonth))).at(-1);
-        const due = Number(applicableRate?.monthlyAmount ?? resident?.monthlyAmount ?? data.defaultSubscription ?? 0);
+        const due = rates.length
+            ? applicableRate ? Number(applicableRate.monthlyAmount) || 0 : 0
+            : Number(resident?.monthlyAmount ?? data.defaultSubscription ?? 0) || 0;
         if (Number(adjustment.amount) > due) return false;
     }
     for (const payment of data.income) {
