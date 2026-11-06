@@ -177,7 +177,7 @@ test('cash account filter markup sits in both report toolbars and is populated c
     [['landlordReportCashAccount', 'invalidateLandlordReportPreview'], ['periodReportCashAccount', 'invalidatePeriodReportPreview']].forEach(([id, handler]) => {
         assert.match(html, new RegExp(`id="${id}"[^>]*onchange="${handler}\\(\\)"`), id + ' must gate its preview');
     });
-    assert.match(reports, /const REPORT_CASH_ACCOUNT_FILTER_IDS = \['landlordReportCashAccount', 'periodReportCashAccount'\]/);
+    assert.match(reports, /const REPORT_CASH_ACCOUNT_FILTER_IDS = \['landlordReportCashAccount', 'periodReportCashAccount', 'expensesReportCashAccount'\]/);
     assert.match(render, /populateReportCashAccountFilters\(\)/);
 });
 
