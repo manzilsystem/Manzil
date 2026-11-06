@@ -1602,6 +1602,8 @@ function handleIncomePurposeChange() {
     });
     syncIncomePurposeUi();
     const resident = getIncomeResidentFromForm();
+    const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
+    if (purpose !== 'settlement') amountInput?.removeAttribute('max');
     if (purpose === 'subscription' && resident) {
         const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
         if (monthSelect) monthSelect.disabled = false;
