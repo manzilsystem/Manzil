@@ -1,6 +1,8 @@
 const { test, expect } = require('@playwright/test');
 const { loadShell } = require('./helpers');
 
+const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
 async function seedManager(page) {
     await loadShell(page);
     await page.waitForFunction(() => typeof handleIncomeResidentChange === 'function' && typeof renderAll === 'function');
@@ -68,13 +70,35 @@ test('month choices start at the apartment record and show payment status', asyn
     await page.locator('#incomeResident').selectOption('r1');
 
     const months = await page.locator('#incomeMonth option').allTextContents();
-    expect(months.length).toBe(3);
+    expect(months.length).toBe(4);
+    expect(months.at(-1)).toBe('شهر آخر…');
     expect(months.some(month => month.includes('2021'))).toBe(false);
-    expect(months.at(-1)).toContain('مستحق 100 ج.م');
+    expect(months.at(-2)).toContain('مستحق 100 ج.م');
     expect(months[1]).toContain('مسدد');
 
     await page.locator('#incomeMonth').selectOption({ index: 0 });
     await expect(page.locator('#incomeAllocationModeWrap')).toBeVisible();
+    await expect(page.locator('#incomeOutstandingHint')).toContainText('شهر متأخر');
+});
+
+test('a missing past month can be picked manually beyond the apartment history', async ({ page }) => {
+    await seedManager(page);
+    await page.evaluate(() => openNewIncomeModal());
+    await page.locator('#incomeResident').selectOption('r1');
+
+    await page.locator('#incomeMonth').selectOption('__custom__');
+    await expect(page.locator('#incomeCustomMonthWrap')).toBeVisible();
+
+    const target = new Date();
+    target.setMonth(target.getMonth() - 6);
+    const expected = `${arabicMonths[target.getMonth()]} ${target.getFullYear()}`;
+    await page.locator('#incomeCustomMonthSelect').selectOption(String(target.getMonth()));
+    await page.locator('#incomeCustomYearSelect').selectOption(String(target.getFullYear()));
+    await page.getByRole('button', { name: 'اعتماد الشهر المختار' }).click();
+
+    await expect(page.locator('#incomeMonth')).toHaveValue(expected);
+    await expect(page.locator('#incomeCustomMonthWrap')).toBeHidden();
+    await expect(page.locator('#incomeCustomMonthHint')).toContainText(expected);
     await expect(page.locator('#incomeOutstandingHint')).toContainText('شهر متأخر');
 });
 

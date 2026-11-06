@@ -24,10 +24,11 @@ async function openSettings(page) {
     await expect(page.locator('#settingsModal')).toBeVisible();
 }
 
-test('all eight settings sections open for a manager', async ({ page }) => {
+test('settings overview offers every section plus the usage guide', async ({ page }) => {
     await openSettings(page);
 
-    await expect(page.locator('.settings-card')).toHaveCount(8);
+    await expect(page.locator('.settings-card')).toHaveCount(9);
+    await expect(page.locator('.settings-card[onclick="openModal(\'guideModal\')"]')).toHaveCount(1);
     for (const [tab, title] of SECTIONS) {
         await page.locator(`#settings-tab-${tab}`).click();
         await expect(page.locator(`#settings-panel-${tab}`)).toBeVisible();
