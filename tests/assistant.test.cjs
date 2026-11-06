@@ -141,6 +141,7 @@ function createHarness(seed = true, identity = {}) {
         getAssistantMonthSummary,
         getAssistantNowLabel,
         getAssistantResidentSnapshot,
+        buildAssistantResidentAnswer,
         normalizeAssistantArabic,
         resolveAssistantPeriod,
         resolveAssistantResident,
@@ -158,6 +159,53 @@ function createHarness(seed = true, identity = {}) {
     })`, context);
     return { context, api, storage: sandbox.sessionStorage };
 }
+
+test('assistant resident summary uses the agreed settlement amount and linked payments', () => {
+    const { context, api } = createHarness(false);
+    vm.runInContext(`
+        state.defaultSubscription = 100;
+        state.residents = [{
+            id: 'r1', name: 'أحمد علي', apartmentNumber: '3',
+            monthlyAmount: 100, billingStartMonth: '2026-01-01',
+            createdAt: '2026-01-01T00:00:00.000Z'
+        }];
+        state.adjustments = [{
+            id: 's1', residentId: 'r1', kind: 'settlement',
+            effectiveMonth: '2026-11-01', amount: 60, reason: 'اتفاق تسوية'
+        }];
+        state.income = [{
+            id: 'p1', residentId: 'r1', month: 'نوفمبر 2026',
+            amount: 20, purposeCode: 'settlement', settlementAdjustmentId: 's1'
+        }];
+        state.expenses = [];
+    `, context);
+    const resident = context.state.residents[0];
+    const snapshot = api.getAssistantResidentSnapshot(resident, NOW);
+    assert.equal(snapshot.subscription, 60);
+    assert.equal(snapshot.paid, 20);
+    assert.equal(snapshot.adjusted, 40);
+    assert.equal(snapshot.settlementPaid, 20);
+    assert.equal(snapshot.settlementRemaining, 40);
+    assert.equal(snapshot.outstanding, 40);
+    const answer = api.buildAssistantResidentAnswer(resident, NOW).html;
+    assert.match(answer, /المبلغ المتفق عليه/);
+    assert.match(answer, /إجمالي اتفاق التسوية/);
+    assert.match(answer, /المتبقي من التسوية/);
+});
+
+test('assistant income summary keeps settlement payments separate from other purposes', () => {
+    const { context, api } = createHarness(false);
+    vm.runInContext(`
+        state.income = [
+            { id: 'p1', residentId: 'r1', month: 'نوفمبر 2026', amount: 20, purposeCode: 'settlement' },
+            { id: 'p2', residentId: 'r1', month: 'نوفمبر 2026', amount: 10, purposeCode: 'development' }
+        ];
+    `, context);
+    const snapshot = api.getAssistantIncomeSnapshot(['نوفمبر 2026']);
+    assert.equal(snapshot.total, 30);
+    assert.equal(snapshot.settlementTotal, 20);
+    assert.equal(snapshot.otherTotal, 10);
+});
 
 test('assistant modal, launcher, script and styles are wired into the app', () => {
     assert.match(html, /id="assistantModal"/);
