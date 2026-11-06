@@ -110,6 +110,7 @@ test('owner portal uses the effective subscription rate for the current month', 
             requestedRate = { item, month };
             return 125;
         },
+        getMonthOutstanding: () => 100,
         calculateCumulativeDebt: () => ({ count: 0, totalDebt: 0, unpaidMonths: [] }),
         esc: value => String(value ?? ''),
         fmtNum: value => String(value),
