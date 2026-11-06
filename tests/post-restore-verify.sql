@@ -286,7 +286,7 @@ BEGIN
     END IF;
 
     RAISE NOTICE 'Manager-only tenant details verified';
-END $;
+END $tenant_restore$;
 
 -- Verify at least one building exists (for seeded data)
 DO $$
