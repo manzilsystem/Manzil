@@ -48,23 +48,27 @@ test('apartment labels are prefixed once and never duplicated', () => {
     assert.equal(app.formatApartmentLabel(''), 'شقة —');
 });
 
-test('income months start from the apartment record instead of a fixed multi-year window', () => {
+test('income months include the recent year so past months stay selectable', () => {
     const app = loadState();
     app.state.residents = [resident()];
     const labels = Array.from(app.getIncomeMonthLabels(app.state.residents[0]));
-    assert.equal(labels[0], 'يناير 2024');
+    assert.equal(labels[0], 'يونيو 2023');
     assert.equal(labels.at(-1), 'مايو 2024');
+    assert.ok(labels.includes('أبريل 2024'));
+    assert.ok(labels.includes('مايو 2024'));
     assert.ok(!labels.includes('يناير 2021'));
-    assert.ok(!labels.includes('ديسمبر 2023'));
-    assert.equal(labels.length, 5);
+    assert.equal(labels.length, 12);
 });
 
-test('an apartment without creation data only offers recorded months plus the current month', () => {
+test('an apartment without creation data still offers the recent year plus recorded months', () => {
     const app = loadState();
     app.state.residents = [resident({ createdAt: '' , subscriptionRates: [] })];
     app.state.income = [{ id: 'p1', residentId: 'r1', amount: 100, month: 'فبراير 2024' }];
     const labels = Array.from(app.getIncomeMonthLabels(app.state.residents[0]));
-    assert.deepEqual(labels, ['فبراير 2024', 'مايو 2024']);
+    assert.equal(labels[0], 'يونيو 2023');
+    assert.equal(labels.at(-1), 'مايو 2024');
+    assert.ok(labels.includes('فبراير 2024'));
+    assert.equal(labels.length, 12);
 });
 
 test('month options carry paid, overdue and due status for the selected apartment', () => {
@@ -108,13 +112,13 @@ test('the income form exposes sorted apartment choices, a resident summary and l
     assert.match(html, /setIncomeNoteSuggestion\('سداد متأخرات'\)/);
     assert.match(html, /id="incomeReceiptModal"/);
     assert.match(html, /id="incomeMonth"[^>]*onchange="handleIncomeMonthChange\(\)"/);
-    assert.match(html, /id="incomeCustomMonthWrap"/);
-    assert.match(html, /id="incomeCustomMonthSelect"/);
-    assert.match(html, /id="incomeCustomYearSelect"/);
-    assert.match(html, /onclick="applyIncomeCustomMonth\(\)"/);
-    assert.match(crudSource, /<option value="__custom__">شهر آخر…<\/option>/);
-    assert.match(crudSource, /function handleIncomeMonthChange\(\)/);
-    assert.match(crudSource, /function applyIncomeCustomMonth\(\)/);
+    assert.doesNotMatch(html, /incomeCustomMonthWrap/);
+    assert.doesNotMatch(html, /incomeCustomMonthSelect/);
+    assert.doesNotMatch(html, /incomeCustomYearSelect/);
+    assert.doesNotMatch(crudSource, /__custom__/);
+    assert.doesNotMatch(crudSource, /applyIncomeCustomMonth/);
+    assert.match(crudSource, /function syncIncomeAllocationMode\(\)[\s\S]*?month !== getCurrentMonth\(\) \? 'selected' : 'policy'/);
+    assert.match(crudSource, /function handleIncomeMonthChange\(\)[\s\S]*?syncIncomeAllocationMode\(\)/);
     assert.match(renderSource, /localeCompare\(String\(b\.apartmentNumber \|\| ''\), 'ar', \{ numeric: true \}\)/);
     assert.match(renderSource, /formatApartmentLabel\(r\.apartmentNumber\)/);
     assert.match(renderSource, /openIncomeReceiptModal\('\$\{i\.id\}'\)/);

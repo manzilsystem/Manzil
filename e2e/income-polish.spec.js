@@ -1,8 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const { loadShell } = require('./helpers');
 
-const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-
 async function seedManager(page) {
     await loadShell(page);
     await page.waitForFunction(() => typeof handleIncomeResidentChange === 'function' && typeof renderAll === 'function');
@@ -64,55 +62,66 @@ test('apartment choices are sorted, labelled and summarized before collecting', 
     await expect(summary).toContainText('المتأخرات');
 });
 
-test('month choices start at the apartment record and show payment status', async ({ page }) => {
+test('month choices cover the recent year and show payment status', async ({ page }) => {
     await seedManager(page);
     await page.evaluate(() => openNewIncomeModal());
     await page.locator('#incomeResident').selectOption('r1');
 
     const months = await page.locator('#incomeMonth option').allTextContents();
-    expect(months.length).toBe(4);
-    expect(months.at(-1)).toBe('شهر آخر…');
+    expect(months.length).toBe(12);
+    expect(months.some(month => month.includes('شهر آخر'))).toBe(false);
     expect(months.some(month => month.includes('2021'))).toBe(false);
-    expect(months.at(-2)).toContain('مستحق 100 ج.م');
-    expect(months[1]).toContain('مسدد');
+    expect(months.at(-1)).toContain('100 ج.م');
+    expect(months.at(-2)).toContain('مسدد');
 
-    await page.locator('#incomeMonth').selectOption({ index: 0 });
+    await page.locator('#incomeMonth').selectOption({ index: months.length - 3 });
     await expect(page.locator('#incomeAllocationModeWrap')).toBeVisible();
+    await expect(page.locator('#incomeAllocationMode')).toHaveValue('selected');
     await expect(page.locator('#incomeOutstandingHint')).toContainText('شهر متأخر');
 });
 
-test('a missing past month can be picked manually beyond the apartment history', async ({ page }) => {
+test('a past month is offered directly and settled first without extra choices', async ({ page }) => {
     await seedManager(page);
     await page.evaluate(() => openNewIncomeModal());
-    await page.locator('#incomeResident').selectOption('r1');
+    await page.locator('#incomeResident').selectOption('r2');
 
-    await page.locator('#incomeMonth').selectOption('__custom__');
-    await expect(page.locator('#incomeCustomMonthWrap')).toBeVisible();
+    const target = await page.evaluate(() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 1);
+        return `${monthsNames[d.getMonth()]} ${d.getFullYear()}`;
+    });
+    await page.locator('#incomeMonth').selectOption(target);
+    await expect(page.locator('#incomeAllocationMode')).toHaveValue('selected');
+    await expect(page.locator('#incomeMonth option:checked')).toContainText(target);
 
-    const target = new Date();
-    target.setMonth(target.getMonth() - 6);
-    const expected = `${arabicMonths[target.getMonth()]} ${target.getFullYear()}`;
-    await page.locator('#incomeCustomMonthSelect').selectOption(String(target.getMonth()));
-    await page.locator('#incomeCustomYearSelect').selectOption(String(target.getFullYear()));
-    await page.getByRole('button', { name: 'اعتماد الشهر المختار' }).click();
+    await page.locator('#incomeAmount').fill('100');
+    await page.locator('#incomePaymentMethod').selectOption('cash');
+    await expect(page.locator('#incomeAllocationSummary')).toContainText('بدءًا من الشهر المحدد');
+    await expect(page.locator('#incomeAllocationRows')).toContainText(target);
 
-    await expect(page.locator('#incomeMonth')).toHaveValue(expected);
-    await expect(page.locator('#incomeCustomMonthWrap')).toBeHidden();
-    await expect(page.locator('#incomeCustomMonthHint')).toContainText(expected);
-    await expect(page.locator('#incomeOutstandingHint')).toContainText('شهر متأخر');
+    await page.locator('#incomeSubmitButton').click();
+    await expect(page.locator('#incomeModal')).toBeHidden();
+    const savedMonths = await page.evaluate(() => state.income.map(item => item.month));
+    expect(savedMonths).toContain(target);
 });
 
-test('a late month can be settled first from the allocation mode', async ({ page }) => {
+test('the allocation mode can still return to the building policy', async ({ page }) => {
     await seedManager(page);
     await page.evaluate(() => openNewIncomeModal());
-    await page.locator('#incomeResident').selectOption('r1');
-    await page.locator('#incomeMonth').selectOption({ index: 0 });
+    await page.locator('#incomeResident').selectOption('r2');
+
+    const target = await page.evaluate(() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 1);
+        return `${monthsNames[d.getMonth()]} ${d.getFullYear()}`;
+    });
+    await page.locator('#incomeMonth').selectOption(target);
     await page.locator('#incomeAmount').fill('100');
     await page.locator('#incomePaymentMethod').selectOption('cash');
 
-    await expect(page.locator('#incomeAllocationSummary')).toContainText('أقدم شهر غير مسدد');
-    await page.locator('#incomeAllocationMode').selectOption('selected');
     await expect(page.locator('#incomeAllocationSummary')).toContainText('بدءًا من الشهر المحدد');
+    await page.locator('#incomeAllocationMode').selectOption('policy');
+    await expect(page.locator('#incomeAllocationSummary')).toContainText('أقدم شهر غير مسدد');
 });
 
 test('payment notes can be picked quickly and appear in the manager receipt', async ({ page }) => {
