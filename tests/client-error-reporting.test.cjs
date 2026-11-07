@@ -109,7 +109,7 @@ test('local development keeps entries local instead of writing to production', (
 });
 
 test('telemetry is loaded first and shares the service worker release', () => {
-    assert.match(html, /<script src="js\/telemetry\.js"><\/script>\s*<script src="js\/state\.js">/);
+    assert.match(html, /<script src="js\/telemetry\.js\?v=[^"]*"><\/script>\s*<script src="js\/state\.js\?v=/);
     const release = source.match(/const RELEASE = '([^']+)'/)[1];
     assert.match(sw, new RegExp(`const CACHE_NAME = '${release}'`));
 });

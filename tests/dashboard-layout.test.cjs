@@ -23,5 +23,5 @@ test('dashboard announcements and secondary analytics are collapsible', () => {
 });
 
 test('dashboard layout refreshes the installed app cache', () => {
-    assert.match(serviceWorker, /const CACHE_NAME = 'manzil-v147';/);
+    assert.match(serviceWorker, /const CACHE_NAME = 'manzil-[0-9a-f]{10}';/);
 });
