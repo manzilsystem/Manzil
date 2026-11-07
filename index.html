@@ -10,15 +10,15 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#071f27">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; connect-src 'self' https://musvcrkljccubwbcrtjs.supabase.co wss://musvcrkljccubwbcrtjs.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self'; manifest-src 'self'">
-    <script src="js/sw-register.js"></script>
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
-    <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+    <script src="js/sw-register.js?v=aa29152c50"></script>
+    <link rel="manifest" href="manifest.json?v=c17eb7e5e2">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=9751c575fe">
+    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png?v=bd1ed5974d">
+    <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png?v=9751c575fe">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=3c694e507b">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -30,10 +30,10 @@
             <aside class="auth-brand-panel" aria-label="عن نظام Manzil">
                 <div class="auth-brand-head">
                     <div class="auth-logo-frame manzil-full-logo" role="img" aria-label="شعار منزل | Manzil">
-                        <img src="icons/manzil-full-1.png" alt="" aria-hidden="true" width="256" height="64" decoding="async">
-                        <img src="icons/manzil-full-2.png" alt="" aria-hidden="true" width="256" height="64" decoding="async">
-                        <img src="icons/manzil-full-3.png" alt="" aria-hidden="true" width="256" height="64" decoding="async">
-                        <img src="icons/manzil-full-4.png" alt="" aria-hidden="true" width="256" height="64" decoding="async">
+                        <img src="icons/manzil-full-1.png?v=be5105a674" alt="" aria-hidden="true" width="256" height="64" decoding="async">
+                        <img src="icons/manzil-full-2.png?v=73e8771d9e" alt="" aria-hidden="true" width="256" height="64" decoding="async">
+                        <img src="icons/manzil-full-3.png?v=114bb1656a" alt="" aria-hidden="true" width="256" height="64" decoding="async">
+                        <img src="icons/manzil-full-4.png?v=c79f2e7275" alt="" aria-hidden="true" width="256" height="64" decoding="async">
                     </div>
                     <div class="auth-brand-copy">
                         <p class="auth-brand-overline">منظومة إدارة العقارات</p>
@@ -149,7 +149,7 @@
     <header class="app-card sticky top-0 z-30 border-b no-print">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center max-w-4xl">
             <div class="flex items-center gap-3">
-                <div class="header-brand-mark" aria-hidden="true"><img src="icons/manzil-logo.png" alt="" width="44" height="44" decoding="async"></div>
+                <div class="header-brand-mark" aria-hidden="true"><img src="icons/manzil-logo.png?v=9751c575fe" alt="" width="44" height="44" decoding="async"></div>
                 <div>
                     <h1 id="headerBuildingTitle" class="text-base font-extrabold leading-tight tracking-wide">Manzil</h1>
                     <p class="text-[10px] text-slate-400 flex items-center gap-1">
@@ -839,7 +839,7 @@
 
     <!-- Assistant launcher — slides away while scrolling down, returns when scrolling up -->
     <button type="button" id="assistantFab" class="app-card assistant-fab" onclick="openAssistantModal()" aria-label="اسأل عم عبده البواب" title="اسأل عم عبده البواب">
-        <span class="assistant-avatar-frame assistant-fab-avatar"><img src="icons/assistant-abbah.png" alt="" width="44" height="44" decoding="async"></span>
+        <span class="assistant-avatar-frame assistant-fab-avatar"><img src="icons/assistant-abbah.png?v=f00447602d" alt="" width="44" height="44" decoding="async"></span>
         <span class="assistant-fab-label">اسأل عم عبده</span>
     </button>
 
@@ -877,7 +877,7 @@
         <div class="app-card settings-shell border rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
             <header class="settings-topbar">
                 <div class="settings-brand-lockup" aria-label="منزل MANZIL">
-                    <img class="settings-brand-mark" src="icons/manzil-logo.png" alt="أيقونة منزل" width="48" height="48">
+                    <img class="settings-brand-mark" src="icons/manzil-logo.png?v=9751c575fe" alt="أيقونة منزل" width="48" height="48">
                     <div class="settings-brand-copy"><strong>منزل</strong><span>MANZIL</span><small>إدارة العقارات</small></div>
                 </div>
                 <div class="settings-topbar-title">
@@ -1276,12 +1276,12 @@
                             </div>
                             <div class="settings-brand-preview-grid">
                                 <div class="settings-brand-preview-card settings-brand-preview-dark">
-                                    <img src="icons/manzil-brand.svg" alt="الشعار الكامل لمنزل MANZIL" loading="lazy">
+                                    <img src="icons/manzil-brand.svg?v=d9a5d2deca" alt="الشعار الكامل لمنزل MANZIL" loading="lazy">
                                     <span>الشعار الرئيسي</span>
                                     <small>يظهر في شاشة الدخول والتقارير</small>
                                 </div>
                                 <div class="settings-brand-preview-card settings-brand-preview-light">
-                                    <img src="icons/manzil-logo.png" alt="أيقونة تطبيق منزل" loading="lazy">
+                                    <img src="icons/manzil-logo.png?v=9751c575fe" alt="أيقونة تطبيق منزل" loading="lazy">
                                     <span>أيقونة التطبيق</span>
                                     <small>تظهر في رأس التطبيق والتثبيت</small>
                                 </div>
@@ -2128,7 +2128,7 @@
     <div id="assistantModal" role="dialog" aria-modal="true" aria-labelledby="assistantModalTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
         <div class="app-card assistant-shell border rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
             <header class="assistant-head">
-                <span class="assistant-avatar"><img src="icons/assistant-abbah.png" alt="" width="38" height="38" decoding="async"></span>
+                <span class="assistant-avatar"><img src="icons/assistant-abbah.png?v=f00447602d" alt="" width="38" height="38" decoding="async"></span>
                 <div class="assistant-head-copy">
                     <h3 id="assistantModalTitle">عم عبده البواب</h3>
                     <p><span class="assistant-online-dot" aria-hidden="true"></span> بيانات التطبيق فقط</p>
@@ -2148,20 +2148,20 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js"></script>
-    <script src="js/state.js"></script>
-    <script src="js/access.js"></script>
-    <script src="js/render.js"></script>
-    <script src="js/crud.js"></script>
-    <script src="js/notices.js"></script>
-    <script src="js/reports.js"></script>
-    <script src="js/settings.js"></script>
+    <script src="js/telemetry.js?v=manzil-71ee54a4d7"></script>
+    <script src="js/state.js?v=78295b7f4b"></script>
+    <script src="js/access.js?v=25cf7f6b02"></script>
+    <script src="js/render.js?v=a885213bad"></script>
+    <script src="js/crud.js?v=fcc706f513"></script>
+    <script src="js/notices.js?v=6942db012f"></script>
+    <script src="js/reports.js?v=d8c1339c4c"></script>
+    <script src="js/settings.js?v=fac82a7797"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase.js"></script>
-    <script src="js/cashbox.js"></script>
-    <script src="js/monthly-close.js"></script>
-    <script src="js/backup.js"></script>
-    <script src="js/assistant.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/supabase.js?v=397eeb223c"></script>
+    <script src="js/cashbox.js?v=e11593fbc7"></script>
+    <script src="js/monthly-close.js?v=b74c3d3b66"></script>
+    <script src="js/backup.js?v=3d5a0d5f15"></script>
+    <script src="js/assistant.js?v=b06754edc0"></script>
+    <script src="js/app.js?v=27a807c306"></script>
 </body>
 </html>

@@ -3,7 +3,8 @@
     let reloading = false;
     let controllerChanges = 0;
     let updatePending = false;
-    let updateBanner = null;
+    let updateDeferred = false;
+    let updateCard = null;
     const hadController = Boolean(navigator.serviceWorker.controller);
 
     const appIsBusy = () => {
@@ -13,24 +14,44 @@
         return String(/** @type {HTMLInputElement} */ (active).value || '').trim() !== '';
     };
 
-    const showUpdateBanner = () => {
-        if (updateBanner || !document.body) return;
-        updateBanner = document.createElement('div');
-        updateBanner.setAttribute('role', 'status');
-        updateBanner.setAttribute('aria-live', 'polite');
-        updateBanner.textContent = 'يتوفر تحديث جديد للتطبيق. سيُطبّق تلقائيًا فور إنهاء النافذة أو الحقل المفتوح.';
-        updateBanner.style.cssText = 'position:fixed;right:12px;bottom:88px;z-index:90;max-width:calc(100vw - 24px);background:#0f766e;color:#fff;padding:10px 14px;border-radius:14px;font-size:12px;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.35);';
-        document.body.appendChild(updateBanner);
+    const closeUpdateCard = () => {
+        if (updateCard) { updateCard.remove(); updateCard = null; }
+    };
+
+    const reloadForUpdate = () => {
+        reloading = true;
+        location.reload();
+    };
+
+    const showUpdateCard = () => {
+        if (updateCard || updateDeferred || !document.body) return;
+        updateCard = document.createElement('div');
+        updateCard.setAttribute('role', 'status');
+        updateCard.setAttribute('aria-live', 'polite');
+        updateCard.style.cssText = 'position:fixed;right:12px;bottom:88px;z-index:90;max-width:calc(100vw - 24px);display:flex;align-items:center;gap:8px;background:#0f766e;color:#fff;padding:10px 14px;border-radius:14px;font-size:12px;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.35);';
+        const message = document.createElement('span');
+        message.textContent = 'يتوفر تحديث جديد للتطبيق.';
+        const applyButton = document.createElement('button');
+        applyButton.type = 'button';
+        applyButton.textContent = 'تحديث الآن';
+        applyButton.style.cssText = 'background:#fff;color:#0f766e;border:0;border-radius:10px;padding:6px 10px;font:inherit;font-weight:700;cursor:pointer;';
+        applyButton.addEventListener('click', reloadForUpdate);
+        const laterButton = document.createElement('button');
+        laterButton.type = 'button';
+        laterButton.textContent = 'لاحقًا';
+        laterButton.style.cssText = 'background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:10px;padding:6px 10px;font:inherit;font-weight:700;cursor:pointer;';
+        laterButton.addEventListener('click', () => { updateDeferred = true; closeUpdateCard(); });
+        updateCard.append(message, applyButton, laterButton);
+        document.body.appendChild(updateCard);
     };
 
     const applyPendingUpdate = () => {
-        if (reloading || !updatePending) return;
+        if (reloading || !updatePending || updateDeferred) return;
         // Reloading while a dialog or a filled field is open would discard
-        // data the user is still entering. Apply the update automatically
-        // as soon as the app is idle instead of requiring a cache clear.
-        if (appIsBusy()) { showUpdateBanner(); return; }
-        reloading = true;
-        location.reload();
+        // data the user is still entering. Offer the choice instead of
+        // interrupting, and apply automatically as soon as the app is idle.
+        if (appIsBusy()) { showUpdateCard(); return; }
+        reloadForUpdate();
     };
 
     navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -40,7 +61,7 @@
         // worker this page was using.
         if (reloading || (!hadController && controllerChanges === 1)) return;
         updatePending = true;
-        applyPendingUpdate();
+        showUpdateCard();
     });
     const refreshWorker = () => navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
         .then(registration => registration.update().catch(() => {}))
@@ -55,7 +76,7 @@
     // the only other moment the browser checks for a new worker.
     setInterval(() => {
         if (document.visibilityState === 'visible') refreshWorker();
-    }, 15 * 60 * 1000);
+    }, 30 * 60 * 1000);
     // A download can finish while a dialog is being closed; retry the
     // deferred reload without user action.
     setInterval(() => { if (updatePending) applyPendingUpdate(); }, 5000);

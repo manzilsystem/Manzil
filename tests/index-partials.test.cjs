@@ -11,7 +11,7 @@ test('index.html is generated from the template and is up to date', () => {
         cwd: root,
         encoding: 'utf8'
     });
-    assert.match(result, /index\.html matches src\/index\.template\.html/);
+    assert.match(result, /assets match the release manzil-[0-9a-f]{10}/);
 });
 
 test('the generated document contains no unresolved include markers', () => {

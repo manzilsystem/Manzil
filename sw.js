@@ -1,36 +1,36 @@
-const CACHE_NAME = 'manzil-v147';
+const CACHE_NAME = 'manzil-71ee54a4d7';
 const APP_CACHE_PREFIX = 'manzil-';
 const APP_SHELL = [
     './',
     './index.html',
-    './css/style.css',
-    './js/sw-register.js',
-    './js/telemetry.js',
-    './js/state.js',
-    './js/access.js',
-    './js/render.js',
-    './js/crud.js',
-    './js/notices.js',
-    './js/reports.js',
-    './js/settings.js',
-    './js/supabase.js',
-    './js/cashbox.js',
-    './js/subscription-rates.js',
-    './js/app.js',
-    './js/monthly-close.js',
-    './js/backup.js',
-    './js/assistant.js',
-    './manifest.json',
-    './icons/manzil-logo.png',
-    './icons/manzil-full-1.png',
-    './icons/manzil-full-2.png',
-    './icons/manzil-full-3.png',
-    './icons/manzil-full-4.png',
-    './icons/manzil-brand.svg',
-    './icons/assistant-abbah.png',
-    './icons/assistant-abbah-full.png',
-    './icons/icon-192.png',
-    './icons/icon-512.png'
+    './css/style.css?v=3c694e507b',
+    './js/sw-register.js?v=aa29152c50',
+    './js/telemetry.js?v=manzil-c82efa9c4e',
+    './js/state.js?v=78295b7f4b',
+    './js/access.js?v=25cf7f6b02',
+    './js/render.js?v=a885213bad',
+    './js/crud.js?v=fcc706f513',
+    './js/notices.js?v=6942db012f',
+    './js/reports.js?v=d8c1339c4c',
+    './js/settings.js?v=fac82a7797',
+    './js/supabase.js?v=397eeb223c',
+    './js/cashbox.js?v=e11593fbc7',
+    './js/subscription-rates.js?v=manzil-c82efa9c4e',
+    './js/app.js?v=27a807c306',
+    './js/monthly-close.js?v=b74c3d3b66',
+    './js/backup.js?v=3d5a0d5f15',
+    './js/assistant.js?v=b06754edc0',
+    './manifest.json?v=c17eb7e5e2',
+    './icons/manzil-logo.png?v=9751c575fe',
+    './icons/manzil-full-1.png?v=be5105a674',
+    './icons/manzil-full-2.png?v=73e8771d9e',
+    './icons/manzil-full-3.png?v=114bb1656a',
+    './icons/manzil-full-4.png?v=c79f2e7275',
+    './icons/manzil-brand.svg?v=d9a5d2deca',
+    './icons/assistant-abbah.png?v=f00447602d',
+    './icons/assistant-abbah-full.png?v=1f40df6bdd',
+    './icons/icon-192.png?v=9751c575fe',
+    './icons/icon-512.png?v=bd1ed5974d'
 ];
 
 self.addEventListener('install', event => {
@@ -77,6 +77,22 @@ self.addEventListener('fetch', event => {
                 }
                 return response;
             }).catch(() => caches.match(request).then(cached => cached || caches.match('./index.html')))
+        );
+        return;
+    }
+
+    // Content-hashed assets carry a "?v=" token that changes whenever the file
+    // changes, which makes them immutable: the cached copy is always the newest
+    // build for that URL, so it can be served without touching the network.
+    if (url.searchParams.has('v')) {
+        event.respondWith(
+            caches.match(request).then(cached => cached || fetch(request).then(response => {
+                if (response.ok && response.type === 'basic') {
+                    const copy = response.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+                }
+                return response;
+            }).catch(() => caches.match(request)))
         );
         return;
     }

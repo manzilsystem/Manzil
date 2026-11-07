@@ -67,7 +67,7 @@ test('cashbox screens and summaries are manager-only in the application', () => 
     assert.match(html, /id="cashTransfersList"/);
     assert.match(html, /id="cashBalance-total"/);
     assert.match(cashbox, /reduce\(\(sum, code\) => sum \+ getCashAccountBalance\(code\), 0\)/);
-    assert.match(html, /src="js\/cashbox\.js"/);
+    assert.match(html, /src="js\/cashbox\.js\?v=/);
 });
 
 test('cashbox exposes per-fund monthly income, expenses and net transfers', () => {
