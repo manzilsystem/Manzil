@@ -250,7 +250,7 @@ function createCashboxDomSandbox(overrides = {}) {
         'cashBalance-main', 'cashBalance-development', 'cashBalance-emergency',
         'cashBalance-total', 'cashTransfersList', 'cashTransferPreview',
         'cashTransferPreviewText', 'cashTransferSubmitButton',
-        'cashTransferFrom', 'cashTransferTo', 'cashTransferAmount',
+        'cashTransferFrom', 'cashTransferTo', 'cashTransferAmount', 'cashTransferNotes',
         'cashboxRecentMovements', 'cashboxMovementsAccount'
     ].forEach(id => makeElement(id));
     Object.assign(elements.get('cashTransferFrom'), { value: 'main' });
@@ -386,7 +386,7 @@ test('cashbox renderer does not expose manager balances in the owner role', () =
     assert.equal(elements.get('cashBalance-total').textContent, '');
 });
 
-test('cash transfer preview disables invalid and over-balance transfers', () => {
+test('cash transfer preview requires a reason and disables invalid or over-balance transfers', () => {
     const { api, elements } = createCashboxDomSandbox();
 
     elements.get('cashTransferAmount').value = '125';
@@ -403,8 +403,22 @@ test('cash transfer preview disables invalid and over-balance transfers', () => 
     elements.get('cashTransferTo').value = 'development';
     elements.get('cashTransferAmount').value = '25';
     api.previewCashTransfer();
+    assert.equal(elements.get('cashTransferSubmitButton').disabled, true);
+    assert.match(elements.get('cashTransferPreviewText').textContent, /سبب التحويل/);
+
+    elements.get('cashTransferNotes').value = 'دعم صندوق التطوير';
+    api.previewCashTransfer();
     assert.equal(elements.get('cashTransferSubmitButton').disabled, false);
     assert.match(elements.get('cashTransferPreviewText').textContent, /الرصيد بعد التحويل/);
+});
+
+test('cash transfer requires a non-empty reason in the form', () => {
+    assert.match(html, /id="cashTransferNotes"[\s\S]*?required[\s\S]*?placeholder="سبب التحويل \(مطلوب\)"/);
+    assert.doesNotMatch(html, /سبب التحويل \(اختياري\)/);
+    assert.match(cashbox, /const validReason = notes\.length > 0/);
+    assert.match(cashbox, /const valid = validAmount && validAccounts && sufficient && validReason/);
+    assert.match(cashbox, /if \(!notes\) \{\s*toast\('سبب التحويل مطلوب/);
+    assert.match(cashbox, /أدخل سبب التحويل لإتمام العملية/);
 });
 
 

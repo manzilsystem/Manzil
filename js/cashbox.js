@@ -343,11 +343,13 @@ function previewCashTransfer() {
     const from = /** @type {HTMLSelectElement} */ (document.getElementById('cashTransferFrom'))?.value || '';
     const to = /** @type {HTMLSelectElement} */ (document.getElementById('cashTransferTo'))?.value || '';
     const amount = Number(/** @type {HTMLInputElement} */ (document.getElementById('cashTransferAmount'))?.value);
+    const notes = /** @type {HTMLTextAreaElement} */ (document.getElementById('cashTransferNotes'))?.value.trim() || '';
     const validAmount = Number.isFinite(amount) && amount > 0;
     const validAccounts = Boolean(CASH_ACCOUNTS[from] && CASH_ACCOUNTS[to] && from !== to);
+    const validReason = notes.length > 0;
     const available = getCashAccountBalance(from);
     const sufficient = amount <= available + 0.000001;
-    const valid = validAmount && validAccounts && sufficient;
+    const valid = validAmount && validAccounts && sufficient && validReason;
 
     if (submit) submit.disabled = !valid || cashTransferSaving;
     if (!preview || !summary) return;
@@ -372,6 +374,11 @@ function previewCashTransfer() {
     if (!sufficient) {
         summary.textContent = `الرصيد المتاح في ${getCashAccountLabel(from)} هو ${fmtNum(available)} ج.م فقط.`;
         summary.className = 'text-xs font-bold text-rose-400';
+        return;
+    }
+    if (!validReason) {
+        summary.textContent = 'أدخل سبب التحويل لإتمام العملية.';
+        summary.className = 'text-xs font-bold text-amber-400';
         return;
     }
 
@@ -423,6 +430,10 @@ async function submitCashTransfer(event) {
         if (notesInput) notesInput.value = cashTransferPendingPayload.notes;
         previewCashTransfer();
         toast('تمت استعادة بيانات تحويل سابق غير مؤكد. راجعها ثم اضغط التنفيذ مرة أخرى للتحقق دون تكرار.', 'error');
+        return;
+    }
+    if (!notes) {
+        toast('سبب التحويل مطلوب قبل تنفيذ العملية.', 'error');
         return;
     }
     if (!CASH_ACCOUNTS[fromAccountCode] || !CASH_ACCOUNTS[toAccountCode] ||

@@ -275,7 +275,7 @@
                         </label>
                     </div>
                     <input type="number" id="cashTransferAmount" min="0.01" step="0.01" inputmode="decimal" oninput="previewCashTransfer()" required aria-label="مبلغ التحويل" placeholder="مبلغ التحويل" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
-                    <textarea id="cashTransferNotes" rows="2" maxlength="500" oninput="previewCashTransfer()" aria-label="ملاحظات التحويل" placeholder="سبب التحويل (اختياري)" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm"></textarea>
+                    <textarea id="cashTransferNotes" rows="2" maxlength="500" oninput="previewCashTransfer()" required aria-label="سبب التحويل (مطلوب)" placeholder="سبب التحويل (مطلوب)" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm"></textarea>
                     <div id="cashTransferPreview" aria-live="polite" class="hidden app-input border rounded-xl p-3">
                         <p id="cashTransferPreviewText" class="text-xs font-bold"></p>
                     </div>
