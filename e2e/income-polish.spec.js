@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const fs = require('node:fs');
 const { loadShell, advanceIncomeStep } = require('./helpers');
 
 async function seedManager(page) {
@@ -311,4 +312,17 @@ test('payment notes can be picked quickly and appear in the manager receipt', as
     await expect(page.locator('#incomeReceiptContent')).toContainText('سداد متأخرات');
     await expect(page.locator('#incomeReceiptContent')).toContainText('إجمالي المبلغ المستلم');
     await expect(page.locator('#incomeReceiptContent')).toContainText('شقة 1');
+
+    const imageButton = page.locator('#incomeReceiptImageBtn');
+    await expect(imageButton).toBeVisible();
+    const [download] = await Promise.all([
+        page.waitForEvent('download'),
+        imageButton.click()
+    ]);
+    expect(download.suggestedFilename()).toMatch(/^manzil_receipt_.*\.png$/);
+    const buffer = fs.readFileSync(await download.path());
+    expect(buffer.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+    expect(buffer.readUInt32BE(16)).toBe(1800);
+    expect(buffer.readUInt32BE(20)).toBeGreaterThan(400);
+    expect(buffer.length).toBeGreaterThan(8000);
 });

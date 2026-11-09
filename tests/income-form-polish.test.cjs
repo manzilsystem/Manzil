@@ -155,3 +155,63 @@ test('income preview, list and receipts surface payment notes', () => {
 test('saving a collection opens the manager receipt automatically', () => {
     assert.match(crudSource, /openIncomeReceiptModal\(rows\[0\]\.id\)/);
 });
+
+function loadReceiptImageApi() {
+    const sandbox = {
+        Date: FixedDate,
+        esc: value => String(value ?? ''),
+        fmtNum: value => String(value),
+        formatDate: value => (value ? String(value) : ''),
+        getIncomePaymentMethodLabel: value => String(value || ''),
+        document: { addEventListener() {}, getElementById: () => null, createElement: () => ({}) },
+        console
+    };
+    return vm.runInNewContext(
+        `${stateSource}\n${accessSource}\n({ state, buildReceiptImagePlan, receiptImageFilename, RECEIPT_IMAGE_SCALE, RECEIPT_IMAGE_WIDTH })`,
+        sandbox,
+        { filename: 'receipt-image.js' }
+    );
+}
+
+test('manager receipt modal exposes a guarded high-quality image export button', () => {
+    assert.match(html, /id="incomeReceiptImageBtn"[^>]*onclick="exportActiveIncomeReceiptImage\(\)"/);
+    assert.match(accessSource, /async function exportActiveIncomeReceiptImage\(\)[\s\S]*?requireManager\(\)/);
+    assert.match(accessSource, /receipt_image_generation_failed/);
+    assert.match(accessSource, /incomeReceiptImageBtn[^]*?button\.disabled = true/);
+});
+
+test('receipt image renders on a 2x-3x canvas and exports a PNG', () => {
+    assert.match(accessSource, /RECEIPT_IMAGE_SCALE = 2\.5/);
+    assert.match(accessSource, /ctx\.scale\(plan\.scale, plan\.scale\)/);
+    assert.match(accessSource, /toBlob\(blob => resolve\(blob\), 'image\/png'\)/);
+    assert.match(accessSource, /canvas\.width = Math\.round\(plan\.width \* plan\.scale\)/);
+});
+
+test('receipt image plan exposes header, body and footer with the receipt totals', () => {
+    const app = loadReceiptImageApi();
+    app.state.buildingName = 'عمارة الاختبار';
+    const receipt = {
+        reference: 'RCPT-2026-01',
+        date: '2026-01-05',
+        paymentMethod: 'instapay',
+        purposeSummary: 'اشتراك شهري',
+        cashboxSummary: 'الخزنة الرئيسية',
+        totalAmount: 150,
+        payments: [
+            { id: 'p1', amount: 100, month: 'يناير 2026', purposeCode: 'subscription', cashAccountCode: 'main' },
+            { id: 'p2', amount: 50, month: 'فبراير 2026', purposeCode: 'subscription', cashAccountCode: 'main' }
+        ]
+    };
+    const plan = app.buildReceiptImagePlan(receipt, resident());
+    assert.equal(plan.sections.join(','), 'header,body,footer');
+    assert.equal(plan.width, 720);
+    assert.ok(plan.scale >= 2 && plan.scale <= 3);
+    assert.ok(plan.height > 400);
+    assert.equal(plan.items.length, 2);
+    assert.equal(plan.items[0].amount, '100 ج.م');
+    assert.equal(plan.total, '150 ج.م');
+    assert.equal(plan.fields.length, 6);
+    assert.equal(plan.fields[1][1], 'شقة 3');
+    assert.equal(app.receiptImageFilename(receipt), 'manzil_receipt_RCPT-2026-01.png');
+    assert.equal(app.receiptImageFilename({}), 'manzil_receipt_receipt.png');
+});
