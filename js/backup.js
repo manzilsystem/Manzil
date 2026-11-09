@@ -23,6 +23,18 @@ function backupStatusLabel(status) {
     })[status] || status || 'غير معروف';
 }
 
+// One tested source of truth for the UTC release tag format `backup-YYYYMMDDTHHMMSSZ`,
+// shared by download, restore and filename derivation so the pattern never drifts.
+const BACKUP_TAG_PATTERN = /^backup-\d{8}T\d{6}Z$/;
+
+function isValidBackupTag(tag) {
+    return typeof tag === 'string' && BACKUP_TAG_PATTERN.test(tag);
+}
+
+function backupTimestampFromTag(tag) {
+    return isValidBackupTag(tag) ? tag.slice('backup-'.length) : '';
+}
+
 async function callBackupConsole(body) {
     const { data, error } = await supabaseClient.functions.invoke('backup-console', { body });
     if (error) throw error;
@@ -224,7 +236,7 @@ async function downloadDatabaseBackup() {
     const tag = select?.value || '';
     const button = /** @type {HTMLButtonElement} */ (document.getElementById('backupDownloadButton'));
     const status = document.getElementById('backupDownloadStatus');
-    if (!button || button.disabled || !/^backup-\d{8}T\d{6}Z$/.test(tag)) return;
+    if (!button || button.disabled || !isValidBackupTag(tag)) return;
 
     backupDownloadInProgress = true;
     updateBackupDownloadButton();
@@ -242,7 +254,7 @@ async function downloadDatabaseBackup() {
         } else {
             const direct = prepared.data;
             const directUrl = new URL(direct?.downloadUrl || '');
-            const expectedFilename = `manzil-db-${tag.slice('backup-'.length)}.dump`;
+            const expectedFilename = `manzil-db-${backupTimestampFromTag(tag)}.dump`;
             if (direct.filename !== expectedFilename
                 || !/^[a-f0-9]{64}$/i.test(String(direct.sha256 || ''))
                 || !Number.isSafeInteger(Number(direct.sizeBytes)) || Number(direct.sizeBytes) <= 0
@@ -281,7 +293,7 @@ async function downloadDatabaseBackup() {
         const actualSha = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
         if (actualSha !== expectedSha.toLowerCase()) throw new Error('backup_checksum_mismatch');
 
-        const filename = `manzil-db-${tag.slice('backup-'.length)}.dump`;
+        const filename = `manzil-db-${backupTimestampFromTag(tag)}.dump`;
         const objectUrl = URL.createObjectURL(data);
         const link = document.createElement('a');
         link.href = objectUrl;
@@ -330,8 +342,8 @@ async function requestDatabaseBackup() {
 async function requestDatabaseRestore() {
     if (!requireManager()) return;
     const select = /** @type {HTMLSelectElement} */ (document.getElementById('backupRestoreSelect'));
-    const tag = select?.value;
-    if (!tag) { toast('اختر نسخة احتياطية أولاً', 'error'); return; }
+    const tag = select?.value || '';
+    if (!isValidBackupTag(tag)) { toast('اختر نسخة احتياطية أولاً', 'error'); return; }
     const backups = Array.isArray(backupConsoleData?.backups) ? backupConsoleData.backups : [];
     const backup = backups.find(item => item.tag === tag);
     if (!backup) { toast('تعذر التحقق من النسخة المختارة. حدّث الحالة ثم حاول مرة أخرى.', 'error'); return; }

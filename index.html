@@ -1562,7 +1562,7 @@
             </div>
             <div class="p-5 space-y-4">
                 <section class="rounded-2xl border border-emerald-500/30 p-4 space-y-2">
-                    <div class="font-bold text-sm">النسخ التلقائي</div>
+                    <div class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> حماية البيانات</div>
                     <p class="text-xs text-slate-400 leading-6">موعد النسخ اليومي 02:23 UTC (04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة)، مع فحص SHA-256 وصلاحية أرشيف PostgreSQL، والاحتفاظ بآخر 30 نسخة.</p>
                     <div id="backupLastStatus" class="text-xs text-slate-400">جارٍ تحميل سجل النسخ...</div>
                     <div id="backupStaleNotice" role="alert" class="hidden rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] leading-5 text-amber-300">هذه البيانات محفوظة محليًا من زيارة سابقة. لا يمكن إنشاء نسخة أو استعادة حتى يتم التحقق من الحالة من الخادم.</div>
@@ -1570,13 +1570,16 @@
                         <p id="backupRefreshNotice" class="text-[10px] text-slate-500" role="status" aria-live="polite">حالة الطلبات تُحدّث تلقائيًا أثناء التنفيذ.</p>
                         <button type="button" onclick="loadBackupConsole()" class="app-input border rounded-lg px-3 py-1.5 text-xs font-bold whitespace-nowrap"><i class="fa-solid fa-rotate ml-1" aria-hidden="true"></i> تحديث الحالة</button>
                     </div>
+                </section>
+                <section class="rounded-2xl border border-indigo-500/30 p-4 space-y-2">
+                    <div class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> إنشاء نسخة احتياطية</div>
                     <button id="backupCreateButton" type="button" onclick="requestDatabaseBackup()" class="w-full bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white py-2.5 rounded-xl text-xs font-bold"><i class="fa-solid fa-cloud-arrow-up ml-2"></i> إنشاء نسخة احتياطية الآن</button>
                     <p class="text-[10px] text-slate-500">ينشئ نسخة كاملة من قاعدة البيانات على الخادم، ولا يكتفي بتصدير بيانات الواجهة.</p>
                     <div id="backupCreateStatus" role="status" aria-live="polite" class="text-[11px] text-slate-400"></div>
                     <div id="backupRequestHistory" class="space-y-2 text-xs"></div>
                 </section>
-                <section class="space-y-2">
-                    <div class="font-bold text-sm">استعادة قاعدة البيانات</div>
+                <section class="rounded-2xl border border-rose-500/30 p-4 space-y-2" aria-labelledby="backupRestoreTitle">
+                    <div id="backupRestoreTitle" class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> استعادة قاعدة البيانات</div>
                     <p class="text-xs text-rose-300 leading-5">تحذير: الاستعادة تستبدل قاعدة بيانات الإنتاج بالكامل، بما يشمل بيانات جميع المباني والحسابات والسجلات، بحالة النسخة المختارة. لا يمكن التراجع عنها من الواجهة.</p>
                     <select id="backupRestoreSelect" onchange="updateBackupDownloadButton()" class="w-full app-input border rounded-xl px-3 py-3 text-sm" aria-label="اختر النسخة المراد تنزيلها أو استعادتها">
                         <option value="">جارٍ تحميل النسخ...</option>
@@ -1599,8 +1602,8 @@
                     <div id="backupRestoreStatus" role="status" aria-live="polite" class="text-xs text-slate-400"></div>
                     <div id="backupRestoreHistory" class="space-y-2 text-xs"></div>
                 </section>
-                <section class="border-t border-slate-700/60 pt-3 space-y-2">
-                    <div class="font-bold text-sm">نسخة التطبيق المحلية (JSON)</div>
+                <section class="rounded-2xl border border-slate-700/60 p-4 space-y-2">
+                    <div class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-file-code" aria-hidden="true"></i> نسخة التطبيق المحلية (JSON)</div>
                     <p class="text-[10px] leading-5 text-slate-500">تحفظ بيانات العمارة الحالية مع وقت التصدير وعدد السجلات، وتصلح للنقل بين البيئات. الاستيراد يتحقق من الملف ثم يستبدل بيانات العمارة الحالية فقط، ولا يستبدل قاعدة البيانات الكاملة.</p>
                     <button onclick="exportJSON()" class="w-full app-card border py-2.5 rounded-xl text-xs font-bold"><i class="fa-solid fa-download ml-2"></i> تصدير JSON</button>
                     <label for="backupImportInput" class="block w-full app-card border py-2.5 rounded-xl text-xs font-bold text-center cursor-pointer"><i class="fa-solid fa-upload ml-2"></i> استعادة ملف JSON</label>
@@ -2157,7 +2160,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-11a95e8db2"></script>
+    <script src="js/telemetry.js?v=manzil-e22fbd604f"></script>
     <script src="js/state.js?v=6e9bcc8346"></script>
     <script src="js/access.js?v=817673c8c0"></script>
     <script src="js/render.js?v=14dfdee1e7"></script>
@@ -2169,7 +2172,7 @@
     <script src="js/supabase.js?v=8449ca5367"></script>
     <script src="js/cashbox.js?v=e11593fbc7"></script>
     <script src="js/monthly-close.js?v=b74c3d3b66"></script>
-    <script src="js/backup.js?v=3d5a0d5f15"></script>
+    <script src="js/backup.js?v=6f6d4ebbf1"></script>
     <script src="js/assistant.js?v=b06754edc0"></script>
     <script src="js/app.js?v=27a807c306"></script>
 </body>
