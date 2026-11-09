@@ -86,6 +86,61 @@ function sendWhatsAppReminder(residentId) {
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
 }
 
+function buildArrearsReminderMessage(item) {
+    const resident = item?.resident || {};
+    const phone = cleanPhone(resident.phone);
+    if (!phone) return null;
+    const months = Array.isArray(item.unpaidMonths)
+        ? item.unpaidMonths.map(month => month?.month).filter(Boolean).join('، ')
+        : '';
+    const message = renderReminderTemplate(getReminderMessageTemplate(), {
+        name: resident.name || 'بكم',
+        building: state.buildingName || 'العمارة',
+        apartment: resident.apartmentNumber || '—',
+        month: getCurrentMonth(),
+        amount: fmtNum(item.totalDebt),
+        count: item.count,
+        days: item.daysOverdue ? String(item.daysOverdue) : '',
+        duration: typeof formatOverdueDuration === 'function' ? formatOverdueDuration(item.daysOverdue) : '',
+        months
+    });
+    return {
+        residentId: resident.id,
+        name: resident.name || '',
+        apartment: resident.apartmentNumber || '',
+        phone,
+        amount: item.totalDebt,
+        count: item.count,
+        message,
+        url: `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+    };
+}
+
+function buildArrearsReminderMessages(report) {
+    return (report?.residents || []).map(buildArrearsReminderMessage).filter(Boolean);
+}
+
+function sendBulkArrearsReminders() {
+    if (!requireManager()) return;
+    const report = typeof buildArrearsReport === 'function'
+        ? buildArrearsReport(typeof getArrearsReportFilters === 'function' ? getArrearsReportFilters() : {})
+        : { residents: [] };
+    if (!report.residents.length) {
+        toast('لا توجد متأخرات لإرسال تذكير بها.', 'info');
+        return;
+    }
+    const messages = buildArrearsReminderMessages(report);
+    if (!messages.length) {
+        toast('لا يوجد رقم هاتف مسجّل لأي من المتأخرين المعروضين.', 'error');
+        return;
+    }
+    const skipped = report.residents.length - messages.length;
+    const note = skipped > 0 ? `\nسيتم تخطي ${fmtNum(skipped)} شقة بلا رقم هاتف.` : '';
+    if (!window.confirm(`سيتم فتح ${fmtNum(messages.length)} محادثة واتساب لإرسال التذكير يدويًا.${note}\nهل تريد المتابعة؟`)) return;
+    messages.forEach(item => window.open(item.url, '_blank', 'noopener,noreferrer'));
+    toast(`تم فتح ${fmtNum(messages.length)} محادثة واتساب للإرسال اليدوي.`, 'success');
+}
+
 
 function sendIncomeReceiptOnWhatsApp(incomeId) {
     if (!requireManager()) return;
