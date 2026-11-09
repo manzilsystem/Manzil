@@ -1241,8 +1241,9 @@
                 <button type="button" onclick="closeModal('incomeReceiptModal')" aria-label="إغلاق الإيصال" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div id="incomeReceiptContent" class="p-5 space-y-3 max-h-[65vh] overflow-y-auto"></div>
-            <div class="p-5 pt-0 grid grid-cols-2 gap-2">
+            <div class="p-5 pt-0 grid grid-cols-3 gap-2">
                 <button type="button" onclick="printActiveIncomeReceipt()" class="min-h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-3 py-2.5 text-xs font-bold"><i class="fa-solid fa-print ml-1"></i> طباعة / PDF</button>
+                <button type="button" id="incomeReceiptImageBtn" onclick="exportActiveIncomeReceiptImage()" class="min-h-11 bg-slate-700 hover:bg-slate-600 text-white rounded-xl px-3 py-2.5 text-xs font-bold"><i class="fa-solid fa-image ml-1"></i> حفظ صورة</button>
                 <button type="button" onclick="sendActiveIncomeReceiptOnWhatsApp()" class="min-h-11 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-3 py-2.5 text-xs font-bold"><i class="fa-brands fa-whatsapp ml-1"></i> واتساب</button>
             </div>
         </div>
