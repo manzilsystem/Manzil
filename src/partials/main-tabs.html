@@ -32,7 +32,7 @@
             <section class="app-card p-4 rounded-3xl border space-y-3" aria-labelledby="quickActionsTitle">
                 <div class="flex items-center justify-between">
                     <h2 id="quickActionsTitle" class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-bolt text-amber-400"></i> إجراءات سريعة</h2>
-                    <span class="text-[10px] text-slate-500">اختصارات الإدارة اليومية</span>
+                    <span class="text-xs text-slate-500">اختصارات الإدارة اليومية</span>
                 </div>
                 <div class="quick-actions-grid grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <button onclick="openNewIncomeModal()" class="quick-action quick-action-income" aria-label="تسجيل تحصيل جديد">
@@ -66,7 +66,7 @@
                         <div class="w-8 h-8 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center text-xs border border-emerald-500/20"><i class="fa-solid fa-arrow-trend-up"></i></div>
                     </div>
                     <h3 class="text-xl sm:text-2xl font-black text-emerald-400" id="totalIncomeDisplay">0 ج.م</h3>
-                    <p id="incomePeriodLabel" class="text-[10px] text-slate-500 mt-1">إجمالي التحصيلات المسجلة منذ بدء التسجيل</p>
+                    <p id="incomePeriodLabel" class="text-xs text-slate-500 mt-1">إجمالي التحصيلات المسجلة منذ بدء التسجيل</p>
                 </div>
                 <div class="app-card p-4 rounded-3xl border flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-2">
@@ -74,7 +74,7 @@
                         <div class="w-8 h-8 bg-rose-500/10 text-rose-400 rounded-xl flex items-center justify-center text-xs border border-rose-500/20"><i class="fa-solid fa-arrow-trend-down"></i></div>
                     </div>
                     <h3 class="text-xl sm:text-2xl font-black text-rose-400" id="totalExpenseDisplay">0 ج.م</h3>
-                    <p id="expensePeriodLabel" class="text-[10px] text-slate-500 mt-1">إجمالي المصروفات المسجلة منذ بدء التسجيل</p>
+                    <p id="expensePeriodLabel" class="text-xs text-slate-500 mt-1">إجمالي المصروفات المسجلة منذ بدء التسجيل</p>
                 </div>
             </div>
 
@@ -82,7 +82,7 @@
                 <div>
                     <p class="text-xs text-slate-400 font-medium">الرصيد الحالي بالخزنة</p>
                     <h3 class="text-2xl sm:text-3xl font-black mt-0.5" id="netBalanceDisplay">0 ج.م</h3>
-                    <p class="text-[10px] text-slate-500 mt-1">الرصيد الافتتاحي + التحصيلات − المصروفات المسجلة منذ بدء التسجيل</p>
+                    <p class="text-xs text-slate-500 mt-1">الرصيد الافتتاحي + التحصيلات − المصروفات المسجلة منذ بدء التسجيل</p>
                 </div>
                 <div class="w-12 h-12 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center text-2xl text-amber-300"><i class="fa-solid fa-wallet"></i></div>
             </div>
@@ -90,12 +90,12 @@
             <section class="app-card p-4 sm:p-5 rounded-3xl border space-y-3" aria-labelledby="monthSummaryTitle">
                 <div class="flex items-center justify-between gap-2">
                     <h2 id="monthSummaryTitle" class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-calendar-check text-emerald-400"></i> ملخص الشهر الحالي</h2>
-                    <span id="currentMonthSummaryLabel" class="text-[10px] text-slate-500"></span>
+                    <span id="currentMonthSummaryLabel" class="text-xs text-slate-500"></span>
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
-                    <div class="app-input border rounded-2xl p-2"><p class="text-[10px] text-slate-500">نسبة التحصيل</p><p id="collectionRateDisplay" class="text-base font-black text-emerald-400">0%</p></div>
-                    <div class="app-input border rounded-2xl p-2"><p class="text-[10px] text-slate-500">المدفوع</p><p id="currentMonthPaidDisplay" class="text-xs font-black">0 ج.م</p></div>
-                    <div class="app-input border rounded-2xl p-2 col-span-2 sm:col-span-1"><p class="text-[10px] text-slate-500">دفع جزئي</p><p id="partialPaymentsDisplay" class="text-xs font-black text-amber-400">0</p></div>
+                    <div class="app-input border rounded-2xl p-2"><p class="text-xs text-slate-500">نسبة التحصيل</p><p id="collectionRateDisplay" class="text-base font-black text-emerald-400">0%</p></div>
+                    <div class="app-input border rounded-2xl p-2"><p class="text-xs text-slate-500">المدفوع</p><p id="currentMonthPaidDisplay" class="text-xs font-black">0 ج.م</p></div>
+                    <div class="app-input border rounded-2xl p-2 col-span-2 sm:col-span-1"><p class="text-xs text-slate-500">دفع جزئي</p><p id="partialPaymentsDisplay" class="text-xs font-black text-amber-400">0</p></div>
                 </div>
                 <div class="h-2 rounded-full bg-slate-800 overflow-hidden" role="progressbar" aria-label="نسبة تحصيل الشهر الحالي" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                     <div id="collectionRateBar" class="h-full rounded-full bg-gradient-to-l from-emerald-400 to-indigo-500 transition-all" style="width:0%"></div>
@@ -109,9 +109,9 @@
                 </summary>
                 <div class="p-4 pt-0 space-y-4">
             <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
-                <div class="flex flex-wrap items-baseline justify-between gap-2"><h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-chart-line text-indigo-400"></i> التدفق النقدي البصري</h3><span id="cashFlowPeriodLabel" class="text-[10px] text-slate-500"></span></div>
+                <div class="flex flex-wrap items-baseline justify-between gap-2"><h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-chart-line text-indigo-400"></i> التدفق النقدي البصري</h3><span id="cashFlowPeriodLabel" class="text-xs text-slate-500"></span></div>
                 <div id="cashFlowChartContainer" class="w-full h-32 flex items-end justify-between gap-2 pt-4 px-2 border-b border-slate-700/50 pb-2"></div>
-                <div class="flex justify-center gap-4 text-[10px] text-slate-400 pt-1">
+                <div class="flex justify-center gap-4 text-xs text-slate-400 pt-1">
                     <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> التحصيلات</span>
                     <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> المصروفات</span>
                 </div>
@@ -123,7 +123,7 @@
             </div>
 
             <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
-                <div class="flex flex-wrap items-baseline justify-between gap-2"><h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-chart-pie text-indigo-400"></i> توزيع المصروفات</h3><span id="expenseBreakdownPeriodLabel" class="text-[10px] text-slate-500"></span></div>
+                <div class="flex flex-wrap items-baseline justify-between gap-2"><h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-chart-pie text-indigo-400"></i> توزيع المصروفات</h3><span id="expenseBreakdownPeriodLabel" class="text-xs text-slate-500"></span></div>
                 <div id="expenseCategoriesBreakdown" class="space-y-3"></div>
             </div>
 
@@ -220,22 +220,22 @@
                 <article class="app-card border rounded-3xl p-4 space-y-2">
                     <p class="text-xs text-slate-400">إجمالي النقدية في الصناديق</p>
                     <p id="cashBalance-total" class="text-2xl font-black">0 ج.م</p>
-                    <p class="text-[10px] text-slate-500">مجموع أرصدة الخزنة والتطوير والطوارئ</p>
+                    <p class="text-xs text-slate-500">مجموع أرصدة الخزنة والتطوير والطوارئ</p>
                 </article>
                 <article class="app-card border rounded-3xl p-4 space-y-2">
                     <p class="text-xs text-slate-400">الخزنة الرئيسية</p>
                     <p id="cashBalance-main" class="text-2xl font-black text-emerald-400">0 ج.م</p>
-                    <p class="text-[10px] text-slate-500">تحصيلات الخزنة + رصيد البداية − المصروفات والتحويلات</p>
+                    <p class="text-xs text-slate-500">تحصيلات الخزنة + رصيد البداية − المصروفات والتحويلات</p>
                 </article>
                 <article class="app-card border rounded-3xl p-4 space-y-2">
                     <p class="text-xs text-slate-400">صندوق التطوير</p>
                     <p id="cashBalance-development" class="text-2xl font-black text-indigo-300">0 ج.م</p>
-                    <p class="text-[10px] text-slate-500">تحصيلات موجهة إليه + تحويلات واردة − مصروفاته</p>
+                    <p class="text-xs text-slate-500">تحصيلات موجهة إليه + تحويلات واردة − مصروفاته</p>
                 </article>
                 <article class="app-card border rounded-3xl p-4 space-y-2">
                     <p class="text-xs text-slate-400">صندوق الصيانة الطارئة</p>
                     <p id="cashBalance-emergency" class="text-2xl font-black text-amber-300">0 ج.م</p>
-                    <p class="text-[10px] text-slate-500">تحصيلات موجهة إليه + تحويلات واردة − مصروفاته</p>
+                    <p class="text-xs text-slate-500">تحصيلات موجهة إليه + تحويلات واردة − مصروفاته</p>
                 </article>
             </div>
 
@@ -243,7 +243,7 @@
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <h3 class="font-bold text-sm">حركة الصناديق الشهرية</h3>
-                        <p class="text-[10px] text-slate-500 mt-1">التحصيلات والمصروفات وصافي التحويلات لكل صندوق في الشهر المختار، من نفس سجلات الخزنة.</p>
+                        <p class="text-xs text-slate-500 mt-1">التحصيلات والمصروفات وصافي التحويلات لكل صندوق في الشهر المختار، من نفس سجلات الخزنة.</p>
                     </div>
                     <select id="cashboxSummaryMonth" onchange="renderCashbox()" aria-label="شهر حركة الصناديق" class="app-input border rounded-xl px-3 py-2 text-xs"></select>
                 </div>
@@ -286,7 +286,7 @@
             <div class="app-card p-5 rounded-3xl border space-y-3">
                 <div class="flex items-center justify-between gap-3">
                     <h3 class="font-bold text-sm">سجل التحويلات الداخلية</h3>
-                    <span class="text-[10px] text-slate-500">أحدث 100 تحويل</span>
+                    <span class="text-xs text-slate-500">أحدث 100 تحويل</span>
                 </div>
                 <div id="cashTransfersList" class="space-y-2"></div>
             </div>
@@ -295,7 +295,7 @@
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <h3 class="font-bold text-sm">آخر 10 حركات</h3>
-                        <p class="text-[10px] text-slate-500 mt-1">أحدث تحصيل ومصروف وتحويل وارد أو صادر على الصناديق.</p>
+                        <p class="text-xs text-slate-500 mt-1">أحدث تحصيل ومصروف وتحويل وارد أو صادر على الصناديق.</p>
                     </div>
                     <select id="cashboxMovementsAccount" onchange="renderCashbox()" aria-label="تصفية آخر الحركات حسب الصندوق" class="app-input border rounded-xl px-3 py-2 text-xs">
                         <option value="all">كل الصناديق</option>
@@ -669,7 +669,7 @@
                 <div id="auditLogContainer" class="space-y-1.5 max-h-[32rem] overflow-y-auto pr-1" aria-live="polite"></div>
             </div>
         </section>
-        <footer id="appCopyright" class="text-center text-[10px] text-slate-500 leading-5 pt-2 no-print">
+        <footer id="appCopyright" class="text-center text-xs text-slate-500 leading-5 pt-2 no-print">
             <p>حقوق الملكية الفكرية © 2026 شركة سنا للبرمجيات. جميع الحقوق محفوظة.</p>
             <p>محمد عادل · <a href="tel:+201027767039" dir="ltr" class="text-indigo-300 hover:text-indigo-200">01027767039</a></p>
         </footer>
