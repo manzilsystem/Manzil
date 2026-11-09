@@ -142,12 +142,14 @@ function renderMonthlyClosePdfHtml(report) {
         ].join('');
     }).join('');
 
+    const generatedAtLabel = formatDate(new Date().toISOString());
     return [
-        '<div dir="rtl" lang="ar" style="font-family:Cairo,Arial,sans-serif;color:#111827;background:#fff;line-height:1.8">',
-        '<header style="text-align:center;border-bottom:2px solid #334155;padding-bottom:12px;margin-bottom:18px">',
-        '<h1 style="font-size:22px;font-weight:800;margin:0">', esc(state.buildingName || 'Manzil'), '</h1>',
-        '<h2 style="font-size:17px;font-weight:700;margin:4px 0">مراجعة الإقفال النقدي — ', esc(report.month), '</h2>',
-        '<p style="font-size:11px;color:#475569;margin:0">التوقيت المحلي: ', esc(report.time_zone), '</p></header>',
+        reportPdfDocumentOpen(),
+        reportPdfHeader([
+            'مراجعة الإقفال النقدي — ', esc(report.month)
+        ], [
+            'التوقيت المحلي: ', esc(report.time_zone)
+        ]),
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">ملخص الحركة النقدية</h3>',
         '<table style="width:100%;border-collapse:collapse;font-size:12px"><tbody>',
         '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">رصيد أول الشهر</th><td style="padding:7px;border:1px solid #cbd5e1">', monthlyCloseMoney(totals.opening_balance), ' ج.م</td></tr>',
@@ -167,8 +169,9 @@ function renderMonthlyClosePdfHtml(report) {
         '</p><p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
         'هذا التقرير مراجعة حسابية للقراءة فقط، ولا ينشئ قيد إقفال ولا يمنع تعديل البيانات مستقبلًا. ',
         'تم احتساب التحصيلات من تاريخ القبض الفعلي والمصروفات من تاريخ الصرف والتحويلات من وقت تنفيذها، وفق توقيت القاهرة.',
-        '</p><footer style="font-size:9px;color:#64748b;margin-top:18px;text-align:center">Manzil — ',
-        esc(formatDate(new Date().toISOString())), '</footer></div>'
+        '</p>',
+        reportPdfFooter(generatedAtLabel),
+        '</div>'
     ].join('');
 }
 
