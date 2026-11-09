@@ -227,19 +227,17 @@ function renderDashboard() {
     const period = getDashboardPeriod();
     const periodLabel = getDashboardPeriodLabel(period);
     const periodMonths = new Set(getDashboardPeriodMonths(period));
-    const income = state.income.filter(item => matchesDashboardPeriod(item, period, periodMonths));
-    const expenses = state.expenses.filter(item => matchesDashboardPeriod(item, period, periodMonths));
-    const totalIncome = income.reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
-    const totalExpense = expenses.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
+    // المؤشرات العليا (التحصيلات/المصروفات/رصيد الخزنة) تراكمية دائمًا منذ بدء التسجيل،
+    // وفلتر الفترة يخصّ المخطط المالي وتفصيل المصروفات فقط ليبقى النطاق موحّدًا.
     const lifetimeIncome = state.income.reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
     const lifetimeExpense = state.expenses.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
     const net = (state.startingBalance||0) + lifetimeIncome - lifetimeExpense;
-    document.getElementById('totalIncomeDisplay').textContent = fmtNum(totalIncome)+' ج.م';
-    document.getElementById('totalExpenseDisplay').textContent = fmtNum(totalExpense)+' ج.م';
+    document.getElementById('totalIncomeDisplay').textContent = fmtNum(lifetimeIncome)+' ج.م';
+    document.getElementById('totalExpenseDisplay').textContent = fmtNum(lifetimeExpense)+' ج.م';
     const incomeLabel = document.getElementById('incomePeriodLabel');
     const expenseLabel = document.getElementById('expensePeriodLabel');
-    if (incomeLabel) incomeLabel.textContent = period === 'all' ? 'إجمالي التحصيلات المسجلة منذ بدء التسجيل' : `إجمالي التحصيلات — ${periodLabel}`;
-    if (expenseLabel) expenseLabel.textContent = period === 'all' ? 'إجمالي المصروفات المسجلة منذ بدء التسجيل' : `إجمالي المصروفات — ${periodLabel}`;
+    if (incomeLabel) incomeLabel.textContent = 'إجمالي التحصيلات المسجلة منذ بدء التسجيل';
+    if (expenseLabel) expenseLabel.textContent = 'إجمالي المصروفات المسجلة منذ بدء التسجيل';
     const breakdownPeriodLabel = document.getElementById('expenseBreakdownPeriodLabel');
     if (breakdownPeriodLabel) breakdownPeriodLabel.textContent = periodLabel;
     const netEl = document.getElementById('netBalanceDisplay');
