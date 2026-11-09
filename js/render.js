@@ -390,11 +390,15 @@ function getIncomeListBatchKey(item) {
     return reference ? `${item.residentId}:${item.date}:${reference}` : `income:${item.id}`;
 }
 
-function renderIncomeListRow(i, resident) {
+function renderIncomeListRow(i, resident, rowIndexLabel = '') {
     const displayNotes = stripIncomeBatchNote(i.notes);
+    const indexBadge = rowIndexLabel
+        ? `<span class="text-[10px] font-bold text-slate-500 min-w-[1.75rem] text-center shrink-0" aria-hidden="true">${esc(rowIndexLabel)}</span>`
+        : '';
     return `
         <div class="flex justify-between items-center gap-2 py-2 border-t border-slate-500/10 first:border-t-0">
             <div class="flex items-center gap-2 min-w-0">
+                ${indexBadge}
                 <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xs font-bold shrink-0">${esc(resident?.apartmentNumber || '?')}</div>
                 <div class="min-w-0">
                     <p class="text-xs font-bold truncate">${esc(resident?.name || 'محذوف')}</p>
@@ -457,18 +461,31 @@ function renderIncomeTable() {
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(item);
     });
-    c.innerHTML = [...groups.values()].map(group => {
+    c.innerHTML = [...groups.values()].map((group, groupIndex) => {
         const first = group[0];
         const resident = state.residents.find(person => person.id === first.residentId);
-        if (group.length === 1) return `<div class="app-card p-3 rounded-2xl border">${renderIncomeListRow(first, resident)}</div>`;
+        const entryNumber = groupIndex + 1;
+        if (group.length === 1) return `<div class="app-card p-3 rounded-2xl border">${renderIncomeListRow(first, resident, String(entryNumber))}</div>`;
         const batchTotal = group.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        const batchReference = typeof getIncomeBatchReference === 'function' ? getIncomeBatchReference(first) : '';
+        const batchMeta = [`${entryNumber}. دفعة مجمعة`];
+        if (batchReference) batchMeta.push(batchReference);
+        batchMeta.push(formatDate(first.date));
+        batchMeta.push(`${fmtNum(group.length)} بنود`);
         return `
             <section class="app-card p-3 rounded-2xl border">
                 <div class="flex justify-between items-center gap-2 pb-2">
-                    <div class="min-w-0"><p class="text-xs font-bold">${esc(resident?.name || 'محذوف')} · شقة ${esc(resident?.apartmentNumber || '?')}</p><p class="text-[10px] text-slate-500">دفعة مجمعة · ${formatDate(first.date)} · ${fmtNum(group.length)} بنود</p></div>
-                    <p class="text-sm font-black text-emerald-400 shrink-0">${fmtNum(batchTotal)} ج.م</p>
+                    <div class="min-w-0"><p class="text-xs font-bold">${esc(resident?.name || 'محذوف')} · شقة ${esc(resident?.apartmentNumber || '?')}</p><p class="text-[10px] text-slate-500">${esc(batchMeta.join(' · '))}</p></div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <p class="text-sm font-black text-emerald-400">${fmtNum(batchTotal)} ج.م</p>
+                        <button onclick="openIncomeReceiptModal('${first.id}')" aria-label="عرض إيصال الدفعة كاملًا" title="عرض إيصال الدفعة وطباعته" class="text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-receipt text-sm"></i></button>
+                        <button onclick="sendIncomeReceiptOnWhatsApp('${first.id}')" aria-label="إرسال إيصال الدفعة واتساب" title="إرسال إيصال الدفعة واتساب" class="text-emerald-400 hover:text-emerald-300 p-1"><i class="fa-brands fa-whatsapp text-sm"></i></button>
+                    </div>
                 </div>
-                ${group.map(item => renderIncomeListRow(item, resident)).join('')}
+                ${group.map(item => {
+                    const position = typeof getIncomeBatchPosition === 'function' ? getIncomeBatchPosition(item) : null;
+                    return renderIncomeListRow(item, resident, position ? `${position.index}/${position.total}` : '');
+                }).join('')}
             </section>`;
     }).join('');
 }

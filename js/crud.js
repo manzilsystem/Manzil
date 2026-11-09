@@ -221,6 +221,16 @@ function getIncomeBatchReference(payment) {
     return String(payment?.notes || '').match(/^دفعة موزعة\s+([A-Z0-9]+)\s+\(\d+\/\d+\)/i)?.[1] || '';
 }
 
+function getIncomeBatchPosition(payment) {
+    const match = String(payment?.notes || '').match(/^دفعة موزعة\s+[A-Z0-9]+\s+\((\d+)\/(\d+)\)/i);
+    if (!match) return null;
+    const index = Number(match[1]);
+    const total = Number(match[2]);
+    return Number.isInteger(index) && Number.isInteger(total) && index >= 1 && total >= 1
+        ? { index, total }
+        : null;
+}
+
 function getIncomeBatchPayments(payment) {
     const reference = getIncomeBatchReference(payment);
     if (!reference) return [payment];
