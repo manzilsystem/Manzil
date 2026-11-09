@@ -1280,6 +1280,12 @@
                     <p id="expensePreviewSummary" class="text-xs font-bold text-rose-300"></p>
                     <div id="expensePreviewDetails" class="space-y-1 text-[11px] text-slate-400"></div>
                 </div>
+                <div id="expenseOverdraftRow" class="hidden app-input border border-amber-500/40 rounded-2xl p-3">
+                    <label class="flex items-start gap-2 text-[11px] text-amber-300">
+                        <input type="checkbox" id="expenseOverdraftConfirm" onchange="previewExpense()" aria-label="تأكيد تجاوز رصيد الخزنة الرئيسية" class="mt-0.5 accent-amber-500">
+                        <span>أؤكد صرف مبلغ يتجاوز رصيد الخزنة الرئيسية — سيُسجَّل هذا التأكيد في سجل التدقيق.</span>
+                    </label>
+                </div>
                 <button type="submit" id="expenseSubmitButton" class="w-full bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-2xl font-bold transition">حفظ المصروف</button>
             </form>
         </div>

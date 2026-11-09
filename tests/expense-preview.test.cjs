@@ -41,3 +41,14 @@ test('expense preview shows the month spending already taken from the selected f
     assert.match(crud, /item\.month === month && \(item\.cashAccountCode \|\| 'main'\) === cashAccountCode && item\.id !== editingExpenseId/);
     assert.match(crud, /مصروفات الشهر من الصندوق/);
 });
+
+test('expense over the main vault requires an explicit confirmation recorded in the audit log', () => {
+    assert.match(html, /id="expenseOverdraftRow"[\s\S]*?class="hidden/);
+    assert.match(html, /id="expenseOverdraftConfirm"[\s\S]*?onchange="previewExpense\(\)"/);
+    assert.match(html, /id="expenseOverdraftConfirm"[\s\S]*?تأكيدًا صريحًا|سيُسجَّل هذا التأكيد في سجل التدقيق/);
+    assert.match(crud, /function resetExpenseOverdraft\(\)/);
+    assert.match(crud, /const mainOverdraft = cashAccountCode === 'main' && Number\.isFinite\(amount\) && balanceAfter < -0\.000001/);
+    assert.match(crud, /if \(mainOverdraft && !overdraftConfirmed\)/);
+    assert.match(crud, /toast\('صرف مبلغ يتجاوز رصيد الخزنة الرئيسية يتطلب تأكيدًا صريحًا\.'/);
+    assert.match(crud, /logAction\('تجاوز رصيد الخزنة'/);
+});

@@ -2846,6 +2846,12 @@ async function deleteIncome(id) {
     toast('تم حذف التحصيل بنجاح', 'success');
 }
 
+function resetExpenseOverdraft() {
+    const overdraftCheckbox = /** @type {any} */ (document.getElementById('expenseOverdraftConfirm'));
+    if (overdraftCheckbox) overdraftCheckbox.checked = false;
+    /** @type {any} */ (document.getElementById('expenseOverdraftRow'))?.classList.add('hidden');
+}
+
 function previewExpense() {
     const preview = /** @type {any} */ (document.getElementById('expensePreview'));
     const summary = /** @type {any} */ (document.getElementById('expensePreviewSummary'));
@@ -2866,19 +2872,26 @@ function previewExpense() {
         .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
     const balanceAfter = accountBalance - (Number.isFinite(amount) ? amount : 0);
     const fundInsufficient = cashAccountCode !== 'main' && Number.isFinite(amount) && amount > accountBalance + 0.000001;
+    const mainOverdraft = cashAccountCode === 'main' && Number.isFinite(amount) && balanceAfter < -0.000001;
+    const overdraftRow = /** @type {any} */ (document.getElementById('expenseOverdraftRow'));
+    const overdraftCheckbox = /** @type {any} */ (document.getElementById('expenseOverdraftConfirm'));
     if (!title || !Number.isFinite(amount) || amount <= 0 || !month) {
         preview.classList.add('hidden');
+        overdraftRow?.classList.add('hidden');
         return;
     }
 
     summary.textContent = `معاينة المصروف: ${title} — ${fmtNum(amount)} ج.م`;
-    summary.className = `text-xs font-bold ${fundInsufficient ? 'text-rose-400' : 'text-rose-300'}`;
+    summary.className = `text-xs font-bold ${fundInsufficient || mainOverdraft ? 'text-rose-400' : 'text-rose-300'}`;
+    if (overdraftRow) overdraftRow.classList.toggle('hidden', !mainOverdraft);
+    if (!mainOverdraft && overdraftCheckbox) overdraftCheckbox.checked = false;
     details.innerHTML = [
         `<div class="flex justify-between gap-3"><span>الفئة</span><strong>${esc(category || 'أخرى')}</strong></div>`,
         `<div class="flex justify-between gap-3"><span>الصندوق</span><strong>${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`,
         `<div class="flex justify-between gap-3"><span>مصروفات الشهر من الصندوق</span><strong>${fmtNum(monthFundExpenses)} ج.م</strong></div>`,
         `<div class="flex justify-between gap-3"><span>الرصيد قبل الصرف</span><strong>${fmtNum(accountBalance)} ج.م</strong></div>`,
-        `<div class="flex justify-between gap-3"><span>الرصيد بعد الصرف</span><strong class="${fundInsufficient ? 'text-rose-400' : ''}">${fmtNum(balanceAfter)} ج.م</strong></div>`,
+        `<div class="flex justify-between gap-3"><span>الرصيد بعد الصرف</span><strong class="${fundInsufficient || mainOverdraft ? 'text-rose-400' : ''}">${fmtNum(balanceAfter)} ج.م</strong></div>`,
+        mainOverdraft ? `<div class="text-amber-400">تجاوز رصيد الخزنة الرئيسية — يتطلب تأكيدًا صريحًا يُسجَّل في التدقيق.</div>` : '',
         `<div class="flex justify-between gap-3"><span>الشهر</span><strong>${esc(month)}</strong></div>`,
         `<div class="flex justify-between gap-3"><span>الملاحظات</span><strong class="text-left">${esc(notes || '—')}</strong></div>`
     ].join('');
@@ -2897,6 +2910,7 @@ function openExpenseModal() {
     /** @type {any} */ (document.getElementById('expenseModalTitle')).textContent = 'مصروف جديد';
     /** @type {any} */ (document.getElementById('expenseSubmitButton')).textContent = 'حفظ المصروف';
     /** @type {any} */ (document.getElementById('expensePreview'))?.classList.add('hidden');
+    resetExpenseOverdraft();
     openModal('expenseModal');
 }
 
@@ -2914,6 +2928,7 @@ function openExpenseEditModal(id) {
     /** @type {any} */ (document.getElementById('expenseModalTitle')).textContent = 'تعديل المصروف';
     /** @type {any} */ (document.getElementById('expenseSubmitButton')).textContent = 'حفظ التعديل';
     openModal('expenseModal');
+    resetExpenseOverdraft();
     previewExpense();
 }
 
@@ -2944,6 +2959,14 @@ async function handleExpenseSubmit(e) {
         previewExpense();
         return;
     }
+    const balanceAfter = availableBalance - amount;
+    const mainOverdraft = cashAccountCode === 'main' && balanceAfter < -0.000001;
+    const overdraftConfirmed = !!/** @type {any} */ (document.getElementById('expenseOverdraftConfirm'))?.checked;
+    if (mainOverdraft && !overdraftConfirmed) {
+        toast('صرف مبلغ يتجاوز رصيد الخزنة الرئيسية يتطلب تأكيدًا صريحًا.', 'error');
+        previewExpense();
+        return;
+    }
     expenseSaving = true;
     const submit = /** @type {any} */ (document.getElementById('expenseSubmitButton'));
     if (submit) { submit.disabled = true; submit.textContent = 'جارٍ الحفظ...'; }
@@ -2956,12 +2979,16 @@ async function handleExpenseSubmit(e) {
         state.expenses.push({ id: generateId(), title, amount, category, month, notes, cashAccountCode, date: new Date().toISOString() });
         logAction('مصروف', title + ' - ' + fmtNum(amount));
     }
+    if (mainOverdraft) {
+        logAction('تجاوز رصيد الخزنة', title + ' - ' + fmtNum(amount) + ' (الرصيد بعد الصرف: ' + fmtNum(balanceAfter) + ')');
+    }
     try {
         if (!await saveWithRollback(previousState)) return;
         editingExpenseId = null;
         closeModal('expenseModal');
         /** @type {any} */ (document.getElementById('expenseForm')).reset();
         /** @type {any} */ (document.getElementById('expensePreview'))?.classList.add('hidden');
+        resetExpenseOverdraft();
         /** @type {any} */ (document.getElementById('expenseModalTitle')).textContent = 'مصروف جديد';
         renderAll();
         toast(existingExpense ? 'تم تعديل المصروف بنجاح.' : 'تم تسجيل المصروف', 'success');
