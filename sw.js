@@ -1,4 +1,4 @@
-const CACHE_NAME = 'manzil-280f9ff6bb';
+const CACHE_NAME = 'manzil-cb99af4e81';
 const APP_CACHE_PREFIX = 'manzil-';
 const APP_SHELL = [
     './',
@@ -8,8 +8,8 @@ const APP_SHELL = [
     './js/telemetry.js?v=manzil-c82efa9c4e',
     './js/state.js?v=6e9bcc8346',
     './js/access.js?v=cb64b108df',
-    './js/render.js?v=14dfdee1e7',
-    './js/crud.js?v=fcc706f513',
+    './js/render.js?v=72b9727601',
+    './js/crud.js?v=d5d3bcc177',
     './js/notices.js?v=d2f2b2f5be',
     './js/reports.js?v=3c13e5dfa1',
     './js/settings.js?v=4b5cd4be58',
