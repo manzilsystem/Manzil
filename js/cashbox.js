@@ -201,9 +201,100 @@ function renderCashboxMovementSummary() {
                     <div><span class="block font-bold text-rose-400">${fmtNum(bucket.expenses / 100)}</span>مصروفات</div>
                     <div><span class="block font-bold ${transfers >= 0 ? 'text-indigo-300' : 'text-amber-300'}">${fmtNum(Math.abs(transfers) / 100)}</span>${transfers >= 0 ? 'صافي وارد' : 'صافي صادر'}</div>
                 </div>
+                <p class="text-[10px] text-slate-400">تحويلات داخلة: <span class="font-bold text-indigo-300">${fmtNum(bucket.transfersIn / 100)}</span> ج.م · تحويلات خارجة: <span class="font-bold text-amber-300">${fmtNum(bucket.transfersOut / 100)}</span> ج.م</p>
             </article>
         `;
     }).join('') + `<p class="text-[10px] text-slate-500">صافي الحركة = التحصيلات + التحويلات الواردة − المصروفات − التحويلات الصادرة. التحويلات الداخلية لا تُحسب إيرادًا أو مصروفًا.</p>`;
+}
+
+function buildCashboxMovements() {
+    const movements = [];
+    const accountOf = code => (CASH_ACCOUNTS[code] ? code : 'main');
+    (Array.isArray(state.income) ? state.income : []).forEach(item => {
+        movements.push({
+            id: `income:${item.id}`,
+            accountCode: accountOf(item.cashAccountCode),
+            kind: 'income',
+            label: 'تحصيل',
+            amount: Number(item.amount) || 0,
+            direction: 1,
+            at: item.date,
+            notes: item.notes || ''
+        });
+    });
+    (Array.isArray(state.expenses) ? state.expenses : []).forEach(item => {
+        movements.push({
+            id: `expense:${item.id}`,
+            accountCode: accountOf(item.cashAccountCode),
+            kind: 'expense',
+            label: 'مصروف',
+            amount: Number(item.amount) || 0,
+            direction: -1,
+            at: item.date,
+            notes: item.notes || item.title || ''
+        });
+    });
+    (Array.isArray(state.cashTransfers) ? state.cashTransfers : []).forEach(item => {
+        const amount = Number(item.amount) || 0;
+        if (CASH_ACCOUNTS[item.fromAccountCode]) {
+            movements.push({
+                id: `transfer-out:${item.id}`,
+                accountCode: item.fromAccountCode,
+                kind: 'transfer-out',
+                label: 'تحويل صادر',
+                amount,
+                direction: -1,
+                at: item.transferredAt,
+                notes: item.notes || ''
+            });
+        }
+        if (CASH_ACCOUNTS[item.toAccountCode]) {
+            movements.push({
+                id: `transfer-in:${item.id}`,
+                accountCode: item.toAccountCode,
+                kind: 'transfer-in',
+                label: 'تحويل وارد',
+                amount,
+                direction: 1,
+                at: item.transferredAt,
+                notes: item.notes || ''
+            });
+        }
+    });
+    return movements.sort((a, b) => new Date(b.at || 0).getTime() - new Date(a.at || 0).getTime());
+}
+
+function getCashboxMovementsAccountFilter() {
+    const select = /** @type {HTMLSelectElement} */ (document.getElementById('cashboxMovementsAccount'));
+    return select?.value || 'all';
+}
+
+function renderCashboxRecentMovements() {
+    const container = document.getElementById('cashboxRecentMovements');
+    if (!container) return;
+    const account = getCashboxMovementsAccountFilter();
+    const movements = buildCashboxMovements()
+        .filter(item => account === 'all' || item.accountCode === account)
+        .slice(0, 10);
+    if (!movements.length) {
+        container.innerHTML = '<p class="text-center text-xs text-slate-500 py-5">لا توجد حركات مسجلة حتى الآن.</p>';
+        return;
+    }
+    container.innerHTML = movements.map(item => {
+        const positive = item.direction > 0;
+        const kindTone = item.kind === 'income' ? 'text-emerald-400'
+            : item.kind === 'expense' ? 'text-rose-400'
+                : 'text-indigo-300';
+        return `
+            <article class="app-input border rounded-2xl p-3 flex items-start justify-between gap-3">
+                <div class="min-w-0 space-y-1">
+                    <p class="text-xs font-bold"><span class="${kindTone}">${esc(item.label)}</span> · ${esc(getCashAccountLabel(item.accountCode))}</p>
+                    <p class="text-[10px] text-slate-500">${formatDate(item.at)}${item.notes ? ` · ${esc(item.notes)}` : ''}</p>
+                </div>
+                <strong class="text-sm ${positive ? 'text-emerald-400' : 'text-rose-400'} whitespace-nowrap">${positive ? '+' : '−'}${fmtNum(item.amount)} ج.م</strong>
+            </article>
+        `;
+    }).join('');
 }
 
 function renderCashbox() {
@@ -220,6 +311,7 @@ function renderCashbox() {
     if (totalElement) totalElement.textContent = `${fmtNum(totalBalance)} ج.م`;
 
     renderCashboxMovementSummary();
+    renderCashboxRecentMovements();
 
     const list = document.getElementById('cashTransfersList');
     if (!list) return;

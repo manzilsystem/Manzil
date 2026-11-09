@@ -290,6 +290,22 @@
                 </div>
                 <div id="cashTransfersList" class="space-y-2"></div>
             </div>
+
+            <div class="app-card p-5 rounded-3xl border space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h3 class="font-bold text-sm">آخر 10 حركات</h3>
+                        <p class="text-[10px] text-slate-500 mt-1">أحدث تحصيل ومصروف وتحويل وارد أو صادر على الصناديق.</p>
+                    </div>
+                    <select id="cashboxMovementsAccount" onchange="renderCashbox()" aria-label="تصفية آخر الحركات حسب الصندوق" class="app-input border rounded-xl px-3 py-2 text-xs">
+                        <option value="all">كل الصناديق</option>
+                        <option value="main">الخزنة الرئيسية</option>
+                        <option value="development">صندوق التطوير</option>
+                        <option value="emergency">صندوق الصيانة الطارئة</option>
+                    </select>
+                </div>
+                <div id="cashboxRecentMovements" class="space-y-2"></div>
+            </div>
         </section>
 
         <!-- REPORTS -->

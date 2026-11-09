@@ -260,6 +260,10 @@ test('cashbox monthly summary separates collections, spending and internal trans
     await expect(rows.nth(1)).toContainText('صندوق التطوير');
     await expect(rows.nth(1)).toContainText('صافي وارد');
     await expect(rows.nth(2)).toContainText('صندوق الصيانة الطارئة');
+    const recent = page.locator('#cashboxRecentMovements article');
+    await expect(recent).toHaveCount(4);
+    await expect(page.locator('#cashboxRecentMovements')).toContainText('تحويل صادر');
+    await expect(page.locator('#cashboxRecentMovements')).toContainText('تحويل وارد');
     const developmentNet = await page.evaluate(() => {
         const select = document.getElementById('cashboxSummaryMonth');
         select.value = getCurrentMonth();
