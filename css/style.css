@@ -3872,3 +3872,39 @@ body.owner-mode .owner-theme-control {
 .owner-theme-swatch.theme-preview-ocean { --preview-accent:#38bdf8; --preview-card:#075985; }
 .owner-theme-swatch.theme-preview-sand { --preview-accent:#e6a85c; --preview-card:#78350f; }
 .owner-theme-swatch.theme-preview-turquoise { --preview-accent:#24c4c7; --preview-card:#0b5260; }
+
+/* Manager notification bell */
+.manager-notifications-control {
+    position: relative;
+    display: inline-flex;
+}
+.manager-notifications-control > button { position: relative; }
+.manager-notifications-badge {
+    position: absolute;
+    top: -.35rem;
+    inset-inline-end: -.35rem;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    padding: 0 .28rem;
+    border-radius: 999px;
+    background: #e11d48;
+    color: #fff;
+    font-size: .6rem;
+    font-weight: 800;
+    line-height: 1.15rem;
+    text-align: center;
+}
+.manager-notifications-menu {
+    position: absolute;
+    inset-inline-end: 0;
+    top: calc(100% + .45rem);
+    z-index: 40;
+    width: min(21rem, 86vw);
+    max-height: 22rem;
+    overflow-y: auto;
+    padding: .5rem;
+    border-radius: 1rem;
+    box-shadow: 0 18px 40px rgba(2, 6, 23, .34);
+}
+.manager-notification-row { padding: .55rem .3rem; border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent); }
+.manager-notification-row:last-child { border-bottom: 0; }

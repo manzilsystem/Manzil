@@ -394,10 +394,13 @@ function renderOwnerPortal() {
                 </div>
             </details>`;
     }).join('') : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إيصالات مسجلة لهذا الحساب حتى الآن.</p>';
-    const ownerArrears = (debt.unpaidMonths || []).map(unpaidMonth => ({
-        month: unpaidMonth,
-        amount: getMonthOutstanding(resident, unpaidMonth)
-    }));
+    const ownerArrears = Array.isArray(debt.unpaidMonthDetails) && debt.unpaidMonthDetails.length
+        ? debt.unpaidMonthDetails.map(item => ({ month: item.month, amount: item.amount, daysOverdue: item.daysOverdue || 0 }))
+        : (debt.unpaidMonths || []).map(unpaidMonth => ({
+            month: unpaidMonth,
+            amount: getMonthOutstanding(resident, unpaidMonth),
+            daysOverdue: getSubscriptionOverdueDays(unpaidMonth)
+        }));
     const ownerArrearsHtml = ownerArrears.length
         ? `<details class="app-input border rounded-2xl p-3">
             <summary class="cursor-pointer list-none flex items-center justify-between gap-3">
@@ -407,7 +410,7 @@ function renderOwnerPortal() {
             <div class="mt-2 pt-2 border-t border-slate-700/40">
                 ${ownerArrears.slice(0, 12).map(item => `
                     <div class="flex justify-between gap-3 py-2 border-b border-slate-700/40 last:border-0">
-                        <span class="text-xs">${esc(item.month)}</span>
+                        <span class="text-xs">${esc(item.month)}${item.daysOverdue ? ` <span class="text-[10px] text-slate-500">· متأخر ${esc(formatOverdueDuration(item.daysOverdue))}</span>` : ''}</span>
                         <strong class="text-xs text-rose-400">${fmtNum(item.amount)} ج.م</strong>
                     </div>`).join('')}
                 ${ownerArrears.length > 12 ? `<p class="text-[10px] text-slate-500 pt-2">تم عرض أقدم 12 شهرًا من أصل ${fmtNum(ownerArrears.length)} شهر.</p>` : ''}
@@ -464,7 +467,7 @@ function renderOwnerPortal() {
                 <div class="app-input border rounded-2xl p-3"><p class="text-[10px] text-slate-500">المدفوع هذا الشهر</p><p class="font-black text-emerald-400 mt-1">${fmtNum(paidThisMonth)} ج.م</p></div>
                 <div class="app-input border rounded-2xl p-3"><p class="text-[10px] text-slate-500">المتبقي لهذا الشهر</p><p class="font-black ${remainingThisMonth ? 'text-rose-400' : 'text-emerald-400'} mt-1">${fmtNum(remainingThisMonth)} ج.م</p></div>
             </div>
-            <div class="app-input border rounded-2xl p-3 flex items-center justify-between gap-3"><span class="text-xs font-bold">إجمالي متأخرات حسابك (${debt.count} شهر)</span><strong class="text-sm ${debt.totalDebt ? 'text-rose-400' : 'text-emerald-400'}">${fmtNum(debt.totalDebt)} ج.م</strong></div>
+            <div class="app-input border rounded-2xl p-3 flex items-center justify-between gap-3"><span class="text-xs font-bold">إجمالي متأخرات حسابك (${debt.count} شهر${debt.daysOverdue ? ` · متأخر ${esc(formatOverdueDuration(debt.daysOverdue))}` : ''})</span><strong class="text-sm ${debt.totalDebt ? 'text-rose-400' : 'text-emerald-400'}">${fmtNum(debt.totalDebt)} ج.م</strong></div>
             ${ownerArrearsHtml}
         </section>
         <section class="app-card border rounded-3xl p-5 space-y-3" aria-labelledby="ownerPaymentMethodsTitle">
@@ -631,6 +634,124 @@ async function markAllOwnerNotificationsRead() {
     renderOwnerPortal();
 }
 
+function syncManagerNotificationsControl() {
+    const control = document.getElementById('managerNotificationsControl');
+    if (!control) return;
+    const visible = currentUserRole === 'manager' && Boolean(activeSession);
+    control.classList.toggle('hidden', !visible);
+    if (!visible) closeManagerNotifications();
+}
+
+function renderManagerNotifications() {
+    const control = document.getElementById('managerNotificationsControl');
+    if (!control) return;
+    const visible = currentUserRole === 'manager' && Boolean(activeSession);
+    control.classList.toggle('hidden', !visible);
+    if (!visible) return;
+    const badge = document.getElementById('managerNotificationsBadge');
+    const menu = document.getElementById('managerNotificationsMenu');
+    const list = Array.isArray(state.managerNotifications) ? state.managerNotifications : [];
+    const unread = list.filter(notification => !notification.readAt).length;
+    if (badge) {
+        badge.textContent = unread > 99 ? '99+' : String(unread);
+        badge.classList.toggle('hidden', unread === 0);
+    }
+    if (!menu) return;
+    if (!list.length) {
+        menu.innerHTML = '<p class="text-xs text-slate-500 text-center py-3">لا توجد إشعارات حتى الآن.</p>';
+        return;
+    }
+    menu.innerHTML = `
+        <div class="flex items-center justify-between gap-3 px-1 pb-2">
+            <span class="text-[11px] font-bold">الإشعارات${unread ? ` · ${fmtNum(unread)} جديد` : ''}</span>
+            ${unread ? '<button type="button" onclick="markAllManagerNotificationsRead()" class="text-[11px] text-indigo-300 font-bold">قراءة الكل</button>' : ''}
+        </div>
+        ${list.map(notification => `
+            <button type="button" class="manager-notification-row block w-full text-right" onclick="openManagerNotification('${esc(notification.id)}')">
+                <span class="flex items-start justify-between gap-2">
+                    <span class="text-xs font-bold">${esc(notification.title)}</span>
+                    ${notification.readAt ? '' : '<span class="text-[9px] text-indigo-300 font-bold shrink-0">جديد</span>'}
+                </span>
+                <span class="block text-[11px] text-slate-400 mt-1 whitespace-pre-line">${esc(notification.body)}</span>
+                <span class="block text-[10px] text-slate-500 mt-1">${formatDate(notification.createdAt)}</span>
+            </button>`).join('')}`;
+}
+
+function toggleManagerNotifications(force) {
+    const menu = document.getElementById('managerNotificationsMenu');
+    const button = document.getElementById('managerNotificationsBtn');
+    if (!menu || !button) return;
+    const open = typeof force === 'boolean' ? force : menu.classList.contains('hidden');
+    if (open) renderManagerNotifications();
+    menu.classList.toggle('hidden', !open);
+    button.setAttribute('aria-expanded', String(open));
+}
+
+function closeManagerNotifications() { toggleManagerNotifications(false); }
+
+function handleManagerNotificationsOutsideClick(event) {
+    const control = document.getElementById('managerNotificationsControl');
+    const menu = document.getElementById('managerNotificationsMenu');
+    if (!control || !menu || menu.classList.contains('hidden')) return;
+    if (control.contains(event?.target)) return;
+    closeManagerNotifications();
+}
+
+function handleManagerNotificationsKeydown(event) {
+    if (event?.key === 'Escape') closeManagerNotifications();
+}
+
+function bindManagerNotifications() {
+    document.addEventListener('click', handleManagerNotificationsOutsideClick);
+    document.addEventListener('keydown', handleManagerNotificationsKeydown);
+}
+
+async function markManagerNotificationRead(notificationId) {
+    if (currentUserRole !== 'manager' || !activeSession || !activeBuildingId) return;
+    const notification = (state.managerNotifications || []).find(item => item.id === notificationId);
+    if (!notification || notification.readAt) return;
+    const readAt = new Date().toISOString();
+    const { error } = await supabaseClient.from('notifications')
+        .update({ read_at: readAt })
+        .eq('id', notificationId)
+        .eq('building_id', activeBuildingId)
+        .is('target_user_id', null);
+    if (error) {
+        toast('تعذر تحديث حالة الإشعار. حاول مجددًا.', 'error');
+        return;
+    }
+    notification.readAt = readAt;
+    renderManagerNotifications();
+}
+
+async function markAllManagerNotificationsRead() {
+    if (currentUserRole !== 'manager' || !activeSession || !activeBuildingId) return;
+    const unread = (state.managerNotifications || []).filter(item => !item.readAt);
+    if (!unread.length) return;
+    const readAt = new Date().toISOString();
+    const { error } = await supabaseClient.from('notifications')
+        .update({ read_at: readAt })
+        .eq('building_id', activeBuildingId)
+        .is('target_user_id', null)
+        .is('read_at', null);
+    if (error) {
+        toast('تعذر تحديث الإشعارات. حاول مجددًا.', 'error');
+        return;
+    }
+    unread.forEach(notification => { notification.readAt = readAt; });
+    renderManagerNotifications();
+}
+
+async function openManagerNotification(notificationId) {
+    const notification = (state.managerNotifications || []).find(item => item.id === notificationId);
+    await markManagerNotificationRead(notificationId);
+    closeManagerNotifications();
+    const target = String(notification?.actionPath || '').trim();
+    if (target.startsWith('#') && typeof switchTab === 'function') {
+        switchTab(target.slice(1).replace(/^tab-/, ''));
+    }
+}
+
 function requestOwnerPinOnWhatsApp() {
     const supportNumber = '201027767039';
     const phone = /** @type {HTMLInputElement} */ (document.getElementById('authIdentifier'))?.value.trim() || '';
@@ -648,5 +769,6 @@ function requestOwnerPinOnWhatsApp() {
 
 document.addEventListener('DOMContentLoaded', () => {
     bindOwnerThemeMenu();
+    bindManagerNotifications();
     updateAccessSwitchButton();
 });

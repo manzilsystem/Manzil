@@ -42,6 +42,7 @@ function hasPendingPasswordRecovery() {
 let persistedAuditLogIds = new Set();
 let activeBuildingVersion = 1;
 let ownerNotificationsChannel = null;
+let managerNotificationsChannel = null;
 let pendingBuildingSelection = null;
 
 function isCurrentAuthSession(session, generation) {
@@ -405,6 +406,51 @@ function subscribeOwnerNotificationsRealtime() {
         });
 }
 
+function stopManagerNotificationsRealtime() {
+    if (!managerNotificationsChannel) return;
+    const channel = managerNotificationsChannel;
+    managerNotificationsChannel = null;
+    if (typeof supabaseClient.removeChannel === 'function') {
+        supabaseClient.removeChannel(channel).catch(error => {
+            console.warn('Could not stop manager notification realtime channel:', error);
+        });
+    }
+}
+
+function subscribeManagerNotificationsRealtime() {
+    stopManagerNotificationsRealtime();
+    if (currentUserRole !== 'manager' || !activeSession?.user?.id || !supabaseClient.channel || !activeBuildingId) return;
+    const applyRow = row => {
+        if (!row || row.building_id !== activeBuildingId || row.target_user_id !== null) return;
+        const notification = mapNotification(row);
+        state.managerNotifications = Array.isArray(state.managerNotifications) ? state.managerNotifications : [];
+        const index = state.managerNotifications.findIndex(item => item.id === notification.id);
+        if (index >= 0) state.managerNotifications[index] = notification;
+        else state.managerNotifications.unshift(notification);
+        state.managerNotifications = state.managerNotifications.slice(0, 50);
+        if (typeof renderManagerNotifications === 'function') renderManagerNotifications();
+    };
+    managerNotificationsChannel = supabaseClient
+        .channel(`manager-notifications:${activeBuildingId}`)
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `building_id=eq.${activeBuildingId}`
+        }, payload => applyRow(payload.new))
+        .on('postgres_changes', {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `building_id=eq.${activeBuildingId}`
+        }, payload => applyRow(payload.new))
+        .subscribe(status => {
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                console.warn('Manager notification realtime channel status:', status);
+            }
+        });
+}
+
 function escapeBuildingLabel(value) {
     return String(value || '').replace(/[&<>"']/g, character => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -490,10 +536,11 @@ async function loadState() {
     ownerMustChangePin = currentUserRole === 'owner' && profile?.must_change_pin === true;
     if (ownerMustChangePin) {
         stopOwnerNotificationsRealtime();
+        stopManagerNotificationsRealtime();
         state = {
             ...state, buildingName: '', managerName: '', managerPhone: '', defaultSubscription: 0,
             startingBalance: 0, floorCount: 0, apartmentsPerFloor: 0,
-            residents: [], income: [], expenses: [], notices: [], ownerNotifications: [], auditLogs: [],
+            residents: [], income: [], expenses: [], notices: [], ownerNotifications: [], managerNotifications: [], auditLogs: [],
             adjustments: [],
             cashAccountBalances: { main: 0, development: 0, emergency: 0 }, cashTransfers: [],
             currentTheme: 'dark', paymentSettings: getBuildingPaymentSettings(null), subscriptionDueDay: 1, subscriptionGraceDays: 0, paymentAllocationPolicy: 'oldest_first', receiptThankYouTemplate: null, reminderMessageTemplate: null, lastUpdated: Date.now()
@@ -509,14 +556,22 @@ async function loadState() {
     if (!isCurrentAuthSession(session, generation)) return false;
     if (buildingError) throw buildingError;
     activeBuildingVersion = Number(building.state_version) || 1;
-    const ownerNotificationsQuery = currentUserRole === 'owner'
+    const notificationsColumns = 'id,building_id,target_user_id,target_resident_id,kind,title,body,severity,action_path,read_at,created_at';
+    const notificationsQuery = currentUserRole === 'owner'
         ? supabaseClient.from('notifications')
-            .select('id,building_id,target_user_id,target_resident_id,kind,title,body,severity,action_path,read_at,created_at')
+            .select(notificationsColumns)
             .eq('building_id', activeBuildingId)
             .eq('target_user_id', session.user.id)
             .order('created_at', { ascending: false })
             .limit(50)
-        : Promise.resolve({ data: [], error: null });
+        : currentUserRole === 'manager'
+            ? supabaseClient.from('notifications')
+                .select(notificationsColumns)
+                .eq('building_id', activeBuildingId)
+                .is('target_user_id', null)
+                .order('created_at', { ascending: false })
+                .limit(50)
+            : Promise.resolve({ data: [], error: null });
     const cashboxSummaryQuery = currentUserRole === 'manager'
         ? supabaseClient.rpc('get_cashbox_summary', { p_building_id: activeBuildingId })
         : Promise.resolve({ data: null, error: null });
@@ -551,7 +606,7 @@ async function loadState() {
         .order('effective_month', { ascending: true });
     const [
         residents, income, expenses, notices, auditLogs, residentNotes,
-        ownerNotificationsResult, cashboxSummaryResult,
+        notificationsResult, cashboxSummaryResult,
         subscriptionRatesResult, subscriptionRateHistoryResult, residentAdjustmentsResult,
         residentLeaseDetailsResult
     ] = await Promise.all([
@@ -561,7 +616,7 @@ async function loadState() {
         supabaseQuery('notices', noticeColumns),
         isManager ? supabaseQuery('audit_logs', auditColumns) : Promise.resolve([]),
         currentUserRole === 'manager' ? supabaseQuery('resident_internal_notes', 'resident_id,notes') : Promise.resolve([]),
-        ownerNotificationsQuery,
+        notificationsQuery,
         cashboxSummaryQuery,
         subscriptionRatesQuery,
         subscriptionRateHistoryQuery,
@@ -569,7 +624,7 @@ async function loadState() {
         residentLeaseDetailsQuery
     ]);
     if (!isCurrentAuthSession(session, generation)) return false;
-    if (ownerNotificationsResult.error) throw ownerNotificationsResult.error;
+    if (notificationsResult.error) throw notificationsResult.error;
     if (cashboxSummaryResult.error) throw cashboxSummaryResult.error;
     if (subscriptionRatesResult.error) throw subscriptionRatesResult.error;
     if (subscriptionRateHistoryResult.error) throw subscriptionRateHistoryResult.error;
@@ -597,7 +652,9 @@ async function loadState() {
         residents: attachResidentSubscriptionHistory(residents.map(mapResident), subscriptionRatesResult.data || [], subscriptionRateHistoryResult.data || []),
         income: income.map(mapIncome), expenses: expenses.map(mapExpense),
         adjustments: (residentAdjustmentsResult.data || []).map(mapResidentAdjustment),
-        notices: notices.map(mapNotice), ownerNotifications: (ownerNotificationsResult.data || []).map(mapNotification),
+        notices: notices.map(mapNotice),
+        ownerNotifications: currentUserRole === 'owner' ? (notificationsResult.data || []).map(mapNotification) : [],
+        managerNotifications: currentUserRole === 'manager' ? (notificationsResult.data || []).map(mapNotification) : [],
         auditLogs: auditLogs.map(mapAudit),
         cashAccountBalances: cashboxSummary.balances,
         cashTransfers: cashboxSummary.transfers.map(mapCashTransfer),
@@ -626,6 +683,7 @@ async function loadState() {
     }
     supabaseStateLoaded = true;
     subscribeOwnerNotificationsRealtime();
+    subscribeManagerNotificationsRealtime();
     return true;
 }
 
@@ -747,6 +805,7 @@ async function saveState() {
 
 function clearAuthenticatedState() {
     stopOwnerNotificationsRealtime();
+    stopManagerNotificationsRealtime();
     authGeneration += 1;
     if (pendingBuildingSelection) {
         const pending = pendingBuildingSelection;
@@ -1146,6 +1205,7 @@ async function lockCurrentSession() {
 function updateAccessSwitchButton() {
     const button = document.getElementById('accessSwitchBtn');
     if (button) button.classList.toggle('hidden', !activeSession);
+    if (typeof syncManagerNotificationsControl === 'function') syncManagerNotificationsControl();
 }
 
 async function initSupabaseApp() {

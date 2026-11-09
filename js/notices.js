@@ -79,6 +79,8 @@ function sendWhatsAppReminder(residentId) {
         month: getCurrentMonth(),
         amount: fmtNum(debt.totalDebt),
         count: debt.count,
+        days: debt.daysOverdue ? String(debt.daysOverdue) : '',
+        duration: typeof formatOverdueDuration === 'function' ? formatOverdueDuration(debt.daysOverdue) : '',
         months: Array.isArray(debt.unpaidMonths) ? debt.unpaidMonths.join('، ') : ''
     });
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');

@@ -56,7 +56,7 @@ test('manager adds, edits and deletes a waiver from the unit profile', async ({ 
     await expect(page.locator('#adjustmentListBody tr').first()).toContainText('إعفاء');
 
     await page.getByRole('button', { name: /حذف إعفاء/ }).click();
-    await expect(page.locator('#adjustmentListBody')).toContainText('لا توجد إعفاءات أو تخفيضات مسجلة');
+    await expect(page.locator('#adjustmentListBody')).toContainText('لا توجد إعفاءات أو تخفيضات أو تسويات مسجلة');
     expect(await page.evaluate(() => state.adjustments.length)).toBe(0);
 });
 
@@ -68,6 +68,6 @@ test('an adjustment above the month entitlement is rejected before saving', asyn
     await page.locator('#adjustmentSaveButton').click();
 
     await expect(page.locator('#toastContainer')).toContainText('يتجاوز مستحق الشهر');
-    await expect(page.locator('#adjustmentListBody')).toContainText('لا توجد إعفاءات أو تخفيضات مسجلة');
+    await expect(page.locator('#adjustmentListBody')).toContainText('لا توجد إعفاءات أو تخفيضات أو تسويات مسجلة');
     expect(await page.evaluate(() => state.adjustments.length)).toBe(0);
 });

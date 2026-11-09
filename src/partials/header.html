@@ -19,6 +19,13 @@
                     </button>
                     <div class="owner-theme-menu app-card border hidden" id="ownerThemeMenu" role="group" aria-label="اختيار مظهر البوابة"></div>
                 </div>
+                <div class="manager-notifications-control hidden" id="managerNotificationsControl">
+                    <button type="button" id="managerNotificationsBtn" class="app-card border p-2.5 rounded-xl text-xs transition relative" onclick="toggleManagerNotifications()" aria-haspopup="true" aria-expanded="false" aria-controls="managerNotificationsMenu" aria-label="إشعارات المدير" title="الإشعارات">
+                        <i class="fa-solid fa-bell text-sm"></i>
+                        <span id="managerNotificationsBadge" class="manager-notifications-badge hidden" aria-hidden="true"></span>
+                    </button>
+                    <div class="manager-notifications-menu app-card border hidden" id="managerNotificationsMenu" role="group" aria-label="إشعارات المدير"></div>
+                </div>
                 <button onclick="openSettingsModal()" aria-label="فتح الإعدادات" class="app-card border p-2.5 rounded-xl text-xs transition" title="الإعدادات"><i class="fa-solid fa-gear text-sm"></i></button>
                 <button id="accessSwitchBtn" onclick="lockCurrentSession()" aria-label="تبديل المستخدم أو قفل التطبيق" class="app-card border p-2.5 rounded-xl text-xs transition hidden" title="خروج / تبديل المستخدم"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
             </div>

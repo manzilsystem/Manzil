@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadShell } = require('./helpers');
+const { loadShell, advanceIncomeStep } = require('./helpers');
 
 async function seedManager(page) {
     await loadShell(page);
@@ -87,6 +87,7 @@ test('the month grid shows payment status and preselects the oldest unpaid month
     const months = await monthNames(page);
     await page.evaluate(() => openNewIncomeModal());
     await page.locator('#incomeResident').selectOption('r1');
+    await advanceIncomeStep(page, 2);
 
     const grid = page.locator('#incomeMonthsGrid');
     await expect(grid.locator('input[data-income-month]').first()).toBeVisible();
@@ -108,6 +109,7 @@ test('quick month actions select arrears, the current month, two or three months
     const months = await monthNames(page);
     await page.evaluate(() => openNewIncomeModal());
     await page.locator('#incomeResident').selectOption('r2');
+    await advanceIncomeStep(page, 2);
 
     await page.getByRole('button', { name: 'المتأخرات' }).click();
     await expect(page.locator('#incomeMonthsGrid input[data-income-month]:checked')).toHaveCount(2);
@@ -131,6 +133,7 @@ test('quick month actions select arrears, the current month, two or three months
     await page.getByRole('button', { name: 'مسح' }).click();
     await expect(page.locator('#incomeMonthsGrid input[data-income-month]:checked')).toHaveCount(0);
     await expect(page.locator('#incomeAmount')).toHaveValue('');
+    await expect(page.locator('#incomeSelectionHint')).toContainText('اختر شهرًا واحدًا على الأقل');
     await expect(page.locator('#incomeAllocationPreview')).toBeHidden();
 });
 
@@ -139,6 +142,7 @@ test('paying last month and the current month records both months', async ({ pag
     const months = await monthNames(page);
     await page.evaluate(() => openNewIncomeModal());
     await page.locator('#incomeResident').selectOption('r2');
+    await advanceIncomeStep(page, 2);
 
     await page.getByRole('button', { name: 'مسح' }).click();
     await page.locator(`#incomeMonthsGrid input[data-income-month="${months.previous}"]`).check();
@@ -149,6 +153,7 @@ test('paying last month and the current month records both months', async ({ pag
     await expect(page.locator('#incomeAllocationRows')).toContainText(months.previous);
     await expect(page.locator('#incomeAllocationRows')).toContainText(months.current);
 
+    await advanceIncomeStep(page, 3);
     await page.locator('#incomePaymentMethod').selectOption('cash');
     await page.locator('#incomeSubmitButton').click();
     await expect(page.locator('#incomeModal')).toBeHidden();
@@ -166,6 +171,7 @@ test('a late month can be settled alone and is marked as overdue in the preview'
     const months = await monthNames(page);
     await page.evaluate(() => openNewIncomeModal());
     await page.locator('#incomeResident').selectOption('r2');
+    await advanceIncomeStep(page, 2);
 
     await page.getByRole('button', { name: 'مسح' }).click();
     await page.locator(`#incomeMonthsGrid input[data-income-month="${months.previous}"]`).check();
@@ -174,6 +180,7 @@ test('a late month can be settled alone and is marked as overdue in the preview'
     await expect(page.locator('#incomeAllocationSummary')).toContainText('شهورًا متأخرة');
     await expect(page.locator('#incomeAllocationRows')).toContainText('متأخر');
 
+    await advanceIncomeStep(page, 3);
     await page.locator('#incomePaymentMethod').selectOption('cash');
     await page.locator('#incomeSubmitButton').click();
     await expect(page.locator('#incomeModal')).toBeHidden();
@@ -191,6 +198,7 @@ test('the calendar picker settles an older unpaid month even after the month has
     }, months);
     await page.evaluate(() => openNewIncomeModal());
     await page.locator('#incomeResident').selectOption('r2');
+    await advanceIncomeStep(page, 2);
 
     await page.locator('#incomeMonthPicker').fill(pickerKey);
     await page.locator('#incomeMonthPicker').dispatchEvent('change');
@@ -200,6 +208,7 @@ test('the calendar picker settles an older unpaid month even after the month has
     await expect(page.locator('#incomeAmount')).toHaveValue('100');
     await expect(page.locator('#incomeMonthPickerHint')).toContainText('متبقٍ');
 
+    await advanceIncomeStep(page, 3);
     await page.locator('#incomePaymentMethod').selectOption('cash');
     await page.locator('#incomeSubmitButton').click();
     await expect(page.locator('#incomeModal')).toBeHidden();
@@ -227,6 +236,7 @@ test('the calendar picker refuses a fully paid month and confirms a month before
     }, beforeStartKey);
     await page.evaluate(() => openNewIncomeModal());
     await page.locator('#incomeResident').selectOption('r1');
+    await advanceIncomeStep(page, 2);
 
     await page.locator('#incomeMonthPicker').fill(previousKey);
     await page.locator('#incomeMonthPicker').dispatchEvent('change');
@@ -285,6 +295,9 @@ test('payment notes can be picked quickly and appear in the manager receipt', as
     await seedManager(page);
 
     await page.evaluate(() => openNewIncomeModal());
+    await page.locator('#incomeResident').selectOption('r1');
+    await advanceIncomeStep(page, 2);
+    await advanceIncomeStep(page, 3);
     await page.getByRole('button', { name: 'سداد متأخرات' }).click();
     await expect(page.locator('#incomeNotes')).toHaveValue('سداد متأخرات');
     await page.getByRole('button', { name: 'تسوية حساب' }).click();

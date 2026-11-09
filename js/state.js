@@ -224,6 +224,35 @@ function isSubscriptionMonthOverdue(monthLabel, now = new Date()) {
     return Boolean(deadline && Number.isFinite(current.getTime()) && current >= deadline);
 }
 
+const MS_PER_DAY = 86400000;
+
+function getSubscriptionDueDate(monthLabel) {
+    const key = monthLabelToKey(monthLabel);
+    if (!key) return null;
+    const [year, month] = key.split('-').map(Number);
+    const dueDay = Math.min(28, Math.max(1, Number(state.subscriptionDueDay) || 1));
+    const due = new Date(year, month - 1, dueDay, 0, 0, 0, 0);
+    return Number.isNaN(due.getTime()) ? null : due;
+}
+
+// Overdue days are counted from the month label plus the due day plus the grace
+// period (never from the payment date), so every screen shows the same figure.
+function getSubscriptionOverdueDays(monthLabel, now = new Date()) {
+    const deadline = getSubscriptionDueDeadline(monthLabel);
+    const current = now instanceof Date ? now : new Date(now);
+    if (!deadline || !Number.isFinite(current.getTime()) || current < deadline) return 0;
+    return Math.floor((current.getTime() - deadline.getTime()) / MS_PER_DAY) + 1;
+}
+
+function formatOverdueDuration(days) {
+    const value = Math.max(0, Math.floor(Number(days) || 0));
+    if (value <= 0) return '';
+    if (value === 1) return 'يوم واحد';
+    if (value === 2) return 'يومان';
+    if (value <= 10) return `${value} أيام`;
+    return `${value} يومًا`;
+}
+
 const MANZIL_THEME_LIST = ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise'];
 const MANZIL_THEME_NAMES = { dark:'ليلي', light:'نهاري', emerald:'زمردي', ocean:'محيطي', sand:'رملي', turquoise:'فيروزي' };
 const MANZIL_THEME_COLORS = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16', turquoise:'#071f27' };
@@ -253,7 +282,7 @@ let state = {
     paymentSettings: normalizePaymentSettings(DEFAULT_PAYMENT_SETTINGS),
     subscriptionDueDay:1, subscriptionGraceDays:0, paymentAllocationPolicy:'oldest_first',
     currentTheme:'dark',
-    residents:[], income:[], expenses:[], notices:[], ownerNotifications:[], auditLogs:[],
+    residents:[], income:[], expenses:[], notices:[], ownerNotifications:[], managerNotifications:[], auditLogs:[],
     adjustments: [],
     cashAccountBalances: { main: 0, development: 0, emergency: 0 }, cashTransfers: [], lastUpdated:0
 };
@@ -467,9 +496,9 @@ function getMonthOutstanding(resident, month) {
 
 function calculateCumulativeDebt(residentId) {
     const resident = state.residents.find(r => r.id === residentId);
-    if (!resident) return { count: 0, totalDebt: 0, unpaidMonths: [] };
+    if (!resident) return { count: 0, totalDebt: 0, unpaidMonths: [], unpaidMonthDetails: [], daysOverdue: 0, oldestMonth: null };
     const startKey = getResidentBillingStartKey(resident);
-    if (!startKey) return { count: 0, totalDebt: 0, unpaidMonths: [] };
+    if (!startKey) return { count: 0, totalDebt: 0, unpaidMonths: [], unpaidMonthDetails: [], daysOverdue: 0, oldestMonth: null };
     const [startYear, startMonth] = startKey.split('-').map(Number);
     const cursor = new Date(startYear, startMonth - 1, 1);
     const now = new Date();
@@ -482,8 +511,22 @@ function calculateCumulativeDebt(residentId) {
             (item.key || '').slice(0, 7) < currentMonthKey
             || isSubscriptionMonthOverdue(item.month, now)
         ));
+    const unpaidMonthDetails = unpaidMonths.map(item => ({
+        month: item.month,
+        monthKey: item.key,
+        amount: item.amount,
+        daysOverdue: getSubscriptionOverdueDays(item.month, now)
+    }));
     const totalDebtCents = unpaidMonths.reduce((sum, item) => sum + Math.round(item.amount * 100), 0);
-    return { count: unpaidMonths.length, totalDebt: totalDebtCents / 100, unpaidMonths: unpaidMonths.map(item => item.month) };
+    const daysOverdue = unpaidMonthDetails.reduce((max, item) => Math.max(max, item.daysOverdue), 0);
+    return {
+        count: unpaidMonths.length,
+        totalDebt: totalDebtCents / 100,
+        unpaidMonths: unpaidMonthDetails.map(item => item.month),
+        unpaidMonthDetails,
+        daysOverdue,
+        oldestMonth: unpaidMonthDetails[0]?.month || null
+    };
 }
 
 function calculateSelectedMonthsAllocation(residentId, selectedMonths, amount, futureMonths = 12) {
@@ -638,17 +681,24 @@ function buildArrearsReport(filters = {}) {
         .filter(resident => !residentId || resident.id === residentId)
         .map(resident => {
             const debt = calculateCumulativeDebt(resident.id);
-            const unpaidMonths = debt.unpaidMonths
-                .map(month => ({ month, monthKey: monthLabelToKey(month), amount: getMonthOutstanding(resident, month) }))
+            const unpaidMonths = (debt.unpaidMonthDetails || [])
+                .map(item => ({
+                    month: item.month,
+                    monthKey: item.monthKey || monthLabelToKey(item.month),
+                    amount: item.amount,
+                    daysOverdue: item.daysOverdue || 0
+                }))
                 .filter(item => (!fromKey || (item.monthKey && item.monthKey >= fromKey))
                     && (!toKey || (item.monthKey && item.monthKey <= toKey)))
-                .map(({ month, amount }) => ({ month, amount }));
+                .map(({ month, amount, daysOverdue }) => ({ month, amount, daysOverdue }));
             const count = unpaidMonths.length;
             const totalCents = unpaidMonths.reduce((sum, item) => sum + Math.round(item.amount * 100), 0);
+            const daysOverdue = unpaidMonths.reduce((max, item) => Math.max(max, item.daysOverdue), 0);
             return {
                 resident,
                 count,
                 totalDebt: totalCents / 100,
+                daysOverdue,
                 bucket: getArrearsBucket(count),
                 unpaidMonths
             };
