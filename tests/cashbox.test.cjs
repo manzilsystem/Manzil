@@ -250,7 +250,8 @@ function createCashboxDomSandbox(overrides = {}) {
         'cashBalance-main', 'cashBalance-development', 'cashBalance-emergency',
         'cashBalance-total', 'cashTransfersList', 'cashTransferPreview',
         'cashTransferPreviewText', 'cashTransferSubmitButton',
-        'cashTransferFrom', 'cashTransferTo', 'cashTransferAmount'
+        'cashTransferFrom', 'cashTransferTo', 'cashTransferAmount',
+        'cashboxRecentMovements', 'cashboxMovementsAccount'
     ].forEach(id => makeElement(id));
     Object.assign(elements.get('cashTransferFrom'), { value: 'main' });
     Object.assign(elements.get('cashTransferTo'), { value: 'development' });
@@ -277,7 +278,7 @@ function createCashboxDomSandbox(overrides = {}) {
         console
     };
     const api = vm.runInNewContext(
-        `${cashbox}\n({ renderCashbox, previewCashTransfer, getCashAccountBalance })`,
+        `${cashbox}\n({ renderCashbox, previewCashTransfer, getCashAccountBalance, buildCashboxMovements, renderCashboxRecentMovements })`,
         sandbox,
         { filename: 'js/cashbox.js' }
     );
@@ -306,6 +307,71 @@ test('cashbox renderer displays all three balances, total and safely escaped tra
     assert.equal(elements.get('cashBalance-total').textContent, '1445.00 ج.م');
     assert.ok(elements.get('cashTransfersList').innerHTML.includes('&lt;img src=x onerror=alert(1)&gt;'));
     assert.doesNotMatch(elements.get('cashTransfersList').innerHTML, /<img/);
+});
+
+test('cashbox funds screen shows incoming/outgoing transfers and the last 10 movements', () => {
+    assert.match(html, /id="cashboxRecentMovements"/);
+    assert.match(html, /id="cashboxMovementsAccount"/);
+    assert.match(html, /آخر 10 حركات/);
+    assert.match(cashbox, /function buildCashboxMovements\(\)/);
+    assert.match(cashbox, /function renderCashboxRecentMovements\(\)/);
+    assert.match(cashbox, /renderCashboxRecentMovements\(\);/);
+    assert.match(cashbox, /تحويلات داخلة:/);
+    assert.match(cashbox, /تحويلات خارجة:/);
+    assert.match(cashbox, /\.slice\(0, 10\)/);
+});
+
+test('cashbox recent movements merge collections, expenses and both transfer directions', () => {
+    const { api, elements } = createCashboxDomSandbox({
+        state: {
+            cashAccountBalances: { main: 0, development: 0, emergency: 0 },
+            income: [
+                { id: 'i1', amount: 100, cashAccountCode: 'development', date: '2026-11-01T10:00:00Z', notes: 'اشتراك' },
+                { id: 'i2', amount: 50, cashAccountCode: 'main', date: '2026-11-01T09:00:00Z' }
+            ],
+            expenses: [
+                { id: 'e1', title: 'كهرباء', amount: 30, cashAccountCode: 'main', date: '2026-11-01T11:00:00Z' }
+            ],
+            cashTransfers: [
+                { id: 't1', fromAccountCode: 'main', toAccountCode: 'development', amount: 20, notes: 'دعم', transferredAt: '2026-11-01T12:00:00Z' }
+            ]
+        }
+    });
+
+    const movements = JSON.parse(JSON.stringify(api.buildCashboxMovements()));
+    assert.equal(movements.length, 5);
+    assert.deepEqual(movements.map(m => m.kind), ['transfer-out', 'transfer-in', 'expense', 'income', 'income']);
+    assert.equal(movements[0].direction, -1);
+    assert.equal(movements[1].accountCode, 'development');
+    assert.equal(movements.find(m => m.kind === 'expense').notes, 'كهرباء');
+
+    api.renderCashbox();
+    const list = elements.get('cashboxRecentMovements').innerHTML;
+    assert.match(list, /تحويل صادر/);
+    assert.match(list, /تحويل وارد/);
+    assert.match(list, /كهرباء/);
+
+    elements.get('cashboxMovementsAccount').value = 'main';
+    api.renderCashboxRecentMovements();
+    const onlyMain = elements.get('cashboxRecentMovements').innerHTML;
+    assert.match(onlyMain, /تحويل صادر/);
+    assert.doesNotMatch(onlyMain, /تحويل وارد/);
+    assert.doesNotMatch(onlyMain, /اشتراك/);
+});
+
+test('cashbox recent movements are capped at ten entries', () => {
+    const income = Array.from({ length: 12 }, (_, index) => ({
+        id: `i${index}`, amount: 10, cashAccountCode: 'main',
+        date: `2026-11-${String(index + 1).padStart(2, '0')}T10:00:00Z`
+    }));
+    const { api, elements } = createCashboxDomSandbox({
+        state: { cashAccountBalances: { main: 0, development: 0, emergency: 0 }, income }
+    });
+
+    assert.equal(api.buildCashboxMovements().length, 12);
+    api.renderCashboxRecentMovements();
+    const html = elements.get('cashboxRecentMovements').innerHTML;
+    assert.equal((html.match(/<article/g) || []).length, 10);
 });
 
 test('cashbox renderer does not expose manager balances in the owner role', () => {
