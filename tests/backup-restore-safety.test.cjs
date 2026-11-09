@@ -161,9 +161,35 @@ test('client prefers browser-managed direct download and retains checksum-verifi
     assert.match(ui, /crypto\.subtle\.digest\('SHA-256'/);
 });
 
-test('backup download accepts the real UTC release tag format', () => {
-    assert.ok(ui.includes(String.raw`!/^backup-\d{8}T\d{6}Z$/.test(tag)`));
-    assert.ok(!ui.includes(String.raw`!/^backup-\\d{8}T\\d{6}Z$/.test(tag)`), 'the source must not contain a double-escaped tag matcher');
+test('backup tags are validated by one central tested matcher', () => {
+    assert.match(ui, /const BACKUP_TAG_PATTERN = \/\^backup-\\d\{8\}T\\d\{6\}Z\$\//);
+    assert.match(ui, /function isValidBackupTag\(tag\)/);
+    assert.match(ui, /function backupTimestampFromTag\(tag\)/);
+    assert.match(ui, /!isValidBackupTag\(tag\)\) return;/);
+    assert.match(ui, /backupTimestampFromTag\(tag\)\}\.dump/);
+    assert.ok(!ui.includes(String.raw`!/^backup-\d{8}T\d{6}Z$/.test(tag)`),
+        'the download guard must delegate to the shared matcher');
+    const sliceOccurrences = ui.split(String.raw`tag.slice('backup-'.length)`).length - 1;
+    assert.equal(sliceOccurrences, 1,
+        'the timestamp prefix must be stripped only inside the shared matcher');
+});
+
+test('the central backup tag matcher accepts only real UTC release tags', () => {
+    const vm = require('node:vm');
+    const sandbox = {};
+    const api = vm.runInNewContext(
+        `${ui}\n({ isValidBackupTag, backupTimestampFromTag })`,
+        sandbox,
+        { filename: 'backup-tag.js' }
+    );
+    assert.equal(api.isValidBackupTag('backup-20261107T022300Z'), true);
+    assert.equal(api.backupTimestampFromTag('backup-20261107T022300Z'), '20261107T022300Z');
+    assert.equal(api.isValidBackupTag('backup-20261107T02230Z'), false);
+    assert.equal(api.isValidBackupTag('backup-20261107T022300'), false);
+    assert.equal(api.isValidBackupTag('backup-20261107t022300z'), false);
+    assert.equal(api.isValidBackupTag(''), false);
+    assert.equal(api.isValidBackupTag(undefined), false);
+    assert.equal(api.backupTimestampFromTag('not-a-tag'), '');
 });
 
 

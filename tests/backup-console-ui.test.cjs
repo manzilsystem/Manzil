@@ -78,3 +78,24 @@ test('backup schedule copy matches the UTC workflow and Cairo seasonal time', ()
     assert.match(html, /موعد النسخ اليومي 02:23 UTC \(04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة\)/);
     assert.doesNotMatch(html, /نسخة يومية 04:23 صباحًا بتوقيت مصر/);
 });
+
+test('backup modal separates protection, creation, restore and JSON actions into ordered cards', () => {
+    const modal = html.slice(html.indexOf('id="backupModal"'), html.indexOf('id="restoreConfirmModal"'));
+    const titles = ['حماية البيانات', 'إنشاء نسخة احتياطية', 'استعادة قاعدة البيانات', 'نسخة التطبيق المحلية (JSON)'];
+    const positions = titles.map(title => modal.indexOf(title));
+    positions.forEach((position, index) => assert.ok(position > -1, `missing backup card: ${titles[index]}`));
+    assert.deepEqual([...positions].sort((a, b) => a - b), positions, 'backup cards must appear in order');
+    // Each action owns its own status region inside its card; creation must not
+    // share the destructive restore card's status.
+    const [protectionStart, createStart, restoreStart] = positions;
+    const between = (id, from, to) => {
+        const at = modal.indexOf(`id="${id}"`);
+        return at > from && at < to;
+    };
+    assert.equal((modal.match(/<section/g) || []).length, 4, 'the backup modal must expose exactly four cards');
+    assert.ok(between('backupCreateButton', createStart, restoreStart) && between('backupCreateStatus', createStart, restoreStart),
+        'manual creation button and status live in their own card');
+    assert.ok(modal.indexOf('id="backupRestoreButton"') > restoreStart && modal.indexOf('id="backupRestoreStatus"') > restoreStart,
+        'restore button and status live in the restore card');
+    assert.ok(protectionStart < createStart, 'the protection card comes first');
+});
