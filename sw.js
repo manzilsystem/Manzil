@@ -1,4 +1,4 @@
-const CACHE_NAME = 'manzil-e22fbd604f';
+const CACHE_NAME = 'manzil-940925de97';
 const APP_CACHE_PREFIX = 'manzil-';
 const APP_SHELL = [
     './',
@@ -7,7 +7,7 @@ const APP_SHELL = [
     './js/sw-register.js?v=aa29152c50',
     './js/telemetry.js?v=manzil-c82efa9c4e',
     './js/state.js?v=6e9bcc8346',
-    './js/access.js?v=817673c8c0',
+    './js/access.js?v=cb64b108df',
     './js/render.js?v=14dfdee1e7',
     './js/crud.js?v=fcc706f513',
     './js/notices.js?v=97341d977d',

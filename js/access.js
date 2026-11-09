@@ -298,6 +298,237 @@ function sendActiveIncomeReceiptOnWhatsApp() {
     }
 }
 
+const RECEIPT_IMAGE_WIDTH = 720;   // logical CSS pixels before the device scale
+const RECEIPT_IMAGE_SCALE = 2.5;   // 2×–3× keeps the exported PNG crisp
+const RECEIPT_IMAGE_PADDING = 24;
+const RECEIPT_IMAGE_FIELD_HEIGHT = 48;
+const RECEIPT_IMAGE_FIELD_GAP = 8;
+const RECEIPT_IMAGE_TABLE_HEAD = 34;
+const RECEIPT_IMAGE_TABLE_ROW = 38;
+
+function receiptImageFilename(receipt) {
+    const reference = String(receipt?.reference || '').replace(/[^A-Za-z0-9_-]+/g, '').slice(0, 24) || 'receipt';
+    return `manzil_receipt_${reference}.png`;
+}
+
+function receiptImageFields(receipt, resident) {
+    return [
+        ['اسم المالك', resident?.name || '—'],
+        ['الشقة', receiptApartmentLabel(resident)],
+        ['تاريخ الاستلام', formatDate(receipt?.date) || '—'],
+        ['طريقة الدفع', getIncomePaymentMethodLabel(receipt?.paymentMethod)],
+        ['الغرض', receipt?.purposeSummary || '—'],
+        ['الصندوق', receipt?.cashboxSummary || '—']
+    ];
+}
+
+function receiptImageHeight(plan) {
+    let height = RECEIPT_IMAGE_PADDING + 84 + 20;
+    height += Math.ceil(plan.fields.length / 2) * (RECEIPT_IMAGE_FIELD_HEIGHT + RECEIPT_IMAGE_FIELD_GAP);
+    height += 30 + RECEIPT_IMAGE_TABLE_HEAD + plan.items.length * RECEIPT_IMAGE_TABLE_ROW;
+    if (plan.notes.length) height += 16 + 26 + plan.notes.length * 22;
+    height += 18 + 54;
+    height += 22 + 58 + RECEIPT_IMAGE_PADDING;
+    return Math.round(height);
+}
+
+function buildReceiptImagePlan(receipt, resident) {
+    const plan = {
+        width: RECEIPT_IMAGE_WIDTH,
+        scale: RECEIPT_IMAGE_SCALE,
+        sections: ['header', 'body', 'footer'],
+        buildingName: String(state.buildingName || 'Manzil'),
+        title: 'إيصال استلام',
+        reference: String(receipt?.reference || '—'),
+        fields: receiptImageFields(receipt, resident),
+        items: (receipt?.payments || []).map(payment => ({
+            purpose: ownerPaymentPurposeLabel(payment),
+            month: payment.month || '—',
+            cashbox: ownerPaymentCashLabel(payment) || '—',
+            amount: `${fmtNum(payment.amount)} ج.م`
+        })),
+        notes: receiptNotesForPayments(receipt?.payments || []),
+        total: `${fmtNum(receipt?.totalAmount)} ج.م`,
+        footer: typeof getReceiptThankYouMessage === 'function'
+            ? getReceiptThankYouMessage()
+            : 'شكراً لالتزامكم، ونسعد دائماً بخدمتكم.',
+        sourceText: 'تم إصدار هذا الإيصال من لوحة إدارة Manzil.'
+    };
+    plan.height = receiptImageHeight(plan);
+    return plan;
+}
+
+function receiptRoundRect(ctx, x, y, width, height, radius) {
+    const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + width - r, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+    ctx.lineTo(x + width, y + height - r);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+    ctx.lineTo(x + r, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+}
+
+function drawReceiptImage(plan) {
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(plan.width * plan.scale);
+    canvas.height = Math.round(plan.height * plan.scale);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
+    ctx.scale(plan.scale, plan.scale);
+    try { ctx.direction = 'rtl'; } catch { /* engines without rtl canvas text fall back to bidi order */ }
+    ctx.textBaseline = 'alphabetic';
+    const inner = RECEIPT_IMAGE_PADDING;
+    const right = plan.width - inner;
+    const font = (size, weight = 400) => `${weight} ${size}px Tahoma, Arial, sans-serif`;
+    const text = (value, x, y, { size = 12, weight = 400, color = '#0f172a', align = 'right' } = {}) => {
+        ctx.font = font(size, weight);
+        ctx.fillStyle = color;
+        ctx.textAlign = /** @type {CanvasTextAlign} */ (align);
+        ctx.fillText(String(value ?? ''), x, y);
+    };
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, plan.width, plan.height);
+
+    // header
+    ctx.fillStyle = '#047857';
+    receiptRoundRect(ctx, inner, inner, plan.width - inner * 2, 84, 14);
+    ctx.fill();
+    text(plan.buildingName, right - 20, inner + 36, { size: 20, weight: 700, color: '#ffffff' });
+    text(`رقم الإيصال: ${plan.reference}`, right - 20, inner + 60, { size: 12, color: '#d1fae5' });
+    text(plan.title, inner + 20, inner + 48, { size: 18, weight: 700, color: '#ffffff', align: 'left' });
+
+    // body: identity grid
+    let y = inner + 84 + 20;
+    const gridLeft = inner + 16;
+    const gridRight = right - 16;
+    const columnWidth = (gridRight - gridLeft - 12) / 2;
+    plan.fields.forEach((field, index) => {
+        const row = Math.floor(index / 2);
+        const boxX = index % 2 === 0 ? gridRight - columnWidth : gridLeft;
+        const boxY = y + row * (RECEIPT_IMAGE_FIELD_HEIGHT + RECEIPT_IMAGE_FIELD_GAP);
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 1;
+        receiptRoundRect(ctx, boxX, boxY, columnWidth, RECEIPT_IMAGE_FIELD_HEIGHT, 10);
+        ctx.stroke();
+        text(field[0], boxX + columnWidth - 12, boxY + 18, { size: 10, color: '#64748b' });
+        text(field[1], boxX + columnWidth - 12, boxY + 36, { size: 12, weight: 700 });
+    });
+    y += Math.ceil(plan.fields.length / 2) * (RECEIPT_IMAGE_FIELD_HEIGHT + RECEIPT_IMAGE_FIELD_GAP) + 30;
+
+    // body: payment details table
+    text('تفاصيل السداد', right - 2, y, { size: 13, weight: 700 });
+    y += 10;
+    const columns = [
+        { label: 'الغرض', width: 250, source: 'purpose', color: '#0f172a', weight: 400 },
+        { label: 'شهر / بند', width: 120, source: 'month', color: '#334155', weight: 400 },
+        { label: 'الصندوق', width: 160, source: 'cashbox', color: '#334155', weight: 400 },
+        { label: 'المبلغ', width: 142, source: 'amount', color: '#065f46', weight: 700 }
+    ];
+    let columnRight = right;
+    const columnEdges = columns.map(column => {
+        const edge = { ...column, right: columnRight };
+        columnRight -= column.width;
+        return edge;
+    });
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(inner, y, plan.width - inner * 2, RECEIPT_IMAGE_TABLE_HEAD);
+    columnEdges.forEach(edge => text(edge.label, edge.right - 10, y + 22, { size: 11, color: '#475569' }));
+    y += RECEIPT_IMAGE_TABLE_HEAD;
+    plan.items.forEach(item => {
+        columnEdges.forEach(edge => text(item[edge.source], edge.right - 10, y + 25, { size: 12, weight: edge.weight, color: edge.color }));
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.beginPath();
+        ctx.moveTo(inner, y + RECEIPT_IMAGE_TABLE_ROW);
+        ctx.lineTo(plan.width - inner, y + RECEIPT_IMAGE_TABLE_ROW);
+        ctx.stroke();
+        y += RECEIPT_IMAGE_TABLE_ROW;
+    });
+
+    // body: notes
+    if (plan.notes.length) {
+        y += 16;
+        const notesHeight = 26 + plan.notes.length * 22;
+        ctx.setLineDash([6, 5]);
+        ctx.strokeStyle = '#cbd5e1';
+        receiptRoundRect(ctx, inner, y, plan.width - inner * 2, notesHeight, 10);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        text('ملاحظات الدفع', right - 12, y + 18, { size: 10, weight: 700, color: '#4f46e5' });
+        plan.notes.forEach((note, index) => text(note, right - 12, y + 38 + index * 22, { size: 11, color: '#334155' }));
+        y += notesHeight;
+    }
+
+    // body: total band
+    y += 18;
+    ctx.fillStyle = '#ecfdf5';
+    receiptRoundRect(ctx, inner, y, plan.width - inner * 2, 54, 12);
+    ctx.fill();
+    text('إجمالي المبلغ المستلم', right - 18, y + 33, { size: 14, weight: 700, color: '#065f46' });
+    text(plan.total, inner + 18, y + 33, { size: 16, weight: 700, color: '#065f46', align: 'left' });
+    y += 54;
+
+    // footer
+    y += 22;
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.beginPath();
+    ctx.moveTo(inner, y - 10);
+    ctx.lineTo(plan.width - inner, y - 10);
+    ctx.stroke();
+    const center = plan.width / 2;
+    text(plan.footer, center, y + 10, { size: 11, color: '#475569', align: 'center' });
+    text(plan.sourceText, center, y + 30, { size: 10, color: '#94a3b8', align: 'center' });
+
+    return canvas;
+}
+
+function receiptCanvasPngBlob(canvas) {
+    return new Promise(resolve => {
+        if (typeof canvas.toBlob !== 'function') { resolve(null); return; }
+        canvas.toBlob(blob => resolve(blob), 'image/png');
+    });
+}
+
+async function exportActiveIncomeReceiptImage() {
+    if (!requireManager() || !activeManagerReceipt) return;
+    const resident = state.residents.find(item => item.id === activeManagerReceipt.residentId);
+    if (!resident) {
+        toast('تعذر العثور على بيانات الشقة.', 'error');
+        return;
+    }
+    const receipt = groupOwnerPaymentsIntoReceipts(resident.id)
+        .find(item => item.id === activeManagerReceipt.receiptId);
+    if (!receipt) {
+        toast('تعذر العثور على الإيصال. حدّث الصفحة وحاول مرة أخرى.', 'error');
+        return;
+    }
+    const button = /** @type {HTMLButtonElement | null} */ (document.getElementById('incomeReceiptImageBtn'));
+    if (button) button.disabled = true;
+    try {
+        const blob = await receiptCanvasPngBlob(drawReceiptImage(buildReceiptImagePlan(receipt, resident)));
+        if (!(blob instanceof Blob) || blob.type !== 'image/png' || blob.size < 100) {
+            throw new Error('receipt_image_generation_failed');
+        }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = receiptImageFilename(receipt);
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        toast('تم حفظ صورة الإيصال بجودة عالية.', 'success');
+    } catch (error) {
+        console.error('Receipt image export failed:', error);
+        toast('تعذر إنشاء صورة الإيصال. حاول مرة أخرى.', 'error');
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+
 function renderOwnerPortal() {
     const portal = document.getElementById('ownerPortal');
     if (!portal) return;
