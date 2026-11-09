@@ -62,18 +62,20 @@ test('dashboard exposes a unified period filter and states the range of affected
     assert.match(html, /<option value="all">كل السجل<\/option>/);
     assert.match(html, /<option value="current">الشهر الحالي<\/option>/);
     assert.match(html, /<option value="last6">آخر 6 أشهر<\/option>/);
+    assert.match(html, /for="dashboardPeriodFilter"[^>]*>نطاق المخطط وتفصيل المصروفات</);
     assert.match(html, /id="cashFlowPeriodLabel"/);
     assert.match(html, /id="expenseBreakdownPeriodLabel"/);
 });
 
-test('current-month filter updates income, expenses and category breakdown but leaves cash balance lifetime', () => {
-    const { app, elements, current } = makeDashboard('current');
+test('period filter scopes the chart and category breakdown while income, expenses and cash balance stay lifetime', () => {
+    const { app, elements } = makeDashboard('current');
     app.renderDashboard();
-    assert.equal(elements.get('totalIncomeDisplay').textContent, '40 ج.م');
-    assert.equal(elements.get('totalExpenseDisplay').textContent, '10 ج.م');
-    assert.match(elements.get('incomePeriodLabel').textContent, new RegExp(current));
-    assert.match(elements.get('expensePeriodLabel').textContent, new RegExp(current));
+    assert.equal(elements.get('totalIncomeDisplay').textContent, '1045 ج.م');
+    assert.equal(elements.get('totalExpenseDisplay').textContent, '512 ج.م');
+    assert.equal(elements.get('incomePeriodLabel').textContent, 'إجمالي التحصيلات المسجلة منذ بدء التسجيل');
+    assert.equal(elements.get('expensePeriodLabel').textContent, 'إجمالي المصروفات المسجلة منذ بدء التسجيل');
     assert.equal(elements.get('netBalanceDisplay').textContent, '633 ج.م');
+    assert.equal(elements.get('cashFlowPeriodLabel').textContent, 'current');
     assert.match(elements.get('expenseCategoriesBreakdown').innerHTML, /صيانة/);
     assert.doesNotMatch(elements.get('expenseCategoriesBreakdown').innerHTML, /نظافة|ترميم/);
 });
@@ -86,13 +88,14 @@ test('all-records filter preserves lifetime totals', () => {
     assert.equal(elements.get('netBalanceDisplay').textContent, '633 ج.م');
 });
 
-test('last-six-month filter excludes older transactions while keeping the lifetime cash balance', () => {
+test('last-six-month filter scopes the breakdown while income, expenses and cash balance stay lifetime', () => {
     const { app, elements, current } = makeDashboard('last6');
     app.renderDashboard();
-    assert.equal(elements.get('totalIncomeDisplay').textContent, '45 ج.م');
-    assert.equal(elements.get('totalExpenseDisplay').textContent, '12 ج.م');
+    assert.equal(elements.get('totalIncomeDisplay').textContent, '1045 ج.م');
+    assert.equal(elements.get('totalExpenseDisplay').textContent, '512 ج.م');
     assert.equal(elements.get('netBalanceDisplay').textContent, '633 ج.م');
     assert.equal(elements.get('cashFlowPeriodLabel').textContent, 'last6');
     assert.equal(app.getDashboardPeriodLabel('last6').split(' – ').at(-1), current);
     assert.match(elements.get('expenseBreakdownPeriodLabel').textContent, / – /);
+    assert.doesNotMatch(elements.get('expenseCategoriesBreakdown').innerHTML, /ترميم/);
 });
