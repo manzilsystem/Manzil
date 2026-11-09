@@ -15,6 +15,15 @@ test('dashboard informational text keeps a 12px reading floor', () => {
     );
 });
 
+test('financial list and card rows keep a 12px reading floor', () => {
+    const lists = read('js/render.js');
+    assert.doesNotMatch(
+        lists,
+        /text-\[(9|10)px\]/,
+        'list/card informational text in js/render.js must not fall below the 12px reading floor (use text-xs)'
+    );
+});
+
 test('built index.html ships the dashboard reading floor', () => {
     const built = read('index.html');
     assert.match(built, /id="incomePeriodLabel" class="text-xs text-slate-500 mt-1"/);

@@ -121,7 +121,7 @@ function renderArrearsReport() {
             </summary>
             <div class="arrears-body">
                 <div class="report-list">
-                    ${item.unpaidMonths.map(month => `<div class="report-list-row"><span class="report-list-title">${esc(month.month)}${month.daysOverdue ? ` <span class="text-[10px] text-slate-500">(متأخر ${esc(formatOverdueDuration(month.daysOverdue))})</span>` : ''}</span><span class="report-list-value text-rose-400 report-amount">${fmtNum(month.amount)} ج.م</span></div>`).join('')}
+                    ${item.unpaidMonths.map(month => `<div class="report-list-row"><span class="report-list-title">${esc(month.month)}${month.daysOverdue ? ` <span class="text-xs text-slate-500">(متأخر ${esc(formatOverdueDuration(month.daysOverdue))})</span>` : ''}</span><span class="report-list-value text-rose-400 report-amount">${fmtNum(month.amount)} ج.م</span></div>`).join('')}
                 </div>
             </div>
         </details>`).join('');
@@ -293,7 +293,7 @@ function renderCashFlowChart(period = getDashboardPeriod()) {
                 <div class="bg-emerald-500 rounded-t w-2 sm:w-3" style="height:${Math.max(2,ih)}%;" title="تحصيل ${fmtNum(inc[m])}"></div>
                 <div class="bg-rose-500 rounded-t w-2 sm:w-3" style="height:${Math.max(2,eh)}%;" title="مصروف ${fmtNum(exp[m])}"></div>
             </div>
-            <span class="text-[9px] text-slate-500 truncate w-full text-center">${esc(m.split(' ')[0].substring(0,4))}</span>
+            <span class="text-xs text-slate-500 truncate w-full text-center">${esc(m.split(' ')[0].substring(0,4))}</span>
         </div>`;
     }).join('');
 }
@@ -307,11 +307,11 @@ function renderUnpaidResidents() {
         <div class="flex items-center justify-between app-input rounded-2xl p-2.5 border">
             <div class="flex items-center gap-2 min-w-0">
                 <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-xs font-bold shrink-0">${esc(x.r.apartmentNumber||'?')}</div>
-                <div class="min-w-0"><p class="text-xs font-bold truncate">${esc(x.r.name)}</p><p class="text-[10px] text-slate-500">${x.d.count} شهر عليه رصيد</p></div>
+                <div class="min-w-0"><p class="text-xs font-bold truncate">${esc(x.r.name)}</p><p class="text-xs text-slate-500">${x.d.count} شهر عليه رصيد</p></div>
             </div>
             <div class="text-right shrink-0">
                 <p class="text-xs font-black text-rose-400">${fmtNum(x.d.totalDebt)} ج.م</p>
-                    <button onclick="sendWhatsAppReminder('${x.r.id}')" aria-label="إرسال تذكير واتساب إلى ${esc(x.r.name)}" class="text-[10px] text-emerald-400 hover:underline"><i class="fa-brands fa-whatsapp"></i> تذكير</button>
+                    <button onclick="sendWhatsAppReminder('${x.r.id}')" aria-label="إرسال تذكير واتساب إلى ${esc(x.r.name)}" class="text-xs text-emerald-400 hover:underline"><i class="fa-brands fa-whatsapp"></i> تذكير</button>
             </div>
         </div>`).join('');
 }
@@ -337,13 +337,13 @@ function renderRecent() {
     const ic = document.getElementById('recentIncomeList');
     ic.innerHTML = ri.length ? ri.map(i => { const r = state.residents.find(x => x.id === i.residentId); return `
         <div class="flex justify-between items-center app-input p-2 rounded-xl border text-xs">
-            <div class="min-w-0"><p class="font-bold truncate">${esc(r?.name||'محذوف')}</p><p class="text-[10px] text-slate-500">${esc(i.month||'')} • ${esc(renderPurposeLabel(i.purposeCode))}</p></div>
+            <div class="min-w-0"><p class="font-bold truncate">${esc(r?.name||'محذوف')}</p><p class="text-xs text-slate-500">${esc(i.month||'')} • ${esc(renderPurposeLabel(i.purposeCode))}</p></div>
             <span class="text-emerald-400 font-black shrink-0">${fmtNum(i.amount)}</span>
         </div>`; }).join('') : '<p class="text-slate-500 text-xs text-center py-2">لا توجد تحصيلات</p>';
     const ec = document.getElementById('recentExpenseList');
     ec.innerHTML = re.length ? re.map(e => `
         <div class="flex justify-between items-center app-input p-2 rounded-xl border text-xs">
-            <div class="min-w-0"><p class="font-bold truncate">${esc(e.title)}</p><p class="text-[10px] text-slate-500">${esc(e.category||'')}</p></div>
+            <div class="min-w-0"><p class="font-bold truncate">${esc(e.title)}</p><p class="text-xs text-slate-500">${esc(e.category||'')}</p></div>
             <span class="text-rose-400 font-black shrink-0">${fmtNum(e.amount)}</span>
         </div>`).join('') : '<p class="text-slate-500 text-xs text-center py-2">لا توجد مصروفات</p>';
 }
@@ -355,8 +355,8 @@ function renderNotices() {
         <div class="app-input p-3 rounded-2xl border">
             <p class="text-xs leading-relaxed whitespace-pre-line">${esc(n.text)}</p>
             <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-700/50">
-                <span class="text-[10px] text-slate-500">${formatDate(n.date)}</span>
-                <button onclick="deleteNotice('${n.id}')" aria-label="حذف الإعلان" class="text-[10px] text-rose-400 hover:underline"><i class="fa-solid fa-trash"></i> حذف</button>
+                <span class="text-xs text-slate-500">${formatDate(n.date)}</span>
+                <button onclick="deleteNotice('${n.id}')" aria-label="حذف الإعلان" class="text-xs text-rose-400 hover:underline"><i class="fa-solid fa-trash"></i> حذف</button>
             </div>
         </div>`).join('');
 }
@@ -391,7 +391,7 @@ function getIncomeListBatchKey(item) {
 function renderIncomeListRow(i, resident, rowIndexLabel = '') {
     const displayNotes = stripIncomeBatchNote(i.notes);
     const indexBadge = rowIndexLabel
-        ? `<span class="text-[10px] font-bold text-slate-500 min-w-[1.75rem] text-center shrink-0" aria-hidden="true">${esc(rowIndexLabel)}</span>`
+        ? `<span class="text-xs font-bold text-slate-500 min-w-[1.75rem] text-center shrink-0" aria-hidden="true">${esc(rowIndexLabel)}</span>`
         : '';
     return `
         <div class="flex justify-between items-center gap-2 py-2 border-t border-slate-500/10 first:border-t-0">
@@ -400,10 +400,10 @@ function renderIncomeListRow(i, resident, rowIndexLabel = '') {
                 <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xs font-bold shrink-0">${esc(resident?.apartmentNumber || '?')}</div>
                 <div class="min-w-0">
                     <p class="text-xs font-bold truncate">${esc(resident?.name || 'محذوف')}</p>
-                    <p class="text-[10px] text-slate-500">${esc(formatApartmentLabel(resident?.apartmentNumber))} • ${esc(i.month || '')} • ${formatDate(i.date)} • ${esc(getIncomePaymentMethodLabel(i.paymentMethod))}</p>
+                    <p class="text-xs text-slate-500">${esc(formatApartmentLabel(resident?.apartmentNumber))} • ${esc(i.month || '')} • ${formatDate(i.date)} • ${esc(getIncomePaymentMethodLabel(i.paymentMethod))}</p>
                     <span class="cash-account-tag mt-1">${esc(renderPurposeLabel(i.purposeCode))}</span>
                     <span class="cash-account-tag mt-1"><i class="fa-solid fa-vault" aria-hidden="true"></i>${esc(renderCashAccountLabel(i.cashAccountCode))}</span>
-                    ${displayNotes ? `<p class="mt-1 text-[10px] text-slate-400 truncate"><i class="fa-solid fa-note-sticky ml-1" aria-hidden="true"></i>${esc(displayNotes)}</p>` : ''}
+                    ${displayNotes ? `<p class="mt-1 text-xs text-slate-400 truncate"><i class="fa-solid fa-note-sticky ml-1" aria-hidden="true"></i>${esc(displayNotes)}</p>` : ''}
                 </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
@@ -473,7 +473,7 @@ function renderIncomeTable() {
         return `
             <section class="app-card p-3 rounded-2xl border">
                 <div class="flex justify-between items-center gap-2 pb-2">
-                    <div class="min-w-0"><p class="text-xs font-bold">${esc(resident?.name || 'محذوف')} · شقة ${esc(resident?.apartmentNumber || '?')}</p><p class="text-[10px] text-slate-500">${esc(batchMeta.join(' · '))}</p></div>
+                    <div class="min-w-0"><p class="text-xs font-bold">${esc(resident?.name || 'محذوف')} · شقة ${esc(resident?.apartmentNumber || '?')}</p><p class="text-xs text-slate-500">${esc(batchMeta.join(' · '))}</p></div>
                     <div class="flex items-center gap-2 shrink-0">
                         <p class="text-sm font-black text-emerald-400">${fmtNum(batchTotal)} ج.م</p>
                         <button onclick="openIncomeReceiptModal('${first.id}')" aria-label="عرض إيصال الدفعة كاملًا" title="عرض إيصال الدفعة وطباعته" class="text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-receipt text-sm"></i></button>
@@ -507,7 +507,7 @@ function renderExpenseTable() {
         <div class="app-card p-3 rounded-2xl border flex justify-between items-center gap-2">
             <div class="flex items-center gap-2 min-w-0">
                 <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-receipt"></i></div>
-                <div class="min-w-0"><p class="text-xs font-bold truncate">${esc(e.title)}</p><p class="text-[10px] text-slate-500">${esc(e.category||'')} • ${esc(e.month||'')}</p><p class="text-[10px] text-indigo-300">${esc(renderCashAccountLabel(e.cashAccountCode))}</p></div>
+                <div class="min-w-0"><p class="text-xs font-bold truncate">${esc(e.title)}</p><p class="text-xs text-slate-500">${esc(e.category||'')} • ${esc(e.month||'')}</p><p class="text-xs text-indigo-300">${esc(renderCashAccountLabel(e.cashAccountCode))}</p></div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <span class="text-sm font-black text-rose-400">${fmtNum(e.amount)}</span>
@@ -570,7 +570,7 @@ function renderResidentsGrid() {
             <div class="flex justify-between items-start">
                 <div class="flex items-center gap-2">
                     <div class="w-11 h-11 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-sm font-black shrink-0">${esc(r.apartmentNumber||'?')}</div>
-                    <div class="min-w-0"><p class="text-sm font-bold truncate">${esc(r.name)}</p><p class="text-[10px] text-slate-500 truncate">${r.floor ? `الدور ${esc(r.floor)} · ` : ''}${esc(r.phone||'')}</p></div>
+                    <div class="min-w-0"><p class="text-sm font-bold truncate">${esc(r.name)}</p><p class="text-xs text-slate-500 truncate">${r.floor ? `الدور ${esc(r.floor)} · ` : ''}${esc(r.phone||'')}</p></div>
                 </div>
                 <div class="flex gap-1">
                     <button onclick="openResidentProfile(${esc(JSON.stringify(String(r.id)))})" aria-label="عرض ملف ${esc(r.name)}" title="تفاصيل الشقة" class="text-sky-400 hover:text-sky-300 p-1.5"><i class="fa-solid fa-circle-info text-xs"></i></button>
@@ -579,12 +579,12 @@ function renderResidentsGrid() {
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-2 text-center">
-                <div class="app-input p-2 rounded-xl border"><p class="text-[10px] text-slate-500">الاشتراك</p><p class="text-xs font-bold">${fmtNum(r.monthlyAmount ?? state.defaultSubscription)}</p></div>
-                <div class="app-input p-2 rounded-xl border"><p class="text-[10px] text-slate-500">المتأخرات</p><p class="text-xs font-bold ${d.count>0?'text-rose-400':'text-emerald-400'}">${d.count>0?fmtNum(d.totalDebt):'0'}</p></div>
+                <div class="app-input p-2 rounded-xl border"><p class="text-xs text-slate-500">الاشتراك</p><p class="text-xs font-bold">${fmtNum(r.monthlyAmount ?? state.defaultSubscription)}</p></div>
+                <div class="app-input p-2 rounded-xl border"><p class="text-xs text-slate-500">المتأخرات</p><p class="text-xs font-bold ${d.count>0?'text-rose-400':'text-emerald-400'}">${d.count>0?fmtNum(d.totalDebt):'0'}</p></div>
             </div>
             <div class="flex items-center justify-between gap-2">
-                <span class="text-[10px] font-bold border rounded-full px-2.5 py-1 ${item.status.className}">${item.status.label}</span>
-                ${r.phone ? `<a href="tel:${esc(r.phone)}" class="text-[10px] text-indigo-400 hover:underline" aria-label="الاتصال بـ ${esc(r.name)}"><i class="fa-solid fa-phone ml-1"></i> اتصال</a>` : '<span></span>'}
+                <span class="text-xs font-bold border rounded-full px-2.5 py-1 ${item.status.className}">${item.status.label}</span>
+                ${r.phone ? `<a href="tel:${esc(r.phone)}" class="text-xs text-indigo-400 hover:underline" aria-label="الاتصال بـ ${esc(r.name)}"><i class="fa-solid fa-phone ml-1"></i> اتصال</a>` : '<span></span>'}
             </div>
             <div class="flex gap-2">
                 ${paid ? '<div class="flex-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 py-2 rounded-xl text-xs font-bold text-center"><i class="fa-solid fa-check ml-1"></i> مدفوع بالكامل</div>'
