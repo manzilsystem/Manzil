@@ -601,7 +601,10 @@
                 <div class="space-y-3">
                     <div class="flex items-center justify-between gap-2">
                         <p class="report-note">صفِّ النتائج ثم صدّرها كما هي معروضة.</p>
-                        <button type="button" onclick="exportArrearsCSV()" class="report-action report-action-compact report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="sendBulkArrearsReminders()" class="report-action report-action-compact report-tone-emerald"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> مراسلة المتأخرين</button>
+                            <button type="button" onclick="exportArrearsCSV()" class="report-action report-action-compact report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
+                        </div>
                     </div>
                     <div class="app-input border rounded-2xl p-3 space-y-2">
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
