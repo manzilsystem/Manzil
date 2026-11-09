@@ -53,7 +53,7 @@ test('export is scoped to the previewed month and uses a month-based filename', 
 });
 
 test('statement PDF downloader only takes the rendered html and file metadata', () => {
-    assert.match(reports, /async function downloadStatementPdf\(html, filename, buttonId, successMessage, logLabel\)/);
+    assert.match(reports, /async function downloadStatementPdf\(html, filename, buttonId, successMessage, logLabel, isPreviewValid\)/);
     assert.doesNotMatch(reports, /downloadStatementPdf\(\s*statement,/);
     assert.doesNotMatch(reports, /downloadStatementPdf\(\s*unitStatement,/);
 });

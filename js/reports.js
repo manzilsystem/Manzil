@@ -1120,7 +1120,7 @@ function getPeriodReportSignature(fromMonth, toMonth, purposeFilter = '', cashAc
 }
 
 function setPeriodReportActionsEnabled(enabled) {
-    ['periodReportPrintBtn', 'periodReportExportBtn'].forEach(id => {
+    ['periodReportPrintBtn', 'periodReportPdfBtn', 'periodReportExportBtn'].forEach(id => {
         const button = /** @type {HTMLButtonElement} */ (document.getElementById(id));
         if (button) button.disabled = !enabled;
     });
@@ -1400,6 +1400,24 @@ function exportPeriodReportCsv() {
     toast('تم تصدير تقرير الفترة','success');
 }
 
+async function exportPeriodReportPdf() {
+    if (!requireManager()) return;
+    const report = getSelectedPeriodReportSnapshot();
+    if (!report) return;
+    const purposeSuffix = report.purposeFilter ? `_${report.purposeFilter}` : '';
+    const cashSuffix = report.cashAccountFilter ? `_${report.cashAccountFilter}` : '';
+    const residentSlug = reportResidentFileSlug(report.residentFilter);
+    const residentSuffix = residentSlug ? `_apt_${residentSlug}` : '';
+    await downloadStatementPdf(
+        renderPeriodReportPdfHtml(report),
+        `manzil_period_${getPeriodReportFileSlug(report)}${purposeSuffix}${cashSuffix}${residentSuffix}.pdf`,
+        'periodReportPdfBtn',
+        'تم إنشاء تقرير الفترة PDF.',
+        'Period report PDF export failed:',
+        () => !!periodReportSnapshot
+    );
+}
+
 let expensesReportSnapshot = null;
 let expensesReportSignature = '';
 
@@ -1532,7 +1550,7 @@ function getExpensesReportSignature(fromMonth, toMonth, cashAccountFilter = '', 
 }
 
 function setExpensesReportActionsEnabled(enabled) {
-    ['expensesReportPrintBtn', 'expensesReportExportBtn'].forEach(id => {
+    ['expensesReportPrintBtn', 'expensesReportPdfBtn', 'expensesReportExportBtn'].forEach(id => {
         const button = /** @type {HTMLButtonElement} */ (document.getElementById(id));
         if (button) button.disabled = !enabled;
     });
@@ -1724,6 +1742,22 @@ function exportExpensesReportCsv() {
     toast('تم تصدير تقرير المصروفات','success');
 }
 
+async function exportExpensesReportPdf() {
+    if (!requireManager()) return;
+    const report = getSelectedExpensesReportSnapshot();
+    if (!report) return;
+    const cashSuffix = report.cashAccountFilter ? `_${report.cashAccountFilter}` : '';
+    const categorySuffix = report.categoryFilter ? `_${report.categoryFilter.replace(/\s+/g, '-')}` : '';
+    await downloadStatementPdf(
+        renderExpensesReportPdfHtml(report),
+        `manzil_expenses_${getPeriodReportFileSlug(report)}${cashSuffix}${categorySuffix}.pdf`,
+        'expensesReportPdfBtn',
+        'تم إنشاء تقرير المصروفات PDF.',
+        'Expenses report PDF export failed:',
+        () => !!expensesReportSnapshot
+    );
+}
+
 let adjustmentsReportSnapshot = null;
 let adjustmentsReportSignature = '';
 
@@ -1861,7 +1895,7 @@ function getAdjustmentsReportSignature(fromMonth, toMonth, residentFilter = '', 
 }
 
 function setAdjustmentsReportActionsEnabled(enabled) {
-    ['adjustmentsReportPrintBtn', 'adjustmentsReportExportBtn'].forEach(id => {
+    ['adjustmentsReportPrintBtn', 'adjustmentsReportPdfBtn', 'adjustmentsReportExportBtn'].forEach(id => {
         const button = /** @type {HTMLButtonElement} */ (document.getElementById(id));
         if (button) button.disabled = !enabled;
     });
@@ -2055,6 +2089,23 @@ function exportAdjustmentsReportCsv() {
     const kindSuffix = report.kindFilter ? `_${report.kindFilter}` : '';
     downloadCsv(`manzil_adjustments_${getPeriodReportFileSlug(report)}${residentSuffix}${kindSuffix}.csv`, rows);
     toast('تم تصدير تقرير الإعفاءات والتخفيضات','success');
+}
+
+async function exportAdjustmentsReportPdf() {
+    if (!requireManager()) return;
+    const report = getSelectedAdjustmentsReportSnapshot();
+    if (!report) return;
+    const residentSlug = reportResidentFileSlug(report.residentFilter);
+    const residentSuffix = residentSlug ? `_apt_${residentSlug}` : '';
+    const kindSuffix = report.kindFilter ? `_${report.kindFilter}` : '';
+    await downloadStatementPdf(
+        renderAdjustmentsReportPdfHtml(report),
+        `manzil_adjustments_${getPeriodReportFileSlug(report)}${residentSuffix}${kindSuffix}.pdf`,
+        'adjustmentsReportPdfBtn',
+        'تم إنشاء تقرير الإعفاءات والتخفيضات PDF.',
+        'Adjustments report PDF export failed:',
+        () => !!adjustmentsReportSnapshot
+    );
 }
 
 function exportArrearsCSV() {
@@ -2464,6 +2515,30 @@ function reportPdfFooter(generatedLabel) {
     return '<footer style="' + REPORT_PDF_FOOTER_STYLE + '">Manzil — ' + esc(generatedLabel) + '</footer>';
 }
 
+const REPORT_PDF_SECTION_STYLE = 'margin-bottom:18px';
+const REPORT_PDF_SECTION_TITLE_STYLE = 'font-size:14px;margin:0 0 8px';
+const REPORT_PDF_TABLE_STYLE = 'width:100%;border-collapse:collapse;font-size:10px';
+const REPORT_PDF_TABLE_HEAD_STYLE = 'background:#e2e8f0';
+
+function reportPdfSection(title, inner) {
+    const heading = title ? '<h3 style="' + REPORT_PDF_SECTION_TITLE_STYLE + '">' + title + '</h3>' : '';
+    return '<section style="' + REPORT_PDF_SECTION_STYLE + '">' + heading + inner + '</section>';
+}
+
+function reportPdfTable(headers, bodyRows, footRow) {
+    const head = '<thead><tr style="' + REPORT_PDF_TABLE_HEAD_STYLE + '">' + headers.map(header => statementPdfHeadCell(header)).join('') + '</tr></thead>';
+    const foot = footRow ? '<tfoot><tr style="' + REPORT_PDF_TABLE_HEAD_STYLE + '">' + footRow.map(cell => statementPdfCell(cell)).join('') + '</tr></tfoot>' : '';
+    return '<table style="' + REPORT_PDF_TABLE_STYLE + '">' + head + '<tbody>' + bodyRows + '</tbody>' + foot + '</table>';
+}
+
+function reportPdfSummaryTable(items) {
+    return '<table style="width:100%;border-collapse:collapse;font-size:11px"><tbody>' + renderPdfSummaryRows(items) + '</tbody></table>';
+}
+
+function reportPdfEmptyRow(columns, message) {
+    return '<tr><td colspan="' + columns + '" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">' + message + '</td></tr>';
+}
+
 function statementPdfCell(value, styles = '') {
     return '<td style="padding:6px;border:1px solid #cbd5e1;text-align:right;' + styles + '">' + value + '</td>';
 }
@@ -2653,7 +2728,184 @@ function renderUnitReportPdfHtml(statement) {
     ].join('');
 }
 
-async function downloadStatementPdf(html, filename, buttonId, successMessage, logLabel) {
+function renderPeriodReportPdfHtml(report) {
+    const showDues = report.showDues !== false;
+    const totals = report.totals;
+    const incomeStatLabel = report.cashAccountFilter ? 'تحصيل الصندوق' : report.residentFilter ? 'تحصيل الشقة' : 'تحصيل الغرض';
+    const money = value => fmtMoney(value / 100);
+    const monthRows = showDues
+        ? report.months.map(row => [
+            '<tr>',
+            statementPdfCell(esc(row.month)),
+            statementPdfCell(money(row.expectedCents)),
+            statementPdfCell(money(row.collectedCents), 'color:#047857;font-weight:700'),
+            statementPdfCell(money(row.outstandingCents), row.outstandingCents ? 'color:#be123c;font-weight:700' : ''),
+            statementPdfCell(row.rate === null ? '—' : fmtNum(row.rate) + '%'),
+            statementPdfCell(money(row.expenseCents), 'color:#be123c'),
+            statementPdfCell(money(row.netCents), row.netCents >= 0 ? 'color:#047857;font-weight:700' : 'color:#be123c;font-weight:700'),
+            '</tr>'
+        ].join('')).join('')
+        : report.months.map(row => [
+            '<tr>',
+            statementPdfCell(esc(row.month)),
+            statementPdfCell(money(row.totalIncomeCents), 'color:#047857;font-weight:700'),
+            statementPdfCell(fmtNum(row.movementCount)),
+            statementPdfCell(money(row.expenseCents), 'color:#be123c'),
+            statementPdfCell(money(row.netCents), row.netCents >= 0 ? 'color:#047857;font-weight:700' : 'color:#be123c;font-weight:700'),
+            '</tr>'
+        ].join('')).join('');
+    const headers = showDues
+        ? ['الشهر', 'المستحق', 'المحصّل', 'غير المحصّل', 'نسبة التحصيل', 'المصروف', 'الصافي']
+        : ['الشهر', incomeStatLabel, 'عدد الحركات', 'المصروف', 'الصافي'];
+    const footRow = showDues
+        ? ['الإجمالي', money(totals.expectedCents), money(totals.collectedCents), money(totals.outstandingCents), totals.rate === null ? '—' : fmtNum(totals.rate) + '%', money(totals.expenseCents), money(totals.netCents)]
+        : ['الإجمالي', money(totals.totalIncomeCents), fmtNum(totals.movementCount), money(totals.expenseCents), money(totals.netCents)];
+    const summaryItems = showDues
+        ? [
+            { label: 'إجمالي المستحق', cents: totals.expectedCents },
+            ...(totals.adjustmentCents > 0 ? [{ label: 'إعفاء/تخفيض', cents: totals.adjustmentCents, tone: 'amber' }] : []),
+            { label: 'المحصّل', cents: totals.collectedCents, tone: 'emerald' },
+            { label: 'غير المحصّل', cents: totals.outstandingCents, tone: totals.outstandingCents ? 'rose' : 'emerald' },
+            { label: 'نسبة التحصيل', text: totals.rate === null ? '—' : fmtNum(totals.rate) + '%' },
+            { label: 'إيرادات أخرى', cents: totals.otherIncomeCents },
+            { label: 'المصروف', cents: totals.expenseCents, tone: 'rose' },
+            { label: 'الصافي', cents: totals.netCents, tone: totals.netCents >= 0 ? 'emerald' : 'rose' }
+        ]
+        : [
+            { label: incomeStatLabel, cents: totals.totalIncomeCents, tone: 'emerald' },
+            { label: 'عدد الحركات', text: fmtNum(totals.movementCount) },
+            { label: 'المصروف', cents: totals.expenseCents, tone: 'rose' },
+            { label: 'الصافي', cents: totals.netCents, tone: totals.netCents >= 0 ? 'emerald' : 'rose' }
+        ];
+    const methodRows = report.methods.length
+        ? report.methods.map(item => '<tr>' + statementPdfCell(esc(item.label)) + statementPdfCell(fmtNum(item.count)) + statementPdfCell(fmtMoney(item.cents / 100), 'color:#047857;font-weight:700') + statementPdfCell(item.share === null ? '—' : fmtNum(item.share) + '%') + '</tr>').join('')
+        : reportPdfEmptyRow(4, 'لا تحصيلات في هذه الفترة.');
+    const purposeRows = (report.purposes || []).length
+        ? report.purposes.map(item => '<tr>' + statementPdfCell(esc(item.label)) + statementPdfCell(fmtNum(item.count)) + statementPdfCell(fmtMoney(item.cents / 100), 'color:#047857;font-weight:700') + '</tr>').join('')
+        : reportPdfEmptyRow(3, 'لا تحصيلات في هذه الفترة.');
+    const generatedAtLabel = formatDate(report.generatedAt);
+    return [
+        reportPdfDocumentOpen(),
+        reportPdfHeader([
+            'تقرير الفترة — ', esc(report.rangeLabel),
+            report.purposeFilter ? ' • الغرض: ' + esc(report.purposeLabel) : '',
+            report.cashAccountFilter ? ' • الصندوق: ' + esc(report.cashAccountLabel) : '',
+            report.residentFilter ? ' • الشقة: ' + esc(report.residentLabel) : ''
+        ], [
+            'المدير: ', esc(state.managerName || '—'),
+            ' • تم الإنشاء ', esc(generatedAtLabel)
+        ]),
+        reportPdfSection('الملخص', reportPdfSummaryTable(summaryItems)),
+        reportPdfSection('الأرقام الشهرية', reportPdfTable(headers, monthRows, footRow)),
+        reportPdfSection('التحصيل حسب الغرض', reportPdfTable(['الغرض', 'عدد الحركات', 'المبلغ'], purposeRows)),
+        reportPdfSection('التحصيل حسب الطريقة', reportPdfTable(['الطريقة', 'عدد الحركات', 'المبلغ', 'النسبة'], methodRows)),
+        '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
+        'كل شهر محسوب بسعر الاشتراك السارية فيه وحصيلته من حركات الشهر نفسه. نسبة تزيد على 100% تعني تحصيلًا أعلى من مستحق الشهر. هذا التقرير للقراءة فقط ولا يعدل أي بيانات.',
+        '</p>',
+        reportPdfFooter(generatedAtLabel),
+        '</div>'
+    ].join('');
+}
+
+function renderExpensesReportPdfHtml(report) {
+    const totals = report.totals;
+    const money = value => fmtMoney(value / 100);
+    const shareOf = (cents, total) => total > 0 ? fmtNum(Math.round((cents / total) * 100)) + '%' : '—';
+    const monthRows = report.months.map(row => [
+        '<tr>',
+        statementPdfCell(esc(row.month)),
+        statementPdfCell(fmtNum(row.count)),
+        statementPdfCell(money(row.expenseCents), 'color:#be123c;font-weight:700'),
+        statementPdfCell(shareOf(row.expenseCents, totals.expenseCents)),
+        '</tr>'
+    ].join('')).join('');
+    const categoryRows = report.categories.length
+        ? report.categories.map(item => '<tr>' + statementPdfCell(esc(item.label)) + statementPdfCell(fmtNum(item.count)) + statementPdfCell(money(item.cents), 'color:#be123c;font-weight:700') + statementPdfCell(item.share === null ? '—' : fmtNum(item.share) + '%') + '</tr>').join('')
+        : reportPdfEmptyRow(4, 'لا يوجد');
+    const fundRows = report.funds.length
+        ? report.funds.map(item => '<tr>' + statementPdfCell(esc(item.label)) + statementPdfCell(fmtNum(item.count)) + statementPdfCell(money(item.cents), 'color:#be123c;font-weight:700') + statementPdfCell(item.share === null ? '—' : fmtNum(item.share) + '%') + '</tr>').join('')
+        : reportPdfEmptyRow(4, 'لا يوجد');
+    const detailRows = report.list.length
+        ? report.list.map(expense => '<tr>' + statementPdfCell(esc(expense.month)) + statementPdfCell(esc(expense.title)) + statementPdfCell(esc(getExpenseCategoryValue(expense))) + statementPdfCell(esc(reportCashAccountLabel(expense.cashAccountCode))) + statementPdfCell(money(toCents(expense.amount)), 'color:#be123c;font-weight:700') + statementPdfCell(esc(expense.notes || '—')) + '</tr>').join('')
+        : reportPdfEmptyRow(6, 'لا يوجد');
+    const summaryItems = [
+        { label: 'إجمالي المصروف', cents: totals.expenseCents, tone: 'rose' },
+        { label: 'عدد الحركات', text: fmtNum(totals.count) },
+        { label: 'متوسط الشهر', cents: totals.averageCents },
+        { label: 'أشهر فيها مصروف', text: fmtNum(totals.monthCount) }
+    ];
+    const generatedAtLabel = formatDate(report.generatedAt);
+    return [
+        reportPdfDocumentOpen(),
+        reportPdfHeader([
+            'تقرير المصروفات — ', esc(report.rangeLabel),
+            report.cashAccountFilter ? ' • الصندوق: ' + esc(report.cashAccountLabel) : '',
+            report.categoryFilter ? ' • التصنيف: ' + esc(report.categoryLabel) : ''
+        ], [
+            'المدير: ', esc(state.managerName || '—'),
+            ' • تم الإنشاء ', esc(generatedAtLabel)
+        ]),
+        reportPdfSection('الملخص', reportPdfSummaryTable(summaryItems)),
+        reportPdfSection('المصروف حسب التصنيف', reportPdfTable(['التصنيف', 'عدد الحركات', 'المبلغ', 'النسبة'], categoryRows)),
+        reportPdfSection('المصروف حسب الصندوق', reportPdfTable(['الصندوق', 'عدد الحركات', 'المبلغ', 'النسبة'], fundRows)),
+        reportPdfSection('الأرقام الشهرية', reportPdfTable(['الشهر', 'عدد الحركات', 'المصروف', 'نسبته من الفترة'], monthRows, ['الإجمالي', fmtNum(totals.count), money(totals.expenseCents), '100%'])),
+        reportPdfSection('تفاصيل المصروفات', reportPdfTable(['الشهر', 'البيان', 'التصنيف', 'الصندوق', 'المبلغ', 'ملاحظات'], detailRows)),
+        '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
+        'تقرير للقراءة فقط ولا يعدل أي بيانات. المصروفات محسوبة على شهر استحقاقها المسجل.',
+        '</p>',
+        reportPdfFooter(generatedAtLabel),
+        '</div>'
+    ].join('');
+}
+
+function renderAdjustmentsReportPdfHtml(report) {
+    const totals = report.totals;
+    const money = value => fmtMoney(value / 100);
+    const shareOf = (cents, total) => total > 0 ? fmtNum(Math.round((cents / total) * 100)) + '%' : '—';
+    const monthRows = report.months.map(row => [
+        '<tr>',
+        statementPdfCell(esc(row.month)),
+        statementPdfCell(fmtNum(row.count)),
+        statementPdfCell(money(row.amountCents), 'color:#b45309;font-weight:700'),
+        statementPdfCell(shareOf(row.amountCents, totals.amountCents)),
+        '</tr>'
+    ].join('')).join('');
+    const kindRows = report.kinds.length
+        ? report.kinds.map(item => '<tr>' + statementPdfCell(esc(item.label)) + statementPdfCell(fmtNum(item.count)) + statementPdfCell(money(item.cents), 'color:#b45309;font-weight:700') + statementPdfCell(item.share === null ? '—' : fmtNum(item.share) + '%') + '</tr>').join('')
+        : reportPdfEmptyRow(4, 'لا يوجد');
+    const detailRows = report.list.length
+        ? report.list.map(item => '<tr>' + statementPdfCell(esc(item.apartmentNumber)) + statementPdfCell(esc(item.residentName)) + statementPdfCell(esc(item.kindLabel)) + statementPdfCell(esc(item.month)) + statementPdfCell(money(item.amountCents), 'color:#b45309;font-weight:700') + statementPdfCell(esc(item.reason || '—')) + '</tr>').join('')
+        : reportPdfEmptyRow(6, 'لا يوجد');
+    const summaryItems = [
+        { label: 'إجمالي الإعفاءات والتخفيضات', cents: totals.amountCents, tone: 'amber' },
+        { label: 'عدد التسجيلات', text: fmtNum(totals.count) },
+        { label: 'الشقق المستفيدة', text: fmtNum(totals.residentCount) },
+        { label: 'أشهر مشمولة', text: fmtNum(totals.monthCount) }
+    ];
+    const generatedAtLabel = formatDate(report.generatedAt);
+    return [
+        reportPdfDocumentOpen(),
+        reportPdfHeader([
+            'تقرير الإعفاءات والتخفيضات — ', esc(report.rangeLabel),
+            report.residentFilter ? ' • الشقة: ' + esc(report.residentLabel) : '',
+            report.kindFilter ? ' • النوع: ' + esc(report.kindLabel) : ''
+        ], [
+            'المدير: ', esc(state.managerName || '—'),
+            ' • تم الإنشاء ', esc(generatedAtLabel)
+        ]),
+        reportPdfSection('الملخص', reportPdfSummaryTable(summaryItems)),
+        reportPdfSection('التوزيع حسب النوع', reportPdfTable(['النوع', 'عدد التسجيلات', 'المبلغ', 'النسبة'], kindRows)),
+        reportPdfSection('الأرقام الشهرية', reportPdfTable(['الشهر', 'عدد التسجيلات', 'المبلغ', 'نسبته من الفترة'], monthRows, ['الإجمالي', fmtNum(totals.count), money(totals.amountCents), '100%'])),
+        reportPdfSection('تفاصيل الإعفاءات والتخفيضات', reportPdfTable(['الشقة', 'المالك', 'النوع', 'الشهر', 'المبلغ', 'السبب'], detailRows)),
+        '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
+        'تقرير للقراءة فقط ولا يعدل أي بيانات. تُخصم الإعفاءات والتخفيضات من مستحق الشهر المسجل فيه الاستحقاق.',
+        '</p>',
+        reportPdfFooter(generatedAtLabel),
+        '</div>'
+    ].join('');
+}
+
+async function downloadStatementPdf(html, filename, buttonId, successMessage, logLabel, isPreviewValid) {
     let root = null;
     const button = /** @type {HTMLButtonElement} */ (document.getElementById(buttonId));
     if (button) button.disabled = true;
@@ -2695,7 +2947,7 @@ async function downloadStatementPdf(html, filename, buttonId, successMessage, lo
         toast('تعذر إنشاء PDF. تحقق من الاتصال ثم أعد المحاولة.','error');
     } finally {
         if (root) root.remove();
-        if (button && residentStatementSnapshot) /** @type {HTMLButtonElement} */ (button).disabled = false;
+        if (button && isPreviewValid()) /** @type {HTMLButtonElement} */ (button).disabled = false;
     }
 }
 
@@ -2708,7 +2960,8 @@ async function exportResidentStatementPdf() {
         `manzil_statement_${getStatementFileSlug(statement)}.pdf`,
         'statementPdfBtn',
         'تم إنشاء كشف الحساب PDF.',
-        'Resident statement PDF export failed:'
+        'Resident statement PDF export failed:',
+        () => !!residentStatementSnapshot
     );
 }
 
@@ -2726,7 +2979,8 @@ async function exportUnitReportPdf() {
         `manzil_unit_${getStatementFileSlug(unitStatement, false)}.pdf`,
         'unitReportPdfBtn',
         'تم إنشاء تقرير الوحدة PDF.',
-        'Unit report PDF export failed:'
+        'Unit report PDF export failed:',
+        () => !!residentStatementSnapshot
     );
 }
 

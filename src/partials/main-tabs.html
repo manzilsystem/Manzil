@@ -435,8 +435,9 @@
                 <div id="periodReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
                     <p class="report-preview-empty">اضغط «معاينة» لعرض تقرير الفترة المحددة.</p>
                 </div>
-                <div class="report-actions report-actions-2 no-print">
-                    <button type="button" id="periodReportPrintBtn" onclick="printPeriodReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة PDF</button>
+                <div class="report-actions report-actions-3 no-print">
+                    <button type="button" id="periodReportPrintBtn" onclick="printPeriodReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+                    <button type="button" id="periodReportPdfBtn" onclick="exportPeriodReportPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
                     <button type="button" id="periodReportExportBtn" onclick="exportPeriodReportCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                 </div>
                 <p class="report-hint no-print">تغيير الفترة أو البيانات يعطّل الطباعة والتصدير حتى معاينة جديدة، والأرقام تطابق تقرير الملاك لكل شهر. أقصى مدة 60 شهرًا.</p>
@@ -474,8 +475,9 @@
                 <div id="expensesReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
                     <p class="report-preview-empty">اضغط «معاينة» لعرض مصروفات الفترة المحددة.</p>
                 </div>
-                <div class="report-actions report-actions-2 no-print">
+                <div class="report-actions report-actions-3 no-print">
                     <button type="button" id="expensesReportPrintBtn" onclick="printExpensesReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+                    <button type="button" id="expensesReportPdfBtn" onclick="exportExpensesReportPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
                     <button type="button" id="expensesReportExportBtn" onclick="exportExpensesReportCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                 </div>
                 <p class="report-hint no-print">تغيير الفترة أو الصندوق أو التصنيف يعطّل الطباعة والتصدير حتى معاينة جديدة. أقصى مدة 60 شهرًا.</p>
@@ -517,8 +519,9 @@
                 <div id="adjustmentsReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
                     <p class="report-preview-empty">اضغط «معاينة» لعرض إعفاءات وتخفيضات الفترة المحددة.</p>
                 </div>
-                <div class="report-actions report-actions-2 no-print">
-                    <button type="button" id="adjustmentsReportPrintBtn" onclick="printAdjustmentsReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة PDF</button>
+                <div class="report-actions report-actions-3 no-print">
+                    <button type="button" id="adjustmentsReportPrintBtn" onclick="printAdjustmentsReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+                    <button type="button" id="adjustmentsReportPdfBtn" onclick="exportAdjustmentsReportPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
                     <button type="button" id="adjustmentsReportExportBtn" onclick="exportAdjustmentsReportCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                 </div>
                 <p class="report-hint no-print">تغيير الفترة أو الشقة أو النوع يعطّل الطباعة والتصدير حتى معاينة جديدة. أقصى مدة 60 شهرًا.</p>
