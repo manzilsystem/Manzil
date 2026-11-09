@@ -1,3 +1,5 @@
+const { expect } = require('@playwright/test');
+
 // The shell reloads itself once when the service worker first takes control.
 // Wait for that handshake so tests never evaluate inside a navigating document.
 async function loadShell(page) {
@@ -8,4 +10,11 @@ async function loadShell(page) {
     await page.waitForLoadState('load');
 }
 
-module.exports = { loadShell };
+// The new collection dialog is a three-step wizard. Advancing runs the same
+// validation the "التالي" button performs, then asserts the target step shows.
+async function advanceIncomeStep(page, step) {
+    await page.locator('#incomeWizardNext').click();
+    await expect(page.locator(`#incomeWizardStep${step}`)).toBeVisible();
+}
+
+module.exports = { loadShell, advanceIncomeStep };

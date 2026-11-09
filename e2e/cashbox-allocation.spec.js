@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadShell } = require('./helpers');
+const { loadShell, advanceIncomeStep } = require('./helpers');
 
 async function seedManagerSession(page, income = []) {
     await loadShell(page);
@@ -50,11 +50,14 @@ test('collecting into a fund box routes the money there instead of the main box'
     await expect(page.locator('#incomeCashAccount')).toBeDisabled();
 
     await page.locator('#incomeResident').selectOption('r1');
-    await page.locator('#incomePaymentMethod').selectOption('cash');
-    await page.locator('#incomeAmount').fill('100');
     await page.locator('#incomePurpose').selectOption('development');
     await expect(page.locator('#incomeCashAccount')).toHaveValue('development');
     await expect(page.locator('#incomeCashAccount')).toBeDisabled();
+
+    await advanceIncomeStep(page, 2);
+    await page.locator('#incomeAmount').fill('100');
+    await advanceIncomeStep(page, 3);
+    await page.locator('#incomePaymentMethod').selectOption('cash');
 
     const preview = page.locator('#incomeAllocationRows');
     await expect(preview).toContainText('الصندوق المستلم');
@@ -84,17 +87,20 @@ test('collecting into a fund box routes the money there instead of the main box'
     await expect(page.locator('#tab-income .cash-account-tag').nth(1)).toHaveText('صندوق التطوير');
 });
 
-test('the purpose form offers the three main purposes plus other and requires its reason', async ({ page }) => {
+test('the purpose form offers the three main purposes plus settlement and other, and requires its reason', async ({ page }) => {
     await seedManagerSession(page);
     await page.evaluate(() => openNewIncomeModal());
 
     const options = await page.locator('#incomePurpose option').allTextContents();
-    expect(options).toEqual(['اشتراك شهري', 'تطوير', 'صيانة طارئة', 'أخرى']);
+    expect(options).toEqual(['اشتراك شهري', 'تطوير', 'صيانة طارئة', 'سداد تسوية', 'أخرى']);
 
     await page.locator('#incomeResident').selectOption('r1');
-    await page.locator('#incomePaymentMethod').selectOption('cash');
-    await page.locator('#incomeAmount').fill('50');
     await page.locator('#incomePurpose').selectOption('other');
+    await advanceIncomeStep(page, 2);
+    await page.locator('#incomeAmount').fill('50');
+    await advanceIncomeStep(page, 3);
+    await page.locator('#incomePaymentMethod').selectOption('cash');
+
     await page.locator('#incomeSubmitButton').click();
     await expect(page.locator('#incomeModal')).toBeVisible();
     expect(await page.evaluate(() => state.income.length)).toBe(0);
@@ -112,13 +118,16 @@ test('non-subscription collections are not split across subscription months', as
     await page.evaluate(() => openNewIncomeModal());
 
     await page.locator('#incomeResident').selectOption('r1');
-    await page.locator('#incomePaymentMethod').selectOption('cash');
-    await page.locator('#incomeAmount').fill('75');
     await page.locator('#incomePurpose').selectOption('other');
-    await page.locator('#incomeNotes').fill('نظافة المبنى');
     await expect(page.locator('#incomeCashAccount')).toHaveValue('main');
     await expect(page.locator('#incomeCashAccount')).toBeEnabled();
     await expect(page.locator('#incomeMonthLabel')).toHaveText('شهر تسجيل التحصيل');
+
+    await advanceIncomeStep(page, 2);
+    await page.locator('#incomeAmount').fill('75');
+    await advanceIncomeStep(page, 3);
+    await page.locator('#incomePaymentMethod').selectOption('cash');
+    await page.locator('#incomeNotes').fill('نظافة المبنى');
 
     await page.locator('#incomeSubmitButton').click();
     await expect(page.locator('#incomeModal')).toBeHidden();
@@ -140,7 +149,7 @@ test('a mixed payment collects subscription and extra purposes into their funds'
     await page.evaluate(() => openNewIncomeModal());
 
     await page.locator('#incomeResident').selectOption('r1');
-    await page.locator('#incomePaymentMethod').selectOption('cash');
+    await advanceIncomeStep(page, 2);
     await page.locator('#incomeAmount').fill('100');
     await expect(page.locator('#incomeSubmitButton')).toHaveText('حفظ التحصيل وتوزيعه');
 
@@ -151,7 +160,6 @@ test('a mixed payment collects subscription and extra purposes into their funds'
     await lines.nth(0).locator('.income-line-purpose').selectOption('other');
     await lines.nth(0).locator('.income-line-amount').fill('50');
     await lines.nth(0).locator('.income-line-cash-account').selectOption('main');
-    await page.locator('#incomeNotes').fill('نظافة المبنى');
     await expect(page.locator('#incomeMixedTotal')).toContainText('150');
     await expect(page.locator('#incomeSubmitButton')).toHaveText('حفظ الدفعة المختلطة');
 
@@ -162,6 +170,10 @@ test('a mixed payment collects subscription and extra purposes into their funds'
     await expect(lines.nth(1).locator('.income-line-cash-account')).toBeDisabled();
     await lines.nth(1).locator('.income-line-amount').fill('75');
     await expect(page.locator('#incomeMixedTotal')).toContainText('225');
+
+    await advanceIncomeStep(page, 3);
+    await page.locator('#incomePaymentMethod').selectOption('cash');
+    await page.locator('#incomeNotes').fill('نظافة المبنى');
 
     await page.locator('#incomeSubmitButton').click();
     await expect(page.locator('#incomeModal')).toBeHidden();

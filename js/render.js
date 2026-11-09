@@ -56,6 +56,7 @@ function renderAll() {
     if (typeof invalidateAdjustmentsReportIfStale === 'function') invalidateAdjustmentsReportIfStale();
     syncReportNavStatus();
     renderCashbox();
+    if (typeof renderManagerNotifications === 'function') renderManagerNotifications();
     if (typeof syncAssistantFab === 'function') syncAssistantFab();
 }
 
@@ -113,14 +114,14 @@ function renderArrearsReport() {
                     <span class="arrears-badge" aria-hidden="true">${esc(item.resident.apartmentNumber)}</span>
                     <span class="min-w-0">
                         <span class="arrears-name">${esc(item.resident.name)}</span>
-                        <span class="arrears-sub">${esc(item.bucket)} · ${fmtNum(item.count)} شهر غير مسدد</span>
+                        <span class="arrears-sub">${esc(item.bucket)} · ${fmtNum(item.count)} شهر غير مسدد${item.daysOverdue ? ` · متأخر ${esc(formatOverdueDuration(item.daysOverdue))}` : ''}</span>
                     </span>
                 </span>
                 <span class="arrears-amount report-amount">${fmtNum(item.totalDebt)} ج.م</span>
             </summary>
             <div class="arrears-body">
                 <div class="report-list">
-                    ${item.unpaidMonths.map(month => `<div class="report-list-row"><span class="report-list-title">${esc(month.month)}</span><span class="report-list-value text-rose-400 report-amount">${fmtNum(month.amount)} ج.م</span></div>`).join('')}
+                    ${item.unpaidMonths.map(month => `<div class="report-list-row"><span class="report-list-title">${esc(month.month)}${month.daysOverdue ? ` <span class="text-[10px] text-slate-500">(متأخر ${esc(formatOverdueDuration(month.daysOverdue))})</span>` : ''}</span><span class="report-list-value text-rose-400 report-amount">${fmtNum(month.amount)} ج.م</span></div>`).join('')}
                 </div>
             </div>
         </details>`).join('');

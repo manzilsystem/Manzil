@@ -18,7 +18,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css?v=3c694e507b">
+    <link rel="stylesheet" href="css/style.css?v=9c122376fe">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -165,6 +165,13 @@
                         <i class="fa-solid fa-palette" aria-hidden="true"></i>
                     </button>
                     <div class="owner-theme-menu app-card border hidden" id="ownerThemeMenu" role="group" aria-label="اختيار مظهر البوابة"></div>
+                </div>
+                <div class="manager-notifications-control hidden" id="managerNotificationsControl">
+                    <button type="button" id="managerNotificationsBtn" class="app-card border p-2.5 rounded-xl text-xs transition relative" onclick="toggleManagerNotifications()" aria-haspopup="true" aria-expanded="false" aria-controls="managerNotificationsMenu" aria-label="إشعارات المدير" title="الإشعارات">
+                        <i class="fa-solid fa-bell text-sm"></i>
+                        <span id="managerNotificationsBadge" class="manager-notifications-badge hidden" aria-hidden="true"></span>
+                    </button>
+                    <div class="manager-notifications-menu app-card border hidden" id="managerNotificationsMenu" role="group" aria-label="إشعارات المدير"></div>
                 </div>
                 <button onclick="openSettingsModal()" aria-label="فتح الإعدادات" class="app-card border p-2.5 rounded-xl text-xs transition" title="الإعدادات"><i class="fa-solid fa-gear text-sm"></i></button>
                 <button id="accessSwitchBtn" onclick="lockCurrentSession()" aria-label="تبديل المستخدم أو قفل التطبيق" class="app-card border p-2.5 rounded-xl text-xs transition hidden" title="خروج / تبديل المستخدم"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
@@ -1447,6 +1454,7 @@
                                         <button type="button" class="settings-variable-chip" onclick="insertReminderVariable('{amount}')" title="إجمالي المتأخرات">{amount}</button>
                                         <button type="button" class="settings-variable-chip" onclick="insertReminderVariable('{count}')" title="عدد الشهور المتأخرة">{count}</button>
                                         <button type="button" class="settings-variable-chip" onclick="insertReminderVariable('{months}')" title="قائمة الشهور المتأخرة">{months}</button>
+                                        <button type="button" class="settings-variable-chip" onclick="insertReminderVariable('{duration}')" title="مدة التأخر بالأيام">{duration}</button>
                                     </div>
                                     <div class="settings-editor-toolbar">
                                         <button type="button" onclick="resetReminderTemplate()" class="settings-mini-button"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> استعادة الافتراضي</button>
@@ -1462,6 +1470,7 @@
                                         <li><code>{apartment}</code> رقم الشقة و<b>{building}</b> اسم العمارة</li>
                                         <li><code>{amount}</code> إجمالي المتأخرات و<b>{count}</b> عدد الشهور</li>
                                         <li><code>{month}</code> الشهر الحالي و<b>{months}</b> قائمة الشهور المتأخرة</li>
+                                        <li><code>{duration}</code> مدة التأخر و<b>{days}</b> عدد أيامه</li>
                                     </ul>
                                 </div>
                             </div>
@@ -2148,16 +2157,16 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-71ee54a4d7"></script>
-    <script src="js/state.js?v=78295b7f4b"></script>
-    <script src="js/access.js?v=25cf7f6b02"></script>
-    <script src="js/render.js?v=a885213bad"></script>
+    <script src="js/telemetry.js?v=manzil-11a95e8db2"></script>
+    <script src="js/state.js?v=6e9bcc8346"></script>
+    <script src="js/access.js?v=817673c8c0"></script>
+    <script src="js/render.js?v=14dfdee1e7"></script>
     <script src="js/crud.js?v=fcc706f513"></script>
-    <script src="js/notices.js?v=6942db012f"></script>
+    <script src="js/notices.js?v=97341d977d"></script>
     <script src="js/reports.js?v=d8c1339c4c"></script>
-    <script src="js/settings.js?v=fac82a7797"></script>
+    <script src="js/settings.js?v=4b5cd4be58"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase.js?v=397eeb223c"></script>
+    <script src="js/supabase.js?v=8449ca5367"></script>
     <script src="js/cashbox.js?v=e11593fbc7"></script>
     <script src="js/monthly-close.js?v=b74c3d3b66"></script>
     <script src="js/backup.js?v=3d5a0d5f15"></script>
