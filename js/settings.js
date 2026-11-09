@@ -33,7 +33,8 @@ function renderReminderPreview() {
     preview.textContent = renderReminderTemplate(template, {
         name: 'أحمد', building: state.buildingName || 'عمارة النور',
         apartment: '12', month: 'نوفمبر 2026', amount: '1,250',
-        count: 3, months: 'سبتمبر 2026، أكتوبر 2026، نوفمبر 2026'
+        count: 3, days: '45', duration: '45 يومًا',
+        months: 'سبتمبر 2026، أكتوبر 2026، نوفمبر 2026'
     });
 }
 function resetReceiptTemplate() {

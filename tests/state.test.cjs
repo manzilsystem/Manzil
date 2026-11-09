@@ -102,11 +102,18 @@ test('calculateCumulativeDebt lists only unpaid months and sums partial balances
             count: 3,
             totalDebt: 260,
             unpaidMonths: ['فبراير 2024', 'مارس 2024', 'مايو 2024'],
+            unpaidMonthDetails: [
+                { month: 'فبراير 2024', monthKey: '2024-02-01', amount: 60, daysOverdue: 104 },
+                { month: 'مارس 2024', monthKey: '2024-03-01', amount: 100, daysOverdue: 75 },
+                { month: 'مايو 2024', monthKey: '2024-05-01', amount: 100, daysOverdue: 14 },
+            ],
+            daysOverdue: 104,
+            oldestMonth: 'فبراير 2024',
         }
     );
     assert.deepEqual(
         JSON.parse(JSON.stringify(app.calculateCumulativeDebt('unknown'))),
-        { count: 0, totalDebt: 0, unpaidMonths: [] }
+        { count: 0, totalDebt: 0, unpaidMonths: [], unpaidMonthDetails: [], daysOverdue: 0, oldestMonth: null }
     );
 });
 
