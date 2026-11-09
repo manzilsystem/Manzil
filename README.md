@@ -27,7 +27,7 @@ npm run check:index   # يفشل إن كان index.html غير محدَّث
 |---|---|---|
 | `npm test` | 751 اختبار Node: الحالة، الصلاحيات، التقارير، الحفظ الذري، التحصيل والصناديق، النسخ الاحتياطي، المساعد المحلي، الإشعارات ومدة التأخر، آلية التحديث التلقائي | يمر |
 | `npm run typecheck` | `tsc --noEmit` على وحدات JS المعلَّمة بـ`// @ts-check` | يمر |
-| `npm run e2e` | 152 اختبار Playwright (desktop + mobile) | 126 يمر · 26 قائم مسبقًا على `main` (مؤجَّل) |
+| `npm run e2e` | 152 اختبار Playwright (desktop + mobile) | يمر بالكامل |
 | `deno test supabase/functions` | 61 اختبار Edge Functions مع خادم Supabase وهمي | يمر |
 | تكامل PostgreSQL | يعمل في CI عبر `supabase db reset --local` و`tests/post-restore-verify.sql` | يمر |
 
