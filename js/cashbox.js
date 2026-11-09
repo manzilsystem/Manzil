@@ -196,15 +196,15 @@ function renderCashboxMovementSummary() {
                     <strong class="text-xs">${esc(getCashAccountLabel(code))}</strong>
                     <strong class="${netClass} whitespace-nowrap">${fmtNum(net / 100)} ج.م</strong>
                 </div>
-                <div class="grid grid-cols-3 gap-2 text-center text-[10px] text-slate-400">
+                <div class="grid grid-cols-3 gap-2 text-center text-xs text-slate-400">
                     <div><span class="block font-bold text-emerald-400">${fmtNum(bucket.income / 100)}</span>تحصيلات</div>
                     <div><span class="block font-bold text-rose-400">${fmtNum(bucket.expenses / 100)}</span>مصروفات</div>
                     <div><span class="block font-bold ${transfers >= 0 ? 'text-indigo-300' : 'text-amber-300'}">${fmtNum(Math.abs(transfers) / 100)}</span>${transfers >= 0 ? 'صافي وارد' : 'صافي صادر'}</div>
                 </div>
-                <p class="text-[10px] text-slate-400">تحويلات داخلة: <span class="font-bold text-indigo-300">${fmtNum(bucket.transfersIn / 100)}</span> ج.م · تحويلات خارجة: <span class="font-bold text-amber-300">${fmtNum(bucket.transfersOut / 100)}</span> ج.م</p>
+                <p class="text-xs text-slate-400">تحويلات داخلة: <span class="font-bold text-indigo-300">${fmtNum(bucket.transfersIn / 100)}</span> ج.م · تحويلات خارجة: <span class="font-bold text-amber-300">${fmtNum(bucket.transfersOut / 100)}</span> ج.م</p>
             </article>
         `;
-    }).join('') + `<p class="text-[10px] text-slate-500">صافي الحركة = التحصيلات + التحويلات الواردة − المصروفات − التحويلات الصادرة. التحويلات الداخلية لا تُحسب إيرادًا أو مصروفًا.</p>`;
+    }).join('') + `<p class="text-xs text-slate-500">صافي الحركة = التحصيلات + التحويلات الواردة − المصروفات − التحويلات الصادرة. التحويلات الداخلية لا تُحسب إيرادًا أو مصروفًا.</p>`;
 }
 
 function buildCashboxMovements() {
@@ -289,7 +289,7 @@ function renderCashboxRecentMovements() {
             <article class="app-input border rounded-2xl p-3 flex items-start justify-between gap-3">
                 <div class="min-w-0 space-y-1">
                     <p class="text-xs font-bold"><span class="${kindTone}">${esc(item.label)}</span> · ${esc(getCashAccountLabel(item.accountCode))}</p>
-                    <p class="text-[10px] text-slate-500">${formatDate(item.at)}${item.notes ? ` · ${esc(item.notes)}` : ''}</p>
+                    <p class="text-xs text-slate-500">${formatDate(item.at)}${item.notes ? ` · ${esc(item.notes)}` : ''}</p>
                 </div>
                 <strong class="text-sm ${positive ? 'text-emerald-400' : 'text-rose-400'} whitespace-nowrap">${positive ? '+' : '−'}${fmtNum(item.amount)} ج.م</strong>
             </article>
@@ -328,7 +328,7 @@ function renderCashbox() {
             <article class="app-input border rounded-2xl p-3 flex items-start justify-between gap-3">
                 <div class="min-w-0 space-y-1">
                     <p class="text-xs font-bold">${esc(fromLabel)} <i class="fa-solid fa-arrow-left-long mx-1 text-indigo-400"></i> ${esc(toLabel)}</p>
-                    <p class="text-[10px] text-slate-500">${formatDate(transfer.transferredAt)}${transfer.notes ? ` · ${esc(transfer.notes)}` : ''}</p>
+                    <p class="text-xs text-slate-500">${formatDate(transfer.transferredAt)}${transfer.notes ? ` · ${esc(transfer.notes)}` : ''}</p>
                 </div>
                 <strong class="text-sm text-indigo-300 whitespace-nowrap">${fmtNum(transfer.amount)} ج.م</strong>
             </article>
