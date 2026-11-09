@@ -821,17 +821,19 @@ function renderLandlordReportPdfHtml(month, purposeFilter = '', cashAccountFilte
             '</tr>').join('')
         : '<tr><td colspan="3" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">لا يوجد</td></tr>';
 
+    const generatedAtLabel = formatDate(new Date().toISOString());
     return [
-        '<div dir="rtl" lang="ar" style="font-family:Cairo,Arial,sans-serif;color:#111827;background:#fff;line-height:1.8">',
-        '<header style="text-align:center;border-bottom:2px solid #334155;padding-bottom:12px;margin-bottom:18px">',
-        '<h1 style="font-size:22px;font-weight:800;margin:0">', esc(state.buildingName || 'Manzil'), '</h1>',
-        '<h2 style="font-size:17px;font-weight:700;margin:4px 0">تقرير الملاك — ', esc(month),
-        purposeFilter ? ' • الغرض: ' + esc(filterLabel) : '',
-        cashAccountFilter ? ' • الصندوق: ' + esc(cashAccountLabel) : '',
-        paymentMethodFilter ? ' • طريقة الدفع: ' + esc(paymentMethodLabel) : '',
-        residentFilter ? ' • الشقة: ' + esc(residentLabel) : '', '</h2>',
-        '<p style="font-size:11px;color:#475569;margin:0">المدير: ', esc(state.managerName || '—'),
-        ' • تم الإنشاء ', esc(formatDate(new Date().toISOString())), '</p></header>',
+        reportPdfDocumentOpen(),
+        reportPdfHeader([
+            'تقرير الملاك — ', esc(month),
+            purposeFilter ? ' • الغرض: ' + esc(filterLabel) : '',
+            cashAccountFilter ? ' • الصندوق: ' + esc(cashAccountLabel) : '',
+            paymentMethodFilter ? ' • طريقة الدفع: ' + esc(paymentMethodLabel) : '',
+            residentFilter ? ' • الشقة: ' + esc(residentLabel) : ''
+        ], [
+            'المدير: ', esc(state.managerName || '—'),
+            ' • تم الإنشاء ', esc(generatedAtLabel)
+        ]),
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">الملخص المالي</h3>',
         '<table style="width:100%;border-collapse:collapse;font-size:11px"><tbody>',
         summaryRows,
@@ -867,8 +869,9 @@ function renderLandlordReportPdfHtml(month, purposeFilter = '', cashAccountFilte
                 : showDues
                 ? 'المستحق محسوب بقيمة الاشتراك السارية في شهر التقرير بعد الإعفاءات والتخفيضات، والتحصيلات والمصروفات محسوبة على شهر استحقاقها المسجل.'
                 : 'التحصيلات معروضة لغرض «' + esc(filterLabel) + '» فقط، بينما المصروفات كاملة لأنها غير مرتبطة بأغراض التحصيل. المستحق ونسبة التحصيل يخصان الاشتراكات لذلك لا يظهران في هذا العرض.',
-        '</p><footer style="font-size:9px;color:#64748b;margin-top:18px;text-align:center">Manzil — ',
-        esc(formatDate(new Date().toISOString())), '</footer></div>'
+        '</p>',
+        reportPdfFooter(generatedAtLabel),
+        '</div>'
     ].join('');
 }
 
@@ -2437,6 +2440,30 @@ function printResidentStatement() {
     window.print();
 }
 
+const REPORT_PDF_HEADER_STYLE = 'text-align:center;border-bottom:2px solid #334155;padding-bottom:12px;margin-bottom:18px';
+const REPORT_PDF_TITLE_STYLE = 'font-size:22px;font-weight:800;margin:0';
+const REPORT_PDF_SUBTITLE_STYLE = 'font-size:17px;font-weight:700;margin:4px 0';
+const REPORT_PDF_META_STYLE = 'font-size:11px;color:#475569;margin:0';
+const REPORT_PDF_FOOTER_STYLE = 'font-size:9px;color:#64748b;margin-top:18px;text-align:center';
+
+// Shared PDF shell so every report renders an identical RTL header and footer.
+function reportPdfDocumentOpen() {
+    return '<div dir="rtl" lang="ar" style="font-family:Cairo,Arial,sans-serif;color:#111827;background:#fff;line-height:1.8">';
+}
+
+function reportPdfHeader(titleLines, metaLines) {
+    return [
+        '<header style="' + REPORT_PDF_HEADER_STYLE + '">',
+        '<h1 style="' + REPORT_PDF_TITLE_STYLE + '">', esc(state.buildingName || 'Manzil'), '</h1>',
+        '<h2 style="' + REPORT_PDF_SUBTITLE_STYLE + '">', titleLines.join(''), '</h2>',
+        '<p style="' + REPORT_PDF_META_STYLE + '">', metaLines.join(''), '</p></header>'
+    ].join('');
+}
+
+function reportPdfFooter(generatedLabel) {
+    return '<footer style="' + REPORT_PDF_FOOTER_STYLE + '">Manzil — ' + esc(generatedLabel) + '</footer>';
+}
+
 function statementPdfCell(value, styles = '') {
     return '<td style="padding:6px;border:1px solid #cbd5e1;text-align:right;' + styles + '">' + value + '</td>';
 }
@@ -2513,15 +2540,16 @@ function renderResidentStatementPdfHtml(statement) {
         ]
         : [];
 
+    const generatedAtLabel = formatDate(statement.generatedAt);
     return [
-        '<div dir="rtl" lang="ar" style="font-family:Cairo,Arial,sans-serif;color:#111827;background:#fff;line-height:1.8">',
-        '<header style="text-align:center;border-bottom:2px solid #334155;padding-bottom:12px;margin-bottom:18px">',
-        '<h1 style="font-size:22px;font-weight:800;margin:0">', esc(state.buildingName || 'Manzil'), '</h1>',
-        '<h2 style="font-size:17px;font-weight:700;margin:4px 0">كشف حساب مالك — ', esc(resident.name), '</h2>',
-        '<p style="font-size:11px;color:#475569;margin:0">',
-        'شقة ', esc(resident.apartmentNumber || '—'), resident.floor ? ' • الدور ' + esc(resident.floor) : '',
-        ' • الفترة: ', esc(statement.rangeLabel),
-        statement.purposeFilter ? ' • الغرض: ' + esc(statement.purposeLabel) : '', '</p></header>',
+        reportPdfDocumentOpen(),
+        reportPdfHeader([
+            'كشف حساب مالك — ', esc(resident.name)
+        ], [
+            'شقة ', esc(resident.apartmentNumber || '—'), resident.floor ? ' • الدور ' + esc(resident.floor) : '',
+            ' • الفترة: ', esc(statement.rangeLabel),
+            statement.purposeFilter ? ' • الغرض: ' + esc(statement.purposeLabel) : ''
+        ]),
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">الملخص</h3>',
         '<table style="width:100%;border-collapse:collapse;font-size:11px"><tbody>',
         summaryRows,
@@ -2536,8 +2564,9 @@ function renderResidentStatementPdfHtml(statement) {
         showDues
             ? 'كل شهر محسوب بقيمة الاشتراك السارية فيه. تُحتسب دفعات التسوية على اتفاق التسوية المرتبط بها، ولا تُكرر ضمن مدفوع الاشتراك. هذا الكشف للقراءة فقط ولا يعدل أي بيانات.'
             : 'المستحق الشهري يخص الاشتراكات فقط، لذلك يعرض الكشف حركات الغرض المحدد دون جدول المستحقات. هذا الكشف للقراءة فقط ولا يعدل أي بيانات.',
-        '</p><footer style="font-size:9px;color:#64748b;margin-top:18px;text-align:center">Manzil — ',
-        esc(formatDate(statement.generatedAt)), '</footer></div>'
+        '</p>',
+        reportPdfFooter(generatedAtLabel),
+        '</div>'
     ].join('');
 }
 
@@ -2562,14 +2591,15 @@ function renderUnitReportPdfHtml(statement) {
         ? `${currentMonth}: مستحق ${fmtMoney(currentRow.dueCents / 100)}${currentRow.adjustmentCents ? ' • إعفاء/تخفيض ' + fmtMoney(currentRow.adjustmentCents / 100) : ''} • مدفوع ${fmtMoney(currentRow.paidCents / 100)} • متبقٍ ${fmtMoney(currentRow.remainingCents / 100)}`
         : 'لا يوجد استحقاق للشهر الحالي.';
 
+    const generatedAtLabel = formatDate(statement.generatedAt);
     return [
-        '<div dir="rtl" lang="ar" style="font-family:Cairo,Arial,sans-serif;color:#111827;background:#fff;line-height:1.8">',
-        '<header style="text-align:center;border-bottom:2px solid #334155;padding-bottom:12px;margin-bottom:18px">',
-        '<h1 style="font-size:22px;font-weight:800;margin:0">', esc(state.buildingName || 'Manzil'), '</h1>',
-        '<h2 style="font-size:17px;font-weight:700;margin:4px 0">تقرير وحدة — شقة ', esc(resident.apartmentNumber || '—'), '</h2>',
-        '<p style="font-size:11px;color:#475569;margin:0">',
-        esc(resident.name || '—'), resident.floor ? ' • الدور ' + esc(resident.floor) : '',
-        ' • الفترة: ', esc(statement.rangeLabel), '</p></header>',
+        reportPdfDocumentOpen(),
+        reportPdfHeader([
+            'تقرير وحدة — شقة ', esc(resident.apartmentNumber || '—')
+        ], [
+            esc(resident.name || '—'), resident.floor ? ' • الدور ' + esc(resident.floor) : '',
+            ' • الفترة: ', esc(statement.rangeLabel)
+        ]),
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">بيانات الوحدة</h3>',
         '<table style="width:100%;border-collapse:collapse;font-size:11px"><tbody>', profileRows, '</tbody></table></section>',
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">الوضع المالي</h3>',
@@ -2617,8 +2647,9 @@ function renderUnitReportPdfHtml(statement) {
         '<th style="padding:6px;border:1px solid #cbd5e1">ملاحظات</th></tr></thead><tbody>', renderStatementPaymentsPdfBody(statement), '</tbody></table></section>',
         '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
         'تقرير وحدة للقراءة فقط ولا يعدل أي بيانات. كل شهر محسوب بقيمة الاشتراك السارية فيه، والمدفوع هو المسجل على الشهر نفسه، ويعرض كل حركات الوحدة بغض النظر عن فلتر الغرض.',
-        '</p><footer style="font-size:9px;color:#64748b;margin-top:18px;text-align:center">Manzil — ',
-        esc(formatDate(statement.generatedAt)), '</footer></div>'
+        '</p>',
+        reportPdfFooter(generatedAtLabel),
+        '</div>'
     ].join('');
 }
 
