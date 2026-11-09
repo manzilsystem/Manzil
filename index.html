@@ -2154,6 +2154,12 @@
                     <p id="expensePreviewSummary" class="text-xs font-bold text-rose-300"></p>
                     <div id="expensePreviewDetails" class="space-y-1 text-[11px] text-slate-400"></div>
                 </div>
+                <div id="expenseOverdraftRow" class="hidden app-input border border-amber-500/40 rounded-2xl p-3">
+                    <label class="flex items-start gap-2 text-[11px] text-amber-300">
+                        <input type="checkbox" id="expenseOverdraftConfirm" onchange="previewExpense()" aria-label="تأكيد تجاوز رصيد الخزنة الرئيسية" class="mt-0.5 accent-amber-500">
+                        <span>أؤكد صرف مبلغ يتجاوز رصيد الخزنة الرئيسية — سيُسجَّل هذا التأكيد في سجل التدقيق.</span>
+                    </label>
+                </div>
                 <button type="submit" id="expenseSubmitButton" class="w-full bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-2xl font-bold transition">حفظ المصروف</button>
             </form>
         </div>
@@ -2183,11 +2189,11 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-344f85453f"></script>
+    <script src="js/telemetry.js?v=manzil-2c8adc5a6c"></script>
     <script src="js/state.js?v=6e9bcc8346"></script>
     <script src="js/access.js?v=cb64b108df"></script>
     <script src="js/render.js?v=72b9727601"></script>
-    <script src="js/crud.js?v=d5d3bcc177"></script>
+    <script src="js/crud.js?v=56cfb95133"></script>
     <script src="js/notices.js?v=d2f2b2f5be"></script>
     <script src="js/reports.js?v=3c13e5dfa1"></script>
     <script src="js/settings.js?v=4b5cd4be58"></script>
