@@ -100,3 +100,38 @@ test('per-selector light overrides are gone; semantic colors resolve from tokens
         );
     }
 });
+
+test('remaining semantic literals are routed to the canonical state tokens', () => {
+    const css = read('css/style.css');
+    const escape = selector => selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&');
+    const firstRule = selector => {
+        const rules = blocks(css, escape(selector));
+        assert.ok(rules.length, `expected a rule for "${selector}"`);
+        return rules[0][1];
+    };
+
+    // The assistant online dot used to keep the raw #34d399 literal inside its
+    // color-mix focus ring while the report nav dots already consumed the token,
+    // so the two shared dots drifted apart. It must resolve from --state-success.
+    const onlineDot = firstRule('.assistant-online-dot');
+    assert.match(
+        onlineDot,
+        /box-shadow:\s*0 0 0 3px color-mix\(in srgb, var\(--state-success\) 22%, transparent\)/,
+        '.assistant-online-dot must consume var(--state-success) in its focus ring like the report nav dots'
+    );
+    assert.doesNotMatch(onlineDot, /#34d399/, '.assistant-online-dot must not keep the raw #34d399 literal');
+
+    // The invalid-input ring used the raw rose-500 literal while its border already
+    // resolved from --state-danger; both must come from the same token.
+    const invalidInput = firstRule('.app-input:user-invalid:not(:focus)');
+    assert.match(
+        invalidInput,
+        /box-shadow:\s*0 0 0 1px color-mix\(in srgb, var\(--state-danger\) 18%, transparent\)/,
+        '.app-input:user-invalid must consume var(--state-danger) in its focus ring'
+    );
+    assert.doesNotMatch(
+        invalidInput,
+        /rgba\(251,\s*113,\s*133/,
+        '.app-input:user-invalid must not keep the raw rgba(251, 113, 133, …) literal'
+    );
+});
