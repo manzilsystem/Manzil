@@ -66,6 +66,16 @@ const BLURS = {
     140: '14px',
     160: '16px'
 };
+const FONT_SIZES = {
+    58: '.58rem',
+    60: '.6rem',
+    62: '.62rem',
+    66: '.66rem',
+    68: '.68rem',
+    70: '.7rem',
+    72: '.72rem',
+    78: '.78rem'
+};
 
 const themeBlocks = (css, theme) => [
     ...css.matchAll(new RegExp(`\\[data-theme="${theme}"\\]\\s*\\{([^}]*)\\}`, 'g'))
@@ -263,6 +273,31 @@ test('backdrop-filter declarations use the canonical blur scale', () => {
     }
     for (const step of Object.keys(BLURS)) {
         assert.ok(values.includes(`blur(var(--blur-${step}))`), `blur step ${step} must be consumed`);
+    }
+});
+
+test('font-size tokens are defined once in :root with their original values', () => {
+    const css = read('css/style.css');
+    const rootBlock = css.match(/:root\s*\{([^}]*)\}/)[1];
+    for (const [step, value] of Object.entries(FONT_SIZES)) {
+        assert.match(rootBlock, new RegExp(`--font-${step}\\s*:\\s*${value.replace('.', '\\.')}\\s*;`));
+        assert.equal([...css.matchAll(new RegExp(`--font-${step}\\s*:`, 'g'))].length, 1);
+    }
+});
+
+test('font-size declarations use the canonical typographic scale', () => {
+    const css = read('css/style.css');
+    for (const [step, value] of Object.entries(FONT_SIZES)) {
+        const literal = value.replace('.', '\\.');
+        assert.ok(
+            new RegExp(`font-size\\s*:\\s*var\\(--font-${step}\\)`).test(css),
+            `font step ${step} must be consumed`
+        );
+        assert.doesNotMatch(
+            css,
+            new RegExp(`font-size\\s*:\\s*${literal}\\s*;`),
+            `literal ${value} must be routed through --font-${step}`
+        );
     }
 });
 
