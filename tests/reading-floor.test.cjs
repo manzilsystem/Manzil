@@ -42,6 +42,14 @@ test('owner access portal informational text keeps a 12px reading floor', () => 
     );
 });
 
+test('resident, income and expense form informational text keeps a 12px reading floor', () => {
+    assert.doesNotMatch(
+        read('js/crud.js'),
+        /text-\[(9|10)px\]/,
+        'informational text in js/crud.js must not fall below the 12px reading floor (use text-xs)'
+    );
+});
+
 test('built index.html ships the dashboard reading floor', () => {
     const built = read('index.html');
     assert.match(built, /id="incomePeriodLabel" class="text-xs text-slate-500 mt-1"/);
