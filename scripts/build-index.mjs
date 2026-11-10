@@ -12,7 +12,13 @@ const includePattern = /^[ \t]*<!-- @include ([^ ]+) -->$/;
 
 // Stable placeholders so hashing never depends on a value this script writes.
 const RELEASE_TOKEN = '__MANZIL_RELEASE__';
-const VERSION_QUERY = /\?v=[0-9a-f]+/g;
+// A version token is either a per-file content hash or the shared release id
+// (the loaded-at-runtime modules use the latter). Both forms must be recognised
+// when a token is stripped or rewritten, otherwise a shared-release shell entry
+// would keep a stale stamp forever.
+const VERSION_TOKEN = '(?:manzil-)?[0-9a-f]+';
+const VERSION_QUERY = new RegExp(`\\?v=${VERSION_TOKEN}`, 'g');
+const VERSION_QUERY_SUFFIX = new RegExp(`\\?v=${VERSION_TOKEN}$`);
 const RELEASE_LITERAL = /const RELEASE = '[^']*';/;
 const CACHE_LITERAL = /const CACHE_NAME = '[^']*';/;
 const SHELL_BLOCK = /(const APP_SHELL = \[)([\s\S]*?)(\];)/;
@@ -84,7 +90,7 @@ function stampServiceWorker() {
     return fs.readFileSync(swPath, 'utf8')
         .replace(CACHE_LITERAL, `const CACHE_NAME = '${release}';`)
         .replace(SHELL_BLOCK, (whole, open, body, close) => open + body.replace(/'\.\/([^']*)'/g, (entry, raw) => {
-            const relative = raw.replace(/\?v=[0-9a-f]+$/, '');
+            const relative = raw.replace(VERSION_QUERY_SUFFIX, '');
             const version = versionFor(relative);
             return version ? `'./${relative}?v=${version}'` : entry;
         }) + close);
