@@ -282,6 +282,28 @@ test('opacity transparency tokens resolve consistently across themes and print',
     await check();
 });
 
+test('backdrop blur tokens resolve consistently across themes and print', async ({ page }) => {
+    await openReports(page);
+    const samples = [
+        ['#settingsModal .settings-hero-stats > div', 'blur(6px)'],
+        ['#settingsModal .settings-footer', 'blur(12px)'],
+        ['#settingsModal .settings-section-toolbar', 'blur(14px)']
+    ];
+    const readBlur = selector => page.locator(selector).first().evaluate(
+        element => getComputedStyle(element).backdropFilter
+    );
+    for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise']) {
+        await page.evaluate(value => applyThemeToDocument(value), theme);
+        for (const [selector, expected] of samples) {
+            expect(await readBlur(selector)).toBe(expected);
+        }
+    }
+    await page.emulateMedia({ media: 'print' });
+    for (const [selector, expected] of samples) {
+        expect(await readBlur(selector)).toBe(expected);
+    }
+});
+
 test('the tab opens on the icon grid and a card opens its report full page', async ({ page }) => {
     await openReports(page);
     await expect(page.locator('.report-section-head')).toBeVisible();

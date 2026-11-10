@@ -172,7 +172,7 @@ test('settings cards use a sidebar workspace with spacious scrollable section pa
     assert.ok(css.includes('width: 2.5rem;') && css.includes('font-size: 1rem;'), 'mobile setting icons stay clear');
     assert.ok(css.includes('overscroll-behavior: contain'), 'section content scrolls independently');
     assert.ok(css.includes('position: sticky;'), 'section toolbar and previews stay in view');
-    assert.ok(css.includes('backdrop-filter: blur(14px);'), 'the section toolbar floats above the content');
+    assert.ok(css.includes('backdrop-filter: blur(var(--blur-140));'), 'the section toolbar floats above the content');
     assert.ok(settings.includes("document.getElementById('settingsOverview')?.classList.add('hidden')"));
     assert.ok(settings.includes("document.getElementById('settingsSectionToolbar')?.classList.remove('hidden')"));
 });

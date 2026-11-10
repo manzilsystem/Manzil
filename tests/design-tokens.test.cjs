@@ -60,6 +60,12 @@ const OPACITIES = {
     75: '.75',
     100: '1'
 };
+const BLURS = {
+    60: '6px',
+    120: '12px',
+    140: '14px',
+    160: '16px'
+};
 
 const themeBlocks = (css, theme) => [
     ...css.matchAll(new RegExp(`\\[data-theme="${theme}"\\]\\s*\\{([^}]*)\\}`, 'g'))
@@ -232,6 +238,31 @@ test('opacity declarations use the canonical opacity scale', () => {
     }
     for (const step of Object.keys(OPACITIES)) {
         assert.ok(values.includes(`var(--opacity-${step})`), `opacity step ${step} must be consumed`);
+    }
+});
+
+test('blur tokens are defined once in :root with their original values', () => {
+    const css = read('css/style.css');
+    const rootBlock = css.match(/:root\s*\{([^}]*)\}/)[1];
+    for (const [step, value] of Object.entries(BLURS)) {
+        assert.match(rootBlock, new RegExp(`--blur-${step}\\s*:\\s*${value}\\s*;`));
+        assert.equal([...css.matchAll(new RegExp(`--blur-${step}\\s*:`, 'g'))].length, 1);
+    }
+});
+
+test('backdrop-filter declarations use the canonical blur scale', () => {
+    const css = read('css/style.css');
+    const values = [...css.matchAll(/(?:-webkit-)?backdrop-filter\s*:\s*([^;{}]+)(?:;|\})/g)]
+        .map(match => match[1].trim());
+    assert.ok(values.length > 0);
+    const part = new RegExp(
+        `^(?:blur\\(var\\(--blur-(?:${Object.keys(BLURS).join('|')})\\)\\)|none)(?:\\s*!important)?$`
+    );
+    for (const value of values) {
+        assert.match(value, part, value);
+    }
+    for (const step of Object.keys(BLURS)) {
+        assert.ok(values.includes(`blur(var(--blur-${step}))`), `blur step ${step} must be consumed`);
     }
 });
 
