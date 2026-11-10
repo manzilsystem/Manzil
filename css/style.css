@@ -12,6 +12,20 @@
     --tracking-8: .08em;
     --tracking-12: .12em;
     --tracking-20: .2em;
+    /* Canonical motion scale — the single source for shared transition durations
+       and easing curves. The duration suffix is the value in milliseconds
+       (--motion-200 = .2s); the easing names are the literal keywords they
+       replace. Motion does not vary by theme, so these live only in :root.
+       Every token matches the literal it replaced, so routing transitions
+       through them introduces no visual change. */
+    --motion-150: .15s;
+    --motion-160: .16s;
+    --motion-180: .18s;
+    --motion-200: .2s;
+    --motion-240: .24s;
+    --motion-260: .26s;
+    --motion-300: .3s;
+    --ease-standard: ease;
     --bg-main: #090d16;
     --bg-card: rgba(15, 23, 42, .85);
     --bg-input: #020617;
@@ -150,7 +164,7 @@ body {
     -webkit-tap-highlight-color: transparent;
     background-color: var(--bg-main);
     color: var(--text-main);
-    transition: background-color .3s, color .3s;
+    transition: background-color var(--motion-300), color var(--motion-300);
 }
 button, input, select, textarea { font: inherit; }
 button { touch-action: manipulation; }
@@ -163,7 +177,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     border-color: var(--border-color);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+    transition: border-color var(--motion-200) var(--ease-standard), box-shadow var(--motion-200) var(--ease-standard), transform var(--motion-200) var(--ease-standard);
 }
 .app-input { background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-color); }
 .app-input:user-invalid:not(:focus) { border-color: var(--state-danger); box-shadow: 0 0 0 1px color-mix(in srgb, var(--state-danger) 18%, transparent); }
@@ -218,7 +232,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
         linear-gradient(135deg, color-mix(in srgb, var(--report-tone, var(--accent-color)) 8%, transparent), transparent 55%),
         color-mix(in srgb, var(--bg-input) 55%, transparent);
     color: var(--text-muted); text-align: start;
-    transition: color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+    transition: color var(--motion-160) var(--ease-standard), border-color var(--motion-160) var(--ease-standard), box-shadow var(--motion-160) var(--ease-standard), transform var(--motion-160) var(--ease-standard);
 }
 .report-nav-item::before {
     content: ''; position: absolute; inset-inline-end: -1.6rem; top: -2.1rem; width: 6rem; height: 6rem;
@@ -275,7 +289,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     border: 1px solid var(--report-tone-line, var(--border-color)); border-radius: var(--radius-75);
     background: var(--report-tone-soft, color-mix(in srgb, var(--bg-input) 70%, transparent));
     color: var(--report-tone, var(--accent-color)); font-size: .8rem;
-    transition: transform .16s ease, border-color .16s ease;
+    transition: transform var(--motion-160) var(--ease-standard), border-color var(--motion-160) var(--ease-standard);
 }
 .report-view-back:hover { transform: translateY(-1px); border-color: var(--report-tone, var(--accent-color)); }
 .report-view-back:focus-visible { outline: 2px solid var(--report-tone, var(--accent-color)); outline-offset: 2px; }
@@ -361,7 +375,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     padding: var(--space-60) var(--space-80); border: 1px solid var(--border-color); border-radius: var(--radius-95);
     background: color-mix(in srgb, var(--bg-input) 65%, transparent);
     color: var(--text-main); font-size: .72rem; font-weight: var(--weight-800);
-    transition: background-color .2s ease, border-color .2s ease, transform .2s ease, opacity .2s ease;
+    transition: background-color var(--motion-200) var(--ease-standard), border-color var(--motion-200) var(--ease-standard), transform var(--motion-200) var(--ease-standard), opacity var(--motion-200) var(--ease-standard);
 }
 .report-action i { font-size: .85rem; }
 .report-action:not(.report-action-primary) { border-color: var(--report-tone-line, var(--border-color)); background: var(--report-tone-soft, color-mix(in srgb, var(--bg-input) 65%, transparent)); color: var(--report-tone, var(--text-main)); }
@@ -390,10 +404,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .tab-btn { min-width: 52px; min-height: 44px; justify-content: center; }
 nav[aria-label="التنقل الرئيسي"] .tab-btn { flex: 1 1 0; min-width: 0; padding-inline: var(--space-15); }
 nav[aria-label="التنقل الرئيسي"] .tab-btn span { white-space: nowrap; font-size: clamp(8px, 2.7vw, 10px); }
-.tab-btn { border-radius: var(--radius-lg); padding-inline: var(--space-65); transition: color .2s ease, background-color .2s ease, transform .2s ease; }
+.tab-btn { border-radius: var(--radius-lg); padding-inline: var(--space-65); transition: color var(--motion-200) var(--ease-standard), background-color var(--motion-200) var(--ease-standard), transform var(--motion-200) var(--ease-standard); }
 .tab-btn.active { color: var(--accent-color); font-weight: var(--weight-800); background: color-mix(in srgb, var(--accent-color) 14%, transparent); }
 .tab-btn:hover { background: color-mix(in srgb, var(--accent-color) 8%, transparent); }
-.tab-btn.active i { transform: scale(1.15); transition: transform .2s; }
+.tab-btn.active i { transform: scale(1.15); transition: transform var(--motion-200); }
 #headerBuildingTitle { max-width: 42vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #cashFlowChartContainer > div { min-width: 0; }
 .quick-action {
@@ -410,7 +424,7 @@ nav[aria-label="التنقل الرئيسي"] .tab-btn span { white-space: nowra
     background: color-mix(in srgb, var(--bg-input) 82%, transparent);
     font-size: .7rem;
     font-weight: var(--weight-800);
-    transition: transform .2s ease, border-color .2s ease, background-color .2s ease;
+    transition: transform var(--motion-200) var(--ease-standard), border-color var(--motion-200) var(--ease-standard), background-color var(--motion-200) var(--ease-standard);
 }
 .quick-action i { font-size: 1rem; }
 .quick-action:hover { transform: translateY(-2px); background: var(--bg-card); }
@@ -620,7 +634,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 [data-theme="dark"] .settings-content,[data-theme="emerald"] .settings-content,[data-theme="ocean"] .settings-content,[data-theme="sand"] .settings-content { color:var(--text-main); }
 
 .settings-modal-header { background:var(--accent-color); color:#fff; }
-.settings-save-button { background:var(--accent-color); color:#fff; transition:filter .18s ease; }
+.settings-save-button { background:var(--accent-color); color:#fff; transition:filter var(--motion-180) var(--ease-standard); }
 .settings-save-button:hover { filter:brightness(1.08); }
 [data-theme="sand"] .settings-modal-header,[data-theme="sand"] .settings-save-button { color:#211b16; }
 
@@ -729,7 +743,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 .auth-form-heading > p:last-child { margin-top:var(--space-35); color:var(--text-muted); font-size:.78rem; line-height:1.8; }
 .auth-section-label { margin-bottom:var(--space-55); color:var(--text-muted); font-size:.75rem; font-weight:var(--weight-800); }
 .auth-mode-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-55); }
-.auth-mode-button { min-width:0; min-height:3.25rem; display:flex; align-items:center; justify-content:center; gap:var(--space-55); padding:var(--space-70) var(--space-65); border:1px solid var(--border-color); border-radius:var(--radius-90); background:var(--bg-input); color:var(--text-muted); font-size:.78rem; font-weight:var(--weight-900); transition:background .18s,border-color .18s,color .18s,transform .18s; }
+.auth-mode-button { min-width:0; min-height:3.25rem; display:flex; align-items:center; justify-content:center; gap:var(--space-55); padding:var(--space-70) var(--space-65); border:1px solid var(--border-color); border-radius:var(--radius-90); background:var(--bg-input); color:var(--text-muted); font-size:.78rem; font-weight:var(--weight-900); transition:background var(--motion-180),border-color var(--motion-180),color var(--motion-180),transform var(--motion-180); }
 .auth-mode-button[aria-pressed="true"] { border-color:var(--accent-color); background:color-mix(in srgb,var(--accent-color) 15%,var(--bg-input)); color:var(--text-main); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent-color) 32%,transparent); }
 .auth-mode-button i { color:var(--accent-color); }
 .auth-login-form { display:grid; gap:var(--space-100); margin-top:var(--space-125); }
@@ -737,7 +751,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 .auth-field label { color:var(--text-main); font-size:.74rem; font-weight:var(--weight-800); }
 .auth-field input { min-height:3.15rem; border-radius:var(--radius-90); }
 .auth-field input:focus { outline:2px solid color-mix(in srgb,var(--accent-color) 50%,transparent); outline-offset:1px; border-color:var(--accent-color); }
-.auth-submit { width:100%; min-height:3.2rem; margin-top:var(--space-20); border:1px solid color-mix(in srgb,var(--accent-color) 75%,#fff); border-radius:var(--radius-95); background:var(--accent-color); color:#06242b; font-size:.9rem; font-weight:var(--weight-900); box-shadow:0 10px 24px color-mix(in srgb,var(--accent-color) 20%,transparent); transition:filter .18s,transform .18s; }
+.auth-submit { width:100%; min-height:3.2rem; margin-top:var(--space-20); border:1px solid color-mix(in srgb,var(--accent-color) 75%,#fff); border-radius:var(--radius-95); background:var(--accent-color); color:#06242b; font-size:.9rem; font-weight:var(--weight-900); box-shadow:0 10px 24px color-mix(in srgb,var(--accent-color) 20%,transparent); transition:filter var(--motion-180),transform var(--motion-180); }
 .auth-submit:hover { filter:brightness(1.07); }
 .auth-submit:active { transform:scale(.99); }
 .auth-link-button { color:var(--accent-color); font-size:.72rem; font-weight:var(--weight-800); text-align:right; line-height:1.8; }
@@ -1162,7 +1176,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-90);
     color: #e8f7f5;
     background: rgba(255, 255, 255, .08);
-    transition: background .18s ease, border-color .18s ease, transform .18s ease;
+    transition: background var(--motion-180) var(--ease-standard), border-color var(--motion-180) var(--ease-standard), transform var(--motion-180) var(--ease-standard);
 }
 #settingsModal .settings-close-button:hover {
     border-color: rgba(255, 255, 255, .32);
@@ -1288,7 +1302,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     text-align: start;
     color: var(--settings-muted);
     background: transparent;
-    transition: background .16s ease, color .16s ease, border-color .16s ease;
+    transition: background var(--motion-160) var(--ease-standard), color var(--motion-160) var(--ease-standard), border-color var(--motion-160) var(--ease-standard);
 }
 #settingsModal .settings-nav-item:hover {
     color: var(--settings-text);
@@ -1323,7 +1337,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     color: var(--settings-accent);
     background: color-mix(in srgb, var(--settings-accent) 12%, transparent);
     font-size: .86rem;
-    transition: background .16s ease, color .16s ease;
+    transition: background var(--motion-160) var(--ease-standard), color var(--motion-160) var(--ease-standard);
 }
 #settingsModal .settings-nav-item.is-active .settings-nav-icon {
     border-color: transparent;
@@ -1500,7 +1514,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     background:
         linear-gradient(135deg, color-mix(in srgb, var(--card-accent) 7%, transparent), transparent 55%),
         var(--settings-surface-raised);
-    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    transition: transform var(--motion-180) var(--ease-standard), border-color var(--motion-180) var(--ease-standard), box-shadow var(--motion-180) var(--ease-standard);
 }
 #settingsModal .settings-card::before {
     content: "";
@@ -1545,7 +1559,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     color: var(--card-accent);
     background: color-mix(in srgb, var(--card-accent) 13%, transparent);
     font-size: 1.2rem;
-    transition: transform .18s ease;
+    transition: transform var(--motion-180) var(--ease-standard);
 }
 #settingsModal .settings-card:hover .settings-card-icon {
     transform: scale(1.06) rotate(-3deg);
@@ -1572,7 +1586,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     color: var(--card-accent);
     font-size: .78rem;
     opacity: .6;
-    transition: opacity .18s ease, transform .18s ease;
+    transition: opacity var(--motion-180) var(--ease-standard), transform var(--motion-180) var(--ease-standard);
 }
 #settingsModal .settings-card:hover .settings-card-arrow {
     opacity: 1;
@@ -1766,7 +1780,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     min-height: 2.75rem;
     padding: var(--space-60) var(--space-80);
     border-radius: var(--radius-75);
-    transition: border-color .15s ease, box-shadow .15s ease;
+    transition: border-color var(--motion-150) var(--ease-standard), box-shadow var(--motion-150) var(--ease-standard);
 }
 #settingsModal .settings-field input:focus,
 #settingsModal .settings-field select:focus,
@@ -1865,7 +1879,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border: 1px solid var(--settings-line);
     border-radius: var(--radius-lg);
     background: var(--settings-surface-raised);
-    transition: border-color .18s ease, background .18s ease;
+    transition: border-color var(--motion-180) var(--ease-standard), background var(--motion-180) var(--ease-standard);
 }
 #settingsModal .settings-payment-card-wide {
     grid-column: 1 / -1;
@@ -1926,7 +1940,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-pill);
     background: color-mix(in srgb, var(--settings-muted) 34%, transparent);
     cursor: pointer;
-    transition: background .18s ease, border-color .18s ease;
+    transition: background var(--motion-180) var(--ease-standard), border-color var(--motion-180) var(--ease-standard);
 }
 #settingsModal .settings-payment-toggle input[type="checkbox"]::after {
     content: "";
@@ -1939,7 +1953,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     background: #fff;
     box-shadow: 0 2px 6px rgba(0, 0, 0, .28);
     transform: translateY(-50%);
-    transition: inset-inline-start .18s ease;
+    transition: inset-inline-start var(--motion-180) var(--ease-standard);
 }
 #settingsModal .settings-payment-toggle input[type="checkbox"]:checked {
     border-color: var(--settings-accent);
@@ -2120,7 +2134,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     text-align: center;
     color: var(--settings-text);
     background: var(--settings-surface);
-    transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease;
+    transition: border-color var(--motion-160) var(--ease-standard), transform var(--motion-160) var(--ease-standard), box-shadow var(--motion-160) var(--ease-standard);
 }
 #settingsModal .theme-option:hover {
     transform: translateY(-2px);
@@ -2476,7 +2490,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     background: var(--settings-surface-raised);
     font-size: .72rem;
     font-weight: var(--weight-800);
-    transition: border-color .16s ease, color .16s ease;
+    transition: border-color var(--motion-160) var(--ease-standard), color var(--motion-160) var(--ease-standard);
 }
 #settingsModal .settings-secondary-button:hover {
     border-color: color-mix(in srgb, var(--settings-accent) 40%, var(--settings-line));
@@ -2491,7 +2505,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     box-shadow: 0 8px 20px rgba(21, 158, 154, .25);
     font-size: .74rem;
     font-weight: var(--weight-900);
-    transition: transform .16s ease, box-shadow .16s ease;
+    transition: transform var(--motion-160) var(--ease-standard), box-shadow var(--motion-160) var(--ease-standard);
 }
 #settingsModal .settings-save-button:hover {
     transform: translateY(-1px);
@@ -3079,7 +3093,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     background: color-mix(in srgb, var(--settings-surface) 60%, transparent);
     font-size: .66rem;
     font-weight: var(--weight-800);
-    transition: border-color .16s ease, background .16s ease;
+    transition: border-color var(--motion-160) var(--ease-standard), background var(--motion-160) var(--ease-standard);
 }
 #settingsModal .settings-payment-toggle-row:hover {
     border-color: color-mix(in srgb, var(--settings-accent) 38%, var(--settings-line));
@@ -3287,7 +3301,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     background: color-mix(in srgb, var(--settings-surface) 70%, transparent);
     font-size: .61rem;
     font-weight: var(--weight-800);
-    transition: color .16s ease, border-color .16s ease;
+    transition: color var(--motion-160) var(--ease-standard), border-color var(--motion-160) var(--ease-standard);
 }
 #settingsModal .settings-mini-button:hover {
     border-color: color-mix(in srgb, var(--settings-accent) 42%, var(--settings-line));
@@ -3312,7 +3326,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
     font-size: .6rem;
     font-weight: var(--weight-700);
-    transition: background .15s ease, border-color .15s ease;
+    transition: background var(--motion-150) var(--ease-standard), border-color var(--motion-150) var(--ease-standard);
 }
 #settingsModal .settings-variable-chip:hover {
     border-color: color-mix(in srgb, var(--settings-accent) 55%, var(--settings-line));
@@ -3576,7 +3590,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-pill);
     border: 1px solid color-mix(in srgb, var(--accent-color) 45%, var(--border-color));
     box-shadow: 0 14px 34px rgba(2, 6, 23, .38);
-    transition: padding .24s ease, box-shadow .24s ease, transform .26s ease, opacity .2s ease, visibility .26s ease;
+    transition: padding var(--motion-240) var(--ease-standard), box-shadow var(--motion-240) var(--ease-standard), transform var(--motion-260) var(--ease-standard), opacity var(--motion-200) var(--ease-standard), visibility var(--motion-260) var(--ease-standard);
 }
 .assistant-avatar-frame {
     display: inline-block;
@@ -3606,7 +3620,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     max-width: 9rem;
     overflow: hidden;
     opacity: 1;
-    transition: max-width .24s ease, opacity .18s ease;
+    transition: max-width var(--motion-240) var(--ease-standard), opacity var(--motion-180) var(--ease-standard);
 }
 .assistant-fab::after {
     content: '';
@@ -3713,7 +3727,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     background: color-mix(in srgb, var(--bg-input) 70%, transparent);
     color: var(--text-muted);
     font-size: .68rem;
-    transition: color .18s ease, border-color .18s ease;
+    transition: color var(--motion-180) var(--ease-standard), border-color var(--motion-180) var(--ease-standard);
 }
 .assistant-icon-button:hover { color: var(--text-main); border-color: color-mix(in srgb, var(--accent-color) 50%, var(--border-color)); }
 .assistant-log {
@@ -3802,7 +3816,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     font-size: .66rem;
     font-weight: var(--weight-700);
     white-space: nowrap;
-    transition: background .18s ease, border-color .18s ease;
+    transition: background var(--motion-180) var(--ease-standard), border-color var(--motion-180) var(--ease-standard);
 }
 .assistant-chip:hover { background: color-mix(in srgb, var(--accent-color) 18%, transparent); border-color: color-mix(in srgb, var(--accent-color) 55%, var(--border-color)); }
 .assistant-followups {
@@ -3907,7 +3921,7 @@ body.owner-mode .owner-theme-control {
     color: var(--text-main);
     font-size: .7rem;
     font-weight: var(--weight-800);
-    transition: border-color .16s ease, box-shadow .16s ease;
+    transition: border-color var(--motion-160) var(--ease-standard), box-shadow var(--motion-160) var(--ease-standard);
 }
 .owner-theme-btn:hover,
 .owner-theme-btn[aria-expanded="true"] {
@@ -3943,7 +3957,7 @@ body.owner-mode .owner-theme-control {
     background: var(--bg-input, var(--bg-card));
     font-size: .68rem;
     font-weight: var(--weight-800);
-    transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+    transition: border-color var(--motion-160) var(--ease-standard), box-shadow var(--motion-160) var(--ease-standard), transform var(--motion-160) var(--ease-standard);
 }
 .owner-theme-option:hover {
     transform: translateY(-1px);

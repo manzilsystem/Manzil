@@ -159,6 +159,33 @@ test('letter-spacing tokens resolve consistently across themes and print', async
     }
 });
 
+test('transition motion tokens resolve consistently across themes and print', async ({ page }) => {
+    await openReports(page);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    const samples = [
+        ['body', '0.3s, 0.3s', 'ease, ease'],
+        ['.report-action', '0.2s, 0.2s, 0.2s, 0.2s', 'ease, ease, ease, ease'],
+        ['.report-nav-item', '0.16s, 0.16s, 0.16s, 0.16s', 'ease, ease, ease, ease'],
+        ['#settingsModal .settings-close-button', '0.18s, 0.18s, 0.18s', 'ease, ease, ease'],
+        ['#settingsModal .settings-field input', '0.15s, 0.15s', 'ease, ease'],
+        ['.assistant-fab', '0.24s, 0.24s, 0.26s, 0.2s, 0.26s', 'ease, ease, ease, ease, ease']
+    ];
+    const readMotion = (selector) => page.locator(selector).first().evaluate(element => {
+        const style = getComputedStyle(element);
+        return [style.transitionDuration, style.transitionTimingFunction];
+    });
+    for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise']) {
+        await page.evaluate(value => applyThemeToDocument(value), theme);
+        for (const [selector, duration, timing] of samples) {
+            expect(await readMotion(selector)).toEqual([duration, timing]);
+        }
+    }
+    await page.emulateMedia({ media: 'print', reducedMotion: 'no-preference' });
+    for (const [selector, duration, timing] of samples) {
+        expect(await readMotion(selector)).toEqual([duration, timing]);
+    }
+});
+
 test('the tab opens on the icon grid and a card opens its report full page', async ({ page }) => {
     await openReports(page);
     await expect(page.locator('.report-section-head')).toBeVisible();
