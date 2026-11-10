@@ -70,6 +70,15 @@
     --opacity-65: .65;
     --opacity-75: .75;
     --opacity-100: 1;
+    /* Canonical blur scale — the single source for the shared backdrop blur
+       radii. The token suffix is the pixel value times ten (--blur-140 = 14px).
+       Blur does not vary by theme, so these live only in :root, and every token
+       matches the literal it replaced, so routing the declarations through them
+       introduces no visual change. */
+    --blur-60: 6px;
+    --blur-120: 12px;
+    --blur-140: 14px;
+    --blur-160: 16px;
     --bg-main: #090d16;
     --bg-card: rgba(15, 23, 42, .85);
     --bg-input: #020617;
@@ -219,8 +228,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .app-card {
     background-color: var(--bg-card);
     border-color: var(--border-color);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(var(--blur-160));
+    -webkit-backdrop-filter: blur(var(--blur-160));
     transition: border-color var(--motion-200) var(--ease-standard), box-shadow var(--motion-200) var(--ease-standard), transform var(--motion-200) var(--ease-standard);
 }
 .app-input { background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-color); }
@@ -563,7 +572,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
         padding-right: max(var(--space-25), env(safe-area-inset-right));
     }
     input, select, textarea { font-size: 16px !important; }
-    .app-card { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .app-card { backdrop-filter: blur(var(--blur-120)); -webkit-backdrop-filter: blur(var(--blur-120)); }
     #landlordReportPreview { overflow-wrap: anywhere; }
     .quick-action { min-height: 68px; padding-inline: var(--space-35); }
     [role="dialog"] { padding: var(--space-75); }
@@ -845,7 +854,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     radial-gradient(ellipse at 18% 18%,rgba(8,183,199,.12),transparent 38%),
     radial-gradient(ellipse at 84% 82%,rgba(216,164,65,.12),transparent 42%),
     rgba(2,8,15,.94);
-  backdrop-filter:blur(16px);
+  backdrop-filter:blur(var(--blur-160));
 }
 #pinLockModal > .auth-shell {
   width:min(100%,72rem);
@@ -1511,7 +1520,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border: 1px solid rgba(255, 255, 255, .14);
     border-radius: var(--radius-85);
     background: rgba(255, 255, 255, .08);
-    backdrop-filter: blur(6px);
+    backdrop-filter: blur(var(--blur-60));
 }
 #settingsModal .settings-hero-stats span {
     color: rgba(226, 246, 243, .7);
@@ -1668,8 +1677,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     padding: var(--space-90) clamp(var(--space-100), 2.4vw, var(--space-160));
     border-bottom: 1px solid var(--settings-line);
     background: color-mix(in srgb, var(--settings-surface) 88%, transparent);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(var(--blur-140));
+    -webkit-backdrop-filter: blur(var(--blur-140));
 }
 #settingsModal .settings-back-button {
     display: inline-flex;
@@ -2502,7 +2511,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     padding: var(--space-80) clamp(var(--space-100), 2.4vw, var(--space-160));
     border-top: 1px solid var(--settings-line);
     background: color-mix(in srgb, var(--settings-surface) 92%, transparent);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(var(--blur-120));
 }
 #settingsModal .settings-footer-note {
     display: flex;
