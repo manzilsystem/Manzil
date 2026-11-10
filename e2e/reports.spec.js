@@ -186,6 +186,42 @@ test('transition motion tokens resolve consistently across themes and print', as
     }
 });
 
+test('line-height leading tokens resolve consistently across themes and print', async ({ page }) => {
+    await openReports(page);
+    const expected = {
+        '.report-card-title': 1.4,
+        '.report-card-subtitle': 1.6,
+        '.report-section-title': 1.35
+    };
+    const readRatios = () => page.evaluate(map => {
+        const ratios = {};
+        for (const selector of Object.keys(map)) {
+            const element = document.querySelector(selector);
+            if (!element) continue;
+            const style = getComputedStyle(element);
+            const lineHeight = style.lineHeight;
+            ratios[selector] = lineHeight.endsWith('px')
+                ? parseFloat(lineHeight) / parseFloat(style.fontSize)
+                : parseFloat(lineHeight);
+        }
+        return ratios;
+    }, expected);
+    const check = async () => {
+        const ratios = await readRatios();
+        const selectors = Object.keys(ratios);
+        expect(selectors.length).toBeGreaterThanOrEqual(3);
+        for (const selector of selectors) {
+            expect(ratios[selector]).toBeCloseTo(expected[selector], 2);
+        }
+    };
+    for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise']) {
+        await page.evaluate(value => applyThemeToDocument(value), theme);
+        await check();
+    }
+    await page.emulateMedia({ media: 'print' });
+    await check();
+});
+
 test('z-index layering tokens resolve consistently across themes and print', async ({ page }) => {
     await openReports(page);
     const samples = [
