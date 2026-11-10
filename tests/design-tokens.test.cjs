@@ -51,6 +51,15 @@ const LEADINGS = {
     190: '1.9',
     195: '1.95'
 };
+const OPACITIES = {
+    0: '0',
+    40: '.4',
+    55: '.55',
+    60: '.6',
+    65: '.65',
+    75: '.75',
+    100: '1'
+};
 
 const themeBlocks = (css, theme) => [
     ...css.matchAll(new RegExp(`\\[data-theme="${theme}"\\]\\s*\\{([^}]*)\\}`, 'g'))
@@ -200,6 +209,29 @@ test('line-height declarations use the canonical leading scale', () => {
     }
     for (const step of Object.keys(LEADINGS)) {
         assert.ok(values.includes(`var(--leading-${step})`), `leading step ${step} must be consumed`);
+    }
+});
+
+test('opacity tokens are defined once in :root with their original values', () => {
+    const css = read('css/style.css');
+    const rootBlock = css.match(/:root\s*\{([^}]*)\}/)[1];
+    for (const [step, value] of Object.entries(OPACITIES)) {
+        assert.match(rootBlock, new RegExp(`--opacity-${step}\\s*:\\s*${value.replace('.', '\\.')}\\s*;`));
+        assert.equal([...css.matchAll(new RegExp(`--opacity-${step}\\s*:`, 'g'))].length, 1);
+    }
+});
+
+test('opacity declarations use the canonical opacity scale', () => {
+    const css = read('css/style.css');
+    const values = [...css.matchAll(/(?<![\w-])opacity\s*:\s*([^;{}]+);/g)]
+        .map(match => match[1].trim());
+    assert.ok(values.length > 0);
+    const part = new RegExp(`^var\\(--opacity-(?:${Object.keys(OPACITIES).join('|')})\\)(?:\\s*!important)?$`);
+    for (const value of values) {
+        assert.match(value, part, value);
+    }
+    for (const step of Object.keys(OPACITIES)) {
+        assert.ok(values.includes(`var(--opacity-${step})`), `opacity step ${step} must be consumed`);
     }
 });
 

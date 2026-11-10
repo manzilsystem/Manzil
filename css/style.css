@@ -58,6 +58,18 @@
     --leading-185: 1.85;
     --leading-190: 1.9;
     --leading-195: 1.95;
+    /* Canonical opacity scale — the single source for the shared transparency
+       steps. The token suffix is the value in hundredths (--opacity-60 = .6,
+       --opacity-100 = 1). Opacity does not vary by theme, so these live only in
+       :root, and every token matches the literal it replaced, so routing the
+       declarations through them introduces no visual change. */
+    --opacity-0: 0;
+    --opacity-40: .4;
+    --opacity-55: .55;
+    --opacity-60: .6;
+    --opacity-65: .65;
+    --opacity-75: .75;
+    --opacity-100: 1;
     --bg-main: #090d16;
     --bg-card: rgba(15, 23, 42, .85);
     --bg-input: #020617;
@@ -413,7 +425,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-action:not(.report-action-primary) { border-color: var(--report-tone-line, var(--border-color)); background: var(--report-tone-soft, color-mix(in srgb, var(--bg-input) 65%, transparent)); color: var(--report-tone, var(--text-main)); }
 .report-action:hover:not(:disabled) { transform: translateY(-1px); }
 .report-action:active:not(:disabled) { transform: none; }
-.report-action:disabled { opacity: .4; cursor: not-allowed; }
+.report-action:disabled { opacity: var(--opacity-40); cursor: not-allowed; }
 .report-action-primary { border-color: #059669; background: #059669; color: #fff; box-shadow: 0 8px 20px rgba(5, 150, 105, .18); }
 .report-action-primary:hover:not(:disabled) { border-color: #10b981; background: #10b981; }
 .report-action-compact { min-height: 2.1rem; padding: var(--space-35) var(--space-65); border-radius: var(--radius-75); font-size: .65rem; }
@@ -526,15 +538,15 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 .auth-owner-help summary::-webkit-details-marker { display: none; }
 .auth-owner-help summary { user-select: none; }
-#managerRecoveryBtn:disabled { opacity: .65; cursor: wait; }
+#managerRecoveryBtn:disabled { opacity: var(--opacity-65); cursor: wait; }
 
 @keyframes toastIn {
-    from { opacity: 0; transform: translate(-50%, -20px); }
-    to { opacity: 1; transform: translate(-50%, 0); }
+    from { opacity: var(--opacity-0); transform: translate(-50%, -20px); }
+    to { opacity: var(--opacity-100); transform: translate(-50%, 0); }
 }
 .toast { animation: toastIn .3s ease; }
 .icon-action { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; min-height: 32px; }
-@keyframes fadeIn { from { opacity: 0; transform: scale(.95); } to { opacity: 1; transform: scale(1); } }
+@keyframes fadeIn { from { opacity: var(--opacity-0); transform: scale(.95); } to { opacity: var(--opacity-100); transform: scale(1); } }
 .animate-fadeIn { animation: fadeIn .2s ease; }
 
 @media (max-width: 640px) {
@@ -793,7 +805,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 .auth-whatsapp-button { width:100%; min-height:2.8rem; border:1px solid rgba(16,185,129,.35); border-radius:var(--radius-80); background:rgba(16,185,129,.12); color:#10b981; font-size:.75rem; font-weight:var(--weight-900); }
 .auth-help-note,.auth-security-note { font-size:.63rem; line-height:var(--leading-180); }
 .auth-security-note { margin-top:var(--space-100); }
-#managerRecoveryBtn:disabled { opacity:.65; cursor:wait; }
+#managerRecoveryBtn:disabled { opacity:var(--opacity-65); cursor:wait; }
 @media (max-width:700px) {
   #pinLockModal { padding:var(--space-50); }
   #pinLockModal > .auth-shell { grid-template-columns:minmax(0,1fr); max-width:31rem; max-height:calc(100dvh - 1rem); border-radius:var(--radius-135); }
@@ -1141,7 +1153,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     inset-inline: 0;
     bottom: 0;
     height: 2px;
-    opacity: .75;
+    opacity: var(--opacity-75);
     background: linear-gradient(90deg, transparent, var(--settings-accent-bright), var(--settings-gold), transparent);
 }
 #settingsModal .settings-brand-lockup {
@@ -1617,11 +1629,11 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     flex: 0 0 auto;
     color: var(--card-accent);
     font-size: .78rem;
-    opacity: .6;
+    opacity: var(--opacity-60);
     transition: opacity var(--motion-180) var(--ease-standard), transform var(--motion-180) var(--ease-standard);
 }
 #settingsModal .settings-card:hover .settings-card-arrow {
-    opacity: 1;
+    opacity: var(--opacity-100);
     transform: translateX(-4px);
 }
 
@@ -1825,7 +1837,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-field select:disabled,
 #settingsModal .settings-field textarea:disabled {
     cursor: not-allowed;
-    opacity: .6;
+    opacity: var(--opacity-60);
 }
 #settingsModal .settings-field input[dir="ltr"] {
     text-align: right;
@@ -2220,13 +2232,13 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     height: .3rem;
     border-radius: var(--radius-pill);
     background: var(--preview-muted, #4a5878);
-    opacity: .55;
+    opacity: var(--opacity-55);
 }
 #settingsModal .theme-preview i:first-child {
     width: 60%;
     height: .42rem;
     background: var(--preview-accent, #818cf8);
-    opacity: 1;
+    opacity: var(--opacity-100);
 }
 #settingsModal .theme-preview i:nth-child(2) { width: 85%; }
 #settingsModal .theme-preview i:nth-child(3) { width: 72%; }
@@ -3651,7 +3663,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     white-space: nowrap;
     max-width: 9rem;
     overflow: hidden;
-    opacity: 1;
+    opacity: var(--opacity-100);
     transition: max-width var(--motion-240) var(--ease-standard), opacity var(--motion-180) var(--ease-standard);
 }
 .assistant-fab::after {
@@ -3666,7 +3678,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     box-shadow: 0 0 0 2px var(--bg-card);
 }
 .assistant-fab.is-hidden {
-    opacity: 0;
+    opacity: var(--opacity-0);
     visibility: hidden;
     transform: translateY(1.2rem) scale(.9);
     pointer-events: none;
@@ -3676,7 +3688,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     padding: var(--space-28);
     box-shadow: 0 9px 22px rgba(2, 6, 23, .32);
 }
-.assistant-fab.is-compact .assistant-fab-label { max-width: 0; opacity: 0; }
+.assistant-fab.is-compact .assistant-fab-label { max-width: 0; opacity: var(--opacity-0); }
 .assistant-fab.is-compact::after { display: none; }
 body.session-locked .assistant-fab { display: none; }
 body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-bottom, 0px)); }
@@ -3882,8 +3894,8 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 .assistant-typing-dot:nth-child(2) { animation-delay: .16s; }
 .assistant-typing-dot:nth-child(3) { animation-delay: .32s; }
 @keyframes assistant-typing-bounce {
-    0%, 60%, 100% { transform: translateY(0); opacity: .55; }
-    30% { transform: translateY(-.22rem); opacity: 1; }
+    0%, 60%, 100% { transform: translateY(0); opacity: var(--opacity-55); }
+    30% { transform: translateY(-.22rem); opacity: var(--opacity-100); }
 }
 @media (prefers-reduced-motion: reduce) {
     .assistant-typing-dot { animation: none; }
