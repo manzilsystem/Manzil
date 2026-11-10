@@ -53,7 +53,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
 }
 .app-input { background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-color); }
-.app-input:user-invalid:not(:focus) { border-color: #fb7185; box-shadow: 0 0 0 1px rgba(251, 113, 133, .18); }
+.app-input:user-invalid:not(:focus) { border-color: var(--state-danger); box-shadow: 0 0 0 1px rgba(251, 113, 133, .18); }
 .cash-account-tag {
     display: inline-flex;
     align-items: center;
@@ -302,10 +302,10 @@ nav[aria-label="التنقل الرئيسي"] .tab-btn span { white-space: nowra
 .quick-action i { font-size: 1rem; }
 .quick-action:hover { transform: translateY(-2px); background: var(--bg-card); }
 .quick-action:active { transform: translateY(0); }
-.quick-action-income { color: #34d399; }
-.quick-action-expense { color: #fb7185; }
+.quick-action-income { color: var(--state-success); }
+.quick-action-expense { color: var(--state-danger); }
 .quick-action-resident { color: #818cf8; }
-.quick-action-report { color: #fbbf24; }
+.quick-action-report { color: var(--state-warning); }
 .quick-actions-grid, .section-toolbar, .list-filters, .resident-filters-grid { min-width: 0; }
 .quick-action { width: 100%; min-width: 0; }
 .section-toolbar > div:first-child { min-width: 0; }
@@ -3503,7 +3503,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     width: .42rem;
     height: .42rem;
     border-radius: 999px;
-    background: #34d399;
+    background: var(--state-success);
     box-shadow: 0 0 0 2px var(--bg-card);
 }
 .assistant-fab.is-hidden {
@@ -3585,7 +3585,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     width: .42rem;
     height: .42rem;
     border-radius: 999px;
-    background: #34d399;
+    background: var(--state-success);
     box-shadow: 0 0 0 3px color-mix(in srgb, #34d399 22%, transparent);
 }
 .assistant-icon-button {

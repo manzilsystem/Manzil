@@ -55,7 +55,13 @@ test('shared semantic consumers reference the tokens instead of raw literals', (
         ['.assistant-row.is-good strong', 'state-success'],
         ['.assistant-row.is-bad strong', 'state-danger'],
         ['.assistant-row.is-warn strong', 'state-warning'],
-        ['.arrears-amount', 'state-danger']
+        ['.arrears-amount', 'state-danger'],
+        ['.quick-action-income', 'state-success'],
+        ['.quick-action-expense', 'state-danger'],
+        ['.quick-action-report', 'state-warning'],
+        ['.app-input:user-invalid:not(:focus)', 'state-danger'],
+        ['.assistant-fab::after', 'state-success'],
+        ['.assistant-online-dot', 'state-success']
     ];
     for (const [selector, token] of expectations) {
         const rule = blocks(css, selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&'))[0];
