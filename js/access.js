@@ -234,17 +234,17 @@ function buildManagerReceiptPreview(receipt, resident) {
     const detailRows = receipt.payments.map(payment => `
         <div class="rounded-xl border border-slate-700/50 p-2 space-y-0.5">
             <div class="flex justify-between gap-2 text-[11px] font-bold"><span>${esc(ownerPaymentPurposeLabel(payment))}</span><span class="text-emerald-400">${fmtNum(payment.amount)} ج.م</span></div>
-            <p class="text-[10px] text-slate-500">${esc(payment.month || '—')} · ${esc(ownerPaymentCashLabel(payment) || '—')}</p>
+            <p class="text-xs text-slate-500">${esc(payment.month || '—')} · ${esc(ownerPaymentCashLabel(payment) || '—')}</p>
         </div>`).join('');
     const notes = receiptNotesForPayments(receipt.payments);
     const thankYou = typeof getReceiptThankYouMessage === 'function'
         ? getReceiptThankYouMessage()
         : 'شكراً لالتزامكم، ونسعد دائماً بخدمتكم.';
-    const field = (label, value) => `<div class="app-input border rounded-xl p-2"><p class="text-[10px] text-slate-500">${esc(label)}</p><p class="mt-1 text-[11px] font-bold">${esc(value)}</p></div>`;
+    const field = (label, value) => `<div class="app-input border rounded-xl p-2"><p class="text-xs text-slate-500">${esc(label)}</p><p class="mt-1 text-[11px] font-bold">${esc(value)}</p></div>`;
     return `
         <div class="flex items-start justify-between gap-3 border-b border-slate-700/60 pb-3">
-            <div><p class="text-sm font-bold">${esc(state.buildingName || 'Manzil')}</p><p class="text-[10px] text-slate-400 mt-1">رقم الإيصال: ${esc(receipt.reference)}</p></div>
-            <span class="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 text-[10px] font-bold text-emerald-300">إيصال استلام</span>
+            <div><p class="text-sm font-bold">${esc(state.buildingName || 'Manzil')}</p><p class="text-xs text-slate-400 mt-1">رقم الإيصال: ${esc(receipt.reference)}</p></div>
+            <span class="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 text-xs font-bold text-emerald-300">إيصال استلام</span>
         </div>
         <div class="grid grid-cols-2 gap-2">
             ${field('الشقة', receiptApartmentLabel(resident))}
@@ -255,9 +255,9 @@ function buildManagerReceiptPreview(receipt, resident) {
             ${field('الصندوق', receipt.cashboxSummary || '—')}
         </div>
         <div class="space-y-1.5">${detailRows}</div>
-        ${notes.length ? `<div class="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-2 space-y-1"><p class="text-[10px] font-bold text-indigo-300">ملاحظات الدفع</p>${notes.map(note => `<p class="text-[11px] text-slate-300">${esc(note)}</p>`).join('')}</div>` : ''}
+        ${notes.length ? `<div class="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-2 space-y-1"><p class="text-xs font-bold text-indigo-300">ملاحظات الدفع</p>${notes.map(note => `<p class="text-[11px] text-slate-300">${esc(note)}</p>`).join('')}</div>` : ''}
         <div class="flex justify-between gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-xs font-black text-emerald-300"><span>إجمالي المبلغ المستلم</span><span>${fmtNum(receipt.totalAmount)} ج.م</span></div>
-        <p class="text-[10px] text-slate-500 leading-5">${esc(thankYou)}<br>تم إصدار هذا الإيصال من لوحة إدارة Manzil.</p>`;
+        <p class="text-xs text-slate-500 leading-5">${esc(thankYou)}<br>تم إصدار هذا الإيصال من لوحة إدارة Manzil.</p>`;
 }
 
 function openIncomeReceiptModal(incomeId) {
@@ -592,7 +592,7 @@ function renderOwnerPortal() {
             <div class="flex items-center justify-between gap-3 py-2 border-b border-slate-700/40 last:border-0">
                 <span class="text-xs min-w-0">
                     <span class="block">${esc(ownerPaymentPurposeLabel(payment))} · ${esc(payment.month || '—')}</span>
-                    <span class="block text-[10px] text-slate-500 mt-0.5">${esc(ownerPaymentCashLabel(payment) || '—')}</span>
+                    <span class="block text-xs text-slate-500 mt-0.5">${esc(ownerPaymentCashLabel(payment) || '—')}</span>
                 </span>
                 <strong class="text-xs text-emerald-400 shrink-0">${fmtNum(payment.amount)} ج.م</strong>
             </div>`).join('');
@@ -601,12 +601,12 @@ function renderOwnerPortal() {
                 <summary class="cursor-pointer list-none flex items-center justify-between gap-3">
                     <span class="min-w-0">
                         <strong class="block text-xs">إيصال رقم ${esc(receipt.reference)}</strong>
-                        <span class="block text-[10px] text-slate-500 mt-1">${esc(formatDate(receipt.date) || '—')} · ${esc(getIncomePaymentMethodLabel(receipt.paymentMethod))}</span>
+                        <span class="block text-xs text-slate-500 mt-1">${esc(formatDate(receipt.date) || '—')} · ${esc(getIncomePaymentMethodLabel(receipt.paymentMethod))}</span>
                     </span>
                     <strong class="text-sm font-black text-emerald-400 shrink-0">${fmtNum(receipt.totalAmount)} ج.م</strong>
                 </summary>
                 <div class="mt-3 pt-3 border-t border-slate-700/50 space-y-3">
-                    <div class="grid grid-cols-2 gap-2 text-[10px]">
+                    <div class="grid grid-cols-2 gap-2 text-xs">
                         <div><span class="text-slate-500">العمارة</span><p class="font-bold mt-1">${esc(state.buildingName || '—')}</p></div>
                         <div><span class="text-slate-500">الشقة</span><p class="font-bold mt-1">${esc(resident.apartmentNumber || '—')}</p></div>
                         <div><span class="text-slate-500">صاحب الإيصال</span><p class="font-bold mt-1">${esc(resident.name || '—')}</p></div>
@@ -617,10 +617,10 @@ function renderOwnerPortal() {
                         <div><span class="text-slate-500">المبلغ المستلم</span><p class="font-black text-emerald-400 mt-1">${fmtNum(receipt.totalAmount)} ج.م</p></div>
                     </div>
                     <div class="rounded-xl border border-slate-700/40 px-3">
-                        <p class="text-[10px] font-bold text-slate-400 pt-2">تفاصيل توزيع المبلغ</p>
+                        <p class="text-xs font-bold text-slate-400 pt-2">تفاصيل توزيع المبلغ</p>
                         ${allocationRows}
                     </div>
-                    <p class="text-[10px] text-slate-500">${esc(typeof getReceiptThankYouMessage === 'function' ? getReceiptThankYouMessage() : 'تم تسجيل عملية السداد بنجاح.')}</p>
+                    <p class="text-xs text-slate-500">${esc(typeof getReceiptThankYouMessage === 'function' ? getReceiptThankYouMessage() : 'تم تسجيل عملية السداد بنجاح.')}</p>
                     <button type="button" onclick="printOwnerReceipt(${esc(JSON.stringify(String(receipt.id)))})" class="w-full min-h-11 border border-indigo-500/30 text-indigo-300 rounded-xl px-3 py-2.5 text-xs font-bold"><i class="fa-solid fa-print ml-1"></i> طباعة الإيصال / حفظ PDF</button>
                 </div>
             </details>`;
@@ -636,23 +636,23 @@ function renderOwnerPortal() {
         ? `<details class="app-input border rounded-2xl p-3">
             <summary class="cursor-pointer list-none flex items-center justify-between gap-3">
                 <span class="text-xs font-bold">تفصيل الشهور المتأخرة</span>
-                <span class="text-[10px] text-indigo-300">عرض التفاصيل</span>
+                <span class="text-xs text-indigo-300">عرض التفاصيل</span>
             </summary>
             <div class="mt-2 pt-2 border-t border-slate-700/40">
                 ${ownerArrears.slice(0, 12).map(item => `
                     <div class="flex justify-between gap-3 py-2 border-b border-slate-700/40 last:border-0">
-                        <span class="text-xs">${esc(item.month)}${item.daysOverdue ? ` <span class="text-[10px] text-slate-500">· متأخر ${esc(formatOverdueDuration(item.daysOverdue))}</span>` : ''}</span>
+                        <span class="text-xs">${esc(item.month)}${item.daysOverdue ? ` <span class="text-xs text-slate-500">· متأخر ${esc(formatOverdueDuration(item.daysOverdue))}</span>` : ''}</span>
                         <strong class="text-xs text-rose-400">${fmtNum(item.amount)} ج.م</strong>
                     </div>`).join('')}
-                ${ownerArrears.length > 12 ? `<p class="text-[10px] text-slate-500 pt-2">تم عرض أقدم 12 شهرًا من أصل ${fmtNum(ownerArrears.length)} شهر.</p>` : ''}
+                ${ownerArrears.length > 12 ? `<p class="text-xs text-slate-500 pt-2">تم عرض أقدم 12 شهرًا من أصل ${fmtNum(ownerArrears.length)} شهر.</p>` : ''}
             </div>
         </details>`
-        : '<p class="text-[10px] text-emerald-400 text-center">لا توجد شهور متأخرة.</p>';
+        : '<p class="text-xs text-emerald-400 text-center">لا توجد شهور متأخرة.</p>';
     const managerPhone = String(state.managerPhone || '').trim();
     const managerPhoneTel = managerPhone.replace(/[^0-9+]/g, '');
     const managerContact = managerPhoneTel
         ? `<div class="app-input border rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3">
-            <div class="min-w-0"><p class="text-[10px] text-slate-500">التواصل مع المدير</p><p class="text-xs font-bold mt-1">${esc(state.managerName || 'مدير العمارة')}</p><p class="text-[10px] text-slate-500 mt-1" dir="ltr">${esc(managerPhone)}</p></div>
+            <div class="min-w-0"><p class="text-xs text-slate-500">التواصل مع المدير</p><p class="text-xs font-bold mt-1">${esc(state.managerName || 'مدير العمارة')}</p><p class="text-xs text-slate-500 mt-1" dir="ltr">${esc(managerPhone)}</p></div>
             <div class="flex gap-2">
                 <a href="tel:${esc(managerPhoneTel)}" class="inline-flex items-center justify-center min-h-11 px-3 rounded-xl border border-slate-600 text-xs font-bold"><i class="fa-solid fa-phone ml-1"></i> اتصال</a>
                 <button type="button" onclick="contactOwnerManager()" class="min-h-11 px-3 rounded-xl bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold"><i class="fa-brands fa-whatsapp ml-1"></i> واتساب</button>
@@ -661,13 +661,13 @@ function renderOwnerPortal() {
         : '<div class="app-input border rounded-2xl p-3 text-xs text-slate-500">رقم تواصل المدير غير مسجل. اطلب من الإدارة تحديث رقم الهاتف في بيانات العمارة.</div>';
     const paymentRows = ownPayments.length ? ownPayments.map(payment => `
         <div class="flex items-center justify-between gap-3 border-b border-slate-700/50 py-2 last:border-0">
-            <div><p class="text-xs font-bold">${esc(payment.month || '—')}</p><p class="text-[10px] text-slate-500">${formatDate(payment.date)} · ${esc(getIncomePaymentMethodLabel(payment.paymentMethod))}</p></div>
+            <div><p class="text-xs font-bold">${esc(payment.month || '—')}</p><p class="text-xs text-slate-500">${formatDate(payment.date)} · ${esc(getIncomePaymentMethodLabel(payment.paymentMethod))}</p></div>
             <span class="text-sm font-black text-emerald-400">${fmtNum(payment.amount)} ج.م</span>
         </div>`).join('') : '<p class="text-xs text-slate-500 text-center py-3">لا توجد دفعات مسجلة بعد.</p>';
     const notices = state.notices.length ? state.notices.slice().reverse().map(notice => `
         <article class="app-input border rounded-2xl p-3">
             <p class="text-xs leading-relaxed whitespace-pre-line">${esc(notice.text)}</p>
-            <p class="text-[10px] text-slate-500 mt-2">${formatDate(notice.date)}</p>
+            <p class="text-xs text-slate-500 mt-2">${formatDate(notice.date)}</p>
         </article>`).join('') : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إعلانات حالياً.</p>';
     const ownerNotifications = Array.isArray(state.ownerNotifications) ? state.ownerNotifications : [];
     const unreadNotifications = ownerNotifications.filter(notification => !notification.readAt);
@@ -675,11 +675,11 @@ function renderOwnerPortal() {
         <article class="app-input border rounded-2xl p-3 space-y-2">
             <div class="flex items-start justify-between gap-3">
                 <p class="text-xs font-bold">${esc(notification.title)}</p>
-                ${notification.readAt ? '<span class="text-[9px] text-slate-500">مقروء</span>' : '<span class="text-[9px] text-indigo-300 font-bold">جديد</span>'}
+                ${notification.readAt ? '<span class="text-xs text-slate-500">مقروء</span>' : '<span class="text-xs text-indigo-300 font-bold">جديد</span>'}
             </div>
             <p class="text-xs leading-relaxed whitespace-pre-line">${esc(notification.body)}</p>
             <div class="flex items-center justify-between gap-2">
-                <span class="text-[10px] text-slate-500">${formatDate(notification.createdAt)}</span>
+                <span class="text-xs text-slate-500">${formatDate(notification.createdAt)}</span>
                 ${notification.readAt ? '' : `<button type="button" onclick="markOwnerNotificationRead('${esc(notification.id)}')" class="inline-flex items-center min-h-11 px-3 text-[11px] text-indigo-300 font-bold">تحديد كمقروء</button>`}
             </div>
         </article>`).join('') : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إشعارات حتى الآن.</p>';
@@ -687,16 +687,16 @@ function renderOwnerPortal() {
     renderOwnerThemeMenu();
     portal.innerHTML = `
         <div class="app-card border rounded-3xl p-5 sm:p-6 space-y-2">
-            <p class="text-[10px] font-bold text-indigo-400">بوابة المالك • قراءة فقط</p>
+            <p class="text-xs font-bold text-indigo-400">بوابة المالك • قراءة فقط</p>
             <h2 id="ownerPortalTitle" class="text-xl font-black">أهلاً ${esc(resident.name)}</h2>
             <p class="text-xs text-slate-400">الشقة ${esc(resident.apartmentNumber)}${state.buildingName ? ` • ${esc(state.buildingName)}` : ''}</p>
         </div>
         ${managerContact}
         <section class="app-card border rounded-3xl p-5 space-y-4" aria-label="ملخص حساب الشقة">
-            <div class="flex items-center justify-between"><h3 class="font-bold text-sm">ملخص ${esc(month)}</h3><span class="text-[10px] text-slate-500">اشتراكك الشهري ${fmtNum(dueThisMonth)} ج.م</span></div>
+            <div class="flex items-center justify-between"><h3 class="font-bold text-sm">ملخص ${esc(month)}</h3><span class="text-xs text-slate-500">اشتراكك الشهري ${fmtNum(dueThisMonth)} ج.م</span></div>
             <div class="grid grid-cols-2 gap-3 text-center">
-                <div class="app-input border rounded-2xl p-3"><p class="text-[10px] text-slate-500">المدفوع هذا الشهر</p><p class="font-black text-emerald-400 mt-1">${fmtNum(paidThisMonth)} ج.م</p></div>
-                <div class="app-input border rounded-2xl p-3"><p class="text-[10px] text-slate-500">المتبقي لهذا الشهر</p><p class="font-black ${remainingThisMonth ? 'text-rose-400' : 'text-emerald-400'} mt-1">${fmtNum(remainingThisMonth)} ج.م</p></div>
+                <div class="app-input border rounded-2xl p-3"><p class="text-xs text-slate-500">المدفوع هذا الشهر</p><p class="font-black text-emerald-400 mt-1">${fmtNum(paidThisMonth)} ج.م</p></div>
+                <div class="app-input border rounded-2xl p-3"><p class="text-xs text-slate-500">المتبقي لهذا الشهر</p><p class="font-black ${remainingThisMonth ? 'text-rose-400' : 'text-emerald-400'} mt-1">${fmtNum(remainingThisMonth)} ج.م</p></div>
             </div>
             <div class="app-input border rounded-2xl p-3 flex items-center justify-between gap-3"><span class="text-xs font-bold">إجمالي متأخرات حسابك (${debt.count} شهر${debt.daysOverdue ? ` · متأخر ${esc(formatOverdueDuration(debt.daysOverdue))}` : ''})</span><strong class="text-sm ${debt.totalDebt ? 'text-rose-400' : 'text-emerald-400'}">${fmtNum(debt.totalDebt)} ج.م</strong></div>
             ${ownerArrearsHtml}
@@ -704,14 +704,14 @@ function renderOwnerPortal() {
         <section class="app-card border rounded-3xl p-5 space-y-3" aria-labelledby="ownerPaymentMethodsTitle">
             <div>
                 <h3 id="ownerPaymentMethodsTitle" class="font-bold text-sm">طرق سداد الاشتراك</h3>
-                <p class="text-[10px] text-slate-500 mt-1">موعد الاستحقاق يوم ${subscriptionDueDay} من كل شهر · فترة السماح ${subscriptionGraceDays} يوم</p>
+                <p class="text-xs text-slate-500 mt-1">موعد الاستحقاق يوم ${subscriptionDueDay} من كل شهر · فترة السماح ${subscriptionGraceDays} يوم</p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${paymentInstructions}</div>
         </section>
         <section class="app-card border rounded-3xl p-5 space-y-3" aria-labelledby="ownerReceiptsTitle">
             <div>
                 <h3 id="ownerReceiptsTitle" class="font-bold text-sm">إيصالات السداد</h3>
-                <p class="text-[10px] text-slate-500 mt-1">${ownerReceipts.length} إيصال مسجل لحساب شقتك</p>
+                <p class="text-xs text-slate-500 mt-1">${ownerReceipts.length} إيصال مسجل لحساب شقتك</p>
             </div>
             <div class="space-y-2">${ownerReceiptRows}</div>
         </section>
@@ -719,7 +719,7 @@ function renderOwnerPortal() {
             <div class="flex items-center justify-between gap-3">
                 <div>
                     <h3 id="ownerNotificationsTitle" class="font-bold text-sm">إشعارات حسابك</h3>
-                    <p class="text-[10px] text-slate-500 mt-1">${unreadNotifications.length} إشعار غير مقروء</p>
+                    <p class="text-xs text-slate-500 mt-1">${unreadNotifications.length} إشعار غير مقروء</p>
                 </div>
                 ${unreadNotifications.length ? '<button type="button" onclick="markAllOwnerNotificationsRead()" class="inline-flex items-center min-h-11 px-3 text-[11px] text-indigo-300 font-bold">قراءة الكل</button>' : ''}
             </div>
@@ -733,7 +733,7 @@ function renderOwnerPortal() {
             <h3 id="ownerNoticesTitle" class="font-bold text-sm">إعلانات العمارة</h3>
             ${notices}
         </section>
-        <p class="text-center text-[10px] text-slate-500">هذه الصفحة تعرض بيانات حساب شقتك فقط. للاعتراض أو الاستفسار، تواصل مع المدير.</p>`;
+        <p class="text-center text-xs text-slate-500">هذه الصفحة تعرض بيانات حساب شقتك فقط. للاعتراض أو الاستفسار، تواصل مع المدير.</p>`;
     portal.classList.remove('hidden');
     portal.setAttribute('aria-hidden', 'false');
     document.getElementById('headerBuildingTitle').textContent = state.buildingName || 'Manzil';
@@ -901,10 +901,10 @@ function renderManagerNotifications() {
             <button type="button" class="manager-notification-row block w-full text-right" onclick="openManagerNotification('${esc(notification.id)}')">
                 <span class="flex items-start justify-between gap-2">
                     <span class="text-xs font-bold">${esc(notification.title)}</span>
-                    ${notification.readAt ? '' : '<span class="text-[9px] text-indigo-300 font-bold shrink-0">جديد</span>'}
+                    ${notification.readAt ? '' : '<span class="text-xs text-indigo-300 font-bold shrink-0">جديد</span>'}
                 </span>
                 <span class="block text-[11px] text-slate-400 mt-1 whitespace-pre-line">${esc(notification.body)}</span>
-                <span class="block text-[10px] text-slate-500 mt-1">${formatDate(notification.createdAt)}</span>
+                <span class="block text-xs text-slate-500 mt-1">${formatDate(notification.createdAt)}</span>
             </button>`).join('')}`;
 }
 
