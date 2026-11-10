@@ -29,6 +29,14 @@ const MOTION_STEPS = {
 const EASINGS = {
     standard: 'ease'
 };
+const Z_LAYERS = {
+    below: '-1',
+    raised: '1',
+    topbar: '3',
+    toolbar: '6',
+    dropdown: '40',
+    floating: '45'
+};
 
 const themeBlocks = (css, theme) => [
     ...css.matchAll(new RegExp(`\\[data-theme="${theme}"\\]\\s*\\{([^}]*)\\}`, 'g'))
@@ -130,6 +138,29 @@ test('transition declarations use the canonical motion scale', () => {
     }
     for (const name of Object.keys(EASINGS)) {
         assert.ok(values.some(value => value.includes(`var(--ease-${name})`)), `easing ${name} must be consumed`);
+    }
+});
+
+test('z-index tokens are defined once in :root with their original values', () => {
+    const css = read('css/style.css');
+    const rootBlock = css.match(/:root\s*\{([^}]*)\}/)[1];
+    for (const [name, value] of Object.entries(Z_LAYERS)) {
+        assert.match(rootBlock, new RegExp(`--z-${name}\\s*:\\s*${value.replace('.', '\\.')}\\s*;`));
+        assert.equal([...css.matchAll(new RegExp(`--z-${name}\\s*:`, 'g'))].length, 1);
+    }
+});
+
+test('z-index declarations use the canonical layering scale', () => {
+    const css = read('css/style.css');
+    const values = [...css.matchAll(/(?<![\w-])z-index\s*:\s*([^;{}]+);/g)]
+        .map(match => match[1].trim());
+    assert.ok(values.length > 0);
+    const part = new RegExp(`^var\\(--z-(?:${Object.keys(Z_LAYERS).join('|')})\\)(?:\\s*!important)?$`);
+    for (const value of values) {
+        assert.match(value, part, value);
+    }
+    for (const name of Object.keys(Z_LAYERS)) {
+        assert.ok(values.includes(`var(--z-${name})`), `layer ${name} must be consumed`);
     }
 });
 
