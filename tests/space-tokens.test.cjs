@@ -54,6 +54,30 @@ const TAIL_SPACE_TOKENS = {
     'space-200': '2rem'
 };
 
+// Spacing steps introduced so every padding declaration resolves from the same
+// scale. Same suffix convention (value in hundredths of a rem), and each value
+// matches the literal it replaced, so routing padding is non-visual.
+const PADDING_SPACE_TOKENS = {
+    'space-8': '.08rem',
+    'space-12': '.12rem',
+    'space-42': '.42rem',
+    'space-95': '.95rem',
+    'space-105': '1.05rem',
+    'space-110': '1.1rem',
+    'space-115': '1.15rem',
+    'space-120': '1.2rem',
+    'space-130': '1.3rem',
+    'space-135': '1.35rem',
+    'space-175': '1.75rem',
+    'space-190': '1.9rem',
+    'space-210': '2.1rem',
+    'space-225': '2.25rem',
+    'space-250': '2.5rem',
+    'space-300': '3rem',
+    'space-350': '3.5rem',
+    'space-600': '6rem'
+};
+
 // The whitespace-separated value tokens of a gap declaration, with the token
 // references removed, so any leftover token is a raw literal.
 const rawGapTokens = () => [...css.matchAll(/(?<![\w-])gap\s*:\s*([^;{}]+);/g)]
@@ -65,6 +89,12 @@ const rawGapTokens = () => [...css.matchAll(/(?<![\w-])gap\s*:\s*([^;{}]+);/g)]
 // a raw literal that escaped the scale. Unlike rawGapTokens this also catches a
 // literal nested inside clamp() or a shorthand (e.g. clamp(.75rem, 2vw, 1.5rem)).
 const strippedGapValues = () => [...css.matchAll(/(?<![\w-])gap\s*:\s*([^;{}]+);/g)]
+    .map(match => match[1].replace(/var\(--[\w-]+\)/g, ''));
+
+// Every padding declaration, longhand included, with the token references
+// stripped, so a surviving rem length or standalone zero is a raw literal that
+// escaped the scale (including one nested inside clamp()/calc()).
+const strippedPaddingValues = () => [...css.matchAll(/(?<![\w-])padding(?:-[a-z-]+)?\s*:\s*([^;{}]+);/g)]
     .map(match => match[1].replace(/var\(--[\w-]+\)/g, ''));
 
 test('the :root block defines the canonical compact spacing scale', () => {
@@ -85,6 +115,44 @@ test('the :root block defines the canonical spacing tail', () => {
             rootBlock,
             new RegExp(`--${token}\\s*:\\s*${escape(value)}\\s*;`),
             `:root must define --${token} as ${value} so the gap scale stays unified`
+        );
+    }
+});
+
+test('the :root block defines the padding spacing steps', () => {
+    const rootBlock = blocks(':root')[0][1];
+    for (const [token, value] of Object.entries(PADDING_SPACE_TOKENS)) {
+        assert.match(
+            rootBlock,
+            new RegExp(`--${token}\\s*:\\s*${escape(value)}\\s*;`),
+            `:root must define --${token} as ${value} so the padding scale stays unified`
+        );
+    }
+});
+
+test('no padding declaration falls back to a raw spacing literal', () => {
+    for (const value of strippedPaddingValues()) {
+        assert.doesNotMatch(
+            value,
+            /(\.\d+|\d+(?:\.\d+)?)rem\b/,
+            `padding must resolve its lengths from the spacing tokens, found a raw literal in "${value.trim()}"`
+        );
+        assert.doesNotMatch(
+            value,
+            /(?<![\w.\-])0(?![\w.%])/,
+            `padding must use var(--space-none) instead of a raw zero in "${value.trim()}"`
+        );
+    }
+});
+
+test('the padding scale steps are consumed by padding declarations', () => {
+    const paddingValues = [...css.matchAll(/(?<![\w-])padding(?:-[a-z-]+)?\s*:\s*([^;{}]+);/g)]
+        .map(match => match[1])
+        .join(' ');
+    for (const token of Object.keys(PADDING_SPACE_TOKENS)) {
+        assert.ok(
+            paddingValues.includes(`var(--${token})`),
+            `--${token} must be consumed by a padding declaration, otherwise the step would be dead weight`
         );
     }
 });

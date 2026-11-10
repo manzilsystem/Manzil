@@ -14,6 +14,6 @@ test('owner portal does not expose manager-only bottom navigation', () => {
 });
 
 test('owner mode removes unused mobile bottom padding after hiding manager navigation', () => {
-    assert.match(css, /@media \(max-width: 640px\)[\s\S]*body\.owner-mode\s*\{\s*padding-bottom:\s*1rem;\s*\}/);
+    assert.match(css, /@media \(max-width: 640px\)[\s\S]*body\.owner-mode\s*\{\s*padding-bottom:\s*var\(--space-100\);\s*\}/);
     assert.match(css, /body\.owner-mode #printableArea > #ownerPortal \{ display: block !important; \}/);
 });
