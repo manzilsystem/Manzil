@@ -50,6 +50,14 @@ test('resident, income and expense form informational text keeps a 12px reading 
     );
 });
 
+test('modal, wizard and settings informational text keeps a 12px reading floor', () => {
+    assert.doesNotMatch(
+        read('src/partials/modals.html'),
+        /text-\[(9|10)px\]/,
+        'informational text in src/partials/modals.html must not fall below the 12px reading floor (use text-xs)'
+    );
+});
+
 test('built index.html ships the dashboard reading floor', () => {
     const built = read('index.html');
     assert.match(built, /id="incomePeriodLabel" class="text-xs text-slate-500 mt-1"/);
@@ -58,4 +66,5 @@ test('built index.html ships the dashboard reading floor', () => {
     assert.match(built, /class="flex justify-center gap-4 text-xs text-slate-400 pt-1"/);
     assert.match(built, /id="appCopyright" class="text-center text-xs text-slate-500/);
     assert.match(built, /<p class="text-xs text-slate-400 flex items-center gap-1">/);
+    assert.match(built, /id="backupRefreshNotice" class="text-xs text-slate-500"/);
 });
