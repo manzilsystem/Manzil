@@ -1589,14 +1589,14 @@
                     <div id="backupLastStatus" class="text-xs text-slate-400">جارٍ تحميل سجل النسخ...</div>
                     <div id="backupStaleNotice" role="alert" class="hidden rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] leading-5 text-amber-300">هذه البيانات محفوظة محليًا من زيارة سابقة. لا يمكن إنشاء نسخة أو استعادة حتى يتم التحقق من الحالة من الخادم.</div>
                     <div class="flex items-center justify-between gap-2">
-                        <p id="backupRefreshNotice" class="text-[10px] text-slate-500" role="status" aria-live="polite">حالة الطلبات تُحدّث تلقائيًا أثناء التنفيذ.</p>
+                        <p id="backupRefreshNotice" class="text-xs text-slate-500" role="status" aria-live="polite">حالة الطلبات تُحدّث تلقائيًا أثناء التنفيذ.</p>
                         <button type="button" onclick="loadBackupConsole()" class="app-input border rounded-lg px-3 py-1.5 text-xs font-bold whitespace-nowrap"><i class="fa-solid fa-rotate ml-1" aria-hidden="true"></i> تحديث الحالة</button>
                     </div>
                 </section>
                 <section class="rounded-2xl border border-indigo-500/30 p-4 space-y-2">
                     <div class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> إنشاء نسخة احتياطية</div>
                     <button id="backupCreateButton" type="button" onclick="requestDatabaseBackup()" class="w-full bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white py-2.5 rounded-xl text-xs font-bold"><i class="fa-solid fa-cloud-arrow-up ml-2"></i> إنشاء نسخة احتياطية الآن</button>
-                    <p class="text-[10px] text-slate-500">ينشئ نسخة كاملة من قاعدة البيانات على الخادم، ولا يكتفي بتصدير بيانات الواجهة.</p>
+                    <p class="text-xs text-slate-500">ينشئ نسخة كاملة من قاعدة البيانات على الخادم، ولا يكتفي بتصدير بيانات الواجهة.</p>
                     <div id="backupCreateStatus" role="status" aria-live="polite" class="text-[11px] text-slate-400"></div>
                     <div id="backupRequestHistory" class="space-y-2 text-xs"></div>
                 </section>
@@ -1612,21 +1612,21 @@
                         <div class="flex justify-between gap-3"><span>معرّف النسخة</span><code id="backupDetailTag" dir="ltr" class="text-slate-200">—</code></div>
                         <div class="space-y-1">
                             <span>بصمة SHA-256 لملف النسخة</span>
-                            <code id="backupDetailSha" dir="ltr" class="block break-all rounded-lg bg-slate-950/50 px-2 py-1 text-[10px] text-slate-300">—</code>
+                            <code id="backupDetailSha" dir="ltr" class="block break-all rounded-lg bg-slate-950/50 px-2 py-1 text-xs text-slate-300">—</code>
                         </div>
                         <div class="flex justify-between gap-3"><span>آخر استعادة ناجحة لهذه النسخة</span><strong id="backupDetailRestored" class="text-slate-200">—</strong></div>
                     </div>
                     <button id="backupDownloadButton" type="button" onclick="downloadDatabaseBackup()" class="w-full bg-indigo-700 hover:bg-indigo-600 disabled:opacity-50 text-white py-2.5 rounded-xl text-xs font-bold" disabled><i class="fa-solid fa-download ml-2"></i> تنزيل النسخة الكاملة</button>
                     <div id="backupDownloadStatus" role="status" aria-live="polite" class="text-[11px] text-slate-400"></div>
-                    <p class="text-[10px] text-slate-500">التنزيل الكامل متاح فقط للمدير الذي يدير جميع المباني، ويتم التحقق من SHA-256 قبل حفظ الملف.</p>
+                    <p class="text-xs text-slate-500">التنزيل الكامل متاح فقط للمدير الذي يدير جميع المباني، ويتم التحقق من SHA-256 قبل حفظ الملف.</p>
                     <button id="backupRestoreButton" onclick="requestDatabaseRestore()" class="w-full bg-rose-700 hover:bg-rose-600 disabled:opacity-50 text-white py-3 rounded-xl font-bold" disabled>استعادة النسخة المختارة</button>
-                    <p class="text-[10px] text-slate-500">الاستعادة متاحة فقط للمدير الذي يدير جميع المباني، وتتطلب كتابة RESTORE في نافذة تأكيد منفصلة.</p>
+                    <p class="text-xs text-slate-500">الاستعادة متاحة فقط للمدير الذي يدير جميع المباني، وتتطلب كتابة RESTORE في نافذة تأكيد منفصلة.</p>
                     <div id="backupRestoreStatus" role="status" aria-live="polite" class="text-xs text-slate-400"></div>
                     <div id="backupRestoreHistory" class="space-y-2 text-xs"></div>
                 </section>
                 <section class="rounded-2xl border border-slate-700/60 p-4 space-y-2">
                     <div class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-file-code" aria-hidden="true"></i> نسخة التطبيق المحلية (JSON)</div>
-                    <p class="text-[10px] leading-5 text-slate-500">تحفظ بيانات العمارة الحالية مع وقت التصدير وعدد السجلات، وتصلح للنقل بين البيئات. الاستيراد يتحقق من الملف ثم يستبدل بيانات العمارة الحالية فقط، ولا يستبدل قاعدة البيانات الكاملة.</p>
+                    <p class="text-xs leading-5 text-slate-500">تحفظ بيانات العمارة الحالية مع وقت التصدير وعدد السجلات، وتصلح للنقل بين البيئات. الاستيراد يتحقق من الملف ثم يستبدل بيانات العمارة الحالية فقط، ولا يستبدل قاعدة البيانات الكاملة.</p>
                     <button onclick="exportJSON()" class="w-full app-card border py-2.5 rounded-xl text-xs font-bold"><i class="fa-solid fa-download ml-2"></i> تصدير JSON</button>
                     <label for="backupImportInput" class="block w-full app-card border py-2.5 rounded-xl text-xs font-bold text-center cursor-pointer"><i class="fa-solid fa-upload ml-2"></i> استعادة ملف JSON</label>
                     <input id="backupImportInput" type="file" accept=".json,application/json" aria-label="اختيار ملف JSON" onchange="importJSON(event)" class="sr-only">
@@ -1710,23 +1710,23 @@
                     <input type="tel" id="residentPhone" aria-label="هاتف المالك" placeholder="الهاتف" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 </div>
                 <label class="block text-xs space-y-1"><span class="text-slate-400">الاشتراك الشهري الحالي (جنيه)</span><input type="number" id="residentAmount" min="0" step="0.01" inputmode="decimal" aria-label="الاشتراك الشهري للشقة" placeholder="الاشتراك الشهري" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></label>
-                <p id="residentAmountHelp" class="hidden text-[10px] text-slate-500 -mt-1"></p>
+                <p id="residentAmountHelp" class="hidden text-xs text-slate-500 -mt-1"></p>
                 <label class="block text-xs space-y-1"><span class="text-slate-400">بداية المحاسبة (اختياري)</span><input type="month" id="residentBillingStart" aria-label="بداية محاسبة الشقة" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></label>
-                <p class="text-[10px] text-slate-500 -mt-1">اتركها فارغة لتبدأ المحاسبة من تاريخ إضافة الشقة، أو اختر شهرًا أقدم لتحصيل متأخرات سابقة.</p>
+                <p class="text-xs text-slate-500 -mt-1">اتركها فارغة لتبدأ المحاسبة من تاريخ إضافة الشقة، أو اختر شهرًا أقدم لتحصيل متأخرات سابقة.</p>
                 <section class="app-input border rounded-2xl p-3 space-y-3">
                     <label class="flex items-center gap-2 text-xs font-bold cursor-pointer">
                         <input type="checkbox" id="residentIsRented" onchange="toggleResidentTenantFields()" class="w-4 h-4">
                         الشقة مؤجرة
                     </label>
                     <div id="residentTenantFields" class="hidden space-y-2">
-                        <p class="text-[10px] text-slate-500">بيانات المستأجر تظهر للمدير فقط ولا تدخل في حساب الاشتراك أو بوابة المالك.</p>
+                        <p class="text-xs text-slate-500">بيانات المستأجر تظهر للمدير فقط ولا تدخل في حساب الاشتراك أو بوابة المالك.</p>
                         <input type="text" id="residentTenantName" maxlength="200" aria-label="اسم المستأجر" placeholder="اسم المستأجر" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
                         <input type="tel" id="residentTenantPhone" maxlength="60" aria-label="هاتف المستأجر" placeholder="هاتف المستأجر" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
                         <div class="grid grid-cols-2 gap-2">
-                            <label class="block text-[10px] text-slate-500 space-y-1">بداية الإيجار<input type="date" id="residentLeaseStart" aria-label="بداية الإيجار" class="w-full app-input border rounded-xl px-2 py-2 text-xs"></label>
-                            <label class="block text-[10px] text-slate-500 space-y-1">نهاية الإيجار<input type="date" id="residentLeaseEnd" aria-label="نهاية الإيجار" class="w-full app-input border rounded-xl px-2 py-2 text-xs"></label>
-                            <label class="block text-[10px] text-slate-500 space-y-1">قيمة الإيجار<input type="number" id="residentRentAmount" min="0" step="0.01" inputmode="decimal" aria-label="قيمة الإيجار" class="w-full app-input border rounded-xl px-2 py-2 text-xs"></label>
-                            <label class="block text-[10px] text-slate-500 space-y-1">التأمين<input type="number" id="residentDepositAmount" min="0" step="0.01" inputmode="decimal" aria-label="مبلغ التأمين" class="w-full app-input border rounded-xl px-2 py-2 text-xs"></label>
+                            <label class="block text-xs text-slate-500 space-y-1">بداية الإيجار<input type="date" id="residentLeaseStart" aria-label="بداية الإيجار" class="w-full app-input border rounded-xl px-2 py-2 text-xs"></label>
+                            <label class="block text-xs text-slate-500 space-y-1">نهاية الإيجار<input type="date" id="residentLeaseEnd" aria-label="نهاية الإيجار" class="w-full app-input border rounded-xl px-2 py-2 text-xs"></label>
+                            <label class="block text-xs text-slate-500 space-y-1">قيمة الإيجار<input type="number" id="residentRentAmount" min="0" step="0.01" inputmode="decimal" aria-label="قيمة الإيجار" class="w-full app-input border rounded-xl px-2 py-2 text-xs"></label>
+                            <label class="block text-xs text-slate-500 space-y-1">التأمين<input type="number" id="residentDepositAmount" min="0" step="0.01" inputmode="decimal" aria-label="مبلغ التأمين" class="w-full app-input border rounded-xl px-2 py-2 text-xs"></label>
                         </div>
                     </div>
                 </section>
@@ -1734,7 +1734,7 @@
                 <textarea id="residentNotes" aria-label="ملاحظات الشقة" rows="2" placeholder="ملاحظات" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
                 <div class="app-input border rounded-2xl p-3 space-y-2">
                     <p class="text-xs font-bold">دخول المالك بالجوال</p>
-                    <p class="text-[10px] text-slate-500">أدخل رقم الجوال في خانة الهاتف. بعد حفظ الشقة أنشئ PIN مؤقتًا؛ سيغيّره المالك عند أول دخول.</p>
+                    <p class="text-xs text-slate-500">أدخل رقم الجوال في خانة الهاتف. بعد حفظ الشقة أنشئ PIN مؤقتًا؛ سيغيّره المالك عند أول دخول.</p>
                     <button type="button" onclick="saveResidentAndProvisionOwner()" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white py-2.5 rounded-xl text-xs font-bold">حفظ الشقة وإنشاء / إعادة ضبط PIN المالك</button>
                 </div>
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">حفظ بيانات الشقة فقط</button>
@@ -1748,7 +1748,7 @@
             <div class="bg-sky-800 text-white px-5 py-4 flex justify-between items-center shrink-0">
                 <div class="min-w-0">
                     <h3 id="residentProfileModalTitle" class="font-bold text-sm">ملف الشقة</h3>
-                    <p class="text-[10px] text-white/70 mt-1">بيانات الوحدة والحساب والتحصيلات</p>
+                    <p class="text-xs text-white/70 mt-1">بيانات الوحدة والحساب والتحصيلات</p>
                 </div>
                 <button type="button" onclick="closeModal('residentProfileModal')" aria-label="إغلاق ملف الشقة" class="text-white/80 hover:text-white min-w-11 min-h-11 rounded-xl"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
@@ -1770,7 +1770,7 @@
                 <div class="app-input border rounded-2xl overflow-hidden">
                     <div class="px-4 py-3 border-b border-slate-700/50">
                         <p class="text-xs font-bold">السجل التاريخي الكامل</p>
-                        <p class="text-[10px] text-slate-500 mt-1">كل تغيير محفوظ بقيمته السابقة والجديدة وتاريخ تسجيله. السجلات السابقة لا تُحذف ولا تُستبدل.</p>
+                        <p class="text-xs text-slate-500 mt-1">كل تغيير محفوظ بقيمته السابقة والجديدة وتاريخ تسجيله. السجلات السابقة لا تُحذف ولا تُستبدل.</p>
                     </div>
                     <div class="overflow-x-auto max-h-64">
                         <table class="w-full text-xs text-right min-w-[680px]">
@@ -1820,9 +1820,9 @@
                     <div class="px-4 py-3 border-b border-slate-700/50 flex items-center justify-between gap-2">
                         <div>
                             <p class="text-xs font-bold">الإعفاءات والتخفيضات والتسويات المسجلة</p>
-                            <p class="text-[10px] text-slate-500 mt-1">تُخصم من مستحق الشهر ولا تُعدّ تحصيلًا نقديًا، وتبقى محفوظة في السجل.</p>
+                            <p class="text-xs text-slate-500 mt-1">تُخصم من مستحق الشهر ولا تُعدّ تحصيلًا نقديًا، وتبقى محفوظة في السجل.</p>
                         </div>
-                        <span id="adjustmentListCount" class="text-[10px] text-slate-500 shrink-0"></span>
+                        <span id="adjustmentListCount" class="text-xs text-slate-500 shrink-0"></span>
                     </div>
                     <div class="overflow-x-auto max-h-64">
                         <table class="w-full text-xs text-right min-w-[640px]">
@@ -1842,7 +1842,7 @@
                 <form id="adjustmentForm" onsubmit="handleAdjustmentSubmit(event)" class="app-input border rounded-2xl p-4 space-y-3">
                     <div class="flex items-center justify-between gap-2">
                         <p id="adjustmentFormTitle" class="text-xs font-bold">تسجيل إعفاء أو تخفيض أو تسوية</p>
-                        <button type="button" id="adjustmentCancelEdit" onclick="cancelAdjustmentEdit()" class="hidden text-[10px] text-slate-400 hover:text-white border border-slate-600 rounded-lg px-2 py-1">إلغاء التعديل</button>
+                        <button type="button" id="adjustmentCancelEdit" onclick="cancelAdjustmentEdit()" class="hidden text-xs text-slate-400 hover:text-white border border-slate-600 rounded-lg px-2 py-1">إلغاء التعديل</button>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <label class="text-xs space-y-1">
@@ -1868,7 +1868,7 @@
                             <input type="text" id="adjustmentReason" required maxlength="200" placeholder="مثال: إعفاء لظرف صحي" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
                         </label>
                     </div>
-                    <p id="adjustmentDueHint" class="text-[10px] text-slate-400" aria-live="polite"></p>
+                    <p id="adjustmentDueHint" class="text-xs text-slate-400" aria-live="polite"></p>
                     <button type="submit" id="adjustmentSaveButton" class="w-full bg-amber-600 hover:bg-amber-500 text-white py-3 rounded-xl text-xs font-bold">حفظ الإعفاء/التخفيض</button>
                 </form>
             </div>
@@ -1899,7 +1899,7 @@
                         </div>
                     </div>
                 </div>
-                <p class="text-[10px] text-slate-500">لا يمكن تعديل شهر سابق. كل شقة تحتفظ بأسعارها السابقة، والسعر الجديد يسري من الشهر المختار فقط.</p>
+                <p class="text-xs text-slate-500">لا يمكن تعديل شهر سابق. كل شقة تحتفظ بأسعارها السابقة، والسعر الجديد يسري من الشهر المختار فقط.</p>
                 <div class="app-input border rounded-2xl overflow-x-auto">
                     <table class="w-full text-xs text-right">
                         <thead class="text-slate-400 bg-slate-900/40">
@@ -1930,7 +1930,7 @@
             <form id="incomeForm" novalidate onsubmit="handleIncomeSubmit(event)" class="p-5 space-y-3">
                 <div class="flex items-center justify-between gap-3" aria-label="تقدم التحصيل">
                     <p id="incomeWizardProgress" class="text-xs font-bold text-emerald-300">الخطوة 1 من 3 · بيانات المالك</p>
-                    <span id="incomeWizardStepDots" class="text-[10px] text-slate-500">● ○ ○</span>
+                    <span id="incomeWizardStepDots" class="text-xs text-slate-500">● ○ ○</span>
                 </div>
                 <section id="incomeWizardStep1" data-income-step="1" class="space-y-3">
 
@@ -1946,7 +1946,7 @@
                         <option value="other">أخرى</option>
                     </select>
                 </label>
-                <p class="text-[10px] text-slate-500">اختر «أخرى» لأي غرض غير الاشتراك والتطوير والصيانة الطارئة، واكتب الغرض بالتفصيل في الملاحظات.</p>
+                <p class="text-xs text-slate-500">اختر «أخرى» لأي غرض غير الاشتراك والتطوير والصيانة الطارئة، واكتب الغرض بالتفصيل في الملاحظات.</p>
                 <div id="incomeSettlementWrap" class="hidden rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
                     <label class="block text-xs space-y-1">
                         <span class="text-amber-300">اتفاق التسوية</span>
@@ -1954,7 +1954,7 @@
                             <option value="">اختر تسوية مفتوحة</option>
                         </select>
                     </label>
-                    <p id="incomeSettlementHint" role="status" aria-live="polite" class="text-[10px] text-slate-400">اختر اتفاقًا لتحديد المبلغ المتبقي.</p>
+                    <p id="incomeSettlementHint" role="status" aria-live="polite" class="text-xs text-slate-400">اختر اتفاقًا لتحديد المبلغ المتبقي.</p>
                 </div>
                 </section>
                 <section id="incomeWizardStep2" data-income-step="2" class="hidden space-y-3">
@@ -1962,27 +1962,27 @@
                     <div class="flex items-start justify-between gap-2">
                         <div>
                             <p class="text-xs font-bold">شهور السداد</p>
-                            <p class="text-[10px] text-slate-500">اختر الشهور التي تريد سدادها. الشهور القادمة تُسجَّل كدفعة مقدمة.</p>
+                            <p class="text-xs text-slate-500">اختر الشهور التي تريد سدادها. الشهور القادمة تُسجَّل كدفعة مقدمة.</p>
                         </div>
-                        <span id="incomeMonthsSummary" class="shrink-0 whitespace-nowrap text-[10px] text-slate-400"></span>
+                        <span id="incomeMonthsSummary" class="shrink-0 whitespace-nowrap text-xs text-slate-400"></span>
                     </div>
                     <div class="app-input border rounded-xl p-2.5 space-y-1">
                         <label class="block text-xs space-y-1">
                             <span class="text-slate-400">شهر التحصيل من الكلندر</span>
                             <input type="month" id="incomeMonthPicker" aria-label="اختيار شهر التحصيل من الكلندر" onchange="handleIncomeMonthPickerChange()" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
                         </label>
-                        <p id="incomeMonthPickerHint" role="status" aria-live="polite" class="text-[10px] text-slate-500"></p>
+                        <p id="incomeMonthPickerHint" role="status" aria-live="polite" class="text-xs text-slate-500"></p>
                     </div>
                     <div class="flex flex-wrap gap-1.5" aria-label="اختيار سريع للشهور">
-                        <button type="button" onclick="applyIncomeMonthQuickAction('arrears')" class="min-h-9 rounded-full border border-amber-500/40 px-3 text-[10px] font-bold text-amber-300">المتأخرات</button>
-                        <button type="button" onclick="applyIncomeMonthQuickAction('current')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">الشهر الحالي</button>
-                        <button type="button" onclick="applyIncomeMonthQuickAction('two')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">شهرين</button>
-                        <button type="button" onclick="applyIncomeMonthQuickAction('three')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">3 أشهر</button>
-                        <button type="button" onclick="applyIncomeMonthQuickAction('clear')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-400">مسح</button>
+                        <button type="button" onclick="applyIncomeMonthQuickAction('arrears')" class="min-h-9 rounded-full border border-amber-500/40 px-3 text-xs font-bold text-amber-300">المتأخرات</button>
+                        <button type="button" onclick="applyIncomeMonthQuickAction('current')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-xs font-bold text-slate-300">الشهر الحالي</button>
+                        <button type="button" onclick="applyIncomeMonthQuickAction('two')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-xs font-bold text-slate-300">شهرين</button>
+                        <button type="button" onclick="applyIncomeMonthQuickAction('three')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-xs font-bold text-slate-300">3 أشهر</button>
+                        <button type="button" onclick="applyIncomeMonthQuickAction('clear')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-xs font-bold text-slate-400">مسح</button>
                     </div>
                     <div id="incomeMonthsGrid" role="group" aria-label="شهور السداد" class="max-h-72 overflow-y-auto overflow-x-hidden space-y-1.5"></div>
                 </div>
-                <p id="incomeOutstandingHint" role="status" aria-live="polite" class="text-[10px] text-slate-500"></p>
+                <p id="incomeOutstandingHint" role="status" aria-live="polite" class="text-xs text-slate-500"></p>
                 <div id="incomeNonSubscriptionMonthWrap" class="hidden">
                     <label class="block text-xs space-y-1">
                         <span class="text-slate-400" id="incomeMonthLabel">شهر تسجيل التحصيل</span>
@@ -1993,12 +1993,12 @@
                     <span class="text-slate-400">المبلغ المدفوع الآن</span>
                     <input type="number" id="incomeAmount" min="0.01" step="0.01" inputmode="decimal" aria-label="المبلغ المدفوع الآن" placeholder="المبلغ المدفوع الآن" oninput="handleIncomeAmountInput()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 </label>
-                <p id="incomeSelectionHint" class="text-[10px] text-slate-500"></p>
+                <p id="incomeSelectionHint" class="text-xs text-slate-500"></p>
                 <div class="rounded-2xl border border-slate-700/60 p-3 space-y-2">
                     <div class="flex items-start justify-between gap-3">
                         <div>
                             <p class="text-xs font-bold">بنود الدفعة</p>
-                            <p class="text-[10px] text-slate-500">أضف بندًا أو أكثر يُحصَّل مع نفس الدفعة. الاشتراك يبقى في الحقل الأساسي ويُوزَّع على الأشهر.</p>
+                            <p class="text-xs text-slate-500">أضف بندًا أو أكثر يُحصَّل مع نفس الدفعة. الاشتراك يبقى في الحقل الأساسي ويُوزَّع على الأشهر.</p>
                         </div>
                         <button type="button" onclick="addIncomeLine()" aria-label="إضافة بند إضافي للدفعة" class="shrink-0 min-h-11 border border-emerald-500/40 text-emerald-300 rounded-xl px-3 py-2 text-xs font-bold"><i class="fa-solid fa-plus ml-1"></i> بند آخر</button>
                     </div>
@@ -2021,22 +2021,22 @@
                         <option value="emergency">صندوق الصيانة الطارئة</option>
                     </select>
                 </label>
-                <p id="incomePurposeCashHint" class="text-[10px] text-slate-500"></p>
+                <p id="incomePurposeCashHint" class="text-xs text-slate-500"></p>
                 <div id="incomeAllocationPreview" aria-live="polite" class="hidden app-input border rounded-2xl p-3 space-y-2">
                     <p id="incomeAllocationSummary" class="text-xs font-bold"></p>
                     <div id="incomeAllocationRows" class="space-y-1"></div>
                 </div>
                 <div class="flex flex-wrap gap-1.5" aria-label="اقتراحات ملاحظات الدفع">
-                    <button type="button" onclick="setIncomeNoteSuggestion('سداد متأخرات')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">سداد متأخرات</button>
-                    <button type="button" onclick="setIncomeNoteSuggestion('دفعة مقدمة')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">دفعة مقدمة</button>
-                    <button type="button" onclick="setIncomeNoteSuggestion('تسوية حساب')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">تسوية حساب</button>
-                    <button type="button" onclick="setIncomeNoteSuggestion('إيصال بدل فاقد')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-[10px] font-bold text-slate-300">إيصال بدل فاقد</button>
+                    <button type="button" onclick="setIncomeNoteSuggestion('سداد متأخرات')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-xs font-bold text-slate-300">سداد متأخرات</button>
+                    <button type="button" onclick="setIncomeNoteSuggestion('دفعة مقدمة')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-xs font-bold text-slate-300">دفعة مقدمة</button>
+                    <button type="button" onclick="setIncomeNoteSuggestion('تسوية حساب')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-xs font-bold text-slate-300">تسوية حساب</button>
+                    <button type="button" onclick="setIncomeNoteSuggestion('إيصال بدل فاقد')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-xs font-bold text-slate-300">إيصال بدل فاقد</button>
                 </div>
                 <textarea id="incomeNotes" aria-label="ملاحظات التحصيل" rows="2" placeholder="ملاحظات التحصيل — اكتب الغرض بالتفصيل عند اختيار «أخرى»" oninput="previewIncomeAllocation()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
 
                 </section>
                 <div class="sticky bottom-0 rounded-xl border border-slate-700/60 bg-slate-900/95 p-3">
-                    <p class="text-[10px] text-slate-400">مراجعة قبل الحفظ</p>
+                    <p class="text-xs text-slate-400">مراجعة قبل الحفظ</p>
                     <p id="incomeWizardSummary" class="text-xs font-bold" aria-live="polite">اختر المالك والغرض والمبلغ لعرض ملخص التحصيل.</p>
                 </div>
                 <div class="grid grid-cols-2 gap-2 pt-2">
@@ -2073,8 +2073,8 @@
                         <option value="other">أخرى</option>
                     </select>
                 </label>
-                <p id="incomeEditPurposeHint" class="text-[10px] text-slate-500"></p>
-                <p class="text-[10px] text-slate-500">عند اختيار «أخرى» اكتب الغرض بالتفصيل في الملاحظات.</p>
+                <p id="incomeEditPurposeHint" class="text-xs text-slate-500"></p>
+                <p class="text-xs text-slate-500">عند اختيار «أخرى» اكتب الغرض بالتفصيل في الملاحظات.</p>
                 <label class="block text-xs space-y-1">
                     <span class="text-slate-400">طريقة الدفع</span>
                     <select id="incomeEditPaymentMethod" aria-label="طريقة الدفع" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm">
@@ -2098,7 +2098,7 @@
                     <input type="number" id="incomeEditAmount" min="0.01" step="0.01" inputmode="decimal" aria-label="مبلغ التحصيل" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm">
                 </label>
                 <textarea id="incomeEditNotes" aria-label="ملاحظات التحصيل" rows="2" placeholder="ملاحظات التحصيل — اكتب الغرض بالتفصيل عند اختيار «أخرى»" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm"></textarea>
-                <p class="text-[10px] text-slate-500">لا يمكن أن يتجاوز المبلغ المتبقي من اشتراك الشهر عند اختيار غرض «اشتراك شهري». تاريخ تسجيل التحصيل الأصلي لا يتغير.</p>
+                <p class="text-xs text-slate-500">لا يمكن أن يتجاوز المبلغ المتبقي من اشتراك الشهر عند اختيار غرض «اشتراك شهري». تاريخ تسجيل التحصيل الأصلي لا يتغير.</p>
                 <button type="submit" id="incomeEditSubmitButton" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">حفظ التعديل</button>
             </form>
         </div>
