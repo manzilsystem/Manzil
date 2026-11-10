@@ -8,35 +8,10 @@
     --accent-color: #6366f1;
 }
 
-[data-theme="dark"] {
-    --bg-main: #090d16;
-    --bg-card: rgba(15, 23, 42, .85);
-    --bg-input: #020617;
-    --text-main: #f8fafc;
-    --text-muted: #94a3b8;
-    --border-color: rgba(51, 65, 85, .8);
-    --accent-color: #6366f1;
-}
-
-[data-theme="light"] {
-    --bg-main: #f1f5f9;
-    --bg-card: #fff;
-    --bg-input: #f8fafc;
-    --text-main: #0f172a;
-    --text-muted: #64748b;
-    --border-color: #e2e8f0;
-    --accent-color: #4f46e5;
-}
-
-[data-theme="emerald"] {
-    --bg-main: #021a13;
-    --bg-card: rgba(6, 78, 59, .3);
-    --bg-input: #01110c;
-    --text-main: #ecfdf5;
-    --text-muted: #6ee7b7;
-    --border-color: rgba(5, 150, 105, .3);
-    --accent-color: #10b981;
-}
+/* Per-theme token values are defined once in the canonical block for each theme
+   in the "Settings workspace and theme system" section further below. The
+   duplicate dark/light/emerald blocks that previously sat here were fully
+   overridden by those canonical blocks and have been removed. */
 
 * { box-sizing: border-box; }
 html { min-width: 320px; scroll-behavior: smooth; }
