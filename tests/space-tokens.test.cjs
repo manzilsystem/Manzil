@@ -33,12 +33,39 @@ const COMPACT_SPACE_TOKENS = {
     'space-50': '.5rem'
 };
 
+// Canonical spacing tail: the remaining shared gap steps (a half rem and above)
+// kept tokenised so no gap value falls back to a raw literal. Same suffix
+// convention (value in hundredths of a rem: --space-100 = 1rem, --space-200 =
+// 2rem). Each value matches the literal it replaced, so routing it is
+// non-visual, and spacing is theme-independent so these live only in :root.
+const TAIL_SPACE_TOKENS = {
+    'space-55': '.55rem',
+    'space-60': '.6rem',
+    'space-65': '.65rem',
+    'space-70': '.7rem',
+    'space-75': '.75rem',
+    'space-80': '.8rem',
+    'space-85': '.85rem',
+    'space-90': '.9rem',
+    'space-100': '1rem',
+    'space-125': '1.25rem',
+    'space-150': '1.5rem',
+    'space-160': '1.6rem',
+    'space-200': '2rem'
+};
+
 // The whitespace-separated value tokens of a gap declaration, with the token
 // references removed, so any leftover token is a raw literal.
 const rawGapTokens = () => [...css.matchAll(/(?<![\w-])gap\s*:\s*([^;{}]+);/g)]
     .flatMap(match => match[1].split(/\s+/))
     .map(token => token.trim())
     .filter(token => token && !token.startsWith('var('));
+
+// Every gap value with the token references stripped, so any surviving length is
+// a raw literal that escaped the scale. Unlike rawGapTokens this also catches a
+// literal nested inside clamp() or a shorthand (e.g. clamp(.75rem, 2vw, 1.5rem)).
+const strippedGapValues = () => [...css.matchAll(/(?<![\w-])gap\s*:\s*([^;{}]+);/g)]
+    .map(match => match[1].replace(/var\(--[\w-]+\)/g, ''));
 
 test('the :root block defines the canonical compact spacing scale', () => {
     const rootBlock = blocks(':root')[0][1];
@@ -47,6 +74,17 @@ test('the :root block defines the canonical compact spacing scale', () => {
             rootBlock,
             new RegExp(`--${token}\\s*:\\s*${escape(value)}\\s*;`),
             `:root must define --${token} as ${value} so the compact spacing stays unified`
+        );
+    }
+});
+
+test('the :root block defines the canonical spacing tail', () => {
+    const rootBlock = blocks(':root')[0][1];
+    for (const [token, value] of Object.entries(TAIL_SPACE_TOKENS)) {
+        assert.match(
+            rootBlock,
+            new RegExp(`--${token}\\s*:\\s*${escape(value)}\\s*;`),
+            `:root must define --${token} as ${value} so the gap scale stays unified`
         );
     }
 });
@@ -61,8 +99,27 @@ test('the compact gap literals are routed to the spacing tokens', () => {
     }
 });
 
+test('no gap declaration falls back to a raw length literal', () => {
+    for (const value of strippedGapValues()) {
+        assert.doesNotMatch(
+            value,
+            /(\d+(?:\.\d+)?|\.\d+)rem\b/,
+            `gap must resolve its lengths from the spacing tokens, found a raw literal in "${value.trim()}"`
+        );
+    }
+});
+
 test('every compact spacing token is consumed, never dead weight', () => {
     for (const token of Object.keys(COMPACT_SPACE_TOKENS)) {
+        assert.ok(
+            (css.match(new RegExp(`var\\(--${token}\\)`, 'g')) || []).length >= 1,
+            `--${token} must be consumed, otherwise the scale step would be dead weight`
+        );
+    }
+});
+
+test('every spacing tail token is consumed, never dead weight', () => {
+    for (const token of Object.keys(TAIL_SPACE_TOKENS)) {
         assert.ok(
             (css.match(new RegExp(`var\\(--${token}\\)`, 'g')) || []).length >= 1,
             `--${token} must be consumed, otherwise the scale step would be dead weight`
