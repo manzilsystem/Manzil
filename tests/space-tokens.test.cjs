@@ -78,6 +78,13 @@ const PADDING_SPACE_TOKENS = {
     'space-600': '6rem'
 };
 
+// Spacing steps introduced so every margin declaration resolves from the same
+// scale. Same suffix convention (value in hundredths of a rem), and each value
+// matches the literal it replaced, so routing margin is non-visual.
+const MARGIN_SPACE_TOKENS = {
+    'space-18': '.18rem'
+};
+
 // The whitespace-separated value tokens of a gap declaration, with the token
 // references removed, so any leftover token is a raw literal.
 const rawGapTokens = () => [...css.matchAll(/(?<![\w-])gap\s*:\s*([^;{}]+);/g)]
@@ -95,6 +102,13 @@ const strippedGapValues = () => [...css.matchAll(/(?<![\w-])gap\s*:\s*([^;{}]+);
 // stripped, so a surviving rem length or standalone zero is a raw literal that
 // escaped the scale (including one nested inside clamp()/calc()).
 const strippedPaddingValues = () => [...css.matchAll(/(?<![\w-])padding(?:-[a-z-]+)?\s*:\s*([^;{}]+);/g)]
+    .map(match => match[1].replace(/var\(--[\w-]+\)/g, ''));
+
+// Every margin declaration, longhand and logical included, with the token
+// references stripped, so a surviving rem length or standalone zero is a raw
+// literal that escaped the scale. `auto` is a legitimate keyword and is left
+// as-is; scroll-margin-* is a separate property and is not matched.
+const strippedMarginValues = () => [...css.matchAll(/(?<![\w-])margin(?:-(?:top|right|bottom|left|inline|block|inline-start|inline-end|block-start|block-end))?\s*:\s*([^;{}]+);/g)]
     .map(match => match[1].replace(/var\(--[\w-]+\)/g, ''));
 
 test('the :root block defines the canonical compact spacing scale', () => {
@@ -153,6 +167,44 @@ test('the padding scale steps are consumed by padding declarations', () => {
         assert.ok(
             paddingValues.includes(`var(--${token})`),
             `--${token} must be consumed by a padding declaration, otherwise the step would be dead weight`
+        );
+    }
+});
+
+test('the :root block defines the margin spacing steps', () => {
+    const rootBlock = blocks(':root')[0][1];
+    for (const [token, value] of Object.entries(MARGIN_SPACE_TOKENS)) {
+        assert.match(
+            rootBlock,
+            new RegExp(`--${token}\\s*:\\s*${escape(value)}\\s*;`),
+            `:root must define --${token} as ${value} so the margin scale stays unified`
+        );
+    }
+});
+
+test('no margin declaration falls back to a raw spacing literal', () => {
+    for (const value of strippedMarginValues()) {
+        assert.doesNotMatch(
+            value,
+            /(\.\d+|\d+(?:\.\d+)?)rem\b/,
+            `margin must resolve its lengths from the spacing tokens, found a raw literal in "${value.trim()}"`
+        );
+        assert.doesNotMatch(
+            value,
+            /(?<![\w.\-])0(?![\w.%])/,
+            `margin must use var(--space-none) instead of a raw zero in "${value.trim()}"`
+        );
+    }
+});
+
+test('the margin scale steps are consumed by margin declarations', () => {
+    const marginValues = [...css.matchAll(/(?<![\w-])margin(?:-[a-z-]+)?\s*:\s*([^;{}]+);/g)]
+        .map(match => match[1])
+        .join(' ');
+    for (const token of Object.keys(MARGIN_SPACE_TOKENS)) {
+        assert.ok(
+            marginValues.includes(`var(--${token})`),
+            `--${token} must be consumed by a margin declaration, otherwise the step would be dead weight`
         );
     }
 });
