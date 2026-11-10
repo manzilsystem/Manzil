@@ -5,6 +5,13 @@
     --weight-700: 700;
     --weight-800: 800;
     --weight-900: 900;
+    /* Canonical letter-spacing scale; suffixes are hundredths of an em. */
+    --tracking-1: .01em;
+    --tracking-2: .02em;
+    --tracking-4: .04em;
+    --tracking-8: .08em;
+    --tracking-12: .12em;
+    --tracking-20: .2em;
     --bg-main: #090d16;
     --bg-card: rgba(15, 23, 42, .85);
     --bg-input: #020617;
@@ -198,7 +205,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-tone-sky { --report-tone: var(--state-info); --report-tone-soft: var(--state-info-soft); --report-tone-line: var(--state-info-line); }
 [data-theme="light"] .report-tone-indigo { --report-tone: #4338ca; --report-tone-soft: #eef2ff; --report-tone-line: #c7d2fe; }
 .report-section-head { display: flex; flex-direction: column; gap: var(--space-85); padding: var(--space-15) var(--space-20) var(--space-none); }
-.report-section-eyebrow { display: inline-flex; align-items: center; gap: var(--space-40); color: var(--accent-color); font-size: .62rem; font-weight: var(--weight-800); letter-spacing: .02em; }
+.report-section-eyebrow { display: inline-flex; align-items: center; gap: var(--space-40); color: var(--accent-color); font-size: .62rem; font-weight: var(--weight-800); letter-spacing: var(--tracking-2); }
 .report-section-title { font-size: 1.12rem; font-weight: var(--weight-900); line-height: 1.35; }
 .report-section-subtitle { max-width: 56ch; margin-top: var(--space-25); color: var(--text-muted); font-size: .72rem; line-height: 1.75; }
 .report-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-70); }
@@ -704,8 +711,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 .auth-brand-head { display:flex; flex-direction:column; align-items:flex-start; gap:var(--space-125); }
 .auth-logo-frame { width:9rem; height:9rem; display:flex; align-items:center; justify-content:center; padding:var(--space-45); overflow:hidden; border:1px solid #dce7ed; border-radius:var(--radius-165); background:#fbfdff; box-shadow:0 12px 32px rgba(2,20,35,.18); }
 .auth-logo-frame img { display:block; width:100%; height:100%; object-fit:contain; }
-.auth-brand-overline { color:var(--accent-color); font-size:.72rem; font-weight:var(--weight-900); letter-spacing:.04em; }
-.auth-brand-copy h1 { margin-top:var(--space-15); font-size:clamp(1.8rem,4vw,2.35rem); line-height:1.2; font-weight:var(--weight-900); letter-spacing:.02em; }
+.auth-brand-overline { color:var(--accent-color); font-size:.72rem; font-weight:var(--weight-900); letter-spacing:var(--tracking-4); }
+.auth-brand-copy h1 { margin-top:var(--space-15); font-size:clamp(1.8rem,4vw,2.35rem); line-height:1.2; font-weight:var(--weight-900); letter-spacing:var(--tracking-2); }
 .auth-brand-description { max-width:22rem; margin-top:var(--space-55); color:var(--text-muted); font-size:.9rem; line-height:1.9; }
 .auth-brand-benefits { display:grid; gap:var(--space-75); }
 .auth-brand-benefits p { display:flex; align-items:center; gap:var(--space-65); color:var(--text-muted); font-size:.78rem; }
@@ -838,7 +845,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   box-shadow:0 18px 55px rgba(0,0,0,.5),0 0 35px rgba(7,192,207,.12);
 }
 #pinLockModal .auth-logo-frame img { width:100%;height:100%;object-fit:contain;border-radius:inherit; }
-#pinLockModal .auth-brand-overline { color:#35c4ca;font-size:.78rem;letter-spacing:.08em; }
+#pinLockModal .auth-brand-overline { color:#35c4ca;font-size:.78rem;letter-spacing:var(--tracking-8); }
 #pinLockModal .auth-brand-copy h1 {
   display:flex;
   align-items:baseline;
@@ -850,7 +857,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   font-weight:var(--weight-800);
   text-shadow:0 2px 18px rgba(220,165,62,.18);
 }
-#pinLockModal .auth-brand-copy h1 span { color:#e5e7eb;font-size:.72em;letter-spacing:.12em; }
+#pinLockModal .auth-brand-copy h1 span { color:#e5e7eb;font-size:.72em;letter-spacing:var(--tracking-12); }
 #pinLockModal .auth-brand-description { color:#c5d5d9;max-width:24rem; }
 #pinLockModal .auth-brand-benefits { gap:var(--space-65); }
 #pinLockModal .auth-brand-benefits p { color:#e0e9e9;font-size:.8rem; }
@@ -1119,13 +1126,13 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     color: #fff;
     font-size: 1.18rem;
     font-weight: var(--weight-900);
-    letter-spacing: .01em;
+    letter-spacing: var(--tracking-1);
 }
 #settingsModal .settings-brand-copy span {
     color: var(--settings-accent-bright);
     font-size: .62rem;
     font-weight: var(--weight-800);
-    letter-spacing: .2em;
+    letter-spacing: var(--tracking-20);
 }
 #settingsModal .settings-brand-copy small {
     grid-column: 1 / -1;
@@ -1262,7 +1269,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     color: var(--settings-muted);
     font-size: .6rem;
     font-weight: var(--weight-900);
-    letter-spacing: .12em;
+    letter-spacing: var(--tracking-12);
 }
 #settingsModal .settings-nav {
     display: flex;
