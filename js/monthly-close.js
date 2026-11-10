@@ -31,7 +31,7 @@ function renderMonthlyClosePreview(report) {
         return [
             '<article class="report-surface p-3 space-y-2">',
             '<h4 class="font-black text-xs">', esc(account.label), '</h4>',
-            '<div class="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">',
+            '<div class="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">',
             '<div><span class="block report-list-meta">رصيد أول الشهر</span><strong class="report-amount">', monthlyCloseMoney(row.opening_balance), ' ج.م</strong></div>',
             '<div><span class="block report-list-meta">تحصيلات</span><strong class="text-emerald-400 report-amount">', monthlyCloseMoney(row.income), ' ج.م</strong></div>',
             '<div><span class="block report-list-meta">مصروفات</span><strong class="text-rose-400 report-amount">', monthlyCloseMoney(row.expenses), ' ج.م</strong></div>',
@@ -39,7 +39,7 @@ function renderMonthlyClosePreview(report) {
             '<div><span class="block report-list-meta">تحويلات صادرة</span><strong class="report-amount">', monthlyCloseMoney(row.transfers_out), ' ج.م</strong></div>',
             '<div><span class="block report-list-meta">صافي الحركة</span><strong class="report-amount">', monthlyCloseMoney(row.net_movement), ' ج.م</strong></div>',
             '</div><div class="report-divider flex justify-between items-center gap-2">',
-            '<span class="text-[11px] font-bold">رصيد آخر الشهر</span><strong class="text-sm report-amount">',
+            '<span class="text-xs font-bold">رصيد آخر الشهر</span><strong class="text-sm report-amount">',
             monthlyCloseMoney(row.closing_balance), ' ج.م</strong></div></article>'
         ].join('');
     }).join('');
@@ -60,7 +60,7 @@ function renderMonthlyClosePreview(report) {
         '<p class="font-bold text-xs">إجمالي رصيد الصناديق في نهاية الشهر</p>',
         '<p class="report-list-meta mt-1">التحويلات الداخلية لا تزيد أو تنقص إجمالي النقد.</p></div><strong class="text-base report-amount">',
         monthlyCloseMoney(totals.closing_balance), ' ج.م</strong></div>',
-        '<p class="text-[11px] font-bold ', report.reconciled ? 'text-emerald-400' : 'text-rose-400', '" role="status">',
+        '<p class="text-xs font-bold ', report.reconciled ? 'text-emerald-400' : 'text-rose-400', '" role="status">',
         report.reconciled ? '✓ إجمالي الصناديق مطابق للحركة النقدية.' : '⚠ يوجد فرق في المطابقة. راجع حركة الصناديق قبل اعتماد التقرير.',
         '</p><p class="report-note report-divider">',
         'تعتمد المراجعة على تاريخ التحصيل الفعلي وتاريخ الصرف وتاريخ التحويل، لا على شهر استحقاق الاشتراك. ',
