@@ -201,9 +201,9 @@
                         <h3 class="font-bold text-xs">لوحة إعلانات العمارة</h3>
                     </div>
                     <div class="flex gap-1.5 no-print">
-                        <button onclick="openNoticeModal()" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-xl text-[11px] font-bold transition">إعلان</button>
-                        <button onclick="shareNoticeToWhatsApp()" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-[11px] font-bold transition flex items-center gap-1"><i class="fa-brands fa-whatsapp"></i> نشر</button>
-                        <button onclick="copyNoticeToClipboard()" class="bg-slate-700/30 hover:bg-slate-700/50 text-slate-300 border border-slate-600/30 px-3 py-1.5 rounded-xl text-[11px] font-bold transition" title="نسخ"><i class="fa-solid fa-copy"></i></button>
+                        <button onclick="openNoticeModal()" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-xl text-xs font-bold transition">إعلان</button>
+                        <button onclick="shareNoticeToWhatsApp()" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1"><i class="fa-brands fa-whatsapp"></i> نشر</button>
+                        <button onclick="copyNoticeToClipboard()" class="bg-slate-700/30 hover:bg-slate-700/50 text-slate-300 border border-slate-600/30 px-3 py-1.5 rounded-xl text-xs font-bold transition" title="نسخ"><i class="fa-solid fa-copy"></i></button>
                     </div>
                 </div>
                 <div id="noticeBoardContent" class="space-y-2"></div>
@@ -331,7 +331,7 @@
         <!-- INCOME -->
         <section id="tab-income" class="hidden space-y-4">
             <div class="section-toolbar flex justify-between items-center app-card p-4 rounded-3xl border no-print">
-                <div><h2 class="font-bold text-base">سجل التحصيلات</h2><p class="text-[11px] text-slate-400">اشتراكات الملاك</p></div>
+                <div><h2 class="font-bold text-base">سجل التحصيلات</h2><p class="text-xs text-slate-400">اشتراكات الملاك</p></div>
                 <button onclick="openNewIncomeModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-emerald-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> تحصيل جديد</button>
             </div>
             <div class="list-filters app-card p-3 rounded-3xl border grid grid-cols-2 md:grid-cols-4 gap-2 no-print">
@@ -348,7 +348,7 @@
         <!-- EXPENSES -->
         <section id="tab-expenses" class="hidden space-y-4">
             <div class="section-toolbar flex justify-between items-center app-card p-4 rounded-3xl border no-print">
-                <div><h2 class="font-bold text-base">مصروفات العمارة</h2><p class="text-[11px] text-slate-400">فواتير وصيانة</p></div>
+                <div><h2 class="font-bold text-base">مصروفات العمارة</h2><p class="text-xs text-slate-400">فواتير وصيانة</p></div>
                 <button onclick="openExpenseModal()" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-rose-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> مصروف جديد</button>
             </div>
             <div class="list-filters app-card p-3 rounded-3xl border flex flex-wrap gap-2 no-print">
@@ -364,7 +364,7 @@
         <!-- RESIDENTS -->
         <section id="tab-residents" class="hidden space-y-4">
             <div class="section-toolbar flex flex-wrap justify-between items-center gap-2 app-card p-4 rounded-3xl border no-print">
-                <div><h2 class="font-bold text-base">قائمة الشقق</h2><p class="text-[11px] text-slate-400">الاشتراكات الشهرية</p></div>
+                <div><h2 class="font-bold text-base">قائمة الشقق</h2><p class="text-xs text-slate-400">الاشتراكات الشهرية</p></div>
                 <div class="flex items-center gap-2">
                     <button onclick="openSubscriptionPriceSheet()" aria-label="ورقة أسعار الاشتراك الشهرية" class="border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 px-3 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2"><i class="fa-solid fa-table-list text-sm"></i> ورقة الأسعار</button>
                     <button onclick="openResidentModal('add')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-indigo-600/20 transition flex items-center gap-2"><i class="fa-solid fa-user-plus text-sm"></i> شقة جديدة</button>
@@ -434,7 +434,7 @@
             <div class="app-card p-5 rounded-3xl border space-y-4">
                 <div>
                     <h3 class="font-bold text-sm">تحويل بين الصناديق</h3>
-                    <p class="text-[11px] text-slate-500 mt-1">لا يُسمح بتحويل مبلغ أكبر من الرصيد المتاح في الصندوق المصدر.</p>
+                    <p class="text-xs text-slate-500 mt-1">لا يُسمح بتحويل مبلغ أكبر من الرصيد المتاح في الصندوق المصدر.</p>
                 </div>
                 <form id="cashTransferForm" onsubmit="submitCashTransfer(event)" class="space-y-3">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -829,7 +829,7 @@
                                 <input type="month" id="arrearsToMonth" onchange="renderArrearsReport()" class="report-control app-input border">
                             </label>
                         </div>
-                        <button type="button" onclick="resetArrearsFilters()" class="text-[11px] text-indigo-300 hover:text-indigo-200 underline">مسح الفلاتر</button>
+                        <button type="button" onclick="resetArrearsFilters()" class="text-xs text-indigo-300 hover:text-indigo-200 underline">مسح الفلاتر</button>
                     </div>
                     <div id="arrearsReportContainer" class="report-preview space-y-3"></div>
                     <p class="report-note">تُحسب كل فترة بسعر الاشتراك المسجل بتاريخ سريانه، وليس بالسعر الحالي فقط.</p>
@@ -1587,7 +1587,7 @@
                     <div class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> حماية البيانات</div>
                     <p class="text-xs text-slate-400 leading-6">موعد النسخ اليومي 02:23 UTC (04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة)، مع فحص SHA-256 وصلاحية أرشيف PostgreSQL، والاحتفاظ بآخر 30 نسخة.</p>
                     <div id="backupLastStatus" class="text-xs text-slate-400">جارٍ تحميل سجل النسخ...</div>
-                    <div id="backupStaleNotice" role="alert" class="hidden rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] leading-5 text-amber-300">هذه البيانات محفوظة محليًا من زيارة سابقة. لا يمكن إنشاء نسخة أو استعادة حتى يتم التحقق من الحالة من الخادم.</div>
+                    <div id="backupStaleNotice" role="alert" class="hidden rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-300">هذه البيانات محفوظة محليًا من زيارة سابقة. لا يمكن إنشاء نسخة أو استعادة حتى يتم التحقق من الحالة من الخادم.</div>
                     <div class="flex items-center justify-between gap-2">
                         <p id="backupRefreshNotice" class="text-xs text-slate-500" role="status" aria-live="polite">حالة الطلبات تُحدّث تلقائيًا أثناء التنفيذ.</p>
                         <button type="button" onclick="loadBackupConsole()" class="app-input border rounded-lg px-3 py-1.5 text-xs font-bold whitespace-nowrap"><i class="fa-solid fa-rotate ml-1" aria-hidden="true"></i> تحديث الحالة</button>
@@ -1597,7 +1597,7 @@
                     <div class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> إنشاء نسخة احتياطية</div>
                     <button id="backupCreateButton" type="button" onclick="requestDatabaseBackup()" class="w-full bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white py-2.5 rounded-xl text-xs font-bold"><i class="fa-solid fa-cloud-arrow-up ml-2"></i> إنشاء نسخة احتياطية الآن</button>
                     <p class="text-xs text-slate-500">ينشئ نسخة كاملة من قاعدة البيانات على الخادم، ولا يكتفي بتصدير بيانات الواجهة.</p>
-                    <div id="backupCreateStatus" role="status" aria-live="polite" class="text-[11px] text-slate-400"></div>
+                    <div id="backupCreateStatus" role="status" aria-live="polite" class="text-xs text-slate-400"></div>
                     <div id="backupRequestHistory" class="space-y-2 text-xs"></div>
                 </section>
                 <section class="rounded-2xl border border-rose-500/30 p-4 space-y-2" aria-labelledby="backupRestoreTitle">
@@ -1606,7 +1606,7 @@
                     <select id="backupRestoreSelect" onchange="updateBackupDownloadButton()" class="w-full app-input border rounded-xl px-3 py-3 text-sm" aria-label="اختر النسخة المراد تنزيلها أو استعادتها">
                         <option value="">جارٍ تحميل النسخ...</option>
                     </select>
-                    <div id="backupSelectedDetails" class="hidden app-input border rounded-xl p-3 space-y-1.5 text-[11px] text-slate-400" aria-live="polite">
+                    <div id="backupSelectedDetails" class="hidden app-input border rounded-xl p-3 space-y-1.5 text-xs text-slate-400" aria-live="polite">
                         <div class="flex justify-between gap-3"><span>وقت الإصدار</span><strong id="backupDetailDate" class="text-slate-200">—</strong></div>
                         <div class="flex justify-between gap-3"><span>الحجم</span><strong id="backupDetailSize" class="text-slate-200">—</strong></div>
                         <div class="flex justify-between gap-3"><span>معرّف النسخة</span><code id="backupDetailTag" dir="ltr" class="text-slate-200">—</code></div>
@@ -1617,7 +1617,7 @@
                         <div class="flex justify-between gap-3"><span>آخر استعادة ناجحة لهذه النسخة</span><strong id="backupDetailRestored" class="text-slate-200">—</strong></div>
                     </div>
                     <button id="backupDownloadButton" type="button" onclick="downloadDatabaseBackup()" class="w-full bg-indigo-700 hover:bg-indigo-600 disabled:opacity-50 text-white py-2.5 rounded-xl text-xs font-bold" disabled><i class="fa-solid fa-download ml-2"></i> تنزيل النسخة الكاملة</button>
-                    <div id="backupDownloadStatus" role="status" aria-live="polite" class="text-[11px] text-slate-400"></div>
+                    <div id="backupDownloadStatus" role="status" aria-live="polite" class="text-xs text-slate-400"></div>
                     <p class="text-xs text-slate-500">التنزيل الكامل متاح فقط للمدير الذي يدير جميع المباني، ويتم التحقق من SHA-256 قبل حفظ الملف.</p>
                     <button id="backupRestoreButton" onclick="requestDatabaseRestore()" class="w-full bg-rose-700 hover:bg-rose-600 disabled:opacity-50 text-white py-3 rounded-xl font-bold" disabled>استعادة النسخة المختارة</button>
                     <p class="text-xs text-slate-500">الاستعادة متاحة فقط للمدير الذي يدير جميع المباني، وتتطلب كتابة RESTORE في نافذة تأكيد منفصلة.</p>
@@ -1645,12 +1645,12 @@
             </div>
             <div class="p-5 space-y-3">
                 <p class="text-xs leading-6 text-rose-300">سيتم استبدال قاعدة بيانات الإنتاج بالكامل، بما يشمل جميع المباني والحسابات والسجلات، بحالة النسخة المختارة. لا يمكن التراجع عن العملية من الواجهة.</p>
-                <div id="restoreConfirmSummary" class="app-input border rounded-xl p-3 space-y-1 text-[11px] text-slate-300"></div>
+                <div id="restoreConfirmSummary" class="app-input border rounded-xl p-3 space-y-1 text-xs text-slate-300"></div>
                 <label class="block text-xs space-y-1">
                     <span class="text-slate-400">اكتب <strong dir="ltr">RESTORE</strong> بالأحرف الإنجليزية لتأكيد التنفيذ</span>
                     <input id="restoreConfirmInput" dir="ltr" autocomplete="off" spellcheck="false" oninput="updateRestoreConfirmButton()" aria-label="اكتب RESTORE لتأكيد الاستعادة" class="w-full app-input border rounded-2xl px-3 py-2.5 text-center font-mono text-sm tracking-widest">
                 </label>
-                <p id="restoreConfirmStatus" role="status" aria-live="polite" class="text-[11px] text-slate-400"></p>
+                <p id="restoreConfirmStatus" role="status" aria-live="polite" class="text-xs text-slate-400"></p>
                 <div class="grid grid-cols-2 gap-2">
                     <button type="button" onclick="cancelDatabaseRestore()" class="app-input border py-2.5 rounded-xl text-xs font-bold">إلغاء</button>
                     <button type="button" id="restoreConfirmSubmitButton" onclick="confirmDatabaseRestore()" disabled class="bg-rose-700 hover:bg-rose-600 disabled:opacity-40 text-white py-2.5 rounded-xl text-xs font-bold">تنفيذ الاستعادة</button>
@@ -1687,7 +1687,7 @@
                     <h4><span class="guide-step-number">5</span> النسخ الاحتياطي والاستعادة</h4>
                     <p>من أيقونة السحابة افتح إدارة النسخ. زر «إنشاء نسخة احتياطية الآن» ينشئ نسخة كاملة من قاعدة البيانات على الخادم؛ أما «تصدير JSON» فيحفظ نسخة محلية من بيانات التطبيق. النسخ التلقائي يعمل يوميًا، والاستعادة تستبدل قاعدة الإنتاج بالكامل وتتطلب تأكيدًا صريحًا.</p>
                 </section>
-                <div class="app-input border rounded-2xl p-3 text-[11px] text-amber-300">
+                <div class="app-input border rounded-2xl p-3 text-xs text-amber-300">
                     <i class="fa-solid fa-shield-halved ml-1"></i> المصادقة والبيانات محفوظة في Supabase ومحمية بسياسات RLS. لا تضع مفاتيح إدارية أو كلمات مرور في ملفات الواجهة.
                 </div>
                 <button onclick="closeModal('guideModal')" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">فهمت</button>
@@ -1762,7 +1762,7 @@
             <div class="bg-indigo-800 text-white px-5 py-4 flex justify-between items-center">
                 <div>
                     <h3 id="subscriptionRateModalTitle" class="font-bold text-sm">تاريخ الاشتراك</h3>
-                    <p id="subscriptionRateResidentSummary" class="text-[11px] text-white/75 mt-1"></p>
+                    <p id="subscriptionRateResidentSummary" class="text-xs text-white/75 mt-1"></p>
                 </div>
                 <button type="button" onclick="closeModal('subscriptionRateModal')" aria-label="إغلاق سجل الاشتراك" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
@@ -1811,7 +1811,7 @@
             <div class="bg-amber-800 text-white px-5 py-4 flex justify-between items-center">
                 <div class="min-w-0">
                     <h3 id="adjustmentModalTitle" class="font-bold text-sm">إعفاء وتخفيض</h3>
-                    <p id="adjustmentResidentSummary" class="text-[11px] text-white/75 mt-1"></p>
+                    <p id="adjustmentResidentSummary" class="text-xs text-white/75 mt-1"></p>
                 </div>
                 <button type="button" onclick="closeModal('adjustmentModal')" aria-label="إغلاق نافذة الإعفاء والتخفيض" class="text-white/80 hover:text-white min-w-11 min-h-11 rounded-xl"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
@@ -1881,7 +1881,7 @@
             <div class="bg-indigo-800 text-white px-5 py-4 flex justify-between items-center">
                 <div>
                     <h3 id="subscriptionPriceSheetTitle" class="font-bold text-sm">ورقة أسعار الاشتراك</h3>
-                    <p class="text-[11px] text-white/75 mt-1">تعديل أسعار كل الشقق لشهر واحد، ويُحفظ كل تغيير في سجل الاشتراك تلقائيًا.</p>
+                    <p class="text-xs text-white/75 mt-1">تعديل أسعار كل الشقق لشهر واحد، ويُحفظ كل تغيير في سجل الاشتراك تلقائيًا.</p>
                 </div>
                 <button type="button" onclick="closeModal('subscriptionPriceSheetModal')" aria-label="إغلاق ورقة الأسعار" class="text-white/80 hover:text-white min-w-11 min-h-11 rounded-xl"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
@@ -1935,7 +1935,7 @@
                 <section id="incomeWizardStep1" data-income-step="1" class="space-y-3">
 
                 <select id="incomeResident" aria-label="الشقة" onchange="handleIncomeResidentChange()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر الشقة</option></select>
-                <div id="incomeResidentSummary" class="hidden rounded-2xl border border-slate-700/60 p-3 space-y-1 text-[11px]" role="status" aria-live="polite"></div>
+                <div id="incomeResidentSummary" class="hidden rounded-2xl border border-slate-700/60 p-3 space-y-1 text-xs" role="status" aria-live="polite"></div>
                 <label class="block text-xs space-y-1">
                     <span class="text-slate-400">غرض التحصيل</span>
                     <select id="incomePurpose" aria-label="غرض التحصيل" onchange="handleIncomePurposeChange()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
@@ -2055,7 +2055,7 @@
             <div class="bg-indigo-700 text-white px-5 py-4 flex justify-between items-center">
                 <div>
                     <h3 id="incomeEditModalTitle" class="font-bold text-sm">تعديل التحصيل</h3>
-                    <p id="incomeEditResidentSummary" class="text-[11px] text-white/75 mt-1"></p>
+                    <p id="incomeEditResidentSummary" class="text-xs text-white/75 mt-1"></p>
                 </div>
                 <button type="button" onclick="closeModal('incomeEditModal')" aria-label="إغلاق تعديل التحصيل" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
@@ -2110,7 +2110,7 @@
             <div class="bg-emerald-700 text-white px-5 py-4 flex justify-between items-center">
                 <div>
                     <h3 id="incomeReceiptTitle" class="font-bold text-sm">إيصال استلام</h3>
-                    <p id="incomeReceiptSubtitle" class="text-[11px] text-white/75 mt-1"></p>
+                    <p id="incomeReceiptSubtitle" class="text-xs text-white/75 mt-1"></p>
                 </div>
                 <button type="button" onclick="closeModal('incomeReceiptModal')" aria-label="إغلاق الإيصال" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
@@ -2152,10 +2152,10 @@
                 <textarea id="expenseNotes" aria-label="ملاحظات المصروف" rows="2" placeholder="ملاحظات المصروف" oninput="previewExpense()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
                 <div id="expensePreview" aria-live="polite" class="hidden app-input border border-rose-500/30 rounded-2xl p-3 space-y-2">
                     <p id="expensePreviewSummary" class="text-xs font-bold text-rose-300"></p>
-                    <div id="expensePreviewDetails" class="space-y-1 text-[11px] text-slate-400"></div>
+                    <div id="expensePreviewDetails" class="space-y-1 text-xs text-slate-400"></div>
                 </div>
                 <div id="expenseOverdraftRow" class="hidden app-input border border-amber-500/40 rounded-2xl p-3">
-                    <label class="flex items-start gap-2 text-[11px] text-amber-300">
+                    <label class="flex items-start gap-2 text-xs text-amber-300">
                         <input type="checkbox" id="expenseOverdraftConfirm" onchange="previewExpense()" aria-label="تأكيد تجاوز رصيد الخزنة الرئيسية" class="mt-0.5 accent-amber-500">
                         <span>أؤكد صرف مبلغ يتجاوز رصيد الخزنة الرئيسية — سيُسجَّل هذا التأكيد في سجل التدقيق.</span>
                     </label>

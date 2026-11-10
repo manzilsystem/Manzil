@@ -10,7 +10,7 @@ test('dashboard informational text keeps a 12px reading floor', () => {
     const dashboard = read('src/partials/main-tabs.html');
     assert.doesNotMatch(
         dashboard,
-        /text-\[(9|10)px\]/,
+        /text-\[(9|10|11)px\]/,
         'dashboard informational labels must not fall below the 12px reading floor (use text-xs)'
     );
 });
@@ -53,7 +53,7 @@ test('resident, income and expense form informational text keeps a 12px reading 
 test('modal, wizard and settings informational text keeps a 12px reading floor', () => {
     assert.doesNotMatch(
         read('src/partials/modals.html'),
-        /text-\[(9|10)px\]/,
+        /text-\[(9|10|11)px\]/,
         'informational text in src/partials/modals.html must not fall below the 12px reading floor (use text-xs)'
     );
 });
@@ -67,4 +67,10 @@ test('built index.html ships the dashboard reading floor', () => {
     assert.match(built, /id="appCopyright" class="text-center text-xs text-slate-500/);
     assert.match(built, /<p class="text-xs text-slate-400 flex items-center gap-1">/);
     assert.match(built, /id="backupRefreshNotice" class="text-xs text-slate-500"/);
+    assert.match(
+        built,
+        /onclick="openNoticeModal\(\)" class="bg-indigo-600\/20 hover:bg-indigo-600\/30 text-indigo-400 border border-indigo-500\/30 px-3 py-1\.5 rounded-xl text-xs font-bold transition">إعلان</
+    );
+    assert.match(built, /id="backupStaleNotice" role="alert" class="hidden rounded-xl border border-amber-500\/40 bg-amber-500\/10 px-3 py-2 text-xs leading-5 text-amber-300"/);
+    assert.match(built, /id="subscriptionRateResidentSummary" class="text-xs text-white\/75 mt-1"/);
 });

@@ -20,9 +20,9 @@
                         <h3 class="font-bold text-xs">لوحة إعلانات العمارة</h3>
                     </div>
                     <div class="flex gap-1.5 no-print">
-                        <button onclick="openNoticeModal()" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-xl text-[11px] font-bold transition">إعلان</button>
-                        <button onclick="shareNoticeToWhatsApp()" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-[11px] font-bold transition flex items-center gap-1"><i class="fa-brands fa-whatsapp"></i> نشر</button>
-                        <button onclick="copyNoticeToClipboard()" class="bg-slate-700/30 hover:bg-slate-700/50 text-slate-300 border border-slate-600/30 px-3 py-1.5 rounded-xl text-[11px] font-bold transition" title="نسخ"><i class="fa-solid fa-copy"></i></button>
+                        <button onclick="openNoticeModal()" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-xl text-xs font-bold transition">إعلان</button>
+                        <button onclick="shareNoticeToWhatsApp()" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1"><i class="fa-brands fa-whatsapp"></i> نشر</button>
+                        <button onclick="copyNoticeToClipboard()" class="bg-slate-700/30 hover:bg-slate-700/50 text-slate-300 border border-slate-600/30 px-3 py-1.5 rounded-xl text-xs font-bold transition" title="نسخ"><i class="fa-solid fa-copy"></i></button>
                     </div>
                 </div>
                 <div id="noticeBoardContent" class="space-y-2"></div>
@@ -150,7 +150,7 @@
         <!-- INCOME -->
         <section id="tab-income" class="hidden space-y-4">
             <div class="section-toolbar flex justify-between items-center app-card p-4 rounded-3xl border no-print">
-                <div><h2 class="font-bold text-base">سجل التحصيلات</h2><p class="text-[11px] text-slate-400">اشتراكات الملاك</p></div>
+                <div><h2 class="font-bold text-base">سجل التحصيلات</h2><p class="text-xs text-slate-400">اشتراكات الملاك</p></div>
                 <button onclick="openNewIncomeModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-emerald-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> تحصيل جديد</button>
             </div>
             <div class="list-filters app-card p-3 rounded-3xl border grid grid-cols-2 md:grid-cols-4 gap-2 no-print">
@@ -167,7 +167,7 @@
         <!-- EXPENSES -->
         <section id="tab-expenses" class="hidden space-y-4">
             <div class="section-toolbar flex justify-between items-center app-card p-4 rounded-3xl border no-print">
-                <div><h2 class="font-bold text-base">مصروفات العمارة</h2><p class="text-[11px] text-slate-400">فواتير وصيانة</p></div>
+                <div><h2 class="font-bold text-base">مصروفات العمارة</h2><p class="text-xs text-slate-400">فواتير وصيانة</p></div>
                 <button onclick="openExpenseModal()" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-rose-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> مصروف جديد</button>
             </div>
             <div class="list-filters app-card p-3 rounded-3xl border flex flex-wrap gap-2 no-print">
@@ -183,7 +183,7 @@
         <!-- RESIDENTS -->
         <section id="tab-residents" class="hidden space-y-4">
             <div class="section-toolbar flex flex-wrap justify-between items-center gap-2 app-card p-4 rounded-3xl border no-print">
-                <div><h2 class="font-bold text-base">قائمة الشقق</h2><p class="text-[11px] text-slate-400">الاشتراكات الشهرية</p></div>
+                <div><h2 class="font-bold text-base">قائمة الشقق</h2><p class="text-xs text-slate-400">الاشتراكات الشهرية</p></div>
                 <div class="flex items-center gap-2">
                     <button onclick="openSubscriptionPriceSheet()" aria-label="ورقة أسعار الاشتراك الشهرية" class="border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 px-3 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2"><i class="fa-solid fa-table-list text-sm"></i> ورقة الأسعار</button>
                     <button onclick="openResidentModal('add')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-indigo-600/20 transition flex items-center gap-2"><i class="fa-solid fa-user-plus text-sm"></i> شقة جديدة</button>
@@ -253,7 +253,7 @@
             <div class="app-card p-5 rounded-3xl border space-y-4">
                 <div>
                     <h3 class="font-bold text-sm">تحويل بين الصناديق</h3>
-                    <p class="text-[11px] text-slate-500 mt-1">لا يُسمح بتحويل مبلغ أكبر من الرصيد المتاح في الصندوق المصدر.</p>
+                    <p class="text-xs text-slate-500 mt-1">لا يُسمح بتحويل مبلغ أكبر من الرصيد المتاح في الصندوق المصدر.</p>
                 </div>
                 <form id="cashTransferForm" onsubmit="submitCashTransfer(event)" class="space-y-3">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -648,7 +648,7 @@
                                 <input type="month" id="arrearsToMonth" onchange="renderArrearsReport()" class="report-control app-input border">
                             </label>
                         </div>
-                        <button type="button" onclick="resetArrearsFilters()" class="text-[11px] text-indigo-300 hover:text-indigo-200 underline">مسح الفلاتر</button>
+                        <button type="button" onclick="resetArrearsFilters()" class="text-xs text-indigo-300 hover:text-indigo-200 underline">مسح الفلاتر</button>
                     </div>
                     <div id="arrearsReportContainer" class="report-preview space-y-3"></div>
                     <p class="report-note">تُحسب كل فترة بسعر الاشتراك المسجل بتاريخ سريانه، وليس بالسعر الحالي فقط.</p>
