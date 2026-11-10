@@ -122,6 +122,43 @@ test('typography weights remain stable across themes and print', async ({ page }
     }
 });
 
+test('letter-spacing tokens resolve consistently across themes and print', async ({ page }) => {
+    await openReports(page);
+    await page.evaluate(() => {
+        const probe = document.createElement('p');
+        probe.id = 'tracking-token-probe';
+        probe.className = 'auth-brand-overline';
+        probe.setAttribute('aria-hidden', 'true');
+        probe.style.position = 'fixed';
+        probe.style.left = '-10000px';
+        probe.style.fontSize = '100px';
+        document.body.append(probe);
+    });
+    const samples = [
+        ['#settingsModal .settings-brand-copy strong', '1px'],
+        ['.report-section-eyebrow', '2px'],
+        ['#tracking-token-probe', '4px'],
+        ['#pinLockModal .auth-brand-overline', '8px'],
+        ['#settingsModal .settings-nav-label', '12px'],
+        ['#settingsModal .settings-brand-copy span', '20px']
+    ];
+    for (const [selector] of samples) {
+        await page.locator(selector).first().evaluate(element => {
+            element.style.fontSize = '100px';
+        });
+    }
+    for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise']) {
+        await page.evaluate(value => applyThemeToDocument(value), theme);
+        for (const [selector, spacing] of samples) {
+            await expect(page.locator(selector).first()).toHaveCSS('letter-spacing', spacing);
+        }
+    }
+    await page.emulateMedia({ media: 'print' });
+    for (const [selector, spacing] of samples) {
+        await expect(page.locator(selector).first()).toHaveCSS('letter-spacing', spacing);
+    }
+});
+
 test('the tab opens on the icon grid and a card opens its report full page', async ({ page }) => {
     await openReports(page);
     await expect(page.locator('.report-section-head')).toBeVisible();

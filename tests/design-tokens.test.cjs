@@ -9,6 +9,14 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const THEMES = ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise'];
 const TOKENS = ['bg-main', 'bg-card', 'bg-input', 'text-main', 'text-muted', 'border-color', 'accent-color', 'surface-raised'];
 const FONT_WEIGHTS = [400, 500, 600, 700, 800, 900];
+const TRACKING_STEPS = {
+    1: '.01em',
+    2: '.02em',
+    4: '.04em',
+    8: '.08em',
+    12: '.12em',
+    20: '.2em'
+};
 
 const themeBlocks = (css, theme) => [
     ...css.matchAll(new RegExp(`\\[data-theme="${theme}"\\]\\s*\\{([^}]*)\\}`, 'g'))
@@ -52,6 +60,28 @@ test('settings wrappers keep inheriting their surrounding font weight', () => {
     const css = read('css/style.css');
     for (const selector of ['settings-input-unit', 'settings-search-wrap']) {
         assert.match(css, new RegExp(`#settingsModal \\.settings-field > \\.${selector}\\s*\\{[^}]*font-weight:\\s*inherit;`));
+    }
+});
+
+test('letter-spacing tokens are defined once in :root with their original values', () => {
+    const css = read('css/style.css');
+    const rootBlock = css.match(/:root\s*\{([^}]*)\}/)[1];
+    for (const [step, value] of Object.entries(TRACKING_STEPS)) {
+        assert.match(rootBlock, new RegExp(`--tracking-${step}\\s*:\\s*${value.replace('.', '\\.')}\\s*;`));
+        assert.equal([...css.matchAll(new RegExp(`--tracking-${step}\\s*:`, 'g'))].length, 1);
+    }
+});
+
+test('letter-spacing declarations use the canonical scale', () => {
+    const css = read('css/style.css');
+    const values = [...css.matchAll(/(?<![\w-])letter-spacing\s*:\s*([^;{}]+);/g)]
+        .map(match => match[1].trim());
+    assert.ok(values.length > 0);
+    for (const value of values) {
+        assert.match(value, /^var\(--tracking-(?:1|2|4|8|12|20)\)(?:\s*!important)?$/, value);
+    }
+    for (const step of Object.keys(TRACKING_STEPS)) {
+        assert.ok(values.includes(`var(--tracking-${step})`), `tracking step ${step} must be consumed`);
     }
 });
 
