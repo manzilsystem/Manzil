@@ -304,6 +304,39 @@ test('backdrop blur tokens resolve consistently across themes and print', async 
     }
 });
 
+test('typographic scale resolves consistently across themes and print', async ({ page }) => {
+    await openReports(page);
+    const selectors = [
+        '.report-nav-copy b',
+        '.report-nav-copy small',
+        '.report-section-eyebrow',
+        '.report-view-hint',
+        '.report-block-count',
+        '#settingsModal .settings-brand-copy span'
+    ];
+    const readSizes = () => page.evaluate(list => {
+        const values = {};
+        for (const selector of list) {
+            const element = document.querySelector(selector);
+            if (!element) continue;
+            values[selector] = getComputedStyle(element).fontSize;
+        }
+        return values;
+    }, selectors);
+    const baseline = await readSizes();
+    const found = Object.keys(baseline);
+    expect(found.length).toBeGreaterThanOrEqual(3);
+    for (const selector of found) {
+        expect(baseline[selector]).toMatch(/^[1-9]\d*(\.\d+)?px$/);
+    }
+    for (const theme of ['light', 'emerald', 'ocean', 'sand', 'turquoise']) {
+        await page.evaluate(value => applyThemeToDocument(value), theme);
+        expect(await readSizes()).toEqual(baseline);
+    }
+    await page.emulateMedia({ media: 'print' });
+    expect(await readSizes()).toEqual(baseline);
+});
+
 test('the tab opens on the icon grid and a card opens its report full page', async ({ page }) => {
     await openReports(page);
     await expect(page.locator('.report-section-head')).toBeVisible();
