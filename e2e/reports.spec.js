@@ -93,6 +93,35 @@ test('report output stays disabled until a fresh preview exists', async ({ page 
     await expect(page.locator('[data-report-nav="landlord"]')).not.toHaveClass(/is-ready/);
 });
 
+test('typography weights remain stable across themes and print', async ({ page }) => {
+    await openReports(page);
+    await previewMonth(page, 'يناير 2024');
+    const samples = [
+        ['.report-list-meta', '400'],
+        ['#settingsModal .settings-field-hint', '500'],
+        ['.report-control', '600'],
+        ['.report-list-title', '700'],
+        ['.report-amount', '800'],
+        ['.report-preview-title', '900']
+    ];
+    for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise']) {
+        await page.evaluate(value => applyThemeToDocument(value), theme);
+        for (const [selector, weight] of samples) {
+            await expect(page.locator(selector).first()).toHaveCSS('font-weight', weight);
+        }
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    }
+    for (const selector of ['.settings-input-unit', '.settings-search-wrap']) {
+        const weights = await page.locator(`#settingsModal .settings-field > ${selector}`).first()
+            .evaluate(element => [getComputedStyle(element).fontWeight, getComputedStyle(element.parentElement).fontWeight]);
+        expect(weights[0]).toBe(weights[1]);
+    }
+    await page.emulateMedia({ media: 'print' });
+    for (const [selector, weight] of samples) {
+        await expect(page.locator(selector).first()).toHaveCSS('font-weight', weight);
+    }
+});
+
 test('the tab opens on the icon grid and a card opens its report full page', async ({ page }) => {
     await openReports(page);
     await expect(page.locator('.report-section-head')).toBeVisible();
