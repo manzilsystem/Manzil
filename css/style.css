@@ -83,6 +83,25 @@
     --space-40: .4rem;
     --space-45: .45rem;
     --space-50: .5rem;
+    /* Canonical spacing tail — the remaining shared gap steps (a half rem and
+       above) kept tokenised so every gap value resolves from the scale instead of
+       a raw literal. Same suffix convention (value in hundredths of a rem:
+       --space-55 = .55rem, --space-100 = 1rem, --space-200 = 2rem); every value
+       matches the literal it replaced, so routing them introduces no visual
+       change. */
+    --space-55: .55rem;
+    --space-60: .6rem;
+    --space-65: .65rem;
+    --space-70: .7rem;
+    --space-75: .75rem;
+    --space-80: .8rem;
+    --space-85: .85rem;
+    --space-90: .9rem;
+    --space-100: 1rem;
+    --space-125: 1.25rem;
+    --space-150: 1.5rem;
+    --space-160: 1.6rem;
+    --space-200: 2rem;
 }
 
 /* Per-theme token values are defined once in the canonical block for each theme
@@ -130,8 +149,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     white-space: nowrap;
 }
 .cash-account-tag i { color: var(--accent-color); font-size: .6rem; }
-.report-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; min-width: 0; }
-.report-card-heading { display: flex; align-items: flex-start; gap: .65rem; min-width: 0; }
+.report-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-75); min-width: 0; }
+.report-card-heading { display: flex; align-items: flex-start; gap: var(--space-65); min-width: 0; }
 .report-card-icon {
     display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
     width: 2.3rem; height: 2.3rem; border-radius: var(--radius-80);
@@ -153,14 +172,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-tone-rose { --report-tone: var(--state-danger); --report-tone-soft: var(--state-danger-soft); --report-tone-line: var(--state-danger-line); }
 .report-tone-sky { --report-tone: var(--state-info); --report-tone-soft: var(--state-info-soft); --report-tone-line: var(--state-info-line); }
 [data-theme="light"] .report-tone-indigo { --report-tone: #4338ca; --report-tone-soft: #eef2ff; --report-tone-line: #c7d2fe; }
-.report-section-head { display: flex; flex-direction: column; gap: .85rem; padding: .15rem .2rem 0; }
+.report-section-head { display: flex; flex-direction: column; gap: var(--space-85); padding: .15rem .2rem 0; }
 .report-section-eyebrow { display: inline-flex; align-items: center; gap: var(--space-40); color: var(--accent-color); font-size: .62rem; font-weight: 800; letter-spacing: .02em; }
 .report-section-title { font-size: 1.12rem; font-weight: 900; line-height: 1.35; }
 .report-section-subtitle { max-width: 56ch; margin-top: .25rem; color: var(--text-muted); font-size: .72rem; line-height: 1.75; }
-.report-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; }
-@media (min-width: 640px) { .report-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; } }
+.report-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-70); }
+@media (min-width: 640px) { .report-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-80); } }
 .report-nav-item {
-    position: relative; isolation: isolate; display: flex; align-items: center; gap: .7rem; min-width: 0;
+    position: relative; isolation: isolate; display: flex; align-items: center; gap: var(--space-70); min-width: 0;
     min-height: 4.8rem; padding: .8rem .85rem; overflow: hidden;
     border: 1px solid var(--border-color); border-radius: var(--radius-lg);
     background:
@@ -186,7 +205,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--report-tone, var(--accent-color)) 28%, transparent);
 }
 @media (max-width: 639.98px) {
-    .report-nav { gap: .55rem; }
+    .report-nav { gap: var(--space-55); }
     .report-nav-item { flex-direction: column; align-items: center; gap: var(--space-25); min-height: 0; padding: .55rem .45rem .5rem; text-align: center; }
     .report-nav-icon { width: 2rem; height: 2rem; border-radius: var(--radius-70); font-size: .9rem; }
     .report-nav-copy { align-items: center; gap: var(--space-5); width: 100%; }
@@ -210,7 +229,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-nav-item.is-ready::after { background: var(--state-success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--state-success) 22%, transparent); }
 .report-nav-item.is-stale::after { background: var(--state-warning); box-shadow: 0 0 0 3px color-mix(in srgb, var(--state-warning) 22%, transparent); }
 .report-view-bar {
-    display: none; align-items: center; gap: .65rem; min-width: 0; padding: .6rem .7rem;
+    display: none; align-items: center; gap: var(--space-65); min-width: 0; padding: .6rem .7rem;
     border: 1px solid var(--report-tone-line, var(--border-color)); border-radius: var(--radius-lg);
     background:
         linear-gradient(135deg, color-mix(in srgb, var(--report-tone, var(--accent-color)) 12%, transparent), transparent 60%),
@@ -286,7 +305,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-block-title { display: flex; align-items: center; justify-content: space-between; gap: var(--space-50); margin-bottom: .1rem; color: var(--text-muted); font-size: .64rem; font-weight: 800; }
 .report-block-count { padding: .08rem .42rem; border: 1px solid var(--border-color); border-radius: var(--radius-pill); background: color-mix(in srgb, var(--bg-input) 60%, transparent); color: var(--text-main); font-size: .58rem; font-weight: 800; }
 .report-list { display: flex; flex-direction: column; }
-.report-list-row { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; padding: .42rem 0; border-bottom: 1px solid var(--border-color); font-size: .7rem; }
+.report-list-row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-75); padding: .42rem 0; border-bottom: 1px solid var(--border-color); font-size: .7rem; }
 .report-list-row:last-child { border-bottom: 0; padding-bottom: 0; }
 .report-list-row:first-child { padding-top: 0; }
 .report-list-title { min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
@@ -322,9 +341,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-action-compact { min-height: 2.1rem; padding: .35rem .65rem; border-radius: var(--radius-75); font-size: .65rem; }
 .report-hint { color: var(--text-muted); font-size: .62rem; line-height: 1.7; text-align: center; }
 .arrears-card, .report-surface { overflow: hidden; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--bg-input) 78%, transparent); }
-.arrears-summary { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .7rem .85rem; cursor: pointer; list-style: none; }
+.arrears-summary { display: flex; align-items: center; justify-content: space-between; gap: var(--space-75); padding: .7rem .85rem; cursor: pointer; list-style: none; }
 .arrears-summary::-webkit-details-marker { display: none; }
-.arrears-identity { display: flex; align-items: center; gap: .55rem; min-width: 0; }
+.arrears-identity { display: flex; align-items: center; gap: var(--space-55); min-width: 0; }
 .arrears-badge { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 1.9rem; height: 1.9rem; border-radius: var(--radius-60); background: color-mix(in srgb, var(--accent-color) 16%, transparent); color: var(--text-main); font-size: .62rem; font-weight: 900; }
 .arrears-name { min-width: 0; font-size: .74rem; font-weight: 800; overflow-wrap: anywhere; }
 .arrears-sub { display: block; color: var(--text-muted); font-size: .6rem; font-weight: 600; }
@@ -465,7 +484,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     .auth-login-panel { order: 1; }
     [role="dialog"] .grid.grid-cols-2 { grid-template-columns: minmax(0, 1fr); }
     [role="dialog"] .flex.gap-2 > button { min-width: 0; }
-    .section-toolbar { align-items: stretch; gap: .75rem; }
+    .section-toolbar { align-items: stretch; gap: var(--space-75); }
     .section-toolbar > button { padding-inline: .75rem; }
     .list-filters input, .list-filters select { min-height: 44px; }
 }
@@ -656,17 +675,17 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 .header-brand-mark img { width:100%; height:100%; object-fit:contain; display:block; }
 #pinLockModal { background:radial-gradient(ellipse at 14% 18%,color-mix(in srgb,var(--accent-color) 15%,transparent),transparent 42%),color-mix(in srgb,var(--bg-main) 94%,#020617); }
 #pinLockModal > .auth-shell { width:100%; max-width:56rem; max-height:calc(100dvh - 2rem); display:grid; grid-template-columns:minmax(0,.88fr) minmax(0,1.12fr); overflow:auto; overscroll-behavior:contain; background:var(--bg-card); border-color:var(--border-color); box-shadow:0 28px 90px rgba(0,0,0,.35); }
-.auth-brand-panel { min-width:0; min-height:100%; padding:clamp(1.35rem,3vw,2.25rem); display:flex; flex-direction:column; justify-content:space-between; gap:2rem; color:var(--text-main); background:radial-gradient(circle at 12% 10%,color-mix(in srgb,var(--accent-color) 25%,transparent),transparent 40%),linear-gradient(145deg,color-mix(in srgb,var(--accent-color) 13%,var(--bg-card)),var(--bg-main)); border-inline-end:1px solid var(--border-color); }
-.auth-brand-head { display:flex; flex-direction:column; align-items:flex-start; gap:1.25rem; }
+.auth-brand-panel { min-width:0; min-height:100%; padding:clamp(1.35rem,3vw,2.25rem); display:flex; flex-direction:column; justify-content:space-between; gap:var(--space-200); color:var(--text-main); background:radial-gradient(circle at 12% 10%,color-mix(in srgb,var(--accent-color) 25%,transparent),transparent 40%),linear-gradient(145deg,color-mix(in srgb,var(--accent-color) 13%,var(--bg-card)),var(--bg-main)); border-inline-end:1px solid var(--border-color); }
+.auth-brand-head { display:flex; flex-direction:column; align-items:flex-start; gap:var(--space-125); }
 .auth-logo-frame { width:9rem; height:9rem; display:flex; align-items:center; justify-content:center; padding:.45rem; overflow:hidden; border:1px solid #dce7ed; border-radius:var(--radius-165); background:#fbfdff; box-shadow:0 12px 32px rgba(2,20,35,.18); }
 .auth-logo-frame img { display:block; width:100%; height:100%; object-fit:contain; }
 .auth-brand-overline { color:var(--accent-color); font-size:.72rem; font-weight:900; letter-spacing:.04em; }
 .auth-brand-copy h1 { margin-top:.15rem; font-size:clamp(1.8rem,4vw,2.35rem); line-height:1.2; font-weight:900; letter-spacing:.02em; }
 .auth-brand-description { max-width:22rem; margin-top:.55rem; color:var(--text-muted); font-size:.9rem; line-height:1.9; }
-.auth-brand-benefits { display:grid; gap:.75rem; }
-.auth-brand-benefits p { display:flex; align-items:center; gap:.65rem; color:var(--text-muted); font-size:.78rem; }
+.auth-brand-benefits { display:grid; gap:var(--space-75); }
+.auth-brand-benefits p { display:flex; align-items:center; gap:var(--space-65); color:var(--text-muted); font-size:.78rem; }
 .auth-brand-benefits i { width:1.8rem; height:1.8rem; display:grid; place-items:center; border:1px solid color-mix(in srgb,var(--accent-color) 34%,transparent); border-radius:var(--radius-65); color:var(--accent-color); background:color-mix(in srgb,var(--accent-color) 10%,transparent); }
-.auth-brand-footer { display:grid; gap:.8rem; }
+.auth-brand-footer { display:grid; gap:var(--space-80); }
 .auth-trust-note { display:flex; align-items:center; gap:var(--space-50); color:var(--text-muted); font-size:.72rem; line-height:1.7; }
 .auth-trust-note i { color:var(--accent-color); }
 .auth-rights { color:var(--text-muted); font-size:.62rem; line-height:1.8; }
@@ -677,11 +696,11 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 .auth-form-heading h2 { margin-top:.45rem; font-size:clamp(1.4rem,3vw,1.8rem); font-weight:900; line-height:1.4; }
 .auth-form-heading > p:last-child { margin-top:.35rem; color:var(--text-muted); font-size:.78rem; line-height:1.8; }
 .auth-section-label { margin-bottom:.55rem; color:var(--text-muted); font-size:.75rem; font-weight:800; }
-.auth-mode-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem; }
-.auth-mode-button { min-width:0; min-height:3.25rem; display:flex; align-items:center; justify-content:center; gap:.55rem; padding:.7rem .65rem; border:1px solid var(--border-color); border-radius:var(--radius-90); background:var(--bg-input); color:var(--text-muted); font-size:.78rem; font-weight:900; transition:background .18s,border-color .18s,color .18s,transform .18s; }
+.auth-mode-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-55); }
+.auth-mode-button { min-width:0; min-height:3.25rem; display:flex; align-items:center; justify-content:center; gap:var(--space-55); padding:.7rem .65rem; border:1px solid var(--border-color); border-radius:var(--radius-90); background:var(--bg-input); color:var(--text-muted); font-size:.78rem; font-weight:900; transition:background .18s,border-color .18s,color .18s,transform .18s; }
 .auth-mode-button[aria-pressed="true"] { border-color:var(--accent-color); background:color-mix(in srgb,var(--accent-color) 15%,var(--bg-input)); color:var(--text-main); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent-color) 32%,transparent); }
 .auth-mode-button i { color:var(--accent-color); }
-.auth-login-form { display:grid; gap:1rem; margin-top:1.25rem; }
+.auth-login-form { display:grid; gap:var(--space-100); margin-top:1.25rem; }
 .auth-field { display:grid; gap:var(--space-45); min-width:0; }
 .auth-field label { color:var(--text-main); font-size:.74rem; font-weight:800; }
 .auth-field input { min-height:3.15rem; border-radius:var(--radius-90); }
@@ -700,8 +719,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 @media (max-width:700px) {
   #pinLockModal { padding:.5rem; }
   #pinLockModal > .auth-shell { grid-template-columns:minmax(0,1fr); max-width:31rem; max-height:calc(100dvh - 1rem); border-radius:var(--radius-135); }
-  .auth-brand-panel { order:1; min-height:0; padding:.9rem 1rem; display:grid; grid-template-columns:minmax(0,1fr); gap:.55rem; border-inline-end:0; border-bottom:1px solid var(--border-color); }
-  .auth-brand-head { flex-direction:row; align-items:center; gap:.85rem; }
+  .auth-brand-panel { order:1; min-height:0; padding:.9rem 1rem; display:grid; grid-template-columns:minmax(0,1fr); gap:var(--space-55); border-inline-end:0; border-bottom:1px solid var(--border-color); }
+  .auth-brand-head { flex-direction:row; align-items:center; gap:var(--space-85); }
   .auth-logo-frame { width:4.8rem; height:4.8rem; flex:0 0 auto; padding:.22rem; border-radius:var(--radius-lg); }
   .auth-brand-overline { font-size:.61rem; }
   .auth-brand-copy h1 { font-size:1.45rem; }
@@ -712,7 +731,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   .auth-login-panel { order:2; padding:1rem 1.15rem 1.2rem; }
   .auth-form-heading { margin-bottom:1rem; }
   .auth-form-heading h2 { margin-top:.2rem; font-size:1.35rem; }
-  .auth-login-form { gap:.8rem; margin-top:1rem; }
+  .auth-login-form { gap:var(--space-80); margin-top:1rem; }
   .auth-field input { min-height:2.9rem; }
   .auth-mode-button { min-height:2.9rem; font-size:.72rem; }
   .auth-security-note { margin-top:.7rem; }
@@ -755,7 +774,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   display:flex;
   flex-direction:column;
   justify-content:space-between;
-  gap:2rem;
+  gap:var(--space-200);
   padding:clamp(1.5rem,3.2vw,3rem);
   overflow:hidden;
   border:0;
@@ -780,7 +799,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   display:flex;
   flex-direction:column;
   align-items:center;
-  gap:1rem;
+  gap:var(--space-100);
   text-align:center;
 }
 #pinLockModal .auth-logo-frame {
@@ -799,7 +818,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   display:flex;
   align-items:baseline;
   justify-content:center;
-  gap:.65rem;
+  gap:var(--space-65);
   color:#f0c56d;
   font-family:Georgia,serif;
   font-size:clamp(1.8rem,3vw,2.5rem);
@@ -808,14 +827,14 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #pinLockModal .auth-brand-copy h1 span { color:#e5e7eb;font-size:.72em;letter-spacing:.12em; }
 #pinLockModal .auth-brand-description { color:#c5d5d9;max-width:24rem; }
-#pinLockModal .auth-brand-benefits { gap:.65rem; }
+#pinLockModal .auth-brand-benefits { gap:var(--space-65); }
 #pinLockModal .auth-brand-benefits p { color:#e0e9e9;font-size:.8rem; }
 #pinLockModal .auth-brand-benefits i {
   color:#e8bd63;
   border-color:rgba(220,174,86,.32);
   background:rgba(220,174,86,.08);
 }
-#pinLockModal .auth-brand-footer { gap:.75rem; }
+#pinLockModal .auth-brand-footer { gap:var(--space-75); }
 #pinLockModal .auth-trust-note { color:#c5d5d9; }
 #pinLockModal .auth-trust-note i { color:#27c2cb; }
 #pinLockModal .auth-rights { color:#90a5ac; }
@@ -882,7 +901,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     overflow-y:auto;
   }
   #pinLockModal .auth-brand-panel { order:1;padding:.9rem 1rem .8rem;gap:var(--space-40); }
-  #pinLockModal .auth-brand-head { flex-direction:row;justify-content:flex-start;gap:.8rem;text-align:right; }
+  #pinLockModal .auth-brand-head { flex-direction:row;justify-content:flex-start;gap:var(--space-80);text-align:right; }
   #pinLockModal .auth-logo-frame { width:6.25rem;height:6.25rem;flex:0 0 6.25rem;border-radius:var(--radius-85); }
   #pinLockModal .auth-brand-copy { min-width:0; }
   #pinLockModal .auth-brand-copy h1 { justify-content:flex-start;font-size:1.5rem; }
@@ -893,7 +912,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   #pinLockModal .auth-login-panel { order:2;padding:1.1rem 1.15rem 1.3rem; }
   #pinLockModal .auth-form-heading { margin-bottom:.9rem; }
   #pinLockModal .auth-form-heading h2 { font-size:1.4rem; }
-  #pinLockModal .auth-login-form { gap:.8rem; }
+  #pinLockModal .auth-login-form { gap:var(--space-80); }
 }
 @media (max-width:360px) {
   #pinLockModal .auth-logo-frame { width:5rem;height:5rem;flex-basis:5rem; }
@@ -927,10 +946,10 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 @media (min-width:701px) {
   #pinLockModal .auth-brand-panel {
     justify-content:center;
-    gap:1.6rem;
+    gap:var(--space-160);
     padding:clamp(1.25rem,2.2vw,2rem);
   }
-  #pinLockModal .auth-brand-head { gap:.8rem; }
+  #pinLockModal .auth-brand-head { gap:var(--space-80); }
   #pinLockModal .auth-logo-frame {
     width:min(100%,15rem);
     aspect-ratio:1;
@@ -1029,7 +1048,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: clamp(.75rem, 2vw, 1.5rem);
+    gap: clamp(var(--space-75), 2vw, var(--space-150));
     min-height: 5rem;
     padding: .85rem clamp(1rem, 2.4vw, 1.75rem);
     color: #f2fbfa;
@@ -1050,7 +1069,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-brand-lockup {
     display: flex;
     align-items: center;
-    gap: .7rem;
+    gap: var(--space-70);
     min-width: 0;
 }
 #settingsModal .settings-brand-mark {
@@ -1137,7 +1156,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-sidebar {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--space-100);
     min-height: 0;
     padding: 1.15rem .95rem;
     overflow-y: auto;
@@ -1151,7 +1170,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-profile {
     display: flex;
     align-items: center;
-    gap: .75rem;
+    gap: var(--space-75);
     padding: .85rem;
     border: 1px solid color-mix(in srgb, var(--settings-accent) 24%, var(--settings-line));
     border-radius: var(--radius-lg);
@@ -1229,7 +1248,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     position: relative;
     display: flex;
     align-items: center;
-    gap: .65rem;
+    gap: var(--space-65);
     width: 100%;
     padding: .55rem .6rem;
     border: 1px solid transparent;
@@ -1323,7 +1342,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--space-100);
     padding: clamp(1rem, 2.4vw, 1.6rem);
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -1333,7 +1352,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1.5rem;
+    gap: var(--space-150);
     padding: clamp(1rem, 2.4vw, 1.6rem);
     overflow: hidden;
     border: 1px solid color-mix(in srgb, var(--settings-accent) 30%, transparent);
@@ -1390,7 +1409,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     flex: 0 0 auto;
     display: grid;
     grid-template-columns: repeat(3, minmax(4.6rem, 1fr));
-    gap: .55rem;
+    gap: var(--space-55);
 }
 #settingsModal .settings-hero-stats > div {
     display: flex;
@@ -1428,7 +1447,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-card-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: .75rem;
+    gap: var(--space-75);
     padding-bottom: .25rem;
 }
 #settingsModal .settings-card {
@@ -1437,7 +1456,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     isolation: isolate;
     display: flex;
     align-items: center;
-    gap: .8rem;
+    gap: var(--space-80);
     min-width: 0;
     min-height: 6.4rem;
     padding: .95rem 1rem;
@@ -1555,7 +1574,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     flex: 0 0 auto;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: var(--space-100);
     padding: .9rem clamp(1rem, 2.4vw, 1.6rem);
     border-bottom: 1px solid var(--settings-line);
     background: color-mix(in srgb, var(--settings-surface) 88%, transparent);
@@ -1583,7 +1602,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-section-toolbar-copy {
     display: flex;
     align-items: center;
-    gap: .65rem;
+    gap: var(--space-65);
     min-width: 0;
 }
 #settingsModal .settings-section-toolbar-icon {
@@ -1610,7 +1629,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-panel {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--space-100);
     width: 100%;
     max-width: 72rem;
     margin-inline: auto;
@@ -1619,7 +1638,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-section-heading {
     display: flex;
     align-items: center;
-    gap: .85rem;
+    gap: var(--space-85);
     padding: 1rem 1.1rem;
     border: 1px solid color-mix(in srgb, var(--settings-accent) 22%, var(--settings-line));
     border-radius: var(--radius-lg);
@@ -1655,7 +1674,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-subsection {
     display: flex;
     flex-direction: column;
-    gap: .85rem;
+    gap: var(--space-85);
     min-width: 0;
     padding: 1rem;
     border: 1px solid var(--settings-line);
@@ -1665,7 +1684,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-subsection-heading {
     display: flex;
     align-items: center;
-    gap: .7rem;
+    gap: var(--space-70);
     min-width: 0;
 }
 #settingsModal .settings-subsection-icon {
@@ -1694,7 +1713,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-fields-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: .75rem 1rem;
+    gap: var(--space-75) var(--space-100);
     min-width: 0;
 }
 #settingsModal .settings-field {
@@ -1803,12 +1822,12 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
-    gap: .8rem;
+    gap: var(--space-80);
 }
 #settingsModal .settings-payment-card {
     display: flex;
     flex-direction: column;
-    gap: .9rem;
+    gap: var(--space-90);
     min-width: 0;
     padding: 1rem;
     border: 1px solid var(--settings-line);
@@ -1826,7 +1845,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-payment-toggle {
     display: flex;
     align-items: center;
-    gap: .65rem;
+    gap: var(--space-65);
     min-width: 0;
     cursor: pointer;
 }
@@ -1900,7 +1919,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-payment-details {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: .7rem .9rem;
+    gap: var(--space-70) var(--space-90);
 }
 #settingsModal .settings-payment-details .settings-field-full {
     grid-column: 1 / -1;
@@ -1914,7 +1933,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-subscription-summary {
     display: flex;
     flex-direction: column;
-    gap: .7rem;
+    gap: var(--space-70);
     padding: .95rem 1.05rem;
     border: 1px solid color-mix(in srgb, var(--settings-accent) 26%, var(--settings-line));
     border-radius: var(--radius-lg);
@@ -1925,7 +1944,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-subscription-summary-title {
     display: flex;
     align-items: center;
-    gap: .55rem;
+    gap: var(--space-55);
 }
 #settingsModal .settings-subscription-summary-icon {
     display: grid;
@@ -1960,7 +1979,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-brand-preview {
     display: flex;
     flex-direction: column;
-    gap: .8rem;
+    gap: var(--space-80);
     padding: 1rem;
     border: 1px solid color-mix(in srgb, var(--settings-gold) 28%, var(--settings-line));
     border-radius: var(--radius-lg);
@@ -1972,7 +1991,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: .75rem;
+    gap: var(--space-75);
     flex-wrap: wrap;
 }
 #settingsModal .settings-brand-preview-heading h5 {
@@ -1999,14 +2018,14 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-brand-preview-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-    gap: .7rem;
+    gap: var(--space-70);
 }
 #settingsModal .settings-brand-preview-card {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: .55rem;
+    gap: var(--space-55);
     min-height: 9rem;
     padding: .85rem;
     border: 1px solid rgba(148, 163, 184, .2);
@@ -2042,7 +2061,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: .75rem;
+    gap: var(--space-75);
     padding: .6rem .8rem;
     border-radius: var(--radius-70);
     color: var(--settings-muted);
@@ -2056,7 +2075,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .theme-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: .6rem;
+    gap: var(--space-60);
 }
 #settingsModal .theme-option {
     position: relative;
@@ -2144,7 +2163,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-backup-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: .8rem;
+    gap: var(--space-80);
 }
 #settingsModal .settings-info-card-title-split {
     justify-content: space-between;
@@ -2213,7 +2232,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-preview-head {
     display: flex;
     align-items: center;
-    gap: .55rem;
+    gap: var(--space-55);
     padding: .75rem .9rem;
     border-bottom: 1px solid var(--settings-line);
     background: color-mix(in srgb, var(--settings-accent) 7%, transparent);
@@ -2284,7 +2303,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-account-card {
     display: flex;
     align-items: center;
-    gap: .9rem;
+    gap: var(--space-90);
     padding: 1rem;
     border: 1px solid var(--settings-line);
     border-radius: var(--radius-lg);
@@ -2304,7 +2323,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-account-rows {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: .75rem 1.5rem;
+    gap: var(--space-75) var(--space-150);
     flex: 1 1 auto;
     min-width: 0;
 }
@@ -2329,7 +2348,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-account-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: .6rem;
+    gap: var(--space-60);
 }
 #settingsModal .settings-owner-summary {
     color: var(--settings-muted);
@@ -2349,7 +2368,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: .75rem;
+    gap: var(--space-75);
     padding: .7rem .8rem;
     border: 1px solid var(--settings-line);
     border-radius: var(--radius-75);
@@ -2389,7 +2408,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: var(--space-100);
     padding: .8rem clamp(1rem, 2.4vw, 1.6rem);
     border-top: 1px solid var(--settings-line);
     background: color-mix(in srgb, var(--settings-surface) 92%, transparent);
@@ -2409,7 +2428,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-footer-actions {
     display: flex;
     align-items: center;
-    gap: .55rem;
+    gap: var(--space-55);
     flex: 0 0 auto;
 }
 #settingsModal .settings-secondary-button {
@@ -2570,11 +2589,11 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
         height: 2.35rem;
     }
     #settingsModal .settings-overview {
-        gap: .8rem;
+        gap: var(--space-80);
         padding: .8rem .7rem 1rem;
     }
     #settingsModal .settings-hero {
-        gap: .8rem;
+        gap: var(--space-80);
         padding: .85rem;
     }
     #settingsModal .settings-hero-copy p { font-size: .7rem; }
@@ -2588,7 +2607,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
         grid-template-columns: repeat(2, minmax(0, 1fr));
         grid-template-rows: repeat(4, minmax(6.4rem, 1fr));
         flex: 1 1 auto;
-        gap: .55rem;
+        gap: var(--space-55);
     }
     #settingsModal .settings-card {
         flex-direction: column;
@@ -2608,7 +2627,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     #settingsModal .settings-card-arrow { display: none; }
     #settingsModal .settings-section-toolbar {
         flex-wrap: wrap;
-        gap: .55rem;
+        gap: var(--space-55);
         padding: .7rem .8rem;
     }
     #settingsModal .settings-back-button {
@@ -2623,11 +2642,11 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
         height: 2rem;
     }
     #settingsModal .settings-panel {
-        gap: .8rem;
+        gap: var(--space-80);
         padding: .8rem .75rem 1.2rem;
     }
     #settingsModal .settings-section-heading {
-        gap: .6rem;
+        gap: var(--space-60);
         padding: .8rem;
     }
     #settingsModal .settings-section-heading p { font-size: .64rem; }
@@ -2736,13 +2755,13 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: grid;
     grid-template-columns: minmax(0, 1.6fr) minmax(14.5rem, .9fr);
     align-items: start;
-    gap: .9rem;
+    gap: var(--space-90);
     min-width: 0;
 }
 #settingsModal .settings-workspace-main {
     display: flex;
     flex-direction: column;
-    gap: .8rem;
+    gap: var(--space-80);
     min-width: 0;
 }
 #settingsModal .settings-workspace-aside {
@@ -2750,7 +2769,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     top: 4.9rem;
     display: flex;
     flex-direction: column;
-    gap: .7rem;
+    gap: var(--space-70);
     align-self: start;
     min-width: 0;
 }
@@ -2797,7 +2816,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: .55rem;
+    gap: var(--space-55);
     overflow: hidden;
     padding: 1rem;
     border: 1px solid color-mix(in srgb, var(--settings-accent) 38%, transparent);
@@ -2822,7 +2841,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-live-head {
     display: flex;
     align-items: center;
-    gap: .55rem;
+    gap: var(--space-55);
     min-width: 0;
 }
 #settingsModal .settings-live-icon {
@@ -2971,7 +2990,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-method-head {
     display: flex;
     align-items: center;
-    gap: .6rem;
+    gap: var(--space-60);
     min-width: 0;
 }
 #settingsModal .settings-method-copy {
@@ -3055,7 +3074,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     position: relative;
     display: flex;
     align-items: flex-start;
-    gap: .55rem;
+    gap: var(--space-55);
     padding-bottom: .75rem;
 }
 #settingsModal .settings-rule-step::before {
@@ -3156,7 +3175,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 1rem;
+    gap: var(--space-100);
     padding: 1rem 1.1rem;
     border: 1px solid rgba(46, 168, 121, .32);
     border-radius: var(--radius-lg);
@@ -3293,7 +3312,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-phone {
     display: flex;
     flex-direction: column;
-    gap: .55rem;
+    gap: var(--space-55);
     padding: .8rem;
 }
 #settingsModal .settings-phone-bar {
@@ -3399,7 +3418,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: var(--space-100);
     padding: 1rem;
     border: 1px solid var(--settings-line);
     border-radius: var(--radius-lg);
@@ -3408,7 +3427,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-session-copy {
     display: flex;
     align-items: flex-start;
-    gap: .7rem;
+    gap: var(--space-70);
     flex: 1 1 18rem;
     min-width: 0;
 }
@@ -3484,7 +3503,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
         margin-inline-start: 0;
     }
     #settingsModal .settings-workspace {
-        gap: .7rem;
+        gap: var(--space-70);
     }
     #settingsModal .settings-live-card {
         padding: .85rem;
@@ -3671,7 +3690,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: .6rem;
+    gap: var(--space-60);
     padding: .9rem;
     overscroll-behavior: contain;
 }
@@ -3708,7 +3727,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    gap: .65rem;
+    gap: var(--space-65);
     padding: .25rem 0;
     border-bottom: 1px dashed color-mix(in srgb, var(--border-color) 70%, transparent);
 }
