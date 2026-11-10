@@ -250,6 +250,38 @@ test('z-index layering tokens resolve consistently across themes and print', asy
     }
 });
 
+test('opacity transparency tokens resolve consistently across themes and print', async ({ page }) => {
+    await openReports(page);
+    const expected = {
+        '#settingsModal .settings-card-arrow': 0.6,
+        '#settingsModal .theme-preview i:nth-child(2)': 0.55,
+        '#settingsModal .theme-preview i:first-child': 1
+    };
+    const readOpacities = () => page.evaluate(map => {
+        const values = {};
+        for (const selector of Object.keys(map)) {
+            const element = document.querySelector(selector);
+            if (!element) continue;
+            values[selector] = parseFloat(getComputedStyle(element).opacity);
+        }
+        return values;
+    }, expected);
+    const check = async () => {
+        const values = await readOpacities();
+        const selectors = Object.keys(values);
+        expect(selectors.length).toBeGreaterThanOrEqual(3);
+        for (const selector of selectors) {
+            expect(values[selector]).toBeCloseTo(expected[selector], 2);
+        }
+    };
+    for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise']) {
+        await page.evaluate(value => applyThemeToDocument(value), theme);
+        await check();
+    }
+    await page.emulateMedia({ media: 'print' });
+    await check();
+});
+
 test('the tab opens on the icon grid and a card opens its report full page', async ({ page }) => {
     await openReports(page);
     await expect(page.locator('.report-section-head')).toBeVisible();

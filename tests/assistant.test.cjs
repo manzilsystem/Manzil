@@ -223,7 +223,7 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(css, /\.assistant-fab \{/);
     assert.match(css, /\.assistant-fab\.is-hidden \{/);
     assert.match(css, /\.assistant-fab\.is-compact \{/);
-    assert.match(css, /\.assistant-fab\.is-compact \.assistant-fab-label \{ max-width: 0; opacity: 0; \}/, 'scrolling shrinks the label instead of the button');
+    assert.match(css, /\.assistant-fab\.is-compact \.assistant-fab-label \{ max-width: 0; opacity: var\(--opacity-0\); \}/, 'scrolling shrinks the label instead of the button');
     assert.match(css, /\.assistant-avatar-frame img \{[\s\S]*transform: scale\(1\.7\);[\s\S]*transform-origin: 50% 28%;/, 'the padded avatar is framed so the turban stays inside the circle');
     assert.match(assistantSource, /applyAssistantFabState\(false, assistantFabCompactByScroll\)/, 'scroll state only compacts the launcher');
     assert.doesNotMatch(assistantSource, /assistantFabHiddenByScroll/, 'scrolling must never hide the launcher again');
