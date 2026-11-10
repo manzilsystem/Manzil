@@ -233,14 +233,14 @@ function findManagerReceipt(incomeId) {
 function buildManagerReceiptPreview(receipt, resident) {
     const detailRows = receipt.payments.map(payment => `
         <div class="rounded-xl border border-slate-700/50 p-2 space-y-0.5">
-            <div class="flex justify-between gap-2 text-[11px] font-bold"><span>${esc(ownerPaymentPurposeLabel(payment))}</span><span class="text-emerald-400">${fmtNum(payment.amount)} ج.م</span></div>
+            <div class="flex justify-between gap-2 text-xs font-bold"><span>${esc(ownerPaymentPurposeLabel(payment))}</span><span class="text-emerald-400">${fmtNum(payment.amount)} ج.م</span></div>
             <p class="text-xs text-slate-500">${esc(payment.month || '—')} · ${esc(ownerPaymentCashLabel(payment) || '—')}</p>
         </div>`).join('');
     const notes = receiptNotesForPayments(receipt.payments);
     const thankYou = typeof getReceiptThankYouMessage === 'function'
         ? getReceiptThankYouMessage()
         : 'شكراً لالتزامكم، ونسعد دائماً بخدمتكم.';
-    const field = (label, value) => `<div class="app-input border rounded-xl p-2"><p class="text-xs text-slate-500">${esc(label)}</p><p class="mt-1 text-[11px] font-bold">${esc(value)}</p></div>`;
+    const field = (label, value) => `<div class="app-input border rounded-xl p-2"><p class="text-xs text-slate-500">${esc(label)}</p><p class="mt-1 text-xs font-bold">${esc(value)}</p></div>`;
     return `
         <div class="flex items-start justify-between gap-3 border-b border-slate-700/60 pb-3">
             <div><p class="text-sm font-bold">${esc(state.buildingName || 'Manzil')}</p><p class="text-xs text-slate-400 mt-1">رقم الإيصال: ${esc(receipt.reference)}</p></div>
@@ -255,7 +255,7 @@ function buildManagerReceiptPreview(receipt, resident) {
             ${field('الصندوق', receipt.cashboxSummary || '—')}
         </div>
         <div class="space-y-1.5">${detailRows}</div>
-        ${notes.length ? `<div class="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-2 space-y-1"><p class="text-xs font-bold text-indigo-300">ملاحظات الدفع</p>${notes.map(note => `<p class="text-[11px] text-slate-300">${esc(note)}</p>`).join('')}</div>` : ''}
+        ${notes.length ? `<div class="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-2 space-y-1"><p class="text-xs font-bold text-indigo-300">ملاحظات الدفع</p>${notes.map(note => `<p class="text-xs text-slate-300">${esc(note)}</p>`).join('')}</div>` : ''}
         <div class="flex justify-between gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-xs font-black text-emerald-300"><span>إجمالي المبلغ المستلم</span><span>${fmtNum(receipt.totalAmount)} ج.م</span></div>
         <p class="text-xs text-slate-500 leading-5">${esc(thankYou)}<br>تم إصدار هذا الإيصال من لوحة إدارة Manzil.</p>`;
 }
@@ -578,7 +578,7 @@ function renderOwnerPortal() {
             }
             return `<div class="app-input border rounded-xl p-3 space-y-1">
                 <p class="text-xs font-bold">${esc(label)}</p>
-                ${details.length ? details.map(item => `<p class="text-[11px] text-slate-400 break-words">${esc(item)}</p>`).join('') : '<p class="text-[11px] text-slate-500">يرجى التواصل مع المدير للحصول على بيانات الاستلام.</p>'}
+                ${details.length ? details.map(item => `<p class="text-xs text-slate-400 break-words">${esc(item)}</p>`).join('') : '<p class="text-xs text-slate-500">يرجى التواصل مع المدير للحصول على بيانات الاستلام.</p>'}
             </div>`;
         }).join('');
     const subscriptionDueDay = Math.min(28, Math.max(1, Number(state.subscriptionDueDay) || 1));
@@ -680,7 +680,7 @@ function renderOwnerPortal() {
             <p class="text-xs leading-relaxed whitespace-pre-line">${esc(notification.body)}</p>
             <div class="flex items-center justify-between gap-2">
                 <span class="text-xs text-slate-500">${formatDate(notification.createdAt)}</span>
-                ${notification.readAt ? '' : `<button type="button" onclick="markOwnerNotificationRead('${esc(notification.id)}')" class="inline-flex items-center min-h-11 px-3 text-[11px] text-indigo-300 font-bold">تحديد كمقروء</button>`}
+                ${notification.readAt ? '' : `<button type="button" onclick="markOwnerNotificationRead('${esc(notification.id)}')" class="inline-flex items-center min-h-11 px-3 text-xs text-indigo-300 font-bold">تحديد كمقروء</button>`}
             </div>
         </article>`).join('') : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إشعارات حتى الآن.</p>';
 
@@ -721,7 +721,7 @@ function renderOwnerPortal() {
                     <h3 id="ownerNotificationsTitle" class="font-bold text-sm">إشعارات حسابك</h3>
                     <p class="text-xs text-slate-500 mt-1">${unreadNotifications.length} إشعار غير مقروء</p>
                 </div>
-                ${unreadNotifications.length ? '<button type="button" onclick="markAllOwnerNotificationsRead()" class="inline-flex items-center min-h-11 px-3 text-[11px] text-indigo-300 font-bold">قراءة الكل</button>' : ''}
+                ${unreadNotifications.length ? '<button type="button" onclick="markAllOwnerNotificationsRead()" class="inline-flex items-center min-h-11 px-3 text-xs text-indigo-300 font-bold">قراءة الكل</button>' : ''}
             </div>
             <div class="space-y-2">${notificationRows}</div>
         </section>
@@ -894,8 +894,8 @@ function renderManagerNotifications() {
     }
     menu.innerHTML = `
         <div class="flex items-center justify-between gap-3 px-1 pb-2">
-            <span class="text-[11px] font-bold">الإشعارات${unread ? ` · ${fmtNum(unread)} جديد` : ''}</span>
-            ${unread ? '<button type="button" onclick="markAllManagerNotificationsRead()" class="text-[11px] text-indigo-300 font-bold">قراءة الكل</button>' : ''}
+            <span class="text-xs font-bold">الإشعارات${unread ? ` · ${fmtNum(unread)} جديد` : ''}</span>
+            ${unread ? '<button type="button" onclick="markAllManagerNotificationsRead()" class="text-xs text-indigo-300 font-bold">قراءة الكل</button>' : ''}
         </div>
         ${list.map(notification => `
             <button type="button" class="manager-notification-row block w-full text-right" onclick="openManagerNotification('${esc(notification.id)}')">
@@ -903,7 +903,7 @@ function renderManagerNotifications() {
                     <span class="text-xs font-bold">${esc(notification.title)}</span>
                     ${notification.readAt ? '' : '<span class="text-xs text-indigo-300 font-bold shrink-0">جديد</span>'}
                 </span>
-                <span class="block text-[11px] text-slate-400 mt-1 whitespace-pre-line">${esc(notification.body)}</span>
+                <span class="block text-xs text-slate-400 mt-1 whitespace-pre-line">${esc(notification.body)}</span>
                 <span class="block text-xs text-slate-500 mt-1">${formatDate(notification.createdAt)}</span>
             </button>`).join('')}`;
 }

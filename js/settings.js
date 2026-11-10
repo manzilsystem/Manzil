@@ -220,8 +220,8 @@ function renderSettingsOwnerAccess() {
             : '';
         return `<article class="settings-owner-row">
             <div class="min-w-0"><b>شقة ${esc(resident.apartmentNumber || '—')} · ${esc(resident.name || '—')}</b>
-                <p class="text-[11px] text-slate-500" dir="auto">${esc(resident.phone || '—')}</p>
-                <p class="text-[11px] font-bold ${statusClass}">${status}</p>
+                <p class="text-xs text-slate-500" dir="auto">${esc(resident.phone || '—')}</p>
+                <p class="text-xs font-bold ${statusClass}">${status}</p>
             </div>
             <div class="settings-owner-actions">${provisionButton}
                 <button type="button" class="settings-owner-action secondary" onclick="editResident('${esc(resident.id)}')">تعديل الشقة</button>

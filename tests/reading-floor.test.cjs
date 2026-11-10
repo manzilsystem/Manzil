@@ -19,7 +19,7 @@ test('financial list and card rows keep a 12px reading floor', () => {
     const lists = read('js/render.js');
     assert.doesNotMatch(
         lists,
-        /text-\[(9|10)px\]/,
+        /text-\[(9|10|11)px\]/,
         'list/card informational text in js/render.js must not fall below the 12px reading floor (use text-xs)'
     );
 });
@@ -37,7 +37,7 @@ test('cashbox and header informational text keeps a 12px reading floor', () => {
 test('owner access portal informational text keeps a 12px reading floor', () => {
     assert.doesNotMatch(
         read('js/access.js'),
-        /text-\[(9|10)px\]/,
+        /text-\[(9|10|11)px\]/,
         'informational text in js/access.js must not fall below the 12px reading floor (use text-xs)'
     );
 });
@@ -45,9 +45,19 @@ test('owner access portal informational text keeps a 12px reading floor', () => 
 test('resident, income and expense form informational text keeps a 12px reading floor', () => {
     assert.doesNotMatch(
         read('js/crud.js'),
-        /text-\[(9|10)px\]/,
+        /text-\[(9|10|11)px\]/,
         'informational text in js/crud.js must not fall below the 12px reading floor (use text-xs)'
     );
+});
+
+test('monthly close and settings informational text keeps a 12px reading floor', () => {
+    for (const file of ['js/monthly-close.js', 'js/settings.js']) {
+        assert.doesNotMatch(
+            read(file),
+            /text-\[(9|10|11)px\]/,
+            `informational text in ${file} must not fall below the 12px reading floor (use text-xs)`
+        );
+    }
 });
 
 test('modal, wizard and settings informational text keeps a 12px reading floor', () => {

@@ -1946,7 +1946,7 @@ function renderIncomeMonthsGrid(resident) {
     if (!grid) return;
     if (!resident) {
         incomeSelectedMonths.clear();
-        grid.innerHTML = '<p class="text-[11px] text-slate-500">اختر الشقة أولًا لعرض الشهور.</p>';
+        grid.innerHTML = '<p class="text-xs text-slate-500">اختر الشقة أولًا لعرض الشهور.</p>';
         return;
     }
     const labels = typeof getIncomeCollectionMonthLabels === 'function'
@@ -1971,7 +1971,7 @@ function renderIncomeMonthsGrid(resident) {
         const due = settlement ? Number(settlement.amount) || 0 : getSubscriptionAmountForMonth(resident, month);
         const paid = settlement && typeof getSettlementPaidAmount === 'function'
             ? getSettlementPaidAmount(settlement.id) : getPaidAmountForMonth(resident.id, month);
-        return `<label class="income-month-row flex items-start gap-2 rounded-xl border px-2.5 py-2 text-[11px] ${info.disabled ? 'border-slate-800/60 opacity-60' : 'border-slate-700/60'}">
+        return `<label class="income-month-row flex items-start gap-2 rounded-xl border px-2.5 py-2 text-xs ${info.disabled ? 'border-slate-800/60 opacity-60' : 'border-slate-700/60'}">
             <input type="checkbox" data-income-month="${crudHtmlEscape(month)}" ${checked ? 'checked' : ''} ${info.disabled ? 'disabled' : ''} onchange="handleIncomeMonthToggle(this)" aria-label="${crudHtmlEscape(`${month} ${info.status}`)}" class="mt-0.5 h-4 w-4 accent-emerald-500">
             <span class="flex-1 min-w-0">
                 <span class="font-bold">${crudHtmlEscape(month)}</span>
@@ -2353,18 +2353,18 @@ function previewIncomeAllocation() {
             ? crudIncomePurposeLabel(line.purpose)
             : 'غرض غير صالح';
         const validAmount = Number.isFinite(line.amount) && line.amount > 0;
-        return `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${esc(label)} · ${esc(crudCashAccountLabel(line.cashAccountCode))}</span><strong class="${validAmount ? 'text-emerald-400' : 'text-rose-400'}">${fmtNum(line.amount)} ج.م</strong></div>`;
+        return `<div class="flex justify-between gap-3 text-xs border-t border-slate-700/40 pt-1.5"><span>${esc(label)} · ${esc(crudCashAccountLabel(line.cashAccountCode))}</span><strong class="${validAmount ? 'text-emerald-400' : 'text-rose-400'}">${fmtNum(line.amount)} ج.م</strong></div>`;
     }).join('');
     const totalRowsHtml = hasExtras && extraValidation.valid
-        ? `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/60 pt-1.5"><span>إجمالي الدفعة</span><strong>${fmtNum(collectedCents / 100)} ج.م</strong></div>`
+        ? `<div class="flex justify-between gap-3 text-xs border-t border-slate-700/60 pt-1.5"><span>إجمالي الدفعة</span><strong>${fmtNum(collectedCents / 100)} ج.م</strong></div>`
         : '';
 
     const cashAccountCode = /** @type {any} */ (document.getElementById('incomeCashAccount'))?.value || 'main';
     const accountBalance = typeof getCashAccountBalance === 'function' ? getCashAccountBalance(cashAccountCode) : 0;
     const balanceAfter = accountBalance + (Number.isFinite(amount) ? amount : 0);
-    const cashRowsHtml = `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>رصيد ${esc(crudCashAccountLabel(cashAccountCode))} قبل التحصيل</span><strong>${fmtNum(accountBalance)} ج.م</strong></div>`
-        + `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${hasExtras ? 'الرصيد بعد إضافة البند الأساسي' : 'الرصيد بعد التحصيل'}</span><strong class="text-emerald-400">${fmtNum(balanceAfter)} ج.م</strong></div>`;
-    const notesRowHtml = `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>ملاحظات الدفع</span><strong class="text-left">${esc(notes || '—')}</strong></div>`;
+    const cashRowsHtml = `<div class="flex justify-between gap-3 text-xs border-t border-slate-700/40 pt-1.5"><span>رصيد ${esc(crudCashAccountLabel(cashAccountCode))} قبل التحصيل</span><strong>${fmtNum(accountBalance)} ج.م</strong></div>`
+        + `<div class="flex justify-between gap-3 text-xs border-t border-slate-700/40 pt-1.5"><span>${hasExtras ? 'الرصيد بعد إضافة البند الأساسي' : 'الرصيد بعد التحصيل'}</span><strong class="text-emerald-400">${fmtNum(balanceAfter)} ج.م</strong></div>`;
+    const notesRowHtml = `<div class="flex justify-between gap-3 text-xs border-t border-slate-700/40 pt-1.5"><span>ملاحظات الدفع</span><strong class="text-left">${esc(notes || '—')}</strong></div>`;
 
     if (isSettlement) {
         preview.classList.remove('hidden');
@@ -2380,11 +2380,11 @@ function previewIncomeAllocation() {
                     ? 'المبلغ أكبر من المتبقي في اتفاق التسوية (' + fmtNum(remaining) + ' ج.م).'
                     : 'سيتم تسجيل دفعة نقدية على اتفاق التسوية لشهر ' + month + '.';
         rows.innerHTML = settlement
-            ? `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>اتفاق التسوية</span><strong>${esc(month)} · ${esc(settlement.reason || '')}</strong></div>`
-                + `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>المبلغ المتفق عليه</span><strong>${fmtNum(settlement.amount)} ج.م</strong></div>`
-                + `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>المدفوع سابقًا</span><strong>${fmtNum(paid)} ج.م</strong></div>`
-                + `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>المتبقي بعد الدفعة</span><strong class="text-emerald-400">${fmtNum(Math.max(0, remaining - (Number.isFinite(amount) ? amount : 0)))} ج.م</strong></div>`
-                + `<div class="flex justify-between items-center gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`
+            ? `<div class="flex justify-between gap-3 text-xs border-t border-slate-700/40 pt-1.5"><span>اتفاق التسوية</span><strong>${esc(month)} · ${esc(settlement.reason || '')}</strong></div>`
+                + `<div class="flex justify-between gap-3 text-xs border-t border-slate-700/40 pt-1.5"><span>المبلغ المتفق عليه</span><strong>${fmtNum(settlement.amount)} ج.م</strong></div>`
+                + `<div class="flex justify-between gap-3 text-xs border-t border-slate-700/40 pt-1.5"><span>المدفوع سابقًا</span><strong>${fmtNum(paid)} ج.م</strong></div>`
+                + `<div class="flex justify-between gap-3 text-xs border-t border-slate-700/40 pt-1.5"><span>المتبقي بعد الدفعة</span><strong class="text-emerald-400">${fmtNum(Math.max(0, remaining - (Number.isFinite(amount) ? amount : 0)))} ج.م</strong></div>`
+                + `<div class="flex justify-between items-center gap-3 text-xs border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`
                 + cashRowsHtml + notesRowHtml
             : '';
         if (submit) submit.disabled = !validAmount;
@@ -2397,8 +2397,8 @@ function previewIncomeAllocation() {
         summary.textContent = hasExtras
             ? `بند أساسي «${crudIncomePurposeLabel(purpose)}» بمبلغ ${fmtNum(amount)} ج.م في ${crudCashAccountLabel(cashAccountCode)}، مع ${extraLines.length} بند إضافي. إجمالي الدفعة ${fmtNum(collectedCents / 100)} ج.م.`
             : `سيُسجل تحصيل «${crudIncomePurposeLabel(purpose)}» بمبلغ ${fmtNum(amount)} ج.م في ${crudCashAccountLabel(cashAccountCode)} دون توزيعه على أشهر الاشتراك.`;
-        rows.innerHTML = `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الغرض</span><strong>${esc(crudIncomePurposeLabel(purpose))}</strong></div>`
-            + `<div class="flex justify-between items-center gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`
+        rows.innerHTML = `<div class="flex justify-between gap-3 text-xs border-t border-slate-700/40 pt-1.5"><span>الغرض</span><strong>${esc(crudIncomePurposeLabel(purpose))}</strong></div>`
+            + `<div class="flex justify-between items-center gap-3 text-xs border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`
             + extraRowsHtml + cashRowsHtml + notesRowHtml + totalRowsHtml;
         if (submit) submit.disabled = hasExtras && !extraValidation.valid;
         return;
@@ -2428,7 +2428,7 @@ function previewIncomeAllocation() {
         return sum + (key && currentKey && key > currentKey ? item.amountCents : 0);
     }, 0);
     const debtAfter = Math.max(0, debtBefore - overduePaid);
-    const debtRowsHtml = `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${selectedMonthLate || overduePaid > 0 ? 'المتأخرات بعد الدفعة' : 'المتأخرات الحالية'}</span><strong class="${debtAfter > 0 ? 'text-amber-300' : 'text-emerald-400'}">${fmtNum(Math.max(0, debtAfter))} ج.م</strong></div>`;
+    const debtRowsHtml = `<div class="flex justify-between gap-3 text-xs border-t border-slate-700/40 pt-1.5"><span>${selectedMonthLate || overduePaid > 0 ? 'المتأخرات بعد الدفعة' : 'المتأخرات الحالية'}</span><strong class="${debtAfter > 0 ? 'text-amber-300' : 'text-emerald-400'}">${fmtNum(Math.max(0, debtAfter))} ج.م</strong></div>`;
     if (allocation.invalidStart) {
         summary.textContent = 'لا يمكن اختيار شهر قبل بداية محاسبة الشقة.';
         rows.innerHTML = '';
@@ -2445,7 +2445,7 @@ function previewIncomeAllocation() {
     }
 
     const prepaidRowsHtml = prepaidCents > 0
-        ? `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>منها دفعة مقدمة</span><strong class="text-sky-300">${fmtNum(prepaidCents / 100)} ج.م</strong></div>`
+        ? `<div class="flex justify-between gap-3 text-xs border-t border-slate-700/40 pt-1.5"><span>منها دفعة مقدمة</span><strong class="text-sky-300">${fmtNum(prepaidCents / 100)} ج.م</strong></div>`
         : '';
     summary.textContent = allocation.remainingCents > 0
         ? `تم توزيع ${fmtNum(allocation.totalAllocated)} من ${fmtNum(amount)} ج.م. المتبقي ${fmtNum(allocation.remainingAmount)} ج.م أكبر من المستحق في الشهور المختارة والشهور الـ12 التالية؛ قلّل المبلغ أو أضف شهورًا.`
@@ -2461,9 +2461,9 @@ function previewIncomeAllocation() {
             : future
                 ? ' <span class="text-sky-300">· دفعة مقدمة</span>'
                 : '';
-        return `<div class="flex justify-between gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>${esc(item.month)}${badge}</span><strong class="text-emerald-400">${fmtNum(item.amount)} ج.م</strong></div>`;
+        return `<div class="flex justify-between gap-3 text-xs border-t border-slate-700/40 pt-1.5"><span>${esc(item.month)}${badge}</span><strong class="text-emerald-400">${fmtNum(item.amount)} ج.م</strong></div>`;
     }).join('') + extraRowsHtml
-        + `<div class="flex justify-between items-center gap-3 text-[11px] border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`
+        + `<div class="flex justify-between items-center gap-3 text-xs border-t border-slate-700/40 pt-1.5"><span>الصندوق المستلم</span><strong class="cash-account-tag">${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`
         + cashRowsHtml + debtRowsHtml + prepaidRowsHtml + notesRowHtml + totalRowsHtml;
     if (submit) submit.disabled = allocation.remainingCents > 0 || (hasExtras && !extraValidation.valid);
 }

@@ -326,7 +326,7 @@ function renderExpenseBreakdown(period = getDashboardPeriod(), periodMonths = nu
     const total = entries.reduce((s,[,v]) => s+v, 0);
     c.innerHTML = entries.map(([k,v]) => {
         const pct = (v/total)*100;
-        return `<div><div class="flex justify-between text-[11px] mb-1"><span class="font-bold">${esc(k)}</span><span class="text-slate-400">${fmtNum(v)} ج.م (${pct.toFixed(0)}%)</span></div>
+        return `<div><div class="flex justify-between text-xs mb-1"><span class="font-bold">${esc(k)}</span><span class="text-slate-400">${fmtNum(v)} ج.م (${pct.toFixed(0)}%)</span></div>
         <div class="h-2 bg-slate-800 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-rose-500 to-amber-500 rounded-full" style="width:${pct}%"></div></div></div>`;
     }).join('');
 }
