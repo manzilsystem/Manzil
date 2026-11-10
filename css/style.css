@@ -42,6 +42,26 @@
     --radius-85: .85rem;
     --radius-90: .9rem;
     --radius-95: .95rem;
+    /* Canonical radius tail — the remaining corner radii, kept tokenised so that
+       no corner-radius declaration ever falls back to a raw literal. Same suffix
+       convention (value in hundredths of a rem); every value matches the literal
+       it replaced, so routing them introduces no visual change. --radius-none is
+       the explicit square corner (a zero radius). */
+    --radius-none: 0;
+    --radius-16: .16rem;
+    --radius-25: .25rem;
+    --radius-30: .3rem;
+    --radius-32: .32rem;
+    --radius-35: .35rem;
+    --radius-45: .45rem;
+    --radius-50: .5rem;
+    --radius-110: 1.1rem;
+    --radius-120: 1.2rem;
+    --radius-125: 1.25rem;
+    --radius-135: 1.35rem;
+    --radius-150: 1.5rem;
+    --radius-165: 1.65rem;
+    --radius-180: 1.8rem;
 }
 
 /* Per-theme token values are defined once in the canonical block for each theme
@@ -220,7 +240,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     .report-toolbar-split .report-field { grid-column: 1 / -1; }
 }
 .report-preview {
-    border: 1px solid var(--border-color); border-radius: 1.1rem;
+    border: 1px solid var(--border-color); border-radius: var(--radius-110);
     background: color-mix(in srgb, var(--bg-input) 88%, var(--bg-card));
     padding: .9rem;
 }
@@ -418,7 +438,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     .quick-action { min-height: 68px; padding-inline: .35rem; }
     [role="dialog"] { padding: .75rem; }
     [role="dialog"] > .app-card,
-    [role="dialog"] > form.app-card { max-height: calc(100dvh - 1.5rem); border-radius: 1.25rem; }
+    [role="dialog"] > form.app-card { max-height: calc(100dvh - 1.5rem); border-radius: var(--radius-125); }
     #pinLockModal > .auth-shell { grid-template-columns: minmax(0, 1fr); max-height: calc(100dvh - 1.5rem); }
     .auth-brand-panel { order: 2; min-height: 0; padding: 1.25rem; }
     .auth-login-panel { order: 1; }
@@ -571,7 +591,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     #incomeEditModal > .app-card,
     #expenseModal > .app-card {
         max-height:calc(100dvh - max(1rem,env(safe-area-inset-top)) - max(1rem,env(safe-area-inset-bottom)));
-        border-radius:1.25rem;
+        border-radius:var(--radius-125);
     }
 }
 .audit-log-row { display:flex; padding:.65rem .2rem; border-bottom:1px solid var(--border-color); }
@@ -601,7 +621,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     }
     #residentProfileModal > .app-card {
         max-height:calc(100dvh - max(1rem,env(safe-area-inset-top)) - max(1rem,env(safe-area-inset-bottom)));
-        border-radius:1.25rem;
+        border-radius:var(--radius-125);
     }
 }
 
@@ -617,7 +637,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #pinLockModal > .auth-shell { width:100%; max-width:56rem; max-height:calc(100dvh - 2rem); display:grid; grid-template-columns:minmax(0,.88fr) minmax(0,1.12fr); overflow:auto; overscroll-behavior:contain; background:var(--bg-card); border-color:var(--border-color); box-shadow:0 28px 90px rgba(0,0,0,.35); }
 .auth-brand-panel { min-width:0; min-height:100%; padding:clamp(1.35rem,3vw,2.25rem); display:flex; flex-direction:column; justify-content:space-between; gap:2rem; color:var(--text-main); background:radial-gradient(circle at 12% 10%,color-mix(in srgb,var(--accent-color) 25%,transparent),transparent 40%),linear-gradient(145deg,color-mix(in srgb,var(--accent-color) 13%,var(--bg-card)),var(--bg-main)); border-inline-end:1px solid var(--border-color); }
 .auth-brand-head { display:flex; flex-direction:column; align-items:flex-start; gap:1.25rem; }
-.auth-logo-frame { width:9rem; height:9rem; display:flex; align-items:center; justify-content:center; padding:.45rem; overflow:hidden; border:1px solid #dce7ed; border-radius:1.65rem; background:#fbfdff; box-shadow:0 12px 32px rgba(2,20,35,.18); }
+.auth-logo-frame { width:9rem; height:9rem; display:flex; align-items:center; justify-content:center; padding:.45rem; overflow:hidden; border:1px solid #dce7ed; border-radius:var(--radius-165); background:#fbfdff; box-shadow:0 12px 32px rgba(2,20,35,.18); }
 .auth-logo-frame img { display:block; width:100%; height:100%; object-fit:contain; }
 .auth-brand-overline { color:var(--accent-color); font-size:.72rem; font-weight:900; letter-spacing:.04em; }
 .auth-brand-copy h1 { margin-top:.15rem; font-size:clamp(1.8rem,4vw,2.35rem); line-height:1.2; font-weight:900; letter-spacing:.02em; }
@@ -658,7 +678,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #managerRecoveryBtn:disabled { opacity:.65; cursor:wait; }
 @media (max-width:700px) {
   #pinLockModal { padding:.5rem; }
-  #pinLockModal > .auth-shell { grid-template-columns:minmax(0,1fr); max-width:31rem; max-height:calc(100dvh - 1rem); border-radius:1.35rem; }
+  #pinLockModal > .auth-shell { grid-template-columns:minmax(0,1fr); max-width:31rem; max-height:calc(100dvh - 1rem); border-radius:var(--radius-135); }
   .auth-brand-panel { order:1; min-height:0; padding:.9rem 1rem; display:grid; grid-template-columns:minmax(0,1fr); gap:.55rem; border-inline-end:0; border-bottom:1px solid var(--border-color); }
   .auth-brand-head { flex-direction:row; align-items:center; gap:.85rem; }
   .auth-logo-frame { width:4.8rem; height:4.8rem; flex:0 0 auto; padding:.22rem; border-radius:var(--radius-lg); }
@@ -703,7 +723,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   max-height:min(92dvh,58rem);
   grid-template-columns:minmax(16rem,.72fr) minmax(0,1.28fr);
   border:1px solid rgba(211,165,76,.35);
-  border-radius:1.8rem;
+  border-radius:var(--radius-180);
   overflow:hidden;
   background:#07141d;
   box-shadow:0 35px 100px rgba(0,0,0,.58),0 0 0 1px rgba(17,190,202,.08);
@@ -748,7 +768,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   aspect-ratio:1;
   padding:0;
   border:1px solid rgba(221,174,79,.42);
-  border-radius:1.5rem;
+  border-radius:var(--radius-150);
   background:#020303;
   box-shadow:0 18px 55px rgba(0,0,0,.5),0 0 35px rgba(7,192,207,.12);
 }
@@ -837,7 +857,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   #pinLockModal { padding:.35rem; }
   #pinLockModal > .auth-shell {
     width:100%;max-width:34rem;max-height:calc(100dvh - .7rem);
-    grid-template-columns:minmax(0,1fr);border-radius:1.2rem;
+    grid-template-columns:minmax(0,1fr);border-radius:var(--radius-120);
     overflow-y:auto;
   }
   #pinLockModal .auth-brand-panel { order:1;padding:.9rem 1rem .8rem;gap:.4rem; }
@@ -873,7 +893,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   height:100%;
   object-fit:contain;
   background:transparent;
-  border-radius:0;
+  border-radius:var(--radius-none);
 }
 .header-brand-mark {
   background:transparent !important;
@@ -930,7 +950,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   overflow:hidden;
   padding:0;
   border:0 !important;
-  border-radius:0;
+  border-radius:var(--radius-none);
   background:transparent !important;
   box-shadow:none !important;
 }
@@ -942,7 +962,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   min-height:0;
   object-fit:fill;
   border:0;
-  border-radius:0;
+  border-radius:var(--radius-none);
   background:transparent;
 }
 
@@ -975,7 +995,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     flex-direction: column;
     overflow: hidden;
     border: 1px solid color-mix(in srgb, var(--settings-accent) 24%, var(--settings-line));
-    border-radius: 1.65rem;
+    border-radius: var(--radius-165);
     background: var(--settings-surface);
     box-shadow: 0 32px 90px rgba(2, 12, 20, .55);
 }
@@ -1296,7 +1316,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     padding: clamp(1rem, 2.4vw, 1.6rem);
     overflow: hidden;
     border: 1px solid color-mix(in srgb, var(--settings-accent) 30%, transparent);
-    border-radius: 1.25rem;
+    border-radius: var(--radius-125);
     color: #ecfbf9;
     background:
         radial-gradient(circle at 90% 10%, rgba(85, 201, 189, .28), transparent 42%),
@@ -2118,7 +2138,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     min-height: auto !important;
     padding: .25rem .55rem;
     border: 1px solid color-mix(in srgb, var(--settings-accent) 35%, transparent);
-    border-radius: .5rem;
+    border-radius: var(--radius-50);
     color: var(--settings-accent);
     font-size: .6rem;
     font-weight: 900;
@@ -2233,7 +2253,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-variable-chips code {
     padding: .2rem .45rem;
     border: 1px solid color-mix(in srgb, var(--settings-accent) 22%, var(--settings-line));
-    border-radius: .45rem;
+    border-radius: var(--radius-45);
     color: var(--settings-accent);
     background: color-mix(in srgb, var(--settings-accent) 8%, transparent);
     font-size: .62rem;
@@ -2506,7 +2526,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
         height: 100dvh;
         max-height: 100dvh;
         border: 0;
-        border-radius: 0;
+        border-radius: var(--radius-none);
         box-shadow: none;
     }
     #settingsModal .settings-topbar {
@@ -2900,7 +2920,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: block;
     width: .5rem;
     height: .5rem;
-    border-radius: .16rem;
+    border-radius: var(--radius-16);
     background: color-mix(in srgb, var(--settings-accent) 60%, transparent);
 }
 #settingsModal .settings-floor-row:first-child .settings-floor-dots i {
@@ -3214,7 +3234,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-variable-chip {
     padding: .28rem .5rem;
     border: 1px solid color-mix(in srgb, var(--settings-accent) 24%, var(--settings-line));
-    border-radius: .45rem;
+    border-radius: var(--radius-45);
     color: var(--settings-accent);
     background: color-mix(in srgb, var(--settings-accent) 8%, transparent);
     font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -3278,7 +3298,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     min-height: 13rem;
     max-height: 20rem;
     padding: .8rem .9rem;
-    border-radius: var(--radius-85) .25rem var(--radius-85) var(--radius-85);
+    border-radius: var(--radius-85) var(--radius-25) var(--radius-85) var(--radius-85);
     color: #e9f7f4;
     background: linear-gradient(155deg, #0f3b3a, #0b2f36);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06);
@@ -3593,7 +3613,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     width: 4.6rem;
     height: 4.6rem;
     margin: 0 .6rem .4rem 0;
-    border-radius: 1.1rem;
+    border-radius: var(--radius-110);
     object-fit: contain;
 }
 [dir="rtl"] .assistant-hero { margin: 0 0 .4rem .6rem; }
@@ -3648,13 +3668,13 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 .assistant-msg.is-bot .assistant-bubble {
     background: var(--surface-raised, color-mix(in srgb, var(--bg-input) 82%, transparent));
     border: 1px solid var(--border-color);
-    border-start-start-radius: .3rem;
+    border-start-start-radius: var(--radius-30);
     color: var(--text-main);
 }
 .assistant-msg.is-user .assistant-bubble {
     background: var(--accent-color);
     border: 1px solid color-mix(in srgb, var(--accent-color) 70%, #000);
-    border-start-end-radius: .3rem;
+    border-start-end-radius: var(--radius-30);
     color: #fff;
     font-weight: 600;
 }
@@ -3822,7 +3842,7 @@ body.owner-mode .owner-theme-control {
     border-color: var(--accent-color);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-color) 24%, transparent);
 }
-.owner-theme-btn .owner-theme-swatch { width: 1.6rem; height: 1.15rem; border-radius: .32rem; }
+.owner-theme-btn .owner-theme-swatch { width: 1.6rem; height: 1.15rem; border-radius: var(--radius-32); }
 .owner-theme-menu {
     position: absolute;
     inset-inline-end: 0;
@@ -3865,7 +3885,7 @@ body.owner-mode .owner-theme-control {
     display: block;
     width: 100%;
     height: .95rem;
-    border-radius: .35rem;
+    border-radius: var(--radius-35);
     background-image: linear-gradient(90deg, var(--preview-accent, #6366f1), var(--preview-card, #1e293b));
 }
 
