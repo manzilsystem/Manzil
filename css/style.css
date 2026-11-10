@@ -62,6 +62,27 @@
     --radius-150: 1.5rem;
     --radius-165: 1.65rem;
     --radius-180: 1.8rem;
+    /* Canonical compact spacing scale — the shared steps for the tight
+       padding/gap/margin values (a half rem and below). Same suffix convention as
+       the radius scale (value in hundredths of a rem: --space-45 = .45rem); the
+       lone half-hundredth step is written with a dash, so --space-12-5 = .125rem.
+       Spacing does not vary by theme, so these live only in :root. Every value
+       matches the literal it replaced, so routing them introduces no visual
+       change. --space-none is the explicit zero gap. */
+    --space-none: 0;
+    --space-5: .05rem;
+    --space-10: .1rem;
+    --space-12-5: .125rem;
+    --space-15: .15rem;
+    --space-20: .2rem;
+    --space-22: .22rem;
+    --space-25: .25rem;
+    --space-28: .28rem;
+    --space-30: .3rem;
+    --space-35: .35rem;
+    --space-40: .4rem;
+    --space-45: .45rem;
+    --space-50: .5rem;
 }
 
 /* Per-theme token values are defined once in the canonical block for each theme
@@ -98,7 +119,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .cash-account-tag {
     display: inline-flex;
     align-items: center;
-    gap: .3rem;
+    gap: var(--space-30);
     padding: .12rem .5rem;
     border-radius: var(--radius-65);
     border: 1px solid color-mix(in srgb, var(--accent-color) 38%, transparent);
@@ -133,7 +154,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-tone-sky { --report-tone: var(--state-info); --report-tone-soft: var(--state-info-soft); --report-tone-line: var(--state-info-line); }
 [data-theme="light"] .report-tone-indigo { --report-tone: #4338ca; --report-tone-soft: #eef2ff; --report-tone-line: #c7d2fe; }
 .report-section-head { display: flex; flex-direction: column; gap: .85rem; padding: .15rem .2rem 0; }
-.report-section-eyebrow { display: inline-flex; align-items: center; gap: .4rem; color: var(--accent-color); font-size: .62rem; font-weight: 800; letter-spacing: .02em; }
+.report-section-eyebrow { display: inline-flex; align-items: center; gap: var(--space-40); color: var(--accent-color); font-size: .62rem; font-weight: 800; letter-spacing: .02em; }
 .report-section-title { font-size: 1.12rem; font-weight: 900; line-height: 1.35; }
 .report-section-subtitle { max-width: 56ch; margin-top: .25rem; color: var(--text-muted); font-size: .72rem; line-height: 1.75; }
 .report-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; }
@@ -166,9 +187,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 @media (max-width: 639.98px) {
     .report-nav { gap: .55rem; }
-    .report-nav-item { flex-direction: column; align-items: center; gap: .25rem; min-height: 0; padding: .55rem .45rem .5rem; text-align: center; }
+    .report-nav-item { flex-direction: column; align-items: center; gap: var(--space-25); min-height: 0; padding: .55rem .45rem .5rem; text-align: center; }
     .report-nav-icon { width: 2rem; height: 2rem; border-radius: var(--radius-70); font-size: .9rem; }
-    .report-nav-copy { align-items: center; gap: .05rem; width: 100%; }
+    .report-nav-copy { align-items: center; gap: var(--space-5); width: 100%; }
     .report-nav-copy b { font-size: .72rem; }
     .report-nav-copy small { font-size: .56rem; line-height: 1.4; }
 }
@@ -178,7 +199,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     background: var(--report-tone-soft, color-mix(in srgb, var(--bg-input) 70%, transparent));
     color: var(--report-tone, var(--accent-color)); font-size: 1.05rem;
 }
-.report-nav-copy { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.report-nav-copy { display: flex; flex-direction: column; gap: var(--space-15); min-width: 0; }
 .report-nav-copy b { color: inherit; font-size: .78rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .report-nav-copy small { color: var(--text-muted); font-size: .62rem; line-height: 1.55; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .report-nav-item.is-ready::after,
@@ -213,18 +234,18 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     background: var(--report-tone-soft, color-mix(in srgb, var(--bg-input) 70%, transparent));
     color: var(--report-tone, var(--accent-color)); font-size: .85rem;
 }
-.report-view-copy { display: flex; align-items: baseline; gap: .5rem; min-width: 0; }
+.report-view-copy { display: flex; align-items: baseline; gap: var(--space-50); min-width: 0; }
 .report-view-copy b { color: var(--text-main); font-size: .82rem; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .report-view-copy small { color: var(--text-muted); font-size: .62rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .report-view-hint { margin-inline-start: auto; flex: 0 0 auto; color: var(--text-muted); font-size: .6rem; font-weight: 800; }
 @media (max-width: 639.98px) {
-    .report-view-copy { gap: .35rem; }
+    .report-view-copy { gap: var(--space-35); }
     .report-view-hint { display: none; }
 }
-.report-toolbar { display: flex; align-items: flex-end; flex-wrap: wrap; gap: .5rem; }
+.report-toolbar { display: flex; align-items: flex-end; flex-wrap: wrap; gap: var(--space-50); }
 .report-toolbar > .report-field { flex: 1 1 12rem; min-width: 0; }
 .report-toolbar > .report-field-narrow { flex: 0 1 9.5rem; }
-.report-field { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
+.report-field { display: flex; flex-direction: column; gap: var(--space-30); min-width: 0; }
 .report-field-label { color: var(--text-muted); font-size: .65rem; font-weight: 800; }
 .report-control { width: 100%; border-radius: var(--radius-90); padding: .6rem .75rem; font-size: .72rem; font-weight: 600; }
 .report-toolbar .report-action { flex: 0 0 auto; }
@@ -252,17 +273,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-preview-header { padding-bottom: .6rem; border-bottom: 1px solid var(--border-color); text-align: center; }
 .report-preview-title { font-size: .82rem; font-weight: 900; }
 .report-preview-meta { margin-top: .15rem; color: var(--text-muted); font-size: .62rem; line-height: 1.7; }
-.report-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.report-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-50); }
 @media (min-width: 640px) {
     .report-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .report-stats-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
-.report-stat { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: .2rem; min-width: 0; padding: .55rem .7rem; text-align: start; border: 1px solid var(--border-color); border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-card) 55%, var(--bg-input)); }
+.report-stat { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: var(--space-20); min-width: 0; padding: .55rem .7rem; text-align: start; border: 1px solid var(--border-color); border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-card) 55%, var(--bg-input)); }
 .report-stat-label { color: var(--text-muted); font-size: .62rem; font-weight: 700; }
 .report-stat-value { font-size: .9rem; font-weight: 900; line-height: 1.35; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .report-amount { font-variant-numeric: tabular-nums; font-weight: 800; }
-.report-block { display: flex; flex-direction: column; gap: .3rem; }
-.report-block-title { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .1rem; color: var(--text-muted); font-size: .64rem; font-weight: 800; }
+.report-block { display: flex; flex-direction: column; gap: var(--space-30); }
+.report-block-title { display: flex; align-items: center; justify-content: space-between; gap: var(--space-50); margin-bottom: .1rem; color: var(--text-muted); font-size: .64rem; font-weight: 800; }
 .report-block-count { padding: .08rem .42rem; border: 1px solid var(--border-color); border-radius: var(--radius-pill); background: color-mix(in srgb, var(--bg-input) 60%, transparent); color: var(--text-main); font-size: .58rem; font-weight: 800; }
 .report-list { display: flex; flex-direction: column; }
 .report-list-row { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; padding: .42rem 0; border-bottom: 1px solid var(--border-color); font-size: .7rem; }
@@ -281,11 +302,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .statement-table td { font-variant-numeric: tabular-nums; }
 .statement-table tbody tr:last-child td { border-bottom: 0; }
 .statement-table tfoot td { border-top: 1px solid var(--border-color); border-bottom: 0; font-weight: 800; }
-.report-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: .5rem; }
+.report-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-50); }
 @media (min-width: 640px) { .report-actions-2, .report-actions-3, .report-actions-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 1024px) { .report-actions-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .report-actions-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .report-action {
-    display: flex; align-items: center; justify-content: center; gap: .45rem; min-height: 2.75rem;
+    display: flex; align-items: center; justify-content: center; gap: var(--space-45); min-height: 2.75rem;
     padding: .6rem .8rem; border: 1px solid var(--border-color); border-radius: var(--radius-95);
     background: color-mix(in srgb, var(--bg-input) 65%, transparent);
     color: var(--text-main); font-size: .72rem; font-weight: 800;
@@ -308,7 +329,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .arrears-name { min-width: 0; font-size: .74rem; font-weight: 800; overflow-wrap: anywhere; }
 .arrears-sub { display: block; color: var(--text-muted); font-size: .6rem; font-weight: 600; }
 .arrears-amount { flex: 0 0 auto; color: var(--state-danger); font-size: .78rem; font-weight: 900; }
-.arrears-body { display: flex; flex-direction: column; gap: .4rem; padding: .6rem .85rem .7rem; border-top: 1px solid var(--border-color); }
+.arrears-body { display: flex; flex-direction: column; gap: var(--space-40); padding: .6rem .85rem .7rem; border-top: 1px solid var(--border-color); }
 .audit-log-row { position: relative; padding: .55rem .8rem; padding-inline-start: 1.9rem; border: 1px solid var(--border-color); border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-input) 55%, transparent); }
 .audit-log-row::before { content: ''; position: absolute; inset-inline-start: .72rem; top: .95rem; width: .45rem; height: .45rem; border-radius: var(--radius-pill); background: var(--accent-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 22%, transparent); }
 .audit-log-action { color: var(--text-main); font-weight: 800; }
@@ -330,7 +351,7 @@ nav[aria-label="التنقل الرئيسي"] .tab-btn span { white-space: nowra
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: .45rem;
+    gap: var(--space-45);
     padding: .75rem .5rem;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
@@ -357,7 +378,7 @@ nav[aria-label="التنقل الرئيسي"] .tab-btn span { white-space: nowra
 .list-filters select { min-width: 0; flex: 1 1 9rem; }
 .resident-filters-grid select { min-width: 0; width: 100%; }
 .guide-step { border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: .75rem; background: color-mix(in srgb, var(--bg-input) 72%, transparent); }
-.guide-step h4 { display: flex; align-items: center; gap: .5rem; font-weight: 800; margin-bottom: .35rem; }
+.guide-step h4 { display: flex; align-items: center; gap: var(--space-50); font-weight: 800; margin-bottom: .35rem; }
 .guide-step p { color: var(--text-muted); font-size: .7rem; }
 .guide-step-number { width: 1.5rem; height: 1.5rem; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-60); color: #c7d2fe; background: rgba(99, 102, 241, .22); border: 1px solid rgba(129, 140, 248, .32); font-size: .7rem; flex-shrink: 0; }
 [role="dialog"] > .app-card,
@@ -397,7 +418,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 .auth-brand-panel h1 { font-size: 1.75rem; }
 .auth-brand-panel h2 { font-size: 1rem; }
 .auth-brand-panel > div:first-child > p { color: #cbd5e1; }
-.auth-trust-note { display: flex; align-items: center; gap: .5rem; color: #cbd5e1; font-size: .72rem; line-height: 1.6; }
+.auth-trust-note { display: flex; align-items: center; gap: var(--space-50); color: #cbd5e1; font-size: .72rem; line-height: 1.6; }
 .auth-trust-note i { color: #a5b4fc; }
 .auth-rights { color: #94a3b8; }
 .auth-rights a, #appCopyright a { color: #c7d2fe; text-decoration: underline; text-underline-offset: 2px; }
@@ -423,8 +444,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     body { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
     body.owner-mode { padding-bottom: 1rem; }
     button:not(.tab-btn) { min-height: 44px; }
-    header .container { gap: .5rem; }
-    header .container > div:last-child { gap: .25rem; }
+    header .container { gap: var(--space-50); }
+    header .container > div:last-child { gap: var(--space-25); }
     header .container > div:last-child button { min-width: 44px; min-height: 44px; }
     nav[aria-label="التنقل الرئيسي"] {
         padding-top: .65rem;
@@ -450,14 +471,14 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 
 @media (max-width: 360px) {
-    header .container > div:first-child { min-width: 0; flex: 1 1 auto; gap: .5rem; }
+    header .container > div:first-child { min-width: 0; flex: 1 1 auto; gap: var(--space-50); }
     header .container > div:first-child > div:first-child { flex-shrink: 0; }
-    header .container > div:last-child { flex-shrink: 0; gap: .125rem; }
+    header .container > div:last-child { flex-shrink: 0; gap: var(--space-12-5); }
     header .container > div:last-child button { min-width: 40px; min-height: 40px; padding: .5rem; }
     #headerBuildingTitle { max-width: 28vw; }
     nav[aria-label="التنقل الرئيسي"] .tab-btn { min-width: 0; padding-inline: .1rem; }
     nav[aria-label="التنقل الرئيسي"] .tab-btn span { font-size: clamp(8px, 2.7vw, 9px); }
-    #tab-dashboard > .grid.grid-cols-2 { gap: .5rem; }
+    #tab-dashboard > .grid.grid-cols-2 { gap: var(--space-50); }
     .section-toolbar { flex-direction: column; }
     .section-toolbar > button { width: 100%; }
     .list-filters { flex-direction: column; }
@@ -646,7 +667,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 .auth-brand-benefits p { display:flex; align-items:center; gap:.65rem; color:var(--text-muted); font-size:.78rem; }
 .auth-brand-benefits i { width:1.8rem; height:1.8rem; display:grid; place-items:center; border:1px solid color-mix(in srgb,var(--accent-color) 34%,transparent); border-radius:var(--radius-65); color:var(--accent-color); background:color-mix(in srgb,var(--accent-color) 10%,transparent); }
 .auth-brand-footer { display:grid; gap:.8rem; }
-.auth-trust-note { display:flex; align-items:center; gap:.5rem; color:var(--text-muted); font-size:.72rem; line-height:1.7; }
+.auth-trust-note { display:flex; align-items:center; gap:var(--space-50); color:var(--text-muted); font-size:.72rem; line-height:1.7; }
 .auth-trust-note i { color:var(--accent-color); }
 .auth-rights { color:var(--text-muted); font-size:.62rem; line-height:1.8; }
 .auth-rights a { color:var(--accent-color); text-decoration:underline; text-underline-offset:2px; }
@@ -661,7 +682,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 .auth-mode-button[aria-pressed="true"] { border-color:var(--accent-color); background:color-mix(in srgb,var(--accent-color) 15%,var(--bg-input)); color:var(--text-main); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent-color) 32%,transparent); }
 .auth-mode-button i { color:var(--accent-color); }
 .auth-login-form { display:grid; gap:1rem; margin-top:1.25rem; }
-.auth-field { display:grid; gap:.45rem; min-width:0; }
+.auth-field { display:grid; gap:var(--space-45); min-width:0; }
 .auth-field label { color:var(--text-main); font-size:.74rem; font-weight:800; }
 .auth-field input { min-height:3.15rem; border-radius:var(--radius-90); }
 .auth-field input:focus { outline:2px solid color-mix(in srgb,var(--accent-color) 50%,transparent); outline-offset:1px; border-color:var(--accent-color); }
@@ -860,7 +881,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     grid-template-columns:minmax(0,1fr);border-radius:var(--radius-120);
     overflow-y:auto;
   }
-  #pinLockModal .auth-brand-panel { order:1;padding:.9rem 1rem .8rem;gap:.4rem; }
+  #pinLockModal .auth-brand-panel { order:1;padding:.9rem 1rem .8rem;gap:var(--space-40); }
   #pinLockModal .auth-brand-head { flex-direction:row;justify-content:flex-start;gap:.8rem;text-align:right; }
   #pinLockModal .auth-logo-frame { width:6.25rem;height:6.25rem;flex:0 0 6.25rem;border-radius:var(--radius-85); }
   #pinLockModal .auth-brand-copy { min-width:0; }
@@ -920,7 +941,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   }
   #pinLockModal .auth-brand-copy h1 {
     flex-wrap:wrap;
-    gap:.45rem;
+    gap:var(--space-45);
     font-size:clamp(1.55rem,2vw,2rem);
   }
   #pinLockModal .auth-brand-description { font-size:.86rem; }
@@ -944,7 +965,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #pinLockModal .manzil-full-logo {
   display:grid;
   grid-template-rows:repeat(4,minmax(0,1fr));
-  gap:0;
+  gap:var(--space-none);
   aspect-ratio:1;
   height:auto;
   overflow:hidden;
@@ -1047,7 +1068,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: grid;
     grid-template-columns: auto auto;
     align-items: baseline;
-    gap: 0 .45rem;
+    gap: var(--space-none) var(--space-45);
     min-width: 0;
 }
 #settingsModal .settings-brand-copy strong {
@@ -1153,7 +1174,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-profile-copy {
     display: flex;
     flex-direction: column;
-    gap: .1rem;
+    gap: var(--space-10);
     min-width: 0;
 }
 #settingsModal .settings-profile-copy > b {
@@ -1174,13 +1195,13 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-profile-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: .25rem;
+    gap: var(--space-25);
     margin-top: .35rem;
 }
 #settingsModal .settings-profile-chips > span {
     display: inline-flex;
     align-items: center;
-    gap: .25rem;
+    gap: var(--space-25);
     padding: .12rem .4rem;
     border: 1px solid var(--settings-line);
     border-radius: var(--radius-pill);
@@ -1202,7 +1223,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-nav {
     display: flex;
     flex-direction: column;
-    gap: .22rem;
+    gap: var(--space-22);
 }
 #settingsModal .settings-nav-item {
     position: relative;
@@ -1261,7 +1282,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-nav-copy {
     display: flex;
     flex-direction: column;
-    gap: .05rem;
+    gap: var(--space-5);
     min-width: 0;
 }
 #settingsModal .settings-nav-copy b {
@@ -1282,7 +1303,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-nav-note {
     display: flex;
     align-items: center;
-    gap: .5rem;
+    gap: var(--space-50);
     margin-top: auto;
     padding: .65rem .7rem;
     border: 1px dashed var(--settings-line);
@@ -1341,7 +1362,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-hero-kicker {
     display: inline-flex;
     align-items: center;
-    gap: .4rem;
+    gap: var(--space-40);
     padding: .28rem .6rem;
     border: 1px solid rgba(255, 255, 255, .16);
     border-radius: var(--radius-pill);
@@ -1375,7 +1396,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: .1rem;
+    gap: var(--space-10);
     min-width: 4.4rem;
     padding: .65rem .55rem;
     border: 1px solid rgba(255, 255, 255, .14);
@@ -1481,7 +1502,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-card-copy {
     display: flex;
     flex-direction: column;
-    gap: .2rem;
+    gap: var(--space-20);
     flex: 1 1 auto;
     min-width: 0;
 }
@@ -1545,7 +1566,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: .4rem;
+    gap: var(--space-40);
     min-height: 2.45rem;
     padding: .45rem .8rem;
     border: 1px solid color-mix(in srgb, var(--settings-accent) 30%, transparent);
@@ -1679,7 +1700,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-field {
     display: flex;
     flex-direction: column;
-    gap: .4rem;
+    gap: var(--space-40);
     min-width: 0;
 }
 #settingsModal .settings-field > span {
@@ -1720,7 +1741,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-building-layout-summary {
     display: flex;
     flex-direction: column;
-    gap: .45rem;
+    gap: var(--space-45);
     padding: .85rem 1rem;
     border: 1px solid color-mix(in srgb, var(--settings-accent) 25%, var(--settings-line));
     border-radius: var(--radius-85);
@@ -1743,7 +1764,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-info-card {
     display: flex;
     flex-direction: column;
-    gap: .45rem;
+    gap: var(--space-45);
     min-width: 0;
     padding: 1rem;
     border: 1px solid var(--settings-line);
@@ -1753,7 +1774,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-info-card-title {
     display: flex;
     align-items: center;
-    gap: .45rem;
+    gap: var(--space-45);
     color: var(--settings-accent);
     font-size: .74rem;
     font-weight: 900;
@@ -1766,7 +1787,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-info-list {
     display: flex;
     flex-direction: column;
-    gap: .45rem;
+    gap: var(--space-45);
     padding-inline-start: 1rem;
     list-style: disc;
     color: var(--settings-muted);
@@ -1829,7 +1850,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-method-copy {
     display: flex;
     flex-direction: column;
-    gap: .05rem;
+    gap: var(--space-5);
     min-width: 0;
 }
 #settingsModal .settings-method-copy b {
@@ -1967,7 +1988,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-brand-approved {
     display: inline-flex;
     align-items: center;
-    gap: .3rem;
+    gap: var(--space-30);
     padding: .3rem .6rem;
     border-radius: var(--radius-pill);
     color: var(--settings-accent);
@@ -2041,7 +2062,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: .15rem;
+    gap: var(--space-15);
     padding: .45rem;
     border: 1px solid var(--settings-line);
     border-radius: var(--radius-80);
@@ -2087,7 +2108,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    gap: .22rem;
+    gap: var(--space-22);
     width: 100%;
     height: 3.1rem;
     padding: .45rem;
@@ -2127,12 +2148,12 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-info-card-title-split {
     justify-content: space-between;
-    gap: .5rem;
+    gap: var(--space-50);
 }
 #settingsModal .settings-info-card-title-split > span {
     display: inline-flex;
     align-items: center;
-    gap: .45rem;
+    gap: var(--space-45);
 }
 #settingsModal .settings-inline-action {
     min-height: auto !important;
@@ -2150,7 +2171,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-status {
     display: inline-flex;
     align-items: center;
-    gap: .35rem;
+    gap: var(--space-35);
     align-self: flex-start;
     padding: .25rem .55rem;
     border-radius: var(--radius-pill);
@@ -2163,7 +2184,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: .45rem;
+    gap: var(--space-45);
     align-self: flex-start;
     padding: .65rem 1rem;
     border-radius: var(--radius-75);
@@ -2246,7 +2267,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-variable-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: .3rem;
+    gap: var(--space-30);
     direction: ltr;
     justify-content: flex-end;
 }
@@ -2290,7 +2311,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-account-rows > div {
     display: flex;
     flex-direction: column;
-    gap: .1rem;
+    gap: var(--space-10);
     min-width: 0;
 }
 #settingsModal .settings-account-rows span {
@@ -2319,7 +2340,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-owner-list {
     display: flex;
     flex-direction: column;
-    gap: .5rem;
+    gap: var(--space-50);
     max-height: 22rem;
     padding-inline-end: .15rem;
     overflow: auto;
@@ -2344,7 +2365,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
-    gap: .4rem;
+    gap: var(--space-40);
 }
 #settingsModal .settings-owner-action {
     min-height: 2.5rem;
@@ -2377,7 +2398,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-footer-note {
     display: flex;
     align-items: center;
-    gap: .4rem;
+    gap: var(--space-40);
     color: var(--settings-muted);
     font-size: .62rem;
     line-height: 1.7;
@@ -2395,7 +2416,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: .4rem;
+    gap: var(--space-40);
     min-height: 2.6rem;
     padding: .55rem .95rem;
     border: 1px solid var(--settings-line);
@@ -2531,7 +2552,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     }
     #settingsModal .settings-topbar {
         min-height: 4.35rem;
-        gap: .5rem;
+        gap: var(--space-50);
         padding: .55rem .75rem;
     }
     #settingsModal .settings-brand-mark {
@@ -2557,7 +2578,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
         padding: .85rem;
     }
     #settingsModal .settings-hero-copy p { font-size: .7rem; }
-    #settingsModal .settings-hero-stats { gap: .4rem; }
+    #settingsModal .settings-hero-stats { gap: var(--space-40); }
     #settingsModal .settings-hero-stats > div {
         min-width: 0;
         padding: .5rem .3rem;
@@ -2573,7 +2594,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
         flex-direction: column;
         align-items: flex-start;
         justify-content: center;
-        gap: .45rem;
+        gap: var(--space-45);
         min-height: 6.6rem;
         padding: .7rem;
     }
@@ -2619,7 +2640,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     #settingsModal .settings-account-card { align-items: flex-start; }
     #settingsModal .settings-account-rows {
         grid-template-columns: minmax(0, 1fr);
-        gap: .5rem;
+        gap: var(--space-50);
     }
     #settingsModal .settings-owner-row {
         flex-direction: column;
@@ -2635,7 +2656,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     #settingsModal .settings-preview-body { max-height: none; }
     #settingsModal .settings-footer {
         flex-wrap: wrap;
-        gap: .5rem;
+        gap: var(--space-50);
         padding: .65rem .8rem;
     }
     #settingsModal .settings-footer-note { display: none; }
@@ -2683,13 +2704,13 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: .35rem;
+    gap: var(--space-35);
     margin-inline-start: auto;
 }
 #settingsModal .settings-chip {
     display: inline-flex;
     align-items: center;
-    gap: .3rem;
+    gap: var(--space-30);
     padding: .3rem .6rem;
     border: 1px solid color-mix(in srgb, var(--settings-accent) 26%, var(--settings-line));
     border-radius: var(--radius-pill);
@@ -2742,7 +2763,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-field > .settings-input-unit {
     display: flex;
     align-items: stretch;
-    gap: .4rem;
+    gap: var(--space-40);
     color: inherit;
     font-size: inherit;
     font-weight: inherit;
@@ -2842,7 +2863,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-live-stats {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: .4rem;
+    gap: var(--space-40);
 }
 #settingsModal .settings-live-stats > div {
     padding: .45rem .55rem;
@@ -2865,14 +2886,14 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-live-list {
     display: flex;
     flex-direction: column;
-    gap: .3rem;
+    gap: var(--space-30);
     margin: 0;
 }
 #settingsModal .settings-live-list > div {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    gap: .5rem;
+    gap: var(--space-50);
     padding-top: .3rem;
     border-top: 1px dashed rgba(255, 255, 255, .12);
 }
@@ -2894,7 +2915,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-floor-stack {
     display: flex;
     flex-direction: column;
-    gap: .28rem;
+    gap: var(--space-28);
     max-height: 8.6rem;
     overflow: auto;
     scrollbar-width: thin;
@@ -2902,7 +2923,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-floor-row {
     display: flex;
     align-items: center;
-    gap: .45rem;
+    gap: var(--space-45);
 }
 #settingsModal .settings-floor-label {
     flex: 0 0 auto;
@@ -2914,7 +2935,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-floor-dots {
     display: flex;
     flex-wrap: wrap;
-    gap: .2rem;
+    gap: var(--space-20);
 }
 #settingsModal .settings-floor-dots i {
     display: block;
@@ -2929,7 +2950,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-aside-note {
     display: flex;
     align-items: flex-start;
-    gap: .4rem;
+    gap: var(--space-40);
     padding: .55rem .7rem;
     border: 1px dashed color-mix(in srgb, var(--settings-gold) 40%, transparent);
     border-radius: var(--radius-65);
@@ -2944,7 +2965,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 
 /* Payment methods */
 #settingsModal .settings-info-card-compact {
-    gap: .3rem;
+    gap: var(--space-30);
     padding: .8rem .95rem;
 }
 #settingsModal .settings-method-head {
@@ -2975,7 +2996,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-method-points {
     display: flex;
     flex-direction: column;
-    gap: .3rem;
+    gap: var(--space-30);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -3015,7 +3036,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-payment-note {
     display: flex;
     align-items: flex-start;
-    gap: .35rem;
+    gap: var(--space-35);
     color: var(--settings-muted);
     font-size: .58rem;
     line-height: 1.7;
@@ -3094,12 +3115,12 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-brand-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: .35rem;
+    gap: var(--space-35);
 }
 #settingsModal .settings-brand-meta > span {
     display: inline-flex;
     align-items: center;
-    gap: .3rem;
+    gap: var(--space-30);
     padding: .28rem .55rem;
     border: 1px solid var(--settings-line);
     border-radius: var(--radius-pill);
@@ -3114,7 +3135,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-theme-current-pill {
     display: inline-flex;
     align-items: center;
-    gap: .3rem;
+    gap: var(--space-30);
     margin-inline-start: auto;
     padding: .3rem .6rem;
     border: 1px solid color-mix(in srgb, var(--settings-accent) 30%, var(--settings-line));
@@ -3168,7 +3189,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-backup-stats {
     display: flex;
-    gap: .4rem;
+    gap: var(--space-40);
 }
 #settingsModal .settings-backup-stats > div {
     min-width: 4.2rem;
@@ -3193,7 +3214,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-backup-actions {
     display: flex;
     flex-direction: column;
-    gap: .5rem;
+    gap: var(--space-50);
 }
 
 /* Receipt and reminder editors */
@@ -3202,12 +3223,12 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: .5rem;
+    gap: var(--space-50);
 }
 #settingsModal .settings-mini-button {
     display: inline-flex;
     align-items: center;
-    gap: .35rem;
+    gap: var(--space-35);
     padding: .4rem .7rem;
     border: 1px solid var(--settings-line);
     border-radius: var(--radius-55);
@@ -3224,7 +3245,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-toolbar-hint {
     display: inline-flex;
     align-items: center;
-    gap: .3rem;
+    gap: var(--space-30);
     color: var(--settings-muted);
     font-size: .58rem;
 }
@@ -3278,7 +3299,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-phone-bar {
     display: flex;
     align-items: center;
-    gap: .4rem;
+    gap: var(--space-40);
     color: rgba(220, 240, 237, .72);
     font-size: .58rem;
     font-weight: 700;
@@ -3309,7 +3330,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-account-badge {
     display: inline-flex;
     align-items: center;
-    gap: .3rem;
+    gap: var(--space-30);
     margin-inline-start: auto;
     padding: .3rem .6rem;
     border: 1px solid rgba(46, 168, 121, .32);
@@ -3323,12 +3344,12 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-owner-stats {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: .45rem;
+    gap: var(--space-45);
 }
 #settingsModal .settings-owner-stats > div {
     display: flex;
     flex-direction: column;
-    gap: .15rem;
+    gap: var(--space-15);
     min-width: 0;
     padding: .6rem .65rem;
     border: 1px solid var(--settings-line);
@@ -3498,7 +3519,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     z-index: 45;
     display: inline-flex;
     align-items: center;
-    gap: .45rem;
+    gap: var(--space-45);
     min-height: 3.4rem;
     padding: .3rem .8rem .3rem .3rem;
     border-radius: var(--radius-pill);
@@ -3554,7 +3575,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     pointer-events: none;
 }
 .assistant-fab.is-compact {
-    gap: 0;
+    gap: var(--space-none);
     padding: .28rem;
     box-shadow: 0 9px 22px rgba(2, 6, 23, .32);
 }
@@ -3584,7 +3605,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 .assistant-head {
     display: flex;
     align-items: center;
-    gap: .5rem;
+    gap: var(--space-50);
     padding: .7rem .8rem;
     border-bottom: 1px solid var(--border-color);
     background: linear-gradient(135deg, color-mix(in srgb, var(--accent-color) 18%, transparent), transparent 70%);
@@ -3619,7 +3640,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 [dir="rtl"] .assistant-hero { margin: 0 0 .4rem .6rem; }
 .assistant-head-copy { flex: 1; min-width: 0; }
 .assistant-head-copy h3 { overflow: hidden; font-size: .85rem; font-weight: 900; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
-.assistant-head-copy p { display: flex; align-items: center; gap: .3rem; overflow: hidden; margin-top: .1rem; color: var(--text-muted); font-size: .58rem; line-height: 1.5; white-space: nowrap; }
+.assistant-head-copy p { display: flex; align-items: center; gap: var(--space-30); overflow: hidden; margin-top: .1rem; color: var(--text-muted); font-size: .58rem; line-height: 1.5; white-space: nowrap; }
 .assistant-head-copy p > :not(.assistant-online-dot) { overflow: hidden; text-overflow: ellipsis; }
 .assistant-online-dot {
     display: inline-block;
@@ -3700,7 +3721,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 .assistant-list {
     display: flex;
     flex-direction: column;
-    gap: .25rem;
+    gap: var(--space-25);
     margin: .45rem 0;
     padding-inline-start: 1.05rem;
     list-style: disc;
@@ -3709,7 +3730,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 .assistant-note { margin-top: .45rem; color: var(--text-muted); font-size: .67rem; line-height: 1.7; }
 .assistant-suggestions {
     display: flex;
-    gap: .4rem;
+    gap: var(--space-40);
     overflow-x: auto;
     padding: .55rem .8rem;
     border-top: 1px solid var(--border-color);
@@ -3736,7 +3757,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 .assistant-followups {
     display: flex;
     flex-wrap: wrap;
-    gap: .35rem;
+    gap: var(--space-35);
     margin-top: .55rem;
     padding-top: .5rem;
     border-top: 1px dashed color-mix(in srgb, var(--accent-color) 26%, var(--border-color));
@@ -3750,7 +3771,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 .assistant-msg.is-typing .assistant-bubble {
     display: inline-flex;
     align-items: center;
-    gap: .28rem;
+    gap: var(--space-28);
     min-height: 1.6rem;
     padding: .6rem .8rem;
 }
@@ -3773,7 +3794,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 .assistant-form {
     display: flex;
     align-items: center;
-    gap: .5rem;
+    gap: var(--space-50);
     padding: .65rem .8rem;
     border-top: 1px solid var(--border-color);
 }
@@ -3805,7 +3826,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 .assistant-footnote {
     display: flex;
     align-items: center;
-    gap: .35rem;
+    gap: var(--space-35);
     padding: 0 .9rem .7rem;
     color: var(--text-muted);
     font-size: .6rem;
@@ -3828,7 +3849,7 @@ body.owner-mode .owner-theme-control {
 .owner-theme-btn {
     display: inline-flex;
     align-items: center;
-    gap: .35rem;
+    gap: var(--space-35);
     min-height: 2.6rem;
     padding: .4rem .6rem;
     border-radius: var(--radius-90);
@@ -3850,19 +3871,19 @@ body.owner-mode .owner-theme-control {
     z-index: 40;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: .4rem;
+    gap: var(--space-40);
     width: 14rem;
     padding: .5rem;
     border-radius: var(--radius-lg);
     box-shadow: 0 18px 40px rgba(2, 6, 23, .34);
 }
-.owner-theme-menu .owner-theme-option { min-height: 2.7rem; padding: .35rem .3rem; gap: .25rem; border-radius: var(--radius-70); font-size: .6rem; }
+.owner-theme-menu .owner-theme-option { min-height: 2.7rem; padding: .35rem .3rem; gap: var(--space-25); border-radius: var(--radius-70); font-size: .6rem; }
 .owner-theme-menu .owner-theme-swatch { height: .7rem; }
 .owner-theme-option {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: .35rem;
+    gap: var(--space-35);
     min-height: 3.4rem;
     padding: .45rem .4rem;
     border: 1px solid var(--border-color);
