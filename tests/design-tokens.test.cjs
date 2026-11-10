@@ -37,6 +37,20 @@ const Z_LAYERS = {
     dropdown: '40',
     floating: '45'
 };
+const LEADINGS = {
+    120: '1.2',
+    135: '1.35',
+    140: '1.4',
+    150: '1.5',
+    155: '1.55',
+    160: '1.6',
+    170: '1.7',
+    175: '1.75',
+    180: '1.8',
+    185: '1.85',
+    190: '1.9',
+    195: '1.95'
+};
 
 const themeBlocks = (css, theme) => [
     ...css.matchAll(new RegExp(`\\[data-theme="${theme}"\\]\\s*\\{([^}]*)\\}`, 'g'))
@@ -161,6 +175,31 @@ test('z-index declarations use the canonical layering scale', () => {
     }
     for (const name of Object.keys(Z_LAYERS)) {
         assert.ok(values.includes(`var(--z-${name})`), `layer ${name} must be consumed`);
+    }
+});
+
+test('leading tokens are defined once in :root with their original values', () => {
+    const css = read('css/style.css');
+    const rootBlock = css.match(/:root\s*\{([^}]*)\}/)[1];
+    for (const [step, value] of Object.entries(LEADINGS)) {
+        assert.match(rootBlock, new RegExp(`--leading-${step}\\s*:\\s*${value.replace('.', '\\.')}\\s*;`));
+        assert.equal([...css.matchAll(new RegExp(`--leading-${step}\\s*:`, 'g'))].length, 1);
+    }
+});
+
+test('line-height declarations use the canonical leading scale', () => {
+    const css = read('css/style.css');
+    const values = [...css.matchAll(/(?<![\w-])line-height\s*:\s*([^;{}]+);/g)]
+        .map(match => match[1].trim());
+    assert.ok(values.length > 0);
+    const part = new RegExp(
+        `^(?:var\\(--leading-(?:${Object.keys(LEADINGS).join('|')})\\)|var\\(--space-115\\))(?:\\s*!important)?$`
+    );
+    for (const value of values) {
+        assert.match(value, part, value);
+    }
+    for (const step of Object.keys(LEADINGS)) {
+        assert.ok(values.includes(`var(--leading-${step})`), `leading step ${step} must be consumed`);
     }
 });
 
