@@ -34,7 +34,7 @@ test('mobile action bars and filters can wrap without horizontal overflow', () =
 
 
 test('footer contact link keeps a usable touch height', () => {
-    assert.match(css, /#appCopyright a \{ display: inline-flex; align-items: center; min-height: 24px; padding-inline: \.2rem; \}/);
+    assert.match(css, /#appCopyright a \{ display: inline-flex; align-items: center; min-height: 24px; padding-inline: var\(--space-20\); \}/);
 });
 
 test('financial list icon actions keep a usable touch width', () => {
