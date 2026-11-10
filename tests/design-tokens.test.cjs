@@ -17,6 +17,18 @@ const TRACKING_STEPS = {
     12: '.12em',
     20: '.2em'
 };
+const MOTION_STEPS = {
+    150: '.15s',
+    160: '.16s',
+    180: '.18s',
+    200: '.2s',
+    240: '.24s',
+    260: '.26s',
+    300: '.3s'
+};
+const EASINGS = {
+    standard: 'ease'
+};
 
 const themeBlocks = (css, theme) => [
     ...css.matchAll(new RegExp(`\\[data-theme="${theme}"\\]\\s*\\{([^}]*)\\}`, 'g'))
@@ -82,6 +94,42 @@ test('letter-spacing declarations use the canonical scale', () => {
     }
     for (const step of Object.keys(TRACKING_STEPS)) {
         assert.ok(values.includes(`var(--tracking-${step})`), `tracking step ${step} must be consumed`);
+    }
+});
+
+test('motion tokens are defined once in :root with their original values', () => {
+    const css = read('css/style.css');
+    const rootBlock = css.match(/:root\s*\{([^}]*)\}/)[1];
+    for (const [step, value] of Object.entries(MOTION_STEPS)) {
+        assert.match(rootBlock, new RegExp(`--motion-${step}\\s*:\\s*${value.replace('.', '\\.')}\\s*;`));
+        assert.equal([...css.matchAll(new RegExp(`--motion-${step}\\s*:`, 'g'))].length, 1);
+    }
+    for (const [name, value] of Object.entries(EASINGS)) {
+        assert.match(rootBlock, new RegExp(`--ease-${name}\\s*:\\s*${value}\\s*;`));
+        assert.equal([...css.matchAll(new RegExp(`--ease-${name}\\s*:`, 'g'))].length, 1);
+    }
+});
+
+test('transition declarations use the canonical motion scale', () => {
+    const css = read('css/style.css');
+    const values = [...css.matchAll(/(?<![\w-])transition\s*:\s*([^;{}]+);/g)]
+        .map(match => match[1].trim());
+    assert.ok(values.length > 0);
+    const part = new RegExp(
+        `^[a-z-]+(?:\\s+[a-z-]+)*\\s+var\\(--motion-(?:${Object.keys(MOTION_STEPS).join('|')})\\)`
+        + `(?:\\s+var\\(--ease-(?:${Object.keys(EASINGS).join('|')})\\))?$`
+    );
+    for (const value of values) {
+        if (value === 'none') continue;
+        for (const segment of value.split(',').map(item => item.trim())) {
+            assert.match(segment, part, segment);
+        }
+    }
+    for (const step of Object.keys(MOTION_STEPS)) {
+        assert.ok(values.some(value => value.includes(`var(--motion-${step})`)), `motion step ${step} must be consumed`);
+    }
+    for (const name of Object.keys(EASINGS)) {
+        assert.ok(values.some(value => value.includes(`var(--ease-${name})`)), `easing ${name} must be consumed`);
     }
 });
 
