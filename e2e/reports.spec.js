@@ -186,6 +186,34 @@ test('transition motion tokens resolve consistently across themes and print', as
     }
 });
 
+test('z-index layering tokens resolve consistently across themes and print', async ({ page }) => {
+    await openReports(page);
+    const samples = [
+        ['#pinLockModal .auth-brand-panel', '::before', '-1'],
+        ['#settingsModal .settings-topbar', undefined, '3'],
+        ['#settingsModal .settings-hero-copy', undefined, '1'],
+        ['#settingsModal .settings-hero-stats', undefined, '1'],
+        ['#settingsModal .settings-section-toolbar', undefined, '6'],
+        ['#ownerThemeMenu', undefined, '40'],
+        ['#managerNotificationsMenu', undefined, '40'],
+        ['.assistant-fab', undefined, '45']
+    ];
+    const readZ = (selector, pseudo) => page.locator(selector).first().evaluate(
+        (element, arg) => getComputedStyle(element, arg).zIndex,
+        pseudo
+    );
+    for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise']) {
+        await page.evaluate(value => applyThemeToDocument(value), theme);
+        for (const [selector, pseudo, expected] of samples) {
+            expect(await readZ(selector, pseudo)).toBe(expected);
+        }
+    }
+    await page.emulateMedia({ media: 'print' });
+    for (const [selector, pseudo, expected] of samples) {
+        expect(await readZ(selector, pseudo)).toBe(expected);
+    }
+});
+
 test('the tab opens on the icon grid and a card opens its report full page', async ({ page }) => {
     await openReports(page);
     await expect(page.locator('.report-section-head')).toBeVisible();
