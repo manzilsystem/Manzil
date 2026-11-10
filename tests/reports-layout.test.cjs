@@ -111,8 +111,8 @@ test('reports section has a header, an icon nav, and unified actions', () => {
     assert.match(css, /\.report-nav-item::before \{/, 'the tone glow behind each card');
     assert.match(css, /\.report-nav-item:hover \{[^}]*transform: translateY\(-2px\)/);
     assert.match(css, /\.report-nav-item\.is-active \{[^}]*box-shadow: 0 0 0 2px color-mix\(in srgb, var\(--report-tone, var\(--accent-color\)\) 28%, transparent\)/, 'the active card is ringed in its own tone');
-    assert.match(css, /\.report-nav-item\.is-ready::after \{ background: #10b981/, 'a ready preview stays green whatever the report tone is');
-    assert.match(css, /\.report-nav-item\.is-stale::after/);
+    assert.match(css, /\.report-nav-item\.is-ready::after \{ background: var\(--state-success\)/, 'a ready preview stays green whatever the report tone is');
+    assert.match(css, /\.report-nav-item\.is-stale::after \{ background: var\(--state-warning\)/, 'a stale preview stays amber whatever the report tone is');
     assert.match(css, /@media \(max-width: 639\.98px\) \{[\s\S]*?\.report-toolbar > \.report-field \{ flex: 0 0 auto; \}/, 'stacked fields must drop the row flex-basis, which made every toolbar 12rem taller on phones');
     assert.match(css, /\.report-action:disabled \{/);
     assert.match(css, /\.report-action-primary \{/);

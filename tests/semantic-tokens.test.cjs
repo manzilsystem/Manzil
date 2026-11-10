@@ -61,14 +61,21 @@ test('shared semantic consumers reference the tokens instead of raw literals', (
         ['.quick-action-report', 'state-warning'],
         ['.app-input:user-invalid:not(:focus)', 'state-danger'],
         ['.assistant-fab::after', 'state-success'],
-        ['.assistant-online-dot', 'state-success']
+        ['.assistant-online-dot', 'state-success'],
+        ['.report-nav-item.is-ready::after', 'state-success'],
+        ['.report-nav-item.is-stale::after', 'state-warning'],
+        ['#settingsModal .settings-owner-stats .is-missing b', 'state-danger'],
+        ['#settingsModal .settings-rule-step.is-late .settings-rule-step-icon', 'state-danger'],
+        ['#settingsModal .settings-secondary-button.is-danger', 'state-danger']
     ];
     for (const [selector, token] of expectations) {
-        const rule = blocks(css, selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&'))[0];
-        assert.ok(rule, `expected a rule for "${selector}"`);
-        assert.match(
-            rule[1],
-            new RegExp(`var\\(--${token}\\)`),
+        const rules = blocks(css, selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&'));
+        assert.ok(rules.length, `expected a rule for "${selector}"`);
+        // A selector can appear in more than one rule (e.g. a shared layout rule
+        // that also lists the selector, plus the color rule we care about), so
+        // require that at least one matching rule consumes the canonical token.
+        assert.ok(
+            rules.some(rule => new RegExp(`var\\(--${token}\\)`).test(rule[1])),
             `"${selector}" must consume var(--${token}) instead of a raw literal`
         );
     }
