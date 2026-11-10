@@ -76,7 +76,7 @@ function incomeExtraLineMarkup(index = 1) {
                 <option value="emergency">صندوق الصيانة الطارئة</option>
             </select>
         </div>
-        <p class="income-line-hint text-[10px] text-slate-500"></p>
+        <p class="income-line-hint text-xs text-slate-500"></p>
     </div>`;
 }
 
@@ -394,15 +394,15 @@ function buildResidentProfileHtml(resident) {
         <section class="app-input border border-amber-500/20 rounded-2xl p-4 space-y-2">
             <div class="flex items-center justify-between gap-2">
                 <h4 class="text-xs font-black">بيانات المستأجر</h4>
-                <span class="text-[10px] text-amber-300">مؤجرة</span>
+                <span class="text-xs text-amber-300">مؤجرة</span>
             </div>
             <div class="grid grid-cols-2 gap-2 text-xs">
-                <div><p class="text-[10px] text-slate-500">اسم المستأجر</p><p class="font-bold mt-1 break-words">${esc(resident.tenantName || '—')}</p></div>
-                <div><p class="text-[10px] text-slate-500">هاتف المستأجر</p><p class="font-bold mt-1 break-words">${esc(resident.tenantPhone || '—')}</p></div>
-                <div><p class="text-[10px] text-slate-500">بداية الإيجار</p><p class="font-bold mt-1">${esc(resident.leaseStart ? formatDate(resident.leaseStart) : '—')}</p></div>
-                <div><p class="text-[10px] text-slate-500">نهاية الإيجار</p><p class="font-bold mt-1">${esc(resident.leaseEnd ? formatDate(resident.leaseEnd) : '—')}</p></div>
-                <div><p class="text-[10px] text-slate-500">قيمة الإيجار</p><p class="font-bold mt-1">${resident.rentAmount == null ? '—' : fmtNum(resident.rentAmount) + ' ج.م'}</p></div>
-                <div><p class="text-[10px] text-slate-500">التأمين</p><p class="font-bold mt-1">${resident.depositAmount == null ? '—' : fmtNum(resident.depositAmount) + ' ج.م'}</p></div>
+                <div><p class="text-xs text-slate-500">اسم المستأجر</p><p class="font-bold mt-1 break-words">${esc(resident.tenantName || '—')}</p></div>
+                <div><p class="text-xs text-slate-500">هاتف المستأجر</p><p class="font-bold mt-1 break-words">${esc(resident.tenantPhone || '—')}</p></div>
+                <div><p class="text-xs text-slate-500">بداية الإيجار</p><p class="font-bold mt-1">${esc(resident.leaseStart ? formatDate(resident.leaseStart) : '—')}</p></div>
+                <div><p class="text-xs text-slate-500">نهاية الإيجار</p><p class="font-bold mt-1">${esc(resident.leaseEnd ? formatDate(resident.leaseEnd) : '—')}</p></div>
+                <div><p class="text-xs text-slate-500">قيمة الإيجار</p><p class="font-bold mt-1">${resident.rentAmount == null ? '—' : fmtNum(resident.rentAmount) + ' ج.م'}</p></div>
+                <div><p class="text-xs text-slate-500">التأمين</p><p class="font-bold mt-1">${resident.depositAmount == null ? '—' : fmtNum(resident.depositAmount) + ' ج.م'}</p></div>
             </div>
         </section>` : '';
     const unpaidMonths = (debt.unpaidMonths || []).map(month => ({
@@ -425,7 +425,7 @@ function buildResidentProfileHtml(resident) {
                 <span class="text-xs">${esc(item.month)}</span>
                 <strong class="text-xs text-rose-400 shrink-0">${fmtNum(item.amount)} ج.م</strong>
             </div>`).join('') + (unpaidMonths.length > 12
-                ? `<p class="text-[10px] text-slate-500 pt-2">تم عرض أقدم 12 شهرًا من أصل ${fmtNum(unpaidMonths.length)} شهر.</p>`
+                ? `<p class="text-xs text-slate-500 pt-2">تم عرض أقدم 12 شهرًا من أصل ${fmtNum(unpaidMonths.length)} شهر.</p>`
                 : '')
         : '<p class="text-xs text-emerald-400 text-center py-3">لا توجد متأخرات مستحقة.</p>';
     const paymentsHtml = recentPayments.length
@@ -434,11 +434,11 @@ function buildResidentProfileHtml(resident) {
                 <div class="flex justify-between items-start gap-3">
                     <div class="min-w-0">
                         <p class="text-xs font-bold">${esc(payment.month || '—')}</p>
-                        <p class="text-[10px] text-slate-500">${esc(getIncomePaymentMethodLabel(payment.paymentMethod))} · ${esc(formatDate(payment.date) || '—')}</p>
+                        <p class="text-xs text-slate-500">${esc(getIncomePaymentMethodLabel(payment.paymentMethod))} · ${esc(formatDate(payment.date) || '—')}</p>
                     </div>
                     <strong class="text-xs text-emerald-400 shrink-0">${fmtNum(payment.amount)} ج.م</strong>
                 </div>
-                ${payment.notes ? `<p class="text-[10px] text-slate-500 break-words">${esc(payment.notes)}</p>` : ''}
+                ${payment.notes ? `<p class="text-xs text-slate-500 break-words">${esc(payment.notes)}</p>` : ''}
             </article>`).join('')
         : '<p class="text-xs text-slate-500 text-center py-3">لا توجد تحصيلات مسجلة للشقة.</p>';
     const ratesHtml = rateHistory.length
@@ -446,11 +446,11 @@ function buildResidentProfileHtml(resident) {
             <div class="flex items-center justify-between gap-3 py-2 border-b border-slate-700/40 last:border-0">
                 <div class="min-w-0">
                     <p class="text-xs font-bold">${esc(String(change.effectiveMonth || '').slice(0, 7) || '—')}</p>
-                    <p class="text-[10px] text-slate-500">${esc(formatDate(change.changedAt) || '—')}</p>
+                    <p class="text-xs text-slate-500">${esc(formatDate(change.changedAt) || '—')}</p>
                 </div>
                 <div class="text-left shrink-0">
                     <p class="text-xs font-bold">${formatSubscriptionAmount(change.newMonthlyAmount)} ج.م</p>
-                    <p class="text-[10px] text-slate-500">${change.previousMonthlyAmount == null ? 'قيمة تأسيسية' : 'بدلًا من ' + formatSubscriptionAmount(change.previousMonthlyAmount) + ' ج.م'}</p>
+                    <p class="text-xs text-slate-500">${change.previousMonthlyAmount == null ? 'قيمة تأسيسية' : 'بدلًا من ' + formatSubscriptionAmount(change.previousMonthlyAmount) + ' ج.م'}</p>
                 </div>
             </div>`).join('')
         : '<p class="text-xs text-slate-500 text-center py-3">لا توجد تغييرات تاريخية مسجلة.</p>';
@@ -459,7 +459,7 @@ function buildResidentProfileHtml(resident) {
             <div class="flex items-start justify-between gap-3 py-2 border-b border-slate-700/40 last:border-0">
                 <div class="min-w-0">
                     <p class="text-xs font-bold">${esc(adjustmentMonthKeyToLabel(String(adjustment.effectiveMonth || '').slice(0, 7)) || '—')}</p>
-                    <p class="text-[10px] text-slate-500 break-words">${esc(getAdjustmentKindLabel(adjustment.kind))}${adjustment.reason ? ' · ' + esc(adjustment.reason) : ''}</p>
+                    <p class="text-xs text-slate-500 break-words">${esc(getAdjustmentKindLabel(adjustment.kind))}${adjustment.reason ? ' · ' + esc(adjustment.reason) : ''}</p>
                 </div>
                 <strong class="text-xs text-amber-300 shrink-0">${formatSubscriptionAmount(adjustment.amount)} ج.م</strong>
             </div>`).join('')
@@ -470,7 +470,7 @@ function buildResidentProfileHtml(resident) {
             <section class="app-input border rounded-2xl p-4 space-y-3">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                        <p class="text-[10px] text-slate-500">بيانات الوحدة</p>
+                        <p class="text-xs text-slate-500">بيانات الوحدة</p>
                         <h4 class="text-base font-black mt-1">${esc(resident.name || 'بدون اسم')}</h4>
                         <p class="text-xs text-slate-400 mt-1">شقة ${esc(resident.apartmentNumber || '—')}${resident.floor ? ' · ' + 'الدور ' + esc(resident.floor) : ''}</p>
                     </div>
@@ -478,15 +478,15 @@ function buildResidentProfileHtml(resident) {
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div class="bg-slate-900/30 rounded-xl p-3 min-w-0">
-                        <p class="text-[10px] text-slate-500">رقم الهاتف</p>
+                        <p class="text-xs text-slate-500">رقم الهاتف</p>
                         <p class="text-xs font-bold mt-1 break-words">${esc(resident.phone || 'غير مسجل')}</p>
                     </div>
                     <div class="bg-slate-900/30 rounded-xl p-3 min-w-0">
-                        <p class="text-[10px] text-slate-500">تاريخ إضافة الشقة</p>
+                        <p class="text-xs text-slate-500">تاريخ إضافة الشقة</p>
                         <p class="text-xs font-bold mt-1">${esc(formatDate(resident.createdAt) || '—')}</p>
                     </div>
                     <div class="bg-slate-900/30 rounded-xl p-3 min-w-0">
-                        <p class="text-[10px] text-slate-500">بداية المحاسبة</p>
+                        <p class="text-xs text-slate-500">بداية المحاسبة</p>
                         <p class="text-xs font-bold mt-1">${esc(monthKeyToLabel(getResidentBillingStartKey(resident)) || '—')}</p>
                     </div>
                 </div>
@@ -498,16 +498,16 @@ function buildResidentProfileHtml(resident) {
             <section class="space-y-2">
                 <h4 class="text-xs font-black">حساب الاشتراك — ${esc(currentMonth)}</h4>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <div class="app-card border rounded-xl p-3 min-w-0"><p class="text-[10px] text-slate-500">قيمة الاشتراك</p><p class="text-sm font-black mt-1">${formatSubscriptionAmount(currentAmount)}</p></div>
-                    <div class="app-card border rounded-xl p-3 min-w-0"><p class="text-[10px] text-slate-500">المدفوع</p><p class="text-sm font-black text-emerald-400 mt-1">${formatSubscriptionAmount(currentPaid)}</p></div>
-                    <div class="app-card border rounded-xl p-3 min-w-0"><p class="text-[10px] text-slate-500">المتبقي</p><p class="text-sm font-black mt-1">${formatSubscriptionAmount(currentOutstanding)}</p></div>
-                    <div class="app-card border rounded-xl p-3 min-w-0"><p class="text-[10px] text-slate-500">إجمالي المتأخرات</p><p class="text-sm font-black text-rose-400 mt-1">${formatSubscriptionAmount(debt.totalDebt)}</p><p class="text-[10px] text-slate-500">${fmtNum(debt.count)} شهر</p></div>
+                    <div class="app-card border rounded-xl p-3 min-w-0"><p class="text-xs text-slate-500">قيمة الاشتراك</p><p class="text-sm font-black mt-1">${formatSubscriptionAmount(currentAmount)}</p></div>
+                    <div class="app-card border rounded-xl p-3 min-w-0"><p class="text-xs text-slate-500">المدفوع</p><p class="text-sm font-black text-emerald-400 mt-1">${formatSubscriptionAmount(currentPaid)}</p></div>
+                    <div class="app-card border rounded-xl p-3 min-w-0"><p class="text-xs text-slate-500">المتبقي</p><p class="text-sm font-black mt-1">${formatSubscriptionAmount(currentOutstanding)}</p></div>
+                    <div class="app-card border rounded-xl p-3 min-w-0"><p class="text-xs text-slate-500">إجمالي المتأخرات</p><p class="text-sm font-black text-rose-400 mt-1">${formatSubscriptionAmount(debt.totalDebt)}</p><p class="text-xs text-slate-500">${fmtNum(debt.count)} شهر</p></div>
                 </div>
                 <div class="flex items-center justify-between gap-2">
-                    <span class="text-[10px] font-bold border rounded-full px-3 py-1 ${paymentStatus.className}">${paymentStatus.label}</span>
-                    <span class="text-[10px] text-slate-500">حالة الشهر الحالي</span>
+                    <span class="text-xs font-bold border rounded-full px-3 py-1 ${paymentStatus.className}">${paymentStatus.label}</span>
+                    <span class="text-xs text-slate-500">حالة الشهر الحالي</span>
                 </div>
-                ${currentAdjustment > 0 ? `<p class="text-[10px] text-amber-300">إعفاءات وتخفيضات وتسويات ${esc(currentMonth)}: ${formatSubscriptionAmount(currentAdjustment)} ج.م</p>` : ''}
+                ${currentAdjustment > 0 ? `<p class="text-xs text-amber-300">إعفاءات وتخفيضات وتسويات ${esc(currentMonth)}: ${formatSubscriptionAmount(currentAdjustment)} ج.م</p>` : ''}
             </section>
 
             <section class="app-input border rounded-2xl p-4">
@@ -526,7 +526,7 @@ function buildResidentProfileHtml(resident) {
             <section class="app-input border rounded-2xl p-4">
                 <div class="flex items-center justify-between gap-2 mb-2">
                     <h4 class="text-xs font-black">سجل تغييرات الاشتراك</h4>
-                    <span class="text-[10px] text-slate-500">آخر 6 تغييرات</span>
+                    <span class="text-xs text-slate-500">آخر 6 تغييرات</span>
                 </div>
                 ${ratesHtml}
             </section>
@@ -534,7 +534,7 @@ function buildResidentProfileHtml(resident) {
             <section class="app-input border rounded-2xl p-4">
                 <div class="flex items-center justify-between gap-2 mb-2">
                     <h4 class="text-xs font-black">الإعفاءات والتخفيضات والتسويات</h4>
-                    <span class="text-[10px] text-slate-500">${fmtNum(residentAdjustments.length)} تسجيل</span>
+                    <span class="text-xs text-slate-500">${fmtNum(residentAdjustments.length)} تسجيل</span>
                 </div>
                 ${adjustmentsHtml}
             </section>
@@ -680,7 +680,7 @@ function updateAdjustmentDueHint() {
     const monthKey = monthInput.value;
     if (!isValidEffectiveMonth(monthKey)) {
         hint.textContent = 'اختر شهر الاستحقاق.';
-        hint.className = 'text-[10px] text-slate-400';
+        hint.className = 'text-xs text-slate-400';
         return;
     }
     const dueCents = Math.round(getAdjustmentMonthDue(resident, monthKey) * 100);
@@ -708,12 +708,12 @@ function updateAdjustmentDueHint() {
                         : enteredCents > availableCents
                             ? `مبلغ التسوية يتجاوز المستحق المتاح (${formatSubscriptionAmount(availableCents / 100)} ج.م).`
                             : `المتاح للتسوية: ${formatSubscriptionAmount(availableCents / 100)} ج.م · المدفوع من التسوية: ${formatSubscriptionAmount(settlementPaidCents / 100)} ج.م · المتبقي بعد هذا المبلغ: ${formatSubscriptionAmount(Math.max(0, enteredCents - settlementPaidCents) / 100)} ج.م`;
-        hint.className = valid ? 'text-[10px] text-slate-400' : 'text-[10px] text-rose-400';
+        hint.className = valid ? 'text-xs text-slate-400' : 'text-xs text-rose-400';
         return;
     }
     const remainingCents = dueCents - existingCents - enteredCents;
     hint.textContent = `مستحق ${adjustmentMonthKeyToLabel(monthKey)}: ${formatSubscriptionAmount(dueCents / 100)} ج.م · المسجل من إعفاءات وتخفيضات: ${formatSubscriptionAmount(existingCents / 100)} ج.م · المتبقي بعد هذا المبلغ: ${formatSubscriptionAmount(Math.max(0, remainingCents) / 100)} ج.م`;
-    hint.className = remainingCents < 0 ? 'text-[10px] text-rose-400' : 'text-[10px] text-slate-400';
+    hint.className = remainingCents < 0 ? 'text-xs text-rose-400' : 'text-xs text-slate-400';
 }
 
 function updateAdjustmentFormState() {
@@ -749,7 +749,7 @@ function renderAdjustmentList(resident) {
         const settlementRemaining = adjustment.kind === 'settlement'
             ? getSettlementRemainingAmount(adjustment) : 0;
         const amountCell = adjustment.kind === 'settlement'
-            ? `<strong>${formatSubscriptionAmount(adjustment.amount)} ج.م</strong><span class="block text-[10px] text-slate-500">مدفوع ${formatSubscriptionAmount(settlementPaid)} · متبقٍ ${formatSubscriptionAmount(settlementRemaining)}</span>`
+            ? `<strong>${formatSubscriptionAmount(adjustment.amount)} ج.م</strong><span class="block text-xs text-slate-500">مدفوع ${formatSubscriptionAmount(settlementPaid)} · متبقٍ ${formatSubscriptionAmount(settlementRemaining)}</span>`
             : `${formatSubscriptionAmount(adjustment.amount)} ج.م`;
         return `<tr class="border-t border-slate-700/40">
             <td class="px-3 py-2 whitespace-nowrap">${esc(monthLabel || '—')}</td>
@@ -1803,7 +1803,7 @@ function updateIncomeMonthPickerHint(resident = null) {
     if (!hint) return;
     const target = resident || getIncomeResidentFromForm();
     if (!target) {
-        hint.className = 'text-[10px] text-slate-500';
+        hint.className = 'text-xs text-slate-500';
         hint.textContent = 'اختر الشقة أولًا لعرض حالة الشهر.';
         return;
     }
@@ -1811,13 +1811,13 @@ function updateIncomeMonthPickerHint(resident = null) {
     const key = String(picker?.value || '');
     const label = monthKeyToLabel(key);
     if (!label) {
-        hint.className = 'text-[10px] text-slate-500';
+        hint.className = 'text-xs text-slate-500';
         hint.textContent = 'اختر شهر التحصيل من الكلندر.';
         return;
     }
     const createdKey = getIncomeBillingStartKey(target);
     if (createdKey && key < createdKey) {
-        hint.className = 'text-[10px] text-rose-300';
+        hint.className = 'text-xs text-rose-300';
         hint.textContent = `هذا الشهر قبل بداية محاسبة الشقة (${monthKeyToLabel(createdKey)}). اختر الشهر لتأكيد تعديل بداية المحاسبة.`;
         return;
     }
@@ -1830,10 +1830,10 @@ function updateIncomeMonthPickerHint(resident = null) {
     if (status.adjusted > 0) parts.push(`إعفاء/تخفيض/تسوية ${fmtNum(status.adjusted)} ج.م`);
     parts.push(`متبقٍ ${fmtNum(status.outstanding)} ج.م`);
     if (status.outstanding <= 0) {
-        hint.className = 'text-[10px] text-emerald-300';
+        hint.className = 'text-xs text-emerald-300';
         hint.textContent = `${parts.join(' · ')} — الشهر مسدد بالكامل.`;
     } else {
-        hint.className = 'text-[10px] text-slate-400';
+        hint.className = 'text-xs text-slate-400';
         hint.textContent = parts.join(' · ');
     }
 }
@@ -1975,8 +1975,8 @@ function renderIncomeMonthsGrid(resident) {
             <input type="checkbox" data-income-month="${crudHtmlEscape(month)}" ${checked ? 'checked' : ''} ${info.disabled ? 'disabled' : ''} onchange="handleIncomeMonthToggle(this)" aria-label="${crudHtmlEscape(`${month} ${info.status}`)}" class="mt-0.5 h-4 w-4 accent-emerald-500">
             <span class="flex-1 min-w-0">
                 <span class="font-bold">${crudHtmlEscape(month)}</span>
-                <span class="mx-1 rounded-full border px-1.5 py-0.5 text-[9px] ${badgeClass}">${info.status}</span>
-                <span class="block text-[10px] text-slate-500">مستحق ${fmtNum(due)} · مدفوع ${fmtNum(paid)} · متبقٍ ${fmtNum(info.outstanding)}</span>
+                <span class="mx-1 rounded-full border px-1.5 py-0.5 text-xs ${badgeClass}">${info.status}</span>
+                <span class="block text-xs text-slate-500">مستحق ${fmtNum(due)} · مدفوع ${fmtNum(paid)} · متبقٍ ${fmtNum(info.outstanding)}</span>
             </span>
         </label>`;
     }).join('');
@@ -2095,7 +2095,7 @@ function renderIncomeResidentSummary() {
     box.innerHTML = `
         <div class="flex items-center justify-between gap-2">
             <p class="font-bold text-slate-200">${crudHtmlEscape(crudApartmentLabel(resident.apartmentNumber))} · ${crudHtmlEscape(resident.name || '—')}</p>
-            <span class="rounded-full border px-2 py-0.5 text-[10px] font-bold ${statusClass}">${statusText}</span>
+            <span class="rounded-full border px-2 py-0.5 text-xs font-bold ${statusClass}">${statusText}</span>
         </div>
         <p class="text-slate-400">الاشتراك الحالي: ${fmtNum(summary?.currentSubscription || 0)} ج.م · مستحق هذا الشهر: ${fmtNum(summary?.currentOutstanding || 0)} ج.م</p>
         <p class="text-slate-400">المتأخرات: ${fmtNum(debt.totalDebt)} ج.م (${fmtNum(debt.count)} شهر) · آخر دفعة: ${crudHtmlEscape(lastPaymentText)}</p>
@@ -2168,7 +2168,7 @@ function resetIncomeFormFields() {
     const monthPickerHint = document.getElementById('incomeMonthPickerHint');
     if (monthPickerHint) {
         monthPickerHint.textContent = '';
-        monthPickerHint.className = 'text-[10px] text-slate-500';
+        monthPickerHint.className = 'text-xs text-slate-500';
     }
     syncIncomePurposeUi();
     syncIncomePurposeCashAccount('incomePurpose', 'incomeCashAccount', {
