@@ -36,6 +36,25 @@ test('all runtime modules are pre-cached with the application shell', () => {
     }
 });
 
+test('shared-release shell entries carry the current release, never a stale stamp', () => {
+    const cache = sw.match(/const CACHE_NAME = '(manzil-[0-9a-f]{10})'/);
+    assert.ok(cache, 'CACHE_NAME must carry the derived release id');
+    const shell = sw.match(/const APP_SHELL = \[([\s\S]*?)\];/)[1];
+
+    // telemetry.js and subscription-rates.js take the shared release id rather
+    // than a per-file hash, so their shell stamp must track CACHE_NAME; a stale
+    // token would mean the current release is never pre-cached.
+    for (const module of ['telemetry.js', 'subscription-rates.js']) {
+        const entry = shell.match(new RegExp(`'\\./js/${module.replace('.', '\\.')}\\?v=([^']+)'`));
+        assert.ok(entry, module + ' must be in APP_SHELL with a version token');
+        assert.equal(
+            entry[1],
+            cache[1],
+            module + ' must be stamped with the shared release so the current build is pre-cached'
+        );
+    }
+});
+
 test('the shell reloads for worker updates but not for the first install', () => {
     assert.ok(html.includes('<script src="js/sw-register.js?v='), 'index.html must load the registration script');
     assert.match(swRegister, /const hadController = Boolean\(navigator\.serviceWorker\.controller\)/);
