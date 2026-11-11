@@ -520,3 +520,61 @@ test('the theme preview palette resolves from its canonical tokens', () => {
             `the theme preview rules must not keep the raw ${value} literal`);
     }
 });
+
+test('the branded sign-in palette resolves from its canonical tokens', () => {
+    const css = read('css/style.css');
+
+    // The sign-in screen (#pinLockModal) is a fixed brand surface independent of
+    // the app themes, so its midnight-navy surfaces and ink tones live once in the
+    // #pinLockModal token layer instead of remapping through the theme tokens.
+    const tokens = {
+        '--auth-surface-shell': '#07141d',
+        '--auth-surface-brand-1': '#02080d',
+        '--auth-surface-brand-2': '#071c27',
+        '--auth-surface-brand-3': '#061018',
+        '--auth-surface-panel-1': '#10232d',
+        '--auth-surface-panel-2': '#0b1821',
+        '--auth-surface-field': '#07131b',
+        '--auth-ink-brand': '#f7f1e5',
+        '--auth-ink-panel': '#f3f6f5',
+        '--auth-ink-strong': '#fff',
+        '--auth-ink-mark': '#e5e7eb',
+        '--auth-ink-soft': '#c5d5d9',
+        '--auth-ink-benefit': '#e0e9e9',
+        '--auth-ink-control': '#d6e2e3',
+        '--auth-ink-label': '#dbe5e4',
+        '--auth-ink-help': '#edf7f5',
+        '--auth-ink-subtle': '#b6c6ca',
+        '--auth-ink-faint': '#aebfc2',
+        '--auth-ink-dim': '#90a5ac'
+    };
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const start = css.indexOf('/* Manzil branded sign-in:');
+    const end = css.indexOf('   Settings workspace');
+    assert.ok(start !== -1 && end > start, 'expected the branded sign-in section');
+    const region = css.slice(start, end);
+
+    // The palette is declared exactly once, in the #pinLockModal token layer.
+    const tokenBlock = blocks(region, '#pinLockModal')[0];
+    assert.ok(tokenBlock, 'expected a #pinLockModal token layer');
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(tokenBlock[1], new RegExp(escape(declaration)),
+            `the sign-in token layer must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+    }
+
+    // Strip the token layer so the remaining rules must be literal-free and every
+    // token must be consumed.
+    const consumers = region.replace(/--auth-[a-z0-9-]+\s*:[^;]*;/g, '');
+    for (const value of new Set(Object.values(tokens))) {
+        assert.ok(!consumers.includes(value),
+            `the sign-in rules must not keep the raw ${value} literal`);
+    }
+    for (const name of Object.keys(tokens)) {
+        assert.ok(region.includes(`var(${name})`),
+            `the sign-in rules must consume var(${name})`);
+    }
+});

@@ -61,7 +61,7 @@ test('Manzil branding uses the supplied logo on sign-in and app header with resp
 });
  
 test('Manzil login uses the gold and turquoise visual identity with a mobile-first layout', () => {
-    assert.ok(css.includes('linear-gradient(145deg,#02080d 0%,#071c27 54%,#061018 100%)'));
+    assert.ok(css.includes('linear-gradient(145deg,var(--auth-surface-brand-1) 0%,var(--auth-surface-brand-2) 54%,var(--auth-surface-brand-3) 100%)'));
     assert.ok(css.includes('linear-gradient(110deg,#a97827 0%,#f1ce7d 48%,#b78332 100%)'));
     assert.ok(css.includes('#pinLockModal .auth-login-panel { order:2'));
     assert.ok(html.includes('aria-label="شعار منزل | Manzil"'));
