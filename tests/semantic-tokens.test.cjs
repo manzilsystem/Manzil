@@ -884,3 +884,59 @@ test('the settings white ink resolves from its canonical token', () => {
     const uses = settingsRegion.match(/var\(--settings-ink-white\)/g) || [];
     assert.ok(uses.length >= 4, 'every consumer must use var(--settings-ink-white)');
 });
+
+test('the settings card-tone accent palette resolves from its canonical tokens', () => {
+    const css = read('css/style.css');
+
+    // Five card-tone accents (sky/violet/amber/rose/indigo) previously had raw
+    // hex literals in their data-tone rules. They now resolve from canonical
+    // tokens in the #settingsModal layer. The other three tones (teal→settings-accent,
+    // gold→settings-gold, emerald→settings-emerald) already had tokens.
+    const tokens = {
+        '--settings-card-sky':    '#38a8e0',
+        '--settings-card-violet': '#8b7cf6',
+        '--settings-card-amber':  '#e0a034',
+        '--settings-card-rose':   '#e06a8b',
+        '--settings-card-indigo': '#6477e8'
+    };
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Each token is declared exactly once, in the #settingsModal token layer.
+    const layer = blocks(css, '#settingsModal')[0];
+    assert.ok(layer, 'expected a #settingsModal token layer');
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(
+            layer[1],
+            new RegExp(escape(declaration)),
+            `the settings token layer must declare ${declaration}`
+        );
+        assert.equal(
+            css.split(declaration).length - 1,
+            1,
+            `${declaration} must be declared exactly once`
+        );
+    }
+
+    // The data-tone rules must consume the tokens; no raw literal may survive.
+    for (const [name, value] of Object.entries(tokens)) {
+        const tone = name.replace('--settings-card-', '');
+        const rule = blocks(css, `#settingsModal \\.settings-card\\[data-tone="${tone}"\\]`)[0];
+        assert.ok(rule, `expected a data-tone rule for "${tone}"`);
+        assert.ok(
+            new RegExp(`--card-accent:\\s*var\\(${name}\\)`).test(rule[1]),
+            `data-tone="${tone}" must set --card-accent to var(${name})`
+        );
+        assert.ok(
+            !rule[1].includes(value),
+            `data-tone="${tone}" must not keep the raw ${value} literal`
+        );
+    }
+
+    // Global literal count: each value must only appear in its definition.
+    for (const [, value] of Object.entries(tokens)) {
+        const found = css.match(new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || [];
+        assert.equal(found.length, 1,
+            `${value} must only appear in the canonical token definition`);
+    }
+});

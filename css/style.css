@@ -1358,6 +1358,18 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
        changes nothing visually. */
     --settings-warning-ink: #d97706;
     --settings-danger-ink: #dc2626;
+    /* Canonical accent colors for the five settings card tones that do not
+       map to an existing settings token (teal→--settings-accent,
+       gold→--settings-gold, emerald→--settings-emerald are already routed).
+       These are theme-invariant — the card tones only ever paint the dark
+       settings surfaces, which the light-theme polish does not repaint — and
+       every token matches the literal it replaced, so routing declarations
+       through them changes nothing visually. */
+    --settings-card-sky: #38a8e0;
+    --settings-card-violet: #8b7cf6;
+    --settings-card-amber: #e0a034;
+    --settings-card-rose: #e06a8b;
+    --settings-card-indigo: #6477e8;
     --settings-line: color-mix(in srgb, var(--border-color) 72%, transparent);
     --settings-surface: color-mix(in srgb, var(--bg-card) 94%, var(--bg-main));
     --settings-surface-raised: var(--surface-raised, color-mix(in srgb, var(--bg-card) 84%, var(--bg-main)));
@@ -1826,12 +1838,12 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-card[data-tone="teal"] { --card-accent: var(--settings-accent); }
 #settingsModal .settings-card[data-tone="gold"] { --card-accent: var(--settings-gold); }
-#settingsModal .settings-card[data-tone="sky"] { --card-accent: #38a8e0; }
-#settingsModal .settings-card[data-tone="violet"] { --card-accent: #8b7cf6; }
+#settingsModal .settings-card[data-tone="sky"] { --card-accent: var(--settings-card-sky); }
+#settingsModal .settings-card[data-tone="violet"] { --card-accent: var(--settings-card-violet); }
 #settingsModal .settings-card[data-tone="emerald"] { --card-accent: var(--settings-emerald); }
-#settingsModal .settings-card[data-tone="amber"] { --card-accent: #e0a034; }
-#settingsModal .settings-card[data-tone="rose"] { --card-accent: #e06a8b; }
-#settingsModal .settings-card[data-tone="indigo"] { --card-accent: #6477e8; }
+#settingsModal .settings-card[data-tone="amber"] { --card-accent: var(--settings-card-amber); }
+#settingsModal .settings-card[data-tone="rose"] { --card-accent: var(--settings-card-rose); }
+#settingsModal .settings-card[data-tone="indigo"] { --card-accent: var(--settings-card-indigo); }
 #settingsModal .settings-card:hover {
     transform: translateY(-3px);
     border-color: color-mix(in srgb, var(--card-accent) 55%, var(--settings-line));
