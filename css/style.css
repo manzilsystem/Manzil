@@ -1182,6 +1182,11 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     --settings-accent-bright: #55c9bd;
     --settings-accent-deep: #0d6f6c;
     --settings-gold: #c9973d;
+    /* Shared emerald accent for the settings surfaces (the emerald card tone and
+       the connected/"linked" status). It is theme-invariant and matches the
+       literal it replaces, so routing declarations through it changes nothing
+       visually; its translucent variants derive from it via color-mix. */
+    --settings-emerald: #2ea879;
     --settings-ink: #071f27;
     --settings-ink-2: #0b2633;
     --settings-ink-3: #123b50;
@@ -1655,7 +1660,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-card[data-tone="gold"] { --card-accent: #c9973d; }
 #settingsModal .settings-card[data-tone="sky"] { --card-accent: #38a8e0; }
 #settingsModal .settings-card[data-tone="violet"] { --card-accent: #8b7cf6; }
-#settingsModal .settings-card[data-tone="emerald"] { --card-accent: #2ea879; }
+#settingsModal .settings-card[data-tone="emerald"] { --card-accent: var(--settings-emerald); }
 #settingsModal .settings-card[data-tone="amber"] { --card-accent: #e0a034; }
 #settingsModal .settings-card[data-tone="rose"] { --card-accent: #e06a8b; }
 #settingsModal .settings-card[data-tone="indigo"] { --card-accent: #6477e8; }
@@ -2360,8 +2365,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     align-self: flex-start;
     padding: var(--space-25) var(--space-55);
     border-radius: var(--radius-pill);
-    color: #2ea879;
-    background: rgba(46, 168, 121, .12);
+    color: var(--settings-emerald);
+    background: color-mix(in srgb, var(--settings-emerald) 12%, transparent);
     font-size: var(--font-60);
     font-weight: var(--weight-800);
 }
@@ -3165,10 +3170,10 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-method-status {
     flex: 0 0 auto;
     padding: var(--space-22) var(--space-55);
-    border: 1px solid rgba(46, 168, 121, .32);
+    border: 1px solid color-mix(in srgb, var(--settings-emerald) 32%, transparent);
     border-radius: var(--radius-pill);
-    color: #2ea879;
-    background: rgba(46, 168, 121, .1);
+    color: var(--settings-emerald);
+    background: color-mix(in srgb, var(--settings-emerald) 10%, transparent);
     font-size: var(--font-56);
     font-weight: var(--weight-900);
     white-space: nowrap;
@@ -3343,10 +3348,10 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     align-items: center;
     gap: var(--space-100);
     padding: var(--space-100) var(--space-110);
-    border: 1px solid rgba(46, 168, 121, .32);
+    border: 1px solid color-mix(in srgb, var(--settings-emerald) 32%, transparent);
     border-radius: var(--radius-lg);
     background:
-        linear-gradient(120deg, rgba(46, 168, 121, .13), transparent 62%),
+        linear-gradient(120deg, color-mix(in srgb, var(--settings-emerald) 13%, transparent), transparent 62%),
         var(--settings-surface-raised);
 }
 #settingsModal .settings-backup-hero-icon {
@@ -3355,10 +3360,10 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     width: 3rem;
     height: 3rem;
     flex: 0 0 auto;
-    border: 1px solid rgba(46, 168, 121, .32);
+    border: 1px solid color-mix(in srgb, var(--settings-emerald) 32%, transparent);
     border-radius: var(--radius-85);
-    color: #2ea879;
-    background: rgba(46, 168, 121, .12);
+    color: var(--settings-emerald);
+    background: color-mix(in srgb, var(--settings-emerald) 12%, transparent);
     font-size: var(--font-115);
 }
 #settingsModal .settings-backup-hero h5 {
@@ -3518,10 +3523,10 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     gap: var(--space-30);
     margin-inline-start: auto;
     padding: var(--space-30) var(--space-60);
-    border: 1px solid rgba(46, 168, 121, .32);
+    border: 1px solid color-mix(in srgb, var(--settings-emerald) 32%, transparent);
     border-radius: var(--radius-pill);
-    color: #2ea879;
-    background: rgba(46, 168, 121, .1);
+    color: var(--settings-emerald);
+    background: color-mix(in srgb, var(--settings-emerald) 10%, transparent);
     font-size: var(--font-58);
     font-weight: var(--weight-900);
     white-space: nowrap;
@@ -3556,7 +3561,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     font-weight: var(--weight-900);
 }
 #settingsModal .settings-owner-stats .is-linked i,
-#settingsModal .settings-owner-stats .is-linked b { color: #2ea879; }
+#settingsModal .settings-owner-stats .is-linked b { color: var(--settings-emerald); }
 #settingsModal .settings-owner-stats .is-pending i,
 #settingsModal .settings-owner-stats .is-pending b { color: #d97706; }
 #settingsModal .settings-owner-stats .is-missing i,
