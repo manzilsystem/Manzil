@@ -166,6 +166,31 @@
     --theme-accent-ocean: #38bdf8;
     --theme-accent-sand: #e6a85c;
     --theme-accent-turquoise: #24c4c7;
+    /* Canonical theme-preview palette — the single source for the miniature theme
+       swatches shown in the settings modal and the owner theme picker. Each of the
+       six themes has a preview surface (--preview-bg), a muted bar color
+       (--preview-muted) and a card tint (--preview-card); the fallbacks used when
+       no theme class is present reuse the dark entries. Values match the literals
+       they replaced exactly, so routing the rules through them introduces no
+       visual change. Theme-independent at the :root level. */
+    --preview-bg-dark: #0b1020;
+    --preview-bg-light: #f3f6fc;
+    --preview-bg-emerald: #071c18;
+    --preview-bg-ocean: #071827;
+    --preview-bg-sand: #211b16;
+    --preview-bg-turquoise: #082a34;
+    --preview-muted-dark: #4a5878;
+    --preview-muted-light: #c7d2e5;
+    --preview-muted-emerald: #3d6b5c;
+    --preview-muted-ocean: #37617c;
+    --preview-muted-sand: #6b5643;
+    --preview-muted-turquoise: #386a72;
+    --preview-card-dark: #1e293b;
+    --preview-card-light: #cbd5e1;
+    --preview-card-emerald: #065f46;
+    --preview-card-ocean: #075985;
+    --preview-card-sand: #78350f;
+    --preview-card-turquoise: #0b5260;
     /* Canonical print palette — the single source for the fixed colors used by the
        print stylesheet. Print output is intentionally theme-independent (always a
        light "paper" page), so these live in :root and never remap per theme. Each
@@ -861,7 +886,6 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 [data-theme="turquoise"] { --bg-main:#071f27; --bg-card:#0d3039; --bg-input:#092831; --text-main:#eaffff; --text-muted:#a4cbd0; --border-color:#28545d; --accent-color:var(--theme-accent-turquoise); --surface-raised:#123d47; }
 [data-theme="turquoise"] .app-card { background-color:var(--bg-card); border-color:var(--border-color); }
 [data-theme="turquoise"] .app-input { background-color:var(--bg-input); color:var(--text-main); border-color:var(--border-color); }
-.theme-preview-turquoise { --preview-accent:#1bb9c2; --preview-card:#0b5260; --preview-muted:#9bd4d4; background:#082a34; }
 .header-brand-mark { width:2.9rem; height:2.9rem; flex:0 0 auto; display:flex; align-items:center; justify-content:center; padding:var(--space-15); overflow:hidden; border:1px solid rgba(15,23,42,.12); border-radius:var(--radius-lg); background:#f8fbfd; box-shadow:0 5px 16px rgba(2,20,35,.12); }
 .header-brand-mark img { width:100%; height:100%; object-fit:contain; display:block; }
 #pinLockModal { background:radial-gradient(ellipse at 14% 18%,color-mix(in srgb,var(--accent-color) 15%,transparent),transparent 42%),color-mix(in srgb,var(--bg-main) 94%,#020617); }
@@ -2335,14 +2359,14 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, .08);
     border-radius: var(--radius-55);
-    background: var(--preview-bg, #0b1020);
+    background: var(--preview-bg, var(--preview-bg-dark));
 }
 #settingsModal .theme-preview i {
     display: block;
     width: 100%;
     height: .3rem;
     border-radius: var(--radius-pill);
-    background: var(--preview-muted, #4a5878);
+    background: var(--preview-muted, var(--preview-muted-dark));
     opacity: var(--opacity-55);
 }
 #settingsModal .theme-preview i:first-child {
@@ -2353,12 +2377,12 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .theme-preview i:nth-child(2) { width: 85%; }
 #settingsModal .theme-preview i:nth-child(3) { width: 72%; }
-#settingsModal .theme-preview-dark { --preview-bg: #0b1020; --preview-accent: var(--theme-accent-dark); --preview-muted: #4a5878; }
-#settingsModal .theme-preview-light { --preview-bg: #f3f6fc; --preview-accent: var(--theme-accent-light); --preview-muted: #c7d2e5; }
-#settingsModal .theme-preview-emerald { --preview-bg: #071c18; --preview-accent: var(--theme-accent-emerald); --preview-muted: #3d6b5c; }
-#settingsModal .theme-preview-ocean { --preview-bg: #071827; --preview-accent: var(--theme-accent-ocean); --preview-muted: #37617c; }
-#settingsModal .theme-preview-sand { --preview-bg: #211b16; --preview-accent: var(--theme-accent-sand); --preview-muted: #6b5643; }
-#settingsModal .theme-preview-turquoise { --preview-bg: #082a34; --preview-accent: var(--theme-accent-turquoise); --preview-muted: #386a72; }
+#settingsModal .theme-preview-dark { --preview-bg: var(--preview-bg-dark); --preview-accent: var(--theme-accent-dark); --preview-muted: var(--preview-muted-dark); }
+#settingsModal .theme-preview-light { --preview-bg: var(--preview-bg-light); --preview-accent: var(--theme-accent-light); --preview-muted: var(--preview-muted-light); }
+#settingsModal .theme-preview-emerald { --preview-bg: var(--preview-bg-emerald); --preview-accent: var(--theme-accent-emerald); --preview-muted: var(--preview-muted-emerald); }
+#settingsModal .theme-preview-ocean { --preview-bg: var(--preview-bg-ocean); --preview-accent: var(--theme-accent-ocean); --preview-muted: var(--preview-muted-ocean); }
+#settingsModal .theme-preview-sand { --preview-bg: var(--preview-bg-sand); --preview-accent: var(--theme-accent-sand); --preview-muted: var(--preview-muted-sand); }
+#settingsModal .theme-preview-turquoise { --preview-bg: var(--preview-bg-turquoise); --preview-accent: var(--theme-accent-turquoise); --preview-muted: var(--preview-muted-turquoise); }
 
 /* ---------- Backup ---------- */
 #settingsModal .settings-backup-grid {
@@ -4140,15 +4164,15 @@ body.owner-mode .owner-theme-control {
     width: 100%;
     height: .95rem;
     border-radius: var(--radius-35);
-    background-image: linear-gradient(90deg, var(--preview-accent, #6366f1), var(--preview-card, #1e293b));
+    background-image: linear-gradient(90deg, var(--preview-accent, #6366f1), var(--preview-card, var(--preview-card-dark)));
 }
 
-.owner-theme-swatch.theme-preview-dark { --preview-accent:var(--theme-accent-dark); --preview-card:#1e293b; }
-.owner-theme-swatch.theme-preview-light { --preview-accent:var(--theme-accent-light); --preview-card:#cbd5e1; }
-.owner-theme-swatch.theme-preview-emerald { --preview-accent:var(--theme-accent-emerald); --preview-card:#065f46; }
-.owner-theme-swatch.theme-preview-ocean { --preview-accent:var(--theme-accent-ocean); --preview-card:#075985; }
-.owner-theme-swatch.theme-preview-sand { --preview-accent:var(--theme-accent-sand); --preview-card:#78350f; }
-.owner-theme-swatch.theme-preview-turquoise { --preview-accent:var(--theme-accent-turquoise); --preview-card:#0b5260; }
+.owner-theme-swatch.theme-preview-dark { --preview-accent:var(--theme-accent-dark); --preview-card:var(--preview-card-dark); }
+.owner-theme-swatch.theme-preview-light { --preview-accent:var(--theme-accent-light); --preview-card:var(--preview-card-light); }
+.owner-theme-swatch.theme-preview-emerald { --preview-accent:var(--theme-accent-emerald); --preview-card:var(--preview-card-emerald); }
+.owner-theme-swatch.theme-preview-ocean { --preview-accent:var(--theme-accent-ocean); --preview-card:var(--preview-card-ocean); }
+.owner-theme-swatch.theme-preview-sand { --preview-accent:var(--theme-accent-sand); --preview-card:var(--preview-card-sand); }
+.owner-theme-swatch.theme-preview-turquoise { --preview-accent:var(--theme-accent-turquoise); --preview-card:var(--preview-card-turquoise); }
 
 /* Manager notification bell */
 .manager-notifications-control {
