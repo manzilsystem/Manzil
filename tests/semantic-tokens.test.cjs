@@ -661,3 +661,43 @@ test('the settings muted-ink scale resolves from its canonical tokens', () => {
         'the settings rules must not keep a raw rgba(220, 240, 237, …) muted-ink literal'
     );
 });
+
+test('the settings bright-gold scale resolves from its canonical tokens', () => {
+    const css = read('css/style.css');
+
+    // The bright gold used by the settings accents (the live card decorations and
+    // the WhatsApp phone dot) is one theme-invariant scale: a solid accent plus
+    // translucent steps that share the same RGB and differ only in alpha. The
+    // light-theme polish never repaints the surfaces they sit on. Every step is
+    // declared once in the #settingsModal token layer; the veil suffix is the
+    // alpha in hundredths.
+    const tokens = {
+        '--settings-gold-bright': '#f0cc7e',
+        '--settings-gold-veil-10': 'rgba(240, 204, 126, .1)',
+        '--settings-gold-veil-14': 'rgba(240, 204, 126, .14)',
+        '--settings-gold-veil-28': 'rgba(240, 204, 126, .28)',
+        '--settings-gold-veil-35': 'rgba(240, 204, 126, .35)',
+        '--settings-gold-veil-40': 'rgba(240, 204, 126, .4)'
+    };
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Each gold step is declared exactly once, in the #settingsModal token layer.
+    const layer = blocks(css, '#settingsModal')[0];
+    assert.ok(layer, 'expected a #settingsModal token layer');
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(layer[1], new RegExp(escape(declaration)),
+            `the settings token layer must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+        assert.ok(css.includes(`var(${name})`),
+            `the settings rules must consume var(${name})`);
+    }
+
+    // Strip the gold declarations so no raw gold literal may remain.
+    const consumers = css.replace(/--settings-gold[a-z0-9-]*\s*:[^;]*;/g, '');
+    assert.ok(
+        !/#f0cc7e|rgba\(240,\s*204,\s*126,/.test(consumers),
+        'the settings rules must not keep a raw #f0cc7e / rgba(240, 204, 126, …) gold literal'
+    );
+});

@@ -1302,6 +1302,20 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     --settings-muted-ink-bright-68: rgba(233, 247, 246, .68);
     --settings-muted-ink-bright-70: rgba(226, 246, 243, .7);
     --settings-muted-ink-bright-72: rgba(226, 246, 243, .72);
+    /* Canonical bright-gold scale for the settings accents (the live card
+       decorations and the WhatsApp phone dot). The solid accent is the single
+       source for the bright gold; its translucent variants share the same RGB
+       and differ only in alpha, whose hundredths are the suffix
+       (--settings-gold-veil-35 = .35). The scale is theme-invariant — it only
+       ever paints the dark settings surfaces, which the light-theme polish does
+       not repaint — and every token matches the literal it replaced, so routing
+       declarations through them changes nothing visually. */
+    --settings-gold-bright: #f0cc7e;
+    --settings-gold-veil-10: rgba(240, 204, 126, .1);
+    --settings-gold-veil-14: rgba(240, 204, 126, .14);
+    --settings-gold-veil-28: rgba(240, 204, 126, .28);
+    --settings-gold-veil-35: rgba(240, 204, 126, .35);
+    --settings-gold-veil-40: rgba(240, 204, 126, .4);
     --settings-line: color-mix(in srgb, var(--border-color) 72%, transparent);
     --settings-surface: color-mix(in srgb, var(--bg-card) 94%, var(--bg-main));
     --settings-surface-raised: var(--surface-raised, color-mix(in srgb, var(--bg-card) 84%, var(--bg-main)));
@@ -1361,7 +1375,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     flex: 0 0 auto;
     padding: var(--space-none);
     object-fit: contain;
-    border: 1px solid rgba(240, 204, 126, .4);
+    border: 1px solid var(--settings-gold-veil-40);
     border-radius: var(--radius-90);
     background: transparent;
     box-shadow: 0 6px 18px rgba(0, 0, 0, .28);
@@ -3130,7 +3144,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     top: -2.2rem;
     width: 6.5rem;
     height: 6.5rem;
-    border: 1px solid rgba(240, 204, 126, .28);
+    border: 1px solid var(--settings-gold-veil-28);
     border-radius: var(--radius-circle);
     pointer-events: none;
 }
@@ -3146,10 +3160,10 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     width: 2.1rem;
     height: 2.1rem;
     flex: 0 0 auto;
-    border: 1px solid rgba(240, 204, 126, .35);
+    border: 1px solid var(--settings-gold-veil-35);
     border-radius: var(--radius-65);
-    color: #f0cc7e;
-    background: rgba(240, 204, 126, .1);
+    color: var(--settings-gold-bright);
+    background: var(--settings-gold-veil-10);
     font-size: var(--font-82);
 }
 #settingsModal .settings-live-head b {
@@ -3219,7 +3233,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-live-list dd {
     margin: var(--space-none);
-    color: #f0cc7e;
+    color: var(--settings-gold-bright);
     font-size: var(--font-68);
     font-weight: var(--weight-900);
     unicode-bidi: plaintext;
@@ -3627,8 +3641,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     box-shadow: 0 0 0 3px rgba(37, 211, 102, .14);
 }
 #settingsModal .settings-phone-dot.is-whatsapp {
-    background: #f0cc7e;
-    box-shadow: 0 0 0 3px rgba(240, 204, 126, .14);
+    background: var(--settings-gold-bright);
+    box-shadow: 0 0 0 3px var(--settings-gold-veil-14);
 }
 #settingsModal .settings-phone .settings-preview-body {
     min-height: 13rem;
