@@ -1268,6 +1268,24 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
        primary/save buttons). It is theme-invariant and matches the literal it
        replaces, so routing declarations through it changes nothing visually. */
     --settings-ink-on-accent: #042d2c;
+    /* Canonical translucent-white veil scale for the dark settings surfaces
+       (close button, hero decorations, live stats, previews and the phone card).
+       The suffix is the alpha in hundredths (--settings-veil-8 = .08). The veil
+       is theme-invariant — it only ever overlays the dark navy surfaces, which
+       the light-theme polish does not repaint — and every token matches the
+       literal it replaced, so routing declarations through them changes nothing
+       visually. */
+    --settings-veil-4: rgba(255, 255, 255, .04);
+    --settings-veil-5: rgba(255, 255, 255, .05);
+    --settings-veil-6: rgba(255, 255, 255, .06);
+    --settings-veil-8: rgba(255, 255, 255, .08);
+    --settings-veil-9: rgba(255, 255, 255, .09);
+    --settings-veil-10: rgba(255, 255, 255, .1);
+    --settings-veil-12: rgba(255, 255, 255, .12);
+    --settings-veil-14: rgba(255, 255, 255, .14);
+    --settings-veil-16: rgba(255, 255, 255, .16);
+    --settings-veil-18: rgba(255, 255, 255, .18);
+    --settings-veil-32: rgba(255, 255, 255, .32);
     --settings-line: color-mix(in srgb, var(--border-color) 72%, transparent);
     --settings-surface: color-mix(in srgb, var(--bg-card) 94%, var(--bg-main));
     --settings-surface-raised: var(--surface-raised, color-mix(in srgb, var(--bg-card) 84%, var(--bg-main)));
@@ -1375,15 +1393,15 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     place-items: center;
     width: 2.7rem;
     height: 2.7rem;
-    border: 1px solid rgba(255, 255, 255, .18);
+    border: 1px solid var(--settings-veil-18);
     border-radius: var(--radius-90);
     color: #e8f7f5;
-    background: rgba(255, 255, 255, .08);
+    background: var(--settings-veil-8);
     transition: background var(--motion-180) var(--ease-standard), border-color var(--motion-180) var(--ease-standard), transform var(--motion-180) var(--ease-standard);
 }
 #settingsModal .settings-close-button:hover {
-    border-color: rgba(255, 255, 255, .32);
-    background: rgba(255, 255, 255, .16);
+    border-color: var(--settings-veil-32);
+    background: var(--settings-veil-16);
     transform: rotate(90deg);
 }
 
@@ -1619,7 +1637,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     inset: auto -4rem -6rem auto;
     width: 12rem;
     height: 12rem;
-    border: 1px solid rgba(255, 255, 255, .09);
+    border: 1px solid var(--settings-veil-9);
     border-radius: var(--radius-circle);
 }
 #settingsModal .settings-hero-copy {
@@ -1632,10 +1650,10 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     align-items: center;
     gap: var(--space-40);
     padding: var(--space-28) var(--space-60);
-    border: 1px solid rgba(255, 255, 255, .16);
+    border: 1px solid var(--settings-veil-16);
     border-radius: var(--radius-pill);
     color: #bff4ee;
-    background: rgba(255, 255, 255, .08);
+    background: var(--settings-veil-8);
     font-size: var(--font-62);
     font-weight: var(--weight-800);
 }
@@ -1667,9 +1685,9 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     gap: var(--space-10);
     min-width: 4.4rem;
     padding: var(--space-65) var(--space-55);
-    border: 1px solid rgba(255, 255, 255, .14);
+    border: 1px solid var(--settings-veil-14);
     border-radius: var(--radius-85);
-    background: rgba(255, 255, 255, .08);
+    background: var(--settings-veil-8);
     backdrop-filter: blur(var(--blur-60));
 }
 #settingsModal .settings-hero-stats span {
@@ -2381,7 +2399,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     height: 3.1rem;
     padding: var(--space-45);
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, .08);
+    border: 1px solid var(--settings-veil-8);
     border-radius: var(--radius-55);
     background: var(--preview-bg, var(--preview-bg-dark));
 }
@@ -3148,9 +3166,9 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-live-stats > div {
     padding: var(--space-45) var(--space-55);
-    border: 1px solid rgba(255, 255, 255, .1);
+    border: 1px solid var(--settings-veil-10);
     border-radius: var(--radius-60);
-    background: rgba(255, 255, 255, .05);
+    background: var(--settings-veil-5);
     text-align: center;
 }
 #settingsModal .settings-live-stats span {
@@ -3176,7 +3194,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     justify-content: space-between;
     gap: var(--space-50);
     padding-top: var(--space-30);
-    border-top: 1px dashed rgba(255, 255, 255, .12);
+    border-top: 1px dashed var(--settings-veil-12);
 }
 #settingsModal .settings-live-list dt {
     color: rgba(220, 240, 237, .62);
@@ -3558,8 +3576,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     background: linear-gradient(160deg, var(--settings-ink), #0b2c33);
 }
 #settingsModal .settings-phone-card .settings-preview-head {
-    border-bottom-color: rgba(255, 255, 255, .08);
-    background: rgba(255, 255, 255, .04);
+    border-bottom-color: var(--settings-veil-8);
+    background: var(--settings-veil-4);
 }
 #settingsModal .settings-phone-card .settings-preview-head b {
     color: #eaf7f4;
@@ -3603,7 +3621,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-85) var(--radius-25) var(--radius-85) var(--radius-85);
     color: #e9f7f4;
     background: linear-gradient(155deg, #0f3b3a, #0b2f36);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06);
+    box-shadow: inset 0 0 0 1px var(--settings-veil-6);
     font-size: var(--font-65);
 }
 

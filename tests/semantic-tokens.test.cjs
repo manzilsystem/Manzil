@@ -578,3 +578,44 @@ test('the branded sign-in palette resolves from its canonical tokens', () => {
             `the sign-in rules must consume var(${name})`);
     }
 });
+
+test('the settings veil scale resolves from its canonical tokens', () => {
+    const css = read('css/style.css');
+
+    // The translucent-white veils that overlay the dark settings surfaces are a
+    // theme-invariant alpha scale: the light-theme polish never repaints the
+    // surfaces they sit on. Each step is declared once in the #settingsModal
+    // token layer and the suffix is the alpha in hundredths.
+    const tokens = {
+        '--settings-veil-4': 'rgba(255, 255, 255, .04)',
+        '--settings-veil-5': 'rgba(255, 255, 255, .05)',
+        '--settings-veil-6': 'rgba(255, 255, 255, .06)',
+        '--settings-veil-8': 'rgba(255, 255, 255, .08)',
+        '--settings-veil-9': 'rgba(255, 255, 255, .09)',
+        '--settings-veil-10': 'rgba(255, 255, 255, .1)',
+        '--settings-veil-12': 'rgba(255, 255, 255, .12)',
+        '--settings-veil-14': 'rgba(255, 255, 255, .14)',
+        '--settings-veil-16': 'rgba(255, 255, 255, .16)',
+        '--settings-veil-18': 'rgba(255, 255, 255, .18)',
+        '--settings-veil-32': 'rgba(255, 255, 255, .32)'
+    };
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // The veil is declared exactly once, in the #settingsModal token layer.
+    const layer = blocks(css, '#settingsModal')[0];
+    assert.ok(layer, 'expected a #settingsModal token layer');
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(layer[1], new RegExp(escape(declaration)),
+            `the settings token layer must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+        assert.ok(css.includes(`var(${name})`),
+            `the settings rules must consume var(${name})`);
+    }
+
+    // Strip the veil declarations so no raw translucent-white literal may remain.
+    const consumers = css.replace(/--settings-veil-[0-9]+\s*:[^;]*;/g, '');
+    assert.ok(!consumers.includes('rgba(255, 255, 255,'),
+        'the settings rules must not keep a raw rgba(255, 255, 255, …) literal');
+});

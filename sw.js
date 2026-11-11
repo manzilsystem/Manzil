@@ -1,11 +1,11 @@
-const CACHE_NAME = 'manzil-fd0e0b06e4';
+const CACHE_NAME = 'manzil-9ce3cf3fbc';
 const APP_CACHE_PREFIX = 'manzil-';
 const APP_SHELL = [
     './',
     './index.html',
-    './css/style.css?v=1ca9cf8d24',
+    './css/style.css?v=f67a07912d',
     './js/sw-register.js?v=aa29152c50',
-    './js/telemetry.js?v=manzil-fd0e0b06e4',
+    './js/telemetry.js?v=manzil-9ce3cf3fbc',
     './js/state.js?v=6e9bcc8346',
     './js/access.js?v=8e99451163',
     './js/render.js?v=38a35471ba',
@@ -15,7 +15,7 @@ const APP_SHELL = [
     './js/settings.js?v=c274fd024a',
     './js/supabase.js?v=8449ca5367',
     './js/cashbox.js?v=3ca9f6a1d8',
-    './js/subscription-rates.js?v=manzil-fd0e0b06e4',
+    './js/subscription-rates.js?v=manzil-9ce3cf3fbc',
     './js/app.js?v=27a807c306',
     './js/monthly-close.js?v=bab5545096',
     './js/backup.js?v=6f6d4ebbf1',
