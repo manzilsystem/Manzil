@@ -1275,6 +1275,12 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
        sits on — and it matches the literal it replaced, so routing declarations
        through it changes nothing visually. */
     --settings-ink-bright: #eaf7f4;
+    /* Canonical solid white ink for strong headings and values on the dark
+       settings surfaces (the brand name, page title, hero heading and hero
+       stats). It is theme-invariant — the light-theme polish does not repaint
+       the surfaces it sits on — and it matches the literal it replaced, so
+       routing declarations through it changes nothing visually. */
+    --settings-ink-white: #fff;
     /* Canonical translucent-white veil scale for the dark settings surfaces
        (close button, hero decorations, live stats, previews and the phone card).
        The suffix is the alpha in hundredths (--settings-veil-8 = .08). The veil
@@ -1424,7 +1430,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     min-width: 0;
 }
 #settingsModal .settings-brand-copy strong {
-    color: #fff;
+    color: var(--settings-ink-white);
     font-size: var(--font-118);
     font-weight: var(--weight-900);
     letter-spacing: var(--tracking-1);
@@ -1445,7 +1451,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     text-align: center;
 }
 #settingsModal .settings-topbar-title h3 {
-    color: #fff;
+    color: var(--settings-ink-white);
     font-size: var(--font-102);
     font-weight: var(--weight-900);
 }
@@ -1725,7 +1731,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-hero-copy h4 {
     margin-top: var(--space-55);
-    color: #fff;
+    color: var(--settings-ink-white);
     font-size: var(--font-settings-title);
     font-weight: var(--weight-900);
 }
@@ -1762,7 +1768,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     font-weight: var(--weight-700);
 }
 #settingsModal .settings-hero-stats b {
-    color: #fff;
+    color: var(--settings-ink-white);
     font-size: var(--font-115);
     font-weight: var(--weight-900);
     line-height: var(--leading-120);

@@ -837,3 +837,50 @@ test('the settings bright ink resolves from its canonical token', () => {
         'the settings rules must not keep a raw #eaf7f4 bright-ink literal'
     );
 });
+
+test('the settings white ink resolves from its canonical token', () => {
+    const css = read('css/style.css');
+
+    // Strong headings and values on the dark settings surfaces (the brand name,
+    // page title, hero heading and hero stats) share one solid white ink. It is
+    // theme-invariant — the light-theme polish does not repaint the surfaces it
+    // sits on — so it lives once in the #settingsModal token layer, and every
+    // consumer must reference it instead of the raw #fff literal.
+    const layer = blocks(css, '#settingsModal')[0];
+    assert.ok(layer, 'expected a #settingsModal token layer');
+    assert.match(
+        layer[1],
+        /--settings-ink-white:\s*#fff;/,
+        '#settingsModal must declare --settings-ink-white: #fff'
+    );
+    assert.equal(
+        css.split('--settings-ink-white: #fff;').length - 1,
+        1,
+        '--settings-ink-white: #fff must be declared exactly once'
+    );
+
+    // Strip the token definition so the remaining rules must not keep the raw
+    // literal where it was routed through the token.
+    const stripped = css.replace(/--settings-ink-white:\s*#fff;/, '');
+    const settingsStart = stripped.indexOf('#settingsModal');
+    const settingsEnd = stripped.indexOf('/* ---------- Responsive ---------- */');
+    const settingsRegion = stripped.slice(settingsStart, settingsEnd);
+    
+    const consumers = [
+        '#settingsModal .settings-brand-copy strong',
+        '#settingsModal .settings-topbar-title h3',
+        '#settingsModal .settings-hero-copy h4',
+        '#settingsModal .settings-hero-stats b'
+    ];
+    for (const selector of consumers) {
+        const rules = blocks(settingsRegion, selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&'));
+        assert.ok(rules.length, `expected a rule for "${selector}"`);
+        assert.ok(
+            rules.some(rule => /color:\s*var\(--settings-ink-white\)/.test(rule[1])),
+            `"${selector}" must consume var(--settings-ink-white) instead of the raw #fff literal`
+        );
+    }
+
+    const uses = settingsRegion.match(/var\(--settings-ink-white\)/g) || [];
+    assert.ok(uses.length >= 4, 'every consumer must use var(--settings-ink-white)');
+});
