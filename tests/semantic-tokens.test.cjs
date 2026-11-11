@@ -619,3 +619,45 @@ test('the settings veil scale resolves from its canonical tokens', () => {
     assert.ok(!consumers.includes('rgba(255, 255, 255,'),
         'the settings rules must not keep a raw rgba(255, 255, 255, …) literal');
 });
+
+test('the settings muted-ink scale resolves from its canonical tokens', () => {
+    const css = read('css/style.css');
+
+    // The translucent muted ink used for text on the dark settings surfaces is a
+    // theme-invariant alpha scale in two tiers: the dimmer teal-white of the
+    // live/phone panels and the brighter near-white of the topbar and hero. The
+    // light-theme polish never repaints the surfaces they sit on. Each step is
+    // declared once in the #settingsModal token layer; the suffix is the alpha
+    // in hundredths.
+    const tokens = {
+        '--settings-muted-ink-58': 'rgba(220, 240, 237, .58)',
+        '--settings-muted-ink-60': 'rgba(220, 240, 237, .6)',
+        '--settings-muted-ink-62': 'rgba(220, 240, 237, .62)',
+        '--settings-muted-ink-72': 'rgba(220, 240, 237, .72)',
+        '--settings-muted-ink-bright-66': 'rgba(226, 244, 242, .66)',
+        '--settings-muted-ink-bright-68': 'rgba(233, 247, 246, .68)',
+        '--settings-muted-ink-bright-70': 'rgba(226, 246, 243, .7)',
+        '--settings-muted-ink-bright-72': 'rgba(226, 246, 243, .72)'
+    };
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Each ink is declared exactly once, in the #settingsModal token layer.
+    const layer = blocks(css, '#settingsModal')[0];
+    assert.ok(layer, 'expected a #settingsModal token layer');
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(layer[1], new RegExp(escape(declaration)),
+            `the settings token layer must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+        assert.ok(css.includes(`var(${name})`),
+            `the settings rules must consume var(${name})`);
+    }
+
+    // Strip the ink declarations so no raw muted-ink literal may remain.
+    const consumers = css.replace(/--settings-muted-ink[a-z0-9-]*\s*:[^;]*;/g, '');
+    assert.ok(
+        !/rgba\((220, 240, 237|226, 246, 243|226, 244, 242|233, 247, 246),/.test(consumers),
+        'the settings rules must not keep a raw rgba(220, 240, 237, …) muted-ink literal'
+    );
+});
