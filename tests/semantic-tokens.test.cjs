@@ -742,3 +742,38 @@ test('the settings danger-veil scale resolves from its canonical tokens', () => 
         'the settings rules must not keep a raw rgba(244, 63, 94, …) danger literal'
     );
 });
+
+test('the settings WhatsApp dot resolves from its canonical tokens', () => {
+    const css = read('css/style.css');
+
+    // The WhatsApp brand green that paints the settings phone-status dot (the
+    // receipt preview bar) is one theme-invariant pair: the solid is the single
+    // source for the WhatsApp green and the ring shares its RGB at .14. Both
+    // are declared once in the #settingsModal token layer.
+    const tokens = {
+        '--settings-whatsapp': '#25d366',
+        '--settings-whatsapp-veil-14': 'rgba(37, 211, 102, .14)'
+    };
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Each token is declared exactly once, in the #settingsModal token layer.
+    const layer = blocks(css, '#settingsModal')[0];
+    assert.ok(layer, 'expected a #settingsModal token layer');
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(layer[1], new RegExp(escape(declaration)),
+            `the settings token layer must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+        assert.ok(css.includes(`var(${name})`),
+            `the settings rules must consume var(${name})`);
+    }
+
+    // Strip the settings WhatsApp declarations so no raw brand-green literal may
+    // remain in the settings rules.
+    const consumers = css.replace(/--settings-whatsapp(?:-veil-14)?\s*:[^;]*;/g, '');
+    assert.ok(
+        !/#25d366|rgba\(37,\s*211,\s*102,/.test(consumers),
+        'the settings rules must not keep a raw #25d366 / rgba(37, 211, 102, …) WhatsApp literal'
+    );
+});

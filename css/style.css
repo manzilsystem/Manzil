@@ -1327,6 +1327,15 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     --settings-danger-veil-10: rgba(244, 63, 94, .1);
     --settings-danger-veil-30: rgba(244, 63, 94, .3);
     --settings-danger-veil-50: rgba(244, 63, 94, .5);
+    /* Canonical WhatsApp brand green for the settings phone-status dot (the
+       receipt preview bar). The solid is the single source for the WhatsApp
+       green and the ring shares its RGB at .14. The scale is theme-invariant —
+       it only ever paints the dark settings surfaces, which the light-theme
+       polish does not repaint — and every token matches the literal it
+       replaced, so routing the declarations through them changes nothing
+       visually. */
+    --settings-whatsapp: #25d366;
+    --settings-whatsapp-veil-14: rgba(37, 211, 102, .14);
     --settings-line: color-mix(in srgb, var(--border-color) 72%, transparent);
     --settings-surface: color-mix(in srgb, var(--bg-card) 94%, var(--bg-main));
     --settings-surface-raised: var(--surface-raised, color-mix(in srgb, var(--bg-card) 84%, var(--bg-main)));
@@ -3648,8 +3657,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     width: .5rem;
     height: .5rem;
     border-radius: var(--radius-circle);
-    background: #25d366;
-    box-shadow: 0 0 0 3px rgba(37, 211, 102, .14);
+    background: var(--settings-whatsapp);
+    box-shadow: 0 0 0 3px var(--settings-whatsapp-veil-14);
 }
 #settingsModal .settings-phone-dot.is-whatsapp {
     background: var(--settings-gold-bright);
