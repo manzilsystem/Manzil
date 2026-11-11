@@ -85,24 +85,34 @@
        in :root, and every token matches the literal it replaced, so routing the
        declarations through them introduces no visual change. This covers the
        repeated steps; the rare one-off sizes remain literal for now. */
+    --font-55: .55rem;
     --font-56: .56rem;
     --font-58: .58rem;
     --font-60: .6rem;
+    --font-61: .61rem;
     --font-62: .62rem;
     --font-64: .64rem;
     --font-65: .65rem;
     --font-66: .66rem;
+    --font-67: .67rem;
     --font-68: .68rem;
     --font-70: .7rem;
     --font-72: .72rem;
     --font-74: .74rem;
     --font-75: .75rem;
+    --font-76: .76rem;
     --font-78: .78rem;
     --font-80: .8rem;
+    --font-82: .82rem;
+    --font-84: .84rem;
     --font-85: .85rem;
+    --font-86: .86rem;
     --font-90: .9rem;
     --font-95: .95rem;
+    --font-98: .98rem;
     --font-100: 1rem;
+    --font-115: 1.15rem;
+    --font-120: 1.2rem;
     --bg-main: #090d16;
     --bg-card: rgba(15, 23, 42, .85);
     --bg-input: #020617;
@@ -377,7 +387,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     color: var(--report-tone, var(--accent-color)); font-size: var(--font-85);
 }
 .report-view-copy { display: flex; align-items: baseline; gap: var(--space-50); min-width: 0; }
-.report-view-copy b { color: var(--text-main); font-size: .82rem; font-weight: var(--weight-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.report-view-copy b { color: var(--text-main); font-size: var(--font-82); font-weight: var(--weight-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .report-view-copy small { color: var(--text-muted); font-size: var(--font-62); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .report-view-hint { margin-inline-start: auto; flex: 0 0 auto; color: var(--text-muted); font-size: var(--font-60); font-weight: var(--weight-800); }
 @media (max-width: 639.98px) {
@@ -413,7 +423,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     padding: var(--space-70) var(--space-90); border-style: dashed; background: transparent;
 }
 .report-preview-header { padding-bottom: var(--space-60); border-bottom: 1px solid var(--border-color); text-align: center; }
-.report-preview-title { font-size: .82rem; font-weight: var(--weight-900); }
+.report-preview-title { font-size: var(--font-82); font-weight: var(--weight-900); }
 .report-preview-meta { margin-top: var(--space-15); color: var(--text-muted); font-size: var(--font-62); line-height: var(--leading-170); }
 .report-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-50); }
 @media (min-width: 640px) {
@@ -845,12 +855,12 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   .auth-brand-panel { order:1; min-height:0; padding:var(--space-90) var(--space-100); display:grid; grid-template-columns:minmax(0,1fr); gap:var(--space-55); border-inline-end:0; border-bottom:1px solid var(--border-color); }
   .auth-brand-head { flex-direction:row; align-items:center; gap:var(--space-85); }
   .auth-logo-frame { width:4.8rem; height:4.8rem; flex:0 0 auto; padding:var(--space-22); border-radius:var(--radius-lg); }
-  .auth-brand-overline { font-size:.61rem; }
+  .auth-brand-overline { font-size:var(--font-61); }
   .auth-brand-copy h1 { font-size:1.45rem; }
-  .auth-brand-description { margin-top:var(--space-18); font-size:.67rem; line-height:var(--leading-150); }
+  .auth-brand-description { margin-top:var(--space-18); font-size:var(--font-67); line-height:var(--leading-150); }
   .auth-brand-benefits,.auth-trust-note { display:none; }
   .auth-brand-footer { display:flex; justify-content:flex-end; }
-  .auth-rights { font-size:.55rem; line-height:var(--leading-155); text-align:left; }
+  .auth-rights { font-size:var(--font-55); line-height:var(--leading-155); text-align:left; }
   .auth-login-panel { order:2; padding:var(--space-100) var(--space-115) var(--space-120); }
   .auth-form-heading { margin-bottom:var(--space-100); }
   .auth-form-heading h2 { margin-top:var(--space-20); font-size:1.35rem; }
@@ -1086,7 +1096,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     gap:var(--space-45);
     font-size:clamp(1.55rem,2vw,2rem);
   }
-  #pinLockModal .auth-brand-description { font-size:.86rem; }
+  #pinLockModal .auth-brand-description { font-size:var(--font-86); }
   #pinLockModal .auth-brand-benefits { width:100%; }
   #pinLockModal .auth-brand-footer { width:100%; }
 }
@@ -1309,7 +1319,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     flex: 0 0 auto;
     border-radius: var(--radius-85);
     color: #052e2c;
-    font-size: 1.15rem;
+    font-size: var(--font-115);
     background: linear-gradient(140deg, var(--settings-accent-bright), var(--settings-accent));
     box-shadow: 0 8px 20px rgba(21, 158, 154, .28);
 }
@@ -1413,7 +1423,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-60);
     color: var(--settings-accent);
     background: color-mix(in srgb, var(--settings-accent) 12%, transparent);
-    font-size: .86rem;
+    font-size: var(--font-86);
     transition: background var(--motion-160) var(--ease-standard), color var(--motion-160) var(--ease-standard);
 }
 #settingsModal .settings-nav-item.is-active .settings-nav-icon {
@@ -1429,7 +1439,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-nav-copy b {
     color: inherit;
-    font-size: .76rem;
+    font-size: var(--font-76);
     font-weight: var(--weight-800);
     white-space: nowrap;
     overflow: hidden;
@@ -1553,7 +1563,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-hero-stats b {
     color: #fff;
-    font-size: 1.15rem;
+    font-size: var(--font-115);
     font-weight: var(--weight-900);
     line-height: var(--leading-120);
 }
@@ -1635,7 +1645,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-90);
     color: var(--card-accent);
     background: color-mix(in srgb, var(--card-accent) 13%, transparent);
-    font-size: 1.2rem;
+    font-size: var(--font-120);
     transition: transform var(--motion-180) var(--ease-standard);
 }
 #settingsModal .settings-card:hover .settings-card-icon {
@@ -1650,7 +1660,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-card-copy b {
     color: var(--settings-text);
-    font-size: .86rem;
+    font-size: var(--font-86);
     font-weight: var(--weight-900);
 }
 #settingsModal .settings-card-copy small {
@@ -1823,7 +1833,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-subsection-heading h5 {
     color: var(--settings-text);
-    font-size: .84rem;
+    font-size: var(--font-84);
     font-weight: var(--weight-900);
     line-height: var(--leading-150);
 }
@@ -2078,7 +2088,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-65);
     color: var(--settings-accent);
     background: color-mix(in srgb, var(--settings-accent) 14%, transparent);
-    font-size: .82rem;
+    font-size: var(--font-82);
 }
 #settingsModal .settings-subscription-summary-title h5 {
     color: var(--settings-text);
@@ -2119,7 +2129,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-brand-preview-heading h5 {
     color: var(--settings-text);
-    font-size: .86rem;
+    font-size: var(--font-86);
     font-weight: var(--weight-900);
 }
 #settingsModal .settings-brand-preview-heading p {
@@ -2235,7 +2245,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-circle);
     color: #032a29;
     background: var(--settings-accent);
-    font-size: .55rem;
+    font-size: var(--font-55);
 }
 #settingsModal .theme-option > span:not(.theme-preview) {
     margin-top: var(--space-20);
@@ -2244,7 +2254,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .theme-option > small {
     color: var(--settings-muted);
-    font-size: .55rem;
+    font-size: var(--font-55);
 }
 #settingsModal .theme-preview {
     display: flex;
@@ -2441,7 +2451,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-90);
     color: #042d2c;
     background: linear-gradient(140deg, var(--settings-accent-bright), var(--settings-accent));
-    font-size: 1.2rem;
+    font-size: var(--font-120);
 }
 #settingsModal .settings-account-rows {
     display: grid;
@@ -2636,7 +2646,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
         padding: var(--space-100);
     }
     #settingsModal .settings-card-copy b {
-        font-size: .84rem;
+        font-size: var(--font-84);
     }
     #settingsModal .settings-card-arrow {
         align-self: flex-end;
@@ -2898,7 +2908,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-field-hint {
     color: var(--settings-muted);
-    font-size: .61rem;
+    font-size: var(--font-61);
     font-weight: var(--weight-500);
     line-height: var(--leading-170);
 }
@@ -2977,12 +2987,12 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-65);
     color: #f0cc7e;
     background: rgba(240, 204, 126, .1);
-    font-size: .82rem;
+    font-size: var(--font-82);
 }
 #settingsModal .settings-live-head b {
     display: block;
     color: #f4fbfa;
-    font-size: .76rem;
+    font-size: var(--font-76);
     font-weight: var(--weight-900);
 }
 #settingsModal .settings-live-head small {
@@ -2992,7 +3002,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-live-name {
     color: #ffffff;
-    font-size: .98rem;
+    font-size: var(--font-98);
     font-weight: var(--weight-900);
     line-height: var(--leading-150);
     overflow-wrap: anywhere;
@@ -3017,7 +3027,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-live-stats span {
     display: block;
     color: rgba(220, 240, 237, .6);
-    font-size: .55rem;
+    font-size: var(--font-55);
     font-weight: var(--weight-700);
 }
 #settingsModal .settings-live-stats b {
@@ -3143,7 +3153,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     padding: var(--space-none);
     list-style: none;
     color: var(--settings-muted);
-    font-size: .61rem;
+    font-size: var(--font-61);
     line-height: var(--leading-160);
 }
 #settingsModal .settings-method-points li {
@@ -3316,11 +3326,11 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-85);
     color: #2ea879;
     background: rgba(46, 168, 121, .12);
-    font-size: 1.15rem;
+    font-size: var(--font-115);
 }
 #settingsModal .settings-backup-hero h5 {
     color: var(--settings-text);
-    font-size: .84rem;
+    font-size: var(--font-84);
     font-weight: var(--weight-900);
 }
 #settingsModal .settings-backup-hero p {
@@ -3376,7 +3386,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-55);
     color: var(--settings-muted);
     background: color-mix(in srgb, var(--settings-surface) 70%, transparent);
-    font-size: .61rem;
+    font-size: var(--font-61);
     font-weight: var(--weight-800);
     transition: color var(--motion-160) var(--ease-standard), border-color var(--motion-160) var(--ease-standard);
 }
@@ -3509,7 +3519,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-owner-stats b {
     color: var(--settings-text);
-    font-size: .98rem;
+    font-size: var(--font-98);
     font-weight: var(--weight-900);
 }
 #settingsModal .settings-owner-stats .is-linked i,
@@ -3568,7 +3578,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-session-copy b {
     color: var(--settings-text);
-    font-size: .76rem;
+    font-size: var(--font-76);
     font-weight: var(--weight-900);
 }
 #settingsModal .settings-session-copy p {
@@ -3824,7 +3834,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     max-width: 90%;
     padding: var(--space-60) var(--space-75);
     border-radius: var(--radius-lg);
-    font-size: .76rem;
+    font-size: var(--font-76);
     line-height: var(--leading-180);
     overflow-wrap: anywhere;
 }
@@ -3869,7 +3879,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     list-style: disc;
 }
 .assistant-list li { font-size: var(--font-72); line-height: var(--leading-170); }
-.assistant-note { margin-top: var(--space-45); color: var(--text-muted); font-size: .67rem; line-height: var(--leading-170); }
+.assistant-note { margin-top: var(--space-45); color: var(--text-muted); font-size: var(--font-67); line-height: var(--leading-170); }
 .assistant-suggestions {
     display: flex;
     gap: var(--space-40);

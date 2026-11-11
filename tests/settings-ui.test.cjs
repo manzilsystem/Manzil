@@ -168,7 +168,7 @@ test('settings cards use a sidebar workspace with spacious scrollable section pa
     assert.ok(css.includes('grid-template-columns: minmax(15rem, 18.5rem) minmax(0, 1fr);'), 'desktop reserves a navigation column');
     assert.ok(css.includes('grid-template-columns: repeat(4, minmax(0, 1fr));'), 'desktop cards fill a four-column grid');
     assert.ok(css.includes('min-height: 8.6rem;'), 'desktop cards are large enough to read comfortably');
-    assert.ok(css.includes('width: 3rem;') && css.includes('font-size: 1.2rem;'), 'desktop setting icons are enlarged');
+    assert.ok(css.includes('width: 3rem;') && css.includes('font-size: var(--font-120);'), 'desktop setting icons are enlarged');
     assert.ok(css.includes('width: 2.5rem;') && css.includes('font-size: var(--font-100);'), 'mobile setting icons stay clear');
     assert.ok(css.includes('overscroll-behavior: contain'), 'section content scrolls independently');
     assert.ok(css.includes('position: sticky;'), 'section toolbar and previews stay in view');
