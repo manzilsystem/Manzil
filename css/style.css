@@ -2668,34 +2668,47 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 
 /* ---------- Light theme polish ---------- */
+/* Canonical light-settings surface palette — the single source for the light
+   theme's settings workspace colors (shell, sidebar, cards, dividers, active nav
+   ink and the card shadow). They live in one scoped token layer so the polish
+   rules below never repeat the raw literals. Each token matches the literal it
+   replaced exactly, so routing the rules through them changes nothing visually. */
+[data-theme="light"] #settingsModal {
+    --settings-light-shell: #f7fbfa;
+    --settings-light-sidebar: #f3f9f8;
+    --settings-light-surface: #ffffff;
+    --settings-light-line: #dfe9e8;
+    --settings-light-ink: #0e3a44;
+    --settings-light-shadow: rgba(15, 55, 65, .05);
+}
 [data-theme="light"] #settingsModal .settings-shell,
 [data-theme="light"] #settingsModal .settings-overview,
 [data-theme="light"] #settingsModal .settings-content {
-    background: #f7fbfa;
+    background: var(--settings-light-shell);
 }
 [data-theme="light"] #settingsModal .settings-sidebar {
-    background: linear-gradient(180deg, #f3f9f8, #ffffff);
+    background: linear-gradient(180deg, var(--settings-light-sidebar), var(--settings-light-surface));
 }
 [data-theme="light"] #settingsModal .settings-card {
-    border-color: #dfe9e8;
+    border-color: var(--settings-light-line);
     background:
         linear-gradient(135deg, color-mix(in srgb, var(--card-accent) 5%, transparent), transparent 55%),
-        #ffffff;
-    box-shadow: 0 5px 16px rgba(15, 55, 65, .05);
+        var(--settings-light-surface);
+    box-shadow: 0 5px 16px var(--settings-light-shadow);
 }
 [data-theme="light"] #settingsModal .settings-subsection,
 [data-theme="light"] #settingsModal .settings-info-card,
 [data-theme="light"] #settingsModal .settings-payment-card,
 [data-theme="light"] #settingsModal .settings-account-card,
 [data-theme="light"] #settingsModal .settings-preview-card {
-    border-color: #dfe9e8;
-    background: #ffffff;
+    border-color: var(--settings-light-line);
+    background: var(--settings-light-surface);
 }
 [data-theme="light"] #settingsModal .settings-footer {
-    background: #ffffff;
+    background: var(--settings-light-surface);
 }
 [data-theme="light"] #settingsModal .settings-nav-item.is-active {
-    color: #0e3a44;
+    color: var(--settings-light-ink);
 }
 [data-theme="light"] #settingsModal .settings-nav-item.is-active .settings-nav-icon {
     color: var(--settings-ink-on-accent);

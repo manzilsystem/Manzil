@@ -383,3 +383,49 @@ test('the emerald accent ink resolves from its canonical token', () => {
     const uses = css.match(/var\(--settings-ink-on-accent\)/g) || [];
     assert.ok(uses.length >= 5, 'every consumer must use var(--settings-ink-on-accent)');
 });
+
+test('the light settings surface palette resolves from its canonical tokens', () => {
+    const css = read('css/style.css');
+
+    // The light theme's settings workspace (shell, sidebar, cards, dividers,
+    // active nav ink and the card shadow) shares one surface palette. It lives
+    // once in a scoped [data-theme="light"] #settingsModal token layer, and the
+    // polish rules below must reference the tokens instead of the raw literals.
+    const tokens = {
+        '--settings-light-shell': '#f7fbfa',
+        '--settings-light-sidebar': '#f3f9f8',
+        '--settings-light-surface': '#ffffff',
+        '--settings-light-line': '#dfe9e8',
+        '--settings-light-ink': '#0e3a44',
+        '--settings-light-shadow': 'rgba(15, 55, 65, .05)'
+    };
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const marker = '/* ---------- Light theme polish ---------- */';
+    const endMarker = '/* ---------- Responsive ---------- */';
+    const start = css.indexOf(marker);
+    const end = css.indexOf(endMarker);
+    assert.ok(start !== -1 && end > start, 'expected the light theme polish section');
+    const region = css.slice(start + marker.length, end);
+
+    const tokenRule = blocks(region, '\\[data-theme="light"\\] #settingsModal')[0];
+    assert.ok(tokenRule, 'expected a [data-theme="light"] #settingsModal token layer');
+    for (const [name, value] of Object.entries(tokens)) {
+        assert.match(
+            tokenRule[1],
+            new RegExp(`${name}:\\s*${escape(value)}\\s*;`),
+            `the token layer must declare ${name}: ${value}`
+        );
+    }
+
+    // Strip the token layer so the remaining rules must be literal-free.
+    const consumers = region.replace(tokenRule[0], '');
+    assert.equal((consumers.match(/#[0-9a-f]{3,8}\b/gi) || []).length, 0,
+        'the light settings polish rules must not keep raw hex colors');
+    assert.equal((consumers.match(/rgba?\(/g) || []).length, 0,
+        'the light settings polish rules must not keep raw rgb/rgba colors');
+    for (const name of Object.keys(tokens)) {
+        assert.ok(consumers.includes(`var(${name})`),
+            `the light settings polish rules must consume var(${name})`);
+    }
+});
