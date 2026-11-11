@@ -2,7 +2,11 @@
 
 > أُرشف من `MANZIL-DEVELOPMENT-PLAN.md` في 2026-11-06. الوثيقة الحية للخطة هي `MANZIL-DEVELOPMENT-PLAN.md`؛ هذا الملف سجل تاريخي فقط ولا يُحدَّث إلا بإضافة صف جديد.
 
-## السجل الكامل (حتى 2026-11-11)
+## السجل الكامل (حتى 2026-11-12)
+
+| التاريخ |Session | ما تم |
+|---|---|---|
+| 2026-11-12 | S24 (الجزء الحادي والأربعون) — توحيد الحبر الأبيض الصلب في سطوح الإعدادات في رمز قانوني `--settings-ink-white` (PR #360) | وُحّد الحبر الأبيض الصلب في `css/style.css`: أُدخل في طبقة رموز `#settingsModal` الرمز القانوني `--settings-ink-white: #fff` (للعناوين القوية والقيم على السطوح الداكنة)، ووُجّه إليه 4 مستهلكات حرفية: اسم العلامة في الترويسة `#settingsModal .settings-brand-copy strong`، وعنوان الصفحة `#settingsModal .settings-topbar-title h3`، وعنوان قسم البطل `#settingsModal .settings-hero-copy h4`، وقيم إحصائيات البطل `#settingsModal .settings-hero-stats b`. الرمز مستقل عن الثيم (كتلة «Light theme polish» لا تعيد طلاء هذه السطوح) ويطابق الحرفي الذي استبدله ⇒ **لا تغيير بصري بالبناء**، فلم يبقَ أي حرفي `#fff` في هذه القواعد الأربعة (**0 في قواعد المستهلكين داخل settingsModal**). وُسّع حارس `tests/semantic-tokens.test.cjs` باختبار (الحادي والعشرين) يقفل تعريف الرمز مرّة واحدة داخل طبقة `#settingsModal` بقيمته الأصلية، ويجرّد تعريفه ثم يمنع بقاء أي حرفي `#fff` في قواعد المستهلكين الأربعة، ويلزم استهلاك الرمز 4 مرات على الأقل (21 اختبارًا في الملف). أُعيد بناء `index.html`/`sw.js`/`js/telemetry.js`؛ تغيّر الإصدار من `manzil-8f4b3c187e` إلى **`manzil-bfb671ee29`** (بسبب تغيير `css/style.css`). لا تغييرات مالية ولا RPC ولا migrations. **النتائج:** Node **849/849** (+1) · typecheck ✅ · check:index ✅ · E2E **168/168** في CI (desktop+mobile) مع Lighthouse وNode regression وpostgres-integration وstate-tests وedge-function-check. دُمج squash رقم #360 → `main` عند `b49e368`. **التحقق الحي:** Pages `built` على `main`؛ `js/telemetry.js` الحي `RELEASE='manzil-bfb671ee29'` و`sw.js` الحي `CACHE_NAME='manzil-bfb671ee29'`، و`css/style.css` الحي يحمل **1** تعريف `--settings-ink-white` و**4** استخدامات عبر `var(--settings-ink-white)` و**1** حرفي `#fff` (التعريف وحده في كتلة settingsModal). **أصغر شريحة تالية:** مواصلة توحيد القيم اللونية الحرفية المتبقية في سطوح الإعدادات عند وجود مرشّح مطابق أو ذي دلالة واضحة، مع توسيع الحارس. |
 
 | التاريخ |Session | ما تم |
 |---|---|---|
