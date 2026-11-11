@@ -1370,6 +1370,10 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     --settings-card-amber: #e0a034;
     --settings-card-rose: #e06a8b;
     --settings-card-indigo: #6477e8;
+    /* Canonical contrast palette for the light and dark brand-preview cards. */
+    --settings-brand-preview-light-surface: #f2f7f6;
+    --settings-brand-preview-dark-ink: #e7f3f1;
+    --settings-brand-preview-light-ink: #173b48;
     --settings-line: color-mix(in srgb, var(--border-color) 72%, transparent);
     --settings-surface: color-mix(in srgb, var(--bg-card) 94%, var(--bg-main));
     --settings-surface-raised: var(--surface-raised, color-mix(in srgb, var(--bg-card) 84%, var(--bg-main)));
@@ -2386,7 +2390,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     background: linear-gradient(135deg, var(--settings-ink-2), var(--settings-ink-3));
 }
 #settingsModal .settings-brand-preview-light {
-    background: #f2f7f6;
+    background: var(--settings-brand-preview-light-surface);
 }
 #settingsModal .settings-brand-preview-card img {
     display: block;
@@ -2401,12 +2405,12 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     box-shadow: 0 6px 16px rgba(2, 20, 35, .18);
 }
 #settingsModal .settings-brand-preview-card span {
-    color: #e7f3f1;
+    color: var(--settings-brand-preview-dark-ink);
     font-size: var(--font-66);
     font-weight: var(--weight-800);
 }
 #settingsModal .settings-brand-preview-light span {
-    color: #173b48;
+    color: var(--settings-brand-preview-light-ink);
 }
 #settingsModal .settings-inline-row {
     display: flex;
