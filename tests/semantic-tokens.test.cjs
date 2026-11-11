@@ -777,3 +777,36 @@ test('the settings WhatsApp dot resolves from its canonical tokens', () => {
         'the settings rules must not keep a raw #25d366 / rgba(37, 211, 102, …) WhatsApp literal'
     );
 });
+
+test('the settings validation inks resolve from their canonical tokens', () => {
+    const css = read('css/style.css');
+
+    // The settings validation affordances (the message character counter
+    // nearing/at its limit and the pending owner stat) paint one theme-invariant
+    // amber/red pair, each declared once in the #settingsModal token layer.
+    const tokens = {
+        '--settings-warning-ink': '#d97706',
+        '--settings-danger-ink': '#dc2626'
+    };
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const layer = blocks(css, '#settingsModal')[0];
+    assert.ok(layer, 'expected a #settingsModal token layer');
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(layer[1], new RegExp(escape(declaration)),
+            `the settings token layer must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+        assert.ok(css.includes(`var(${name})`),
+            `the settings rules must consume var(${name})`);
+    }
+
+    // Strip the settings status-ink declarations so no raw amber/red literal may
+    // remain in the settings rules.
+    const consumers = css.replace(/--settings-(?:warning|danger)-ink\s*:[^;]*;/g, '');
+    assert.ok(
+        !/#d97706|#dc2626/.test(consumers),
+        'the settings rules must not keep a raw #d97706 / #dc2626 status literal'
+    );
+});

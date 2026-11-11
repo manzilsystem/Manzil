@@ -1336,6 +1336,15 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
        visually. */
     --settings-whatsapp: #25d366;
     --settings-whatsapp-veil-14: rgba(37, 211, 102, .14);
+    /* Canonical status inks for the settings validation affordances: the amber
+       flags an attention state (the character counter nearing its limit and the
+       pending owner stat) and the red flags a blocking one (the counter at its
+       limit). Both are theme-invariant — they only ever paint the dark settings
+       surfaces, which the light-theme polish does not repaint — and each token
+       matches the literal it replaced, so routing the declarations through them
+       changes nothing visually. */
+    --settings-warning-ink: #d97706;
+    --settings-danger-ink: #dc2626;
     --settings-line: color-mix(in srgb, var(--border-color) 72%, transparent);
     --settings-surface: color-mix(in srgb, var(--bg-card) 94%, var(--bg-main));
     --settings-surface-raised: var(--surface-raised, color-mix(in srgb, var(--bg-card) 84%, var(--bg-main)));
@@ -2598,8 +2607,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     font-size: var(--font-62);
     font-weight: var(--weight-700);
 }
-#settingsModal .settings-character-count.is-near-limit { color: #d97706; }
-#settingsModal .settings-character-count.is-at-limit { color: #dc2626; }
+#settingsModal .settings-character-count.is-near-limit { color: var(--settings-warning-ink); }
+#settingsModal .settings-character-count.is-at-limit { color: var(--settings-danger-ink); }
 #settingsModal .settings-variable-chips {
     display: flex;
     flex-wrap: wrap;
@@ -3722,7 +3731,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-owner-stats .is-linked i,
 #settingsModal .settings-owner-stats .is-linked b { color: var(--settings-emerald); }
 #settingsModal .settings-owner-stats .is-pending i,
-#settingsModal .settings-owner-stats .is-pending b { color: #d97706; }
+#settingsModal .settings-owner-stats .is-pending b { color: var(--settings-warning-ink); }
 #settingsModal .settings-owner-stats .is-missing i,
 #settingsModal .settings-owner-stats .is-missing b { color: var(--state-danger); }
 #settingsModal .settings-field > .settings-search-wrap {
