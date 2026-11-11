@@ -166,6 +166,18 @@
     --theme-accent-ocean: #38bdf8;
     --theme-accent-sand: #e6a85c;
     --theme-accent-turquoise: #24c4c7;
+    /* Canonical print palette — the single source for the fixed colors used by the
+       print stylesheet. Print output is intentionally theme-independent (always a
+       light "paper" page), so these live in :root and never remap per theme. Each
+       token matches the literal it replaced exactly, so routing the print block
+       through them introduces no visual change. */
+    --print-bg: #fff;
+    --print-ink: #111827;
+    --print-line: #cbd5e1;
+    --print-muted: #475569;
+    --print-success: #047857;
+    --print-danger: #be123c;
+    --print-info: #4338ca;
     /* Canonical semantic state tokens (success/warning/danger/info) — the single
        source for shared semantic colors. Per-theme overrides live in the canonical
        theme blocks further below (currently the light theme). */
@@ -690,53 +702,53 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 
 @page { size: A4 portrait; margin: 14mm; }
 @media print {
-    body { min-height: auto !important; padding: var(--space-none) !important; background: #fff !important; color: #111827 !important; }
+    body { min-height: auto !important; padding: var(--space-none) !important; background: var(--print-bg) !important; color: var(--print-ink) !important; }
     body * { visibility: hidden; }
     #printableArea, #printableArea * { visibility: visible; }
-    #printableArea { position: absolute; inset: 0 auto auto 0; width: 100%; max-width: none; padding: var(--space-none); background: #fff; color: #111827; }
-    #printableArea .app-card, #printableArea .app-input, #printableArea .report-stat { background: #fff !important; color: #111827 !important; border-color: #cbd5e1 !important; box-shadow: none !important; backdrop-filter: none !important; }
-    #printableArea .report-preview, #printableArea .statement-table thead th { background: #fff !important; }
-    #printableArea .report-block-count { background: #fff !important; color: #111827 !important; border-color: #cbd5e1 !important; }
+    #printableArea { position: absolute; inset: 0 auto auto 0; width: 100%; max-width: none; padding: var(--space-none); background: var(--print-bg); color: var(--print-ink); }
+    #printableArea .app-card, #printableArea .app-input, #printableArea .report-stat { background: var(--print-bg) !important; color: var(--print-ink) !important; border-color: var(--print-line) !important; box-shadow: none !important; backdrop-filter: none !important; }
+    #printableArea .report-preview, #printableArea .statement-table thead th { background: var(--print-bg) !important; }
+    #printableArea .report-block-count { background: var(--print-bg) !important; color: var(--print-ink) !important; border-color: var(--print-line) !important; }
     #printableArea .report-note, #printableArea .report-note p, #printableArea .report-list-meta,
-    #printableArea .report-block-title, #printableArea .report-preview-meta { color: #475569 !important; }
-    #printableArea .report-preview-header, #printableArea .report-list-row, #printableArea .report-divider { border-color: #cbd5e1 !important; }
+    #printableArea .report-block-title, #printableArea .report-preview-meta { color: var(--print-muted) !important; }
+    #printableArea .report-preview-header, #printableArea .report-list-row, #printableArea .report-divider { border-color: var(--print-line) !important; }
     #printBuildingTitle { overflow-wrap: anywhere; font-size: var(--font-print-title) !important; }
-    #printableArea .text-slate-400, #printableArea .text-slate-500, #printableArea .text-slate-600 { color: #475569 !important; }
-    #printableArea .report-stat-label { color: #475569 !important; }
-    #printableArea .text-emerald-400 { color: #047857 !important; }
-    #printableArea .text-rose-400 { color: #be123c !important; }
-    #printableArea .text-indigo-400 { color: #4338ca !important; }
-    #printableArea .border-slate-700, #printableArea .border-slate-800 { border-color: #cbd5e1 !important; }
+    #printableArea .text-slate-400, #printableArea .text-slate-500, #printableArea .text-slate-600 { color: var(--print-muted) !important; }
+    #printableArea .report-stat-label { color: var(--print-muted) !important; }
+    #printableArea .text-emerald-400 { color: var(--print-success) !important; }
+    #printableArea .text-rose-400 { color: var(--print-danger) !important; }
+    #printableArea .text-indigo-400 { color: var(--print-info) !important; }
+    #printableArea .border-slate-700, #printableArea .border-slate-800 { border-color: var(--print-line) !important; }
     .no-print, nav, #toastContainer { display: none !important; }
     #printableArea > .print\:block { display: block !important; }
     #printableArea > section.hidden { display: none !important; }
     #landlordReportPreview { break-inside: avoid; }
     body.print-landlord #printableArea > section:not(#tab-reports) { display: none !important; }
     body.print-landlord #tab-reports > :not(#landlordReportPrint) { display: none !important; }
-    body.print-landlord #landlordReportPrint { padding: var(--space-none) !important; border: 0 !important; background: #fff !important; box-shadow: none !important; }
+    body.print-landlord #landlordReportPrint { padding: var(--space-none) !important; border: 0 !important; background: var(--print-bg) !important; box-shadow: none !important; }
     body.print-statement #printableArea > section:not(#tab-reports) { display: none !important; }
     body.print-statement #tab-reports > :not(#residentStatementCard) { display: none !important; }
-    body.print-statement #residentStatementCard { padding: var(--space-none) !important; border: 0 !important; background: #fff !important; box-shadow: none !important; }
+    body.print-statement #residentStatementCard { padding: var(--space-none) !important; border: 0 !important; background: var(--print-bg) !important; box-shadow: none !important; }
     body.print-statement #residentStatementCard .statement-table th,
-    body.print-statement #residentStatementCard .statement-table td { border-color: #cbd5e1 !important; }
+    body.print-statement #residentStatementCard .statement-table td { border-color: var(--print-line) !important; }
     body.print-statement #residentStatementCard .report-table-wrap { overflow: visible !important; }
     body.print-period #printableArea > section:not(#tab-reports) { display: none !important; }
     body.print-period #tab-reports > :not(#periodReportCard) { display: none !important; }
-    body.print-period #periodReportCard { padding: var(--space-none) !important; border: 0 !important; background: #fff !important; box-shadow: none !important; }
+    body.print-period #periodReportCard { padding: var(--space-none) !important; border: 0 !important; background: var(--print-bg) !important; box-shadow: none !important; }
     body.print-period #periodReportCard .statement-table th,
-    body.print-period #periodReportCard .statement-table td { border-color: #cbd5e1 !important; }
+    body.print-period #periodReportCard .statement-table td { border-color: var(--print-line) !important; }
     body.print-period #periodReportCard .report-table-wrap { overflow: visible !important; }
     body.print-expenses #printableArea > section:not(#tab-reports) { display: none !important; }
     body.print-expenses #tab-reports > :not(#expensesReportCard) { display: none !important; }
-    body.print-expenses #expensesReportCard { padding: var(--space-none) !important; border: 0 !important; background: #fff !important; box-shadow: none !important; }
+    body.print-expenses #expensesReportCard { padding: var(--space-none) !important; border: 0 !important; background: var(--print-bg) !important; box-shadow: none !important; }
     body.print-expenses #expensesReportCard .statement-table th,
-    body.print-expenses #expensesReportCard .statement-table td { border-color: #cbd5e1 !important; }
+    body.print-expenses #expensesReportCard .statement-table td { border-color: var(--print-line) !important; }
     body.print-expenses #expensesReportCard .report-table-wrap { overflow: visible !important; }
     body.print-adjustments #printableArea > section:not(#tab-reports) { display: none !important; }
     body.print-adjustments #tab-reports > :not(#adjustmentsReportCard) { display: none !important; }
-    body.print-adjustments #adjustmentsReportCard { padding: var(--space-none) !important; border: 0 !important; background: #fff !important; box-shadow: none !important; }
+    body.print-adjustments #adjustmentsReportCard { padding: var(--space-none) !important; border: 0 !important; background: var(--print-bg) !important; box-shadow: none !important; }
     body.print-adjustments #adjustmentsReportCard .statement-table th,
-    body.print-adjustments #adjustmentsReportCard .statement-table td { border-color: #cbd5e1 !important; }
+    body.print-adjustments #adjustmentsReportCard .statement-table td { border-color: var(--print-line) !important; }
     body.print-adjustments #adjustmentsReportCard .report-table-wrap { overflow: visible !important; }
     #expensesReportPreview { break-inside: avoid; }
     #adjustmentsReportPreview { break-inside: avoid; }
