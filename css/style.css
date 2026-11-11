@@ -1215,6 +1215,11 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     --settings-ink: #071f27;
     --settings-ink-2: #0b2633;
     --settings-ink-3: #123b50;
+    /* Ink used for text/icons that sit on the emerald settings accent surface
+       (the teal gradient used by the active nav icon, account avatars and the
+       primary/save buttons). It is theme-invariant and matches the literal it
+       replaces, so routing declarations through it changes nothing visually. */
+    --settings-ink-on-accent: #042d2c;
     --settings-line: color-mix(in srgb, var(--border-color) 72%, transparent);
     --settings-surface: color-mix(in srgb, var(--bg-card) 94%, var(--bg-main));
     --settings-surface-raised: var(--surface-raised, color-mix(in srgb, var(--bg-card) 84%, var(--bg-main)));
@@ -1491,7 +1496,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-nav-item.is-active .settings-nav-icon {
     border-color: transparent;
-    color: #042d2c;
+    color: var(--settings-ink-on-accent);
     background: linear-gradient(140deg, var(--settings-accent-bright), var(--settings-accent));
 }
 #settingsModal .settings-nav-copy {
@@ -2403,7 +2408,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     align-self: flex-start;
     padding: var(--space-65) var(--space-100);
     border-radius: var(--radius-75);
-    color: #042d2c;
+    color: var(--settings-ink-on-accent);
     background: linear-gradient(120deg, var(--settings-accent-bright), var(--settings-accent));
     box-shadow: 0 8px 20px color-mix(in srgb, var(--settings-accent) 22%, transparent);
     font-size: var(--font-72);
@@ -2512,7 +2517,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     height: 3.2rem;
     flex: 0 0 auto;
     border-radius: var(--radius-90);
-    color: #042d2c;
+    color: var(--settings-ink-on-accent);
     background: linear-gradient(140deg, var(--settings-accent-bright), var(--settings-accent));
     font-size: var(--font-120);
 }
@@ -2650,7 +2655,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     min-height: 2.6rem;
     padding: var(--space-55) var(--space-115);
     border-radius: var(--radius-70);
-    color: #042d2c;
+    color: var(--settings-ink-on-accent);
     background: linear-gradient(120deg, var(--settings-accent-bright), var(--settings-accent));
     box-shadow: 0 8px 20px color-mix(in srgb, var(--settings-accent) 25%, transparent);
     font-size: var(--font-74);
@@ -2693,7 +2698,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     color: #0e3a44;
 }
 [data-theme="light"] #settingsModal .settings-nav-item.is-active .settings-nav-icon {
-    color: #042d2c;
+    color: var(--settings-ink-on-accent);
 }
 
 /* ---------- Responsive ---------- */

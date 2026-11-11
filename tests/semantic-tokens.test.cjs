@@ -356,3 +356,30 @@ test('the print palette resolves from its canonical tokens', () => {
             `the print block must not keep the raw ${value} literal`);
     }
 });
+
+test('the emerald accent ink resolves from its canonical token', () => {
+    const css = read('css/style.css');
+
+    // Text and icons that sit on the emerald settings accent surface (the teal
+    // gradient used by the active nav icon, account avatars and the primary/save
+    // buttons) all share one ink color. It is theme-invariant, so it lives once
+    // in the #settingsModal token layer, and every consumer must reference it
+    // instead of the raw literal.
+    const settingsBlock = blocks(css, '#settingsModal')[0][1];
+    assert.match(
+        settingsBlock,
+        /--settings-ink-on-accent:\s*#042d2c\s*;/,
+        '#settingsModal must declare --settings-ink-on-accent: #042d2c'
+    );
+    assert.equal(
+        css.split('--settings-ink-on-accent: #042d2c').length - 1,
+        1,
+        '--settings-ink-on-accent: #042d2c must be declared exactly once'
+    );
+
+    const raw = css.match(/#042d2c/gi) || [];
+    assert.equal(raw.length, 1, '#042d2c must only appear in the canonical token definition');
+
+    const uses = css.match(/var\(--settings-ink-on-accent\)/g) || [];
+    assert.ok(uses.length >= 5, 'every consumer must use var(--settings-ink-on-accent)');
+});
