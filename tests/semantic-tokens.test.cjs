@@ -242,3 +242,68 @@ test('the settings accent family resolves from its canonical tokens', () => {
         );
     }
 });
+
+test('the six theme accents resolve from their canonical tokens', () => {
+    const css = read('css/style.css');
+    const escape = selector => selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&');
+    const themeAccents = {
+        dark: '#818cf8',
+        light: '#4f46e5',
+        emerald: '#34d399',
+        ocean: '#38bdf8',
+        sand: '#e6a85c',
+        turquoise: '#24c4c7'
+    };
+
+    // Every theme accent must be declared exactly once, in the :root token layer,
+    // so the theme remaps, the settings preview chips and the owner swatches all
+    // share one source — a preview can never drift from the theme it represents.
+    const rootBlock = blocks(css, ':root')[0][1];
+    for (const [theme, value] of Object.entries(themeAccents)) {
+        const declaration = `--theme-accent-${theme}: ${value}`;
+        assert.match(rootBlock, new RegExp(`${declaration.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&')}`),
+            `:root must declare ${declaration}`);
+        assert.equal(
+            css.split(declaration).length - 1,
+            1,
+            `${declaration} must be declared exactly once`
+        );
+    }
+
+    // Each theme block, settings preview chip and owner swatch consumes the token
+    // instead of keeping the raw accent literal.
+    for (const theme of Object.keys(themeAccents)) {
+        for (const [selector, property] of [
+            [`[data-theme="${theme}"]`, '--accent-color'],
+            [`#settingsModal .theme-preview-${theme}`, '--preview-accent'],
+            [`.owner-theme-swatch.theme-preview-${theme}`, '--preview-accent']
+        ]) {
+            const rules = blocks(css, escape(selector));
+            assert.ok(rules.length, `expected a rule for "${selector}"`);
+            assert.ok(
+                rules.some(rule => new RegExp(`${property}\\s*:\\s*var\\(--theme-accent-${theme}\\)`).test(rule[1])),
+                `"${selector}" must set ${property} to var(--theme-accent-${theme})`
+            );
+        }
+    }
+
+    // Outside the canonical :root definitions the raw accent literals may only
+    // survive where they are unrelated to the theme family: #818cf8 is reused by
+    // the report indigo tone and the resident quick action, #4f46e5 by the light
+    // theme's indigo tint, and #34d399/#38bdf8 double as the success/info states.
+    for (const [literal, expected] of [
+        ['#818cf8', 3],
+        ['#4f46e5', 2],
+        ['#34d399', 2],
+        ['#38bdf8', 2],
+        ['#e6a85c', 1],
+        ['#24c4c7', 1]
+    ]) {
+        const found = css.match(new RegExp(literal, 'g')) || [];
+        assert.equal(
+            found.length,
+            expected,
+            `${literal} must only appear in the canonical token definition and its known unrelated uses`
+        );
+    }
+});
