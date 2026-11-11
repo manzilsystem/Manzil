@@ -1316,6 +1316,17 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     --settings-gold-veil-28: rgba(240, 204, 126, .28);
     --settings-gold-veil-35: rgba(240, 204, 126, .35);
     --settings-gold-veil-40: rgba(240, 204, 126, .4);
+    /* Canonical translucent danger (rose) scale for the settings surfaces that
+       flag an overdue rule or a destructive action (the late rule step and the
+       danger secondary button). The steps share one RGB and differ only in
+       alpha, whose hundredths are the suffix (--settings-danger-veil-30 = .3).
+       The scale is theme-invariant — the solid ink is always --state-danger —
+       and every token matches the literal it replaced, so routing declarations
+       through them changes nothing visually. */
+    --settings-danger-veil-8: rgba(244, 63, 94, .08);
+    --settings-danger-veil-10: rgba(244, 63, 94, .1);
+    --settings-danger-veil-30: rgba(244, 63, 94, .3);
+    --settings-danger-veil-50: rgba(244, 63, 94, .5);
     --settings-line: color-mix(in srgb, var(--border-color) 72%, transparent);
     --settings-surface: color-mix(in srgb, var(--bg-card) 94%, var(--bg-main));
     --settings-surface-raised: var(--surface-raised, color-mix(in srgb, var(--bg-card) 84%, var(--bg-main)));
@@ -3415,9 +3426,9 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     font-size: var(--font-68);
 }
 #settingsModal .settings-rule-step.is-late .settings-rule-step-icon {
-    border-color: rgba(244, 63, 94, .3);
+    border-color: var(--settings-danger-veil-30);
     color: var(--state-danger);
-    background: rgba(244, 63, 94, .1);
+    background: var(--settings-danger-veil-10);
 }
 #settingsModal .settings-rule-step b {
     display: block;
@@ -3765,12 +3776,12 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     line-height: var(--leading-175);
 }
 #settingsModal .settings-secondary-button.is-danger {
-    border-color: rgba(244, 63, 94, .3);
+    border-color: var(--settings-danger-veil-30);
     color: var(--state-danger);
-    background: rgba(244, 63, 94, .08);
+    background: var(--settings-danger-veil-8);
 }
 #settingsModal .settings-secondary-button.is-danger:hover {
-    border-color: rgba(244, 63, 94, .5);
+    border-color: var(--settings-danger-veil-50);
     color: #fda4af;
 }
 

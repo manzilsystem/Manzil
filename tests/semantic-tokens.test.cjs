@@ -701,3 +701,44 @@ test('the settings bright-gold scale resolves from its canonical tokens', () => 
         'the settings rules must not keep a raw #f0cc7e / rgba(240, 204, 126, …) gold literal'
     );
 });
+
+test('the settings danger-veil scale resolves from its canonical tokens', () => {
+    const css = read('css/style.css');
+
+    // The translucent danger (rose) veils that flag an overdue rule or a
+    // destructive action on the settings surfaces are one theme-invariant alpha
+    // scale: the steps share one RGB and differ only in alpha. The solid ink is
+    // always --state-danger. Every step is declared once in the #settingsModal
+    // token layer; the suffix is the alpha in hundredths.
+    const tokens = {
+        '--settings-danger-veil-8': 'rgba(244, 63, 94, .08)',
+        '--settings-danger-veil-10': 'rgba(244, 63, 94, .1)',
+        '--settings-danger-veil-30': 'rgba(244, 63, 94, .3)',
+        '--settings-danger-veil-50': 'rgba(244, 63, 94, .5)'
+    };
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Each veil step is declared exactly once, in the #settingsModal token layer.
+    const layer = blocks(css, '#settingsModal')[0];
+    assert.ok(layer, 'expected a #settingsModal token layer');
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(layer[1], new RegExp(escape(declaration)),
+            `the settings token layer must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+        assert.ok(css.includes(`var(${name})`),
+            `the settings rules must consume var(${name})`);
+    }
+
+    // Strip the settings danger declarations and the global danger state tokens
+    // (which keep their own rgba literal) so no raw rose literal may remain in
+    // the settings rules.
+    const consumers = css
+        .replace(/--settings-danger-veil-[0-9]+\s*:[^;]*;/g, '')
+        .replace(/--state-danger-(?:soft|line)\s*:[^;]*;/g, '');
+    assert.ok(
+        !/rgba\(244,\s*63,\s*94,/.test(consumers),
+        'the settings rules must not keep a raw rgba(244, 63, 94, …) danger literal'
+    );
+});
