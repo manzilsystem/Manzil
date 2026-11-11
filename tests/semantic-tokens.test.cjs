@@ -940,3 +940,40 @@ test('the settings card-tone accent palette resolves from its canonical tokens',
             `${value} must only appear in the canonical token definition`);
     }
 });
+
+test('the settings brand-preview palette resolves from canonical tokens', () => {
+    const css = read('css/style.css');
+    const tokens = {
+        '--settings-brand-preview-light-surface': '#f2f7f6',
+        '--settings-brand-preview-dark-ink': '#e7f3f1',
+        '--settings-brand-preview-light-ink': '#173b48'
+    };
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const layer = blocks(css, '#settingsModal')[0];
+    assert.ok(layer, 'expected a #settingsModal token layer');
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(layer[1], new RegExp(escape(declaration)),
+            `the settings token layer must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+    }
+
+    for (const [selector, token] of [
+        ['#settingsModal .settings-brand-preview-light', '--settings-brand-preview-light-surface'],
+        ['#settingsModal .settings-brand-preview-card span', '--settings-brand-preview-dark-ink'],
+        ['#settingsModal .settings-brand-preview-light span', '--settings-brand-preview-light-ink']
+    ]) {
+        const rule = blocks(css, selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&'))[0];
+        assert.ok(rule, `expected a rule for "${selector}"`);
+        assert.ok(rule[1].includes(`var(${token})`),
+            `"${selector}" must consume var(${token})`);
+    }
+
+    for (const value of Object.values(tokens)) {
+        const found = css.match(new RegExp(escape(value), 'g')) || [];
+        assert.equal(found.length, 1,
+            `${value} must only appear in the canonical token definition`);
+    }
+});
