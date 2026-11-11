@@ -175,3 +175,70 @@ test('the settings emerald accent resolves from one canonical token', () => {
         );
     }
 });
+
+test('the settings accent family resolves from its canonical tokens', () => {
+    const css = read('css/style.css');
+    const escape = selector => selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&');
+
+    // The teal/gold accents and the dark ink stops shared by the settings surfaces
+    // must each be declared exactly once, inside the #settingsModal token layer,
+    // so every gradient, shadow and tone derives from one source.
+    const settingsBlock = blocks(css, '#settingsModal')[0][1];
+    for (const declaration of [
+        '--settings-accent: #159e9a;',
+        '--settings-accent-bright: #55c9bd;',
+        '--settings-gold: #c9973d;',
+        '--settings-ink: #071f27;',
+        '--settings-ink-2: #0b2633;',
+        '--settings-ink-3: #123b50;'
+    ]) {
+        const name = declaration.slice(0, declaration.indexOf(':'));
+        assert.match(
+            settingsBlock,
+            new RegExp(`${name}:\\s*${declaration.slice(declaration.indexOf(':') + 1).trim()}`),
+            `#settingsModal must declare ${name} as the single source`
+        );
+    }
+
+    // Outside the declarations, no settings surface may keep the raw accent-family
+    // literals. #071f27 also seeds the turquoise theme, so it is checked through
+    // its consumers below instead of a global count.
+    for (const [literal, expected] of [
+        [/#159e9a/gi, 1],
+        [/#55c9bd/gi, 1],
+        [/#c9973d/gi, 1],
+        [/#0b2633/gi, 1],
+        [/#123b50/gi, 1]
+    ]) {
+        const found = css.match(literal) || [];
+        assert.equal(
+            found.length,
+            expected,
+            `${literal.source} must only appear in the canonical token definition`
+        );
+    }
+    for (const family of ['rgba\\(21,\\s*158,\\s*154', 'rgba\\(85,\\s*201,\\s*189', 'rgba\\(201,\\s*151,\\s*61']) {
+        assert.doesNotMatch(
+            css,
+            new RegExp(family),
+            `the ${family} literals must resolve from the canonical token via color-mix`
+        );
+    }
+
+    const expectations = [
+        ['#settingsModal .settings-card[data-tone="teal"]', 'settings-accent'],
+        ['#settingsModal .settings-card[data-tone="gold"]', 'settings-gold'],
+        ['#settingsModal .settings-brand-preview-dark', 'settings-ink-2'],
+        ['#settingsModal .settings-brand-preview-dark', 'settings-ink-3'],
+        ['#settingsModal .settings-phone-card', 'settings-ink'],
+        ['#settingsModal .settings-phone-card .settings-preview-icon', 'settings-accent-bright']
+    ];
+    for (const [selector, token] of expectations) {
+        const rules = blocks(css, escape(selector));
+        assert.ok(rules.length, `expected a rule for "${selector}"`);
+        assert.ok(
+            rules.some(rule => new RegExp(`var\\(--${token}\\)`).test(rule[1])),
+            `"${selector}" must consume var(--${token}) instead of a raw literal`
+        );
+    }
+});
