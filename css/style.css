@@ -84,7 +84,7 @@
        (--font-62 = .62rem). Font size does not vary by theme, so these live only
        in :root, and every token matches the literal it replaced, so routing the
        declarations through them introduces no visual change. This covers every
-       rem-based size; the few clamp()/px/em sizes remain literal. */
+       rem-based size; the fluid and unit-specific sizes follow below. */
     --font-52: .52rem;
     --font-53: .53rem;
     --font-55: .55rem;
@@ -130,6 +130,22 @@
     --font-145: 1.45rem;
     --font-150: 1.5rem;
     --font-175: 1.75rem;
+    /* Fluid and unit-specific font sizes that fall outside the fixed rem scale:
+       responsive display headings, the mobile field size that prevents iOS
+       zoom, and the print title. Each token matches the literal it replaced, so
+       routing the declarations through them introduces no visual change. */
+    --font-tab-label: clamp(8px, 2.7vw, 10px);
+    --font-tab-label-narrow: clamp(8px, 2.7vw, 9px);
+    --font-input-mobile: 16px;
+    --font-print-title: 20px;
+    --font-auth-title: clamp(1.8rem, 4vw, 2.35rem);
+    --font-auth-subtitle: clamp(1.4rem, 3vw, 1.8rem);
+    --font-lock-title: clamp(1.8rem, 3vw, 2.5rem);
+    --font-lock-mark: .72em;
+    --font-lock-subtitle: clamp(1.55rem, 3vw, 2rem);
+    --font-lock-title-narrow: clamp(1.55rem, 2vw, 2rem);
+    --font-lock-mark-narrow: .62em;
+    --font-settings-title: clamp(1.15rem, 2.2vw, 1.5rem);
     --bg-main: #090d16;
     --bg-card: rgba(15, 23, 42, .85);
     --bg-input: #020617;
@@ -507,7 +523,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .audit-log-more { margin-inline-start: var(--space-40); color: var(--accent-color); font-weight: var(--weight-800); text-decoration: underline; }
 .tab-btn { min-width: 52px; min-height: 44px; justify-content: center; }
 nav[aria-label="التنقل الرئيسي"] .tab-btn { flex: 1 1 0; min-width: 0; padding-inline: var(--space-15); }
-nav[aria-label="التنقل الرئيسي"] .tab-btn span { white-space: nowrap; font-size: clamp(8px, 2.7vw, 10px); }
+nav[aria-label="التنقل الرئيسي"] .tab-btn span { white-space: nowrap; font-size: var(--font-tab-label); }
 .tab-btn { border-radius: var(--radius-lg); padding-inline: var(--space-65); transition: color var(--motion-200) var(--ease-standard), background-color var(--motion-200) var(--ease-standard), transform var(--motion-200) var(--ease-standard); }
 .tab-btn.active { color: var(--accent-color); font-weight: var(--weight-800); background: color-mix(in srgb, var(--accent-color) 14%, transparent); }
 .tab-btn:hover { background: color-mix(in srgb, var(--accent-color) 8%, transparent); }
@@ -622,7 +638,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
         padding-left: max(var(--space-25), env(safe-area-inset-left));
         padding-right: max(var(--space-25), env(safe-area-inset-right));
     }
-    input, select, textarea { font-size: 16px !important; }
+    input, select, textarea { font-size: var(--font-input-mobile) !important; }
     .app-card { backdrop-filter: blur(var(--blur-120)); -webkit-backdrop-filter: blur(var(--blur-120)); }
     #landlordReportPreview { overflow-wrap: anywhere; }
     .quick-action { min-height: 68px; padding-inline: var(--space-35); }
@@ -646,7 +662,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     header .container > div:last-child button { min-width: 40px; min-height: 40px; padding: var(--space-50); }
     #headerBuildingTitle { max-width: 28vw; }
     nav[aria-label="التنقل الرئيسي"] .tab-btn { min-width: 0; padding-inline: var(--space-10); }
-    nav[aria-label="التنقل الرئيسي"] .tab-btn span { font-size: clamp(8px, 2.7vw, 9px); }
+    nav[aria-label="التنقل الرئيسي"] .tab-btn span { font-size: var(--font-tab-label-narrow); }
     #tab-dashboard > .grid.grid-cols-2 { gap: var(--space-50); }
     .section-toolbar { flex-direction: column; }
     .section-toolbar > button { width: 100%; }
@@ -671,7 +687,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     #printableArea .report-note, #printableArea .report-note p, #printableArea .report-list-meta,
     #printableArea .report-block-title, #printableArea .report-preview-meta { color: #475569 !important; }
     #printableArea .report-preview-header, #printableArea .report-list-row, #printableArea .report-divider { border-color: #cbd5e1 !important; }
-    #printBuildingTitle { overflow-wrap: anywhere; font-size: 20px !important; }
+    #printBuildingTitle { overflow-wrap: anywhere; font-size: var(--font-print-title) !important; }
     #printableArea .text-slate-400, #printableArea .text-slate-500, #printableArea .text-slate-600 { color: #475569 !important; }
     #printableArea .report-stat-label { color: #475569 !important; }
     #printableArea .text-emerald-400 { color: #047857 !important; }
@@ -830,7 +846,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 .auth-logo-frame { width:9rem; height:9rem; display:flex; align-items:center; justify-content:center; padding:var(--space-45); overflow:hidden; border:1px solid #dce7ed; border-radius:var(--radius-165); background:#fbfdff; box-shadow:0 12px 32px rgba(2,20,35,.18); }
 .auth-logo-frame img { display:block; width:100%; height:100%; object-fit:contain; }
 .auth-brand-overline { color:var(--accent-color); font-size:var(--font-72); font-weight:var(--weight-900); letter-spacing:var(--tracking-4); }
-.auth-brand-copy h1 { margin-top:var(--space-15); font-size:clamp(1.8rem,4vw,2.35rem); line-height:var(--leading-120); font-weight:var(--weight-900); letter-spacing:var(--tracking-2); }
+.auth-brand-copy h1 { margin-top:var(--space-15); font-size:var(--font-auth-title); line-height:var(--leading-120); font-weight:var(--weight-900); letter-spacing:var(--tracking-2); }
 .auth-brand-description { max-width:22rem; margin-top:var(--space-55); color:var(--text-muted); font-size:var(--font-90); line-height:var(--leading-190); }
 .auth-brand-benefits { display:grid; gap:var(--space-75); }
 .auth-brand-benefits p { display:flex; align-items:center; gap:var(--space-65); color:var(--text-muted); font-size:var(--font-78); }
@@ -843,7 +859,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 .auth-login-panel { min-width:0; padding:clamp(var(--space-125),3.2vw,var(--space-250)); background:var(--bg-card); color:var(--text-main); }
 .auth-form-heading { margin-bottom:var(--space-135); }
 .auth-kicker { color:var(--accent-color); font-size:var(--font-75); font-weight:var(--weight-900); }
-.auth-form-heading h2 { margin-top:var(--space-45); font-size:clamp(1.4rem,3vw,1.8rem); font-weight:var(--weight-900); line-height:var(--leading-140); }
+.auth-form-heading h2 { margin-top:var(--space-45); font-size:var(--font-auth-subtitle); font-weight:var(--weight-900); line-height:var(--leading-140); }
 .auth-form-heading > p:last-child { margin-top:var(--space-35); color:var(--text-muted); font-size:var(--font-78); line-height:var(--leading-180); }
 .auth-section-label { margin-bottom:var(--space-55); color:var(--text-muted); font-size:var(--font-75); font-weight:var(--weight-800); }
 .auth-mode-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-55); }
@@ -971,11 +987,11 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   gap:var(--space-65);
   color:#f0c56d;
   font-family:Georgia,serif;
-  font-size:clamp(1.8rem,3vw,2.5rem);
+  font-size:var(--font-lock-title);
   font-weight:var(--weight-800);
   text-shadow:0 2px 18px rgba(220,165,62,.18);
 }
-#pinLockModal .auth-brand-copy h1 span { color:#e5e7eb;font-size:.72em;letter-spacing:var(--tracking-12); }
+#pinLockModal .auth-brand-copy h1 span { color:#e5e7eb;font-size:var(--font-lock-mark);letter-spacing:var(--tracking-12); }
 #pinLockModal .auth-brand-description { color:#c5d5d9;max-width:24rem; }
 #pinLockModal .auth-brand-benefits { gap:var(--space-65); }
 #pinLockModal .auth-brand-benefits p { color:#e0e9e9;font-size:var(--font-80); }
@@ -997,7 +1013,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   background:linear-gradient(160deg,#10232d 0%,#0b1821 100%);
   color:#f3f6f5;
 }
-#pinLockModal .auth-form-heading h2 { color:#fff;font-size:clamp(1.55rem,3vw,2rem); }
+#pinLockModal .auth-form-heading h2 { color:#fff;font-size:var(--font-lock-subtitle); }
 #pinLockModal .auth-form-heading > p:last-child,
 #pinLockModal .auth-section-label { color:#b6c6ca; }
 #pinLockModal .auth-mode-button {
@@ -1055,7 +1071,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   #pinLockModal .auth-logo-frame { width:6.25rem;height:6.25rem;flex:0 0 6.25rem;border-radius:var(--radius-85); }
   #pinLockModal .auth-brand-copy { min-width:0; }
   #pinLockModal .auth-brand-copy h1 { justify-content:flex-start;font-size:var(--font-150); }
-  #pinLockModal .auth-brand-copy h1 span { font-size:.62em; }
+  #pinLockModal .auth-brand-copy h1 span { font-size:var(--font-lock-mark-narrow); }
   #pinLockModal .auth-brand-description { font-size:var(--font-68);line-height:var(--leading-150); }
   #pinLockModal .auth-brand-benefits { display:none; }
   #pinLockModal .auth-brand-footer { display:none; }
@@ -1111,7 +1127,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   #pinLockModal .auth-brand-copy h1 {
     flex-wrap:wrap;
     gap:var(--space-45);
-    font-size:clamp(1.55rem,2vw,2rem);
+    font-size:var(--font-lock-title-narrow);
   }
   #pinLockModal .auth-brand-description { font-size:var(--font-86); }
   #pinLockModal .auth-brand-benefits { width:100%; }
@@ -1543,7 +1559,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-hero-copy h4 {
     margin-top: var(--space-55);
     color: #fff;
-    font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+    font-size: var(--font-settings-title);
     font-weight: var(--weight-900);
 }
 #settingsModal .settings-hero-copy p {

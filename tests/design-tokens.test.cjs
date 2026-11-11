@@ -113,6 +113,21 @@ const FONT_SIZES = {
     150: '1.5rem',
     175: '1.75rem'
 };
+const FLUID_FONT_SIZES = {
+    'tab-label': 'clamp(8px, 2.7vw, 10px)',
+    'tab-label-narrow': 'clamp(8px, 2.7vw, 9px)',
+    'input-mobile': '16px',
+    'print-title': '20px',
+    'auth-title': 'clamp(1.8rem, 4vw, 2.35rem)',
+    'auth-subtitle': 'clamp(1.4rem, 3vw, 1.8rem)',
+    'lock-title': 'clamp(1.8rem, 3vw, 2.5rem)',
+    'lock-mark': '.72em',
+    'lock-subtitle': 'clamp(1.55rem, 3vw, 2rem)',
+    'lock-title-narrow': 'clamp(1.55rem, 2vw, 2rem)',
+    'lock-mark-narrow': '.62em',
+    'settings-title': 'clamp(1.15rem, 2.2vw, 1.5rem)'
+};
+const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const themeBlocks = (css, theme) => [
     ...css.matchAll(new RegExp(`\\[data-theme="${theme}"\\]\\s*\\{([^}]*)\\}`, 'g'))
@@ -334,6 +349,31 @@ test('font-size declarations use the canonical typographic scale', () => {
             css,
             new RegExp(`font-size\\s*:\\s*${literal}\\s*;`),
             `literal ${value} must be routed through --font-${step}`
+        );
+    }
+});
+
+test('fluid font-size tokens are defined once in :root with their original values', () => {
+    const css = read('css/style.css');
+    const rootBlock = css.match(/:root\s*\{([^}]*)\}/)[1];
+    for (const [name, value] of Object.entries(FLUID_FONT_SIZES)) {
+        const token = escapeRegex(`--font-${name}`);
+        assert.match(rootBlock, new RegExp(`${token}(?![\\w-])\\s*:\\s*${escapeRegex(value)}\\s*;`));
+        assert.equal([...css.matchAll(new RegExp(`${token}(?![\\w-])\\s*:`, 'g'))].length, 1);
+    }
+});
+
+test('fluid font-size declarations use their canonical tokens', () => {
+    const css = read('css/style.css');
+    for (const [name, value] of Object.entries(FLUID_FONT_SIZES)) {
+        assert.ok(
+            new RegExp(`font-size\\s*:\\s*var\\(--font-${name}\\)`).test(css),
+            `fluid font token --font-${name} must be consumed`
+        );
+        assert.doesNotMatch(
+            css,
+            new RegExp(`font-size\\s*:\\s*${escapeRegex(value)}(?:\\s*!important)?\\s*;`),
+            `literal ${value} must be routed through --font-${name}`
         );
     }
 });
