@@ -965,6 +965,30 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 
 /* Manzil branded sign-in: midnight navy, brushed gold and turquoise. */
 #pinLockModal {
+  /* Canonical branded sign-in palette: the midnight-navy surfaces and their ink
+     tones. The sign-in screen is a fixed brand surface independent of the app
+     themes, so this palette lives once here and every rule below references the
+     tokens instead of the raw literals. Each token keeps the exact literal it
+     replaces, so routing declarations through it changes nothing visually. */
+  --auth-surface-shell: #07141d;
+  --auth-surface-brand-1: #02080d;
+  --auth-surface-brand-2: #071c27;
+  --auth-surface-brand-3: #061018;
+  --auth-surface-panel-1: #10232d;
+  --auth-surface-panel-2: #0b1821;
+  --auth-surface-field: #07131b;
+  --auth-ink-brand: #f7f1e5;
+  --auth-ink-panel: #f3f6f5;
+  --auth-ink-strong: #fff;
+  --auth-ink-mark: #e5e7eb;
+  --auth-ink-soft: #c5d5d9;
+  --auth-ink-benefit: #e0e9e9;
+  --auth-ink-control: #d6e2e3;
+  --auth-ink-label: #dbe5e4;
+  --auth-ink-help: #edf7f5;
+  --auth-ink-subtle: #b6c6ca;
+  --auth-ink-faint: #aebfc2;
+  --auth-ink-dim: #90a5ac;
   padding:clamp(var(--space-50),2.5vw,var(--space-200));
   background:
     radial-gradient(ellipse at 18% 18%,rgba(8,183,199,.12),transparent 38%),
@@ -980,7 +1004,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   border:1px solid rgba(211,165,76,.35);
   border-radius:var(--radius-180);
   overflow:hidden;
-  background:#07141d;
+  background:var(--auth-surface-shell);
   box-shadow:0 35px 100px rgba(0,0,0,.58),0 0 0 1px rgba(17,190,202,.08);
 }
 #pinLockModal .auth-brand-panel {
@@ -994,10 +1018,10 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   overflow:hidden;
   border:0;
   border-inline-end:1px solid rgba(220,177,91,.22);
-  color:#f7f1e5;
+  color:var(--auth-ink-brand);
   background:
     radial-gradient(ellipse at 50% 28%,rgba(10,166,183,.18),transparent 48%),
-    linear-gradient(145deg,#02080d 0%,#071c27 54%,#061018 100%);
+    linear-gradient(145deg,var(--auth-surface-brand-1) 0%,var(--auth-surface-brand-2) 54%,var(--auth-surface-brand-3) 100%);
 }
 #pinLockModal .auth-brand-panel::before,
 #pinLockModal .auth-brand-panel::after {
@@ -1040,36 +1064,36 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   font-weight:var(--weight-800);
   text-shadow:0 2px 18px rgba(220,165,62,.18);
 }
-#pinLockModal .auth-brand-copy h1 span { color:#e5e7eb;font-size:var(--font-lock-mark);letter-spacing:var(--tracking-12); }
-#pinLockModal .auth-brand-description { color:#c5d5d9;max-width:24rem; }
+#pinLockModal .auth-brand-copy h1 span { color:var(--auth-ink-mark);font-size:var(--font-lock-mark);letter-spacing:var(--tracking-12); }
+#pinLockModal .auth-brand-description { color:var(--auth-ink-soft);max-width:24rem; }
 #pinLockModal .auth-brand-benefits { gap:var(--space-65); }
-#pinLockModal .auth-brand-benefits p { color:#e0e9e9;font-size:var(--font-80); }
+#pinLockModal .auth-brand-benefits p { color:var(--auth-ink-benefit);font-size:var(--font-80); }
 #pinLockModal .auth-brand-benefits i {
   color:#e8bd63;
   border-color:rgba(220,174,86,.32);
   background:rgba(220,174,86,.08);
 }
 #pinLockModal .auth-brand-footer { gap:var(--space-75); }
-#pinLockModal .auth-trust-note { color:#c5d5d9; }
+#pinLockModal .auth-trust-note { color:var(--auth-ink-soft); }
 #pinLockModal .auth-trust-note i { color:#27c2cb; }
-#pinLockModal .auth-rights { color:#90a5ac; }
+#pinLockModal .auth-rights { color:var(--auth-ink-dim); }
 #pinLockModal .auth-rights a { color:#e9c16d; }
 #pinLockModal .auth-login-panel {
   display:flex;
   flex-direction:column;
   justify-content:center;
   padding:clamp(var(--space-150),4vw,var(--space-350));
-  background:linear-gradient(160deg,#10232d 0%,#0b1821 100%);
-  color:#f3f6f5;
+  background:linear-gradient(160deg,var(--auth-surface-panel-1) 0%,var(--auth-surface-panel-2) 100%);
+  color:var(--auth-ink-panel);
 }
-#pinLockModal .auth-form-heading h2 { color:#fff;font-size:var(--font-lock-subtitle); }
+#pinLockModal .auth-form-heading h2 { color:var(--auth-ink-strong);font-size:var(--font-lock-subtitle); }
 #pinLockModal .auth-form-heading > p:last-child,
-#pinLockModal .auth-section-label { color:#b6c6ca; }
+#pinLockModal .auth-section-label { color:var(--auth-ink-subtle); }
 #pinLockModal .auth-mode-button {
   min-height:3.4rem;
   border-color:rgba(148,174,181,.24);
   background:rgba(255,255,255,.035);
-  color:#d6e2e3;
+  color:var(--auth-ink-control);
 }
 #pinLockModal .auth-mode-button[aria-pressed="true"] {
   border-color:#d7aa54;
@@ -1077,13 +1101,13 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   color:#ffdb91;
   box-shadow:inset 0 0 0 1px rgba(218,170,79,.12);
 }
-#pinLockModal .auth-field label { color:#dbe5e4; }
+#pinLockModal .auth-field label { color:var(--auth-ink-label); }
 #pinLockModal .auth-field input {
   min-height:3.35rem;
   border-color:rgba(153,180,187,.25);
   border-radius:var(--radius-90);
-  background:#07131b;
-  color:#fff;
+  background:var(--auth-surface-field);
+  color:var(--auth-ink-strong);
 }
 #pinLockModal .auth-field input:focus {
   border-color:#20bac4;
@@ -1101,12 +1125,12 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #pinLockModal .auth-owner-help {
   border-color:rgba(31,185,194,.28);
   background:rgba(6,151,166,.08);
-  color:#edf7f5;
+  color:var(--auth-ink-help);
 }
 #pinLockModal .auth-owner-help p,
 #pinLockModal .auth-owner-help label,
 #pinLockModal .auth-help-note,
-#pinLockModal .auth-security-note { color:#aebfc2; }
+#pinLockModal .auth-security-note { color:var(--auth-ink-faint); }
 #pinLockModal .auth-security-note { border-top:1px solid rgba(152,180,185,.15);padding-top:var(--space-80); }
 @media (max-width:700px) {
   #pinLockModal { padding:var(--space-35); }
