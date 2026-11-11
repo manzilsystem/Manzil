@@ -67,24 +67,34 @@ const BLURS = {
     160: '16px'
 };
 const FONT_SIZES = {
+    55: '.55rem',
     56: '.56rem',
     58: '.58rem',
     60: '.6rem',
+    61: '.61rem',
     62: '.62rem',
     64: '.64rem',
     65: '.65rem',
     66: '.66rem',
+    67: '.67rem',
     68: '.68rem',
     70: '.7rem',
     72: '.72rem',
     74: '.74rem',
     75: '.75rem',
+    76: '.76rem',
     78: '.78rem',
     80: '.8rem',
+    82: '.82rem',
+    84: '.84rem',
     85: '.85rem',
+    86: '.86rem',
     90: '.9rem',
     95: '.95rem',
-    100: '1rem'
+    98: '.98rem',
+    100: '1rem',
+    115: '1.15rem',
+    120: '1.2rem'
 };
 
 const themeBlocks = (css, theme) => [
