@@ -1286,6 +1286,22 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     --settings-veil-16: rgba(255, 255, 255, .16);
     --settings-veil-18: rgba(255, 255, 255, .18);
     --settings-veil-32: rgba(255, 255, 255, .32);
+    /* Canonical translucent muted-ink scale for text on the dark settings
+       surfaces. Two tiers mirror the two ink shades already in use: the dimmer
+       teal-white of the live/phone panels, and the brighter near-white of the
+       topbar and hero. The suffix is the alpha in hundredths
+       (--settings-muted-ink-62 = .62). Both tiers are theme-invariant — the
+       light-theme polish never repaints the surfaces they sit on — and every
+       token matches the literal it replaced, so routing declarations through
+       them changes nothing visually. */
+    --settings-muted-ink-58: rgba(220, 240, 237, .58);
+    --settings-muted-ink-60: rgba(220, 240, 237, .6);
+    --settings-muted-ink-62: rgba(220, 240, 237, .62);
+    --settings-muted-ink-72: rgba(220, 240, 237, .72);
+    --settings-muted-ink-bright-66: rgba(226, 244, 242, .66);
+    --settings-muted-ink-bright-68: rgba(233, 247, 246, .68);
+    --settings-muted-ink-bright-70: rgba(226, 246, 243, .7);
+    --settings-muted-ink-bright-72: rgba(226, 246, 243, .72);
     --settings-line: color-mix(in srgb, var(--border-color) 72%, transparent);
     --settings-surface: color-mix(in srgb, var(--bg-card) 94%, var(--bg-main));
     --settings-surface-raised: var(--surface-raised, color-mix(in srgb, var(--bg-card) 84%, var(--bg-main)));
@@ -1371,7 +1387,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-brand-copy small {
     grid-column: 1 / -1;
-    color: rgba(233, 247, 246, .68);
+    color: var(--settings-muted-ink-bright-68);
     font-size: var(--font-66);
 }
 #settingsModal .settings-topbar-title {
@@ -1385,7 +1401,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-topbar-title p {
     margin-top: var(--space-15);
-    color: rgba(226, 244, 242, .66);
+    color: var(--settings-muted-ink-bright-66);
     font-size: var(--font-70);
 }
 #settingsModal .settings-close-button {
@@ -1666,7 +1682,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-hero-copy p {
     max-width: 34rem;
     margin-top: var(--space-30);
-    color: rgba(226, 246, 243, .72);
+    color: var(--settings-muted-ink-bright-72);
     font-size: var(--font-78);
     line-height: var(--leading-180);
 }
@@ -1691,7 +1707,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     backdrop-filter: blur(var(--blur-60));
 }
 #settingsModal .settings-hero-stats span {
-    color: rgba(226, 246, 243, .7);
+    color: var(--settings-muted-ink-bright-70);
     font-size: var(--font-58);
     font-weight: var(--weight-700);
 }
@@ -3144,7 +3160,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-live-head small {
     display: block;
-    color: rgba(220, 240, 237, .62);
+    color: var(--settings-muted-ink-62);
     font-size: var(--font-57);
 }
 #settingsModal .settings-live-name {
@@ -3155,7 +3171,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     overflow-wrap: anywhere;
 }
 #settingsModal .settings-live-manager {
-    color: rgba(220, 240, 237, .72);
+    color: var(--settings-muted-ink-72);
     font-size: var(--font-66);
     line-height: var(--leading-170);
 }
@@ -3173,7 +3189,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-live-stats span {
     display: block;
-    color: rgba(220, 240, 237, .6);
+    color: var(--settings-muted-ink-60);
     font-size: var(--font-55);
     font-weight: var(--weight-700);
 }
@@ -3197,7 +3213,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-top: 1px dashed var(--settings-veil-12);
 }
 #settingsModal .settings-live-list dt {
-    color: rgba(220, 240, 237, .62);
+    color: var(--settings-muted-ink-62);
     font-size: var(--font-59);
     font-weight: var(--weight-700);
 }
@@ -3583,7 +3599,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     color: #eaf7f4;
 }
 #settingsModal .settings-phone-card .settings-preview-head small {
-    color: rgba(220, 240, 237, .58);
+    color: var(--settings-muted-ink-58);
 }
 #settingsModal .settings-phone-card .settings-preview-icon {
     color: var(--settings-accent-bright);
@@ -3599,7 +3615,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     display: flex;
     align-items: center;
     gap: var(--space-40);
-    color: rgba(220, 240, 237, .72);
+    color: var(--settings-muted-ink-72);
     font-size: var(--font-58);
     font-weight: var(--weight-700);
 }
