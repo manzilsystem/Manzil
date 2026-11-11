@@ -153,6 +153,19 @@
     --text-muted: #94a3b8;
     --border-color: rgba(51, 65, 85, .8);
     --accent-color: #6366f1;
+    /* Canonical per-theme accent tokens — the single source for the accent color
+       of each of the six selectable themes. The theme blocks below route their
+       --accent-color through these tokens, and both the settings theme previews
+       and the owner theme swatches reuse the same tokens, so a preview can never
+       drift from the theme it represents. Values match the literals they replaced
+       exactly, so routing them introduces no visual change. Theme-independent at
+       the :root level (the active theme only remaps --accent-color). */
+    --theme-accent-dark: #818cf8;
+    --theme-accent-light: #4f46e5;
+    --theme-accent-emerald: #34d399;
+    --theme-accent-ocean: #38bdf8;
+    --theme-accent-sand: #e6a85c;
+    --theme-accent-turquoise: #24c4c7;
     /* Canonical semantic state tokens (success/warning/danger/info) — the single
        source for shared semantic colors. Per-theme overrides live in the canonical
        theme blocks further below (currently the light theme). */
@@ -734,11 +747,11 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 
 /* Settings workspace and theme system */
 :root { --surface-raised: color-mix(in srgb, var(--bg-card) 88%, var(--bg-main)); --surface-soft: color-mix(in srgb, var(--accent-color) 7%, var(--bg-card)); --shadow-soft: 0 16px 40px rgba(0,0,0,.16); }
-[data-theme="dark"] { --bg-main:#0b1020; --bg-card:#151d30; --bg-input:#0d1527; --text-main:#edf2ff; --text-muted:#9aa8c2; --border-color:#29364f; --accent-color:#818cf8; --surface-raised:#1b2740; }
-[data-theme="light"] { --bg-main:#f3f6fc; --bg-card:#ffffff; --bg-input:#f7f9fd; --text-main:#172033; --text-muted:#66748b; --border-color:#dce4f0; --accent-color:#4f46e5; --surface-raised:#f8faff; --state-success:#047857; --state-success-soft:#ecfdf5; --state-success-line:#a7f3d0; --state-warning:#b45309; --state-warning-soft:#fffbeb; --state-warning-line:#fde68a; --state-danger:#be123c; --state-danger-soft:#fff1f2; --state-danger-line:#fecdd3; --state-info:#0369a1; --state-info-soft:#f0f9ff; --state-info-line:#bae6fd; }
-[data-theme="emerald"] { --bg-main:#071c18; --bg-card:#102b24; --bg-input:#0a211b; --text-main:#e9fff5; --text-muted:#a0c9b8; --border-color:#285446; --accent-color:#34d399; --surface-raised:#15382e; }
-[data-theme="ocean"] { --bg-main:#071827; --bg-card:#10283b; --bg-input:#0a2032; --text-main:#edf8ff; --text-muted:#9ab8ce; --border-color:#28485f; --accent-color:#38bdf8; --surface-raised:#15334a; }
-[data-theme="sand"] { --bg-main:#211b16; --bg-card:#30271f; --bg-input:#241e18; --text-main:#fff7ed; --text-muted:#c8b8a5; --border-color:#594735; --accent-color:#e6a85c; --surface-raised:#3b3025; }
+[data-theme="dark"] { --bg-main:#0b1020; --bg-card:#151d30; --bg-input:#0d1527; --text-main:#edf2ff; --text-muted:#9aa8c2; --border-color:#29364f; --accent-color:var(--theme-accent-dark); --surface-raised:#1b2740; }
+[data-theme="light"] { --bg-main:#f3f6fc; --bg-card:#ffffff; --bg-input:#f7f9fd; --text-main:#172033; --text-muted:#66748b; --border-color:#dce4f0; --accent-color:var(--theme-accent-light); --surface-raised:#f8faff; --state-success:#047857; --state-success-soft:#ecfdf5; --state-success-line:#a7f3d0; --state-warning:#b45309; --state-warning-soft:#fffbeb; --state-warning-line:#fde68a; --state-danger:#be123c; --state-danger-soft:#fff1f2; --state-danger-line:#fecdd3; --state-info:#0369a1; --state-info-soft:#f0f9ff; --state-info-line:#bae6fd; }
+[data-theme="emerald"] { --bg-main:#071c18; --bg-card:#102b24; --bg-input:#0a211b; --text-main:#e9fff5; --text-muted:#a0c9b8; --border-color:#285446; --accent-color:var(--theme-accent-emerald); --surface-raised:#15382e; }
+[data-theme="ocean"] { --bg-main:#071827; --bg-card:#10283b; --bg-input:#0a2032; --text-main:#edf8ff; --text-muted:#9ab8ce; --border-color:#28485f; --accent-color:var(--theme-accent-ocean); --surface-raised:#15334a; }
+[data-theme="sand"] { --bg-main:#211b16; --bg-card:#30271f; --bg-input:#241e18; --text-main:#fff7ed; --text-muted:#c8b8a5; --border-color:#594735; --accent-color:var(--theme-accent-sand); --surface-raised:#3b3025; }
 [data-theme] .app-card { background-color:var(--bg-card); border-color:var(--border-color); }
 [data-theme] .app-input { background-color:var(--bg-input); color:var(--text-main); border-color:var(--border-color); }
 [data-theme] .text-slate-400,[data-theme] .text-slate-500 { color:var(--text-muted) !important; }
@@ -833,7 +846,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 
 
 /* Manzil logo and responsive sign-in. The logo remains on a light plate across themes. */
-[data-theme="turquoise"] { --bg-main:#071f27; --bg-card:#0d3039; --bg-input:#092831; --text-main:#eaffff; --text-muted:#a4cbd0; --border-color:#28545d; --accent-color:#24c4c7; --surface-raised:#123d47; }
+[data-theme="turquoise"] { --bg-main:#071f27; --bg-card:#0d3039; --bg-input:#092831; --text-main:#eaffff; --text-muted:#a4cbd0; --border-color:#28545d; --accent-color:var(--theme-accent-turquoise); --surface-raised:#123d47; }
 [data-theme="turquoise"] .app-card { background-color:var(--bg-card); border-color:var(--border-color); }
 [data-theme="turquoise"] .app-input { background-color:var(--bg-input); color:var(--text-main); border-color:var(--border-color); }
 .theme-preview-turquoise { --preview-accent:#1bb9c2; --preview-card:#0b5260; --preview-muted:#9bd4d4; background:#082a34; }
@@ -2318,17 +2331,17 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .theme-preview i:first-child {
     width: 60%;
     height: .42rem;
-    background: var(--preview-accent, #818cf8);
+    background: var(--preview-accent, var(--theme-accent-dark));
     opacity: var(--opacity-100);
 }
 #settingsModal .theme-preview i:nth-child(2) { width: 85%; }
 #settingsModal .theme-preview i:nth-child(3) { width: 72%; }
-#settingsModal .theme-preview-dark { --preview-bg: #0b1020; --preview-accent: #818cf8; --preview-muted: #4a5878; }
-#settingsModal .theme-preview-light { --preview-bg: #f3f6fc; --preview-accent: #4f46e5; --preview-muted: #c7d2e5; }
-#settingsModal .theme-preview-emerald { --preview-bg: #071c18; --preview-accent: #34d399; --preview-muted: #3d6b5c; }
-#settingsModal .theme-preview-ocean { --preview-bg: #071827; --preview-accent: #38bdf8; --preview-muted: #37617c; }
-#settingsModal .theme-preview-sand { --preview-bg: #211b16; --preview-accent: #e6a85c; --preview-muted: #6b5643; }
-#settingsModal .theme-preview-turquoise { --preview-bg: #082a34; --preview-accent: #24c4c7; --preview-muted: #386a72; }
+#settingsModal .theme-preview-dark { --preview-bg: #0b1020; --preview-accent: var(--theme-accent-dark); --preview-muted: #4a5878; }
+#settingsModal .theme-preview-light { --preview-bg: #f3f6fc; --preview-accent: var(--theme-accent-light); --preview-muted: #c7d2e5; }
+#settingsModal .theme-preview-emerald { --preview-bg: #071c18; --preview-accent: var(--theme-accent-emerald); --preview-muted: #3d6b5c; }
+#settingsModal .theme-preview-ocean { --preview-bg: #071827; --preview-accent: var(--theme-accent-ocean); --preview-muted: #37617c; }
+#settingsModal .theme-preview-sand { --preview-bg: #211b16; --preview-accent: var(--theme-accent-sand); --preview-muted: #6b5643; }
+#settingsModal .theme-preview-turquoise { --preview-bg: #082a34; --preview-accent: var(--theme-accent-turquoise); --preview-muted: #386a72; }
 
 /* ---------- Backup ---------- */
 #settingsModal .settings-backup-grid {
@@ -4100,12 +4113,12 @@ body.owner-mode .owner-theme-control {
     background-image: linear-gradient(90deg, var(--preview-accent, #6366f1), var(--preview-card, #1e293b));
 }
 
-.owner-theme-swatch.theme-preview-dark { --preview-accent:#818cf8; --preview-card:#1e293b; }
-.owner-theme-swatch.theme-preview-light { --preview-accent:#4f46e5; --preview-card:#cbd5e1; }
-.owner-theme-swatch.theme-preview-emerald { --preview-accent:#34d399; --preview-card:#065f46; }
-.owner-theme-swatch.theme-preview-ocean { --preview-accent:#38bdf8; --preview-card:#075985; }
-.owner-theme-swatch.theme-preview-sand { --preview-accent:#e6a85c; --preview-card:#78350f; }
-.owner-theme-swatch.theme-preview-turquoise { --preview-accent:#24c4c7; --preview-card:#0b5260; }
+.owner-theme-swatch.theme-preview-dark { --preview-accent:var(--theme-accent-dark); --preview-card:#1e293b; }
+.owner-theme-swatch.theme-preview-light { --preview-accent:var(--theme-accent-light); --preview-card:#cbd5e1; }
+.owner-theme-swatch.theme-preview-emerald { --preview-accent:var(--theme-accent-emerald); --preview-card:#065f46; }
+.owner-theme-swatch.theme-preview-ocean { --preview-accent:var(--theme-accent-ocean); --preview-card:#075985; }
+.owner-theme-swatch.theme-preview-sand { --preview-accent:var(--theme-accent-sand); --preview-card:#78350f; }
+.owner-theme-swatch.theme-preview-turquoise { --preview-accent:var(--theme-accent-turquoise); --preview-card:#0b5260; }
 
 /* Manager notification bell */
 .manager-notifications-control {
