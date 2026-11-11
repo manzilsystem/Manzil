@@ -307,3 +307,52 @@ test('the six theme accents resolve from their canonical tokens', () => {
         );
     }
 });
+
+test('the print palette resolves from its canonical tokens', () => {
+    const css = read('css/style.css');
+
+    // The print stylesheet always prints on a fixed light "paper" page regardless
+    // of the active theme, so its colors are theme-independent and live in the
+    // :root token layer as one canonical print palette.
+    const printTokens = {
+        bg: '#fff',
+        ink: '#111827',
+        line: '#cbd5e1',
+        muted: '#475569',
+        success: '#047857',
+        danger: '#be123c',
+        info: '#4338ca'
+    };
+    const rootBlock = blocks(css, ':root')[0][1];
+    for (const [name, value] of Object.entries(printTokens)) {
+        const declaration = `--print-${name}: ${value}`;
+        assert.match(rootBlock, new RegExp(declaration.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&')),
+            `:root must declare ${declaration}`);
+        assert.equal(
+            css.split(declaration).length - 1,
+            1,
+            `${declaration} must be declared exactly once`
+        );
+    }
+
+    // The main print block (the one that styles #printableArea) must consume the
+    // tokens and keep no raw literal from the palette.
+    const start = css.indexOf('@media print');
+    const open = css.indexOf('{', start);
+    let depth = 0;
+    let printBlock = '';
+    for (let i = open; i < css.length; i += 1) {
+        if (css[i] === '{') depth += 1;
+        else if (css[i] === '}') {
+            depth -= 1;
+            if (depth === 0) { printBlock = css.slice(open + 1, i); break; }
+        }
+    }
+    assert.ok(printBlock.includes('#printableArea'), 'expected the main print block to style #printableArea');
+    for (const [name, value] of Object.entries(printTokens)) {
+        assert.ok(printBlock.includes(`var(--print-${name})`),
+            `the print block must consume var(--print-${name})`);
+        assert.ok(!printBlock.includes(value),
+            `the print block must not keep the raw ${value} literal`);
+    }
+});
