@@ -1223,9 +1223,9 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     min-height: 5rem;
     padding: var(--space-85) clamp(var(--space-100), 2.4vw, var(--space-175));
     color: #f2fbfa;
-    border-bottom: 1px solid rgba(201, 151, 61, .28);
+    border-bottom: 1px solid color-mix(in srgb, var(--settings-gold) 28%, transparent);
     background:
-        radial-gradient(circle at 12% 0%, rgba(85, 201, 189, .22), transparent 45%),
+        radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--settings-accent-bright) 22%, transparent), transparent 45%),
         linear-gradient(115deg, var(--settings-ink) 0%, var(--settings-ink-2) 55%, var(--settings-ink-3) 100%);
 }
 #settingsModal .settings-topbar::after {
@@ -1359,7 +1359,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     color: #052e2c;
     font-size: var(--font-115);
     background: linear-gradient(140deg, var(--settings-accent-bright), var(--settings-accent));
-    box-shadow: 0 8px 20px rgba(21, 158, 154, .28);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--settings-accent) 28%, transparent);
 }
 #settingsModal .settings-profile-copy {
     display: flex;
@@ -1530,8 +1530,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-125);
     color: #ecfbf9;
     background:
-        radial-gradient(circle at 90% 10%, rgba(85, 201, 189, .28), transparent 42%),
-        radial-gradient(circle at 8% 100%, rgba(201, 151, 61, .22), transparent 46%),
+        radial-gradient(circle at 90% 10%, color-mix(in srgb, var(--settings-accent-bright) 28%, transparent), transparent 42%),
+        radial-gradient(circle at 8% 100%, color-mix(in srgb, var(--settings-gold) 22%, transparent), transparent 46%),
         linear-gradient(120deg, var(--settings-ink-2), var(--settings-ink-3));
     box-shadow: 0 18px 40px rgba(4, 24, 34, .2);
 }
@@ -1656,8 +1656,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     position: relative;
     z-index: var(--z-raised);
 }
-#settingsModal .settings-card[data-tone="teal"] { --card-accent: #159e9a; }
-#settingsModal .settings-card[data-tone="gold"] { --card-accent: #c9973d; }
+#settingsModal .settings-card[data-tone="teal"] { --card-accent: var(--settings-accent); }
+#settingsModal .settings-card[data-tone="gold"] { --card-accent: var(--settings-gold); }
 #settingsModal .settings-card[data-tone="sky"] { --card-accent: #38a8e0; }
 #settingsModal .settings-card[data-tone="violet"] { --card-accent: #8b7cf6; }
 #settingsModal .settings-card[data-tone="emerald"] { --card-accent: var(--settings-emerald); }
@@ -2203,7 +2203,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-85);
 }
 #settingsModal .settings-brand-preview-dark {
-    background: linear-gradient(135deg, #0b2633, #123b50);
+    background: linear-gradient(135deg, var(--settings-ink-2), var(--settings-ink-3));
 }
 #settingsModal .settings-brand-preview-light {
     background: #f2f7f6;
@@ -2380,7 +2380,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-75);
     color: #042d2c;
     background: linear-gradient(120deg, var(--settings-accent-bright), var(--settings-accent));
-    box-shadow: 0 8px 20px rgba(21, 158, 154, .22);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--settings-accent) 22%, transparent);
     font-size: var(--font-72);
     font-weight: var(--weight-900);
 }
@@ -2627,14 +2627,14 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-70);
     color: #042d2c;
     background: linear-gradient(120deg, var(--settings-accent-bright), var(--settings-accent));
-    box-shadow: 0 8px 20px rgba(21, 158, 154, .25);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--settings-accent) 25%, transparent);
     font-size: var(--font-74);
     font-weight: var(--weight-900);
     transition: transform var(--motion-160) var(--ease-standard), box-shadow var(--motion-160) var(--ease-standard);
 }
 #settingsModal .settings-save-button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 12px 26px rgba(21, 158, 154, .3);
+    box-shadow: 0 12px 26px color-mix(in srgb, var(--settings-accent) 30%, transparent);
 }
 
 /* ---------- Light theme polish ---------- */
@@ -2994,8 +2994,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-lg);
     color: #eaf7f4;
     background:
-        radial-gradient(120% 100% at 85% 0%, rgba(85, 201, 189, .22), transparent 55%),
-        linear-gradient(150deg, #0b2633, #123b50 70%, #0d3c40);
+        radial-gradient(120% 100% at 85% 0%, color-mix(in srgb, var(--settings-accent-bright) 22%, transparent), transparent 55%),
+        linear-gradient(150deg, var(--settings-ink-2), var(--settings-ink-3) 70%, #0d3c40);
     box-shadow: 0 18px 38px rgba(2, 20, 35, .26);
 }
 #settingsModal .settings-live-card::after {
@@ -3464,7 +3464,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-phone-card {
     border-color: rgba(15, 59, 58, .4);
-    background: linear-gradient(160deg, #071f27, #0b2c33);
+    background: linear-gradient(160deg, var(--settings-ink), #0b2c33);
 }
 #settingsModal .settings-phone-card .settings-preview-head {
     border-bottom-color: rgba(255, 255, 255, .08);
@@ -3477,8 +3477,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     color: rgba(220, 240, 237, .58);
 }
 #settingsModal .settings-phone-card .settings-preview-icon {
-    color: #55c9bd;
-    background: rgba(85, 201, 189, .12);
+    color: var(--settings-accent-bright);
+    background: color-mix(in srgb, var(--settings-accent-bright) 12%, transparent);
 }
 #settingsModal .settings-phone {
     display: flex;
