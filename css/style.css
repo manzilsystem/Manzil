@@ -1268,6 +1268,13 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
        primary/save buttons). It is theme-invariant and matches the literal it
        replaces, so routing declarations through it changes nothing visually. */
     --settings-ink-on-accent: #042d2c;
+    /* Canonical solid bright ink for text on the dark settings surfaces (the
+       live card heading and the phone-card preview heading). It is the opaque
+       counterpart of the translucent muted-ink bright tier, and it is
+       theme-invariant — the light-theme polish does not repaint the surfaces it
+       sits on — and it matches the literal it replaced, so routing declarations
+       through it changes nothing visually. */
+    --settings-ink-bright: #eaf7f4;
     /* Canonical translucent-white veil scale for the dark settings surfaces
        (close button, hero decorations, live stats, previews and the phone card).
        The suffix is the alpha in hundredths (--settings-veil-8 = .08). The veil
@@ -3160,7 +3167,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     padding: var(--space-100);
     border: 1px solid color-mix(in srgb, var(--settings-accent) 38%, transparent);
     border-radius: var(--radius-lg);
-    color: #eaf7f4;
+    color: var(--settings-ink-bright);
     background:
         radial-gradient(120% 100% at 85% 0%, color-mix(in srgb, var(--settings-accent-bright) 22%, transparent), transparent 55%),
         linear-gradient(150deg, var(--settings-ink-2), var(--settings-ink-3) 70%, #0d3c40);
@@ -3639,7 +3646,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     background: var(--settings-veil-4);
 }
 #settingsModal .settings-phone-card .settings-preview-head b {
-    color: #eaf7f4;
+    color: var(--settings-ink-bright);
 }
 #settingsModal .settings-phone-card .settings-preview-head small {
     color: var(--settings-muted-ink-58);

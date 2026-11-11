@@ -810,3 +810,30 @@ test('the settings validation inks resolve from their canonical tokens', () => {
         'the settings rules must not keep a raw #d97706 / #dc2626 status literal'
     );
 });
+
+test('the settings bright ink resolves from its canonical token', () => {
+    const css = read('css/style.css');
+
+    // The opaque bright ink painted on the dark settings surfaces (the live card
+    // heading and the phone-card preview heading) is declared once in the
+    // #settingsModal token layer.
+    const declaration = '--settings-ink-bright: #eaf7f4;';
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const layer = blocks(css, '#settingsModal')[0];
+    assert.ok(layer, 'expected a #settingsModal token layer');
+    assert.match(layer[1], new RegExp(escape(declaration)),
+        `the settings token layer must declare ${declaration}`);
+    assert.equal(css.split(declaration).length - 1, 1,
+        `${declaration} must be declared exactly once`);
+    assert.ok(css.includes('var(--settings-ink-bright)'),
+        'the settings rules must consume var(--settings-ink-bright)');
+
+    // Strip the settings bright-ink declaration so no raw literal may remain in
+    // the settings rules.
+    const consumers = css.replace(/--settings-ink-bright\s*:[^;]*;/g, '');
+    assert.ok(
+        !/#eaf7f4/.test(consumers),
+        'the settings rules must not keep a raw #eaf7f4 bright-ink literal'
+    );
+});
