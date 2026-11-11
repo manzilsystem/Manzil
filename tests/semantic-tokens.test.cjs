@@ -135,3 +135,43 @@ test('remaining semantic literals are routed to the canonical state tokens', () 
         '.app-input:user-invalid must not keep the raw rgba(251, 113, 133, …) literal'
     );
 });
+
+test('the settings emerald accent resolves from one canonical token', () => {
+    const css = read('css/style.css');
+
+    // The emerald accent shared by the settings surfaces (the emerald card tone
+    // and the connected/"linked" status) must be declared exactly once, inside
+    // the #settingsModal token layer, so every consumer derives from one source.
+    const settingsBlock = blocks(css, '#settingsModal')[0][1];
+    assert.match(
+        settingsBlock,
+        /--settings-emerald:\s*#2ea879;/,
+        '#settingsModal must declare --settings-emerald: #2ea879 as the single source'
+    );
+
+    const definitions = css.match(/--settings-emerald\s*:/g) || [];
+    assert.equal(definitions.length, 1, '--settings-emerald must be defined exactly once');
+
+    // Every emerald consumer must route through the token; a raw #2ea879 or a
+    // rgba(46, 168, 121, …) literal is only allowed in the definition itself.
+    const hexLiterals = css.match(/#2ea879/gi) || [];
+    assert.equal(hexLiterals.length, 1, '#2ea879 must only appear in the --settings-emerald definition');
+    assert.doesNotMatch(
+        css,
+        /rgba\(46,\s*168,\s*121/,
+        'the emerald rgba(46, 168, 121, …) literals must resolve from var(--settings-emerald) via color-mix'
+    );
+
+    for (const selector of [
+        '#settingsModal .settings-card[data-tone="emerald"]',
+        '#settingsModal .settings-owner-stats .is-linked b',
+        '#settingsModal .settings-status'
+    ]) {
+        const rules = blocks(css, selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&'));
+        assert.ok(rules.length, `expected a rule for "${selector}"`);
+        assert.ok(
+            rules.some(rule => /var\(--settings-emerald\)/.test(rule[1])),
+            `"${selector}" must consume var(--settings-emerald) instead of a raw emerald literal`
+        );
+    }
+});
