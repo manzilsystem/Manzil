@@ -83,14 +83,19 @@
        font sizes. The token suffix is the value in hundredths of a rem
        (--font-62 = .62rem). Font size does not vary by theme, so these live only
        in :root, and every token matches the literal it replaced, so routing the
-       declarations through them introduces no visual change. This covers the
-       repeated steps; the rare one-off sizes remain literal for now. */
+       declarations through them introduces no visual change. This covers every
+       rem-based size; the few clamp()/px/em sizes remain literal. */
+    --font-52: .52rem;
+    --font-53: .53rem;
     --font-55: .55rem;
     --font-56: .56rem;
+    --font-57: .57rem;
     --font-58: .58rem;
+    --font-59: .59rem;
     --font-60: .6rem;
     --font-61: .61rem;
     --font-62: .62rem;
+    --font-63: .63rem;
     --font-64: .64rem;
     --font-65: .65rem;
     --font-66: .66rem;
@@ -108,11 +113,23 @@
     --font-85: .85rem;
     --font-86: .86rem;
     --font-90: .9rem;
+    --font-92: .92rem;
     --font-95: .95rem;
     --font-98: .98rem;
     --font-100: 1rem;
+    --font-102: 1.02rem;
+    --font-105: 1.05rem;
+    --font-110: 1.1rem;
+    --font-112: 1.12rem;
     --font-115: 1.15rem;
+    --font-118: 1.18rem;
     --font-120: 1.2rem;
+    --font-125: 1.25rem;
+    --font-135: 1.35rem;
+    --font-140: 1.4rem;
+    --font-145: 1.45rem;
+    --font-150: 1.5rem;
+    --font-175: 1.75rem;
     --bg-main: #090d16;
     --bg-card: rgba(15, 23, 42, .85);
     --bg-input: #020617;
@@ -307,7 +324,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 [data-theme="light"] .report-tone-indigo { --report-tone: #4338ca; --report-tone-soft: #eef2ff; --report-tone-line: #c7d2fe; }
 .report-section-head { display: flex; flex-direction: column; gap: var(--space-85); padding: var(--space-15) var(--space-20) var(--space-none); }
 .report-section-eyebrow { display: inline-flex; align-items: center; gap: var(--space-40); color: var(--accent-color); font-size: var(--font-62); font-weight: var(--weight-800); letter-spacing: var(--tracking-2); }
-.report-section-title { font-size: 1.12rem; font-weight: var(--weight-900); line-height: var(--leading-135); }
+.report-section-title { font-size: var(--font-112); font-weight: var(--weight-900); line-height: var(--leading-135); }
 .report-section-subtitle { max-width: 56ch; margin-top: var(--space-25); color: var(--text-muted); font-size: var(--font-72); line-height: var(--leading-175); }
 .report-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-70); }
 @media (min-width: 640px) { .report-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-80); } }
@@ -349,7 +366,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     display: grid; place-items: center; flex: 0 0 auto; width: 2.6rem; height: 2.6rem;
     border: 1px solid var(--report-tone-line, var(--border-color)); border-radius: var(--radius-85);
     background: var(--report-tone-soft, color-mix(in srgb, var(--bg-input) 70%, transparent));
-    color: var(--report-tone, var(--accent-color)); font-size: 1.05rem;
+    color: var(--report-tone, var(--accent-color)); font-size: var(--font-105);
 }
 .report-nav-copy { display: flex; flex-direction: column; gap: var(--space-15); min-width: 0; }
 .report-nav-copy b { color: inherit; font-size: var(--font-78); font-weight: var(--weight-800); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -567,7 +584,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     background: #111827;
     border-inline-end: 1px solid rgba(148, 163, 184, .14);
 }
-.auth-brand-panel h1 { font-size: 1.75rem; }
+.auth-brand-panel h1 { font-size: var(--font-175); }
 .auth-brand-panel h2 { font-size: var(--font-100); }
 .auth-brand-panel > div:first-child > p { color: #cbd5e1; }
 .auth-trust-note { display: flex; align-items: center; gap: var(--space-50); color: #cbd5e1; font-size: var(--font-72); line-height: var(--leading-160); }
@@ -846,7 +863,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 .auth-owner-help p,.auth-owner-help label,.auth-help-note,.auth-security-note { color:var(--text-muted); }
 .auth-owner-help summary { color:var(--text-main); }
 .auth-whatsapp-button { width:100%; min-height:2.8rem; border:1px solid rgba(16,185,129,.35); border-radius:var(--radius-80); background:rgba(16,185,129,.12); color:#10b981; font-size:var(--font-75); font-weight:var(--weight-900); }
-.auth-help-note,.auth-security-note { font-size:.63rem; line-height:var(--leading-180); }
+.auth-help-note,.auth-security-note { font-size:var(--font-63); line-height:var(--leading-180); }
 .auth-security-note { margin-top:var(--space-100); }
 #managerRecoveryBtn:disabled { opacity:var(--opacity-65); cursor:wait; }
 @media (max-width:700px) {
@@ -856,14 +873,14 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   .auth-brand-head { flex-direction:row; align-items:center; gap:var(--space-85); }
   .auth-logo-frame { width:4.8rem; height:4.8rem; flex:0 0 auto; padding:var(--space-22); border-radius:var(--radius-lg); }
   .auth-brand-overline { font-size:var(--font-61); }
-  .auth-brand-copy h1 { font-size:1.45rem; }
+  .auth-brand-copy h1 { font-size:var(--font-145); }
   .auth-brand-description { margin-top:var(--space-18); font-size:var(--font-67); line-height:var(--leading-150); }
   .auth-brand-benefits,.auth-trust-note { display:none; }
   .auth-brand-footer { display:flex; justify-content:flex-end; }
   .auth-rights { font-size:var(--font-55); line-height:var(--leading-155); text-align:left; }
   .auth-login-panel { order:2; padding:var(--space-100) var(--space-115) var(--space-120); }
   .auth-form-heading { margin-bottom:var(--space-100); }
-  .auth-form-heading h2 { margin-top:var(--space-20); font-size:1.35rem; }
+  .auth-form-heading h2 { margin-top:var(--space-20); font-size:var(--font-135); }
   .auth-login-form { gap:var(--space-80); margin-top:var(--space-100); }
   .auth-field input { min-height:2.9rem; }
   .auth-mode-button { min-height:2.9rem; font-size:var(--font-72); }
@@ -1037,19 +1054,19 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   #pinLockModal .auth-brand-head { flex-direction:row;justify-content:flex-start;gap:var(--space-80);text-align:right; }
   #pinLockModal .auth-logo-frame { width:6.25rem;height:6.25rem;flex:0 0 6.25rem;border-radius:var(--radius-85); }
   #pinLockModal .auth-brand-copy { min-width:0; }
-  #pinLockModal .auth-brand-copy h1 { justify-content:flex-start;font-size:1.5rem; }
+  #pinLockModal .auth-brand-copy h1 { justify-content:flex-start;font-size:var(--font-150); }
   #pinLockModal .auth-brand-copy h1 span { font-size:.62em; }
   #pinLockModal .auth-brand-description { font-size:var(--font-68);line-height:var(--leading-150); }
   #pinLockModal .auth-brand-benefits { display:none; }
   #pinLockModal .auth-brand-footer { display:none; }
   #pinLockModal .auth-login-panel { order:2;padding:var(--space-110) var(--space-115) var(--space-130); }
   #pinLockModal .auth-form-heading { margin-bottom:var(--space-90); }
-  #pinLockModal .auth-form-heading h2 { font-size:1.4rem; }
+  #pinLockModal .auth-form-heading h2 { font-size:var(--font-140); }
   #pinLockModal .auth-login-form { gap:var(--space-80); }
 }
 @media (max-width:360px) {
   #pinLockModal .auth-logo-frame { width:5rem;height:5rem;flex-basis:5rem; }
-  #pinLockModal .auth-brand-copy h1 { font-size:1.25rem; }
+  #pinLockModal .auth-brand-copy h1 { font-size:var(--font-125); }
 }
 
 
@@ -1225,7 +1242,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-brand-copy strong {
     color: #fff;
-    font-size: 1.18rem;
+    font-size: var(--font-118);
     font-weight: var(--weight-900);
     letter-spacing: var(--tracking-1);
 }
@@ -1246,7 +1263,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-topbar-title h3 {
     color: #fff;
-    font-size: 1.02rem;
+    font-size: var(--font-102);
     font-weight: var(--weight-900);
 }
 #settingsModal .settings-topbar-title p {
@@ -1751,7 +1768,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-section-toolbar h4 {
     color: var(--settings-text);
-    font-size: .92rem;
+    font-size: var(--font-92);
     font-weight: var(--weight-900);
 }
 #settingsModal .settings-section-toolbar p {
@@ -1800,7 +1817,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border-radius: var(--radius-85);
     color: var(--settings-accent);
     background: color-mix(in srgb, var(--settings-accent) 14%, transparent);
-    font-size: 1.1rem;
+    font-size: var(--font-110);
 }
 
 /* ---------- Shared form pieces ---------- */
@@ -2713,7 +2730,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
         border-radius: var(--radius-70);
     }
     #settingsModal .settings-brand-copy strong { font-size: var(--font-95); }
-    #settingsModal .settings-brand-copy span { font-size: .52rem; }
+    #settingsModal .settings-brand-copy span { font-size: var(--font-52); }
     #settingsModal .settings-brand-copy small { display: none; }
     #settingsModal .settings-topbar-title h3 { font-size: var(--font-90); }
     #settingsModal .settings-topbar-title p { display: none; }
@@ -2998,7 +3015,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-live-head small {
     display: block;
     color: rgba(220, 240, 237, .62);
-    font-size: .57rem;
+    font-size: var(--font-57);
 }
 #settingsModal .settings-live-name {
     color: #ffffff;
@@ -3051,7 +3068,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-live-list dt {
     color: rgba(220, 240, 237, .62);
-    font-size: .59rem;
+    font-size: var(--font-59);
     font-weight: var(--weight-700);
 }
 #settingsModal .settings-live-list dd {
@@ -3354,7 +3371,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #settingsModal .settings-backup-stats span {
     display: block;
     color: var(--settings-muted);
-    font-size: .53rem;
+    font-size: var(--font-53);
     font-weight: var(--weight-700);
 }
 #settingsModal .settings-backup-stats b {
