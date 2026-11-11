@@ -429,3 +429,94 @@ test('the light settings surface palette resolves from its canonical tokens', ()
             `the light settings polish rules must consume var(${name})`);
     }
 });
+
+test('the theme preview palette resolves from its canonical tokens', () => {
+    const css = read('css/style.css');
+
+    // The six selectable themes each show a miniature preview: a surface with
+    // muted bars in the settings modal, and an accent-to-card-tint gradient in the
+    // owner theme picker. Every one of those colors shares a single palette that
+    // lives once in the :root token layer, so a preview can never drift from the
+    // theme it represents.
+    const themes = ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise'];
+    const tokens = {
+        '--preview-bg-dark': '#0b1020',
+        '--preview-bg-light': '#f3f6fc',
+        '--preview-bg-emerald': '#071c18',
+        '--preview-bg-ocean': '#071827',
+        '--preview-bg-sand': '#211b16',
+        '--preview-bg-turquoise': '#082a34',
+        '--preview-muted-dark': '#4a5878',
+        '--preview-muted-light': '#c7d2e5',
+        '--preview-muted-emerald': '#3d6b5c',
+        '--preview-muted-ocean': '#37617c',
+        '--preview-muted-sand': '#6b5643',
+        '--preview-muted-turquoise': '#386a72',
+        '--preview-card-dark': '#1e293b',
+        '--preview-card-light': '#cbd5e1',
+        '--preview-card-emerald': '#065f46',
+        '--preview-card-ocean': '#075985',
+        '--preview-card-sand': '#78350f',
+        '--preview-card-turquoise': '#0b5260'
+    };
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const rootBlock = blocks(css, ':root')[0][1];
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value}`;
+        assert.match(rootBlock, new RegExp(escape(declaration)),
+            `:root must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+    }
+
+    // Settings previews consume the surface and muted tokens per theme.
+    for (const theme of themes) {
+        const rule = blocks(css, `#settingsModal \\.theme-preview-${theme}`)[0];
+        assert.ok(rule, `expected a settings preview rule for "${theme}"`);
+        assert.ok(
+            new RegExp(`--preview-bg:\\s*var\\(--preview-bg-${theme}\\)`).test(rule[1]),
+            `the ${theme} settings preview must consume var(--preview-bg-${theme})`
+        );
+        assert.ok(
+            new RegExp(`--preview-muted:\\s*var\\(--preview-muted-${theme}\\)`).test(rule[1]),
+            `the ${theme} settings preview must consume var(--preview-muted-${theme})`
+        );
+    }
+
+    // Owner swatches consume the card tint token per theme.
+    for (const theme of themes) {
+        const rule = blocks(css, `\\.owner-theme-swatch\\.theme-preview-${theme}`)[0];
+        assert.ok(rule, `expected an owner swatch rule for "${theme}"`);
+        assert.ok(
+            new RegExp(`--preview-card:\\s*var\\(--preview-card-${theme}\\)`).test(rule[1]),
+            `the ${theme} owner swatch must consume var(--preview-card-${theme})`
+        );
+    }
+
+    // The shared fallbacks reuse the dark entries instead of raw literals.
+    const settingsBase = blocks(css, '#settingsModal \\.theme-preview')[0][1];
+    assert.match(settingsBase, /var\(--preview-bg,\s*var\(--preview-bg-dark\)\)/,
+        'the settings preview base must fall back to var(--preview-bg-dark)');
+    const settingsBars = blocks(css, '#settingsModal \\.theme-preview i')[0][1];
+    assert.match(settingsBars, /var\(--preview-muted,\s*var\(--preview-muted-dark\)\)/,
+        'the settings preview bars must fall back to var(--preview-muted-dark)');
+    const swatchBase = blocks(css, '\\.owner-theme-swatch')
+        .map(rule => rule[1])
+        .find(body => body.includes('background-image'));
+    assert.ok(swatchBase, 'expected an owner swatch base rule carrying the gradient');
+    assert.match(swatchBase, /var\(--preview-card,\s*var\(--preview-card-dark\)\)/,
+        'the owner swatch base must fall back to var(--preview-card-dark)');
+
+    // No raw literal from the palette may survive in the preview rules.
+    const previewRules = [
+        ...themes.map(theme => blocks(css, `#settingsModal \\.theme-preview-${theme}`)[0][0]),
+        ...themes.map(theme => blocks(css, `\\.owner-theme-swatch\\.theme-preview-${theme}`)[0][0]),
+        ...blocks(css, '#settingsModal \\.theme-preview').map(rule => rule[0]),
+        ...blocks(css, '\\.owner-theme-swatch').map(rule => rule[0])
+    ].join('\n');
+    for (const value of new Set(Object.values(tokens))) {
+        assert.ok(!previewRules.includes(value),
+            `the theme preview rules must not keep the raw ${value} literal`);
+    }
+});
