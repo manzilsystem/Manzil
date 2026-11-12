@@ -166,6 +166,7 @@
     --theme-accent-ocean: #38bdf8;
     --theme-accent-sand: #e6a85c;
     --theme-accent-turquoise: #24c4c7;
+    --assistant-ink-on-accent: #241a10;
     /* Canonical theme-preview palette — the single source for the miniature theme
        swatches shown in the settings modal and the owner theme picker. Each of the
        six themes has a preview surface (--preview-bg), a muted bar color
@@ -4110,7 +4111,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     font-weight: var(--weight-600);
 }
 [data-theme="emerald"] .assistant-msg.is-user .assistant-bubble { color: #06251c; }
-[data-theme="sand"] .assistant-msg.is-user .assistant-bubble { color: #241a10; }
+[data-theme="sand"] .assistant-msg.is-user .assistant-bubble { color: var(--assistant-ink-on-accent); }
 .assistant-answer-title { margin-bottom: var(--space-35); font-size: var(--font-80); font-weight: var(--weight-900); color: var(--accent-color); }
 .assistant-answer-subtitle { margin: var(--space-55) var(--space-none) var(--space-25); font-size: var(--font-68); font-weight: var(--weight-800); color: var(--text-muted); }
 .assistant-hello { margin-bottom: var(--space-35); font-size: var(--font-78); line-height: var(--leading-180); }
@@ -4232,7 +4233,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     font-size: var(--font-85);
 }
 [data-theme="emerald"] .assistant-send-button,
-[data-theme="sand"] .assistant-send-button { color: #241a10; }
+[data-theme="sand"] .assistant-send-button { color: var(--assistant-ink-on-accent); }
 .assistant-footnote {
     display: flex;
     align-items: center;
