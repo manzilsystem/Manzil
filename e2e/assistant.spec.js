@@ -37,6 +37,79 @@ async function seedAndOpenAssistant(page) {
     await expect(page.locator('#assistantLog')).toContainText('عم عبده البواب');
 }
 
+async function installAssistantNetworkProbe(page) {
+    await page.evaluate(() => {
+        const calls = [];
+        window.__assistantNetworkProbe = calls;
+        const record = (kind, detail) => calls.push(`${kind}:${String(detail || '')}`);
+
+        const originalFetch = window.fetch;
+        if (typeof originalFetch === 'function') {
+            window.fetch = function (input, init) {
+                record('fetch', typeof input === 'string' ? input : input && input.url);
+                return originalFetch.apply(this, [input, init]);
+            };
+        }
+
+        const originalXhrOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function (method, url) {
+            record('xhr', url);
+            return originalXhrOpen.apply(this, arguments);
+        };
+
+        const originalBeacon = navigator.sendBeacon;
+        if (typeof originalBeacon === 'function') {
+            navigator.sendBeacon = function (url, data) {
+                record('beacon', url);
+                return originalBeacon.call(this, url, data);
+            };
+        }
+
+        const originalWebSocket = window.WebSocket;
+        window.WebSocket = class extends originalWebSocket {
+            constructor(url, protocols) {
+                record('websocket', url);
+                super(url, protocols);
+            }
+        };
+
+        const originalEventSource = window.EventSource;
+        if (typeof originalEventSource === 'function') {
+            window.EventSource = class extends originalEventSource {
+                constructor(url, config) {
+                    record('eventsource', url);
+                    super(url, config);
+                }
+            };
+        }
+
+        const imageSource = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+        if (imageSource && imageSource.set) {
+            Object.defineProperty(HTMLImageElement.prototype, 'src', {
+                get: imageSource.get,
+                set(value) {
+                    record('image', value);
+                    return imageSource.set.call(this, value);
+                }
+            });
+        }
+
+        const originalSetItem = Storage.prototype.setItem;
+        Storage.prototype.setItem = function (key, value) {
+            if (this === window.localStorage) record('localStorage', key);
+            return originalSetItem.call(this, key, value);
+        };
+    });
+}
+
+async function askAssistantQuestion(page, question) {
+    const messages = page.locator('#assistantLog .assistant-msg:not(.is-typing)');
+    const before = await messages.count();
+    await page.locator('#assistantInput').fill(question);
+    await page.locator('#assistantInput').press('Enter');
+    await expect(messages).toHaveCount(before + 2);
+}
+
 test('assistant opens from the launcher and answers local questions', async ({ page }) => {
     await seedAndOpenAssistant(page);
     const botMessages = page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble');
@@ -64,6 +137,21 @@ test('assistant opens from the launcher and answers local questions', async ({ p
     await page.locator('#assistantInput').press('Enter');
     await expect(botMessages.last()).toContainText('إجمالي المصروفات');
     await expect(botMessages.last()).toContainText('نظافة');
+});
+
+test('the manager conversation stays offline and read-only in the real app', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    await installAssistantNetworkProbe(page);
+    const before = await page.evaluate(() => JSON.stringify(state));
+
+    for (const question of ['رصيد الخزنة كام؟', 'ملخص الشهر', 'سجّل دفعة لأحمد', 'احذف مصروف النظافة', 'مين عليه متأخرات؟']) {
+        await askAssistantQuestion(page, question);
+    }
+
+    const probe = await page.evaluate(() => window.__assistantNetworkProbe.slice());
+    expect(probe, 'the assistant must never touch the network').toEqual([]);
+    const after = await page.evaluate(() => JSON.stringify(state));
+    expect(after, 'the assistant must never write state').toBe(before);
 });
 
 test('assistant reset, escape close, and launcher restore behave', async ({ page }) => {
@@ -333,6 +421,21 @@ test.describe('assistant inside the owner portal', () => {
         await page.locator('#assistantInput').press('Enter');
         await expect(botMessages.last()).toContainText('مدير الاختبار');
         await expect(botMessages.last().locator('a[href="tel:01000000000"]')).toHaveCount(1);
+    });
+
+    test('the owner conversation stays offline and read-only in the real app', async ({ page }) => {
+        await seedOwnerAssistant(page);
+        await installAssistantNetworkProbe(page);
+        const before = await page.evaluate(() => JSON.stringify(state));
+
+        for (const question of ['عليّا كام الشهر ده؟', 'إيصالاتي', 'إشعاراتي', 'إعلانات المبنى', 'سجّل دفعة']) {
+            await askAssistantQuestion(page, question);
+        }
+
+        const probe = await page.evaluate(() => window.__assistantNetworkProbe.slice());
+        expect(probe, 'the owner assistant must never touch the network').toEqual([]);
+        const after = await page.evaluate(() => JSON.stringify(state));
+        expect(after, 'the owner assistant must never write state').toBe(before);
     });
 });
 
