@@ -30,26 +30,14 @@ const SHARED_RELEASE_ASSETS = new Set(['js/telemetry.js', 'js/subscription-rates
 const ASSET_DIRS = ['css', 'js', 'icons'];
 const ASSET_FILES = ['manifest.json'];
 
-// Paths excluded from the asset fingerprint because they are listed in .gitignore
-// and therefore absent from CI checkouts. Any file absent on CI would cause a
-// hash mismatch between local builds and the check:index verification step.
-// The committed model-viewer build stays in the digest so a viewer upgrade
-// always rolls the release id along with its lazy-loaded URL.
-const EXCLUDED_PATHS = new Set([
-    'js/vendor/onnxruntime-web.min.js',
-    'js/vendor/onnxruntime-web-LICENSE.txt',
-    'js/vendor/ort-wasm-simd-threaded.mjs',
-    'js/vendor/ort-wasm-simd-threaded.wasm',
-    'js/assistant-voice.js',
-]);
+// The committed model-viewer and onnxruntime builds stay in the asset digest so
+// a runtime upgrade always rolls the release id along with its lazy-loaded URL.
 
 function listFiles(dir, base = dir) {
     if (!fs.existsSync(dir)) return [];
     return fs.readdirSync(dir, { withFileTypes: true })
         .flatMap(entry => {
             const full = path.join(dir, entry.name);
-            const rel = path.relative(root, full).split(path.sep).join('/');
-            if (EXCLUDED_PATHS.has(rel)) return [];
             if (entry.isDirectory()) return listFiles(full, base);
             return [path.relative(base, full).split(path.sep).join('/')];
         })

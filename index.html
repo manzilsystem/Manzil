@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#071f27">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; connect-src 'self' https://musvcrkljccubwbcrtjs.supabase.co wss://musvcrkljccubwbcrtjs.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self'; manifest-src 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; connect-src 'self' https://musvcrkljccubwbcrtjs.supabase.co wss://musvcrkljccubwbcrtjs.supabase.co https://huggingface.co https://*.hf.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self'; manifest-src 'self'">
     <script src="js/sw-register.js?v=aa29152c50"></script>
     <link rel="manifest" href="manifest.json?v=c17eb7e5e2">
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=9751c575fe">
@@ -18,7 +18,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css?v=391dfe9d9e">
+    <link rel="stylesheet" href="css/style.css?v=d53896589f">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -2184,16 +2184,22 @@
             <div id="assistantLog" class="assistant-log" role="log" aria-live="polite" aria-label="محادثة عم عبده البواب" onclick="handleAssistantSuggestion(event)"></div>
             <div id="assistantSuggestions" class="assistant-suggestions" aria-label="أسئلة مقترحة" onclick="handleAssistantSuggestion(event)"></div>
             <form class="assistant-form" onsubmit="sendAssistantMessage(event)">
+                <button type="button" id="assistantVoiceButton" class="assistant-voice-button" onclick="startAssistantVoiceInput()" aria-label="تسجيل سؤال صوتي" title="تسجيل سؤال صوتي" aria-pressed="false" aria-busy="false"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
                 <label for="assistantInput" class="sr-only">اكتب سؤالك لعم عبده</label>
                 <input type="text" id="assistantInput" class="app-input" maxlength="240" autocomplete="off" enterkeyhint="send" placeholder="اسألني عن التحصيل، المتأخرات، الخزنة…">
                 <button type="submit" class="assistant-send-button" aria-label="إرسال السؤال"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
             </form>
-            <p class="assistant-footnote"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> كل الردود محسوبة داخل جهازك من بيانات التطبيق، بدون إنترنت أو خدمات خارجية.</p>
+            <p id="assistantVoiceStatus" class="assistant-voice-status" role="status" hidden></p>
+            <div class="assistant-voice-actions">
+                <button type="button" id="assistantVoiceCancelButton" class="assistant-voice-action" onclick="cancelAssistantVoiceDownload()" hidden>إلغاء التنزيل</button>
+                <button type="button" id="assistantVoiceDeleteButton" class="assistant-voice-action" onclick="deleteAssistantVoiceModel()" hidden>حذف نموذج الصوت من الجهاز</button>
+            </div>
+            <p class="assistant-footnote"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> كل الردود محسوبة داخل جهازك من بيانات التطبيق. الإدخال الصوتي تجريبي واختياري: يُنزّل النموذج مرة واحدة بموافقتك ثم يعمل محليًا، ويُعرض النص للمراجعة قبل الإرسال.</p>
         </div>
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-adc725daab"></script>
+    <script src="js/telemetry.js?v=manzil-dd211623f2"></script>
     <script src="js/state.js?v=6e9bcc8346"></script>
     <script src="js/access.js?v=0e8f36ff5c"></script>
     <script src="js/render.js?v=38a35471ba"></script>
@@ -2208,6 +2214,7 @@
     <script src="js/backup.js?v=6f6d4ebbf1"></script>
     <script src="js/assistant.js?v=eef2e439c5"></script>
     <script src="js/assistant-avatar-3d.js?v=8b346cf60d"></script>
+    <script src="js/assistant-voice.js?v=44b26252ee"></script>
     <script src="js/app.js?v=27a807c306"></script>
 </body>
 </html>

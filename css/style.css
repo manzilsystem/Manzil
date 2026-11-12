@@ -4344,6 +4344,56 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 }
 [data-theme="emerald"] .assistant-send-button,
 [data-theme="sand"] .assistant-send-button { color: var(--assistant-ink-on-accent); }
+.assistant-voice-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: var(--radius-90);
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: var(--font-80);
+    transition: color var(--motion-160) var(--ease-standard), border-color var(--motion-160) var(--ease-standard), background var(--motion-160) var(--ease-standard);
+}
+.assistant-voice-button:hover:not(:disabled) {
+    color: var(--text-main);
+    border-color: color-mix(in srgb, var(--accent-color) 50%, var(--border-color));
+}
+.assistant-voice-button:disabled { opacity: var(--opacity-55); cursor: progress; }
+.assistant-voice-button.is-recording {
+    color: var(--state-danger);
+    border-color: var(--state-danger-line);
+    background: var(--state-danger-soft);
+}
+.assistant-voice-status {
+    padding: var(--space-none) var(--space-90) var(--space-50);
+    color: var(--text-muted);
+    font-size: var(--font-60);
+    line-height: var(--leading-160);
+}
+.assistant-voice-status[hidden] { display: none; }
+.assistant-voice-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-35);
+    padding: var(--space-none) var(--space-90) var(--space-70);
+}
+.assistant-voice-actions:not(:has(button:not([hidden]))) { display: none; }
+.assistant-voice-action {
+    padding: var(--space-35) var(--space-70);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-90);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: var(--font-60);
+}
+.assistant-voice-action:hover {
+    color: var(--text-main);
+    border-color: color-mix(in srgb, var(--accent-color) 50%, var(--border-color));
+}
 .assistant-footnote {
     display: flex;
     align-items: center;
