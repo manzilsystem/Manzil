@@ -653,7 +653,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 .auth-brand-panel h1 { font-size: var(--font-175); }
 .auth-brand-panel h2 { font-size: var(--font-100); }
-.auth-rights a, #appCopyright a { color: #c7d2fe; text-decoration: underline; text-underline-offset: 2px; }
+#appCopyright a { color: #c7d2fe; text-decoration: underline; text-underline-offset: 2px; }
 #appCopyright a { display: inline-flex; align-items: center; min-height: 24px; padding-inline: var(--space-20); }
 .auth-owner-help {
     border-color: color-mix(in srgb, var(--accent-color) 40%, var(--border-color));

@@ -15,3 +15,10 @@ playwright-report/
 # Local verification artifacts
 reports/
 .screenshots/
+
+# Local AI/voice assets (not ready for production — pending android test, licensed corpus and Rig)
+js/vendor/
+js/assistant-voice.js
+icons/assistant-abbah-3d.glb
+docs/assistant-local-ai-evaluation.md
+licenses/
