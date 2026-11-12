@@ -102,6 +102,12 @@ async function installAssistantNetworkProbe(page) {
     });
 }
 
+// The 3D stage fetches its own static viewer/model when the modal opens. Those
+// same-origin assets carry no conversation data, so the chat probe ignores them
+// and still fails on any other network call.
+const AVATAR_ASSETS = ['js/vendor/model-viewer.min.js', 'icons/assistant-abbah-3d-rigged.glb'];
+const withoutAvatarAssets = entries => entries.filter(entry => !AVATAR_ASSETS.some(asset => entry.includes(asset)));
+
 async function askAssistantQuestion(page, question) {
     const messages = page.locator('#assistantLog .assistant-msg:not(.is-typing)');
     const before = await messages.count();
@@ -148,7 +154,7 @@ test('the manager conversation stays offline and read-only in the real app', asy
         await askAssistantQuestion(page, question);
     }
 
-    const probe = await page.evaluate(() => window.__assistantNetworkProbe.slice());
+    const probe = withoutAvatarAssets(await page.evaluate(() => window.__assistantNetworkProbe.slice()));
     expect(probe, 'the assistant must never touch the network').toEqual([]);
     const after = await page.evaluate(() => JSON.stringify(state));
     expect(after, 'the assistant must never write state').toBe(before);
@@ -432,7 +438,7 @@ test.describe('assistant inside the owner portal', () => {
             await askAssistantQuestion(page, question);
         }
 
-        const probe = await page.evaluate(() => window.__assistantNetworkProbe.slice());
+        const probe = withoutAvatarAssets(await page.evaluate(() => window.__assistantNetworkProbe.slice()));
         expect(probe, 'the owner assistant must never touch the network').toEqual([]);
         const after = await page.evaluate(() => JSON.stringify(state));
         expect(after, 'the owner assistant must never write state').toBe(before);
