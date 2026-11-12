@@ -242,6 +242,16 @@
     --indigo-tint-22: rgba(99, 102, 241, .22);
     --indigo-tint-32: rgba(129, 140, 248, .32);
     --indigo-link: #c7d2fe;
+    /* Canonical report primary-action palette — the single source for the emerald
+       "primary" report button (.report-action-primary) and its hover state. The
+       primary report CTA is intentionally theme-invariant (it stays emerald across
+       all six themes), so these live in :root and never remap per theme. Every
+       token matches the literal it replaced exactly, so routing the declarations
+       through them introduces no visual change. */
+    --report-primary-solid: #059669;
+    --report-primary-solid-hover: #10b981;
+    --report-primary-ink: #fff;
+    --report-primary-shadow: rgba(5, 150, 105, .18);
     --radius-lg: 1rem;
     --radius-pill: 999px;
     --radius-circle: 50%;
@@ -571,8 +581,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-action:hover:not(:disabled) { transform: translateY(-1px); }
 .report-action:active:not(:disabled) { transform: none; }
 .report-action:disabled { opacity: var(--opacity-40); cursor: not-allowed; }
-.report-action-primary { border-color: #059669; background: #059669; color: #fff; box-shadow: 0 8px 20px rgba(5, 150, 105, .18); }
-.report-action-primary:hover:not(:disabled) { border-color: #10b981; background: #10b981; }
+.report-action-primary { border-color: var(--report-primary-solid); background: var(--report-primary-solid); color: var(--report-primary-ink); box-shadow: 0 8px 20px var(--report-primary-shadow); }
+.report-action-primary:hover:not(:disabled) { border-color: var(--report-primary-solid-hover); background: var(--report-primary-solid-hover); }
 .report-action-compact { min-height: 2.1rem; padding: var(--space-35) var(--space-65); border-radius: var(--radius-75); font-size: var(--font-65); }
 .report-hint { color: var(--text-muted); font-size: var(--font-62); line-height: var(--leading-170); text-align: center; }
 .arrears-card, .report-surface { overflow: hidden; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--bg-input) 78%, transparent); }
