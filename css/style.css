@@ -1281,6 +1281,11 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
        the surfaces it sits on — and it matches the literal it replaced, so
        routing declarations through it changes nothing visually. */
     --settings-ink-white: #fff;
+    /* Canonical near-white inks for the settings topbar, close control and hero. */
+    --settings-ink-topbar: #f2fbfa;
+    --settings-ink-close: #e8f7f5;
+    --settings-ink-hero: #ecfbf9;
+    --settings-ink-hero-kicker: #bff4ee;
     /* Canonical translucent-white veil scale for the dark settings surfaces
        (close button, hero decorations, live stats, previews and the phone card).
        The suffix is the alpha in hundredths (--settings-veil-8 = .08). The veil
@@ -1406,7 +1411,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     gap: clamp(var(--space-75), 2vw, var(--space-150));
     min-height: 5rem;
     padding: var(--space-85) clamp(var(--space-100), 2.4vw, var(--space-175));
-    color: #f2fbfa;
+    color: var(--settings-ink-topbar);
     border-bottom: 1px solid color-mix(in srgb, var(--settings-gold) 28%, transparent);
     background:
         radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--settings-accent-bright) 22%, transparent), transparent 45%),
@@ -1483,7 +1488,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     height: 2.7rem;
     border: 1px solid var(--settings-veil-18);
     border-radius: var(--radius-90);
-    color: #e8f7f5;
+    color: var(--settings-ink-close);
     background: var(--settings-veil-8);
     transition: background var(--motion-180) var(--ease-standard), border-color var(--motion-180) var(--ease-standard), transform var(--motion-180) var(--ease-standard);
 }
@@ -1712,7 +1717,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     overflow: hidden;
     border: 1px solid color-mix(in srgb, var(--settings-accent) 30%, transparent);
     border-radius: var(--radius-125);
-    color: #ecfbf9;
+    color: var(--settings-ink-hero);
     background:
         radial-gradient(circle at 90% 10%, color-mix(in srgb, var(--settings-accent-bright) 28%, transparent), transparent 42%),
         radial-gradient(circle at 8% 100%, color-mix(in srgb, var(--settings-gold) 22%, transparent), transparent 46%),
@@ -1740,7 +1745,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     padding: var(--space-28) var(--space-60);
     border: 1px solid var(--settings-veil-16);
     border-radius: var(--radius-pill);
-    color: #bff4ee;
+    color: var(--settings-ink-hero-kicker);
     background: var(--settings-veil-8);
     font-size: var(--font-62);
     font-weight: var(--weight-800);
