@@ -1675,3 +1675,56 @@ test('the generated receipt document palette resolves from canonical tokens', ()
     assert.equal((rootBlock.match(/#[0-9a-fA-F]{3,8}\b/g) || []).length, 13,
         'all 13 receipt document colors must be declared once in the token block');
 });
+
+test('the receipt image canvas palette resolves from canonical tokens', () => {
+    // Part 65: drawReceiptImage in js/access.js paints the exported PNG receipt with
+    // raw hex literals. A canvas cannot read the app CSS custom properties, so the
+    // palette is now declared once as a frozen token map and referenced from every
+    // draw call. Each value matches the literal it replaced, so the PNG is unchanged.
+    const source = read('js/access.js');
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const paletteMatch = source.match(/const RECEIPT_IMAGE_PALETTE = Object\.freeze\(\{([\s\S]*?)\}\);/);
+    assert.ok(paletteMatch, 'expected a frozen RECEIPT_IMAGE_PALETTE token map');
+    const palette = paletteMatch[1];
+
+    const tokens = {
+        surface: '#ffffff',
+        accentInk: '#ffffff',
+        ink: '#0f172a',
+        rule: '#334155',
+        muted: '#475569',
+        faint: '#64748b',
+        source: '#94a3b8',
+        hairline: '#e2e8f0',
+        line: '#cbd5e1',
+        accent: '#4f46e5',
+        headerSurface: '#047857',
+        headerMutedInk: '#d1fae5',
+        headSurface: '#f8fafc',
+        totalSurface: '#ecfdf5',
+        totalInk: '#065f46'
+    };
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: '${value}'`;
+        assert.match(palette, new RegExp(escape(declaration)),
+            `the receipt image palette must declare ${declaration}`);
+        assert.equal(palette.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+    }
+
+    // The canvas drawing must reference the canonical tokens, not raw colors.
+    const drawMatch = source.match(/function drawReceiptImage\(plan\) \{([\s\S]*?)\n\}\n/);
+    assert.ok(drawMatch, 'expected the drawReceiptImage function body');
+    const body = drawMatch[1];
+    assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(body),
+        'the receipt image canvas must not keep a raw hex color');
+    for (const name of Object.keys(tokens)) {
+        assert.ok(body.includes(`RECEIPT_IMAGE_PALETTE.${name}`),
+            `the receipt image canvas must consume RECEIPT_IMAGE_PALETTE.${name}`);
+    }
+
+    // The raw literals only survive inside the canonical palette map.
+    assert.equal((palette.match(/#[0-9a-fA-F]{3,8}\b/g) || []).length, 15,
+        'all 15 receipt image colors must be declared once in the palette map');
+});
