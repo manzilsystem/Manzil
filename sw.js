@@ -1,11 +1,11 @@
-const CACHE_NAME = 'manzil-adc725daab';
+const CACHE_NAME = 'manzil-dd211623f2';
 const APP_CACHE_PREFIX = 'manzil-';
 const APP_SHELL = [
     './',
     './index.html',
-    './css/style.css?v=391dfe9d9e',
+    './css/style.css?v=d53896589f',
     './js/sw-register.js?v=aa29152c50',
-    './js/telemetry.js?v=manzil-adc725daab',
+    './js/telemetry.js?v=manzil-dd211623f2',
     './js/state.js?v=6e9bcc8346',
     './js/access.js?v=0e8f36ff5c',
     './js/render.js?v=38a35471ba',
@@ -15,12 +15,13 @@ const APP_SHELL = [
     './js/settings.js?v=c274fd024a',
     './js/supabase.js?v=8449ca5367',
     './js/cashbox.js?v=3ca9f6a1d8',
-    './js/subscription-rates.js?v=manzil-adc725daab',
+    './js/subscription-rates.js?v=manzil-dd211623f2',
     './js/app.js?v=27a807c306',
     './js/monthly-close.js?v=bab5545096',
     './js/backup.js?v=6f6d4ebbf1',
     './js/assistant.js?v=eef2e439c5',
     './js/assistant-avatar-3d.js?v=8b346cf60d',
+    './js/assistant-voice.js?v=44b26252ee',
     './manifest.json?v=c17eb7e5e2',
     './icons/manzil-logo.png?v=9751c575fe',
     './icons/manzil-full-1.png?v=be5105a674',
@@ -78,6 +79,28 @@ self.addEventListener('fetch', event => {
                 }
                 return response;
             }).catch(() => caches.match(request).then(cached => cached || caches.match('./index.html')))
+        );
+        return;
+    }
+
+    // GitHub Pages may answer .mjs with application/octet-stream, and browsers
+    // refuse to execute an ES module with a non-JavaScript MIME type. The
+    // speech runtime's WASM loader is that kind of module, so normalize it
+    // here and cache the normalized copy.
+    if (url.pathname.endsWith('.mjs')) {
+        event.respondWith(
+            fetch(request).then(response => {
+                if (!response.ok) return response;
+                return response.blob().then(body => {
+                    const normalized = new Response(body, {
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers: { 'Content-Type': 'text/javascript; charset=utf-8' }
+                    });
+                    caches.open(CACHE_NAME).then(cache => cache.put(request, normalized.clone()));
+                    return normalized;
+                });
+            }).catch(() => caches.match(request))
         );
         return;
     }

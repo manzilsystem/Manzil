@@ -46,9 +46,14 @@ test('CSP allows only the CDNs and Supabase origins the app actually uses', () =
 });
 
 test('CSP never falls back to a wildcard for scripts, styles or connections', () => {
-    for (const name of ['script-src', 'style-src', 'connect-src', 'default-src']) {
+    for (const name of ['script-src', 'style-src', 'default-src']) {
         assert.ok(!tokens(name).some(token => token.includes('*')), `${name} must not use a wildcard`);
     }
+    // The speech model is downloaded once from Hugging Face, whose resolve link
+    // redirects to a region-specific download host. That hop cannot be pinned,
+    // so its domain suffix is the only wildcard the policy carries.
+    const wildcards = tokens('connect-src').filter(token => token.includes('*'));
+    assert.deepEqual(wildcards, ['https://*.hf.co']);
 });
 
 test('every external stylesheet and script host is permitted by the CSP', () => {

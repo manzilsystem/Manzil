@@ -1310,10 +1310,16 @@
             <div id="assistantLog" class="assistant-log" role="log" aria-live="polite" aria-label="محادثة عم عبده البواب" onclick="handleAssistantSuggestion(event)"></div>
             <div id="assistantSuggestions" class="assistant-suggestions" aria-label="أسئلة مقترحة" onclick="handleAssistantSuggestion(event)"></div>
             <form class="assistant-form" onsubmit="sendAssistantMessage(event)">
+                <button type="button" id="assistantVoiceButton" class="assistant-voice-button" onclick="startAssistantVoiceInput()" aria-label="تسجيل سؤال صوتي" title="تسجيل سؤال صوتي" aria-pressed="false" aria-busy="false"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
                 <label for="assistantInput" class="sr-only">اكتب سؤالك لعم عبده</label>
                 <input type="text" id="assistantInput" class="app-input" maxlength="240" autocomplete="off" enterkeyhint="send" placeholder="اسألني عن التحصيل، المتأخرات، الخزنة…">
                 <button type="submit" class="assistant-send-button" aria-label="إرسال السؤال"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
             </form>
-            <p class="assistant-footnote"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> كل الردود محسوبة داخل جهازك من بيانات التطبيق، بدون إنترنت أو خدمات خارجية.</p>
+            <p id="assistantVoiceStatus" class="assistant-voice-status" role="status" hidden></p>
+            <div class="assistant-voice-actions">
+                <button type="button" id="assistantVoiceCancelButton" class="assistant-voice-action" onclick="cancelAssistantVoiceDownload()" hidden>إلغاء التنزيل</button>
+                <button type="button" id="assistantVoiceDeleteButton" class="assistant-voice-action" onclick="deleteAssistantVoiceModel()" hidden>حذف نموذج الصوت من الجهاز</button>
+            </div>
+            <p class="assistant-footnote"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> كل الردود محسوبة داخل جهازك من بيانات التطبيق. الإدخال الصوتي تجريبي واختياري: يُنزّل النموذج مرة واحدة بموافقتك ثم يعمل محليًا، ويُعرض النص للمراجعة قبل الإرسال.</p>
         </div>
     </div>

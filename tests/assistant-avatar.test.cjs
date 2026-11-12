@@ -15,30 +15,32 @@ const sw = read('sw.js');
 const build = read('scripts/build-index.mjs');
 const ignore = read('.gitignore');
 
-test('the 3D viewer and its license are committed while voice assets stay local', () => {
+test('the 3D viewer, the speech runtime and their licenses are committed', () => {
     const viewerPath = path.join(root, 'js', 'vendor', 'model-viewer.min.js');
-    const licensePath = path.join(root, 'js', 'vendor', 'model-viewer-LICENSE.txt');
     assert.ok(fs.statSync(viewerPath).size > 500_000, 'the vendored viewer must be the full build');
     assert.match(read('js/vendor/model-viewer.min.js'), /customElements\.define\("model-viewer"/);
     assert.match(read('js/vendor/model-viewer-LICENSE.txt'), /Apache License/);
     assert.match(ignore, /^js\/vendor\/\*$/m);
     assert.match(ignore, /^!js\/vendor\/model-viewer\.min\.js$/m);
     assert.match(ignore, /^!js\/vendor\/model-viewer-LICENSE\.txt$/m);
-    assert.match(ignore, /^js\/assistant-voice\.js$/m);
+    for (const asset of [
+        'onnxruntime-web.min.js',
+        'onnxruntime-web-LICENSE.txt',
+        'ort-wasm-simd-threaded.mjs',
+        'ort-wasm-simd-threaded.wasm',
+        'egyptian-arabic-wav2vec2-LICENSE.txt'
+    ]) {
+        assert.match(ignore, new RegExp(`^!js/vendor/${asset.replace(/\./g, '\\.')}$`, 'm'), `${asset} must be committed`);
+    }
+    assert.ok(!ignore.match(/^js\/assistant-voice\.js$/m), 'the voice module must be committed');
+    assert.match(ignore, /^docs\/assistant-local-ai-evaluation\.md$/m, 'model weights and evaluations stay local');
     assert.ok(!ignore.match(/^js\/vendor\/$/m), 'the whole vendor directory must not be ignored anymore');
 });
 
-test('the committed viewer participates in the release fingerprint', () => {
+test('every committed runtime participates in the release fingerprint', () => {
     assert.ok(!build.includes("'js/vendor',"), 'the vendor directory must not be skipped as a whole');
-    for (const asset of [
-        'js/vendor/onnxruntime-web.min.js',
-        'js/vendor/onnxruntime-web-LICENSE.txt',
-        'js/vendor/ort-wasm-simd-threaded.mjs',
-        'js/vendor/ort-wasm-simd-threaded.wasm'
-    ]) {
-        assert.ok(build.includes(`'${asset}'`), `${asset} must stay excluded from CI fingerprints`);
-    }
-    assert.ok(!build.includes('onnxruntime-web.min.js?v='), 'excluded assets must not be stamped');
+    assert.ok(!build.includes('EXCLUDED_PATHS'), 'no committed asset may be dropped from the digest');
+    assert.ok(!build.includes('onnxruntime-web.min.js?v='), 'the runtime URL must stay lazy, not stamped into the shell');
 });
 
 test('the avatar module is valid JavaScript and never reaches a remote origin', () => {

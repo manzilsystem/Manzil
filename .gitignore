@@ -16,11 +16,15 @@ playwright-report/
 reports/
 .screenshots/
 
-# Local AI/voice assets (not ready for production — pending android test and licensed corpus)
+# Local AI/voice assets: the runtime ships, the weights are downloaded on consent
 js/vendor/*
-# The 3D viewer is shipped with the app so the doorman works offline-free of CDNs.
+# The 3D viewer and the local speech runtime ship with the app so neither needs a CDN.
 !js/vendor/model-viewer.min.js
 !js/vendor/model-viewer-LICENSE.txt
-js/assistant-voice.js
+!js/vendor/onnxruntime-web.min.js
+!js/vendor/onnxruntime-web-LICENSE.txt
+!js/vendor/ort-wasm-simd-threaded.mjs
+!js/vendor/ort-wasm-simd-threaded.wasm
+!js/vendor/egyptian-arabic-wav2vec2-LICENSE.txt
 docs/assistant-local-ai-evaluation.md
 licenses/
