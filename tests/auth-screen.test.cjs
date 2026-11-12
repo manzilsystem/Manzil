@@ -52,6 +52,7 @@ test('sign-in copy no longer carries superseded fallback rules', () => {
     assert.doesNotMatch(css, /\.auth-brand-panel > div:first-child > p\s*\{/);
     assert.doesNotMatch(css, /--auth-ink-secondary\s*:/);
     assert.doesNotMatch(css, /\.auth-trust-note i\s*\{\s*color:\s*#a5b4fc\s*;\s*\}/);
+    assert.doesNotMatch(css, /\.auth-rights\s*\{\s*color:\s*#94a3b8\s*;\s*\}/);
     assert.match(css, /#pinLockModal \.auth-trust-note i\s*\{\s*color:\s*#27c2cb\s*;\s*\}/);
 
     const trustNoteRules = [...css.matchAll(/(?:^|\n)\.auth-trust-note\s*\{([^}]*)\}/g)];
@@ -59,6 +60,8 @@ test('sign-in copy no longer carries superseded fallback rules', () => {
     assert.match(trustNoteRules[0][1], /line-height:\s*var\(--leading-170\)/);
     assert.match(css, /#pinLockModal \.auth-brand-description \{ color:var\(--auth-ink-soft\);/);
     assert.match(css, /#pinLockModal \.auth-trust-note \{ color:var\(--auth-ink-soft\);/);
+    assert.match(css, /\.auth-rights \{ color:var\(--text-muted\); font-size:var\(--font-62\); line-height:var\(--leading-180\); \}/);
+    assert.match(css, /#pinLockModal \.auth-rights \{ color:var\(--auth-ink-dim\); \}/);
     assert.match(css, /@media \(max-width:700px\)[\s\S]*?\.auth-brand-benefits,\.auth-trust-note \{ display:none/);
 });
 
