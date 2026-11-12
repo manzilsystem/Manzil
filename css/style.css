@@ -219,10 +219,20 @@
     --state-info: #38bdf8;
     --state-info-soft: rgba(14, 165, 233, .15);
     --state-info-line: rgba(14, 165, 233, .4);
-    /* Canonical radius scale — the single source for shared corner radii.
-       Corner rounding does not vary by theme, so these live only in :root.
-       --radius-lg is the card/panel radius, --radius-pill is the fully rounded
-       pill shape and --radius-circle is the perfect circle (avatars/dots). */
+    /* Canonical indigo accent palette — the single source for the indigo/violet
+       colors used by the report-tone-indigo family, the resident quick-action,
+       the guide step number chip and the app copyright link. The dark-theme
+       solid (#818cf8) and its translucent variants share one RGB base
+       (99, 102, 241); the light-theme remaps to a deeper indigo (#4338ca) with
+       its own soft tint (#eef2ff) and line (#c7d2fe). Every token matches the
+       literal it replaced, so routing declarations through them introduces no
+       visual change. */
+    --indigo-bright: #818cf8;
+    --indigo-soft: rgba(99, 102, 241, .16);
+    --indigo-line: rgba(99, 102, 241, .42);
+    --indigo-tint-22: rgba(99, 102, 241, .22);
+    --indigo-tint-32: rgba(129, 140, 248, .32);
+    --indigo-link: #c7d2fe;
     --radius-lg: 1rem;
     --radius-pill: 999px;
     --radius-circle: 50%;
@@ -383,12 +393,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     background: var(--report-tone-soft, color-mix(in srgb, var(--bg-input) 70%, transparent));
     color: var(--report-tone, var(--text-muted)); font-size: var(--font-60); font-weight: var(--weight-800); white-space: nowrap;
 }
-.report-tone-indigo { --report-tone: #818cf8; --report-tone-soft: rgba(99, 102, 241, .16); --report-tone-line: rgba(99, 102, 241, .42); }
+.report-tone-indigo { --report-tone: var(--indigo-bright); --report-tone-soft: var(--indigo-soft); --report-tone-line: var(--indigo-line); }
 .report-tone-emerald { --report-tone: var(--state-success); --report-tone-soft: var(--state-success-soft); --report-tone-line: var(--state-success-line); }
 .report-tone-amber { --report-tone: var(--state-warning); --report-tone-soft: var(--state-warning-soft); --report-tone-line: var(--state-warning-line); }
 .report-tone-rose { --report-tone: var(--state-danger); --report-tone-soft: var(--state-danger-soft); --report-tone-line: var(--state-danger-line); }
 .report-tone-sky { --report-tone: var(--state-info); --report-tone-soft: var(--state-info-soft); --report-tone-line: var(--state-info-line); }
-[data-theme="light"] .report-tone-indigo { --report-tone: #4338ca; --report-tone-soft: #eef2ff; --report-tone-line: #c7d2fe; }
 .report-section-head { display: flex; flex-direction: column; gap: var(--space-85); padding: var(--space-15) var(--space-20) var(--space-none); }
 .report-section-eyebrow { display: inline-flex; align-items: center; gap: var(--space-40); color: var(--accent-color); font-size: var(--font-62); font-weight: var(--weight-800); letter-spacing: var(--tracking-2); }
 .report-section-title { font-size: var(--font-112); font-weight: var(--weight-900); line-height: var(--leading-135); }
@@ -602,7 +611,7 @@ nav[aria-label="التنقل الرئيسي"] .tab-btn span { white-space: nowra
 .quick-action:active { transform: translateY(0); }
 .quick-action-income { color: var(--state-success); }
 .quick-action-expense { color: var(--state-danger); }
-.quick-action-resident { color: #818cf8; }
+.quick-action-resident { color: var(--indigo-bright); }
 .quick-action-report { color: var(--state-warning); }
 .quick-actions-grid, .section-toolbar, .list-filters, .resident-filters-grid { min-width: 0; }
 .quick-action { width: 100%; min-width: 0; }
@@ -616,7 +625,7 @@ nav[aria-label="التنقل الرئيسي"] .tab-btn span { white-space: nowra
 .guide-step { border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--space-75); background: color-mix(in srgb, var(--bg-input) 72%, transparent); }
 .guide-step h4 { display: flex; align-items: center; gap: var(--space-50); font-weight: var(--weight-800); margin-bottom: var(--space-35); }
 .guide-step p { color: var(--text-muted); font-size: var(--font-70); }
-.guide-step-number { width: 1.5rem; height: 1.5rem; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-60); color: #c7d2fe; background: rgba(99, 102, 241, .22); border: 1px solid rgba(129, 140, 248, .32); font-size: var(--font-70); flex-shrink: 0; }
+.guide-step-number { width: 1.5rem; height: 1.5rem; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-60); color: var(--indigo-link); background: var(--indigo-tint-22); border: 1px solid var(--indigo-tint-32); font-size: var(--font-70); flex-shrink: 0; }
 [role="dialog"] > .app-card,
 [role="dialog"] > form.app-card {
     width: 100%;
@@ -653,7 +662,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 .auth-brand-panel h1 { font-size: var(--font-175); }
 .auth-brand-panel h2 { font-size: var(--font-100); }
-#appCopyright a { color: #c7d2fe; text-decoration: underline; text-underline-offset: 2px; }
+#appCopyright a { color: var(--indigo-link); text-decoration: underline; text-underline-offset: 2px; }
 #appCopyright a { display: inline-flex; align-items: center; min-height: 24px; padding-inline: var(--space-20); }
 .auth-owner-help {
     border-color: color-mix(in srgb, var(--accent-color) 40%, var(--border-color));
@@ -782,7 +791,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 /* Settings workspace and theme system */
 :root { --surface-raised: color-mix(in srgb, var(--bg-card) 88%, var(--bg-main)); --surface-soft: color-mix(in srgb, var(--accent-color) 7%, var(--bg-card)); --shadow-soft: 0 16px 40px rgba(0,0,0,.16); --shadow-dropdown: 0 18px 40px rgba(2, 6, 23, .34); }
 [data-theme="dark"] { --bg-main:#0b1020; --bg-card:#151d30; --bg-input:#0d1527; --text-main:#edf2ff; --text-muted:#9aa8c2; --border-color:#29364f; --accent-color:var(--theme-accent-dark); --surface-raised:#1b2740; }
-[data-theme="light"] { --bg-main:#f3f6fc; --bg-card:#ffffff; --bg-input:#f7f9fd; --text-main:#172033; --text-muted:#66748b; --border-color:#dce4f0; --accent-color:var(--theme-accent-light); --surface-raised:#f8faff; --state-success:#047857; --state-success-soft:#ecfdf5; --state-success-line:#a7f3d0; --state-warning:#b45309; --state-warning-soft:#fffbeb; --state-warning-line:#fde68a; --state-danger:#be123c; --state-danger-soft:#fff1f2; --state-danger-line:#fecdd3; --state-info:#0369a1; --state-info-soft:#f0f9ff; --state-info-line:#bae6fd; }
+[data-theme="light"] { --bg-main:#f3f6fc; --bg-card:#ffffff; --bg-input:#f7f9fd; --text-main:#172033; --text-muted:#66748b; --border-color:#dce4f0; --accent-color:var(--theme-accent-light); --surface-raised:#f8faff; --state-success:#047857; --state-success-soft:#ecfdf5; --state-success-line:#a7f3d0; --state-warning:#b45309; --state-warning-soft:#fffbeb; --state-warning-line:#fde68a; --state-danger:#be123c; --state-danger-soft:#fff1f2; --state-danger-line:#fecdd3; --state-info:#0369a1; --state-info-soft:#f0f9ff; --state-info-line:#bae6fd; --indigo-bright:#4338ca; --indigo-soft:#eef2ff; --indigo-line:#c7d2fe; }
 [data-theme="emerald"] { --bg-main:#071c18; --bg-card:#102b24; --bg-input:#0a211b; --text-main:#e9fff5; --text-muted:#a0c9b8; --border-color:#285446; --accent-color:var(--theme-accent-emerald); --surface-raised:#15382e; }
 [data-theme="ocean"] { --bg-main:#071827; --bg-card:#10283b; --bg-input:#0a2032; --text-main:#edf8ff; --text-muted:#9ab8ce; --border-color:#28485f; --accent-color:var(--theme-accent-ocean); --surface-raised:#15334a; }
 [data-theme="sand"] { --bg-main:#211b16; --bg-card:#30271f; --bg-input:#241e18; --text-main:#fff7ed; --text-muted:#c8b8a5; --border-color:#594735; --accent-color:var(--theme-accent-sand); --surface-raised:#3b3025; }

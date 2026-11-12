@@ -98,11 +98,11 @@ test('auth-rights link style is separated from appCopyright link and both resolv
         'the combined ".auth-rights a, #appCopyright a" rule must have been split'
     );
 
-    // 2. #appCopyright a still carries its color in its own rule.
+    // 2. #appCopyright a carries its color via the canonical indigo-link token (not a raw literal).
     assert.match(
         css,
-        /#appCopyright a \{ color: #c7d2fe;/,
-        '#appCopyright a must still declare color: #c7d2fe in its own rule'
+        /#appCopyright a \{ color: var\(--indigo-link\);/,
+        '#appCopyright a must declare color: var(--indigo-link) in its own rule'
     );
 
     // 3. #appCopyright a layout rule is preserved.

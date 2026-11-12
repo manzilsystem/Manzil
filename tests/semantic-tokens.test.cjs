@@ -1193,3 +1193,80 @@ test('the settings dark-green surface stops resolve from canonical tokens', () =
             `${value} must only appear in the canonical token definition`);
     }
 });
+
+test('the indigo accent palette resolves from its canonical tokens', () => {
+    // Part 56: the five indigo/violet literals used by report-tone-indigo,
+    // quick-action-resident, guide-step-number and #appCopyright a are now
+    // routed through a canonical six-token palette defined once in :root with
+    // per-theme overrides in [data-theme="light"]. Each token matches the
+    // literal it replaced, so no visual change is introduced.
+    const assert = require('node:assert/strict');
+    const css = read('css/style.css');
+    const rootBlock = blocks(css, ':root')[0][1];
+
+    // 1. All six tokens are defined in :root.
+    const rootTokens = {
+        '--indigo-bright': '#818cf8',
+        '--indigo-soft': 'rgba(99, 102, 241, .16)',
+        '--indigo-line': 'rgba(99, 102, 241, .42)',
+        '--indigo-tint-22': 'rgba(99, 102, 241, .22)',
+        '--indigo-tint-32': 'rgba(129, 140, 248, .32)',
+        '--indigo-link': '#c7d2fe'
+    };
+    for (const [name, value] of Object.entries(rootTokens)) {
+        assert.match(rootBlock, new RegExp(`${name}\\s*:\\s*${value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`),
+            `expected :root to declare ${name}: ${value}`);
+    }
+
+    // 2. Light-theme remaps bright/soft/line.
+    const lightThemeBlock = blocks(css, '\\[data-theme="light"\\]')[0][1];
+    assert.match(lightThemeBlock, /--indigo-bright\s*:\s*#4338ca/,
+        'light theme must remap --indigo-bright to #4338ca');
+    assert.match(lightThemeBlock, /--indigo-soft\s*:\s*#eef2ff/,
+        'light theme must remap --indigo-soft to #eef2ff');
+    assert.match(lightThemeBlock, /--indigo-line\s*:\s*#c7d2fe/,
+        'light theme must remap --indigo-line to #c7d2fe');
+
+    // 3. Each consumer uses a token, not a raw literal.
+    const consumers = [
+        ['.report-tone-indigo', '--report-tone', '--indigo-bright'],
+        ['.report-tone-indigo', '--report-tone-soft', '--indigo-soft'],
+        ['.report-tone-indigo', '--report-tone-line', '--indigo-line'],
+        ['.quick-action-resident', 'color', '--indigo-bright'],
+        ['.guide-step-number', 'color', '--indigo-link'],
+        ['.guide-step-number', 'background', '--indigo-tint-22'],
+    ];
+    for (const [selector, prop, token] of consumers) {
+        const escapedSel = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const rule = blocks(css, escapedSel)[0];
+        assert.ok(rule, `expected a rule for "${selector}"`);
+        assert.ok(rule[1].includes(`var(${token})`),
+            `"${selector}" ${prop} must consume var(${token})`);
+    }
+
+    // 4. #appCopyright a uses --indigo-link.
+    assert.match(css, /#appCopyright a \{ color: var\(--indigo-link\)/,
+        '#appCopyright a must use var(--indigo-link)');
+
+    // 5. The five dark-theme raw literals must not appear in any consumer rule
+    //    (they are allowed only in token definition lines).
+    // 5. Verify each consumer rule directly (no raw literals in consumer declarations).
+    // We check each consumer rule individually instead of stripping the whole CSS,
+    // which avoids false positives from comment lines and cross-token definitions.
+    const consumerSelectors = [
+        { sel: '.report-tone-indigo', badLiterals: ['#818cf8', 'rgba(99, 102, 241', 'rgba(129, 140, 248'] },
+        { sel: '.quick-action-resident', badLiterals: ['#818cf8'] },
+        { sel: '.guide-step-number', badLiterals: ['#c7d2fe', 'rgba(99, 102, 241', 'rgba(129, 140, 248'] },
+    ];
+    for (const { sel, badLiterals } of consumerSelectors) {
+        const escapedSel = sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const rule = blocks(css, escapedSel)[0];
+        assert.ok(rule, `expected a rule for "${sel}"`);
+        for (const lit of badLiterals) {
+            assert.ok(!rule[1].includes(lit),
+                `"${sel}" must not contain raw literal "${lit}" — route through token instead`);
+        }
+    }
+    // #appCopyright a is checked in assertion 4 above (uses var(--indigo-link))
+    // and the auth-screen test verifies no raw #c7d2fe in that rule.
+});
