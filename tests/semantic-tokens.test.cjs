@@ -1016,3 +1016,38 @@ test('the settings light-ink palette resolves from canonical tokens', () => {
             `${value} must only appear in the canonical token definition`);
     }
 });
+
+test('the settings emerald icon inks resolve from canonical tokens', () => {
+    const css = read('css/style.css');
+    const tokens = {
+        '--settings-ink-profile-avatar': '#052e2c',
+        '--settings-ink-theme-check': '#032a29'
+    };
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const layer = blocks(css, '#settingsModal')[0];
+    assert.ok(layer, 'expected a #settingsModal token layer');
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(layer[1], new RegExp(escape(declaration)),
+            `the settings token layer must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+    }
+
+    for (const [selector, token] of [
+        ['#settingsModal .settings-profile-avatar', '--settings-ink-profile-avatar'],
+        ['#settingsModal .theme-option.active::after', '--settings-ink-theme-check']
+    ]) {
+        const rule = blocks(css, selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&'))[0];
+        assert.ok(rule, `expected a rule for "${selector}"`);
+        assert.match(rule[1], new RegExp(`color:\\s*var\\(${escape(token)}\\)`),
+            `"${selector}" must consume var(${token})`);
+    }
+
+    for (const value of Object.values(tokens)) {
+        const found = css.match(new RegExp(escape(value), 'g')) || [];
+        assert.equal(found.length, 1,
+            `${value} must only appear in the canonical token definition`);
+    }
+});
