@@ -51,6 +51,8 @@ test('the redesigned sign-in shell collapses and prioritizes the form on mobile'
 test('sign-in copy no longer carries superseded fallback rules', () => {
     assert.doesNotMatch(css, /\.auth-brand-panel > div:first-child > p\s*\{/);
     assert.doesNotMatch(css, /--auth-ink-secondary\s*:/);
+    assert.doesNotMatch(css, /\.auth-trust-note i\s*\{\s*color:\s*#a5b4fc\s*;\s*\}/);
+    assert.match(css, /#pinLockModal \.auth-trust-note i\s*\{\s*color:\s*#27c2cb\s*;\s*\}/);
 
     const trustNoteRules = [...css.matchAll(/(?:^|\n)\.auth-trust-note\s*\{([^}]*)\}/g)];
     assert.equal(trustNoteRules.length, 1, 'expected only the current trust note base rule');
