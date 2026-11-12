@@ -30,11 +30,22 @@ const SHARED_RELEASE_ASSETS = new Set(['js/telemetry.js', 'js/subscription-rates
 const ASSET_DIRS = ['css', 'js', 'icons'];
 const ASSET_FILES = ['manifest.json'];
 
+// Paths excluded from the asset fingerprint because they are listed in .gitignore
+// and therefore absent from CI checkouts. Any file absent on CI would cause a
+// hash mismatch between local builds and the check:index verification step.
+const EXCLUDED_PATHS = new Set([
+    'js/vendor',
+    'js/assistant-voice.js',
+    'icons/assistant-abbah-3d.glb',
+]);
+
 function listFiles(dir, base = dir) {
     if (!fs.existsSync(dir)) return [];
     return fs.readdirSync(dir, { withFileTypes: true })
         .flatMap(entry => {
             const full = path.join(dir, entry.name);
+            const rel = path.relative(root, full).split(path.sep).join('/');
+            if (EXCLUDED_PATHS.has(rel)) return [];
             if (entry.isDirectory()) return listFiles(full, base);
             return [path.relative(base, full).split(path.sep).join('/')];
         })
