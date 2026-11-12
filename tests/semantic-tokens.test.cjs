@@ -1557,3 +1557,65 @@ test('the header brand mark frame resolves from canonical tokens', () => {
         assert.equal(found.length, 1, `${literal} must only appear in the canonical token definition`);
     }
 });
+
+test('the remaining accent-surface inks and report/owner literals resolve from canonical tokens', () => {
+    // Part 63: the last raw colors outside the excluded settings/login scopes —
+    // the settings/notice header and save-button ink (#fff, sand override #211b16),
+    // the reports navigation hover shadow tint rgba(2, 8, 23, .3) and the owner
+    // theme swatch fallback accent #6366f1 — now resolve from canonical tokens
+    // declared once in :root. Every value matches the literal it replaced.
+    const css = read('css/style.css');
+    const rootBlock = blocks(css, ':root')[0][1];
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const tokens = {
+        '--accent-surface-ink': '#fff',
+        '--accent-surface-ink-sand': '#211b16',
+        '--report-nav-shadow-tint': 'rgba(2, 8, 23, .3)',
+        '--owner-swatch-fallback-accent': '#6366f1'
+    };
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(rootBlock, new RegExp(escape(declaration)), `:root must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1, `${declaration} must be declared exactly once`);
+    }
+
+    const header = css.match(/\n\.settings-modal-header \{([^}]*)\}/);
+    assert.ok(header, 'expected a rule for the settings modal header');
+    assert.ok(/color:\s*var\(--accent-surface-ink\)/.test(header[1]),
+        'the settings modal header must paint its ink via var(--accent-surface-ink)');
+    assert.ok(!/#fff\b/.test(header[1]), 'the settings modal header must not keep a raw #fff ink');
+
+    const save = css.match(/\n\.settings-save-button \{([^}]*)\}/);
+    assert.ok(save, 'expected a rule for the settings save button');
+    assert.ok(/color:\s*var\(--accent-surface-ink\)/.test(save[1]),
+        'the settings save button must paint its ink via var(--accent-surface-ink)');
+    assert.ok(!/#fff\b/.test(save[1]), 'the settings save button must not keep a raw #fff ink');
+
+    const sand = css.match(/\n\[data-theme="sand"\] \.settings-modal-header,\[data-theme="sand"\] \.settings-save-button \{([^}]*)\}/);
+    assert.ok(sand, 'expected the sand-theme ink override');
+    assert.ok(/color:\s*var\(--accent-surface-ink-sand\)/.test(sand[1]),
+        'the sand-theme override must paint its ink via var(--accent-surface-ink-sand)');
+    assert.ok(!/#211b16/.test(sand[1]), 'the sand-theme override must not keep a raw #211b16 ink');
+
+    const nav = css.match(/\n\.report-nav-item:hover \{([^}]*)\}/);
+    assert.ok(nav, 'expected a rule for the reports navigation hover');
+    assert.ok(/var\(--report-nav-shadow-tint\)/.test(nav[1]),
+        'the reports navigation hover must mix its shadow tint via var(--report-nav-shadow-tint)');
+    assert.ok(!/rgba\(2, 8, 23/.test(nav[1]),
+        'the reports navigation hover must not keep a raw rgba(2, 8, 23, …) tint');
+
+    const swatch = blocks(css, '\\.owner-theme-swatch').map(match => match[1])
+        .find(body => /background-image/.test(body));
+    assert.ok(swatch, 'expected the owner theme swatch gradient rule');
+    assert.ok(/var\(--preview-accent, var\(--owner-swatch-fallback-accent\)\)/.test(swatch),
+        'the owner theme swatch must fall back to var(--owner-swatch-fallback-accent)');
+    assert.ok(!/#6366f1/.test(swatch), 'the owner theme swatch must not keep a raw #6366f1 fallback');
+
+    // The shadow tint literal was unique to its rule and may only survive in its token.
+    assert.equal((css.match(/rgba\(2, 8, 23, \.3\)/g) || []).length, 1,
+        'rgba(2, 8, 23, .3) must only appear in the canonical token definition');
+    // The fallback accent literal also remains as the default --accent-color.
+    assert.equal((css.match(/#6366f1/g) || []).length, 2,
+        '#6366f1 must only appear in the default accent and the fallback token');
+});
