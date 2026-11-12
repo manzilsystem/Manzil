@@ -1051,3 +1051,42 @@ test('the settings emerald icon inks resolve from canonical tokens', () => {
             `${value} must only appear in the canonical token definition`);
     }
 });
+
+test('the settings dark-green surface stops resolve from canonical tokens', () => {
+    const css = read('css/style.css');
+    const tokens = {
+        '--settings-live-card-end': '#0d3c40',
+        '--settings-phone-card-end': '#0b2c33',
+        '--settings-message-bubble-start': '#0f3b3a',
+        '--settings-message-bubble-end': '#0b2f36'
+    };
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const layer = blocks(css, '#settingsModal')[0];
+    assert.ok(layer, 'expected a #settingsModal token layer');
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(layer[1], new RegExp(escape(declaration)),
+            `the settings token layer must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+    }
+
+    for (const [selector, token] of [
+        ['#settingsModal .settings-live-card', '--settings-live-card-end'],
+        ['#settingsModal .settings-phone-card', '--settings-phone-card-end'],
+        ['#settingsModal .settings-phone .settings-preview-body', '--settings-message-bubble-start'],
+        ['#settingsModal .settings-phone .settings-preview-body', '--settings-message-bubble-end']
+    ]) {
+        const rule = blocks(css, selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&'))[0];
+        assert.ok(rule, `expected a rule for "${selector}"`);
+        assert.match(rule[1], new RegExp(`background:[\\s\\S]*var\\(${escape(token)}\\)`),
+            `"${selector}" must consume var(${token})`);
+    }
+
+    for (const value of Object.values(tokens)) {
+        const found = css.match(new RegExp(escape(value), 'g')) || [];
+        assert.equal(found.length, 1,
+            `${value} must only appear in the canonical token definition`);
+    }
+});

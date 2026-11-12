@@ -1381,6 +1381,15 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     --settings-brand-preview-light-surface: #f2f7f6;
     --settings-brand-preview-dark-ink: #e7f3f1;
     --settings-brand-preview-light-ink: #173b48;
+    /* Canonical dark-green surface stops for the settings live card, phone card
+       and message bubbles. They are theme-invariant — the light-theme polish
+       does not repaint the dark surfaces they sit on — and every token matches
+       the literal it replaced, so routing declarations through them changes
+       nothing visually. */
+    --settings-live-card-end: #0d3c40;
+    --settings-phone-card-end: #0b2c33;
+    --settings-message-bubble-start: #0f3b3a;
+    --settings-message-bubble-end: #0b2f36;
     --settings-line: color-mix(in srgb, var(--border-color) 72%, transparent);
     --settings-surface: color-mix(in srgb, var(--bg-card) 94%, var(--bg-main));
     --settings-surface-raised: var(--surface-raised, color-mix(in srgb, var(--bg-card) 84%, var(--bg-main)));
@@ -3199,7 +3208,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     color: var(--settings-ink-bright);
     background:
         radial-gradient(120% 100% at 85% 0%, color-mix(in srgb, var(--settings-accent-bright) 22%, transparent), transparent 55%),
-        linear-gradient(150deg, var(--settings-ink-2), var(--settings-ink-3) 70%, #0d3c40);
+        linear-gradient(150deg, var(--settings-ink-2), var(--settings-ink-3) 70%, var(--settings-live-card-end));
     box-shadow: 0 18px 38px rgba(2, 20, 35, .26);
 }
 #settingsModal .settings-live-card::after {
@@ -3668,7 +3677,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-phone-card {
     border-color: rgba(15, 59, 58, .4);
-    background: linear-gradient(160deg, var(--settings-ink), #0b2c33);
+    background: linear-gradient(160deg, var(--settings-ink), var(--settings-phone-card-end));
 }
 #settingsModal .settings-phone-card .settings-preview-head {
     border-bottom-color: var(--settings-veil-8);
@@ -3715,7 +3724,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     padding: var(--space-80) var(--space-90);
     border-radius: var(--radius-85) var(--radius-25) var(--radius-85) var(--radius-85);
     color: #e9f7f4;
-    background: linear-gradient(155deg, #0f3b3a, #0b2f36);
+    background: linear-gradient(155deg, var(--settings-message-bubble-start), var(--settings-message-bubble-end));
     box-shadow: inset 0 0 0 1px var(--settings-veil-6);
     font-size: var(--font-65);
 }
