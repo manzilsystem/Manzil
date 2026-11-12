@@ -48,6 +48,18 @@ test('the redesigned sign-in shell collapses and prioritizes the form on mobile'
     assert.match(css, /@media \(max-width:700px\)[\s\S]*?\.auth-login-panel \{ order:2/);
 });
 
+test('sign-in copy no longer carries superseded fallback rules', () => {
+    assert.doesNotMatch(css, /\.auth-brand-panel > div:first-child > p\s*\{/);
+    assert.doesNotMatch(css, /--auth-ink-secondary\s*:/);
+
+    const trustNoteRules = [...css.matchAll(/(?:^|\n)\.auth-trust-note\s*\{([^}]*)\}/g)];
+    assert.equal(trustNoteRules.length, 1, 'expected only the current trust note base rule');
+    assert.match(trustNoteRules[0][1], /line-height:\s*var\(--leading-170\)/);
+    assert.match(css, /#pinLockModal \.auth-brand-description \{ color:var\(--auth-ink-soft\);/);
+    assert.match(css, /#pinLockModal \.auth-trust-note \{ color:var\(--auth-ink-soft\);/);
+    assert.match(css, /@media \(max-width:700px\)[\s\S]*?\.auth-brand-benefits,\.auth-trust-note \{ display:none/);
+});
+
 test('Manzil branding uses the supplied logo on sign-in and app header with responsive styling', () => {
     assert.ok(html.includes('class="auth-logo-frame manzil-full-logo" role="img" aria-label="شعار منزل | Manzil"'));
     for (const strip of [1, 2, 3, 4]) assert.ok(html.includes(`icons/manzil-full-${strip}.png`));

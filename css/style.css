@@ -653,8 +653,6 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 .auth-brand-panel h1 { font-size: var(--font-175); }
 .auth-brand-panel h2 { font-size: var(--font-100); }
-.auth-brand-panel > div:first-child > p { color: var(--auth-ink-secondary); }
-.auth-trust-note { display: flex; align-items: center; gap: var(--space-50); color: var(--auth-ink-secondary); font-size: var(--font-72); line-height: var(--leading-160); }
 .auth-trust-note i { color: #a5b4fc; }
 .auth-rights { color: #94a3b8; }
 .auth-rights a, #appCopyright a { color: #c7d2fe; text-decoration: underline; text-underline-offset: 2px; }
@@ -986,7 +984,6 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   --auth-ink-benefit: #e0e9e9;
   --auth-ink-control: #d6e2e3;
   --auth-ink-label: #dbe5e4;
-  --auth-ink-secondary: #cbd5e1;
   --auth-ink-help: #edf7f5;
   --auth-ink-subtle: #b6c6ca;
   --auth-ink-faint: #aebfc2;
