@@ -1518,3 +1518,42 @@ test('the settings preview-panel inks and hairline resolve from canonical tokens
         assert.equal(found.length, 1, `${literal} must only appear in the canonical token definition`);
     }
 });
+
+test('the header brand mark frame resolves from canonical tokens', () => {
+    // Part 62: the base .header-brand-mark frame kept raw rgba(15, 23, 42, .12),
+    // #f8fbfd and rgba(2, 20, 35, .12) literals for its hairline, surface and drop
+    // shadow. They now resolve from canonical tokens declared once in :root. Every
+    // token matches the literal it replaced and the frame is theme-invariant, so no
+    // visual change is introduced.
+    const css = read('css/style.css');
+    const rootBlock = blocks(css, ':root')[0][1];
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const tokens = {
+        '--header-brand-line': 'rgba(15, 23, 42, .12)',
+        '--header-brand-surface': '#f8fbfd',
+        '--header-brand-shadow': 'rgba(2, 20, 35, .12)'
+    };
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(rootBlock, new RegExp(escape(declaration)), `:root must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1, `${declaration} must be declared exactly once`);
+    }
+
+    const mark = blocks(css, '\\.header-brand-mark')[0];
+    assert.ok(mark, 'expected a rule for the header brand mark');
+    assert.ok(/border:\s*1px solid var\(--header-brand-line\)/.test(mark[1]),
+        'the header brand mark must draw its hairline via var(--header-brand-line)');
+    assert.ok(/background:\s*var\(--header-brand-surface\)/.test(mark[1]),
+        'the header brand mark must fill its surface via var(--header-brand-surface)');
+    assert.ok(/box-shadow:\s*0 5px 16px var\(--header-brand-shadow\)/.test(mark[1]),
+        'the header brand mark must cast its drop shadow via var(--header-brand-shadow)');
+    assert.ok(!/#f8fbfd|rgba\(15,\s*23,\s*42|rgba\(2,\s*20,\s*35/.test(mark[1]),
+        'the header brand mark must not keep a raw frame color literal');
+
+    // Each literal was unique to this rule; it may only survive in its token definition.
+    for (const literal of ['rgba(15, 23, 42, .12)', '#f8fbfd', 'rgba(2, 20, 35, .12)']) {
+        const found = css.match(new RegExp(escape(literal), 'g')) || [];
+        assert.equal(found.length, 1, `${literal} must only appear in the canonical token definition`);
+    }
+});

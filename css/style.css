@@ -268,6 +268,15 @@
        the rules through them introduces no visual change. */
     --assistant-fab-shadow: rgba(2, 6, 23, .38);
     --assistant-fab-shadow-compact: rgba(2, 6, 23, .32);
+    /* Canonical Manzil identity-mark frame — the single source for the base
+       .header-brand-mark hairline, surface and drop shadow. The frame is
+       intentionally theme-invariant (the later "Transparent Manzil identity"
+       rules repaint it transparent with !important across every theme), so these
+       live in :root and never remap. Values match the literals they replaced
+       exactly, so routing the rule through them introduces no visual change. */
+    --header-brand-line: rgba(15, 23, 42, .12);
+    --header-brand-surface: #f8fbfd;
+    --header-brand-shadow: rgba(2, 20, 35, .12);
     --radius-lg: 1rem;
     --radius-pill: 999px;
     --radius-circle: 50%;
@@ -927,7 +936,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 [data-theme="turquoise"] { --bg-main:#071f27; --bg-card:#0d3039; --bg-input:#092831; --text-main:#eaffff; --text-muted:#a4cbd0; --border-color:#28545d; --accent-color:var(--theme-accent-turquoise); --surface-raised:#123d47; }
 [data-theme="turquoise"] .app-card { background-color:var(--bg-card); border-color:var(--border-color); }
 [data-theme="turquoise"] .app-input { background-color:var(--bg-input); color:var(--text-main); border-color:var(--border-color); }
-.header-brand-mark { width:2.9rem; height:2.9rem; flex:0 0 auto; display:flex; align-items:center; justify-content:center; padding:var(--space-15); overflow:hidden; border:1px solid rgba(15,23,42,.12); border-radius:var(--radius-lg); background:#f8fbfd; box-shadow:0 5px 16px rgba(2,20,35,.12); }
+.header-brand-mark { width:2.9rem; height:2.9rem; flex:0 0 auto; display:flex; align-items:center; justify-content:center; padding:var(--space-15); overflow:hidden; border:1px solid var(--header-brand-line); border-radius:var(--radius-lg); background:var(--header-brand-surface); box-shadow:0 5px 16px var(--header-brand-shadow); }
 .header-brand-mark img { width:100%; height:100%; object-fit:contain; display:block; }
 #pinLockModal { background:radial-gradient(ellipse at 14% 18%,color-mix(in srgb,var(--accent-color) 15%,transparent),transparent 42%),color-mix(in srgb,var(--bg-main) 94%,#020617); }
 #pinLockModal > .auth-shell { width:100%; max-width:56rem; max-height:calc(100dvh - 2rem); display:grid; grid-template-columns:minmax(0,.88fr) minmax(0,1.12fr); overflow:auto; overscroll-behavior:contain; background:var(--bg-card); border-color:var(--border-color); box-shadow:0 28px 90px rgba(0,0,0,.35); }
