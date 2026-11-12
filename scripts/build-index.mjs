@@ -36,7 +36,6 @@ const ASSET_FILES = ['manifest.json'];
 const EXCLUDED_PATHS = new Set([
     'js/vendor',
     'js/assistant-voice.js',
-    'icons/assistant-abbah-3d.glb',
 ]);
 
 function listFiles(dir, base = dir) {
