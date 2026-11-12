@@ -65,7 +65,7 @@ function createStorageStub() {
     };
 }
 
-function createHarness(seed = true, identity = {}) {
+function createHarness(seed = true, identity = {}, options = {}) {
     const sessionStorage = createStorageStub();
     const sandbox = {
         console,
@@ -85,6 +85,9 @@ function createHarness(seed = true, identity = {}) {
         currentUserRole: 'manager',
         activeBuildingId: 'building-1'
     };
+    // Optional hook so a test can swap in spies (e.g. network stubs) before the
+    // sources load, without the harness having to know about them.
+    if (typeof options.instrument === 'function') options.instrument(sandbox);
     const context = vm.createContext(sandbox);
     vm.runInContext(stateSource, context, { filename: 'js/state.js' });
     vm.runInContext(assistantSource, context, { filename: 'js/assistant.js' });
@@ -272,6 +275,47 @@ test('assistant is local-only and never touches the network', () => {
     assert.doesNotMatch(assistantSource, /supabase/i);
     assert.match(assistantSource, /ومساعدك المحلي/, 'the assistant introduces itself as a local helper');
     assert.match(html, /<p><span class="assistant-online-dot" aria-hidden="true"><\/span> بيانات التطبيق فقط<\/p>/, 'the head keeps the one-line privacy note and nothing more');
+});
+
+test('assistant runtime keeps chat and voice away from the network and off disk', () => {
+    // Trip every outbound/durable channel: an accidental call throws so the test
+    // fails loudly instead of silently reaching a service or writing to disk.
+    const leaks = [];
+    const instrument = sandbox => {
+        const trip = channel => (...args) => {
+            const head = args[0] === undefined ? '' : String(args[0]).slice(0, 40);
+            leaks.push(`${channel}:${head}`);
+            throw new Error(`عم عبده must stay local — blocked ${channel}`);
+        };
+        sandbox.fetch = trip('fetch');
+        sandbox.XMLHttpRequest = function XMLHttpRequest() { return trip('XMLHttpRequest')(); };
+        sandbox.WebSocket = function WebSocket() { return trip('WebSocket')(); };
+        sandbox.EventSource = function EventSource() { return trip('EventSource')(); };
+        sandbox.navigator = { sendBeacon: trip('sendBeacon') };
+        sandbox.localStorage = { getItem: () => null, setItem: () => leaks.push('localStorage.setItem'), removeItem() {} };
+    };
+
+    const manager = createHarness(true, {}, { instrument });
+    for (const query of ['ملخص الشهر', 'مين عليه متأخرات؟', 'رصيد الخزنة كام؟', 'تحصيل الشهر', 'مصروفات الشهر', 'الإعفاءات والتخفيضات', 'بيانات العمارة', 'آخر الحركات']) {
+        const answer = manager.api.answerAssistantQuery(query, NOW);
+        assert.ok(answer && typeof answer.html === 'string', `manager query "${query}" is answered locally`);
+    }
+    // Persisting and restoring the conversation must stay on-device too.
+    manager.api.appendAssistantMessage('user', 'اختبار محلي');
+    manager.api.restoreAssistantSession();
+
+    const owner = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' }, { instrument });
+    for (const query of ['عليّا كام الشهر ده؟', 'إيصالاتي', 'إعلانات المبنى', 'إشعاراتي', 'رقم المدير', 'رصيد الخزنة كام؟']) {
+        const answer = owner.api.answerAssistantQuery(query, NOW);
+        assert.ok(answer && typeof answer.html === 'string', `owner query "${query}" is answered locally`);
+    }
+
+    assert.deepEqual(leaks, [], 'no fetch/XHR/WebSocket/EventSource/sendBeacon call and no localStorage write may ever happen');
+
+    // Static guarantees that back the runtime guard.
+    assert.doesNotMatch(assistantSource, /\blocalStorage\b/, 'the assistant only ever uses sessionStorage');
+    assert.doesNotMatch(assistantSource, /navigator\s*\./, 'no beacon and no microphone access from the assistant core');
+    assert.doesNotMatch(assistantSource, /supabaseClient|\.rpc\(|\.from\(\s*['"]/, 'the assistant reads `state` only — never the database directly');
 });
 
 test('arabic normalization and period resolution understand months, years and rollover phrasing', () => {
