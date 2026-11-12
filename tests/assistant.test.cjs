@@ -142,6 +142,8 @@ function createHarness(seed = true, identity = {}) {
         getAssistantNowLabel,
         getAssistantResidentSnapshot,
         buildAssistantResidentAnswer,
+        buildAssistantNoticesAnswer,
+        buildAssistantOwnerNotificationsAnswer,
         normalizeAssistantArabic,
         resolveAssistantPeriod,
         resolveAssistantResident,
@@ -688,4 +690,48 @@ test('owners keep the launcher and can open the assistant without manager rights
     assert.match(stateSource, /var currentProfileName = null;/);
     assert.match(appSource, /if \(id !== 'pinLockModal' && !OWNER_ALLOWED_MODALS\.has\(id\) && !requireManager\(\)\) return;/);
     assert.match(appSource, /const OWNER_ALLOWED_MODALS = new Set\(\['assistantModal'\]\);/, 'the assistant is the only modal an owner may open');
+});
+
+test('owner notices and notifications never surface the manager feed', () => {
+    const { context, api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    vm.runInContext(`
+        state.managerNotifications = [
+            { id: 'mn1', title: 'سرّي للمدير', body: 'تفاصيل داخلية للمدير فقط', createdAt: '2026-11-13T08:00:00.000Z' }
+        ];
+    `, context);
+
+    const notices = api.buildAssistantNoticesAnswer();
+    assert.equal(notices.id, 'notices');
+    assert.match(notices.html, /قراءة العدادات/, 'owners still get the building-wide announcements');
+    assert.doesNotMatch(notices.html, /سرّي للمدير/, 'the manager feed never leaks into the owner notices tool');
+
+    const notifications = api.buildAssistantOwnerNotificationsAnswer();
+    assert.equal(notifications.id, 'my_notifications');
+    assert.match(notifications.html, /إيصال جديد/);
+    assert.doesNotMatch(notifications.html, /سرّي للمدير/, 'the owner notifications tool reads only the account-scoped store');
+});
+
+test('a manager never reads the owner notification store through the assistant', () => {
+    const { context, api } = createHarness(true, { role: 'manager', profileName: 'أ. محمد' });
+    vm.runInContext(`
+        state.ownerNotifications = [
+            { id: 'on9', title: 'إيصال جديد لأحمد', body: 'تم تسجيل دفعة نوفمبر', createdAt: '2026-11-04T08:00:00.000Z' }
+        ];
+    `, context);
+
+    for (const query of ['إشعاراتي', 'ملخص الشهر', 'التحصيل', 'رصيد الخزنة كام؟', 'إعلانات المبنى', 'بيانات العمارة']) {
+        const answer = api.answerAssistantQuery(query, NOW);
+        assert.doesNotMatch(answer.html, /إيصال جديد لأحمد/, `${query} must never read the owner feed`);
+    }
+    assert.equal(api.detectAssistantIntent(api.normalizeAssistantArabic('إشعاراتي'), false), 'unknown', 'managers have no owner-notifications read tool');
+});
+
+test('owner and manager notification reads stay split at the source', () => {
+    assert.match(supabaseSource, /currentUserRole === 'owner'[\s\S]{0,160}\.eq\('target_user_id', session\.user\.id\)/, 'owners load only their own notifications');
+    assert.match(supabaseSource, /currentUserRole === 'manager'[\s\S]{0,180}\.is\('target_user_id', null\)/, 'managers load only the building-wide feed');
+    assert.match(supabaseSource, /ownerNotifications: currentUserRole === 'owner'/, 'the owner store is filled for owners only');
+    assert.match(supabaseSource, /managerNotifications: currentUserRole === 'manager'/);
+    assert.match(assistantSource, /function buildAssistantNoticesAnswer\([\s\S]{0,240}state\.notices/, 'the notices tool reads the shared announcements list');
+    assert.match(assistantSource, /function buildAssistantOwnerNotificationsAnswer\([\s\S]{0,240}state\.ownerNotifications/, 'the owner notifications tool reads the account-scoped store');
+    assert.doesNotMatch(assistantSource, /state\.managerNotifications/, 'the two notification stores never mix inside the assistant');
 });
