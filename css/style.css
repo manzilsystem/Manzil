@@ -1286,6 +1286,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     --settings-ink-close: #e8f7f5;
     --settings-ink-hero: #ecfbf9;
     --settings-ink-hero-kicker: #bff4ee;
+    --settings-ink-profile-avatar: #052e2c;
+    --settings-ink-theme-check: #032a29;
     /* Canonical translucent-white veil scale for the dark settings surfaces
        (close button, hero decorations, live stats, previews and the phone card).
        The suffix is the alpha in hundredths (--settings-veil-8 = .08). The veil
@@ -1545,7 +1547,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     height: 2.9rem;
     flex: 0 0 auto;
     border-radius: var(--radius-85);
-    color: #052e2c;
+    color: var(--settings-ink-profile-avatar);
     font-size: var(--font-115);
     background: linear-gradient(140deg, var(--settings-accent-bright), var(--settings-accent));
     box-shadow: 0 8px 20px color-mix(in srgb, var(--settings-accent) 28%, transparent);
@@ -2470,7 +2472,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     width: 1.15rem;
     height: 1.15rem;
     border-radius: var(--radius-circle);
-    color: #032a29;
+    color: var(--settings-ink-theme-check);
     background: var(--settings-accent);
     font-size: var(--font-55);
 }
