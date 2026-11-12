@@ -337,6 +337,34 @@ test('assistant accent ink resolves from one canonical token', () => {
     assert.equal(raw.length, 1, '#241a10 must only appear in the canonical token definition');
 });
 
+test('dropdown menus share their canonical shadow token', () => {
+    const css = read('css/style.css');
+    const declaration = '--shadow-dropdown: 0 18px 40px rgba(2, 6, 23, .34)';
+    const rootBlocks = blocks(css, ':root');
+    assert.ok(
+        rootBlocks.some(root => root[1].includes(declaration)),
+        `a :root block must declare ${declaration}`
+    );
+    assert.equal(
+        css.split(declaration).length - 1,
+        1,
+        `${declaration} must be declared exactly once`
+    );
+
+    const escape = selector => selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&');
+    for (const selector of ['.owner-theme-menu', '.manager-notifications-menu']) {
+        const rules = blocks(css, escape(selector));
+        assert.ok(rules.length, `expected a rule for "${selector}"`);
+        assert.ok(
+            rules.some(rule => rule[1].includes('box-shadow: var(--shadow-dropdown)')),
+            `"${selector}" must consume var(--shadow-dropdown)`
+        );
+    }
+
+    const raw = css.match(/0 18px 40px rgba\(2, 6, 23, \.34\)/g) || [];
+    assert.equal(raw.length, 1, 'the dropdown shadow geometry must only appear in its canonical token');
+});
+
 test('the print palette resolves from its canonical tokens', () => {
     const css = read('css/style.css');
 

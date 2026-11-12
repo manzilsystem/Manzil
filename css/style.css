@@ -784,7 +784,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 
 
 /* Settings workspace and theme system */
-:root { --surface-raised: color-mix(in srgb, var(--bg-card) 88%, var(--bg-main)); --surface-soft: color-mix(in srgb, var(--accent-color) 7%, var(--bg-card)); --shadow-soft: 0 16px 40px rgba(0,0,0,.16); }
+:root { --surface-raised: color-mix(in srgb, var(--bg-card) 88%, var(--bg-main)); --surface-soft: color-mix(in srgb, var(--accent-color) 7%, var(--bg-card)); --shadow-soft: 0 16px 40px rgba(0,0,0,.16); --shadow-dropdown: 0 18px 40px rgba(2, 6, 23, .34); }
 [data-theme="dark"] { --bg-main:#0b1020; --bg-card:#151d30; --bg-input:#0d1527; --text-main:#edf2ff; --text-muted:#9aa8c2; --border-color:#29364f; --accent-color:var(--theme-accent-dark); --surface-raised:#1b2740; }
 [data-theme="light"] { --bg-main:#f3f6fc; --bg-card:#ffffff; --bg-input:#f7f9fd; --text-main:#172033; --text-muted:#66748b; --border-color:#dce4f0; --accent-color:var(--theme-accent-light); --surface-raised:#f8faff; --state-success:#047857; --state-success-soft:#ecfdf5; --state-success-line:#a7f3d0; --state-warning:#b45309; --state-warning-soft:#fffbeb; --state-warning-line:#fde68a; --state-danger:#be123c; --state-danger-soft:#fff1f2; --state-danger-line:#fecdd3; --state-info:#0369a1; --state-info-soft:#f0f9ff; --state-info-line:#bae6fd; }
 [data-theme="emerald"] { --bg-main:#071c18; --bg-card:#102b24; --bg-input:#0a211b; --text-main:#e9fff5; --text-muted:#a0c9b8; --border-color:#285446; --accent-color:var(--theme-accent-emerald); --surface-raised:#15382e; }
@@ -4286,7 +4286,7 @@ body.owner-mode .owner-theme-control {
     width: 14rem;
     padding: var(--space-50);
     border-radius: var(--radius-lg);
-    box-shadow: 0 18px 40px rgba(2, 6, 23, .34);
+    box-shadow: var(--shadow-dropdown);
 }
 .owner-theme-menu .owner-theme-option { min-height: 2.7rem; padding: var(--space-35) var(--space-30); gap: var(--space-25); border-radius: var(--radius-70); font-size: var(--font-60); }
 .owner-theme-menu .owner-theme-swatch { height: .7rem; }
@@ -4359,7 +4359,7 @@ body.owner-mode .owner-theme-control {
     overflow-y: auto;
     padding: var(--space-50);
     border-radius: var(--radius-lg);
-    box-shadow: 0 18px 40px rgba(2, 6, 23, .34);
+    box-shadow: var(--shadow-dropdown);
 }
 .manager-notification-row { padding: var(--space-55) var(--space-30); border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent); }
 .manager-notification-row:last-child { border-bottom: 0; }
