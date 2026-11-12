@@ -598,6 +598,23 @@ test('an owner bill answer covers their own apartment and their own due window',
     assert.equal(fresh.api.answerAssistantQuery('مين عليه متأخرات؟', NOW).id, 'my_bill');
 });
 
+test('the owner assistant never guesses another apartment when the identity is missing', () => {
+    const { api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'missing' });
+    const bill = api.answerAssistantQuery('عليّا كام؟', NOW);
+    assert.equal(bill.id, 'owner_scope');
+    assert.match(bill.html, /مفيش شقة/);
+    assert.doesNotMatch(bill.html, /أحمد|سارة|شقة 3|شقة 7/, 'an unmatched owner identity must never fall back to another unit');
+});
+
+test('an owner assistant reads only the apartment bound to its resident id', () => {
+    const { context, api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r2' });
+    vm.runInContext(`state.residents = ${JSON.stringify(RESIDENTS)};`, context);
+    const bill = api.answerAssistantQuery('عليّا كام؟', NOW);
+    assert.equal(bill.id, 'my_bill');
+    assert.match(bill.html, /شقة 7/);
+    assert.doesNotMatch(bill.html, /أحمد|شقة 3/, 'even with a wider resident read the owner stays on their own unit');
+});
+
 test('building-wide questions are refused for owners instead of answered with their slice', () => {
     const { api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
     for (const query of ['إجمالي تحصيل العمارة', 'مصروفات الشهر', 'رصيد الخزنة كام؟', 'تقرير المالك', 'عدد السكان']) {
