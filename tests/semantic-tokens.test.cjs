@@ -977,3 +977,42 @@ test('the settings brand-preview palette resolves from canonical tokens', () => 
             `${value} must only appear in the canonical token definition`);
     }
 });
+
+test('the settings light-ink palette resolves from canonical tokens', () => {
+    const css = read('css/style.css');
+    const tokens = {
+        '--settings-ink-topbar': '#f2fbfa',
+        '--settings-ink-close': '#e8f7f5',
+        '--settings-ink-hero': '#ecfbf9',
+        '--settings-ink-hero-kicker': '#bff4ee'
+    };
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const layer = blocks(css, '#settingsModal')[0];
+    assert.ok(layer, 'expected a #settingsModal token layer');
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(layer[1], new RegExp(escape(declaration)),
+            `the settings token layer must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+    }
+
+    for (const [selector, token] of [
+        ['#settingsModal .settings-topbar', '--settings-ink-topbar'],
+        ['#settingsModal .settings-close-button', '--settings-ink-close'],
+        ['#settingsModal .settings-hero', '--settings-ink-hero'],
+        ['#settingsModal .settings-hero-kicker', '--settings-ink-hero-kicker']
+    ]) {
+        const rule = blocks(css, selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&'))[0];
+        assert.ok(rule, `expected a rule for "${selector}"`);
+        assert.match(rule[1], new RegExp(`color:\\s*var\\(${escape(token)}\\)`),
+            `"${selector}" must consume var(${token})`);
+    }
+
+    for (const value of Object.values(tokens)) {
+        const found = css.match(new RegExp(escape(value), 'g')) || [];
+        assert.equal(found.length, 1,
+            `${value} must only appear in the canonical token definition`);
+    }
+});
