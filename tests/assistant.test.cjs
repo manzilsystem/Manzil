@@ -350,6 +350,57 @@ test('assistant answers are read-only and never write without a confirmation flo
     assert.doesNotMatch(assistantSource, /\b(?:addIncome|addExpense|saveState|persistState|deleteResident|deleteIncome|deleteExpense)\s*\(/, 'no mutation helpers are wired into the assistant');
 });
 
+test('assistant money figures equal the reference billing values', () => {
+    const { context, api } = createHarness(true);
+    const period = api.resolveAssistantPeriod('نوفمبر 2026', NOW);
+    assert.equal(period.month, 'نوفمبر 2026');
+
+    // The manager-visible raw records are the reference the assistant must echo.
+    const monthRows = rows => rows.filter(row => row.month === 'نوفمبر 2026');
+    const cents = rows => rows.reduce((total, row) => total + Math.round(Number(row.amount) * 100), 0);
+
+    const income = api.getAssistantIncomeSnapshot(period.months);
+    assert.equal(income.count, monthRows(INCOME).length);
+    assert.equal(income.cents, cents(monthRows(INCOME)), 'income total equals the raw payments');
+    assert.equal(income.subscriptionCents, cents(monthRows(INCOME).filter(row => row.purposeCode === 'subscription')));
+    assert.equal(income.otherTotal, (income.cents - income.subscriptionCents - income.settlementCents) / 100);
+
+    const expenses = api.getAssistantExpenseSnapshot(period.months);
+    assert.equal(expenses.cents, cents(monthRows(EXPENSES)), 'expense total equals the raw expenses');
+
+    const cash = api.getAssistantCashSnapshot();
+    assert.deepEqual([...cash.balances.map(item => item.amount)], [1200, 300, 50]);
+    assert.equal(cash.total, 1550);
+
+    const summary = api.getAssistantMonthSummary(period, NOW);
+    assert.equal(summary.income.cents, income.cents);
+    assert.equal(summary.expenses.cents, expenses.cents);
+    assert.equal(summary.net, (income.cents - expenses.cents) / 100);
+
+    // Dues, outstanding and arrears must come from the canonical state.js helpers.
+    const reference = vm.runInContext(`(() => {
+        const month = 'نوفمبر 2026';
+        let due = 0, outstanding = 0;
+        state.residents.forEach(resident => {
+            due += Math.round(Number(getSubscriptionAmountForMonth(resident, month)) * 100);
+            outstanding += Math.round(Number(getMonthOutstanding(resident, month)) * 100);
+        });
+        return {
+            dueTotal: due / 100,
+            outstandingTotal: outstanding / 100,
+            arrearsTotal: Number(buildArrearsReport().totalDebt) || 0
+        };
+    })()`, context);
+    assert.equal(summary.dueTotal, reference.dueTotal, 'monthly dues match getSubscriptionAmountForMonth');
+    assert.equal(summary.outstandingTotal, reference.outstandingTotal, 'outstanding matches getMonthOutstanding');
+    assert.equal(api.getAssistantArrearsSnapshot().totalDebt, reference.arrearsTotal, 'arrears match buildArrearsReport');
+
+    // The per-resident snapshot stays on the same source of truth.
+    const resident = vm.runInContext('state.residents[0]', context);
+    const liveOutstanding = vm.runInContext("Number(getMonthOutstanding(state.residents[0], 'نوفمبر 2026')) || 0", context);
+    assert.equal(api.getAssistantResidentSnapshot(resident, NOW).outstanding, liveOutstanding);
+});
+
 test('arabic normalization and period resolution understand months, years and rollover phrasing', () => {
     const { api } = createHarness();
     assert.equal(api.normalizeAssistantArabic('  أَحْمَد  '), 'احمد');
