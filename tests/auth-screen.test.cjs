@@ -84,3 +84,45 @@ test('Manzil login uses the gold and turquoise visual identity with a mobile-fir
     assert.ok(html.includes('aria-label="شعار منزل | Manzil"'));
     assert.ok(!html.includes('<h1>منزل <span lang="en">MANZIL</span></h1>'));
 });
+
+test('auth-rights link style is separated from appCopyright link and both resolve correctly', () => {
+    // The old combined rule ".auth-rights a, #appCopyright a { color: #c7d2fe; … }" applied
+    // an indigo literal to .auth-rights a which was immediately overridden by the later rule
+    // ".auth-rights a { color: var(--accent-color); … }". Splitting them removes the dead
+    // declaration on .auth-rights a while keeping the #appCopyright a style intact.
+
+    // 1. The combined selector must be gone.
+    assert.doesNotMatch(
+        css,
+        /\.auth-rights a,\s*#appCopyright a/,
+        'the combined ".auth-rights a, #appCopyright a" rule must have been split'
+    );
+
+    // 2. #appCopyright a still carries its color in its own rule.
+    assert.match(
+        css,
+        /#appCopyright a \{ color: #c7d2fe;/,
+        '#appCopyright a must still declare color: #c7d2fe in its own rule'
+    );
+
+    // 3. #appCopyright a layout rule is preserved.
+    assert.match(
+        css,
+        /#appCopyright a \{ display: inline-flex; align-items: center; min-height: 24px; padding-inline: var\(--space-20\); \}/,
+        '#appCopyright a layout rule must be preserved'
+    );
+
+    // 4. .auth-rights a continues to resolve from the accent token (not a stale indigo literal).
+    assert.match(
+        css,
+        /\.auth-rights a \{ color:var\(--accent-color\)/,
+        '.auth-rights a must consume var(--accent-color)'
+    );
+
+    // 5. Inside #pinLockModal, .auth-rights a uses the gold brand token (not the accent).
+    assert.match(
+        css,
+        /#pinLockModal \.auth-rights a \{ color:#e9c16d/,
+        '#pinLockModal .auth-rights a must use the gold literal #e9c16d'
+    );
+});
