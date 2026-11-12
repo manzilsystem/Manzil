@@ -318,6 +318,38 @@ test('assistant runtime keeps chat and voice away from the network and off disk'
     assert.doesNotMatch(assistantSource, /supabaseClient|\.rpc\(|\.from\(\s*['"]/, 'the assistant reads `state` only — never the database directly');
 });
 
+test('assistant answers are read-only and never write without a confirmation flow', () => {
+    // Answering must leave the frozen `state` untouched — even for prompts that
+    // sound like a command — because S21 write actions (preview + explicit confirm)
+    // are not wired into the assistant yet. This locks the read-only invariant.
+    const snapshotState = context => JSON.stringify(vm.runInContext('state', context));
+
+    const manager = createHarness(true);
+    const managerBefore = snapshotState(manager.context);
+    const managerQueries = [
+        'ملخص أكتوبر 2026', 'ملخص نوفمبر 2026', 'مين عليه متأخرات؟', 'رصيد الخزنة كام؟',
+        'تحصيل الشهر', 'مصروفات الشهر', 'الإعفاءات والتخفيضات', 'بيانات العمارة', 'آخر الحركات',
+        'سجّل دفعة لأحمد', 'أضف مصروف كهرباء', 'احذف مصروف النظافة', 'اعمل إيصال لأحمد', 'عدّل مصروف'
+    ];
+    for (const query of managerQueries) {
+        const answer = manager.api.answerAssistantQuery(query, NOW);
+        assert.ok(answer && typeof answer.html === 'string', `"${query}" is answered without throwing`);
+    }
+    assert.equal(snapshotState(manager.context), managerBefore, 'answering never mutates application state');
+
+    const owner = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    const ownerBefore = snapshotState(owner.context);
+    for (const query of ['عليّا كام الشهر ده؟', 'إيصالاتي', 'إعلانات المبنى', 'إشعاراتي', 'رقم المدير', 'سجّل دفعة', 'احذف مصروف']) {
+        owner.api.answerAssistantQuery(query, NOW);
+    }
+    assert.equal(snapshotState(owner.context), ownerBefore, 'owner answers are read-only too');
+
+    // Source-level: the assistant owns no write primitive at all.
+    assert.doesNotMatch(assistantSource, /\bstate\s*(?:\.\s*[\w$]+|\[[^\]]+\])\s*=(?!=)/, 'the assistant never assigns into `state`');
+    assert.doesNotMatch(assistantSource, /supabaseClient|\.rpc\(|\.from\(\s*['"][^'"]*['"]\s*\)[\s\S]{0,40}\.(?:insert|update|upsert|delete)\b/, 'no database write path is reachable');
+    assert.doesNotMatch(assistantSource, /\b(?:addIncome|addExpense|saveState|persistState|deleteResident|deleteIncome|deleteExpense)\s*\(/, 'no mutation helpers are wired into the assistant');
+});
+
 test('arabic normalization and period resolution understand months, years and rollover phrasing', () => {
     const { api } = createHarness();
     assert.equal(api.normalizeAssistantArabic('  أَحْمَد  '), 'احمد');
