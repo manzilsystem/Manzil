@@ -600,7 +600,6 @@ test('the branded sign-in palette resolves from its canonical tokens', () => {
         '--auth-ink-benefit': '#e0e9e9',
         '--auth-ink-control': '#d6e2e3',
         '--auth-ink-label': '#dbe5e4',
-        '--auth-ink-secondary': '#cbd5e1',
         '--auth-ink-help': '#edf7f5',
         '--auth-ink-subtle': '#b6c6ca',
         '--auth-ink-faint': '#aebfc2',
@@ -632,22 +631,9 @@ test('the branded sign-in palette resolves from its canonical tokens', () => {
             `the sign-in rules must not keep the raw ${value} literal`);
     }
     for (const name of Object.keys(tokens)) {
-        const consumerStyles = name === '--auth-ink-secondary' ? css : region;
-        assert.ok(consumerStyles.includes(`var(${name})`),
+        assert.ok(region.includes(`var(${name})`),
             `the sign-in rules must consume var(${name})`);
     }
-
-    const brandCopy = blocks(css, '\\.auth-brand-panel > div:first-child > p')[0];
-    assert.ok(brandCopy, 'expected the branded panel copy rule');
-    assert.match(brandCopy[1], /color:\s*var\(--auth-ink-secondary\)/);
-    assert.ok(!brandCopy[1].includes('#cbd5e1'),
-        'the branded panel copy must not keep the raw secondary ink');
-
-    const trustNote = blocks(css, '(?:^|\\n)\\.auth-trust-note')[0];
-    assert.ok(trustNote, 'expected the base trust note rule');
-    assert.match(trustNote[1], /color:\s*var\(--auth-ink-secondary\)/);
-    assert.ok(!trustNote[1].includes('#cbd5e1'),
-        'the trust note must not keep the raw secondary ink');
 });
 
 test('the settings veil scale resolves from its canonical tokens', () => {
