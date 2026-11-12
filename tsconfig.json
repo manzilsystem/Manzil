@@ -4,10 +4,11 @@
         "checkJs": true,
         "noEmit": true,
         "target": "ES2020",
+        "module": "ES2020",
         "lib": ["ES2020", "DOM", "DOM.Iterable"],
         "strict": false,
         "skipLibCheck": true,
         "types": []
     },
-    "include": ["js/telemetry.js", "js/state.js", "js/access.js", "js/notices.js", "js/app.js", "js/subscription-rates.js", "js/monthly-close.js", "js/cashbox.js", "js/backup.js", "js/assistant.js", "js/reports.js", "js/render.js", "js/settings.js", "js/crud.js", "js/supabase.js", "js/globals.d.ts"]
+    "include": ["js/telemetry.js", "js/state.js", "js/access.js", "js/notices.js", "js/app.js", "js/subscription-rates.js", "js/monthly-close.js", "js/cashbox.js", "js/backup.js", "js/assistant.js", "js/assistant-avatar-3d.js", "js/reports.js", "js/render.js", "js/settings.js", "js/crud.js", "js/supabase.js", "js/globals.d.ts"]
 }

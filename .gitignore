@@ -17,7 +17,10 @@ reports/
 .screenshots/
 
 # Local AI/voice assets (not ready for production — pending android test and licensed corpus)
-js/vendor/
+js/vendor/*
+# The 3D viewer is shipped with the app so the doorman works offline-free of CDNs.
+!js/vendor/model-viewer.min.js
+!js/vendor/model-viewer-LICENSE.txt
 js/assistant-voice.js
 docs/assistant-local-ai-evaluation.md
 licenses/

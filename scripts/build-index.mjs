@@ -33,8 +33,13 @@ const ASSET_FILES = ['manifest.json'];
 // Paths excluded from the asset fingerprint because they are listed in .gitignore
 // and therefore absent from CI checkouts. Any file absent on CI would cause a
 // hash mismatch between local builds and the check:index verification step.
+// The committed model-viewer build stays in the digest so a viewer upgrade
+// always rolls the release id along with its lazy-loaded URL.
 const EXCLUDED_PATHS = new Set([
-    'js/vendor',
+    'js/vendor/onnxruntime-web.min.js',
+    'js/vendor/onnxruntime-web-LICENSE.txt',
+    'js/vendor/ort-wasm-simd-threaded.mjs',
+    'js/vendor/ort-wasm-simd-threaded.wasm',
     'js/assistant-voice.js',
 ]);
 
