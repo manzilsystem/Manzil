@@ -308,6 +308,35 @@ test('the six theme accents resolve from their canonical tokens', () => {
     }
 });
 
+test('assistant accent ink resolves from one canonical token', () => {
+    const css = read('css/style.css');
+    const rootBlock = blocks(css, ':root')[0][1];
+    const declaration = '--assistant-ink-on-accent: #241a10';
+    assert.ok(rootBlock.includes(declaration), `:root must declare ${declaration}`);
+    assert.equal(
+        css.split(declaration).length - 1,
+        1,
+        `${declaration} must be declared exactly once`
+    );
+
+    const escape = selector => selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&');
+    const consumers = [
+        '[data-theme="sand"] .assistant-msg.is-user .assistant-bubble',
+        '[data-theme="emerald"] .assistant-send-button,\n[data-theme="sand"] .assistant-send-button'
+    ];
+    for (const selector of consumers) {
+        const rules = blocks(css, escape(selector));
+        assert.ok(rules.length, `expected a rule for "${selector}"`);
+        assert.ok(
+            rules.some(rule => rule[1].includes('color: var(--assistant-ink-on-accent)')),
+            `"${selector}" must consume var(--assistant-ink-on-accent)`
+        );
+    }
+
+    const raw = css.match(/#241a10/gi) || [];
+    assert.equal(raw.length, 1, '#241a10 must only appear in the canonical token definition');
+});
+
 test('the print palette resolves from its canonical tokens', () => {
     const css = read('css/style.css');
 
