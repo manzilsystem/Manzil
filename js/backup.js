@@ -618,10 +618,9 @@ function importJSON(ev) {
                 });
                 throw new Error('تعذر حفظ النسخة');
             }
-            const importedTheme = state.currentTheme || 'dark';
-            document.body.setAttribute('data-theme', importedTheme);
-            const themeColors = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16', turquoise:'#071f27' };
-            document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[importedTheme] || themeColors.dark);
+            // Theme colours have a single source of truth in state.js, so reuse its
+            // applier instead of duplicating the palette map here.
+            applyThemeToDocument(state.currentTheme);
             renderAll();
             toast('تم الاستيراد','success'); closeModal('backupModal');
         } catch (e) {
