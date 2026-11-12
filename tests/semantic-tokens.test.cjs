@@ -1619,3 +1619,59 @@ test('the remaining accent-surface inks and report/owner literals resolve from c
     assert.equal((css.match(/#6366f1/g) || []).length, 2,
         '#6366f1 must only appear in the default accent and the fallback token');
 });
+
+test('the generated receipt document palette resolves from canonical tokens', () => {
+    // Part 64: buildReceiptDocument in js/access.js writes a standalone receipt
+    // document into a fresh print window, so it cannot inherit the app :root tokens.
+    // Its inline <style> now declares one canonical --receipt-doc-* palette and
+    // references it from every rule. The document is theme-invariant and every value
+    // matches the literal it replaced, so there is no visual change.
+    const source = read('js/access.js');
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const styleMatch = source.match(/<style>([\s\S]*?)<\/style>/);
+    assert.ok(styleMatch, 'expected the receipt document to carry one inline <style>');
+    const style = styleMatch[1];
+
+    const rootMatch = style.match(/:root\s*\{([^}]*)\}/);
+    assert.ok(rootMatch, 'expected the receipt document style to declare a :root token block');
+    const rootBlock = rootMatch[1];
+    const rules = style.replace(rootMatch[0], '');
+
+    const tokens = {
+        '--receipt-doc-canvas': '#f1f5f9',
+        '--receipt-doc-ink': '#0f172a',
+        '--receipt-doc-surface': '#fff',
+        '--receipt-doc-accent-ink': '#fff',
+        '--receipt-doc-line': '#cbd5e1',
+        '--receipt-doc-rule': '#334155',
+        '--receipt-doc-muted': '#475569',
+        '--receipt-doc-hairline': '#e2e8f0',
+        '--receipt-doc-faint': '#64748b',
+        '--receipt-doc-head-surface': '#f8fafc',
+        '--receipt-doc-total-surface': '#ecfdf5',
+        '--receipt-doc-total-ink': '#065f46',
+        '--receipt-doc-accent': '#4f46e5'
+    };
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(rootBlock, new RegExp(escape(declaration)),
+            `the receipt document must declare ${declaration}`);
+        assert.equal(rootBlock.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+    }
+
+    // Every rule now references the canonical tokens instead of raw colors.
+    assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(rules),
+        'the receipt document rules must not keep a raw hex color');
+    assert.ok(!/rgba?\(/.test(rules),
+        'the receipt document rules must not keep a raw rgb()/rgba() color');
+    for (const name of Object.keys(tokens)) {
+        assert.ok(rules.includes(`var(${name})`),
+            `the receipt document rules must consume var(${name})`);
+    }
+
+    // The raw literals only survive inside the canonical token block.
+    assert.equal((rootBlock.match(/#[0-9a-fA-F]{3,8}\b/g) || []).length, 13,
+        'all 13 receipt document colors must be declared once in the token block');
+});
