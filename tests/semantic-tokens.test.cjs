@@ -1270,3 +1270,71 @@ test('the indigo accent palette resolves from its canonical tokens', () => {
     // #appCopyright a is checked in assertion 4 above (uses var(--indigo-link))
     // and the auth-screen test verifies no raw #c7d2fe in that rule.
 });
+
+test('the assistant bubble and send-button inks resolve from canonical tokens', () => {
+    // Part 57: the assistant user bubble and the send button that paint the accent
+    // surface kept raw #fff / #000 / #06251c literals. They now resolve from the
+    // canonical assistant palette declared once in :root. Each token matches the
+    // literal it replaced, so no visual change is introduced.
+    const css = read('css/style.css');
+    const rootBlock = blocks(css, ':root')[0][1];
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const tokens = {
+        '--assistant-ink-on-accent-default': '#fff',
+        '--assistant-ink-on-accent-emerald': '#06251c',
+        '--assistant-border-shade': '#000'
+    };
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(rootBlock, new RegExp(escape(declaration)), `:root must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1, `${declaration} must be declared exactly once`);
+    }
+
+    // The bubble consumes the default ink and the border shade.
+    const bubble = blocks(css, '\\.assistant-msg\\.is-user \\.assistant-bubble');
+    assert.ok(bubble.length, 'expected a rule for the assistant user bubble');
+    assert.ok(
+        bubble.some(rule => /color:\s*var\(--assistant-ink-on-accent-default\)/.test(rule[1])),
+        'the assistant user bubble must consume var(--assistant-ink-on-accent-default)'
+    );
+    assert.ok(
+        bubble.some(rule => /color-mix\(in srgb, var\(--accent-color\) 70%, var\(--assistant-border-shade\)\)/.test(rule[1])),
+        'the assistant user bubble border must consume var(--assistant-border-shade)'
+    );
+    assert.ok(
+        bubble.every(rule => !/color:\s*#fff\b/i.test(rule[1])),
+        'the assistant user bubble must not keep a raw #fff ink literal'
+    );
+
+    // The emerald theme overrides only the ink.
+    const emeraldBubble = blocks(css, '\\[data-theme="emerald"\\] \\.assistant-msg\\.is-user \\.assistant-bubble')[0];
+    assert.ok(emeraldBubble, 'expected the emerald user-bubble rule');
+    assert.ok(
+        /color:\s*var\(--assistant-ink-on-accent-emerald\)/.test(emeraldBubble[1]),
+        'the emerald user bubble must consume var(--assistant-ink-on-accent-emerald)'
+    );
+
+    // The send button shares the default ink and the border shade.
+    const send = blocks(css, '\\.assistant-send-button');
+    assert.ok(send.length, 'expected a rule for the assistant send button');
+    assert.ok(
+        send.some(rule => /color:\s*var\(--assistant-ink-on-accent-default\)/.test(rule[1])),
+        'the assistant send button must consume var(--assistant-ink-on-accent-default)'
+    );
+    assert.ok(
+        send.some(rule => /color-mix\(in srgb, var\(--accent-color\) 60%, var\(--assistant-border-shade\)\)/.test(rule[1])),
+        'the assistant send button border must consume var(--assistant-border-shade)'
+    );
+    assert.ok(
+        send.every(rule => !/color:\s*#fff\b/i.test(rule[1])),
+        'the assistant send button must not keep a raw #fff ink literal'
+    );
+
+    // The replaced literals that are unique to this palette may only survive in
+    // their token definitions (#fff is shared with other palettes).
+    for (const literal of ['#000', '#06251c']) {
+        const found = css.match(new RegExp(literal, 'g')) || [];
+        assert.equal(found.length, 1, `${literal} must only appear in the canonical token definition`);
+    }
+});
