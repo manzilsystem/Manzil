@@ -321,6 +321,28 @@ const RECEIPT_IMAGE_FIELD_GAP = 8;
 const RECEIPT_IMAGE_TABLE_HEAD = 34;
 const RECEIPT_IMAGE_TABLE_ROW = 38;
 
+// Canonical palette for the exported Canvas receipt image. A canvas has no access to
+// the CSS custom properties of the app, so the receipt colors live here as the single
+// source of truth and every draw call references them. Each value matches the raw
+// literal it replaced, so the exported PNG is unchanged.
+const RECEIPT_IMAGE_PALETTE = Object.freeze({
+    surface: '#ffffff',        // sheet background
+    accentInk: '#ffffff',      // ink drawn on the emerald header band
+    ink: '#0f172a',            // primary text
+    rule: '#334155',           // secondary text, table rows and notes body
+    muted: '#475569',          // table head labels and footer text
+    faint: '#64748b',          // identity field labels
+    source: '#94a3b8',         // provenance line under the footer
+    hairline: '#e2e8f0',       // field, table and footer separators
+    line: '#cbd5e1',           // dashed notes border
+    accent: '#4f46e5',         // notes heading
+    headerSurface: '#047857',  // emerald header band
+    headerMutedInk: '#d1fae5', // reference line on the header band
+    headSurface: '#f8fafc',    // payment table head band
+    totalSurface: '#ecfdf5',   // total band
+    totalInk: '#065f46'        // total band labels and amount cells
+});
+
 function receiptImageFilename(receipt) {
     const reference = String(receipt?.reference || '').replace(/[^A-Za-z0-9_-]+/g, '').slice(0, 24) || 'receipt';
     return `manzil_receipt_${reference}.png`;
@@ -400,23 +422,23 @@ function drawReceiptImage(plan) {
     const inner = RECEIPT_IMAGE_PADDING;
     const right = plan.width - inner;
     const font = (size, weight = 400) => `${weight} ${size}px Tahoma, Arial, sans-serif`;
-    const text = (value, x, y, { size = 12, weight = 400, color = '#0f172a', align = 'right' } = {}) => {
+    const text = (value, x, y, { size = 12, weight = 400, color = /** @type {string} */ (RECEIPT_IMAGE_PALETTE.ink), align = 'right' } = {}) => {
         ctx.font = font(size, weight);
         ctx.fillStyle = color;
         ctx.textAlign = /** @type {CanvasTextAlign} */ (align);
         ctx.fillText(String(value ?? ''), x, y);
     };
 
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = RECEIPT_IMAGE_PALETTE.surface;
     ctx.fillRect(0, 0, plan.width, plan.height);
 
     // header
-    ctx.fillStyle = '#047857';
+    ctx.fillStyle = RECEIPT_IMAGE_PALETTE.headerSurface;
     receiptRoundRect(ctx, inner, inner, plan.width - inner * 2, 84, 14);
     ctx.fill();
-    text(plan.buildingName, right - 20, inner + 36, { size: 20, weight: 700, color: '#ffffff' });
-    text(`رقم الإيصال: ${plan.reference}`, right - 20, inner + 60, { size: 12, color: '#d1fae5' });
-    text(plan.title, inner + 20, inner + 48, { size: 18, weight: 700, color: '#ffffff', align: 'left' });
+    text(plan.buildingName, right - 20, inner + 36, { size: 20, weight: 700, color: RECEIPT_IMAGE_PALETTE.accentInk });
+    text(`رقم الإيصال: ${plan.reference}`, right - 20, inner + 60, { size: 12, color: RECEIPT_IMAGE_PALETTE.headerMutedInk });
+    text(plan.title, inner + 20, inner + 48, { size: 18, weight: 700, color: RECEIPT_IMAGE_PALETTE.accentInk, align: 'left' });
 
     // body: identity grid
     let y = inner + 84 + 20;
@@ -427,11 +449,11 @@ function drawReceiptImage(plan) {
         const row = Math.floor(index / 2);
         const boxX = index % 2 === 0 ? gridRight - columnWidth : gridLeft;
         const boxY = y + row * (RECEIPT_IMAGE_FIELD_HEIGHT + RECEIPT_IMAGE_FIELD_GAP);
-        ctx.strokeStyle = '#e2e8f0';
+        ctx.strokeStyle = RECEIPT_IMAGE_PALETTE.hairline;
         ctx.lineWidth = 1;
         receiptRoundRect(ctx, boxX, boxY, columnWidth, RECEIPT_IMAGE_FIELD_HEIGHT, 10);
         ctx.stroke();
-        text(field[0], boxX + columnWidth - 12, boxY + 18, { size: 10, color: '#64748b' });
+        text(field[0], boxX + columnWidth - 12, boxY + 18, { size: 10, color: RECEIPT_IMAGE_PALETTE.faint });
         text(field[1], boxX + columnWidth - 12, boxY + 36, { size: 12, weight: 700 });
     });
     y += Math.ceil(plan.fields.length / 2) * (RECEIPT_IMAGE_FIELD_HEIGHT + RECEIPT_IMAGE_FIELD_GAP) + 30;
@@ -440,10 +462,10 @@ function drawReceiptImage(plan) {
     text('تفاصيل السداد', right - 2, y, { size: 13, weight: 700 });
     y += 10;
     const columns = [
-        { label: 'الغرض', width: 250, source: 'purpose', color: '#0f172a', weight: 400 },
-        { label: 'شهر / بند', width: 120, source: 'month', color: '#334155', weight: 400 },
-        { label: 'الصندوق', width: 160, source: 'cashbox', color: '#334155', weight: 400 },
-        { label: 'المبلغ', width: 142, source: 'amount', color: '#065f46', weight: 700 }
+        { label: 'الغرض', width: 250, source: 'purpose', color: RECEIPT_IMAGE_PALETTE.ink, weight: 400 },
+        { label: 'شهر / بند', width: 120, source: 'month', color: RECEIPT_IMAGE_PALETTE.rule, weight: 400 },
+        { label: 'الصندوق', width: 160, source: 'cashbox', color: RECEIPT_IMAGE_PALETTE.rule, weight: 400 },
+        { label: 'المبلغ', width: 142, source: 'amount', color: RECEIPT_IMAGE_PALETTE.totalInk, weight: 700 }
     ];
     let columnRight = right;
     const columnEdges = columns.map(column => {
@@ -451,13 +473,13 @@ function drawReceiptImage(plan) {
         columnRight -= column.width;
         return edge;
     });
-    ctx.fillStyle = '#f8fafc';
+    ctx.fillStyle = RECEIPT_IMAGE_PALETTE.headSurface;
     ctx.fillRect(inner, y, plan.width - inner * 2, RECEIPT_IMAGE_TABLE_HEAD);
-    columnEdges.forEach(edge => text(edge.label, edge.right - 10, y + 22, { size: 11, color: '#475569' }));
+    columnEdges.forEach(edge => text(edge.label, edge.right - 10, y + 22, { size: 11, color: RECEIPT_IMAGE_PALETTE.muted }));
     y += RECEIPT_IMAGE_TABLE_HEAD;
     plan.items.forEach(item => {
         columnEdges.forEach(edge => text(item[edge.source], edge.right - 10, y + 25, { size: 12, weight: edge.weight, color: edge.color }));
-        ctx.strokeStyle = '#e2e8f0';
+        ctx.strokeStyle = RECEIPT_IMAGE_PALETTE.hairline;
         ctx.beginPath();
         ctx.moveTo(inner, y + RECEIPT_IMAGE_TABLE_ROW);
         ctx.lineTo(plan.width - inner, y + RECEIPT_IMAGE_TABLE_ROW);
@@ -470,34 +492,34 @@ function drawReceiptImage(plan) {
         y += 16;
         const notesHeight = 26 + plan.notes.length * 22;
         ctx.setLineDash([6, 5]);
-        ctx.strokeStyle = '#cbd5e1';
+        ctx.strokeStyle = RECEIPT_IMAGE_PALETTE.line;
         receiptRoundRect(ctx, inner, y, plan.width - inner * 2, notesHeight, 10);
         ctx.stroke();
         ctx.setLineDash([]);
-        text('ملاحظات الدفع', right - 12, y + 18, { size: 10, weight: 700, color: '#4f46e5' });
-        plan.notes.forEach((note, index) => text(note, right - 12, y + 38 + index * 22, { size: 11, color: '#334155' }));
+        text('ملاحظات الدفع', right - 12, y + 18, { size: 10, weight: 700, color: RECEIPT_IMAGE_PALETTE.accent });
+        plan.notes.forEach((note, index) => text(note, right - 12, y + 38 + index * 22, { size: 11, color: RECEIPT_IMAGE_PALETTE.rule }));
         y += notesHeight;
     }
 
     // body: total band
     y += 18;
-    ctx.fillStyle = '#ecfdf5';
+    ctx.fillStyle = RECEIPT_IMAGE_PALETTE.totalSurface;
     receiptRoundRect(ctx, inner, y, plan.width - inner * 2, 54, 12);
     ctx.fill();
-    text('إجمالي المبلغ المستلم', right - 18, y + 33, { size: 14, weight: 700, color: '#065f46' });
-    text(plan.total, inner + 18, y + 33, { size: 16, weight: 700, color: '#065f46', align: 'left' });
+    text('إجمالي المبلغ المستلم', right - 18, y + 33, { size: 14, weight: 700, color: RECEIPT_IMAGE_PALETTE.totalInk });
+    text(plan.total, inner + 18, y + 33, { size: 16, weight: 700, color: RECEIPT_IMAGE_PALETTE.totalInk, align: 'left' });
     y += 54;
 
     // footer
     y += 22;
-    ctx.strokeStyle = '#e2e8f0';
+    ctx.strokeStyle = RECEIPT_IMAGE_PALETTE.hairline;
     ctx.beginPath();
     ctx.moveTo(inner, y - 10);
     ctx.lineTo(plan.width - inner, y - 10);
     ctx.stroke();
     const center = plan.width / 2;
-    text(plan.footer, center, y + 10, { size: 11, color: '#475569', align: 'center' });
-    text(plan.sourceText, center, y + 30, { size: 10, color: '#94a3b8', align: 'center' });
+    text(plan.footer, center, y + 10, { size: 11, color: RECEIPT_IMAGE_PALETTE.muted, align: 'center' });
+    text(plan.sourceText, center, y + 30, { size: 10, color: RECEIPT_IMAGE_PALETTE.source, align: 'center' });
 
     return canvas;
 }
