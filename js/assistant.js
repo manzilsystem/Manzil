@@ -752,8 +752,8 @@ function assistantIsOwner() {
 
 function assistantOwnerResident() {
     const residents = Array.isArray(state.residents) ? state.residents : [];
-    if (!residents.length) return null;
-    return residents.find(resident => resident.id === currentResidentId) || residents[0];
+    if (!residents.length || !currentResidentId) return null;
+    return residents.find(resident => resident.id === currentResidentId) || null;
 }
 
 function assistantUserDisplayName() {

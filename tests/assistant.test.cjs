@@ -7,6 +7,7 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const stateSource = fs.readFileSync(path.join(root, 'js', 'state.js'), 'utf8');
 const assistantSource = fs.readFileSync(path.join(root, 'js', 'assistant.js'), 'utf8');
+const assistantVoiceSource = fs.readFileSync(path.join(root, 'js', 'assistant-voice.js'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'css', 'style.css'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
@@ -270,6 +271,20 @@ test('assistant is local-only and never touches the network', () => {
     assert.doesNotMatch(assistantSource, /supabase/i);
     assert.match(assistantSource, /ومساعدك المحلي/, 'the assistant introduces itself as a local helper');
     assert.match(html, /<p><span class="assistant-online-dot" aria-hidden="true"><\/span> بيانات التطبيق فقط<\/p>/, 'the head keeps the one-line privacy note and nothing more');
+});
+
+test('assistant voice downloads only the pinned speech model and never uploads audio', () => {
+    const urls = assistantVoiceSource.match(/https?:\/\/[^\s'"`]+/g) || [];
+    assert.equal(urls.length, 1, 'the speech path has exactly one external URL');
+    assert.match(urls[0], /^https:\/\/huggingface\.co\/[^/]+\/[^/]+\/resolve\/[0-9a-f]{40}\/onnx\/model_int8\.onnx$/, 'the model URL is pinned to an immutable revision');
+    assert.equal((assistantVoiceSource.match(/\bfetch\s*\(/g) || []).length, 1, 'the only fetch is the one-time model download');
+    assert.match(assistantVoiceSource, /fetch\(ASSISTANT_ASR_MODEL_URL, \{/, 'the download is bound to the pinned constant');
+    assert.match(assistantVoiceSource, /window\.confirm\(/, 'the model download needs explicit consent');
+    assert.doesNotMatch(assistantVoiceSource, /method\s*:\s*['"]POST|FormData|sendBeacon|XMLHttpRequest|WebSocket|EventSource|supabase|service_role/i, 'audio and transcripts are never uploaded');
+    const start = assistantVoiceSource.indexOf('async function startAssistantVoiceInput');
+    const modelLoad = assistantVoiceSource.indexOf('await assistantVoiceLoadModel()', start);
+    const beginRecording = assistantVoiceSource.indexOf('await assistantVoiceBeginRecording()', start);
+    assert.ok(start > -1 && modelLoad > start && beginRecording > modelLoad, 'the microphone starts only after the local model is ready');
 });
 
 test('arabic normalization and period resolution understand months, years and rollover phrasing', () => {
@@ -596,6 +611,23 @@ test('an owner bill answer covers their own apartment and their own due window',
     assert.match(fresh.api.answerAssistantQuery('عليّا كام؟', NOW).title, /نوفمبر 2026/);
     assert.equal(api.detectOwnerAssistantIntent(api.normalizeAssistantArabic('مين عليه متأخرات')), 'my_bill', 'arrears resolve to the owner’s own debt');
     assert.equal(fresh.api.answerAssistantQuery('مين عليه متأخرات؟', NOW).id, 'my_bill');
+});
+
+test('the owner assistant never guesses another apartment when the identity is missing', () => {
+    const { api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'missing' });
+    const bill = api.answerAssistantQuery('عليّا كام؟', NOW);
+    assert.equal(bill.id, 'owner_scope');
+    assert.match(bill.html, /مفيش شقة/);
+    assert.doesNotMatch(bill.html, /أحمد|سارة|شقة 3|شقة 7/, 'an unmatched owner identity must never fall back to another unit');
+});
+
+test('an owner assistant reads only the apartment bound to its resident id', () => {
+    const { context, api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r2' });
+    vm.runInContext(`state.residents = ${JSON.stringify(RESIDENTS)};`, context);
+    const bill = api.answerAssistantQuery('عليّا كام؟', NOW);
+    assert.equal(bill.id, 'my_bill');
+    assert.match(bill.html, /شقة 7/);
+    assert.doesNotMatch(bill.html, /أحمد|شقة 3/, 'even with a wider resident read the owner stays on their own unit');
 });
 
 test('building-wide questions are refused for owners instead of answered with their slice', () => {
