@@ -901,6 +901,36 @@ test('the settings payment-toggle thumb uses its canonical white surface token',
         `"${selector}" must not keep the raw white surface literal`);
 });
 
+test('the settings brand mark and toggle share one canonical shadow tint', () => {
+    const css = read('css/style.css');
+    const name = '--settings-shadow-black-28';
+    const value = 'rgba(0, 0, 0, .28)';
+    const declaration = `${name}: ${value};`;
+    const escape = input => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const layer = blocks(css, '#settingsModal')[0];
+
+    assert.ok(layer, 'expected a #settingsModal token layer');
+    assert.match(layer[1], new RegExp(escape(declaration)),
+        `the settings token layer must declare ${declaration}`);
+    assert.equal(css.split(declaration).length - 1, 1,
+        `${declaration} must be declared exactly once`);
+
+    for (const [selector, geometry] of [
+        ['#settingsModal .settings-brand-mark', '0 6px 18px'],
+        ['#settingsModal .settings-payment-toggle input[type="checkbox"]::after', '0 2px 6px']
+    ]) {
+        const rule = blocks(css, selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&'))[0];
+        assert.ok(rule, `expected a rule for "${selector}"`);
+        assert.match(rule[1], new RegExp(`box-shadow:\\s*${escape(geometry)}\\s+var\\(${escape(name)}\\)`),
+            `"${selector}" must preserve its shadow geometry and use var(${name})`);
+        assert.doesNotMatch(rule[1], new RegExp(escape(value)),
+            `"${selector}" must not retain ${value}`);
+    }
+
+    const literals = css.match(new RegExp(escape(value), 'g')) || [];
+    assert.equal(literals.length, 1, `${value} must only appear in the canonical token definition`);
+});
+
 test('the settings card-tone accent palette resolves from its canonical tokens', () => {
     const css = read('css/style.css');
 

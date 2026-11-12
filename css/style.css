@@ -1285,6 +1285,9 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     /* Canonical white surface for the settings payment-toggle thumb. It is
        theme-invariant and matches the literal it replaces exactly. */
     --settings-payment-toggle-thumb-surface: #fff;
+    /* Canonical black shadow tint shared by the settings brand mark and
+       payment-toggle thumb. */
+    --settings-shadow-black-28: rgba(0, 0, 0, .28);
     /* Canonical near-white inks for the settings topbar, close control and hero. */
     --settings-ink-topbar: #f2fbfa;
     --settings-ink-close: #e8f7f5;
@@ -1456,7 +1459,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     border: 1px solid var(--settings-gold-veil-40);
     border-radius: var(--radius-90);
     background: transparent;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, .28);
+    box-shadow: 0 6px 18px var(--settings-shadow-black-28);
 }
 #settingsModal .settings-brand-copy {
     display: grid;
@@ -2280,7 +2283,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     height: 1.12rem;
     border-radius: var(--radius-circle);
     background: var(--settings-payment-toggle-thumb-surface);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, .28);
+    box-shadow: 0 2px 6px var(--settings-shadow-black-28);
     transform: translateY(-50%);
     transition: inset-inline-start var(--motion-180) var(--ease-standard);
 }
