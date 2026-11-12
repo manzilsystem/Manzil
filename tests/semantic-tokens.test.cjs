@@ -1425,3 +1425,44 @@ test('the manager notification badge palette resolves from canonical tokens', ()
     const found = css.match(new RegExp(escape('#e11d48'), 'g')) || [];
     assert.equal(found.length, 1, '#e11d48 must only appear in the canonical token definition');
 });
+
+test('the assistant floating-button shadow palette resolves from canonical tokens', () => {
+    // Part 60: the عم عبده floating button (.assistant-fab) and its compact state kept
+    // raw rgba(2, 6, 23, .38) / rgba(2, 6, 23, .32) shadow literals. They now resolve
+    // from the canonical assistant FAB shadow palette declared once in :root. Each
+    // token matches the literal it replaced, so no visual change is introduced.
+    const css = read('css/style.css');
+    const rootBlock = blocks(css, ':root')[0][1];
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const tokens = {
+        '--assistant-fab-shadow': 'rgba(2, 6, 23, .38)',
+        '--assistant-fab-shadow-compact': 'rgba(2, 6, 23, .32)'
+    };
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(rootBlock, new RegExp(escape(declaration)), `:root must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1, `${declaration} must be declared exactly once`);
+    }
+
+    const fab = blocks(css, '\\.assistant-fab')[0];
+    assert.ok(fab, 'expected a rule for the assistant floating action button');
+    assert.ok(/box-shadow:\s*0 14px 34px var\(--assistant-fab-shadow\)/.test(fab[1]),
+        'the assistant FAB must cast its drop shadow via var(--assistant-fab-shadow)');
+    assert.ok(!/rgba\(2, 6, 23/.test(fab[1]),
+        'the assistant FAB must not keep a raw rgba(2, 6, 23, …) shadow literal');
+
+    const compact = blocks(css, '\\.assistant-fab\\.is-compact')[0];
+    assert.ok(compact, 'expected a rule for the compact assistant FAB');
+    assert.ok(/box-shadow:\s*0 9px 22px var\(--assistant-fab-shadow-compact\)/.test(compact[1]),
+        'the compact assistant FAB must cast its drop shadow via var(--assistant-fab-shadow-compact)');
+    assert.ok(!/rgba\(2, 6, 23/.test(compact[1]),
+        'the compact assistant FAB must not keep a raw rgba(2, 6, 23, …) shadow literal');
+
+    // Both literals were unique to this palette; they may only survive in their token
+    // definitions (the remaining rgba(2, 6, 23, …) alphas belong to excluded surfaces).
+    for (const literal of ['rgba(2, 6, 23, .38)', 'rgba(2, 6, 23, .32)']) {
+        const found = css.match(new RegExp(escape(literal), 'g')) || [];
+        assert.equal(found.length, 1, `${literal} must only appear in the canonical token definition`);
+    }
+});

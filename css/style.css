@@ -260,6 +260,14 @@
        routing the rule through them introduces no visual change. */
     --manager-badge-surface: #e11d48;
     --manager-badge-ink: #fff;
+    /* Canonical عم عبده floating-button shadow palette — the single source for the
+       drop shadows under the assistant floating action button (.assistant-fab) and
+       its compact state. Both shadows are cast from one near-black slate ink
+       (rgb(2, 6, 23)) and are intentionally theme-invariant, so these live in :root
+       and never remap. Values match the literals they replaced exactly, so routing
+       the rules through them introduces no visual change. */
+    --assistant-fab-shadow: rgba(2, 6, 23, .38);
+    --assistant-fab-shadow-compact: rgba(2, 6, 23, .32);
     --radius-lg: 1rem;
     --radius-pill: 999px;
     --radius-circle: 50%;
@@ -3967,7 +3975,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     padding: var(--space-30) var(--space-80) var(--space-30) var(--space-30);
     border-radius: var(--radius-pill);
     border: 1px solid color-mix(in srgb, var(--accent-color) 45%, var(--border-color));
-    box-shadow: 0 14px 34px rgba(2, 6, 23, .38);
+    box-shadow: 0 14px 34px var(--assistant-fab-shadow);
     transition: padding var(--motion-240) var(--ease-standard), box-shadow var(--motion-240) var(--ease-standard), transform var(--motion-260) var(--ease-standard), opacity var(--motion-200) var(--ease-standard), visibility var(--motion-260) var(--ease-standard);
 }
 .assistant-avatar-frame {
@@ -4020,7 +4028,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 .assistant-fab.is-compact {
     gap: var(--space-none);
     padding: var(--space-28);
-    box-shadow: 0 9px 22px rgba(2, 6, 23, .32);
+    box-shadow: 0 9px 22px var(--assistant-fab-shadow-compact);
 }
 .assistant-fab.is-compact .assistant-fab-label { max-width: 0; opacity: var(--opacity-0); }
 .assistant-fab.is-compact::after { display: none; }
