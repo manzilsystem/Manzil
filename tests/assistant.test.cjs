@@ -222,6 +222,11 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(html, /<button type="button" id="assistantFab"[^>]*onclick="openAssistantModal\(\)"/);
     assert.match(html, /aria-label="اسأل عم عبده البواب"/);
     assert.match(html, /class="assistant-avatar-frame assistant-fab-avatar"[^>]*><img src="icons\/assistant-abbah\.png\?v=/, 'the launcher clips the avatar into a face-centered circle');
+    assert.match(html, /class="assistant-fab-greeting"[^>]*>أهلاً بيك</, 'the doorman greets before the first click');
+    assert.match(html, /class="assistant-fab-copy"[\s\S]*class="assistant-fab-label"[\s\S]*class="assistant-fab-sub"/, 'the launcher pairs the name with the local-data promise');
+    assert.match(css, /\.assistant-fab-avatar \{[\s\S]*box-shadow: 0 0 0 3px/, 'the portrait sits in a ringed medallion');
+    assert.match(css, /@keyframes assistant-fab-greet/, 'the greeting is a timed animation, not permanent chrome');
+    assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.assistant-fab-greeting \{ animation: none; \}/, 'reduced motion cancels the greeting animation');
     assert.doesNotMatch(html, /assistant-header-button/, 'the launcher left the header for the floating button');
     assert.ok(html.indexOf('js/assistant.js') > -1, 'assistant script is included');
     assert.ok(html.indexOf('js/assistant.js') < html.indexOf('js/app.js'), 'assistant loads before app bootstrap');

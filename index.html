@@ -18,7 +18,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css?v=d53896589f">
+    <link rel="stylesheet" href="css/style.css?v=2b66986587">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -868,8 +868,12 @@
 
     <!-- Assistant launcher — slides away while scrolling down, returns when scrolling up -->
     <button type="button" id="assistantFab" class="app-card assistant-fab" onclick="openAssistantModal()" aria-label="اسأل عم عبده البواب" title="اسأل عم عبده البواب">
+        <span class="assistant-fab-greeting" aria-hidden="true">أهلاً بيك</span>
         <span class="assistant-avatar-frame assistant-fab-avatar"><img src="icons/assistant-abbah.png?v=f00447602d" alt="" width="44" height="44" decoding="async"></span>
-        <span class="assistant-fab-label">اسأل عم عبده</span>
+        <span class="assistant-fab-copy">
+            <span class="assistant-fab-label">اسأل عم عبده</span>
+            <span class="assistant-fab-sub"><i class="fa-solid fa-lock" aria-hidden="true"></i>بياناتك فقط</span>
+        </span>
     </button>
 
     <!-- Notice Modal -->
@@ -2180,6 +2184,7 @@
             <div id="assistantAvatarStage" class="assistant-avatar-stage" hidden>
                 <img id="assistantAvatarPoster" class="assistant-avatar-poster" src="icons/assistant-abbah-full.png?v=1f40df6bdd" alt="عم عبده البواب" width="120" height="120" decoding="async">
                 <div id="assistantAvatarMount" class="assistant-avatar-mount" aria-hidden="true"></div>
+                <button type="button" id="assistantAvatarToggle" class="assistant-avatar-toggle" aria-pressed="false" aria-busy="false" aria-label="عرض عم عبده كمجسّم ثلاثي الأبعاد تجريبي" title="عرض مجسّم 3D تجريبي"><i class="fa-solid fa-cube" aria-hidden="true"></i><span>3D</span></button>
             </div>
             <div id="assistantLog" class="assistant-log" role="log" aria-live="polite" aria-label="محادثة عم عبده البواب" onclick="handleAssistantSuggestion(event)"></div>
             <div id="assistantSuggestions" class="assistant-suggestions" aria-label="أسئلة مقترحة" onclick="handleAssistantSuggestion(event)"></div>
@@ -2199,7 +2204,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-dd211623f2"></script>
+    <script src="js/telemetry.js?v=manzil-6116bc4bca"></script>
     <script src="js/state.js?v=6e9bcc8346"></script>
     <script src="js/access.js?v=0e8f36ff5c"></script>
     <script src="js/render.js?v=38a35471ba"></script>
@@ -2213,7 +2218,7 @@
     <script src="js/monthly-close.js?v=bab5545096"></script>
     <script src="js/backup.js?v=6f6d4ebbf1"></script>
     <script src="js/assistant.js?v=eef2e439c5"></script>
-    <script src="js/assistant-avatar-3d.js?v=8b346cf60d"></script>
+    <script src="js/assistant-avatar-3d.js?v=6c50f1b655"></script>
     <script src="js/assistant-voice.js?v=44b26252ee"></script>
     <script src="js/app.js?v=27a807c306"></script>
 </body>

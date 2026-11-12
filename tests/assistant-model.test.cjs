@@ -52,12 +52,52 @@ test('the rigged avatar keeps the scanned silhouette and falls back to the PNG p
         'vertex count must not change');
     assert.equal(json.accessors[primitive.indices].count,
         sourceGlb.json.accessors[sourcePrimitive.indices].count, 'triangle count must not change');
-    // Identity is the scan's vertex colouring: it has to survive rigging byte for byte.
-    const colorView = sourceGlb.json.accessors[primitive.attributes.COLOR_0].bufferView;
-    const riggedColorView = json.accessors[primitive.attributes.COLOR_0].bufferView;
-    assert.ok(bufferViewBytes(json, bin, riggedColorView)
-        .equals(bufferViewBytes(sourceGlb.json, sourceGlb.bin, colorView)),
-    'COLOR_0 must be untouched');
+});
+
+test('the rig repaints the scan from the doorman palette', async () => {
+    const rig = await import(pathToFileURL(path.join(root, 'scripts', 'rig-assistant-model.mjs')).href);
+    const colors = json.accessors[primitive.attributes.COLOR_0];
+    assert.equal(colors.type, 'VEC4');
+    assert.equal(colors.normalized, true);
+    const bytes = bufferViewBytes(json, bin, colors.bufferView);
+    const linearByte = srgb => Math.round((srgb <= 0.04045
+        ? srgb / 12.92
+        : ((srgb + 0.055) / 1.055) ** 2.4) * 255);
+    const expected = new Set(Object.values(rig.PALETTE)
+        .map(rgb => rgb.map(linearByte).join(',')));
+    const seen = new Set();
+    for (let vertex = 0; vertex < colors.count; vertex += 1) {
+        seen.add(`${bytes[vertex * 4]},${bytes[vertex * 4 + 1]},${bytes[vertex * 4 + 2]}`);
+        assert.equal(bytes[vertex * 4 + 3], 255, 'palette repainting must leave alpha opaque');
+    }
+    for (const color of seen) assert.ok(expected.has(color), `unexpected vertex colour ${color}`);
+    assert.equal(seen.size, expected.size, 'every palette tone must be used somewhere on the figure');
+});
+
+test('the rig carries smooth normals and a matte material so the scan can be lit', () => {
+    // Without NORMAL every directional light term collapses to zero and the
+    // figure renders as a flat white silhouette; the scan ships no normals.
+    const normals = json.accessors[primitive.attributes.NORMAL];
+    assert.ok(normals, 'NORMAL must be present');
+    assert.equal(normals.count, vertexCount);
+    assert.equal(normals.type, 'VEC3');
+    const values = accessorFloats(json, bin, primitive.attributes.NORMAL);
+    let lowest = 1;
+    let highest = -1;
+    for (let i = 0; i < values.length; i += 3) {
+        const length = Math.hypot(values[i], values[i + 1], values[i + 2]);
+        assert.ok(Math.abs(length - 1) < 1e-3, `normal ${i / 3} must be unit length`);
+        lowest = Math.min(lowest, values[i + 1]);
+        highest = Math.max(highest, values[i + 1]);
+    }
+    assert.ok(highest - lowest > 0.5, 'normals must vary across the surface');
+
+    assert.equal(json.materials.length, 1);
+    const material = json.materials[0];
+    assert.equal(primitive.material, 0, 'the primitive must use the material');
+    assert.equal(material.pbrMetallicRoughness.metallicFactor, 0);
+    assert.ok(material.pbrMetallicRoughness.roughnessFactor >= 0.8, 'cloth must stay matte');
+    assert.equal(material.doubleSided, true, 'scan holes must not reveal the backdrop');
 });
 
 test('the avatar is upright and carries a single humanoid skin', () => {

@@ -61,17 +61,28 @@ test('the module waits for the modal, pauses on close and degrades to the still 
     assert.match(avatar, /minimumRenderScale = 1/, 'slow frames must not widen the canvas past the RTL stage');
     assert.match(avatar, /if \(!reducedMotion\(\)\) element\.setAttribute\('autoplay'/);
     assert.match(avatar, /viewer\.style\.display = 'none'/);
-    assert.match(avatar, /stageElement\.hidden = true/);
+    assert.match(avatar, /state = 'error';\s*wanted = false;/, 'a failed model must fall back to the poster');
 });
 
-test('the modal keeps a hidden stage that only appears once the viewer exists', () => {
+test('the 3D view is opt-in: opening the modal never downloads the viewer or the model', () => {
+    const observer = avatar.slice(avatar.indexOf('new MutationObserver'), avatar.indexOf('.observe(modal'));
+    assert.doesNotMatch(observer, /\bmount\(\)/, 'opening the modal must not start the download');
+    assert.match(avatar, /button\.addEventListener\('click', toggle\)/);
+    assert.ok(avatar.includes("TOGGLE_ID = 'assistantAvatarToggle'"));
+    assert.match(avatar, /toggle\.setAttribute\('aria-pressed', String\(showing\)\)/);
+    assert.match(avatar, /toggle\.disabled = busy \|\| state === 'unsupported' \|\| state === 'error'/);
+});
+
+test('the modal keeps a hidden stage with the portrait and an explicit 3D toggle', () => {
     const stage = modal.indexOf('id="assistantAvatarStage"');
     const log = modal.indexOf('id="assistantLog"');
     assert.ok(stage > -1 && stage < log, 'the stage sits between the header and the conversation');
-    const markup = modal.slice(stage, modal.indexOf('id="assistantLog"'));
+    const markup = modal.slice(stage, log);
     assert.match(markup, /id="assistantAvatarStage"[^>]*hidden/);
     assert.match(markup, /src="icons\/assistant-abbah-full\.png"/);
     assert.match(markup, /id="assistantAvatarMount"/);
+    assert.match(markup, /id="assistantAvatarToggle"[^>]*aria-pressed="false"[^>]*aria-busy="false"/);
+    assert.match(markup, /class="fa-solid fa-cube"/);
     assert.match(modal, /class="assistant-avatar"><img src="icons\/assistant-abbah\.png"/);
 });
 

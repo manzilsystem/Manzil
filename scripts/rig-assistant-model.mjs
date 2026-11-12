@@ -9,10 +9,14 @@
  * produces `icons/assistant-abbah-3d-rigged.glb`:
  *
  *   1. bakes the +90° Z rotation into POSITION so the figure is Y-up,
- *   2. adds a 21-joint humanoid skeleton whose landmarks come from the mesh,
- *   3. skins every vertex with smooth distance weights (top 4, quantised to
+ *   2. derives smooth, area-weighted vertex normals (the scan ships none, so
+ *      without them every lighting term collapses and the figure renders as a
+ *      flat plaster silhouette),
+ *   3. adds a 21-joint humanoid skeleton whose landmarks come from the mesh,
+ *   4. skins every vertex with smooth distance weights (top 4, quantised to
  *      normalised bytes) plus a jaw bone restricted to the lower face,
- *   4. adds the Idle / Talk / Greet clips.
+ *   5. adds the Idle / Talk / Greet clips,
+ *   6. attaches the matte, non-metallic material the scan colours expect.
  *
  * Run `node scripts/rig-assistant-model.mjs` to write the asset, or
  * `node scripts/rig-assistant-model.mjs --check` to fail when the committed
@@ -288,8 +292,95 @@ export function computeSkin(positions, indices, bones = BONES) {
     return { joints, weights, count };
 }
 
-/** Largest-remainder quantisation so every row sums to exactly 255. */
-function quantiseWeights(row) {
+/**
+ * Area-weighted smooth normals. The source scan has no NORMAL attribute, and
+ * a mesh without normals loses every directional lighting term, which is why
+ * it rendered as a flat white silhouette. Accumulating un-normalised face
+ * normals makes each triangle contribute in proportion to its area, then each
+ * vertex normal is normalised; the result is deterministic.
+ */
+export function computeNormals(positions, indices) {
+    const count = positions.length / 3;
+    const normals = new Float32Array(count * 3);
+    for (let i = 0; i < indices.length; i += 3) {
+        const a = indices[i] * 3, b = indices[i + 1] * 3, c = indices[i + 2] * 3;
+        const abx = positions[b] - positions[a];
+        const aby = positions[b + 1] - positions[a + 1];
+        const abz = positions[b + 2] - positions[a + 2];
+        const acx = positions[c] - positions[a];
+        const acy = positions[c + 1] - positions[a + 1];
+        const acz = positions[c + 2] - positions[a + 2];
+        const nx = aby * acz - abz * acy;
+        const ny = abz * acx - abx * acz;
+        const nz = abx * acy - aby * acx;
+        normals[a] += nx; normals[a + 1] += ny; normals[a + 2] += nz;
+        normals[b] += nx; normals[b + 1] += ny; normals[b + 2] += nz;
+        normals[c] += nx; normals[c + 1] += ny; normals[c + 2] += nz;
+    }
+    for (let i = 0; i < count; i += 1) {
+        const length = Math.hypot(normals[i * 3], normals[i * 3 + 1], normals[i * 3 + 2]);
+        if (length > 1e-12) {
+            normals[i * 3] /= length;
+            normals[i * 3 + 1] /= length;
+            normals[i * 3 + 2] /= length;
+        } else {
+            normals[i * 3 + 1] = 1;
+        }
+    }
+    return normals;
+}
+
+/**
+ * The scan's baked colours are a photogrammetry by-product: flat lighting,
+ * stains and a brown smudge across the galabeya. They cannot be delighted
+ * offline, so the rig repaints the surface from a small doorman palette using
+ * the kinematics it already knows (feet under the ankles, hands beside the
+ * hips, face inside the jaw region) and lets the new normals supply shading.
+ */
+export const PALETTE = {
+    robe: [0.76, 0.69, 0.57],
+    cap: [0.87, 0.83, 0.74],
+    skin: [0.71, 0.57, 0.43],
+    sandal: [0.38, 0.28, 0.20]
+};
+
+const HAND_SEGMENTS = BONES
+    .filter(bone => bone.name.startsWith('hand.'))
+    .map(bone => [bone.pos, bone.tail]);
+const HAND_RADIUS = 0.05;
+
+function paletteFor(px, py, pz) {
+    if (py < -0.405) return PALETTE.sandal;
+    const inHand = HAND_SEGMENTS.some(([a, b]) => distanceToSegment(px, py, pz, a, b) < HAND_RADIUS);
+    if (inHand) return PALETTE.skin;
+    // The turban sits above the brow line; below the chin the scan already
+    // carries a white beard, which the robe tone preserves.
+    const face = py > 0.352 && py < 0.437 && pz > 0.08 && Math.abs(px - 0.022) < 0.08;
+    if (face) return PALETTE.skin;
+    if (py > 0.437) return PALETTE.cap;
+    return PALETTE.robe;
+}
+
+export function paintVertexColors(json, bin, index, positions) {
+    const accessor = json.accessors[index];
+    if (accessor.componentType !== UBYTE || !accessor.normalized) return;
+    const view = json.bufferViews[accessor.bufferView];
+    const start = (view.byteOffset || 0) + (accessor.byteOffset || 0);
+    const components = { VEC3: 3, VEC4: 4 }[accessor.type];
+    if (!components) return;
+    for (let vertex = 0; vertex < accessor.count; vertex += 1) {
+        const rgb = paletteFor(
+            positions[vertex * 3], positions[vertex * 3 + 1], positions[vertex * 3 + 2]
+        );
+        for (let channel = 0; channel < Math.min(3, components); channel += 1) {
+            const srgb = rgb[channel];
+            const linear = srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4;
+            bin[start + vertex * components + channel] = Math.round(linear * 255);
+        }
+    }
+}
+
+/** Largest-remainder quantisation so every row sums to exactly 255. */function quantiseWeights(row) {
     const total = row.reduce((sum, value) => sum + value, 0) || 1;
     const scaled = row.map(value => (value / total) * 255);
     const floors = scaled.map(value => Math.floor(value));
@@ -313,6 +404,8 @@ export function buildRiggedGlb(source) {
     const positions = readFloatArray(json, bin, primitive.attributes.POSITION);
     const indices = readIndices(json, bin, primitive.indices);
     const skin = computeSkin(positions, indices);
+    const normals = computeNormals(positions, indices);
+    paintVertexColors(json, bin, primitive.attributes.COLOR_0, positions);
 
     // Bake the upright pose into the existing POSITION buffer view in place.
     const positionView = json.bufferViews[positionAccessor.bufferView];
@@ -384,6 +477,26 @@ export function buildRiggedGlb(source) {
     }) - 1;
     primitive.attributes.JOINTS_0 = jointAccessor;
     primitive.attributes.WEIGHTS_0 = weightAccessor;
+
+    const normalBytes = Buffer.alloc(vertexCount * 12);
+    for (let i = 0; i < normals.length; i += 1) normalBytes.writeFloatLE(normals[i], i * 4);
+    primitive.attributes.NORMAL = out.accessors.push({
+        componentType: FLOAT, type: 'VEC3', bufferView: append(normalBytes, ARRAY_BUFFER), count: vertexCount
+    }) - 1;
+
+    // The scan carries baked colour but no material. A matte, non-metallic
+    // surface keeps the galabeya cloth-like instead of turning it into plastic,
+    // and double-sided keeps the scan's small holes from showing the backdrop.
+    out.materials = [{
+        name: 'abbah-scan',
+        pbrMetallicRoughness: {
+            baseColorFactor: [1, 1, 1, 1],
+            metallicFactor: 0,
+            roughnessFactor: 0.92
+        },
+        doubleSided: true
+    }];
+    primitive.material = 0;
 
     // Skeleton. Bind poses are translations only, so each inverse bind matrix
     // is the inverse translation and each node keeps its parent-relative
