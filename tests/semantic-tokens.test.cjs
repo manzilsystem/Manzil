@@ -1338,3 +1338,57 @@ test('the assistant bubble and send-button inks resolve from canonical tokens', 
         assert.equal(found.length, 1, `${literal} must only appear in the canonical token definition`);
     }
 });
+
+test('the report primary-action palette resolves from canonical tokens', () => {
+    // Part 58: the emerald "primary" report button (.report-action-primary and its
+    // hover) kept raw #059669 / #10b981 / #fff literals plus a raw shadow stop. They
+    // now resolve from the canonical report primary palette declared once in :root.
+    // Each token matches the literal it replaced, so no visual change is introduced.
+    const css = read('css/style.css');
+    const rootBlock = blocks(css, ':root')[0][1];
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const tokens = {
+        '--report-primary-solid': '#059669',
+        '--report-primary-solid-hover': '#10b981',
+        '--report-primary-ink': '#fff',
+        '--report-primary-shadow': 'rgba(5, 150, 105, .18)'
+    };
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(rootBlock, new RegExp(escape(declaration)), `:root must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1, `${declaration} must be declared exactly once`);
+    }
+
+    // The primary button consumes the solid ink + shadow tokens.
+    const primary = blocks(css, '\\.report-action-primary');
+    assert.ok(primary.length, 'expected a rule for the report primary action');
+    const base = primary[0];
+    assert.ok(/background:\s*var\(--report-primary-solid\)/.test(base[1]),
+        'the report primary action must paint its background via var(--report-primary-solid)');
+    assert.ok(/border-color:\s*var\(--report-primary-solid\)/.test(base[1]),
+        'the report primary action must paint its border via var(--report-primary-solid)');
+    assert.ok(/color:\s*var\(--report-primary-ink\)/.test(base[1]),
+        'the report primary action must paint its ink via var(--report-primary-ink)');
+    assert.ok(/box-shadow:\s*0 8px 20px var\(--report-primary-shadow\)/.test(base[1]),
+        'the report primary action must paint its shadow stop via var(--report-primary-shadow)');
+    assert.ok(!/#059669|color:\s*#fff\b|rgba\(5,\s*150,\s*105/.test(base[1]),
+        'the report primary action must not keep raw #059669 / #fff / shadow literals');
+
+    // The hover state consumes the hover token.
+    const hover = blocks(css, '\\.report-action-primary:hover:not\\(:disabled\\)')[0];
+    assert.ok(hover, 'expected a rule for the report primary action hover');
+    assert.ok(/background:\s*var\(--report-primary-solid-hover\)/.test(hover[1]),
+        'the report primary hover must paint its background via var(--report-primary-solid-hover)');
+    assert.ok(/border-color:\s*var\(--report-primary-solid-hover\)/.test(hover[1]),
+        'the report primary hover must paint its border via var(--report-primary-solid-hover)');
+    assert.ok(!hover[1].includes('#10b981'),
+        'the report primary hover must not keep a raw #10b981 literal (#10b981 survives only in excluded surfaces)');
+
+    // #059669 and the shadow stop were unique to this palette; they may only
+    // survive in their token definitions.
+    for (const literal of ['#059669', 'rgba(5, 150, 105, .18)']) {
+        const found = css.match(new RegExp(escape(literal), 'g')) || [];
+        assert.equal(found.length, 1, `${literal} must only appear in the canonical token definition`);
+    }
+});
