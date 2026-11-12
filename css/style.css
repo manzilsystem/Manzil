@@ -252,6 +252,14 @@
     --report-primary-solid-hover: #10b981;
     --report-primary-ink: #fff;
     --report-primary-shadow: rgba(5, 150, 105, .18);
+    /* Canonical manager notification badge palette — the single source for the rose
+       unread-count bubble on the manager notification bell
+       (.manager-notifications-badge). The badge is intentionally theme-invariant
+       (the unread count stays a solid rose across all six themes), so these live in
+       :root and never remap. Values match the literals they replaced exactly, so
+       routing the rule through them introduces no visual change. */
+    --manager-badge-surface: #e11d48;
+    --manager-badge-ink: #fff;
     --radius-lg: 1rem;
     --radius-pill: 999px;
     --radius-circle: 50%;
@@ -4366,8 +4374,8 @@ body.owner-mode .owner-theme-control {
     height: 1.15rem;
     padding: var(--space-none) var(--space-28);
     border-radius: var(--radius-pill);
-    background: #e11d48;
-    color: #fff;
+    background: var(--manager-badge-surface);
+    color: var(--manager-badge-ink);
     font-size: var(--font-60);
     font-weight: var(--weight-800);
     line-height: var(--space-115);

@@ -1392,3 +1392,36 @@ test('the report primary-action palette resolves from canonical tokens', () => {
         assert.equal(found.length, 1, `${literal} must only appear in the canonical token definition`);
     }
 });
+
+test('the manager notification badge palette resolves from canonical tokens', () => {
+    // Part 59: the manager notification bell's unread-count badge kept raw #e11d48
+    // and #fff literals. It now resolves from the canonical manager badge palette
+    // declared once in :root. Each token matches the literal it replaced, so no
+    // visual change is introduced.
+    const css = read('css/style.css');
+    const rootBlock = blocks(css, ':root')[0][1];
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const tokens = {
+        '--manager-badge-surface': '#e11d48',
+        '--manager-badge-ink': '#fff'
+    };
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(rootBlock, new RegExp(escape(declaration)), `:root must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1, `${declaration} must be declared exactly once`);
+    }
+
+    const badge = blocks(css, '\\.manager-notifications-badge')[0];
+    assert.ok(badge, 'expected a rule for the manager notification badge');
+    assert.ok(/background:\s*var\(--manager-badge-surface\)/.test(badge[1]),
+        'the manager notification badge must paint its surface via var(--manager-badge-surface)');
+    assert.ok(/color:\s*var\(--manager-badge-ink\)/.test(badge[1]),
+        'the manager notification badge must paint its ink via var(--manager-badge-ink)');
+    assert.ok(!/#e11d48/.test(badge[1]) && !/color:\s*#fff\b/i.test(badge[1]),
+        'the manager notification badge must not keep raw #e11d48 / #fff literals');
+
+    // #e11d48 was unique to this palette; it may only survive in its token definition.
+    const found = css.match(new RegExp(escape('#e11d48'), 'g')) || [];
+    assert.equal(found.length, 1, '#e11d48 must only appear in the canonical token definition');
+});
