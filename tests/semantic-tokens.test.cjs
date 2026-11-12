@@ -1466,3 +1466,55 @@ test('the assistant floating-button shadow palette resolves from canonical token
         assert.equal(found.length, 1, `${literal} must only appear in the canonical token definition`);
     }
 });
+
+test('the settings preview-panel inks and hairline resolve from canonical tokens', () => {
+    // Part 61: the settings live-card heading (#settingsModal .settings-live-head b),
+    // the phone preview body ink (#settingsModal .settings-phone .settings-preview-body)
+    // and the phone card hairline (#settingsModal .settings-phone-card) kept raw
+    // #f4fbfa / #e9f7f4 / rgba(15, 59, 58, .4) literals. They now resolve from canonical
+    // tokens declared once inside the #settingsModal token layer. Every token matches
+    // the literal it replaced, and these dark surfaces are theme-invariant (the light
+    // theme polish does not repaint them), so no visual change is introduced.
+    const css = read('css/style.css');
+    const settingsBlock = blocks(css, '#settingsModal')[0][1];
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const tokens = {
+        '--settings-live-head-ink': '#f4fbfa',
+        '--settings-preview-body-ink': '#e9f7f4',
+        '--settings-phone-card-line': 'rgba(15, 59, 58, .4)'
+    };
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(settingsBlock, new RegExp(escape(declaration)),
+            `#settingsModal must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1, `${declaration} must be declared exactly once`);
+    }
+
+    const liveHead = blocks(css, '#settingsModal \\.settings-live-head b')[0];
+    assert.ok(liveHead, 'expected a rule for the settings live-card heading');
+    assert.ok(/color:\s*var\(--settings-live-head-ink\)/.test(liveHead[1]),
+        'the settings live-card heading must paint its ink via var(--settings-live-head-ink)');
+    assert.ok(!/#f4fbfa/.test(liveHead[1]),
+        'the settings live-card heading must not keep a raw #f4fbfa literal');
+
+    const phoneCard = blocks(css, '#settingsModal \\.settings-phone-card')[0];
+    assert.ok(phoneCard, 'expected a rule for the settings phone card');
+    assert.ok(/border-color:\s*var\(--settings-phone-card-line\)/.test(phoneCard[1]),
+        'the settings phone card must draw its hairline via var(--settings-phone-card-line)');
+    assert.ok(!/rgba\(15, 59, 58/.test(phoneCard[1]),
+        'the settings phone card must not keep a raw rgba(15, 59, 58, …) hairline literal');
+
+    const previewBody = blocks(css, '#settingsModal \\.settings-phone \\.settings-preview-body')[0];
+    assert.ok(previewBody, 'expected a rule for the settings phone preview body');
+    assert.ok(/color:\s*var\(--settings-preview-body-ink\)/.test(previewBody[1]),
+        'the settings phone preview body must paint its ink via var(--settings-preview-body-ink)');
+    assert.ok(!/#e9f7f4/.test(previewBody[1]),
+        'the settings phone preview body must not keep a raw #e9f7f4 literal');
+
+    // Each literal was unique to its rule; it may only survive in its token definition.
+    for (const literal of ['#f4fbfa', '#e9f7f4', 'rgba(15, 59, 58, .4)']) {
+        const found = css.match(new RegExp(escape(literal), 'g')) || [];
+        assert.equal(found.length, 1, `${literal} must only appear in the canonical token definition`);
+    }
+});
