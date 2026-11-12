@@ -7,7 +7,7 @@ const vm = require('node:vm');
 const backupSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'backup.js'), 'utf8');
 
 function createImportHarness(fileContent, options = {}) {
-    const calls = { saves: 0, layoutUpdates: 0, layoutArgs: [], renders: 0, closes: 0, toasts: [] };
+    const calls = { saves: 0, layoutUpdates: 0, layoutArgs: [], renders: 0, closes: 0, toasts: [], themes: [] };
     const sandbox = {
         state: {
             buildingName: 'Current building',
@@ -43,6 +43,7 @@ function createImportHarness(fileContent, options = {}) {
         },
         toast: (message, type) => calls.toasts.push({ message, type }),
         renderAll: () => { calls.renders += 1; },
+        applyThemeToDocument: theme => { calls.themes.push(theme); },
         closeModal: () => { calls.closes += 1; },
         console,
         document: {
@@ -185,4 +186,28 @@ test('successful JSON import validates, persists, renders and closes the backup 
     assert.equal(harness.calls.renders, 1);
     assert.equal(harness.calls.closes, 1);
     assert.equal(harness.calls.toasts.at(-1).type, 'success');
+});
+
+test('a successful import applies the imported theme through the canonical applier', async () => {
+    const valid = {
+        buildingName: 'Imported building',
+        currentTheme: 'emerald',
+        residents: [],
+        income: [],
+        expenses: [],
+        notices: []
+    };
+    const harness = createImportHarness(JSON.stringify(valid));
+
+    harness.api.importJSON(harness.event);
+    await harness.sandbox.reader.done;
+
+    assert.deepEqual(harness.calls.themes, ['emerald']);
+});
+
+test('the theme colour palette is declared once and reused on import', () => {
+    assert.doesNotMatch(backupSource, /dark:\s*'#0b1020'/,
+        'backup.js must not redeclare the theme colour palette');
+    assert.match(backupSource, /applyThemeToDocument\(/,
+        'backup.js must apply the imported theme through the canonical applier');
 });

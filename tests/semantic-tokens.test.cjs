@@ -1728,3 +1728,24 @@ test('the receipt image canvas palette resolves from canonical tokens', () => {
     assert.equal((palette.match(/#[0-9a-fA-F]{3,8}\b/g) || []).length, 15,
         'all 15 receipt image colors must be declared once in the palette map');
 });
+
+test('the browser theme colour palette has a single source of truth', () => {
+    // Part 66: the theme -> browser chrome colour map was duplicated inline inside the
+    // JSON import flow (js/backup.js) next to the canonical MANZIL_THEME_COLORS in
+    // js/state.js, so the two could drift. The import now reuses applyThemeToDocument(),
+    // leaving the palette declared once.
+    const state = read('js/state.js');
+    const backup = read('js/backup.js');
+
+    assert.equal((state.match(/const MANZIL_THEME_COLORS = \{/g) || []).length, 1,
+        'state.js must declare the theme colour map exactly once');
+    for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise']) {
+        assert.match(state, new RegExp(`${theme}:'#[0-9a-f]{6}'`),
+            `MANZIL_THEME_COLORS must keep the ${theme} colour`);
+    }
+
+    assert.doesNotMatch(backup, /dark:\s*'#0b1020'/,
+        'backup.js must not redeclare the theme colour palette');
+    assert.match(backup, /applyThemeToDocument\(state\.currentTheme\)/,
+        'the JSON import must apply the imported theme through the canonical applier');
+});
