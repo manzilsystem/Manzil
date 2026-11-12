@@ -841,11 +841,9 @@ test('the settings bright ink resolves from its canonical token', () => {
 test('the settings white ink resolves from its canonical token', () => {
     const css = read('css/style.css');
 
-    // Strong headings and values on the dark settings surfaces (the brand name,
-    // page title, hero heading and hero stats) share one solid white ink. It is
-    // theme-invariant — the light-theme polish does not repaint the surfaces it
-    // sits on — so it lives once in the #settingsModal token layer, and every
-    // consumer must reference it instead of the raw #fff literal.
+    // Strong headings and values on the dark settings surfaces share one solid
+    // white ink. The live-card labels use it too; the light-theme polish does
+    // not repaint any of these surfaces.
     const layer = blocks(css, '#settingsModal')[0];
     assert.ok(layer, 'expected a #settingsModal token layer');
     assert.match(
@@ -859,30 +857,48 @@ test('the settings white ink resolves from its canonical token', () => {
         '--settings-ink-white: #fff must be declared exactly once'
     );
 
-    // Strip the token definition so the remaining rules must not keep the raw
-    // literal where it was routed through the token.
-    const stripped = css.replace(/--settings-ink-white:\s*#fff;/, '');
-    const settingsStart = stripped.indexOf('#settingsModal');
-    const settingsEnd = stripped.indexOf('/* ---------- Responsive ---------- */');
-    const settingsRegion = stripped.slice(settingsStart, settingsEnd);
-    
     const consumers = [
         '#settingsModal .settings-brand-copy strong',
         '#settingsModal .settings-topbar-title h3',
         '#settingsModal .settings-hero-copy h4',
-        '#settingsModal .settings-hero-stats b'
+        '#settingsModal .settings-hero-stats b',
+        '#settingsModal .settings-live-name',
+        '#settingsModal .settings-live-stats b'
     ];
     for (const selector of consumers) {
-        const rules = blocks(settingsRegion, selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&'));
+        const rules = blocks(css, selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&'));
         assert.ok(rules.length, `expected a rule for "${selector}"`);
         assert.ok(
             rules.some(rule => /color:\s*var\(--settings-ink-white\)/.test(rule[1])),
             `"${selector}" must consume var(--settings-ink-white) instead of the raw #fff literal`
         );
+        assert.ok(
+            rules.every(rule => !/color:\s*#(?:fff|ffffff)\b/i.test(rule[1])),
+            `"${selector}" must not keep a raw white color literal`
+        );
     }
 
-    const uses = settingsRegion.match(/var\(--settings-ink-white\)/g) || [];
-    assert.ok(uses.length >= 4, 'every consumer must use var(--settings-ink-white)');
+    const uses = css.match(/var\(--settings-ink-white\)/g) || [];
+    assert.ok(uses.length >= consumers.length, 'every consumer must use var(--settings-ink-white)');
+});
+
+test('the settings payment-toggle thumb uses its canonical white surface token', () => {
+    const css = read('css/style.css');
+    const declaration = '--settings-payment-toggle-thumb-surface: #fff;';
+    const layer = blocks(css, '#settingsModal')[0];
+    assert.ok(layer, 'expected a #settingsModal token layer');
+    assert.match(layer[1], new RegExp(declaration.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+        `the settings token layer must declare ${declaration}`);
+    assert.equal(css.split(declaration).length - 1, 1,
+        `${declaration} must be declared exactly once`);
+
+    const selector = '#settingsModal .settings-payment-toggle input[type="checkbox"]::after';
+    const rule = blocks(css, selector.replace(/[.$*+?^${}()|[\]\\]/g, '\\$&'))[0];
+    assert.ok(rule, `expected a rule for "${selector}"`);
+    assert.match(rule[1], /background:\s*var\(--settings-payment-toggle-thumb-surface\)/,
+        `"${selector}" must consume the canonical white surface token`);
+    assert.doesNotMatch(rule[1], /background:\s*#fff\b/,
+        `"${selector}" must not keep the raw white surface literal`);
 });
 
 test('the settings card-tone accent palette resolves from its canonical tokens', () => {

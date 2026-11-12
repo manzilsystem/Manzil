@@ -1276,11 +1276,15 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
        through it changes nothing visually. */
     --settings-ink-bright: #eaf7f4;
     /* Canonical solid white ink for strong headings and values on the dark
-       settings surfaces (the brand name, page title, hero heading and hero
-       stats). It is theme-invariant — the light-theme polish does not repaint
-       the surfaces it sits on — and it matches the literal it replaced, so
-       routing declarations through it changes nothing visually. */
+       settings surfaces (the brand name, page title, hero heading and stats,
+       plus the live-card name and values). It is theme-invariant — the
+       light-theme polish does not repaint the surfaces it sits on — and it
+       matches the literal it replaced, so routing declarations through it
+       changes nothing visually. */
     --settings-ink-white: #fff;
+    /* Canonical white surface for the settings payment-toggle thumb. It is
+       theme-invariant and matches the literal it replaces exactly. */
+    --settings-payment-toggle-thumb-surface: #fff;
     /* Canonical near-white inks for the settings topbar, close control and hero. */
     --settings-ink-topbar: #f2fbfa;
     --settings-ink-close: #e8f7f5;
@@ -2275,7 +2279,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     width: 1.12rem;
     height: 1.12rem;
     border-radius: var(--radius-circle);
-    background: #fff;
+    background: var(--settings-payment-toggle-thumb-surface);
     box-shadow: 0 2px 6px rgba(0, 0, 0, .28);
     transform: translateY(-50%);
     transition: inset-inline-start var(--motion-180) var(--ease-standard);
@@ -3252,7 +3256,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     font-size: var(--font-57);
 }
 #settingsModal .settings-live-name {
-    color: #ffffff;
+    color: var(--settings-ink-white);
     font-size: var(--font-98);
     font-weight: var(--weight-900);
     line-height: var(--leading-150);
@@ -3282,7 +3286,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     font-weight: var(--weight-700);
 }
 #settingsModal .settings-live-stats b {
-    color: #ffffff;
+    color: var(--settings-ink-white);
     font-size: var(--font-95);
     font-weight: var(--weight-900);
 }
