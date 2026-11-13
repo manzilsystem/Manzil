@@ -2491,15 +2491,30 @@ function printResidentStatement() {
     window.print();
 }
 
-const REPORT_PDF_HEADER_STYLE = 'text-align:center;border-bottom:2px solid #334155;padding-bottom:12px;margin-bottom:18px';
+// Part 66: every report PDF (statements, monthly close, summary) is written into a
+// detached element before html2pdf renders it, so it cannot inherit the app :root
+// tokens. This palette declares the shared print-document colours once and the
+// shell, table head, and cell helpers reference it; each value matches the literal
+// it replaced, so the generated PDFs are unchanged.
+const REPORT_PDF_PALETTE = Object.freeze({
+    ink: '#111827',
+    surface: '#fff',
+    rule: '#334155',
+    line: '#cbd5e1',
+    hairline: '#e2e8f0',
+    muted: '#475569',
+    faint: '#64748b'
+});
+
+const REPORT_PDF_HEADER_STYLE = 'text-align:center;border-bottom:2px solid ' + REPORT_PDF_PALETTE.rule + ';padding-bottom:12px;margin-bottom:18px';
 const REPORT_PDF_TITLE_STYLE = 'font-size:22px;font-weight:800;margin:0';
 const REPORT_PDF_SUBTITLE_STYLE = 'font-size:17px;font-weight:700;margin:4px 0';
-const REPORT_PDF_META_STYLE = 'font-size:11px;color:#475569;margin:0';
-const REPORT_PDF_FOOTER_STYLE = 'font-size:9px;color:#64748b;margin-top:18px;text-align:center';
+const REPORT_PDF_META_STYLE = 'font-size:11px;color:' + REPORT_PDF_PALETTE.muted + ';margin:0';
+const REPORT_PDF_FOOTER_STYLE = 'font-size:9px;color:' + REPORT_PDF_PALETTE.faint + ';margin-top:18px;text-align:center';
 
 // Shared PDF shell so every report renders an identical RTL header and footer.
 function reportPdfDocumentOpen() {
-    return '<div dir="rtl" lang="ar" style="font-family:Cairo,Arial,sans-serif;color:#111827;background:#fff;line-height:1.8">';
+    return '<div dir="rtl" lang="ar" style="font-family:Cairo,Arial,sans-serif;color:' + REPORT_PDF_PALETTE.ink + ';background:' + REPORT_PDF_PALETTE.surface + ';line-height:1.8">';
 }
 
 function reportPdfHeader(titleLines, metaLines) {
@@ -2518,7 +2533,7 @@ function reportPdfFooter(generatedLabel) {
 const REPORT_PDF_SECTION_STYLE = 'margin-bottom:18px';
 const REPORT_PDF_SECTION_TITLE_STYLE = 'font-size:14px;margin:0 0 8px';
 const REPORT_PDF_TABLE_STYLE = 'width:100%;border-collapse:collapse;font-size:10px';
-const REPORT_PDF_TABLE_HEAD_STYLE = 'background:#e2e8f0';
+const REPORT_PDF_TABLE_HEAD_STYLE = 'background:' + REPORT_PDF_PALETTE.hairline;
 
 function reportPdfSection(title, inner) {
     const heading = title ? '<h3 style="' + REPORT_PDF_SECTION_TITLE_STYLE + '">' + title + '</h3>' : '';
@@ -2536,15 +2551,15 @@ function reportPdfSummaryTable(items) {
 }
 
 function reportPdfEmptyRow(columns, message) {
-    return '<tr><td colspan="' + columns + '" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">' + message + '</td></tr>';
+    return '<tr><td colspan="' + columns + '" style="padding:8px;border:1px solid ' + REPORT_PDF_PALETTE.line + ';text-align:center;color:' + REPORT_PDF_PALETTE.muted + '">' + message + '</td></tr>';
 }
 
 function statementPdfCell(value, styles = '') {
-    return '<td style="padding:6px;border:1px solid #cbd5e1;text-align:right;' + styles + '">' + value + '</td>';
+    return '<td style="padding:6px;border:1px solid ' + REPORT_PDF_PALETTE.line + ';text-align:right;' + styles + '">' + value + '</td>';
 }
 
 function statementPdfHeadCell(value) {
-    return '<th style="padding:6px;border:1px solid #cbd5e1;text-align:right;font-weight:600">' + value + '</th>';
+    return '<th style="padding:6px;border:1px solid ' + REPORT_PDF_PALETTE.line + ';text-align:right;font-weight:600">' + value + '</th>';
 }
 
 function renderStatementMonthsPdfBody(statement) {
