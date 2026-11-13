@@ -168,7 +168,7 @@ test('transition motion tokens resolve consistently across themes and print', as
         ['.report-nav-item', '0.16s, 0.16s, 0.16s, 0.16s', 'ease, ease, ease, ease'],
         ['#settingsModal .settings-close-button', '0.18s, 0.18s, 0.18s', 'ease, ease, ease'],
         ['#settingsModal .settings-field input', '0.15s, 0.15s', 'ease, ease'],
-        ['.assistant-fab', '0.24s, 0.24s, 0.26s, 0.2s, 0.26s', 'ease, ease, ease, ease, ease']
+        ['.assistant-fab', '0.26s, 0.2s, 0.26s', 'ease, ease, ease']
     ];
     const readMotion = (selector) => page.locator(selector).first().evaluate(element => {
         const style = getComputedStyle(element);

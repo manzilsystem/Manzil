@@ -7,17 +7,7 @@ interface ManzilSupabaseConfig {
     anonKey?: string;
 }
 
-interface AssistantAvatar3DController {
-    mount: () => void;
-    unmount: () => void;
-    toggle: () => void;
-    state: () => 'idle' | 'loading' | 'ready' | 'error' | 'unsupported';
-    isReady: () => boolean;
-    isShowing: () => boolean;
-}
-
 interface Window {
-    AssistantAvatar3D?: AssistantAvatar3DController;
     currentUserRole?: string;
     supabase?: any;
     manzilSupabaseConfig?: ManzilSupabaseConfig;

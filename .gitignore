@@ -18,9 +18,7 @@ reports/
 
 # Local AI/voice assets: the runtime ships, the weights are downloaded on consent
 js/vendor/*
-# The 3D viewer and the local speech runtime ship with the app so neither needs a CDN.
-!js/vendor/model-viewer.min.js
-!js/vendor/model-viewer-LICENSE.txt
+# The local speech runtime ships with the app so it needs no CDN.
 !js/vendor/onnxruntime-web.min.js
 !js/vendor/onnxruntime-web-LICENSE.txt
 !js/vendor/ort-wasm-simd-threaded.mjs
