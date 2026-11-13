@@ -1335,12 +1335,16 @@ const ASSISTANT_SPEECH_RATE = 0.95;
 const ASSISTANT_SOUND_STORAGE_KEY = 'manzil-assistant-sound';
 let assistantSoundEnabled = true;
 
-/* The voice style of عم عبده: a warm, unhurried Egyptian (ar-EG) grandfather who
-   stands at the building door. Every utterance is rendered through this one
-   profile, so the doorman keeps the same accent (لهجة مصرية عامية), the same
-   low pitch, and the same calm pace in every situation. */
+/* The voice style of عم عبده: a warm, unhurried man from Upper Egypt (الصعيد) in his
+   fifties who stands at the building door. Every utterance is rendered through this
+   one profile, so the doorman keeps the same accent (لهجة مصرية عامية بصبغة صعيدية),
+   the same low pitch, and the same calm pace in every situation. */
 const ASSISTANT_VOICE_PROFILE = Object.freeze({
     character: ASSISTANT_NAME,
+    speaker: 'رجل مصري صعيدي في الخمسينات من عمره',
+    gender: 'ذكر',
+    accent: 'لهجة صعيدية (الصعيد المصري)',
+    ageBand: 'الخمسينات',
     dialect: 'اللهجة المصرية العامية',
     lang: ASSISTANT_SPEECH_LANG,
     pitch: ASSISTANT_SPEECH_PITCH,
@@ -1350,21 +1354,47 @@ const ASSISTANT_VOICE_PROFILE = Object.freeze({
 
 /* Reference repertoire the style was tuned against: one line per everyday
    situation, so the delivery stays consistent (same profile) while the wording
-   and mood change with the moment. */
+   and mood change with the moment. The lines carry the Sa'idi colouring the voice
+   is meant to have, so they double as a script for auditioning the accent. */
 const ASSISTANT_VOICE_SAMPLES = Object.freeze([
-    { key: 'greeting', situation: 'استقبال', tone: 'دافئ وودود', text: 'نورت يا بيه! عم عبده في خدمتك، أؤمرني تحت أمرك.' },
-    { key: 'welcome', situation: 'ترحيب بجار جديد', tone: 'مرحب ومطمئن', text: 'أهلاً وسهلاً بيك في العمارة، أنا تحت أمرك في أي حاجة.' },
-    { key: 'reassure', situation: 'طمأنة', tone: 'واثق وهادئ', text: 'متقلقش يا بيه، كل حاجة ماشية تمام وتحت السيطرة.' },
-    { key: 'arrears', situation: 'تنبيه على المتأخرات', tone: 'مهذب وحازم', text: 'يا بيه، فاضل شوية بسيطة من الشهر اللي فات، تبص عليها لما تحب.' },
+    { key: 'greeting', situation: 'استقبال', tone: 'دافئ وودود', text: 'إزيك يا بيه! نوّرت، عم عبده في خدمتك وقول لي وأنا حاضر.' },
+    { key: 'welcome', situation: 'ترحيب بجار جديد', tone: 'مرحب ومطمئن', text: 'أهلًا بيك يا بيه في العمارة، إن شاء الله تعجبك، وأنا تحت أمرك في أي حاجة.' },
+    { key: 'hospitality', situation: 'كرم صعيدي', tone: 'سخي وصادق', text: 'إحنا يا بيه في الصعيد ما نبخلش على حد، اتفضل واطلب وأنا في خدمتك.' },
+    { key: 'reassure', situation: 'طمأنة', tone: 'واثق وهادئ', text: 'ما تقلقش يا بيه، كل حاجة ماشية على أحسن حال وتحت السيطرة.' },
+    { key: 'arrears', situation: 'تنبيه على المتأخرات', tone: 'مهذب وحازم', text: 'يا بيه، فاضل حاجة بسيطة من الشهر الفايت، بص عليها وقت ما تحب.' },
     { key: 'thanks', situation: 'شكر', tone: 'ممتن وصادق', text: 'ربنا يكرمك يا بيه، تسلم إيدك وجزاك الله كل خير.' },
     { key: 'apology', situation: 'اعتذار', tone: 'متواضع ومتفهّم', text: 'معلش يا بيه، أنا آسف على الإزعاج، وما تزعلش مني.' },
-    { key: 'encourage', situation: 'تشجيع', tone: 'مشجع ودافئ', text: 'قوللي بس تحب تعرف إيه، وأنا أظبطلك كل الأرقام على طول.' },
-    { key: 'farewell', situation: 'توديع', tone: 'ودود وخفيف', text: 'تحت أمرك في أي وقت يا بيه، أنا واقف على الباب ومنتظرك.' }
+    { key: 'encourage', situation: 'تشجيع', tone: 'مشجع ودافئ', text: 'قول لي بس عاوز تعرف إيه، وأنا أظبطلك كل الأرقام على طول.' },
+    { key: 'farewell', situation: 'توديع', tone: 'ودود وخفيف', text: 'تحت أمرك في أي وقت يا بيه، أنا واقف على الباب ومستنيك.' }
 ]);
 
 function assistantSpeechSynthesis() {
     if (typeof window === 'undefined') return null;
     return window.speechSynthesis || null;
+}
+
+/* The speech engine exposes the device voices, not an accent dial — there is no
+   separate Sa'idi voice, and it cannot be asked for a male one. So the Upper-Egyptian
+   delivery is approximated by preferring an Egyptian (ar-EG) voice, then any Arabic
+   voice, while the shared profile supplies the pitch and pace of a man in his fifties.
+   The list often arrives empty until `voiceschanged` fires, so a miss is harmless:
+   `utterance.lang` still steers the engine to Arabic. */
+const ASSISTANT_VOICE_EGYPT_HINT = /مصر|egypt|cairo|masr|ar-?eg/i;
+
+function pickAssistantVoice(synth) {
+    if (!synth || typeof synth.getVoices !== 'function') return null;
+    let voices = [];
+    try {
+        voices = synth.getVoices() || [];
+    } catch (error) {
+        return null;
+    }
+    const arabic = voices.filter(voice => /^ar\b/i.test(String(voice.lang || '').replace(/_/g, '-')));
+    if (!arabic.length) return null;
+    const egyptian = arabic.find(voice => ASSISTANT_VOICE_EGYPT_HINT.test(`${voice.name || ''} ${voice.lang || ''}`));
+    if (egyptian) return egyptian;
+    const exact = arabic.find(voice => /^ar-eg/i.test(String(voice.lang || '').replace(/_/g, '-')));
+    return exact || arabic[0];
 }
 
 function assistantSpeechText(html) {
@@ -1408,6 +1438,8 @@ function speakAssistantText(text) {
         utterance.pitch = ASSISTANT_VOICE_PROFILE.pitch;
         utterance.rate = ASSISTANT_VOICE_PROFILE.rate;
         utterance.volume = ASSISTANT_VOICE_PROFILE.volume;
+        const voice = pickAssistantVoice(synth);
+        if (voice) utterance.voice = voice;
         utterance.onstart = () => setAssistantTalking(true);
         utterance.onend = () => setAssistantTalking(false);
         utterance.onerror = () => setAssistantTalking(false);

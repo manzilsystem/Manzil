@@ -250,7 +250,7 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(assistantSource, /icons\/assistant-abbah-full\.png/, 'the greeting shows the full-body avatar');
     assert.match(html, /id="assistantSoundButton"[^>]*onclick="toggleAssistantSound\(\)"/, 'the head carries a mute toggle for the doorman voice');
     assert.match(assistantSource, /ASSISTANT_SPEECH_LANG = 'ar-EG'/, 'the doorman speaks Egyptian Arabic');
-    assert.match(assistantSource, /ASSISTANT_SPEECH_PITCH = 0\.8/, 'the voice is pitched like a grand doorman');
+    assert.match(assistantSource, /ASSISTANT_SPEECH_PITCH = 0\.8/, 'the voice is pitched for a man in his fifties');
     assert.match(assistantSource, /ASSISTANT_SPEECH_RATE = 0\.95/, 'the voice is slowed for gravitas');
     assert.match(assistantSource, /window\.SpeechSynthesisUtterance\(phrase\)/, 'the doorman uses the on-device speech engine');
     assert.match(assistantSource, /utterance\.onstart = \(\) => setAssistantTalking\(true\)/, 'talking starts when the voice starts');
@@ -277,11 +277,14 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(css, /@media print \{\s*#assistantModal \{ display: none !important; \}/);
 });
 
-test('عم عبده speaks with one consistent Egyptian voice and a situational sample set', () => {
+test('عم عبده speaks with one consistent Sa\'idi Egyptian voice and a situational sample set', () => {
     const profile = assistantSource.match(/const ASSISTANT_VOICE_PROFILE = Object\.freeze\(\{([\s\S]*?)\}\);/);
     assert.ok(profile, 'the doorman has a single voice profile');
     assert.match(profile[1], /lang: ASSISTANT_SPEECH_LANG/, 'the profile keeps the Egyptian Arabic language');
-    assert.match(profile[1], /pitch: ASSISTANT_SPEECH_PITCH/, 'the profile keeps the grandfather pitch');
+    assert.match(profile[1], /speaker: 'رجل مصري صعيدي في الخمسينات من عمره'/, 'the speaker is a Sa\'idi man in his fifties');
+    assert.match(profile[1], /gender: 'ذكر'/, 'the profile pins the speaker as male');
+    assert.match(profile[1], /accent: 'لهجة صعيدية/, 'the profile names the Upper-Egyptian accent');
+    assert.match(profile[1], /pitch: ASSISTANT_SPEECH_PITCH/, 'the profile keeps the mature male pitch');
     assert.match(profile[1], /rate: ASSISTANT_SPEECH_RATE/, 'the profile keeps the unhurried pace');
 
     // Every utterance is rendered through the shared profile, so the accent and
@@ -290,6 +293,11 @@ test('عم عبده speaks with one consistent Egyptian voice and a situational 
     assert.match(assistantSource, /utterance\.pitch = ASSISTANT_VOICE_PROFILE\.pitch/);
     assert.match(assistantSource, /utterance\.rate = ASSISTANT_VOICE_PROFILE\.rate/);
     assert.match(assistantSource, /utterance\.volume = ASSISTANT_VOICE_PROFILE\.volume/);
+
+    // The engine has no Sa'idi voice, so the Upper-Egyptian delivery leans on the
+    // closest Egyptian voice the device offers, with a safe Arabic fallback.
+    assert.match(assistantSource, /function pickAssistantVoice\(synth\)/, 'the doorman looks for an Egyptian device voice');
+    assert.match(assistantSource, /if \(voice\) utterance\.voice = voice/, 'the chosen voice is applied to every utterance');
 
     const samplesSource = assistantSource.match(/const ASSISTANT_VOICE_SAMPLES = Object\.freeze\(([\s\S]*?)\);/);
     assert.ok(samplesSource, 'the doorman ships a reference sample set');
@@ -305,9 +313,10 @@ test('عم عبده speaks with one consistent Egyptian voice and a situational 
         assert.match(sample.tone, /[ء-ي]/, 'every sample carries a delivery tone');
         assert.match(sample.text, /[ء-ي]/, 'every sample is spoken in Arabic');
     }
-    for (const key of ['greeting', 'welcome', 'reassure', 'arrears', 'thanks', 'apology', 'encourage', 'farewell']) {
+    for (const key of ['greeting', 'welcome', 'hospitality', 'reassure', 'arrears', 'thanks', 'apology', 'encourage', 'farewell']) {
         assert.ok(keys.has(key), `the sample set covers the ${key} situation`);
     }
+    assert.ok(samples.some(sample => /الصعيد/.test(sample.text)), 'the script carries the Sa\'idi colouring');
 
     assert.match(assistantSource, /function assistantVoiceSample\(key\)/, 'samples are looked up by situation');
     assert.match(assistantSource, /function speakAssistantSample\(key\)/, 'any surface can audition the voice style');
