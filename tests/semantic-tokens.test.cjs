@@ -1780,3 +1780,55 @@ test('the shared report PDF shell palette resolves from canonical tokens', () =>
         assert.ok(body[0].includes('REPORT_PDF_PALETTE.'), `${name} must consume REPORT_PDF_PALETTE`);
     }
 });
+
+test('the monthly close PDF palette resolves from canonical tokens', () => {
+    // Part 67: the monthly close PDF is generated into a detached element before
+    // html2pdf renders it, so it cannot inherit the app :root tokens. It now reuses
+    // the shared REPORT_PDF_PALETTE from js/reports.js and declares locally only the
+    // two reconciliation tone colours it owns. Each value matches the literal it
+    // replaced, so the generated PDF is unchanged.
+    const source = read('js/monthly-close.js');
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const paletteMatch = source.match(/const MONTHLY_CLOSE_PDF_PALETTE = Object\.freeze\(\{([\s\S]*?)\}\);/);
+    assert.ok(paletteMatch, 'expected a frozen MONTHLY_CLOSE_PDF_PALETTE token map');
+    const palette = paletteMatch[1];
+
+    const tokens = {
+        reconciled: '#047857',
+        discrepancy: '#b91c1c'
+    };
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: '${value}'`;
+        assert.match(palette, new RegExp(escape(declaration)),
+            `the monthly close palette must declare ${declaration}`);
+        assert.equal(palette.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+    }
+
+    // The raw literals only survive inside the canonical palette map.
+    assert.equal((palette.match(/#[0-9a-fA-F]{3,8}\b/g) || []).length, 2,
+        'both monthly close tone colors must be declared once in the palette map');
+
+    // The shared cell style constant must consume the shared report palette.
+    const cellLine = source.split('\n').find(entry => entry.includes('const MONTHLY_CLOSE_CELL_STYLE ='));
+    assert.ok(cellLine, 'expected MONTHLY_CLOSE_CELL_STYLE in js/monthly-close.js');
+    assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(cellLine), 'MONTHLY_CLOSE_CELL_STYLE must not keep a raw hex color');
+    assert.ok(cellLine.includes('REPORT_PDF_PALETTE.'), 'MONTHLY_CLOSE_CELL_STYLE must consume REPORT_PDF_PALETTE');
+
+    // The render and export functions must consume the palettes and keep no raw hex.
+    for (const [name, body] of [
+        ['renderMonthlyClosePdfHtml', source.match(/function renderMonthlyClosePdfHtml\([^]*?\n\}/)],
+        ['exportMonthlyClosePdf', source.match(/async function exportMonthlyClosePdf\([^]*?\n\}/)]
+    ]) {
+        assert.ok(body, `expected ${name} in js/monthly-close.js`);
+        assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(body[0]), `${name} must not keep a raw hex color`);
+        assert.ok(body[0].includes('REPORT_PDF_PALETTE.') || body[0].includes('MONTHLY_CLOSE_PDF_PALETTE.'),
+            `${name} must consume the shared or monthly close palette`);
+    }
+
+    // No raw hex literal may survive anywhere in the module outside the palette map.
+    const withoutPalette = source.replace(paletteMatch[0], '');
+    assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(withoutPalette),
+        'js/monthly-close.js must not keep any raw hex color outside the palette map');
+});

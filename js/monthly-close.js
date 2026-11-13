@@ -130,6 +130,17 @@ async function loadMonthlyCloseReport() {
     }
 }
 
+// Part 67: the monthly close PDF is written into a detached element before html2pdf
+// renders it, so it cannot inherit the app :root tokens. It reuses the shared report
+// shell palette (REPORT_PDF_PALETTE in js/reports.js) for rules, hairlines, muted ink
+// and surface, and declares here only the two reconciliation tone colours it owns once.
+// Every value matches the literal it replaced, so the generated PDF is unchanged.
+const MONTHLY_CLOSE_PDF_PALETTE = Object.freeze({
+    reconciled: '#047857',
+    discrepancy: '#b91c1c'
+});
+const MONTHLY_CLOSE_CELL_STYLE = 'padding:7px;border:1px solid ' + REPORT_PDF_PALETTE.line;
+
 function renderMonthlyClosePdfHtml(report) {
     const totals = report.totals;
     const rows = monthlyCloseAccounts.map(function (account) {
@@ -152,21 +163,21 @@ function renderMonthlyClosePdfHtml(report) {
         ]),
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">ملخص الحركة النقدية</h3>',
         '<table style="width:100%;border-collapse:collapse;font-size:12px"><tbody>',
-        '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">رصيد أول الشهر</th><td style="padding:7px;border:1px solid #cbd5e1">', monthlyCloseMoney(totals.opening_balance), ' ج.م</td></tr>',
-        '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">إجمالي التحصيلات الفعلية</th><td style="padding:7px;border:1px solid #cbd5e1">', monthlyCloseMoney(totals.income), ' ج.م</td></tr>',
-        '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">إجمالي المصروفات</th><td style="padding:7px;border:1px solid #cbd5e1">', monthlyCloseMoney(totals.expenses), ' ج.م</td></tr>',
-        '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">صافي الحركة</th><td style="padding:7px;border:1px solid #cbd5e1">', monthlyCloseMoney(totals.net_movement), ' ج.م</td></tr>',
-        '<tr><th style="text-align:right;padding:7px;border:1px solid #cbd5e1">رصيد آخر الشهر</th><td style="padding:7px;border:1px solid #cbd5e1"><strong>', monthlyCloseMoney(totals.closing_balance), ' ج.م</strong></td></tr>',
+        '<tr><th style="text-align:right;', MONTHLY_CLOSE_CELL_STYLE, '">رصيد أول الشهر</th><td style="', MONTHLY_CLOSE_CELL_STYLE, '">', monthlyCloseMoney(totals.opening_balance), ' ج.م</td></tr>',
+        '<tr><th style="text-align:right;', MONTHLY_CLOSE_CELL_STYLE, '">إجمالي التحصيلات الفعلية</th><td style="', MONTHLY_CLOSE_CELL_STYLE, '">', monthlyCloseMoney(totals.income), ' ج.م</td></tr>',
+        '<tr><th style="text-align:right;', MONTHLY_CLOSE_CELL_STYLE, '">إجمالي المصروفات</th><td style="', MONTHLY_CLOSE_CELL_STYLE, '">', monthlyCloseMoney(totals.expenses), ' ج.م</td></tr>',
+        '<tr><th style="text-align:right;', MONTHLY_CLOSE_CELL_STYLE, '">صافي الحركة</th><td style="', MONTHLY_CLOSE_CELL_STYLE, '">', monthlyCloseMoney(totals.net_movement), ' ج.م</td></tr>',
+        '<tr><th style="text-align:right;', MONTHLY_CLOSE_CELL_STYLE, '">رصيد آخر الشهر</th><td style="', MONTHLY_CLOSE_CELL_STYLE, '"><strong>', monthlyCloseMoney(totals.closing_balance), ' ج.م</strong></td></tr>',
         '</tbody></table></section>',
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">تفصيل الصناديق</h3>',
-        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
-        '<th style="padding:7px;border:1px solid #cbd5e1">الصندوق</th><th style="padding:7px;border:1px solid #cbd5e1">أول المدة</th>',
-        '<th style="padding:7px;border:1px solid #cbd5e1">تحصيل</th><th style="padding:7px;border:1px solid #cbd5e1">صرف</th>',
-        '<th style="padding:7px;border:1px solid #cbd5e1">تحويل وارد</th><th style="padding:7px;border:1px solid #cbd5e1">تحويل صادر</th>',
-        '<th style="padding:7px;border:1px solid #cbd5e1">آخر المدة</th></tr></thead><tbody>', rows, '</tbody></table></section>',
-        '<p style="font-size:11px;font-weight:700;color:', report.reconciled ? '#047857' : '#b91c1c', '">',
+        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:', REPORT_PDF_PALETTE.hairline, '">',
+        '<th style="', MONTHLY_CLOSE_CELL_STYLE, '">الصندوق</th><th style="', MONTHLY_CLOSE_CELL_STYLE, '">أول المدة</th>',
+        '<th style="', MONTHLY_CLOSE_CELL_STYLE, '">تحصيل</th><th style="', MONTHLY_CLOSE_CELL_STYLE, '">صرف</th>',
+        '<th style="', MONTHLY_CLOSE_CELL_STYLE, '">تحويل وارد</th><th style="', MONTHLY_CLOSE_CELL_STYLE, '">تحويل صادر</th>',
+        '<th style="', MONTHLY_CLOSE_CELL_STYLE, '">آخر المدة</th></tr></thead><tbody>', rows, '</tbody></table></section>',
+        '<p style="font-size:11px;font-weight:700;color:', report.reconciled ? MONTHLY_CLOSE_PDF_PALETTE.reconciled : MONTHLY_CLOSE_PDF_PALETTE.discrepancy, '">',
         report.reconciled ? 'إجمالي الصناديق مطابق للحركة النقدية.' : 'يوجد فرق في المطابقة النقدية؛ يلزم التحقق قبل الاعتماد.',
-        '</p><p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
+        '</p><p style="font-size:10px;color:', REPORT_PDF_PALETTE.muted, ';border-top:1px solid ', REPORT_PDF_PALETTE.line, ';padding-top:10px">',
         'هذا التقرير مراجعة حسابية للقراءة فقط، ولا ينشئ قيد إقفال ولا يمنع تعديل البيانات مستقبلًا. ',
         'تم احتساب التحصيلات من تاريخ القبض الفعلي والمصروفات من تاريخ الصرف والتحويلات من وقت تنفيذها، وفق توقيت القاهرة.',
         '</p>',
@@ -194,7 +205,7 @@ async function exportMonthlyClosePdf() {
         root = document.createElement('section');
         root.dir = 'rtl';
         root.lang = 'ar';
-        root.style.cssText = 'position:fixed;top:0;left:0;width:190mm;padding:8mm;box-sizing:border-box;background:#fff;z-index:-1';
+        root.style.cssText = 'position:fixed;top:0;left:0;width:190mm;padding:8mm;box-sizing:border-box;background:' + REPORT_PDF_PALETTE.surface + ';z-index:-1';
         root.innerHTML = renderMonthlyClosePdfHtml(report.data);
         document.body.appendChild(root);
 
@@ -202,7 +213,7 @@ async function exportMonthlyClosePdf() {
             margin: 8,
             filename: 'manzil_monthly_close_' + report.monthKey.slice(0, 7) + '.pdf',
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+            html2canvas: { scale: 2, useCORS: true, backgroundColor: REPORT_PDF_PALETTE.surface, logging: false },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
         }).from(root).outputPdf('blob');
