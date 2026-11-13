@@ -1728,3 +1728,55 @@ test('the receipt image canvas palette resolves from canonical tokens', () => {
     assert.equal((palette.match(/#[0-9a-fA-F]{3,8}\b/g) || []).length, 15,
         'all 15 receipt image colors must be declared once in the palette map');
 });
+
+test('the shared report PDF shell palette resolves from canonical tokens', () => {
+    // Part 66: every report PDF (statements, monthly close, summary) is generated
+    // into a detached element before html2pdf renders it, so it cannot inherit the
+    // app :root tokens. The shared shell in js/reports.js now declares one
+    // REPORT_PDF_PALETTE and the shell constants, the table head, and the cell
+    // helpers reference it. Each value matches the literal it replaced, so the
+    // generated PDFs are unchanged.
+    const source = read('js/reports.js');
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const paletteMatch = source.match(/const REPORT_PDF_PALETTE = Object\.freeze\(\{([\s\S]*?)\}\);/);
+    assert.ok(paletteMatch, 'expected a frozen REPORT_PDF_PALETTE token map');
+    const palette = paletteMatch[1];
+
+    const tokens = {
+        ink: '#111827',
+        surface: '#fff',
+        rule: '#334155',
+        line: '#cbd5e1',
+        hairline: '#e2e8f0',
+        muted: '#475569',
+        faint: '#64748b'
+    };
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: '${value}'`;
+        assert.match(palette, new RegExp(escape(declaration)),
+            `the report PDF palette must declare ${declaration}`);
+        assert.equal(palette.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+    }
+
+    // The raw literals only survive inside the canonical palette map.
+    assert.equal((palette.match(/#[0-9a-fA-F]{3,8}\b/g) || []).length, 7,
+        'all 7 report PDF shell colors must be declared once in the palette map');
+
+    // The shared shell style constants must consume the palette, not raw colors.
+    for (const name of ['REPORT_PDF_HEADER_STYLE', 'REPORT_PDF_META_STYLE', 'REPORT_PDF_FOOTER_STYLE', 'REPORT_PDF_TABLE_HEAD_STYLE']) {
+        const line = source.split('\n').find(entry => entry.includes(`const ${name} =`));
+        assert.ok(line, `expected ${name} in js/reports.js`);
+        assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(line), `${name} must not keep a raw hex color`);
+        assert.ok(line.includes('REPORT_PDF_PALETTE.'), `${name} must consume REPORT_PDF_PALETTE`);
+    }
+
+    // The shared document, empty-row, and cell helpers must consume the palette too.
+    for (const name of ['reportPdfDocumentOpen', 'reportPdfEmptyRow', 'statementPdfCell', 'statementPdfHeadCell']) {
+        const body = source.match(new RegExp(`function ${name}\\([^]*?\\n\\}`));
+        assert.ok(body, `expected ${name} in js/reports.js`);
+        assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(body[0]), `${name} must not keep a raw hex color`);
+        assert.ok(body[0].includes('REPORT_PDF_PALETTE.'), `${name} must consume REPORT_PDF_PALETTE`);
+    }
+});
