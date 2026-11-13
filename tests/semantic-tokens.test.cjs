@@ -1832,3 +1832,56 @@ test('the monthly close PDF palette resolves from canonical tokens', () => {
     assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(withoutPalette),
         'js/monthly-close.js must not keep any raw hex color outside the palette map');
 });
+
+test('the report PDF builders route structural literals to REPORT_PDF_PALETTE', () => {
+    // Part 68: the hand-written tables in the report PDF builders inlined their cell
+    // borders, table-head fills, empty cells, footnotes and the export surface. They now
+    // use shared constants that consume REPORT_PDF_PALETTE, so no raw structural colour
+    // survives outside the palette map. Content tone colours (emerald/rose/amber) are
+    // content, not structure, and stay as literals.
+    const source = read('js/reports.js');
+
+    const paletteMatch = source.match(/const REPORT_PDF_PALETTE = Object\.freeze\(\{([\s\S]*?)\}\);/);
+    assert.ok(paletteMatch, 'expected a frozen REPORT_PDF_PALETTE token map');
+    assert.equal((paletteMatch[1].match(/#[0-9a-fA-F]{3,8}\b/g) || []).length, 7,
+        'the report PDF palette must declare its seven structural colours once');
+
+    // The shared structural constants must exist, resolve from the palette, and keep no hex.
+    for (const name of [
+        'REPORT_PDF_CELL_STYLE',
+        'REPORT_PDF_EMPTY_CELL_BASE',
+        'REPORT_PDF_EMPTY_CELL_STYLE',
+        'REPORT_PDF_FOOTNOTE_STYLE',
+        'REPORT_PDF_SUMMARY_NOTE_STYLE'
+    ]) {
+        const line = source.split('\n').find(entry => entry.includes(`const ${name} =`));
+        assert.ok(line, `expected ${name} in js/reports.js`);
+        assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(line), `${name} must not keep a raw hex color`);
+        assert.ok(line.includes('REPORT_PDF_PALETTE.') || line.includes('REPORT_PDF_EMPTY_CELL_BASE'),
+            `${name} must consume the shared palette`);
+    }
+
+    // Outside the palette map only the content tone colours may remain as raw hex.
+    const withoutPalette = source.replace(paletteMatch[0], '');
+    const leftovers = withoutPalette.match(/#[0-9a-fA-F]{3,8}\b/g) || [];
+    const allowedTones = new Set(['#047857', '#be123c', '#b45309']);
+    const unexpected = leftovers.filter(token => !allowedTones.has(token.toLowerCase()));
+    assert.deepEqual(unexpected, [],
+        'js/reports.js must route every structural hex literal to REPORT_PDF_PALETTE');
+
+    // The content tones are deliberately kept, so they must still be present.
+    for (const tone of allowedTones) {
+        assert.ok(withoutPalette.toLowerCase().includes(tone),
+            `the content tone ${tone} must stay in the report PDF builders`);
+    }
+
+    // The export helpers must paint the surface from the palette, not a raw hex.
+    const exports = source.split('\n').filter(entry => entry.includes('backgroundColor:'));
+    assert.ok(exports.length >= 2, 'expected the report PDF export helpers');
+    for (const entry of exports) {
+        assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(entry),
+            'the report PDF export helper must not keep a raw hex surface');
+        assert.ok(entry.includes('REPORT_PDF_PALETTE.surface'),
+            'the report PDF export helper must consume REPORT_PDF_PALETTE.surface');
+    }
+});

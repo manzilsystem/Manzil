@@ -788,17 +788,17 @@ function renderLandlordReportPdfHtml(month, purposeFilter = '', cashAccountFilte
     const paymentMethodRows = Array.from(paymentMethodTotals.entries()).map(([label, totals]) =>
         '<tr>' + statementPdfCell(esc(label) + ' (' + totals.count + ')') +
         statementPdfCell(fmtMoney(totals.cents / 100), 'color:#047857;font-weight:700') + '</tr>'
-    ).join('') || '<tr><td colspan="2" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">لا يوجد</td></tr>';
+    ).join('') || '<tr><td colspan="2" style="' + REPORT_PDF_EMPTY_CELL_STYLE + '">لا يوجد</td></tr>';
 
     const expenseCategoryRows = expenseCategories.map(([label, totals]) =>
         '<tr>' + statementPdfCell(esc(label) + ' (' + totals.count + ')') +
         statementPdfCell(fmtMoney(totals.cents / 100), 'color:#be123c;font-weight:700') + '</tr>'
-    ).join('') || '<tr><td colspan="2" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">لا يوجد</td></tr>';
+    ).join('') || '<tr><td colspan="2" style="' + REPORT_PDF_EMPTY_CELL_STYLE + '">لا يوجد</td></tr>';
 
     const purposeRows = Array.from(purposeTotals.entries()).map(([label, totals]) =>
         '<tr>' + statementPdfCell(esc(label) + ' (' + totals.count + ')') +
         statementPdfCell(fmtMoney(totals.cents / 100), 'color:#047857;font-weight:700') + '</tr>'
-    ).join('') || '<tr><td colspan="2" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">لا يوجد</td></tr>';
+    ).join('') || '<tr><td colspan="2" style="' + REPORT_PDF_EMPTY_CELL_STYLE + '">لا يوجد</td></tr>';
 
     const incomeRows = inc.length
         ? inc.map(i => {
@@ -810,7 +810,7 @@ function renderLandlordReportPdfHtml(month, purposeFilter = '', cashAccountFilte
                 statementPdfCell(fmtMoney(toCents(i.amount) / 100), 'color:#047857;font-weight:700') +
                 '</tr>';
         }).join('')
-        : '<tr><td colspan="4" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">لا يوجد</td></tr>';
+        : '<tr><td colspan="4" style="' + REPORT_PDF_EMPTY_CELL_STYLE + '">لا يوجد</td></tr>';
 
     const expenseRows = exp.length
         ? exp.map(e =>
@@ -819,7 +819,7 @@ function renderLandlordReportPdfHtml(month, purposeFilter = '', cashAccountFilte
             statementPdfCell(esc(e.category || 'غير مصنف')) +
             statementPdfCell(fmtMoney(toCents(e.amount) / 100), 'color:#be123c;font-weight:700') +
             '</tr>').join('')
-        : '<tr><td colspan="3" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">لا يوجد</td></tr>';
+        : '<tr><td colspan="3" style="' + REPORT_PDF_EMPTY_CELL_STYLE + '">لا يوجد</td></tr>';
 
     const generatedAtLabel = formatDate(new Date().toISOString());
     return [
@@ -845,14 +845,14 @@ function renderLandlordReportPdfHtml(month, purposeFilter = '', cashAccountFilte
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">تصنيفات المصروفات</h3>',
         '<table style="width:100%;border-collapse:collapse;font-size:10px"><tbody>', expenseCategoryRows, '</tbody></table></section>',
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">تفاصيل التحصيلات</h3>',
-        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
-        '<th style="padding:6px;border:1px solid #cbd5e1">المالك</th><th style="padding:6px;border:1px solid #cbd5e1">الغرض</th><th style="padding:6px;border:1px solid #cbd5e1">طريقة الدفع</th>',
-        '<th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th></tr></thead><tbody>', incomeRows, '</tbody></table></section>',
+        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="' + REPORT_PDF_TABLE_HEAD_STYLE + '">',
+        '<th style="' + REPORT_PDF_CELL_STYLE + '">المالك</th><th style="' + REPORT_PDF_CELL_STYLE + '">الغرض</th><th style="' + REPORT_PDF_CELL_STYLE + '">طريقة الدفع</th>',
+        '<th style="' + REPORT_PDF_CELL_STYLE + '">المبلغ</th></tr></thead><tbody>', incomeRows, '</tbody></table></section>',
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">تفاصيل المصروفات</h3>',
-        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
-        '<th style="padding:6px;border:1px solid #cbd5e1">البيان</th><th style="padding:6px;border:1px solid #cbd5e1">التصنيف</th>',
-        '<th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th></tr></thead><tbody>', expenseRows, '</tbody></table></section>',
-        '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
+        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="' + REPORT_PDF_TABLE_HEAD_STYLE + '">',
+        '<th style="' + REPORT_PDF_CELL_STYLE + '">البيان</th><th style="' + REPORT_PDF_CELL_STYLE + '">التصنيف</th>',
+        '<th style="' + REPORT_PDF_CELL_STYLE + '">المبلغ</th></tr></thead><tbody>', expenseRows, '</tbody></table></section>',
+        '<p style="' + REPORT_PDF_FOOTNOTE_STYLE + '">',
         'تقرير للقراءة فقط ولا يعدل أي بيانات. ',
         residentFilter
             ? 'التحصيلات معروضة لشقة «' + esc(residentLabel) + '» فقط' +
@@ -905,7 +905,7 @@ async function exportLandlordReportPdf() {
         root = document.createElement('section');
         root.dir = 'rtl';
         root.lang = 'ar';
-        root.style.cssText = 'position:fixed;top:0;left:0;width:190mm;padding:8mm;box-sizing:border-box;background:#fff;z-index:-1';
+        root.style.cssText = 'position:fixed;top:0;left:0;width:190mm;padding:8mm;box-sizing:border-box;background:' + REPORT_PDF_PALETTE.surface + ';z-index:-1';
         root.innerHTML = renderLandlordReportPdfHtml(landlordReportMonth, landlordReportPurposeFilter, landlordReportCashAccountFilter, landlordReportPaymentMethodFilter, landlordReportResidentFilter);
         document.body.appendChild(root);
 
@@ -913,7 +913,7 @@ async function exportLandlordReportPdf() {
             margin: 8,
             filename,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+            html2canvas: { scale: 2, useCORS: true, backgroundColor: REPORT_PDF_PALETTE.surface, logging: false },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
         }).from(root).outputPdf('blob');
@@ -2535,6 +2535,18 @@ const REPORT_PDF_SECTION_TITLE_STYLE = 'font-size:14px;margin:0 0 8px';
 const REPORT_PDF_TABLE_STYLE = 'width:100%;border-collapse:collapse;font-size:10px';
 const REPORT_PDF_TABLE_HEAD_STYLE = 'background:' + REPORT_PDF_PALETTE.hairline;
 
+// Part 68: the hand-written report tables inline their cell borders, empty rows,
+// table-head fills and footnotes. These shared constants route those structural
+// literals to REPORT_PDF_PALETTE so no raw structural colour survives outside the
+// palette map. Content tone colours (emerald/rose/amber) stay as content and are
+// intentionally left as literals. Every value matches the literal it replaced, so
+// the generated PDFs are unchanged.
+const REPORT_PDF_CELL_STYLE = 'padding:6px;border:1px solid ' + REPORT_PDF_PALETTE.line;
+const REPORT_PDF_EMPTY_CELL_BASE = 'padding:8px;border:1px solid ' + REPORT_PDF_PALETTE.line + ';text-align:center;color:';
+const REPORT_PDF_EMPTY_CELL_STYLE = REPORT_PDF_EMPTY_CELL_BASE + REPORT_PDF_PALETTE.muted;
+const REPORT_PDF_FOOTNOTE_STYLE = 'font-size:10px;color:' + REPORT_PDF_PALETTE.muted + ';border-top:1px solid ' + REPORT_PDF_PALETTE.line + ';padding-top:10px';
+const REPORT_PDF_SUMMARY_NOTE_STYLE = 'font-size:11px;color:' + REPORT_PDF_PALETTE.rule + ';margin:8px 0 0';
+
 function reportPdfSection(title, inner) {
     const heading = title ? '<h3 style="' + REPORT_PDF_SECTION_TITLE_STYLE + '">' + title + '</h3>' : '';
     return '<section style="' + REPORT_PDF_SECTION_STYLE + '">' + heading + inner + '</section>';
@@ -2589,7 +2601,7 @@ function renderStatementPaymentsPdfBody(statement, payments = statement.payments
             statementPdfCell(esc(payment.notes || '—')),
             '</tr>'
         ].join('')).join('')
-        : '<tr><td colspan="7" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#475569">لا توجد حركات مسجلة.</td></tr>';
+        : '<tr><td colspan="7" style="' + REPORT_PDF_EMPTY_CELL_STYLE + '">لا توجد حركات مسجلة.</td></tr>';
 }
 
 function renderResidentStatementPdfHtml(statement) {
@@ -2604,17 +2616,17 @@ function renderResidentStatementPdfHtml(statement) {
     const monthsSection = showDues
         ? [
             '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حساب الشهور</h3>',
-            '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
-            '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المستحق</th>',
-            '<th style="padding:6px;border:1px solid #cbd5e1">إعفاء/تخفيض</th><th style="padding:6px;border:1px solid #cbd5e1">الصافي</th>',
-            '<th style="padding:6px;border:1px solid #cbd5e1">المدفوع</th><th style="padding:6px;border:1px solid #cbd5e1">المتبقي</th>',
-            '<th style="padding:6px;border:1px solid #cbd5e1">الحالة</th></tr></thead><tbody>', monthRows, '</tbody></table></section>',
+            '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="' + REPORT_PDF_TABLE_HEAD_STYLE + '">',
+            '<th style="' + REPORT_PDF_CELL_STYLE + '">الشهر</th><th style="' + REPORT_PDF_CELL_STYLE + '">المستحق</th>',
+            '<th style="' + REPORT_PDF_CELL_STYLE + '">إعفاء/تخفيض</th><th style="' + REPORT_PDF_CELL_STYLE + '">الصافي</th>',
+            '<th style="' + REPORT_PDF_CELL_STYLE + '">المدفوع</th><th style="' + REPORT_PDF_CELL_STYLE + '">المتبقي</th>',
+            '<th style="' + REPORT_PDF_CELL_STYLE + '">الحالة</th></tr></thead><tbody>', monthRows, '</tbody></table></section>',
             statement.adjustments.length
                 ? [
                     '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">' + adjustmentsTitle + '</h3>',
-                    '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
-                    '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">النوع</th>',
-                    '<th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th><th style="padding:6px;border:1px solid #cbd5e1">السبب</th>',
+                    '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="' + REPORT_PDF_TABLE_HEAD_STYLE + '">',
+                    '<th style="' + REPORT_PDF_CELL_STYLE + '">الشهر</th><th style="' + REPORT_PDF_CELL_STYLE + '">النوع</th>',
+                    '<th style="' + REPORT_PDF_CELL_STYLE + '">المبلغ</th><th style="' + REPORT_PDF_CELL_STYLE + '">السبب</th>',
                     '</tr></thead><tbody>',
                     statement.adjustments.map(adjustment => [
                         '<tr>',
@@ -2646,11 +2658,11 @@ function renderResidentStatementPdfHtml(statement) {
         '</tbody></table></section>',
         ...monthsSection,
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حركات المالك</h3>',
-        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
-        '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th>',
-        '<th style="padding:6px;border:1px solid #cbd5e1">الغرض</th><th style="padding:6px;border:1px solid #cbd5e1">طريقة الدفع</th><th style="padding:6px;border:1px solid #cbd5e1">الصندوق</th><th style="padding:6px;border:1px solid #cbd5e1">التاريخ</th>',
-        '<th style="padding:6px;border:1px solid #cbd5e1">ملاحظات</th></tr></thead><tbody>', paymentRows, '</tbody></table></section>',
-        '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
+        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="' + REPORT_PDF_TABLE_HEAD_STYLE + '">',
+        '<th style="' + REPORT_PDF_CELL_STYLE + '">الشهر</th><th style="' + REPORT_PDF_CELL_STYLE + '">المبلغ</th>',
+        '<th style="' + REPORT_PDF_CELL_STYLE + '">الغرض</th><th style="' + REPORT_PDF_CELL_STYLE + '">طريقة الدفع</th><th style="' + REPORT_PDF_CELL_STYLE + '">الصندوق</th><th style="' + REPORT_PDF_CELL_STYLE + '">التاريخ</th>',
+        '<th style="' + REPORT_PDF_CELL_STYLE + '">ملاحظات</th></tr></thead><tbody>', paymentRows, '</tbody></table></section>',
+        '<p style="' + REPORT_PDF_FOOTNOTE_STYLE + '">',
         showDues
             ? 'كل شهر محسوب بقيمة الاشتراك السارية فيه. تُحتسب دفعات التسوية على اتفاق التسوية المرتبط بها، ولا تُكرر ضمن مدفوع الاشتراك. هذا الكشف للقراءة فقط ولا يعدل أي بيانات.'
             : 'المستحق الشهري يخص الاشتراكات فقط، لذلك يعرض الكشف حركات الغرض المحدد دون جدول المستحقات. هذا الكشف للقراءة فقط ولا يعدل أي بيانات.',
@@ -2676,7 +2688,7 @@ function renderUnitReportPdfHtml(statement) {
     ].map(([label, value]) => '<tr>' + statementPdfHeadCell(label) + statementPdfCell(value) + '</tr>').join('');
     const unpaidHtml = unpaidRows.length
         ? unpaidRows.map(row => '<tr>' + statementPdfCell(esc(row.month)) + statementPdfCell(fmtMoney(row.remainingCents / 100), 'color:#be123c;font-weight:700') + '</tr>').join('')
-        : '<tr><td colspan="2" style="padding:8px;border:1px solid #cbd5e1;text-align:center;color:#047857">لا توجد أشهر غير مسددة.</td></tr>';
+        : '<tr><td colspan="2" style="' + REPORT_PDF_EMPTY_CELL_BASE + '#047857">لا توجد أشهر غير مسددة.</td></tr>';
     const currentSummary = currentRow
         ? `${currentMonth}: مستحق ${fmtMoney(currentRow.dueCents / 100)}${currentRow.adjustmentCents ? ' • إعفاء/تخفيض ' + fmtMoney(currentRow.adjustmentCents / 100) : ''} • مدفوع ${fmtMoney(currentRow.paidCents / 100)} • متبقٍ ${fmtMoney(currentRow.remainingCents / 100)}`
         : 'لا يوجد استحقاق للشهر الحالي.';
@@ -2701,17 +2713,17 @@ function renderUnitReportPdfHtml(statement) {
         '<tr>', statementPdfHeadCell('إجمالي المتبقي'), statementPdfCell(fmtMoney(statement.totals.remainingCents / 100), 'font-weight:700'), '</tr>',
         '<tr>', statementPdfHeadCell('أشهر متأخرة'), statementPdfCell(fmtNum(statement.totals.arrearsMonths)), '</tr>',
         '</tbody></table>',
-        '<p style="font-size:11px;color:#334155;margin:8px 0 0">', esc(currentSummary), '</p></section>',
+        '<p style="' + REPORT_PDF_SUMMARY_NOTE_STYLE + '">', esc(currentSummary), '</p></section>',
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">المتأخرات</h3>',
-        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
-        '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المتبقي</th>',
+        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="' + REPORT_PDF_TABLE_HEAD_STYLE + '">',
+        '<th style="' + REPORT_PDF_CELL_STYLE + '">الشهر</th><th style="' + REPORT_PDF_CELL_STYLE + '">المتبقي</th>',
         '</tr></thead><tbody>', unpaidHtml, '</tbody></table></section>',
         statement.adjustments.length
             ? [
                 '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">الإعفاءات والتخفيضات</h3>',
-                '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
-                '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">النوع</th>',
-                '<th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th><th style="padding:6px;border:1px solid #cbd5e1">السبب</th>',
+                '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="' + REPORT_PDF_TABLE_HEAD_STYLE + '">',
+                '<th style="' + REPORT_PDF_CELL_STYLE + '">الشهر</th><th style="' + REPORT_PDF_CELL_STYLE + '">النوع</th>',
+                '<th style="' + REPORT_PDF_CELL_STYLE + '">المبلغ</th><th style="' + REPORT_PDF_CELL_STYLE + '">السبب</th>',
                 '</tr></thead><tbody>',
                 statement.adjustments.map(adjustment => [
                     '<tr>',
@@ -2725,17 +2737,17 @@ function renderUnitReportPdfHtml(statement) {
             ].join('')
             : '',
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حساب الشهور</h3>',
-        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
-        '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المستحق</th>',
-        '<th style="padding:6px;border:1px solid #cbd5e1">إعفاء/تخفيض</th><th style="padding:6px;border:1px solid #cbd5e1">الصافي</th>',
-        '<th style="padding:6px;border:1px solid #cbd5e1">المدفوع</th><th style="padding:6px;border:1px solid #cbd5e1">المتبقي</th>',
-        '<th style="padding:6px;border:1px solid #cbd5e1">الحالة</th></tr></thead><tbody>', renderStatementMonthsPdfBody(statement), '</tbody></table></section>',
+        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="' + REPORT_PDF_TABLE_HEAD_STYLE + '">',
+        '<th style="' + REPORT_PDF_CELL_STYLE + '">الشهر</th><th style="' + REPORT_PDF_CELL_STYLE + '">المستحق</th>',
+        '<th style="' + REPORT_PDF_CELL_STYLE + '">إعفاء/تخفيض</th><th style="' + REPORT_PDF_CELL_STYLE + '">الصافي</th>',
+        '<th style="' + REPORT_PDF_CELL_STYLE + '">المدفوع</th><th style="' + REPORT_PDF_CELL_STYLE + '">المتبقي</th>',
+        '<th style="' + REPORT_PDF_CELL_STYLE + '">الحالة</th></tr></thead><tbody>', renderStatementMonthsPdfBody(statement), '</tbody></table></section>',
         '<section style="margin-bottom:18px"><h3 style="font-size:14px;margin:0 0 8px">حركات المالك</h3>',
-        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#e2e8f0">',
-        '<th style="padding:6px;border:1px solid #cbd5e1">الشهر</th><th style="padding:6px;border:1px solid #cbd5e1">المبلغ</th>',
-        '<th style="padding:6px;border:1px solid #cbd5e1">الغرض</th><th style="padding:6px;border:1px solid #cbd5e1">طريقة الدفع</th><th style="padding:6px;border:1px solid #cbd5e1">الصندوق</th><th style="padding:6px;border:1px solid #cbd5e1">التاريخ</th>',
-        '<th style="padding:6px;border:1px solid #cbd5e1">ملاحظات</th></tr></thead><tbody>', renderStatementPaymentsPdfBody(statement), '</tbody></table></section>',
-        '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
+        '<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="' + REPORT_PDF_TABLE_HEAD_STYLE + '">',
+        '<th style="' + REPORT_PDF_CELL_STYLE + '">الشهر</th><th style="' + REPORT_PDF_CELL_STYLE + '">المبلغ</th>',
+        '<th style="' + REPORT_PDF_CELL_STYLE + '">الغرض</th><th style="' + REPORT_PDF_CELL_STYLE + '">طريقة الدفع</th><th style="' + REPORT_PDF_CELL_STYLE + '">الصندوق</th><th style="' + REPORT_PDF_CELL_STYLE + '">التاريخ</th>',
+        '<th style="' + REPORT_PDF_CELL_STYLE + '">ملاحظات</th></tr></thead><tbody>', renderStatementPaymentsPdfBody(statement), '</tbody></table></section>',
+        '<p style="' + REPORT_PDF_FOOTNOTE_STYLE + '">',
         'تقرير وحدة للقراءة فقط ولا يعدل أي بيانات. كل شهر محسوب بقيمة الاشتراك السارية فيه، والمدفوع هو المسجل على الشهر نفسه، ويعرض كل حركات الوحدة بغض النظر عن فلتر الغرض.',
         '</p>',
         reportPdfFooter(generatedAtLabel),
@@ -2814,7 +2826,7 @@ function renderPeriodReportPdfHtml(report) {
         reportPdfSection('الأرقام الشهرية', reportPdfTable(headers, monthRows, footRow)),
         reportPdfSection('التحصيل حسب الغرض', reportPdfTable(['الغرض', 'عدد الحركات', 'المبلغ'], purposeRows)),
         reportPdfSection('التحصيل حسب الطريقة', reportPdfTable(['الطريقة', 'عدد الحركات', 'المبلغ', 'النسبة'], methodRows)),
-        '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
+        '<p style="' + REPORT_PDF_FOOTNOTE_STYLE + '">',
         'كل شهر محسوب بسعر الاشتراك السارية فيه وحصيلته من حركات الشهر نفسه. نسبة تزيد على 100% تعني تحصيلًا أعلى من مستحق الشهر. هذا التقرير للقراءة فقط ولا يعدل أي بيانات.',
         '</p>',
         reportPdfFooter(generatedAtLabel),
@@ -2865,7 +2877,7 @@ function renderExpensesReportPdfHtml(report) {
         reportPdfSection('المصروف حسب الصندوق', reportPdfTable(['الصندوق', 'عدد الحركات', 'المبلغ', 'النسبة'], fundRows)),
         reportPdfSection('الأرقام الشهرية', reportPdfTable(['الشهر', 'عدد الحركات', 'المصروف', 'نسبته من الفترة'], monthRows, ['الإجمالي', fmtNum(totals.count), money(totals.expenseCents), '100%'])),
         reportPdfSection('تفاصيل المصروفات', reportPdfTable(['الشهر', 'البيان', 'التصنيف', 'الصندوق', 'المبلغ', 'ملاحظات'], detailRows)),
-        '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
+        '<p style="' + REPORT_PDF_FOOTNOTE_STYLE + '">',
         'تقرير للقراءة فقط ولا يعدل أي بيانات. المصروفات محسوبة على شهر استحقاقها المسجل.',
         '</p>',
         reportPdfFooter(generatedAtLabel),
@@ -2912,7 +2924,7 @@ function renderAdjustmentsReportPdfHtml(report) {
         reportPdfSection('التوزيع حسب النوع', reportPdfTable(['النوع', 'عدد التسجيلات', 'المبلغ', 'النسبة'], kindRows)),
         reportPdfSection('الأرقام الشهرية', reportPdfTable(['الشهر', 'عدد التسجيلات', 'المبلغ', 'نسبته من الفترة'], monthRows, ['الإجمالي', fmtNum(totals.count), money(totals.amountCents), '100%'])),
         reportPdfSection('تفاصيل الإعفاءات والتخفيضات', reportPdfTable(['الشقة', 'المالك', 'النوع', 'الشهر', 'المبلغ', 'السبب'], detailRows)),
-        '<p style="font-size:10px;color:#475569;border-top:1px solid #cbd5e1;padding-top:10px">',
+        '<p style="' + REPORT_PDF_FOOTNOTE_STYLE + '">',
         'تقرير للقراءة فقط ولا يعدل أي بيانات. تُخصم الإعفاءات والتخفيضات من مستحق الشهر المسجل فيه الاستحقاق.',
         '</p>',
         reportPdfFooter(generatedAtLabel),
@@ -2931,7 +2943,7 @@ async function downloadStatementPdf(html, filename, buttonId, successMessage, lo
         root = document.createElement('section');
         root.dir = 'rtl';
         root.lang = 'ar';
-        root.style.cssText = 'position:fixed;top:0;left:0;width:190mm;padding:8mm;box-sizing:border-box;background:#fff;z-index:-1';
+        root.style.cssText = 'position:fixed;top:0;left:0;width:190mm;padding:8mm;box-sizing:border-box;background:' + REPORT_PDF_PALETTE.surface + ';z-index:-1';
         root.innerHTML = html;
         document.body.appendChild(root);
 
@@ -2939,7 +2951,7 @@ async function downloadStatementPdf(html, filename, buttonId, successMessage, lo
             margin: 8,
             filename,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+            html2canvas: { scale: 2, useCORS: true, backgroundColor: REPORT_PDF_PALETTE.surface, logging: false },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
         }).from(root).outputPdf('blob');
