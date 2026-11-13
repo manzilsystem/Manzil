@@ -221,20 +221,25 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(html, /onsubmit="sendAssistantMessage\(event\)"/);
     assert.match(html, /<button type="button" id="assistantFab"[^>]*onclick="openAssistantModal\(\)"/);
     assert.match(html, /aria-label="اسأل عم عبده البواب"/);
-    assert.match(html, /class="assistant-avatar-frame assistant-fab-avatar"[^>]*><img src="icons\/assistant-abbah\.png\?v=/, 'the launcher clips the avatar into a face-centered circle');
-    assert.match(html, /class="assistant-fab-greeting"[^>]*>أهلاً بيك</, 'the doorman greets before the first click');
-    assert.match(html, /class="assistant-fab-copy"[\s\S]*class="assistant-fab-label"[\s\S]*class="assistant-fab-sub"/, 'the launcher pairs the name with the local-data promise');
-    assert.match(css, /\.assistant-fab-avatar \{[\s\S]*box-shadow: 0 0 0 3px/, 'the portrait sits in a ringed medallion');
+    assert.match(html, /class="assistant-avatar-frame assistant-fab-avatar"><img src="icons\/assistant-abbah-full\.png\?v=/, 'the launcher shows the full-body doorman');
+    assert.match(html, /class="assistant-fab-greeting"[^>]*>نورت يا بيه! عم عبده في خدمتك 👋</, 'the doorman greets before the first click');
+    assert.doesNotMatch(html, /class="assistant-fab-copy"/, 'the launcher is now a bare full-body character, not a labelled chip');
+    assert.match(css, /\.assistant-avatar-frame img \{[\s\S]*filter: drop-shadow\(0 14px 34px var\(--assistant-fab-shadow\)\)/, 'the portrait casts a realistic drop shadow');
     assert.match(css, /@keyframes assistant-fab-greet/, 'the greeting is a timed animation, not permanent chrome');
-    assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.assistant-fab-greeting \{ animation: none; \}/, 'reduced motion cancels the greeting animation');
+    assert.match(css, /\.assistant-fab\.is-greeting \.assistant-fab-greeting \{[\s\S]*animation: assistant-fab-greet/, 'the script replays the greeting by toggling is-greeting');
+    assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.assistant-fab\.is-greeting \.assistant-fab-greeting \{ animation: none; \}/, 'reduced motion cancels the greeting animation');
     assert.doesNotMatch(html, /assistant-header-button/, 'the launcher left the header for the floating button');
     assert.ok(html.indexOf('js/assistant.js') > -1, 'assistant script is included');
     assert.ok(html.indexOf('js/assistant.js') < html.indexOf('js/app.js'), 'assistant loads before app bootstrap');
     assert.match(css, /\.assistant-fab \{/);
     assert.match(css, /\.assistant-fab\.is-hidden \{/);
     assert.match(css, /\.assistant-fab\.is-compact \{/);
-    assert.match(css, /\.assistant-fab\.is-compact \.assistant-fab-label \{ max-width: 0; opacity: var\(--opacity-0\); \}/, 'scrolling shrinks the label instead of the button');
-    assert.match(css, /\.assistant-avatar-frame img \{[\s\S]*transform: scale\(1\.7\);[\s\S]*transform-origin: 50% 28%;/, 'the padded avatar is framed so the turban stays inside the circle');
+    assert.match(css, /\.assistant-fab\.is-compact \.assistant-fab-avatar img \{[\s\S]*var\(--assistant-fab-shadow-compact\)/, 'scrolling only softens the portrait shadow');
+    assert.match(css, /\.assistant-avatar-frame img \{[\s\S]*object-position: bottom center;[\s\S]*transform-origin: bottom center;/, 'the full-body art stays pinned to the floor while it animates');
+    assert.match(css, /@keyframes assistant-fab-idle/, 'the idle breathing keeps the doorman alive');
+    assert.match(css, /@keyframes assistant-fab-wave/, 'hovering waves the doorman');
+    assert.match(css, /\.assistant-fab\.is-talking \.assistant-fab-avatar img \{[\s\S]*assistant-fab-talk/, 'talking shakes the doorman');
+    assert.match(css, /@keyframes assistant-fab-talk/);
     assert.match(assistantSource, /applyAssistantFabState\(false, assistantFabCompactByScroll\)/, 'scroll state only compacts the launcher');
     assert.doesNotMatch(assistantSource, /assistantFabHiddenByScroll/, 'scrolling must never hide the launcher again');
     assert.match(css, /body\.owner-mode \.assistant-fab/);
@@ -243,6 +248,17 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(css, /\.assistant-avatar img \{[\s\S]*transform: scale\(1\.7\);[\s\S]*transform-origin: 50% 28%;/, 'the modal head uses the same framing as the launcher');
     assert.match(css, /\.assistant-hero \{/);
     assert.match(assistantSource, /icons\/assistant-abbah-full\.png/, 'the greeting shows the full-body avatar');
+    assert.match(html, /id="assistantSoundButton"[^>]*onclick="toggleAssistantSound\(\)"/, 'the head carries a mute toggle for the doorman voice');
+    assert.match(assistantSource, /ASSISTANT_SPEECH_LANG = 'ar-EG'/, 'the doorman speaks Egyptian Arabic');
+    assert.match(assistantSource, /ASSISTANT_SPEECH_PITCH = 0\.8/, 'the voice is pitched like a grand doorman');
+    assert.match(assistantSource, /ASSISTANT_SPEECH_RATE = 0\.95/, 'the voice is slowed for gravitas');
+    assert.match(assistantSource, /window\.SpeechSynthesisUtterance\(phrase\)/, 'the doorman uses the on-device speech engine');
+    assert.match(assistantSource, /utterance\.onstart = \(\) => setAssistantTalking\(true\)/, 'talking starts when the voice starts');
+    assert.match(assistantSource, /utterance\.onend = \(\) => setAssistantTalking\(false\)/, 'talking stops when the voice ends');
+    assert.match(assistantSource, /function toggleAssistantSound\(\)/, 'the mute toggle lives in the assistant');
+    assert.match(assistantSource, /function speakAssistantText\(/, 'bot answers are read aloud');
+    assert.match(assistantSource, /if \(role === 'bot'\) speakAssistantText\(/, 'every doorman reply is spoken');
+    assert.match(css, /\.assistant-avatar\.is-talking img \{[\s\S]*assistant-head-talk/, 'the head portrait nods while speaking');
     assert.match(serviceWorker, /\.\/icons\/assistant-abbah\.png/);
     assert.match(serviceWorker, /\.\/icons\/assistant-abbah-full\.png/);
     assert.match(assistantSource, /ASSISTANT_FAB_SCROLL_DEADZONE/, 'scroll direction drives the launcher');
@@ -261,6 +277,42 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(css, /@media print \{\s*#assistantModal \{ display: none !important; \}/);
 });
 
+test('عم عبده speaks with one consistent Egyptian voice and a situational sample set', () => {
+    const profile = assistantSource.match(/const ASSISTANT_VOICE_PROFILE = Object\.freeze\(\{([\s\S]*?)\}\);/);
+    assert.ok(profile, 'the doorman has a single voice profile');
+    assert.match(profile[1], /lang: ASSISTANT_SPEECH_LANG/, 'the profile keeps the Egyptian Arabic language');
+    assert.match(profile[1], /pitch: ASSISTANT_SPEECH_PITCH/, 'the profile keeps the grandfather pitch');
+    assert.match(profile[1], /rate: ASSISTANT_SPEECH_RATE/, 'the profile keeps the unhurried pace');
+
+    // Every utterance is rendered through the shared profile, so the accent and
+    // tone never drift from one situation to another.
+    assert.match(assistantSource, /utterance\.lang = ASSISTANT_VOICE_PROFILE\.lang/);
+    assert.match(assistantSource, /utterance\.pitch = ASSISTANT_VOICE_PROFILE\.pitch/);
+    assert.match(assistantSource, /utterance\.rate = ASSISTANT_VOICE_PROFILE\.rate/);
+    assert.match(assistantSource, /utterance\.volume = ASSISTANT_VOICE_PROFILE\.volume/);
+
+    const samplesSource = assistantSource.match(/const ASSISTANT_VOICE_SAMPLES = Object\.freeze\(([\s\S]*?)\);/);
+    assert.ok(samplesSource, 'the doorman ships a reference sample set');
+    const samples = vm.runInNewContext(`(${samplesSource[1]})`);
+    assert.ok(Array.isArray(samples) && samples.length >= 6, 'samples cover several everyday situations');
+
+    const keys = new Set();
+    for (const sample of samples) {
+        assert.equal(typeof sample.key, 'string', 'every sample is addressable by situation key');
+        assert.ok(!keys.has(sample.key), `sample key ${sample.key} is unique`);
+        keys.add(sample.key);
+        assert.match(sample.situation, /[ء-ي]/, 'every sample names its situation in Arabic');
+        assert.match(sample.tone, /[ء-ي]/, 'every sample carries a delivery tone');
+        assert.match(sample.text, /[ء-ي]/, 'every sample is spoken in Arabic');
+    }
+    for (const key of ['greeting', 'welcome', 'reassure', 'arrears', 'thanks', 'apology', 'encourage', 'farewell']) {
+        assert.ok(keys.has(key), `the sample set covers the ${key} situation`);
+    }
+
+    assert.match(assistantSource, /function assistantVoiceSample\(key\)/, 'samples are looked up by situation');
+    assert.match(assistantSource, /function speakAssistantSample\(key\)/, 'any surface can audition the voice style');
+});
+
 test('avatar art is transparent PNG so it matches every theme', () => {
     const avatars = ['icons/assistant-abbah.png', 'icons/assistant-abbah-full.png'];
     for (const relative of avatars) {
@@ -268,9 +320,13 @@ test('avatar art is transparent PNG so it matches every theme', () => {
         assert.equal(bytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', `${relative} is a PNG`);
         const colorType = bytes.readUInt8(25);
         assert.equal(colorType & 4, 4, `${relative} carries a real alpha channel`);
-        assert.ok(bytes.readUInt32BE(16) === bytes.readUInt32BE(20), `${relative} stays square`);
         assert.ok(bytes.includes(Buffer.from('IEND', 'ascii')), `${relative} is not truncated`);
     }
+    // The head shot is a square crop; the full-body doorman is a tall portrait.
+    const bust = fs.readFileSync(path.join(root, 'icons/assistant-abbah.png'));
+    assert.equal(bust.readUInt32BE(16), bust.readUInt32BE(20), 'the head shot stays square');
+    const full = fs.readFileSync(path.join(root, 'icons/assistant-abbah-full.png'));
+    assert.ok(full.readUInt32BE(16) < full.readUInt32BE(20), 'the doorman is a tall full-body portrait');
 });
 
 test('assistant is local-only and never touches the network', () => {
@@ -279,7 +335,7 @@ test('assistant is local-only and never touches the network', () => {
     assert.doesNotMatch(assistantSource, /https?:\/\//);
     assert.doesNotMatch(assistantSource, /supabase/i);
     assert.match(assistantSource, /ومساعدك المحلي/, 'the assistant introduces itself as a local helper');
-    assert.match(html, /<p><span class="assistant-online-dot" aria-hidden="true"><\/span> بيانات التطبيق فقط<\/p>/, 'the head keeps the one-line privacy note and nothing more');
+    assert.match(html, /<p><span class="assistant-online-dot" aria-hidden="true"><\/span> واقف على الباب وبيخدمك<\/p>/, 'the head keeps the one-line status note and nothing more');
 });
 
 test('assistant runtime keeps chat and voice away from the network and off disk', () => {

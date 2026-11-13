@@ -3988,98 +3988,77 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     }
 }
 
-/* عم عبده البواب — local assistant */
+/* عم عبده البواب — local assistant launcher */
+/* A full-body doorman pinned above the bottom nav: it breathes while idle,
+   waves on hover, glows while talking, greets before the first click and
+   compacts while the visitor scrolls down. */
 .assistant-fab {
     position: fixed;
     inset-inline-start: .85rem;
-    bottom: calc(5.9rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(5.4rem + env(safe-area-inset-bottom, 0px));
     z-index: var(--z-floating);
     display: inline-flex;
-    align-items: center;
-    gap: var(--space-55);
-    min-height: 3.5rem;
-    padding: var(--space-28) var(--space-65) var(--space-28) var(--space-28);
-    border-radius: var(--radius-pill);
-    border: 1px solid color-mix(in srgb, var(--accent-color) 45%, var(--border-color));
-    background:
-        radial-gradient(120% 170% at 100% 0%, color-mix(in srgb, var(--accent-color) 20%, transparent), transparent 62%),
-        var(--bg-card);
-    box-shadow: 0 14px 34px var(--assistant-fab-shadow), inset 0 1px 0 color-mix(in srgb, var(--text-main) 8%, transparent);
-    transition: padding var(--motion-240) var(--ease-standard), box-shadow var(--motion-240) var(--ease-standard), transform var(--motion-260) var(--ease-standard), opacity var(--motion-200) var(--ease-standard), visibility var(--motion-260) var(--ease-standard);
+    align-items: flex-end;
+    justify-content: center;
+    width: 6.4rem;
+    height: 7.4rem;
+    padding: var(--space-none);
+    border: none;
+    background: none;
+    transform-origin: bottom center;
+    transition: transform var(--motion-260) var(--ease-standard), opacity var(--motion-200) var(--ease-standard), visibility var(--motion-260) var(--ease-standard);
+    -webkit-tap-highlight-color: transparent;
 }
 .assistant-fab:hover:not(.is-hidden) {
     transform: translateY(var(--space-8));
-    box-shadow: 0 18px 40px var(--assistant-fab-shadow), inset 0 1px 0 color-mix(in srgb, var(--text-main) 10%, transparent);
 }
 .assistant-avatar-frame {
-    display: inline-block;
+    display: block;
     flex: 0 0 auto;
-    overflow: hidden;
-    border-radius: var(--radius-pill);
-    background: color-mix(in srgb, var(--accent-color) 12%, var(--bg-card));
 }
 .assistant-avatar-frame img {
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    transform: scale(1.7);
-    transform-origin: 50% 28%;
+    object-fit: contain;
+    object-position: bottom center;
+    transform-origin: bottom center;
+    filter: drop-shadow(0 14px 34px var(--assistant-fab-shadow));
+    animation: assistant-fab-idle 4.8s var(--ease-standard) infinite;
 }
 .assistant-fab-avatar {
-    width: 2.9rem;
-    height: 2.9rem;
-    border: 1px solid color-mix(in srgb, var(--accent-color) 55%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 14%, transparent);
+    position: relative;
+    width: 6.4rem;
+    height: 7.4rem;
 }
-.assistant-fab-copy {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-5);
-    max-width: 9rem;
-    overflow: hidden;
-    transition: max-width var(--motion-240) var(--ease-standard), opacity var(--motion-180) var(--ease-standard);
+.assistant-fab:hover:not(.is-hidden) .assistant-fab-avatar img {
+    animation: assistant-fab-wave 1.05s var(--ease-standard) both;
 }
-.assistant-fab-label {
-    color: var(--text-main);
-    font-size: var(--font-68);
-    font-weight: var(--weight-900);
-    white-space: nowrap;
-    max-width: 9rem;
-    overflow: hidden;
-    opacity: var(--opacity-100);
-    transition: max-width var(--motion-240) var(--ease-standard), opacity var(--motion-180) var(--ease-standard);
-}
-.assistant-fab-sub {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-12);
-    color: var(--text-muted);
-    font-size: var(--font-56);
-    font-weight: var(--weight-600);
-    white-space: nowrap;
-}
-.assistant-fab-sub i {
-    color: var(--state-success);
-    font-size: var(--font-52);
+.assistant-fab.is-talking .assistant-fab-avatar img {
+    animation: assistant-fab-talk .34s var(--ease-standard) infinite;
+    filter: drop-shadow(0 0 var(--space-15) color-mix(in srgb, var(--accent-color) 80%, transparent)) drop-shadow(0 14px 34px var(--assistant-fab-shadow));
 }
 .assistant-fab-greeting {
     position: absolute;
-    bottom: calc(100% + var(--space-25));
-    inset-inline-start: var(--space-15);
-    padding: var(--space-20) var(--space-55);
+    bottom: calc(100% + var(--space-20));
+    inset-inline-start: var(--space-none);
+    padding: var(--space-30) var(--space-70);
     border: 1px solid color-mix(in srgb, var(--accent-color) 35%, var(--border-color));
     border-radius: var(--radius-85) var(--radius-85) var(--radius-25) var(--radius-85);
     background: var(--bg-card);
     color: var(--text-main);
     font-size: var(--font-62);
     font-weight: var(--weight-700);
+    line-height: var(--leading-135);
     white-space: nowrap;
     box-shadow: 0 8px 20px var(--assistant-fab-shadow);
     opacity: var(--opacity-0);
     transform-origin: 100% 100%;
     pointer-events: none;
+}
+/* The greeting is a timed animation the script replays: it shows on load, is
+   suppressed while the chat is open, and comes back once the chat closes. */
+.assistant-fab.is-greeting .assistant-fab-greeting {
     animation: assistant-fab-greet 6.5s var(--ease-standard) 1.2s both;
 }
 @keyframes assistant-fab-greet {
@@ -4087,11 +4066,26 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     10%, 80% { opacity: var(--opacity-100); transform: none; }
     100% { opacity: var(--opacity-0); transform: translateY(calc(-1 * var(--space-15))); }
 }
+@keyframes assistant-fab-idle {
+    0%, 100% { transform: translateY(var(--space-none)) scale(1); }
+    50% { transform: translateY(calc(-1 * var(--space-10))) scale(1.015); }
+}
+@keyframes assistant-fab-wave {
+    0%, 100% { transform: rotate(0deg); }
+    20% { transform: rotate(-5deg); }
+    45% { transform: rotate(4deg); }
+    70% { transform: rotate(-3deg); }
+}
+@keyframes assistant-fab-talk {
+    0%, 100% { transform: translateY(var(--space-none)) rotate(0deg); }
+    25% { transform: translateY(calc(-1 * var(--space-8))) rotate(-1.4deg); }
+    75% { transform: translateY(var(--space-8)) rotate(1.4deg); }
+}
 .assistant-fab::after {
     content: '';
     position: absolute;
-    top: .5rem;
-    inset-inline-start: .62rem;
+    top: 1.05rem;
+    inset-inline-start: .55rem;
     width: .46rem;
     height: .46rem;
     border-radius: var(--radius-pill);
@@ -4105,27 +4099,25 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     pointer-events: none;
 }
 .assistant-fab.is-compact {
-    gap: var(--space-none);
-    padding: var(--space-28);
-    box-shadow: 0 9px 22px var(--assistant-fab-shadow-compact);
+    transform: scale(.74);
 }
-.assistant-fab.is-compact .assistant-fab-label { max-width: 0; opacity: var(--opacity-0); }
-.assistant-fab.is-compact .assistant-fab-copy { max-width: 0; opacity: var(--opacity-0); }
+.assistant-fab.is-compact .assistant-fab-avatar img {
+    filter: drop-shadow(0 9px 22px var(--assistant-fab-shadow-compact));
+}
 .assistant-fab.is-compact .assistant-fab-greeting { display: none; }
 .assistant-fab.is-compact::after { display: none; }
 body.session-locked .assistant-fab { display: none; }
 body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-bottom, 0px)); }
 @media (max-width: 560px) {
-    .assistant-fab { padding: var(--space-22); inset-inline-start: .6rem; }
-    .assistant-fab-copy { display: none; }
+    .assistant-fab { inset-inline-start: .6rem; }
     .assistant-fab-greeting { display: none; }
     .assistant-fab::after { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
     .assistant-fab { transition: none; }
-    .assistant-fab-label { transition: none; }
-    .assistant-fab-copy { transition: none; }
-    .assistant-fab-greeting { animation: none; }
+    .assistant-fab-avatar img { animation: none; }
+    .assistant-fab.is-greeting .assistant-fab-greeting { animation: none; }
+    .assistant-avatar.is-talking img { animation: none; }
 }
 @media print { .assistant-fab { display: none !important; } }
 
@@ -4156,6 +4148,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     border-radius: var(--radius-pill);
     border: 1px solid color-mix(in srgb, var(--accent-color) 45%, var(--border-color));
     background: color-mix(in srgb, var(--accent-color) 16%, var(--bg-input));
+    transition: box-shadow var(--motion-240) var(--ease-standard);
 }
 .assistant-avatar img {
     width: 100%;
@@ -4163,6 +4156,18 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     object-fit: cover;
     transform: scale(1.7);
     transform-origin: 50% 28%;
+}
+/* While the doorman speaks, the head portrait nods and the medallion glows. */
+.assistant-avatar.is-talking {
+    box-shadow: 0 0 var(--space-15) color-mix(in srgb, var(--accent-color) 70%, transparent);
+}
+.assistant-avatar.is-talking img {
+    animation: assistant-head-talk .34s var(--ease-standard) infinite;
+}
+@keyframes assistant-head-talk {
+    0%, 100% { transform: scale(1.7) rotate(0deg); }
+    25% { transform: scale(1.7) rotate(-1.4deg); }
+    75% { transform: scale(1.7) rotate(1.4deg); }
 }
 .assistant-hero {
     float: inline-start;
@@ -4209,92 +4214,6 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     gap: var(--space-60);
     padding: var(--space-90);
     overscroll-behavior: contain;
-}
-.assistant-avatar-stage {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    height: clamp(9rem, 29vh, 13rem);
-    overflow: hidden;
-    border-bottom: 1px solid var(--border-color);
-    background:
-        linear-gradient(180deg, color-mix(in srgb, var(--accent-color) 10%, transparent), transparent 24%),
-        radial-gradient(58% 62% at 50% 32%, color-mix(in srgb, var(--accent-color) 26%, transparent), transparent 72%),
-        radial-gradient(90% 60% at 50% 112%, color-mix(in srgb, var(--bg-card) 55%, var(--accent-color) 10%), transparent 72%),
-        var(--bg-input);
-}
-.assistant-avatar-stage::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    box-shadow:
-        inset 0 -1.6rem 2.2rem -1.2rem color-mix(in srgb, var(--bg-input) 80%, transparent),
-        inset 0 0 0 1px color-mix(in srgb, var(--accent-color) 10%, transparent);
-}
-.assistant-avatar-stage[hidden] { display: none; }
-.assistant-avatar-poster {
-    max-width: 100%;
-    height: 100%;
-    object-fit: contain;
-    opacity: var(--opacity-100);
-    filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--bg-input) 75%, transparent));
-    transition: opacity var(--motion-300) var(--ease-standard);
-}
-.assistant-avatar-stage.is-3d .assistant-avatar-poster { opacity: var(--opacity-0); }
-.assistant-avatar-mount {
-    position: absolute;
-    inset: 0;
-}
-.assistant-avatar-mount model-viewer {
-    display: block;
-    width: 100%;
-    height: 100%;
-    background: transparent;
-    opacity: var(--opacity-0);
-    pointer-events: none;
-    --poster-color: transparent;
-    transition: opacity var(--motion-300) var(--ease-standard);
-}
-.assistant-avatar-stage.is-3d .assistant-avatar-mount model-viewer { opacity: var(--opacity-100); }
-.assistant-avatar-toggle {
-    position: absolute;
-    inset-inline-end: var(--space-50);
-    bottom: var(--space-45);
-    z-index: var(--z-raised);
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-25);
-    padding: var(--space-20) var(--space-45);
-    border: 1px solid color-mix(in srgb, var(--accent-color) 32%, var(--border-color));
-    border-radius: var(--radius-pill);
-    background: color-mix(in srgb, var(--bg-card) 80%, transparent);
-    color: var(--text-muted);
-    font-size: var(--font-58);
-    font-weight: var(--weight-700);
-    line-height: var(--leading-135);
-    backdrop-filter: blur(var(--blur-60));
-    transition: color var(--motion-180) var(--ease-standard), border-color var(--motion-180) var(--ease-standard), background var(--motion-180) var(--ease-standard);
-}
-.assistant-avatar-toggle:hover:not(:disabled) {
-    color: var(--text-main);
-    border-color: color-mix(in srgb, var(--accent-color) 60%, var(--border-color));
-    background: var(--bg-card);
-}
-.assistant-avatar-toggle[aria-pressed="true"] {
-    color: var(--text-main);
-    border-color: color-mix(in srgb, var(--accent-color) 60%, var(--border-color));
-}
-.assistant-avatar-toggle:disabled { opacity: var(--opacity-60); cursor: progress; }
-@media (max-width: 560px) {
-    .assistant-avatar-stage { height: 9.5rem; }
-}
-@media (prefers-reduced-motion: reduce) {
-    .assistant-avatar-poster,
-    .assistant-avatar-mount model-viewer { transition: none; }
 }
 .assistant-msg { display: flex; }
 .assistant-msg.is-bot { justify-content: flex-start; }

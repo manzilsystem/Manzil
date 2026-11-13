@@ -102,12 +102,6 @@ async function installAssistantNetworkProbe(page) {
     });
 }
 
-// The 3D stage fetches its own static viewer/model when the modal opens. Those
-// same-origin assets carry no conversation data, so the chat probe ignores them
-// and still fails on any other network call.
-const AVATAR_ASSETS = ['js/vendor/model-viewer.min.js', 'icons/assistant-abbah-3d-rigged.glb'];
-const withoutAvatarAssets = entries => entries.filter(entry => !AVATAR_ASSETS.some(asset => entry.includes(asset)));
-
 async function askAssistantQuestion(page, question) {
     const messages = page.locator('#assistantLog .assistant-msg:not(.is-typing)');
     const before = await messages.count();
@@ -154,7 +148,7 @@ test('the manager conversation stays offline and read-only in the real app', asy
         await askAssistantQuestion(page, question);
     }
 
-    const probe = withoutAvatarAssets(await page.evaluate(() => window.__assistantNetworkProbe.slice()));
+    const probe = await page.evaluate(() => window.__assistantNetworkProbe.slice());
     expect(probe, 'the assistant must never touch the network').toEqual([]);
     const after = await page.evaluate(() => JSON.stringify(state));
     expect(after, 'the assistant must never write state').toBe(before);
@@ -204,7 +198,7 @@ test.describe('assistant floating launcher', () => {
     test('clears the bottom nav, shrinks on scroll down and widens on scroll up', async ({ page }) => {
         const fab = page.locator('#assistantFab');
         await expect(fab).toBeVisible();
-        await expect(fab.locator('.assistant-fab-avatar img')).toHaveAttribute('src', /^icons\/assistant-abbah\.png\?v=[0-9a-f]{10}$/);
+        await expect(fab.locator('.assistant-avatar-frame img')).toHaveAttribute('src', /^icons\/assistant-abbah-full\.png\?v=[0-9a-f]{10}$/);
         await expect(fab).not.toHaveClass(/is-hidden|is-compact/);
 
         const box = await fab.boundingBox();
@@ -438,14 +432,14 @@ test.describe('assistant inside the owner portal', () => {
             await askAssistantQuestion(page, question);
         }
 
-        const probe = withoutAvatarAssets(await page.evaluate(() => window.__assistantNetworkProbe.slice()));
+        const probe = await page.evaluate(() => window.__assistantNetworkProbe.slice());
         expect(probe, 'the owner assistant must never touch the network').toEqual([]);
         const after = await page.evaluate(() => JSON.stringify(state));
         expect(after, 'the owner assistant must never write state').toBe(before);
     });
 });
 
-test('the doorman art stays transparent and the circular crop never cuts the cap', async ({ page }) => {
+test('the doorman art stays transparent and the launcher shows the full body uncropped', async ({ page }) => {
     await loadShell(page);
     await page.waitForFunction(() => typeof window.syncAssistantFab === 'function');
 
@@ -478,26 +472,10 @@ test('the doorman art stays transparent and the circular crop never cuts the cap
         };
     }, src);
 
-    const crop = () => page.evaluate(() => {
-        const styles = getComputedStyle(document.querySelector('#assistantFab .assistant-avatar-frame img'));
-        const matrix = new DOMMatrixReadOnly(styles.transform);
-        const [originX, originY] = styles.transformOrigin.split(' ').map(value => parseFloat(value) / 100);
-        const visible = 1 / matrix.a;
-        return { top: originY - visible / 2, bottom: originY + visible / 2, left: originX - visible / 2, right: originX + visible / 2 };
+    const launcher = await page.evaluate(() => {
+        const img = document.querySelector('#assistantFab .assistant-avatar-frame img');
+        return { source: img.getAttribute('src'), objectFit: getComputedStyle(img).objectFit };
     });
-
-    for (const src of ['icons/assistant-abbah.png', 'icons/assistant-abbah-full.png']) {
-        const box = await measure(src);
-        expect(box.cornerAlpha, `${src} must keep a transparent background`).toBe(0);
-        expect(box.top, `${src} needs empty space above the cap`).toBeGreaterThan(0.02);
-        expect(box.left, `${src} must not touch the left edge`).toBeGreaterThan(0.01);
-        expect(box.right, `${src} must not touch the right edge`).toBeLessThan(0.99);
-    }
-
-    const launcher = await crop();
-    const bust = await measure('icons/assistant-abbah.png');
-    expect(launcher.top, 'the circle opens above the turban').toBeLessThanOrEqual(bust.top - 0.01);
-    expect(launcher.bottom, 'the circle still frames the face').toBeGreaterThan(bust.top + 0.2);
-    expect(launcher.left, 'the circle must not clip the shoulders sideways').toBeLessThanOrEqual(bust.left);
-    expect(launcher.right, 'the circle must not clip the shoulders sideways').toBeGreaterThanOrEqual(bust.right);
+    expect(launcher.source, 'the launcher shows the full-body portrait, not the cropped bust').toContain('assistant-abbah-full.png');
+    expect(launcher.objectFit, 'the whole doorman is contained, never cropped by a medallion').toBe('contain');
 });

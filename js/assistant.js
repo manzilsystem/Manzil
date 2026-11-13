@@ -1223,6 +1223,7 @@ function renderAssistantMessage(role, html) {
 function appendAssistantMessage(role, html) {
     assistantChat.push({ role, html });
     persistAssistantChat();
+    if (role === 'bot') speakAssistantText(assistantSpeechText(html));
     return renderAssistantMessage(role, html);
 }
 
@@ -1323,10 +1324,138 @@ function resetAssistantChat() {
     appendAssistantMessage('bot', buildAssistantGreetingHtml());
 }
 
+/* Voice output — عم عبده reads his answers aloud with a calm Egyptian voice.
+   The browser speech engine runs entirely on-device, so the assistant keeps its
+   promise of never touching the network. While a phrase plays, the launcher and
+   the head portrait share the `.is-talking` glow/nod animations, and both settle
+   the moment speech ends (or is muted). */
+const ASSISTANT_SPEECH_LANG = 'ar-EG';
+const ASSISTANT_SPEECH_PITCH = 0.8;
+const ASSISTANT_SPEECH_RATE = 0.95;
+const ASSISTANT_SOUND_STORAGE_KEY = 'manzil-assistant-sound';
+let assistantSoundEnabled = true;
+
+/* The voice style of عم عبده: a warm, unhurried Egyptian (ar-EG) grandfather who
+   stands at the building door. Every utterance is rendered through this one
+   profile, so the doorman keeps the same accent (لهجة مصرية عامية), the same
+   low pitch, and the same calm pace in every situation. */
+const ASSISTANT_VOICE_PROFILE = Object.freeze({
+    character: ASSISTANT_NAME,
+    dialect: 'اللهجة المصرية العامية',
+    lang: ASSISTANT_SPEECH_LANG,
+    pitch: ASSISTANT_SPEECH_PITCH,
+    rate: ASSISTANT_SPEECH_RATE,
+    volume: 1
+});
+
+/* Reference repertoire the style was tuned against: one line per everyday
+   situation, so the delivery stays consistent (same profile) while the wording
+   and mood change with the moment. */
+const ASSISTANT_VOICE_SAMPLES = Object.freeze([
+    { key: 'greeting', situation: 'استقبال', tone: 'دافئ وودود', text: 'نورت يا بيه! عم عبده في خدمتك، أؤمرني تحت أمرك.' },
+    { key: 'welcome', situation: 'ترحيب بجار جديد', tone: 'مرحب ومطمئن', text: 'أهلاً وسهلاً بيك في العمارة، أنا تحت أمرك في أي حاجة.' },
+    { key: 'reassure', situation: 'طمأنة', tone: 'واثق وهادئ', text: 'متقلقش يا بيه، كل حاجة ماشية تمام وتحت السيطرة.' },
+    { key: 'arrears', situation: 'تنبيه على المتأخرات', tone: 'مهذب وحازم', text: 'يا بيه، فاضل شوية بسيطة من الشهر اللي فات، تبص عليها لما تحب.' },
+    { key: 'thanks', situation: 'شكر', tone: 'ممتن وصادق', text: 'ربنا يكرمك يا بيه، تسلم إيدك وجزاك الله كل خير.' },
+    { key: 'apology', situation: 'اعتذار', tone: 'متواضع ومتفهّم', text: 'معلش يا بيه، أنا آسف على الإزعاج، وما تزعلش مني.' },
+    { key: 'encourage', situation: 'تشجيع', tone: 'مشجع ودافئ', text: 'قوللي بس تحب تعرف إيه، وأنا أظبطلك كل الأرقام على طول.' },
+    { key: 'farewell', situation: 'توديع', tone: 'ودود وخفيف', text: 'تحت أمرك في أي وقت يا بيه، أنا واقف على الباب ومنتظرك.' }
+]);
+
+function assistantSpeechSynthesis() {
+    if (typeof window === 'undefined') return null;
+    return window.speechSynthesis || null;
+}
+
+function assistantSpeechText(html) {
+    return String(html || '')
+        .replace(/<div class="assistant-followups">[\s\S]*$/, ' ')
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, ' و ')
+        .replace(/&lt;/g, ' ')
+        .replace(/&gt;/g, ' ')
+        .replace(/&quot;/g, ' ')
+        .replace(/&#39;/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function setAssistantTalking(talking) {
+    ['assistantFab', 'assistantHeadAvatar'].forEach(id => {
+        const node = document.getElementById(id);
+        if (node) node.classList.toggle('is-talking', talking);
+    });
+}
+
+function stopAssistantSpeech() {
+    const synth = assistantSpeechSynthesis();
+    if (synth && typeof synth.cancel === 'function') {
+        try { synth.cancel(); } catch (error) { /* the engine is already idle */ }
+    }
+    setAssistantTalking(false);
+}
+
+function speakAssistantText(text) {
+    const synth = assistantSpeechSynthesis();
+    const phrase = String(text || '').trim();
+    if (!assistantSoundEnabled || !synth || !phrase) return;
+    if (typeof window.SpeechSynthesisUtterance !== 'function') return;
+    try {
+        synth.cancel();
+        const utterance = new window.SpeechSynthesisUtterance(phrase);
+        utterance.lang = ASSISTANT_VOICE_PROFILE.lang;
+        utterance.pitch = ASSISTANT_VOICE_PROFILE.pitch;
+        utterance.rate = ASSISTANT_VOICE_PROFILE.rate;
+        utterance.volume = ASSISTANT_VOICE_PROFILE.volume;
+        utterance.onstart = () => setAssistantTalking(true);
+        utterance.onend = () => setAssistantTalking(false);
+        utterance.onerror = () => setAssistantTalking(false);
+        synth.speak(utterance);
+    } catch (error) {
+        setAssistantTalking(false);
+    }
+}
+
+function assistantVoiceSample(key) {
+    return ASSISTANT_VOICE_SAMPLES.find(sample => sample.key === key) || null;
+}
+
+/* Preview one of the reference lines in the doorman's own voice. Any surface can
+   call this by situation key to audition the style without reciting a chat turn. */
+function speakAssistantSample(key) {
+    const sample = assistantVoiceSample(key);
+    if (!sample) return null;
+    speakAssistantText(sample.text);
+    return sample;
+}
+
+function syncAssistantSoundButton() {
+    const button = document.getElementById('assistantSoundButton');
+    if (!button) return;
+    button.setAttribute('aria-pressed', assistantSoundEnabled ? 'true' : 'false');
+    button.setAttribute('aria-label', assistantSoundEnabled ? 'كتم صوت عم عبده' : 'تشغيل صوت عم عبده');
+    button.setAttribute('title', assistantSoundEnabled ? 'كتم الصوت' : 'تشغيل الصوت');
+    button.innerHTML = assistantSoundEnabled
+        ? '<i class="fa-solid fa-volume-high" aria-hidden="true"></i>'
+        : '<i class="fa-solid fa-volume-xmark" aria-hidden="true"></i>';
+}
+
+function toggleAssistantSound() {
+    assistantSoundEnabled = !assistantSoundEnabled;
+    if (!assistantSoundEnabled) stopAssistantSpeech();
+    syncAssistantSoundButton();
+    try { sessionStorage.setItem(ASSISTANT_SOUND_STORAGE_KEY, assistantSoundEnabled ? '1' : '0'); } catch (error) { /* private mode */ }
+    if (typeof toast === 'function') {
+        toast(assistantSoundEnabled ? 'صوت عم عبده اشتغل تاني' : 'صوت عم عبده اتكتم', 'info');
+    }
+}
+
 const ASSISTANT_FAB_SCROLL_DEADZONE = 8;
 const ASSISTANT_FAB_TOP_REVEAL = 48;
 let assistantFabLastScrollY = 0;
 let assistantFabCompactByScroll = false;
+let assistantFabGreetingPending = false;
 
 function assistantModalIsOpen() {
     const modal = document.getElementById('assistantModal');
@@ -1346,12 +1475,28 @@ function applyAssistantFabState(hidden, compact) {
     fab.classList.toggle('is-compact', compact && !hidden);
 }
 
+function showAssistantGreeting() {
+    const fab = document.getElementById('assistantFab');
+    if (!fab || !fab.classList) return;
+    // Drop and re-add the class so the CSS greeting animation replays after a
+    // chat session closes instead of staying faded out.
+    fab.classList.remove('is-greeting');
+    const arm = () => fab.classList.add('is-greeting');
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(arm);
+    else arm();
+}
+
 function syncAssistantFab() {
     if (!isAssistantFabAllowed()) {
+        if (assistantModalIsOpen()) assistantFabGreetingPending = true;
         applyAssistantFabState(true, false);
         return;
     }
     applyAssistantFabState(false, assistantFabCompactByScroll);
+    if (assistantFabGreetingPending) {
+        assistantFabGreetingPending = false;
+        showAssistantGreeting();
+    }
 }
 
 function handleAssistantFabScroll() {
@@ -1363,6 +1508,13 @@ function handleAssistantFabScroll() {
     syncAssistantFab();
 }
 
+function restoreAssistantSoundPreference() {
+    let stored = null;
+    try { stored = sessionStorage.getItem(ASSISTANT_SOUND_STORAGE_KEY); } catch (error) { stored = null; }
+    if (stored === '0' || stored === '1') assistantSoundEnabled = stored === '1';
+    syncAssistantSoundButton();
+}
+
 function initAssistantFab() {
     assistantFabLastScrollY = window.scrollY || document.documentElement.scrollTop || 0;
     const modal = document.getElementById('assistantModal');
@@ -1371,7 +1523,9 @@ function initAssistantFab() {
     }
     window.addEventListener('scroll', handleAssistantFabScroll, { passive: true });
     window.addEventListener('resize', syncAssistantFab);
+    restoreAssistantSoundPreference();
     syncAssistantFab();
+    showAssistantGreeting();
 }
 
 document.addEventListener('DOMContentLoaded', initAssistantFab);

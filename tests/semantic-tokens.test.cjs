@@ -1445,19 +1445,19 @@ test('the assistant floating-button shadow palette resolves from canonical token
         assert.equal(css.split(declaration).length - 1, 1, `${declaration} must be declared exactly once`);
     }
 
-    const fab = blocks(css, '\\.assistant-fab')[0];
-    assert.ok(fab, 'expected a rule for the assistant floating action button');
-    assert.ok(/box-shadow:\s*0 14px 34px var\(--assistant-fab-shadow\)/.test(fab[1]),
-        'the assistant FAB must cast its drop shadow via var(--assistant-fab-shadow)');
+    const fab = blocks(css, '\\.assistant-avatar-frame img')[0];
+    assert.ok(fab, 'expected a rule for the assistant full-body portrait');
+    assert.ok(/drop-shadow\(0 14px 34px var\(--assistant-fab-shadow\)\)/.test(fab[1]),
+        'the assistant portrait must cast its drop shadow via var(--assistant-fab-shadow)');
     assert.ok(!/rgba\(2, 6, 23/.test(fab[1]),
-        'the assistant FAB must not keep a raw rgba(2, 6, 23, …) shadow literal');
+        'the assistant portrait must not keep a raw rgba(2, 6, 23, …) shadow literal');
 
-    const compact = blocks(css, '\\.assistant-fab\\.is-compact')[0];
-    assert.ok(compact, 'expected a rule for the compact assistant FAB');
-    assert.ok(/box-shadow:\s*0 9px 22px var\(--assistant-fab-shadow-compact\)/.test(compact[1]),
-        'the compact assistant FAB must cast its drop shadow via var(--assistant-fab-shadow-compact)');
+    const compact = blocks(css, '\\.assistant-fab\\.is-compact \\.assistant-fab-avatar img')[0];
+    assert.ok(compact, 'expected a rule for the compact assistant portrait');
+    assert.ok(/drop-shadow\(0 9px 22px var\(--assistant-fab-shadow-compact\)\)/.test(compact[1]),
+        'the compact assistant portrait must cast its drop shadow via var(--assistant-fab-shadow-compact)');
     assert.ok(!/rgba\(2, 6, 23/.test(compact[1]),
-        'the compact assistant FAB must not keep a raw rgba(2, 6, 23, …) shadow literal');
+        'the compact assistant portrait must not keep a raw rgba(2, 6, 23, …) shadow literal');
 
     // Both literals were unique to this palette; they may only survive in their token
     // definitions (the remaining rgba(2, 6, 23, …) alphas belong to excluded surfaces).

@@ -8,12 +8,8 @@
         <button onclick="switchTab('reports')" id="btn-reports" class="tab-btn flex flex-col items-center gap-1 text-slate-400 transition"><i class="fa-solid fa-file-invoice text-lg"></i><span class="text-[10px] font-semibold">التقارير</span></button>
     </nav>
 
-    <!-- Assistant launcher — slides away while scrolling down, returns when scrolling up -->
-    <button type="button" id="assistantFab" class="app-card assistant-fab" onclick="openAssistantModal()" aria-label="اسأل عم عبده البواب" title="اسأل عم عبده البواب">
-        <span class="assistant-fab-greeting" aria-hidden="true">أهلاً بيك</span>
-        <span class="assistant-avatar-frame assistant-fab-avatar"><img src="icons/assistant-abbah.png" alt="" width="44" height="44" decoding="async"></span>
-        <span class="assistant-fab-copy">
-            <span class="assistant-fab-label">اسأل عم عبده</span>
-            <span class="assistant-fab-sub"><i class="fa-solid fa-lock" aria-hidden="true"></i>بياناتك فقط</span>
-        </span>
+    <!-- Assistant launcher — a full-body doorman that stays on screen: it greets before the first click, breathes while idle, waves on hover, glows while talking and compacts while scrolling down -->
+    <button type="button" id="assistantFab" class="assistant-fab" onclick="openAssistantModal()" aria-label="اسأل عم عبده البواب" title="اسأل عم عبده البواب">
+        <span class="assistant-fab-greeting" aria-hidden="true">نورت يا بيه! عم عبده في خدمتك 👋</span>
+        <span class="assistant-avatar-frame assistant-fab-avatar"><img src="icons/assistant-abbah-full.png" alt="" width="102" height="118" decoding="async"></span>
     </button>
