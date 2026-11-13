@@ -1885,3 +1885,38 @@ test('the report PDF builders route structural literals to REPORT_PDF_PALETTE', 
             'the report PDF export helper must consume REPORT_PDF_PALETTE.surface');
     }
 });
+
+test('the service-worker update toast resolves from canonical tokens', () => {
+    // Part 69: the in-app "update available" toast built in js/sw-register.js inlined
+    // its teal surface, white ink, edge and shadow as raw literals. It now resolves
+    // from the canonical update-toast tokens declared once in :root. Each token matches
+    // the literal it replaced, so no visual change is introduced.
+    const css = read('css/style.css');
+    const rootBlock = blocks(css, ':root')[0][1];
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const tokens = {
+        '--update-toast-surface': '#0f766e',
+        '--update-toast-ink': '#fff',
+        '--update-toast-edge': 'rgba(255,255,255,.6)',
+        '--update-toast-shadow': 'rgba(0,0,0,.35)'
+    };
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(rootBlock, new RegExp(escape(declaration)), `:root must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1, `${declaration} must be declared exactly once`);
+    }
+
+    // The toast builder must consume every token and keep no raw hex literal.
+    const source = read('js/sw-register.js');
+    assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(source),
+        'js/sw-register.js must not keep a raw hex colour literal');
+    for (const name of Object.keys(tokens)) {
+        assert.ok(new RegExp(`var\\(${escape(name)}\\)`).test(source),
+            `the update toast must consume var(${name})`);
+    }
+
+    // #0f766e was unique to this palette; it may only survive in its token definition.
+    const found = css.match(new RegExp(escape('#0f766e'), 'g')) || [];
+    assert.equal(found.length, 1, '#0f766e must only appear in the canonical token definition');
+});

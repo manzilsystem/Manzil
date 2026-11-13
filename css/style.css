@@ -287,6 +287,16 @@
     --header-brand-line: rgba(15, 23, 42, .12);
     --header-brand-surface: #f8fbfd;
     --header-brand-shadow: rgba(2, 20, 35, .12);
+    /* Canonical service-worker update toast palette — the single source for the
+       theme-invariant teal surface painted by the in-app "update available" toast
+       (js/sw-register.js). The toast is intentionally theme-invariant (it stays
+       teal across all six themes), so these live in :root and never remap. Values
+       match the literals they replaced exactly, so routing the inline styles
+       through them introduces no visual change. */
+    --update-toast-surface: #0f766e;
+    --update-toast-ink: #fff;
+    --update-toast-edge: rgba(255,255,255,.6);
+    --update-toast-shadow: rgba(0,0,0,.35);
     --radius-lg: 1rem;
     --radius-pill: 999px;
     --radius-circle: 50%;
