@@ -10,8 +10,10 @@ interface ManzilSupabaseConfig {
 interface AssistantAvatar3DController {
     mount: () => void;
     unmount: () => void;
+    toggle: () => void;
     state: () => 'idle' | 'loading' | 'ready' | 'error' | 'unsupported';
     isReady: () => boolean;
+    isShowing: () => boolean;
 }
 
 interface Window {
