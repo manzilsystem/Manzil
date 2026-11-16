@@ -113,12 +113,18 @@ async function askAssistantQuestion(page, question) {
 test('assistant opens from the launcher and answers local questions', async ({ page }) => {
     await seedAndOpenAssistant(page);
     await expect(page.locator('#assistantInput')).toBeVisible();
+    await expect(page.locator('#assistantQuickActions')).not.toHaveJSProperty('open', true);
+    await expect(page.locator('.assistant-suggestions-disclosure')).not.toHaveJSProperty('open', true);
+    await page.locator('#assistantQuickActions > summary').click();
+    await expect(page.locator('#assistantQuickActions').getByRole('button', { name: 'تسجيل تحصيل', exact: true })).toBeVisible();
+    await page.locator('#assistantQuickActions > summary').click();
     await expect(page.locator('#assistantVoiceButton, #assistantSoundButton, #assistantVoiceDownloadModal')).toHaveCount(0);
     const botMessages = page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble');
     await expect(botMessages.first()).toContainText('أهلاً يا أستاذ');
     await expect(page.locator('#assistantInput')).toHaveAttribute('placeholder', /الخزنة/);
 
-    await page.locator('[data-assistant-query="رصيد الخزنة كام؟"]').click();
+    await page.locator('.assistant-suggestions-disclosure > summary').click();
+    await page.locator('#assistantSuggestions [data-assistant-query="رصيد الخزنة كام؟"]').click();
     await expect(botMessages.last()).toContainText('الخزنة الرئيسية');
     await expect(botMessages.last()).toContainText('1,550 ج.م');
 
@@ -374,6 +380,7 @@ test.describe('assistant inside the owner portal', () => {
     test('the launcher stays in the owner portal and greets the owner by name', async ({ page }) => {
         const botMessages = await seedOwnerAssistant(page);
         await expect(botMessages.first()).toContainText('أهلاً يا أحمد علي');
+        await page.locator('.assistant-suggestions-disclosure > summary').click();
         await expect(page.locator('#assistantSuggestions [data-assistant-query="عليّا كام الشهر ده؟"]')).toBeVisible();
         await expect(page.locator('#assistantSuggestions [data-assistant-query="رصيد الخزنة كام؟"]')).toHaveCount(0);
         await expect(page.locator('#assistantInput')).toHaveAttribute('placeholder', 'اسألني عن حسابك، إيصالاتك، ميعاد الدفع…');

@@ -291,7 +291,11 @@ test('manager quick actions are visible, start incomplete operation drafts, and 
     assert.match(assistantSource, /function populateAssistantQuickActions\(\)/);
     assert.match(assistantSource, /if \(section\) section\.hidden = !isManager/);
     assert.match(html, /id="assistantQuickActions"[^>]*hidden/);
+    assert.match(html, /<details id="assistantQuickActions"[^>]*>/);
+    assert.match(html, /<details class="assistant-disclosure assistant-suggestions-disclosure">/);
+    assert.doesNotMatch(html, /<details[^>]*\bopen\b/, 'quick actions and suggestions start collapsed to keep the chat clear');
     assert.match(html, /إجراءات المدير السريعة/);
+    assert.match(css, /\.assistant-disclosure-summary:focus-visible/);
     assert.match(css, /\.assistant-quick-action:focus-visible/);
 
     const { api: ownerApi } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });

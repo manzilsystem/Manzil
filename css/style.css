@@ -4283,13 +4283,28 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 .assistant-action-secondary:hover { border-color: var(--accent-color); background: color-mix(in srgb, var(--accent-color) 18%, var(--bg-input)); }
 .assistant-action-cancel { background: transparent; color: var(--text-muted); }
 .assistant-action-cancel:hover { border-color: var(--state-danger); color: var(--state-danger); }
-.assistant-quick-actions {
-    padding: var(--space-65) var(--space-80) var(--space-50);
-    border-top: 1px solid var(--border-color);
-    background: color-mix(in srgb, var(--accent-color) 4%, transparent);
+.assistant-disclosure { flex: 0 0 auto; border-top: 1px solid var(--border-color); }
+.assistant-disclosure[hidden] { display: none; }
+.assistant-disclosure-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 2.55rem;
+    padding: var(--space-35) var(--space-80);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: var(--font-67);
+    font-weight: var(--weight-800);
+    list-style: none;
+    user-select: none;
 }
-.assistant-quick-actions[hidden] { display: none; }
-.assistant-quick-actions-title { margin: var(--space-none) var(--space-none) var(--space-45); font-size: var(--font-70); font-weight: var(--weight-800); }
+.assistant-disclosure-summary::-webkit-details-marker { display: none; }
+.assistant-disclosure-summary:hover { color: var(--text-main); }
+.assistant-disclosure-summary:focus-visible { outline: 2px solid var(--accent-color); outline-offset: -2px; }
+.assistant-disclosure-summary i { color: var(--text-muted); font-size: var(--font-62); transition: transform var(--motion-150) var(--ease-standard); }
+.assistant-disclosure[open] > .assistant-disclosure-summary i { transform: rotate(180deg); }
+.assistant-disclosure-body { padding: var(--space-25) var(--space-80) var(--space-65); }
+.assistant-quick-actions .assistant-disclosure-summary { color: var(--text-main); }
 .assistant-quick-actions-list { display: flex; flex-wrap: wrap; gap: var(--space-35); }
 .assistant-quick-action {
     display: inline-flex;
