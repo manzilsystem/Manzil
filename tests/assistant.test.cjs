@@ -481,6 +481,7 @@ test('arabic normalization and period resolution understand months, years and ro
     assert.equal(api.resolveAssistantPeriod('تحصيل نوفمبر', NOW).label, 'نوفمبر 2026');
     assert.equal(api.resolveAssistantPeriod('تحصيل يناير 2025', NOW).label, 'يناير 2025');
     assert.equal(api.resolveAssistantPeriod('تحصيل الشهر الماضي', NOW).label, 'أكتوبر 2026');
+    assert.equal(api.resolveAssistantPeriod('تحصيل شهر سبعه 2025', NOW).label, 'يوليو 2025');
     const year = api.resolveAssistantPeriod('مصروفات سنة 2025', NOW);
     assert.equal(year.type, 'year');
     assert.equal(year.months.length, 12);
@@ -495,6 +496,17 @@ test('common Egyptian colloquial aliases reach the matching answer', () => {
     assert.equal(api.answerAssistantQuery('اللي اتصرف في نوفمبر', NOW).id, 'expenses');
     assert.equal(api.answerAssistantQuery('فلوس الخزنة كام؟', NOW).id, 'cashbox');
     assert.equal(api.answerAssistantQuery('فيه جديد في العمارة؟', NOW).id, 'notices');
+});
+
+test('comparison answers use the selected month and its immediately previous month', () => {
+    const { api } = createHarness(true);
+    const answer = api.answerAssistantQuery('قارن نوفمبر 2026 بأكتوبر', NOW);
+    assert.equal(answer.id, 'comparison');
+    assert.match(answer.title, /نوفمبر 2026 وأكتوبر 2026/);
+    assert.match(answer.html, /التحصيل/);
+    assert.match(answer.html, /المصروفات/);
+    assert.match(answer.html, /انخفاض 10 ج\.م/);
+    assert.match(answer.html, /زيادة 75 ج\.م/);
 });
 
 test('income answers separate subscriptions from other purposes', () => {
@@ -585,6 +597,10 @@ test('resident answers resolve by name or apartment and show adjustments', () =>
     assert.equal(snapshot.outstanding, 120);
     assert.equal(snapshot.monthPayments.length, 1);
     assert.equal(snapshot.lastPayment.id, 'i2');
+
+    const byWordApartment = api.answerAssistantQuery('شقة سبعة دفع كام؟', NOW);
+    assert.equal(byWordApartment.id, 'resident');
+    assert.match(byWordApartment.title, /شقة 7/);
 });
 
 test('ambiguous resident names ask for the apartment instead of guessing', () => {

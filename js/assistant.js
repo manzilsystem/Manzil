@@ -44,6 +44,7 @@ const ASSISTANT_FOLLOWUPS = Object.freeze({
     resident: ['مين عليه متأخرات؟', 'ملخص الشهر'],
     building: ['ملخص الشهر', 'مين عليه متأخرات؟'],
     reports: ['ملخص الشهر', 'تحصيل الشهر'],
+    comparison: ['مصروفات الشهر', 'تحصيل الشهر'],
     notices: ['ملخص الشهر', 'آخر الحركات'],
     help: ['ملخص الشهر', 'رصيد الخزنة كام؟'],
     greeting: ['ملخص الشهر', 'مين عليه متأخرات؟'],
@@ -199,6 +200,21 @@ function assistantEscape(value) {
     }[character]));
 }
 
+const ASSISTANT_NUMBER_WORDS = Object.freeze({
+    'واحد': '1', 'واحدة': '1', 'اول': '1', 'أول': '1',
+    'اتنين': '2', 'اثنين': '2', 'تنين': '2',
+    'تلاته': '3', 'ثلاثه': '3', 'ثلاثة': '3',
+    'اربعه': '4', 'أربعه': '4', 'اربعة': '4',
+    'خمسه': '5', 'خمسة': '5', 'سته': '6', 'ستة': '6',
+    'سبعه': '7', 'سبعة': '7', 'تمانيه': '8', 'ثمانيه': '8', 'ثمانية': '8',
+    'تسعه': '9', 'تسعة': '9', 'عشره': '10', 'عشرة': '10',
+    'حداشر': '11', 'اتناشر': '12', 'اثناشر': '12'
+});
+
+function replaceAssistantNumberWords(value) {
+    return String(value || '').replace(/\S+/g, word => ASSISTANT_NUMBER_WORDS[word] || word);
+}
+
 function assistantMoney(value) {
     const amount = Number(value);
     const safe = Number.isFinite(amount) ? Math.round(amount * 100) / 100 : 0;
@@ -218,16 +234,28 @@ function getAssistantNowLabel(now = new Date()) {
 
 function resolveAssistantPeriod(text, now = new Date()) {
     const names = getAssistantMonthNames();
-    const normalized = normalizeAssistantArabic(text);
+    const normalized = replaceAssistantNumberWords(normalizeAssistantArabic(text));
     const yearMatch = normalized.match(/(?:^|[^0-9])(20[0-9]{2})(?:[^0-9]|$)/);
     const explicitYear = yearMatch ? Number(yearMatch[1]) : null;
-    let monthIndex = names.findIndex(name => normalized.includes(normalizeAssistantArabic(name)));
+    const monthMatches = names.map((name, index) => ({
+        index,
+        position: normalized.indexOf(normalizeAssistantArabic(name))
+    })).filter(item => item.position >= 0).sort((a, b) => a.position - b.position);
+    let monthIndex = monthMatches.length ? monthMatches[0].index : -1;
     let year = explicitYear || now.getFullYear();
 
     if (monthIndex < 0 && /(الشهر الماضي|الشهر اللي فات|الشهر السابق|شهر ماضي|الشهر اللي قبل)/.test(normalized)) {
         const previous = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         monthIndex = previous.getMonth();
         year = explicitYear || previous.getFullYear();
+    }
+
+    if (monthIndex < 0) {
+        const numericMonth = normalized.match(/(?:شهر|الشهر)\s*(\d{1,2})/);
+        if (numericMonth) {
+            const candidate = Number(numericMonth[1]);
+            if (candidate >= 1 && candidate <= 12) monthIndex = candidate - 1;
+        }
     }
 
     if (monthIndex < 0 && /(كل الفتره|كل الشهور|من البدايه|كل السنين|اجمالي عام)/.test(normalized)) {
@@ -307,6 +335,49 @@ function getAssistantExpenseSnapshot(months) {
         .map(([label, value]) => ({ label, cents: value }))
         .sort((a, b) => b.cents - a.cents);
     return { rows, count: rows.length, cents, total: cents / 100, categories: categoryRows };
+}
+
+function getAssistantComparisonPeriods(period, now = new Date()) {
+    const names = getAssistantMonthNames();
+    let year = now.getFullYear();
+    let monthIndex = now.getMonth();
+    if (period && period.type === 'month' && period.label) {
+        const match = String(period.label).match(/^(.*?)\s+(20\d{2})$/);
+        if (match) {
+            const found = names.findIndex(name => normalizeAssistantArabic(name) === normalizeAssistantArabic(match[1]));
+            if (found >= 0) monthIndex = found;
+            year = Number(match[2]);
+        }
+    }
+    const current = new Date(year, monthIndex, 1);
+    const previous = new Date(year, monthIndex - 1, 1);
+    const makePeriod = date => {
+        const label = `${names[date.getMonth()]} ${date.getFullYear()}`;
+        return { type: 'month', label, months: [label], year: date.getFullYear(), month: label };
+    };
+    return { current: makePeriod(current), previous: makePeriod(previous) };
+}
+
+function assistantComparisonLine(label, current, previous) {
+    const delta = Math.round((current - previous) * 100) / 100;
+    const direction = delta > 0 ? 'زيادة' : delta < 0 ? 'انخفاض' : 'بدون تغيير';
+    const value = delta === 0 ? direction : `${direction} ${assistantMoney(Math.abs(delta))}`;
+    return assistantRow(label, `${assistantMoney(current)} مقابل ${assistantMoney(previous)} · ${value}`, delta > 0 ? 'warn' : delta < 0 ? 'good' : '');
+}
+
+function buildAssistantComparisonAnswer(period, now = new Date()) {
+    const periods = getAssistantComparisonPeriods(period, now);
+    const currentIncome = getAssistantIncomeSnapshot(periods.current.months).total;
+    const previousIncome = getAssistantIncomeSnapshot(periods.previous.months).total;
+    const currentExpenses = getAssistantExpenseSnapshot(periods.current.months).total;
+    const previousExpenses = getAssistantExpenseSnapshot(periods.previous.months).total;
+    const currentNet = currentIncome - currentExpenses;
+    const previousNet = previousIncome - previousExpenses;
+    let html = assistantComparisonLine('التحصيل', currentIncome, previousIncome);
+    html += assistantComparisonLine('المصروفات', currentExpenses, previousExpenses);
+    html += assistantComparisonLine('الصافي', currentNet, previousNet);
+    html += assistantNote(`المقارنة بين ${periods.current.label} و${periods.previous.label} من السجلات المسجلة فقط.`);
+    return { id: 'comparison', title: `مقارنة ${periods.current.label} و${periods.previous.label}`, html };
 }
 
 function getAssistantMonthSummary(period, now = new Date()) {
@@ -408,7 +479,7 @@ function getAssistantCashSnapshot() {
 }
 
 function resolveAssistantResident(text) {
-    const normalized = normalizeAssistantArabic(text);
+    const normalized = replaceAssistantNumberWords(normalizeAssistantArabic(text));
     const residents = Array.isArray(state.residents) ? state.residents : [];
     const apartmentMatch = normalized.match(/(?:شقه|وحده|ساكن|رقم)\s*(\d{1,4})/);
     if (apartmentMatch) {
@@ -481,6 +552,7 @@ function detectAssistantIntent(normalized, hasResident) {
     if (/(السلام عليكم|سلام|صباح|مساء|ازيك|عامل ايه|اهلا|هاي)/.test(normalized)) return 'greeting';
     if (/(شكرا|تسلم|مشكور|ربنا يكرمك)/.test(normalized)) return 'thanks';
     if (/(مساعده|ساعدني|بتعرف|تقدر تعمل|اوامر|خيارات|ازاي|كيف|استخدمك|ممكن تساعد)/.test(normalized)) return 'help';
+    if (/(مقارنه|قارن|مقابل|زاد|زادت|قل|قلت|اكتر من|اقل من)/.test(normalized)) return 'comparison';
     if (/(اعفاء|تخفيض|تسويه|خصم|خصومات|سامحنا)/.test(normalized)) return 'adjustments';
     if (/(متاخر|متاخرات|مستحق|مديون|مش دفع|غير مدفوع|مش دافع|مش سدد|متاخرين|عليه فلوس)/.test(normalized)) return 'arrears';
     if (/(مصروف|مصاريف|صرف|منصرف|اتصرف|اللي اتدفع من الخزنه)/.test(normalized)) return 'expenses';
@@ -1227,6 +1299,8 @@ function selectAssistantAnswer(intent, period, resident, now) {
             return buildAssistantCashAnswer();
         case 'summary':
             return buildAssistantSummaryAnswer(period);
+        case 'comparison':
+            return buildAssistantComparisonAnswer(period, now);
         case 'recent':
             return buildAssistantRecentAnswer();
         case 'reports':
