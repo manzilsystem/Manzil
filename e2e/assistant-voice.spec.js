@@ -33,7 +33,7 @@ async function openAssistant(page) {
 async function speechRequests(page) {
     return page.evaluate(() => performance.getEntriesByType('resource')
         .map(entry => entry.name)
-        .filter(name => /(?:js\/vendor\/onnxruntime-web\.min\.js|js\/vendor\/ort-wasm|huggingface\.co)/.test(name)));
+        .filter(name => /(?:js\/vendor\/onnxruntime-web\.min\.js|js\/vendor\/ort-wasm|raw\.githubusercontent\.com\/manzilsystem\/manzil-assistant-assets)/.test(name)));
 }
 
 async function countMicrophoneCalls(page) {
@@ -64,42 +64,39 @@ test('nothing speech-related is fetched before the user asks for voice', async (
     expect(await countMicrophoneCalls(page)).toBe(0);
 });
 
-test('dismissing the consent dialog downloads nothing and keeps the microphone closed', async ({ page }) => {
+test('the first microphone click automatically requests the pinned GitHub model without a download-confirmation dialog', async ({ page }) => {
     await seedManager(page);
     await openAssistant(page);
-    const external = [];
-    page.on('request', request => {
-        if (request.url().includes('huggingface.co')) external.push(request.url());
-    });
+    const requests = [];
+    page.on('request', request => { if (request.url().includes('raw.githubusercontent.com/manzilsystem/manzil-assistant-assets/')) requests.push(request.url()); });
+    await page.route('**/raw.githubusercontent.com/manzilsystem/manzil-assistant-assets/**', route => route.abort('failed'));
 
     await page.locator('#assistantVoiceButton').click();
 
-    await expect(page.locator('#assistantVoiceStatus')).toBeVisible();
-    await expect(page.locator('#assistantVoiceStatus')).toContainText('لم يتم تنزيل النموذج');
-    expect(external, 'a dismissed dialog must not spend data').toEqual([]);
-    expect(await speechRequests(page)).toEqual([]);
-    expect(await countMicrophoneCalls(page)).toBe(0);
+    await expect(page.locator('#assistantVoiceStatus')).toContainText('تعذر تجهيز الصوت', { timeout: 30_000 });
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatch(/raw\.githubusercontent\.com\/manzilsystem\/manzil-assistant-assets\/4dbb976b416dedcd1a2f42c0be7841e8c503c66b\/speech\/egyptian-arabic-wav2vec2\/model_int8\.onnx\.part-00$/);
+    expect(await countMicrophoneCalls(page), 'the mic remains closed until verified model data is available').toBe(0);
 });
 
-test('an accepted download that fails never opens the microphone', async ({ page }) => {
+test('a failed GitHub model chunk never opens the microphone or fills the transcript', async ({ page }) => {
     await seedManager(page);
     await openAssistant(page);
-    page.on('dialog', dialog => dialog.accept());
     const modelRequests = [];
     page.on('request', request => {
-        if (request.url().includes('huggingface.co')) modelRequests.push(request.url());
+        if (request.url().includes('raw.githubusercontent.com/manzilsystem/manzil-assistant-assets/')) modelRequests.push(request.url());
     });
-    await page.route('**/huggingface.co/**', route => route.abort('failed'));
+    await page.route('**/raw.githubusercontent.com/manzilsystem/manzil-assistant-assets/**', route => route.abort('failed'));
 
     await page.locator('#assistantVoiceButton').click();
 
     await expect(page.locator('#assistantVoiceStatus')).toBeVisible();
     await expect(page.locator('#assistantVoiceStatus')).toContainText('تعذر تجهيز الصوت', { timeout: 30_000 });
-    expect(modelRequests.length, 'the pinned model URL is the only remote call').toBe(1);
-    expect(modelRequests[0]).toContain('agharib/egyptian-arabic-wav2vec2-xlsr-53-onnx/resolve/888b8be067d3a1ac2ca72806832f29e8786a3341/');
+    expect(modelRequests.length, 'the first pinned GitHub chunk is the only attempted model request').toBe(1);
+    expect(modelRequests[0]).toMatch(/raw\.githubusercontent\.com\/manzilsystem\/manzil-assistant-assets\/4dbb976b416dedcd1a2f42c0be7841e8c503c66b\/speech\/egyptian-arabic-wav2vec2\/model_int8\.onnx\.part-00$/);
     const requests = await speechRequests(page);
-    expect(requests.some(name => /onnxruntime-web\.min\.js\?v=manzil-[0-9a-f]{10}$/.test(name)), 'the runtime loads only after consent').toBe(true);
-    expect(requests.some(name => name.includes('ort-wasm')), 'the WASM backend must wait for a real model').toBe(false);
+    expect(requests.some(name => /onnxruntime-web\.min\.js\?v=manzil-[0-9a-f]{10}$/.test(name)), 'the runtime loads only after the first microphone request').toBe(true);
+    expect(requests.some(name => name.includes('ort-wasm')), 'the WASM backend must wait for a verified model').toBe(false);
     expect(await countMicrophoneCalls(page), 'no capture without a verified model').toBe(0);
     expect(await page.evaluate(() => document.getElementById('assistantInput').value)).toBe('');
 });

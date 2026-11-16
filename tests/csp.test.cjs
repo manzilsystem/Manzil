@@ -43,17 +43,18 @@ test('CSP allows only the CDNs and Supabase origins the app actually uses', () =
     assert.ok(tokens('font-src').includes('https://cdnjs.cloudflare.com'));
     assert.ok(tokens('connect-src').includes('https://musvcrkljccubwbcrtjs.supabase.co'));
     assert.ok(tokens('connect-src').includes('wss://musvcrkljccubwbcrtjs.supabase.co'));
+    assert.ok(tokens('connect-src').includes('https://raw.githubusercontent.com'));
+    assert.ok(!tokens('connect-src').includes('https://huggingface.co'));
 });
 
 test('CSP never falls back to a wildcard for scripts, styles or connections', () => {
     for (const name of ['script-src', 'style-src', 'default-src']) {
         assert.ok(!tokens(name).some(token => token.includes('*')), `${name} must not use a wildcard`);
     }
-    // The speech model is downloaded once from Hugging Face, whose resolve link
-    // redirects to a region-specific download host. That hop cannot be pinned,
-    // so its domain suffix is the only wildcard the policy carries.
+    // Model assets use a pinned raw.githubusercontent.com repository revision;
+    // no wildcard is needed for the speech-model download.
     const wildcards = tokens('connect-src').filter(token => token.includes('*'));
-    assert.deepEqual(wildcards, ['https://*.hf.co']);
+    assert.deepEqual(wildcards, []);
 });
 
 test('every external stylesheet and script host is permitted by the CSP', () => {
