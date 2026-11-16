@@ -1021,6 +1021,17 @@ test('manager task list turns outstanding balances into prioritized follow-up ac
     assert.notEqual(owner.api.answerAssistantQuery('مهام المدير', NOW).id, 'manager_tasks');
 });
 
+test('chat answers multiple manager questions in one structured response', () => {
+    const { api } = createHarness();
+    const answer = api.answerAssistantQuery('اعمل ملخص نوفمبر 2026 وقولي التحصيل والمتأخرات', NOW);
+    assert.equal(answer.id, 'compound');
+    assert.equal(answer.title, 'إجابة مجمعة');
+    assert.match(answer.html, /ملخص نوفمبر 2026/);
+    assert.match(answer.html, /إجمالي التحصيل|التحصيل/);
+    assert.match(answer.html, /إجمالي المتأخرات/);
+    assert.match(answer.html, /سؤال متابعة طبيعي/);
+});
+
 test('adjustment answers scope by month and separate waivers from discounts', () => {
     const { api } = createHarness();
     const november = api.answerAssistantQuery('الإعفاءات والتخفيضات', NOW);

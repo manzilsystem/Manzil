@@ -2112,12 +2112,36 @@ function answerAssistantQuery(text, now = new Date()) {
     }
     const remembered = assistantFollowsResident(text) ? assistantRememberedResident() : null;
     const resident = residentMatch.resident || remembered;
-    const intent = detectAssistantIntent(normalized, Boolean(resident));
     const period = resolveAssistantPeriodWithContext(text, now);
+    const compound = !resident && buildAssistantCompoundAnswer(normalized, period, now, text);
+    if (compound) return withAssistantAnswerMeta(compound, period, null, text);
+    const intent = detectAssistantIntent(normalized, Boolean(resident));
     const answer = selectAssistantAnswer(intent, period, resident, now, text);
     return withAssistantAnswerMeta(answer, period, resident, text);
 }
-
+function buildAssistantCompoundAnswer(normalized, period, now, rawText = '') {
+    /** @type {Array<[string, RegExp]>} */
+    const candidates = [
+        ['summary', /(?:ملخص|وضع|احوال|نظره|اجمالي|صافي|نتيجه|عاملين ايه)/],
+        ['income', /(?:تحصيل|تحصيلات|ايراد|دخل|وارد|دفع|مدفوع|متحصل|المتحصلات|اللي اتجمع)/],
+        ['arrears', /(?:متاخر|متاخرات|مستحق|مديون|مش دفع|غير مدفوع|مش دافع|مش سدد|متاخرين|عليه فلوس)/],
+        ['expenses', /(?:مصروف|مصاريف|صرف|منصرف|اتصرف|اللي اتدفع من الخزنه)/],
+        ['cashbox', /(?:خزنه|صندوق|رصيد|كاش|فلوس|سيوله|الموجود في الخزنه)/],
+        ['manager_tasks', /(?:قايمه متابعه|قائمه متابعه|قائمة متابعة|مهام المدير|ابدأ بايه|ابدا بايه|مين اكلمه|مين اكلم|اولويات التحصيل|اتابع مين)/]
+    ];
+    const intents = candidates.filter(([, pattern]) => pattern.test(normalized)).map(([intent]) => intent);
+    if (intents.length < 2) return null;
+    const unique = Array.from(new Set(intents));
+    const sections = unique.map(intent => {
+        const answer = selectAssistantAnswer(intent, period, null, now, rawText);
+        return `<section class="assistant-compound-section"><h4>${assistantEscape(answer.title)}</h4>${answer.html}</section>`;
+    }).join('');
+    return {
+        id: 'compound',
+        title: 'إجابة مجمعة',
+        html: `<p class="assistant-answer-subtitle">فهمت إنك بتسأل عن ${assistantNumber(unique.length)} نقاط في ${assistantEscape(period.label)}:</p>${sections}${assistantNote('تقدر تكمّل بسؤال متابعة طبيعي، مثل: «قارن الشهر ده باللي قبله» أو «افتح تقرير المتأخرات».')}`
+    };
+}
 function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
     switch (intent) {
         case 'greeting':
