@@ -657,6 +657,20 @@ test('adjustment answers scope by month and separate waivers from discounts', ()
     assert.match(october.html, /أحمد علي/);
 });
 
+test('the local knowledge center explains privacy, read-only behavior and role scope', () => {
+    const { api } = createHarness();
+    const knowledge = api.answerAssistantQuery('مين يقدر يشوف البيانات؟', NOW);
+    assert.equal(knowledge.id, 'knowledge');
+    assert.match(knowledge.html, /محليًا/);
+    assert.match(knowledge.html, /قراءة فقط/);
+    assert.match(knowledge.html, /صلاحيات المدير/);
+
+    const owner = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    const ownerKnowledge = owner.api.answerAssistantQuery('إزاي أستخدم عم عبده؟', NOW);
+    assert.equal(ownerKnowledge.id, 'knowledge');
+    assert.match(ownerKnowledge.html, /بيانات الشقق الأخرى/);
+    assert.doesNotMatch(ownerKnowledge.html, /رصيد الخزنة|إجمالي تحصيل/);
+});
 test('recent movements, building data, reports guide and help intents answer', () => {
     const { api } = createHarness();
     const recent = api.answerAssistantQuery('آخر الحركات', NOW);

@@ -47,6 +47,7 @@ const ASSISTANT_FOLLOWUPS = Object.freeze({
     comparison: ['مصروفات الشهر', 'تحصيل الشهر'],
     notices: ['ملخص الشهر', 'آخر الحركات'],
     help: ['ملخص الشهر', 'رصيد الخزنة كام؟'],
+    knowledge: ['إزاي أستخدم التقارير؟', 'مين يقدر يشوف البيانات؟'],
     greeting: ['ملخص الشهر', 'مين عليه متأخرات؟'],
     thanks: ['ملخص الشهر', 'رصيد الخزنة كام؟'],
     unknown: ['ملخص الشهر', 'مين عليه متأخرات؟']
@@ -64,6 +65,7 @@ const ASSISTANT_FOLLOWUPS_OWNER = Object.freeze({
     greeting: ['عليّا كام الشهر ده؟', 'إيصالاتي'],
     thanks: ['عليّا كام الشهر ده؟', 'إعلانات المبنى'],
     help: ['عليّا كام الشهر ده؟', 'آخر يوم للدفع كام؟'],
+    knowledge: ['إيصالاتي', 'رقم المدير'],
     owner_scope: ['عليّا كام الشهر ده؟', 'إيصالاتي'],
     unknown: ['عليّا كام الشهر ده؟', 'إعلانات المبنى']
 });
@@ -551,6 +553,7 @@ function detectAssistantIntent(normalized, hasResident) {
     }
     if (/(السلام عليكم|سلام|صباح|مساء|ازيك|عامل ايه|اهلا|هاي)/.test(normalized)) return 'greeting';
     if (/(شكرا|تسلم|مشكور|ربنا يكرمك)/.test(normalized)) return 'thanks';
+    if (/(خصوصيه|بياناتي|البيانات بتتخزن|بتتخزن فين|مين يقدر يشوف|امان|امن|صلاحيات|قراءة فقط|بتعمل ايه|ازاي استخدم|ازاي اسجل|ازاي اعدل|ازاي اطبع|ازاي اصدر)/.test(normalized)) return 'knowledge';
     if (/(مساعده|ساعدني|بتعرف|تقدر تعمل|اوامر|خيارات|ازاي|كيف|استخدمك|ممكن تساعد)/.test(normalized)) return 'help';
     if (/(مقارنه|قارن|مقابل|زاد|زادت|قل|قلت|اكتر من|اقل من)/.test(normalized)) return 'comparison';
     if (/(اعفاء|تخفيض|تسويه|خصم|خصومات|سامحنا)/.test(normalized)) return 'adjustments';
@@ -807,6 +810,22 @@ function buildAssistantHelpAnswer() {
     return { id: 'help', title, html };
 }
 
+function buildAssistantKnowledgeAnswer() {
+    const owner = assistantIsOwner();
+    const title = owner ? 'إزاي تستخدم عم عبده؟' : 'مركز معرفة عم عبده';
+    const items = owner ? [
+        'اسألني عن حساب شقتك، إيصالاتك، المتأخرات، ميعاد الدفع وطرق الدفع المفعّلة.',
+        'أقدر أعرض إعلانات المبنى وإشعاراتك ورقم المدير.',
+        'بيانات الشقق الأخرى وأرصدة العمارة تخص الإدارة ومش متاحة في حساب المالك.',
+        'إجاباتي قراءة فقط؛ لا أضيف ولا أعدّل ولا أحذف أي بيانات.'
+    ] : [
+        'اسألني بالعامية أو بالفصحى عن التحصيلات والمصروفات والمتأخرات والخزائن والتقارير.',
+        'أقدر أشرح بيانات العمارة وأعرض آخر الحركات والإعفاءات والتخفيضات.',
+        'إجاباتي تُحسب محليًا من بيانات الجلسة ولا أرسل المحادثة أو بيانات العمارة لخدمة خارجية.',
+        'المساعد للقراءة فقط؛ أي إضافة أو تعديل أو حذف يتم من شاشات التطبيق وبصلاحيات المدير.'
+    ];
+    return { id: 'knowledge', title, html: assistantList(items) + assistantNote(owner ? 'جرّب: «إيصالاتي» أو «آخر يوم للدفع كام؟».' : 'جرّب: «مين يقدر يشوف البيانات؟» أو «إزاي أستخدم التقارير؟».') };
+}
 function buildAssistantReportsAnswer() {
     const title = 'التقارير المتاحة';
     const html = `${assistantList([
@@ -1092,6 +1111,7 @@ function buildAssistantOwnerScopeAnswer() {
 function detectOwnerAssistantIntent(normalized) {
     if (/(السلام عليكم|سلام|صباح|مساء|ازيك|عامل ايه|اهلا|هاي)/.test(normalized)) return 'greeting';
     if (/(شكرا|تسلم|مشكور|ربنا يكرمك)/.test(normalized)) return 'thanks';
+    if (/(خصوصيه|بياناتي|البيانات بتتخزن|بتتخزن فين|مين يقدر يشوف|امان|امن|صلاحيات|قراءة فقط|ازاي استخدم|ازاي اسجل|ازاي اطبع|ازاي اصدر)/.test(normalized)) return 'knowledge';
     if (/(مساعده|ساعدني|بتعرف تعمل|تقدر تعمل|اوامر|خيارات|استخدمك|بتعرف ايه)/.test(normalized)) return 'help';
     if (/(مين عليه|مين عليها|مين عليهم|على مين|علي مين)/.test(normalized)) return 'owner_scope';
     if (/(?:حساب|ايصال|دفعات|مدفوعات|متاخرات)\s+[ء-ي]{2,}(?:\s+[ء-ي]{2,})?(?:\s+(?:كام|عليه|عليها|دفع|دفعت|متاخر|مديون))?/.test(normalized)) return 'owner_scope';
@@ -1117,6 +1137,8 @@ function selectOwnerAssistantAnswer(intent, period, now) {
             return { id: 'thanks', title: 'العفو', html: `<p class="assistant-hello">تحت أمرك ${assistantAddress()}. لو محتاج رقم من حسابك أو ميعاد الدفع، اسألني.</p>` };
         case 'help':
             return buildAssistantOwnerHelpAnswer();
+        case 'knowledge':
+            return buildAssistantKnowledgeAnswer();
         case 'my_bill':
             return buildAssistantOwnerBillAnswer(period, now);
         case 'my_receipts':
@@ -1287,6 +1309,8 @@ function selectAssistantAnswer(intent, period, resident, now) {
             return { id: 'thanks', title: 'العفو', html: `<p class="assistant-hello">تحت أمرك ${assistantAddress()}. لو محتاج أي رقم أو ملخص، اسألني.</p>` };
         case 'help':
             return buildAssistantHelpAnswer();
+        case 'knowledge':
+            return buildAssistantKnowledgeAnswer();
         case 'adjustments':
             return buildAssistantAdjustmentsAnswer(period);
         case 'arrears':
