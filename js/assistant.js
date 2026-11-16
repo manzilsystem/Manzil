@@ -863,10 +863,28 @@ function assistantOperationFollowupPatch(text, operation) {
 }
 
 function mergeAssistantOperationFollowup(text, now = new Date()) {
-    const patch = assistantOperationFollowupPatch(text, assistantOperationDraft);
+    const previous = assistantOperationDraft;
+    const patch = assistantOperationFollowupPatch(text, previous);
     if (!patch) return null;
-    const merged = { ...assistantOperationDraft, ...patch, raw: `${assistantOperationDraft.raw} · ${String(text || '').trim()}` };
+    const merged = {
+        ...previous,
+        ...patch,
+        raw: `${previous.raw} · ${String(text || '').trim()}`,
+        followupNote: buildAssistantOperationChangeNote(previous, patch)
+    };
     return buildAssistantOperationPreview(merged, now);
+}
+
+function buildAssistantOperationChangeNote(previous, patch) {
+    const changes = [];
+    if (Object.prototype.hasOwnProperty.call(patch, 'amount')) changes.push(`المبلغ إلى ${assistantMoney(patch.amount)}`);
+    if (Object.prototype.hasOwnProperty.call(patch, 'month')) changes.push(`الشهر إلى ${patch.month}`);
+    if (Object.prototype.hasOwnProperty.call(patch, 'cashAccountCode')) changes.push(`الصندوق إلى ${ASSISTANT_CASH_LABELS[patch.cashAccountCode] || patch.cashAccountCode}`);
+    if (Object.prototype.hasOwnProperty.call(patch, 'paymentMethod')) changes.push(`طريقة الدفع إلى ${ASSISTANT_OPERATION_PAYMENT_METHODS[patch.paymentMethod] || patch.paymentMethod}`);
+    if (Object.prototype.hasOwnProperty.call(patch, 'resident')) changes.push(`المالك إلى ${assistantResidentName(patch.resident)} · شقة ${patch.resident.apartmentNumber || '—'}`);
+    if (Object.prototype.hasOwnProperty.call(patch, 'reason')) changes.push('سبب الإجراء');
+    if (Object.prototype.hasOwnProperty.call(patch, 'notes')) changes.push('الملاحظات');
+    return changes.length ? `اتعدلت المسودة: ${changes.join('، ')}.` : '';
 }
 
 function buildAssistantOperationPreview(operation, now = new Date()) {
@@ -890,6 +908,7 @@ function buildAssistantOperationPreview(operation, now = new Date()) {
         id: 'operation-preview',
         title: `معاينة ${labels[operation.type]} قبل الإدخال`,
         html: `<div class="assistant-action-preview"><p class="assistant-notice-preview">${assistantEscape(target)}</p>
+            ${operation.followupNote ? `<p class="assistant-change-note" role="status">${assistantEscape(operation.followupNote)}</p>` : ''}
             ${assumed}<p class="assistant-note">لم تُحفظ البيانات بعد. «تنفيذ وحفظ» يمررها للنموذج الرسمي ويشغّل كل قواعد التحقق، ويمكنك فتح النموذج لتعديل أي تفصيلة.</p>
             ${assistantActionButtons(operation, true)}</div>`
     };

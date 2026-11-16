@@ -4283,6 +4283,17 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     font-size: var(--font-72);
     font-weight: var(--weight-700);
 }
+.assistant-change-note {
+    margin: var(--space-none);
+    padding: var(--space-35) var(--space-45);
+    border-inline-start: 3px solid var(--accent-color);
+    border-radius: var(--radius-35);
+    background: color-mix(in srgb, var(--accent-color) 8%, transparent);
+    color: var(--text-main);
+    font-size: var(--font-67);
+    font-weight: var(--weight-700);
+    line-height: var(--leading-160);
+}
 .assistant-action-buttons {
     display: flex;
     flex-wrap: wrap;

@@ -531,6 +531,17 @@ test('a missing operation can be completed in the next manager message', () => {
     assert.equal(completed.id, 'operation-preview');
     assert.match(completed.html, /تنفيذ وحفظ/);
 });
+test('operation follow-ups update the draft and explain every changed field', () => {
+    const { api } = createHarness(true);
+    assert.equal(api.answerAssistantQuery('سجّل تحصيل من شقة 7 عن نوفمبر 2026', NOW).id, 'operation-missing');
+    const updated = api.answerAssistantQuery('خلي المبلغ ٧٠٠ جنيه نقدي في صندوق التطوير عن ديسمبر ٢٠٢٦', NOW);
+    assert.equal(updated.id, 'operation-preview');
+    assert.match(updated.html, /اتعدلت المسودة/);
+    assert.match(updated.html, /المبلغ/);
+    assert.match(updated.html, /ديسمبر 2026/);
+    assert.match(updated.html, /صندوق التطوير/);
+    assert.match(updated.html, /تنفيذ وحفظ/);
+});
 test('explicit operation confirmation delegates to the official save handler', async () => {
     const { context, api } = createHarness(true);
     vm.runInContext(`
