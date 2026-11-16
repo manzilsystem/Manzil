@@ -376,7 +376,8 @@ function editResident(id) { openResidentModal('edit', id); }
 
 function openAssistantResidentDraft(draft) {
     if (!requireManager()) return false;
-    openResidentModal('create');
+    const editing = draft?.type === 'resident_edit' && draft?.residentId;
+    openResidentModal(editing ? 'edit' : 'create', editing ? draft.residentId : undefined);
     const name = /** @type {HTMLInputElement | null} */ (document.getElementById('residentName'));
     const apartment = /** @type {HTMLSelectElement | null} */ (document.getElementById('residentApartment'));
     const phone = /** @type {HTMLInputElement | null} */ (document.getElementById('residentPhone'));

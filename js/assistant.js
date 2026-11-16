@@ -27,6 +27,7 @@ const ASSISTANT_SUGGESTIONS_OWNER = Object.freeze([
 ]);
 const ASSISTANT_MANAGER_QUICK_ACTIONS = Object.freeze([
     { label: 'إضافة شقة', query: 'أضف شقة' },
+    { label: 'تعديل شقة', query: 'عدّل بيانات شقة' },
     { label: 'تسجيل تحصيل', query: 'سجل تحصيل' },
     { label: 'إضافة مصروف', query: 'أضف مصروف' },
     { label: 'تسجيل إعفاء', query: 'سجل إعفاء' },
@@ -137,11 +138,12 @@ function parseAssistantOperationReason(raw) {
         .trim();
 }
 
-function parseAssistantResidentCommand(raw, normalized, now = new Date()) {
+function parseAssistantResidentCommand(raw, normalized, now = new Date(), targetResident = null) {
     const assistantLegacyResidentWord = '\u0633\u0627\u0643\u0646';
     const hasResidentWord = normalized.includes(assistantLegacyResidentWord) || /مالك/.test(normalized);
     const hasAddUnitCommand = /(?:اضف|ضيف|ادخل|إدخل)\s+(?:شقه|وحده)/.test(normalized);
-    if (!/(?:اضف|ضيف|سجل|سجّل|ادخل|إدخل)/.test(normalized) || (!hasResidentWord && !hasAddUnitCommand)) return null;
+    const hasEditUnitCommand = /(?:عدل|عدّل|غير|غيّر|حدّث|حدث|تعديل|تحديث).*(?:شقه|وحده|بيانات)/.test(normalized);
+    if (!/(?:اضف|ضيف|سجل|سجّل|ادخل|إدخل|عدل|عدّل|غير|غيّر|حدّث|حدث|تعديل|تحديث)/.test(normalized) || (!hasResidentWord && !hasAddUnitCommand && !hasEditUnitCommand)) return null;
     if (/(?:تحصيل|دفعة|دفعه|استلام|قبض|مصروف|فاتوره|فاتورة|اعفاء|إعفاء|تخفيض|خصم|تسويه|تسوية)/.test(normalized)) return null;
     const apartmentMatch = normalized.match(/(?:شقه|وحده)\s*(?:رقم\s*)?(\d{1,4})/);
     if (!apartmentMatch) return null;
@@ -151,6 +153,15 @@ function parseAssistantResidentCommand(raw, normalized, now = new Date()) {
     const amountMatch = normalized.match(/(?:اشتراك|شهري|بقيمة)\s+(.+?)(?=\s+(?:جنيه|ج\.م|جم|ج)(?:\s|$))/i);
     const amount = amountMatch ? assistantParsedAmount(amountMatch[1]) : null;
     const period = resolveAssistantPeriodWithContext(raw, now);
+    const isEdit = /(?:عدل|عدّل|غير|غيّر|حدّث|حدث|تعديل|تحديث)/.test(normalized);
+    if (isEdit) {
+        return {
+            type: 'resident_edit', residentId: targetResident?.id || null,
+            name: targetResident?.name || name, apartmentNumber: targetResident?.apartmentNumber || apartmentMatch[1],
+            phone: phoneMatch ? phoneMatch[1].replace(/[٠-٩۰-۹]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit))) : '',
+            amount, billingStartMonth: period && period.type === 'month' ? period.label : '', raw
+        };
+    }
     return {
         type: 'resident', name, apartmentNumber: apartmentMatch[1],
         phone: phoneMatch ? phoneMatch[1].replace(/[٠-٩۰-۹]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit))) : '',
@@ -797,7 +808,7 @@ function parseAssistantOperationCommand(text, now = new Date()) {
     const period = resolveAssistantPeriodWithContext(raw, now);
     const residentMatch = resolveAssistantResident(raw);
     const resident = residentMatch.matches.length === 1 ? residentMatch.matches[0] : null;
-    const residentOperation = parseAssistantResidentCommand(raw, normalized, now);
+    const residentOperation = parseAssistantResidentCommand(raw, normalized, now, resident);
     if (residentOperation) return residentOperation;
     const hasIncomeVerb = /(?:سجل|سجّل|اضف|أضف|ضيف|استلم|قبض|سدد|سداد)/.test(normalized);
     const hasExpenseWord = /(?:مصروف|فاتوره|فاتورة|صرف)/.test(normalized);
@@ -840,6 +851,11 @@ function parseAssistantOperationCommand(text, now = new Date()) {
 function assistantOperationMissing(operation) {
     if (!operation) return ['بيانات العملية'];
     const missing = [];
+    if (operation.type === 'resident_edit') {
+        if (!operation.residentId) missing.push('المالك أو رقم الشقة الصحيح');
+        if (!operation.phone && !operation.amount && !operation.billingStartMonth) missing.push('البيان المطلوب تعديله');
+        return missing;
+    }
     if (operation.type === 'resident') {
         if (!operation.name) missing.push('اسم المالك');
         if (!operation.apartmentNumber) missing.push('رقم الشقة');
@@ -919,7 +935,7 @@ function buildAssistantOperationChangeNote(previous, patch) {
 function buildAssistantOperationPreview(operation, now = new Date()) {
     if (!operation) return null;
     assistantOperationDraft = operation;
-    const labels = { income: 'تحصيل', expense: 'مصروف', adjustment: 'إعفاء أو تخفيض أو تسوية', resident: 'بيانات الشقة' };
+    const labels = { income: 'تحصيل', expense: 'مصروف', adjustment: 'إعفاء أو تخفيض أو تسوية', resident: 'بيانات الشقة', resident_edit: 'تعديل بيانات الشقة' };
     const missing = assistantOperationMissing(operation);
     if (missing.length) {
         return {
@@ -929,7 +945,9 @@ function buildAssistantOperationPreview(operation, now = new Date()) {
         };
     }
     const adjustmentKindLabels = { waiver: 'إعفاء', discount: 'تخفيض', settlement: 'تسوية' };
-    const target = operation.type === 'resident'
+    const target = operation.type === 'resident_edit'
+        ? `${operation.name || '—'} · شقة ${operation.apartmentNumber || '—'}${operation.phone ? ` · هاتف ${operation.phone}` : ''}${operation.amount ? ` · اشتراك ${assistantMoney(operation.amount)}` : ''}${operation.billingStartMonth ? ` · بدء ${operation.billingStartMonth}` : ''}`
+        : operation.type === 'resident'
         ? `${operation.name || '—'} · شقة ${operation.apartmentNumber || '—'}${operation.amount ? ` · اشتراك ${assistantMoney(operation.amount)}` : ''}${operation.phone ? ` · ${operation.phone}` : ''}`
         : operation.type === 'expense'
         ? `${operation.title} · ${assistantMoney(operation.amount)} · ${operation.month} · ${operation.category || 'أخرى'} · ${ASSISTANT_CASH_LABELS[operation.cashAccountCode] || ASSISTANT_CASH_LABELS.main}`
@@ -954,14 +972,18 @@ function assistantActionButtons(operation, ready) {
 }
 
 function assistantOperationSuccessHtml(operation) {
-    const labels = { income: 'التحصيل', expense: 'المصروف', adjustment: 'الإجراء المالي' };
+    const labels = { income: 'التحصيل', expense: 'المصروف', adjustment: 'الإجراء المالي', resident: 'بيانات الشقة', resident_edit: 'تعديل بيانات الشقة' };
     const kindLabels = { waiver: 'إعفاء', discount: 'تخفيض', settlement: 'تسوية' };
     const typeLabel = labels[operation?.type] || 'العملية';
     const kind = operation?.type === 'adjustment' ? ` (${kindLabels[operation.kind] || 'إجراء'})` : '';
-    const target = operation?.type === 'expense'
+    const target = operation?.type === 'resident_edit'
+        ? `${operation.name || '—'} · شقة ${operation.apartmentNumber || '—'}${operation.phone ? ` · ${operation.phone}` : ''}${operation.amount ? ` · اشتراك ${assistantMoney(operation.amount)}` : ''}`
+        : operation?.type === 'resident'
+        ? `${operation.name || '—'} · شقة ${operation.apartmentNumber || '—'}${operation.phone ? ` · ${operation.phone}` : ''}${operation.amount ? ` · اشتراك ${assistantMoney(operation.amount)}` : ''}`
+        : operation?.type === 'expense'
         ? `${operation.title} · ${assistantMoney(operation.amount)} · ${operation.month}`
         : `${assistantResidentName(operation?.resident)} · شقة ${operation?.resident?.apartmentNumber || '—'} · ${assistantMoney(operation?.amount)} · ${operation?.month}`;
-    const nextQuery = operation?.type === 'expense' ? 'مصروفات الشهر' : 'ملخص الشهر';
+    const nextQuery = operation?.type === 'expense' ? 'مصروفات الشهر' : operation?.type === 'resident' || operation?.type === 'resident_edit' ? 'بيانات العمارة' : 'ملخص الشهر';
     return `<div class="assistant-operation-success" role="status">
         <p class="assistant-success-title"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> تم حفظ ${assistantEscape(typeLabel)}${assistantEscape(kind)} بنجاح</p>
         <p class="assistant-success-detail">${assistantEscape(target)}</p>
@@ -978,7 +1000,7 @@ function openAssistantOperation() {
     const draft = assistantOperationDraft;
     const opener = draft.type === 'income' ? 'openAssistantIncomeDraft'
         : draft.type === 'expense' ? 'openAssistantExpenseDraft'
-            : draft.type === 'resident' ? 'openAssistantResidentDraft' : 'openAssistantAdjustmentDraft';
+            : (draft.type === 'resident' || draft.type === 'resident_edit') ? 'openAssistantResidentDraft' : 'openAssistantAdjustmentDraft';
     const openForm = assistantGlobalFunction(opener);
     if (openForm) {
         openForm(draft);
@@ -998,7 +1020,7 @@ async function confirmAssistantOperation() {
     }
     const openerName = draft.type === 'income' ? 'openAssistantIncomeDraft'
         : draft.type === 'expense' ? 'openAssistantExpenseDraft'
-            : draft.type === 'resident' ? 'openAssistantResidentDraft' : 'openAssistantAdjustmentDraft';
+            : (draft.type === 'resident' || draft.type === 'resident_edit') ? 'openAssistantResidentDraft' : 'openAssistantAdjustmentDraft';
     const handlerName = draft.type === 'income' ? 'handleIncomeSubmit'
         : draft.type === 'expense' ? 'handleExpenseSubmit'
             : draft.type === 'resident' ? 'handleResidentSubmit' : 'handleAdjustmentSubmit';
@@ -1013,6 +1035,7 @@ async function confirmAssistantOperation() {
     const expenseBefore = Array.isArray(state.expenses) ? state.expenses.length : 0;
     const adjustmentBefore = Array.isArray(state.adjustments) ? state.adjustments.length : 0;
     const residentBefore = Array.isArray(state.residents) ? state.residents.length : 0;
+    const residentSnapshotBefore = JSON.stringify(state.residents || []);
     assistantOperationDraft = null;
     try {
         if (openForm(draft) === false) throw new Error('assistant form did not open');
@@ -1026,9 +1049,10 @@ async function confirmAssistantOperation() {
     const expenseAfter = Array.isArray(state.expenses) ? state.expenses.length : 0;
     const adjustmentAfter = Array.isArray(state.adjustments) ? state.adjustments.length : 0;
     const residentAfter = Array.isArray(state.residents) ? state.residents.length : 0;
+    const residentChanged = JSON.stringify(state.residents || []) !== residentSnapshotBefore;
     const saved = draft.type === 'income' ? collectionAfter > collectionBefore
         : draft.type === 'expense' ? expenseAfter > expenseBefore
-            : draft.type === 'resident' ? residentAfter > residentBefore
+            : (draft.type === 'resident' || draft.type === 'resident_edit') ? (draft.type === 'resident' ? residentAfter > residentBefore : residentChanged)
                 : adjustmentAfter > adjustmentBefore;
     if (!saved) assistantOperationDraft = draft;
     if (!saved && typeof toast === 'function') toast('لم يتم الحفظ. راجع الحقول أو رسالة التحقق في النموذج.', 'error');

@@ -530,6 +530,18 @@ test('resident creation requests never become manager forms for owners', () => {
     assert.notEqual(answer.id, 'operation-preview');
 });
 
+test('manager can prepare a resident edit through the official form path without mutating state', () => {
+    const { context, api } = createHarness(true);
+    const before = JSON.stringify(vm.runInContext('state.residents', context));
+    const answer = api.answerAssistantQuery('عدّل بيانات سارة حسن شقة 7 هاتف 01099999999', NOW);
+    assert.equal(answer.id, 'operation-preview');
+    assert.match(answer.html, /سارة حسن/);
+    assert.match(answer.html, /01099999999/);
+    assert.match(answer.html, /تنفيذ وحفظ/);
+    assert.equal(JSON.stringify(vm.runInContext('state.residents', context)), before);
+    assert.match(assistantSource, /draft\.type === 'resident_edit'/);
+});
+
 test('operation parser understands local amount formats without confusing apartment or year numbers', () => {
     const { api } = createHarness(true);
     assert.equal(api.assistantParsedAmount('سجّل تحصيل من شقة ٧ عن نوفمبر ٢٠٢٦ بمبلغ ١٬٥٠٠ جنيه'), 1500);
