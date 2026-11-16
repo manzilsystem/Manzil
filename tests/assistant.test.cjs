@@ -447,6 +447,9 @@ test('manager entry requests open only the native reviewed forms and never save 
     assert.equal(incomeDraft.amount, 125);
     assert.equal(Object.hasOwn(incomeDraft, 'month'), false, 'the assistant must not infer an income month');
     assert.equal(Object.hasOwn(incomeDraft, 'paymentMethod'), false, 'the assistant must not infer a payment method');
+    const detailedIncomeDraft = manager.api.parseAssistantIncomeDraft('سجّل دفعة لشقة 3 بمبلغ 125 جنيه عن شهر نوفمبر 2026 نقدًا');
+    assert.equal(detailedIncomeDraft.month, 'نوفمبر 2026');
+    assert.equal(detailedIncomeDraft.paymentMethod, 'cash');
     assert.equal(JSON.stringify(vm.runInContext('state', manager.context)), before);
 
     const calls = [];

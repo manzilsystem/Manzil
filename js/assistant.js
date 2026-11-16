@@ -656,7 +656,30 @@ function parseAssistantIncomeDraft(text) {
     }
     const parsedAmount = parseAssistantExpenseDraft(text).amount;
     if (Number.isFinite(parsedAmount) && parsedAmount > 0) draft.amount = parsedAmount;
+    if (hasAssistantTimeHint(text)) {
+        const period = resolveAssistantPeriod(text);
+        if (period.type === 'month' && period.label) draft.month = period.label;
+    }
+    const normalized = normalizeAssistantArabic(text);
+    const paymentPatterns = /** @type {Array<[string, RegExp]>} */ ([
+        ['cash', /(?:نقدا|كاش|نقدي)/],
+        ['wallet', /(?:محفظه(?:\s+الكترونيه)?|فودافون\s+كاش|اورنج\s+كاش|اتصالات\s+كاش|وي\s+باي)/],
+        ['instapay', /(?:instapay|انستا\s*باي|انستاباي)/i],
+        ['bank_transfer', /(?:تحويل\s+بنكي|تحويل\s+للبنك|حواله\s+بنكيه)/]
+    ]);
+    const paymentMatches = paymentPatterns.filter(([, pattern]) => pattern.test(normalized));
+    if (paymentMatches.length === 1) draft.paymentMethod = paymentMatches[0][0];
     return draft;
+}
+
+function assistantPaymentMethodLabel(method) {
+    const labels = {
+        cash: 'نقدًا',
+        wallet: 'محفظة إلكترونية',
+        instapay: 'InstaPay',
+        bank_transfer: 'تحويل بنكي'
+    };
+    return labels[method] || 'طريقة الدفع';
 }
 
 function buildAssistantEntryActionAnswer(action, draft = null) {
@@ -669,9 +692,13 @@ function buildAssistantEntryActionAnswer(action, draft = null) {
     if (draft?.residentLabel) suppliedItems.push(`الشقة: ${assistantEscape(draft.residentLabel)}`);
     if (draft?.title) suppliedItems.push(`الوصف: ${assistantEscape(draft.title)}`);
     if (draft?.amount) suppliedItems.push(`المبلغ: ${assistantEscape(assistantMoney(draft.amount))}`);
+    if (draft?.month) suppliedItems.push(`الشهر: ${assistantEscape(draft.month)}`);
+    if (draft?.paymentMethod) suppliedItems.push(`طريقة الدفع: ${assistantEscape(assistantPaymentMethodLabel(draft.paymentMethod))}`);
     const supplied = suppliedItems.length ? ` جهزت الحقول الواضحة فقط (${suppliedItems.join(' · ')}).` : '';
+    const deferred = income && draft?.month
+        ? ' حاولت تحديد شهر السداد المذكور؛ راجع اختيار الشهور لأن الشهر المسدد أو غير المتاح لا يمكن اختياره.' : '';
     const extraReview = income
-        ? ' تأكد بنفسك من الشهور المختارة وطريقة الدفع ومعاينة التوزيع قبل الحفظ.'
+        ? ` تأكد بنفسك من الشهور المختارة وطريقة الدفع ومعاينة التوزيع قبل الحفظ.${deferred}`
         : '';
     return {
         id: action,
@@ -692,12 +719,31 @@ function executeAssistantEntryAction(action, draft = null) {
             if (residentSelect && residentExists && typeof draft.residentId === 'string') {
                 residentSelect.value = draft.residentId;
                 if (typeof handleIncomeResidentChange === 'function') handleIncomeResidentChange();
+                if (typeof draft.month === 'string') {
+                    const monthOption = Array.from(/** @type {NodeListOf<HTMLInputElement>} */ (document.querySelectorAll('input[data-income-month]')))
+                        .filter(input => input.closest('#incomeMonthsGrid'))
+                        .find(input => input.getAttribute('data-income-month') === draft.month && !input.disabled);
+                    if (monthOption && !monthOption.checked && typeof handleIncomeMonthToggle === 'function') {
+                        monthOption.checked = true;
+                        handleIncomeMonthToggle(monthOption);
+                    }
+                    if (!monthOption && typeof toast === 'function') {
+                        toast('الشهر المطلوب غير متاح للتحصيل أو مسدد بالكامل. اختر شهرًا متاحًا من النموذج.', 'info');
+                    }
+                }
                 if (typeof setIncomeWizardStep === 'function') setIncomeWizardStep(2);
             }
             const amount = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
             if (amount && Number.isFinite(Number(draft.amount)) && Number(draft.amount) > 0 && Number(draft.amount) <= 100000000) {
                 amount.value = String(Number(draft.amount));
                 if (typeof handleIncomeAmountInput === 'function') handleIncomeAmountInput();
+            }
+            const paymentMethod = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomePaymentMethod'));
+            if (paymentMethod && typeof draft.paymentMethod === 'string'
+                && Array.from(paymentMethod.options || []).some(option => option.value === draft.paymentMethod && !option.disabled)) {
+                paymentMethod.value = draft.paymentMethod;
+            } else if (typeof draft.paymentMethod === 'string' && typeof toast === 'function') {
+                toast('طريقة الدفع التي ذكرتها غير متاحة حاليًا. اختر طريقة مفعّلة من النموذج.', 'info');
             }
         }
         return true;
@@ -770,7 +816,7 @@ function mergeAssistantEntryFollowup(pending, text, now = new Date()) {
         : parseAssistantExpenseDraft(text, now);
     const merged = { ...pending.draft };
     const allowed = pending.action === 'income-entry'
-        ? ['residentId', 'residentLabel', 'amount']
+        ? ['residentId', 'residentLabel', 'amount', 'month', 'paymentMethod']
         : ['title', 'amount', 'month', 'category'];
     let changed = false;
     for (const key of allowed) {

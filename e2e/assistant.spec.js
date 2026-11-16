@@ -194,7 +194,12 @@ test('manager expense request opens the existing form but does not record an exp
 test('manager income request prefills only the matched apartment and explicit amount', async ({ page }) => {
     await seedAndOpenAssistant(page);
     const countBefore = await page.evaluate(() => state.income.length);
-    await askAssistantQuestion(page, 'سجّل دفعة لشقة 3 بمبلغ 125 جنيه');
+    const targetMonth = await page.evaluate(() => {
+        const date = new Date();
+        date.setMonth(date.getMonth() + 1, 1);
+        return `${monthsNames[date.getMonth()]} ${date.getFullYear()}`;
+    });
+    await askAssistantQuestion(page, `سجّل دفعة لشقة 3 بمبلغ 125 جنيه عن شهر ${targetMonth} نقدًا`);
 
     const answer = page.locator('#assistantLog .assistant-msg.is-bot:not(.is-typing) .assistant-bubble').last();
     await expect(answer).toContainText('لم يتم تسجيل أي شيء بعد');
@@ -204,7 +209,8 @@ test('manager income request prefills only the matched apartment and explicit am
     await expect(page.locator('#incomeResident')).toHaveValue('r1');
     await expect(page.locator('#incomeAmount')).toHaveValue('125');
     await expect(page.locator('#incomeWizardStep2')).toBeVisible();
-    await expect(page.locator('#incomePaymentMethod')).toHaveValue('');
+    await expect(page.locator(`#incomeMonthsGrid input[data-income-month="${targetMonth}"]`)).toBeChecked();
+    await expect(page.locator('#incomePaymentMethod')).toHaveValue('cash');
     expect(await page.evaluate(() => state.income.length)).toBe(countBefore);
 });
 
