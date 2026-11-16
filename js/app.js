@@ -47,8 +47,19 @@ function focusModal(modal) {
     modal.focus();
 }
 
-// Modals an owner may open: the assistant is read-only and answers only from the owner's own scoped data.
-const OWNER_ALLOWED_MODALS = new Set(['assistantModal', 'assistantVoiceDownloadModal']);
+// An owner may open only the read-only assistant, which remains scoped to the linked unit.
+const OWNER_ALLOWED_MODALS = new Set(['assistantModal']);
+
+function removeLegacyAssistantSpeechModelCache() {
+    if (typeof indexedDB === 'undefined') return;
+    try {
+        const request = indexedDB.deleteDatabase('assistant-speech-models');
+        request.onerror = () => console.warn('Could not clear a legacy assistant model cache.');
+        request.onblocked = () => console.warn('A legacy assistant model cache is still open in another tab.');
+    } catch (error) {
+        console.warn('Could not clear a legacy assistant model cache.', error);
+    }
+}
 
 function openModal(id) {
     if (id !== 'pinLockModal' && !OWNER_ALLOWED_MODALS.has(id) && !requireManager()) return;
@@ -74,7 +85,6 @@ function openModal(id) {
 function closeModal(id) {
     const modal = document.getElementById(id);
     if (!modal) return;
-    if (id === 'assistantVoiceDownloadModal') window.cancelAssistantVoiceDownload?.();
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     modal.setAttribute('aria-hidden', 'true');
@@ -156,6 +166,7 @@ async function loadSubscriptionRateAdapter() {
 }
 
 async function initApp() {
+    removeLegacyAssistantSpeechModelCache();
     await loadSubscriptionRateAdapter();
     await initSupabaseApp();
     document.addEventListener('keydown', handleModalKeyboard);

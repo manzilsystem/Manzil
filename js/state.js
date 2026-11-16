@@ -342,6 +342,10 @@ let saveRollbackPendingCount = 0;
 let saveRollbackBaseline = null;
 let saveExecutionQueue = Promise.resolve();
 
+function hasPendingStateSave() {
+    return saveRollbackPendingCount > 0;
+}
+
 function enqueueStateSave() {
     const queuedSave = saveExecutionQueue.then(() => saveState());
     saveExecutionQueue = queuedSave.then(() => undefined, () => undefined);

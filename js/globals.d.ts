@@ -14,7 +14,6 @@ interface Window {
     manzilReportError?: (message: unknown) => void;
     manzilErrorLog?: () => unknown[];
     MANZIL_RELEASE?: string;
-    cancelAssistantVoiceDownload?: () => void;
     html2pdf?: () => { set: (options: Record<string, unknown>) => { from: (element: HTMLElement) => { outputPdf: (type: string) => Promise<Blob> } } };
 }
 

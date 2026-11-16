@@ -133,6 +133,9 @@ function createHarness(seed = true, identity = {}, options = {}) {
     const api = vm.runInContext(`({
         answerAssistantQuery,
         buildAssistantGreetingHtml,
+        cloneStateSnapshot,
+        hasPendingStateSave,
+        saveWithRollback,
         assistantAddress,
         assistantUserDisplayName,
         detectOwnerAssistantIntent,
@@ -238,8 +241,6 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(css, /\.assistant-avatar-frame img \{[\s\S]*object-position: bottom center;[\s\S]*transform-origin: bottom center;/, 'the full-body art stays pinned to the floor while it animates');
     assert.match(css, /@keyframes assistant-fab-idle/, 'the idle breathing keeps the doorman alive');
     assert.match(css, /@keyframes assistant-fab-wave/, 'hovering waves the doorman');
-    assert.match(css, /\.assistant-fab\.is-talking \.assistant-fab-avatar img \{[\s\S]*assistant-fab-talk/, 'talking shakes the doorman');
-    assert.match(css, /@keyframes assistant-fab-talk/);
     assert.match(assistantSource, /applyAssistantFabState\(false, assistantFabCompactByScroll\)/, 'scroll state only compacts the launcher');
     assert.doesNotMatch(assistantSource, /assistantFabHiddenByScroll/, 'scrolling must never hide the launcher again');
     assert.match(css, /body\.owner-mode \.assistant-fab/);
@@ -248,17 +249,6 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(css, /\.assistant-avatar img \{[\s\S]*transform: scale\(1\.7\);[\s\S]*transform-origin: 50% 28%;/, 'the modal head uses the same framing as the launcher');
     assert.match(css, /\.assistant-hero \{/);
     assert.match(assistantSource, /icons\/assistant-abbah-full\.png/, 'the greeting shows the full-body avatar');
-    assert.match(html, /id="assistantSoundButton"[^>]*onclick="toggleAssistantSound\(\)"/, 'the head carries a mute toggle for the doorman voice');
-    assert.match(assistantSource, /ASSISTANT_SPEECH_LANG = 'ar-EG'/, 'the doorman speaks Egyptian Arabic');
-    assert.match(assistantSource, /ASSISTANT_SPEECH_PITCH = 0\.8/, 'the voice is pitched for a man in his fifties');
-    assert.match(assistantSource, /ASSISTANT_SPEECH_RATE = 0\.95/, 'the voice is slowed for gravitas');
-    assert.match(assistantSource, /window\.SpeechSynthesisUtterance\(phrase\)/, 'the doorman uses the on-device speech engine');
-    assert.match(assistantSource, /utterance\.onstart = \(\) => setAssistantTalking\(true\)/, 'talking starts when the voice starts');
-    assert.match(assistantSource, /utterance\.onend = \(\) => setAssistantTalking\(false\)/, 'talking stops when the voice ends');
-    assert.match(assistantSource, /function toggleAssistantSound\(\)/, 'the mute toggle lives in the assistant');
-    assert.match(assistantSource, /function speakAssistantText\(/, 'bot answers are read aloud');
-    assert.match(assistantSource, /if \(role === 'bot'\) speakAssistantText\(/, 'every doorman reply is spoken');
-    assert.match(css, /\.assistant-avatar\.is-talking img \{[\s\S]*assistant-head-talk/, 'the head portrait nods while speaking');
     assert.match(serviceWorker, /\.\/icons\/assistant-abbah\.png/);
     assert.match(serviceWorker, /\.\/icons\/assistant-abbah-full\.png/);
     assert.match(assistantSource, /ASSISTANT_FAB_SCROLL_DEADZONE/, 'scroll direction drives the launcher');
@@ -277,49 +267,60 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(css, /@media print \{\s*#assistantModal \{ display: none !important; \}/);
 });
 
-test('عم عبده speaks with one consistent Sa\'idi Egyptian voice and a situational sample set', () => {
-    const profile = assistantSource.match(/const ASSISTANT_VOICE_PROFILE = Object\.freeze\(\{([\s\S]*?)\}\);/);
-    assert.ok(profile, 'the doorman has a single voice profile');
-    assert.match(profile[1], /lang: ASSISTANT_SPEECH_LANG/, 'the profile keeps the Egyptian Arabic language');
-    assert.match(profile[1], /speaker: 'رجل مصري صعيدي في الخمسينات من عمره'/, 'the speaker is a Sa\'idi man in his fifties');
-    assert.match(profile[1], /gender: 'ذكر'/, 'the profile pins the speaker as male');
-    assert.match(profile[1], /accent: 'لهجة صعيدية/, 'the profile names the Upper-Egyptian accent');
-    assert.match(profile[1], /pitch: ASSISTANT_SPEECH_PITCH/, 'the profile keeps the mature male pitch');
-    assert.match(profile[1], /rate: ASSISTANT_SPEECH_RATE/, 'the profile keeps the unhurried pace');
+test('عم عبده is written-only and exposes no microphone, recording, or speech output path', () => {
+    const activeSource = [assistantSource, html, css, serviceWorker, appSource].join('\n');
+    for (const pattern of [
+        /assistant-voice\.js/i, /assistantVoiceButton/i, /assistantVoiceDownload/i,
+        /navigator\.mediaDevices/i, /getUserMedia/i, /MediaRecorder/i,
+        /speechSynthesis/i, /SpeechSynthesisUtterance/i, /toggleAssistantSound/i
+    ]) assert.doesNotMatch(activeSource, pattern);
+    assert.match(html, /<form class=\"assistant-form\" onsubmit=\"sendAssistantMessage\(event\)\">[\s\S]*id=\"assistantInput\"[\s\S]*assistant-send-button/);
+    assert.match(appSource, /deleteDatabase\('assistant-speech-models'\)/, 'a one-time migration removes a previously cached speech model');
+    assert.doesNotMatch(appSource, /getUserMedia|MediaRecorder|speechSynthesis|SpeechSynthesisUtterance/i);
+});
 
-    // Every utterance is rendered through the shared profile, so the accent and
-    // tone never drift from one situation to another.
-    assert.match(assistantSource, /utterance\.lang = ASSISTANT_VOICE_PROFILE\.lang/);
-    assert.match(assistantSource, /utterance\.pitch = ASSISTANT_VOICE_PROFILE\.pitch/);
-    assert.match(assistantSource, /utterance\.rate = ASSISTANT_VOICE_PROFILE\.rate/);
-    assert.match(assistantSource, /utterance\.volume = ASSISTANT_VOICE_PROFILE\.volume/);
+test('an owner cannot inspect another apartment by number, resident name, or building-wide wording', () => {
+    const { context, api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    vm.runInContext(`state.residents = ${JSON.stringify(RESIDENTS)}; state.income = ${JSON.stringify(INCOME)};`, context);
 
-    // The engine has no Sa'idi voice, so the Upper-Egyptian delivery leans on the
-    // closest Egyptian voice the device offers, with a safe Arabic fallback.
-    assert.match(assistantSource, /function pickAssistantVoice\(synth\)/, 'the doorman looks for an Egyptian device voice');
-    assert.match(assistantSource, /if \(voice\) utterance\.voice = voice/, 'the chosen voice is applied to every utterance');
-
-    const samplesSource = assistantSource.match(/const ASSISTANT_VOICE_SAMPLES = Object\.freeze\(([\s\S]*?)\);/);
-    assert.ok(samplesSource, 'the doorman ships a reference sample set');
-    const samples = vm.runInNewContext(`(${samplesSource[1]})`);
-    assert.ok(Array.isArray(samples) && samples.length >= 6, 'samples cover several everyday situations');
-
-    const keys = new Set();
-    for (const sample of samples) {
-        assert.equal(typeof sample.key, 'string', 'every sample is addressable by situation key');
-        assert.ok(!keys.has(sample.key), `sample key ${sample.key} is unique`);
-        keys.add(sample.key);
-        assert.match(sample.situation, /[ء-ي]/, 'every sample names its situation in Arabic');
-        assert.match(sample.tone, /[ء-ي]/, 'every sample carries a delivery tone');
-        assert.match(sample.text, /[ء-ي]/, 'every sample is spoken in Arabic');
+    for (const query of ['متأخرات شقة ٧', 'سارة حسن دفعت كام؟', 'حساب سارة حسن كام؟', 'مين عليه متأخرات؟']) {
+        const answer = api.answerAssistantQuery(query, NOW);
+        assert.equal(answer.id, 'owner_scope', `${query} must not resolve to the owner's own account data`);
+        assert.doesNotMatch(answer.html, /سارة حسن|شقة 7|200 ج\.م|50 ج\.م/);
     }
-    for (const key of ['greeting', 'welcome', 'hospitality', 'reassure', 'arrears', 'thanks', 'apology', 'encourage', 'farewell']) {
-        assert.ok(keys.has(key), `the sample set covers the ${key} situation`);
-    }
-    assert.ok(samples.some(sample => /الصعيد/.test(sample.text)), 'the script carries the Sa\'idi colouring');
 
-    assert.match(assistantSource, /function assistantVoiceSample\(key\)/, 'samples are looked up by situation');
-    assert.match(assistantSource, /function speakAssistantSample\(key\)/, 'any surface can audition the voice style');
+    const own = api.answerAssistantQuery('عليّا كام؟', NOW);
+    assert.equal(own.id, 'my_bill');
+    assert.match(own.html, /شقة 3/);
+    assert.doesNotMatch(own.html, /سارة حسن|شقة 7|200 ج\.م/);
+});
+
+test('the assistant denies unknown roles and never answers while a save is pending', async () => {
+    const unauthorized = createHarness(true);
+    vm.runInContext("currentUserRole = 'visitor'", unauthorized.context);
+    const denied = unauthorized.api.answerAssistantQuery('رصيد الخزنة كام؟', NOW);
+    assert.equal(denied.id, 'access-denied');
+    assert.doesNotMatch(denied.html, /1,550|1200|الخزنة الرئيسية/);
+
+    const { context, api } = createHarness(true);
+    const previous = api.cloneStateSnapshot();
+    let resolveSave;
+    context.pendingSavePromise = new Promise(resolve => { resolveSave = resolve; });
+    vm.runInContext('saveState = () => pendingSavePromise', context);
+    vm.runInContext("state.expenses.push({ id: 'pending-secret', month: 'نوفمبر 2026', title: 'مصروف غير محفوظ', amount: 9000, category: 'اختبار' })", context);
+
+    const save = api.saveWithRollback(previous);
+    assert.equal(api.hasPendingStateSave(), true);
+    const pendingAnswer = api.answerAssistantQuery('مصروفات الشهر', NOW);
+    assert.equal(pendingAnswer.id, 'pending-save');
+    assert.doesNotMatch(pendingAnswer.html, /9000|مصروف غير محفوظ/);
+    assert.match(api.buildAssistantGreetingHtml(NOW), /عملية حفظ جارية/);
+
+    resolveSave(false);
+    assert.equal(await save, false);
+    assert.equal(api.hasPendingStateSave(), false);
+    const afterRollback = api.answerAssistantQuery('مصروفات الشهر', NOW);
+    assert.doesNotMatch(afterRollback.html, /9000|مصروف غير محفوظ/);
 });
 
 test('avatar art is transparent PNG so it matches every theme', () => {
@@ -347,7 +348,7 @@ test('assistant is local-only and never touches the network', () => {
     assert.match(html, /<p><span class="assistant-online-dot" aria-hidden="true"><\/span> واقف على الباب وبيخدمك<\/p>/, 'the head keeps the one-line status note and nothing more');
 });
 
-test('assistant runtime keeps chat and voice away from the network and off disk', () => {
+test('assistant runtime keeps the written chat local and away from durable storage', () => {
     // Trip every outbound/durable channel: an accidental call throws so the test
     // fails loudly instead of silently reaching a service or writing to disk.
     const leaks = [];
@@ -793,8 +794,8 @@ test('an owner bill answer covers their own apartment and their own due window',
     assert.match(followUp.title, /أكتوبر 2026/, 'the month just discussed carries over');
     const fresh = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
     assert.match(fresh.api.answerAssistantQuery('عليّا كام؟', NOW).title, /نوفمبر 2026/);
-    assert.equal(api.detectOwnerAssistantIntent(api.normalizeAssistantArabic('مين عليه متأخرات')), 'my_bill', 'arrears resolve to the owner’s own debt');
-    assert.equal(fresh.api.answerAssistantQuery('مين عليه متأخرات؟', NOW).id, 'my_bill');
+    assert.equal(api.detectOwnerAssistantIntent(api.normalizeAssistantArabic('مين عليه متأخرات')), 'owner_scope', 'a third-person arrears question is management-only');
+    assert.equal(fresh.api.answerAssistantQuery('مين عليه متأخرات؟', NOW).id, 'owner_scope');
 });
 
 test('the owner assistant never guesses another apartment when the identity is missing', () => {
@@ -886,7 +887,7 @@ test('owners keep the launcher and can open the assistant without manager rights
     assert.match(supabaseSource, /if \(typeof syncAssistantFab === 'function'\) syncAssistantFab\(\)/, 'the launcher syncs once the session is known');
     assert.match(stateSource, /var currentProfileName = null;/);
     assert.match(appSource, /if \(id !== 'pinLockModal' && !OWNER_ALLOWED_MODALS\.has\(id\) && !requireManager\(\)\) return;/);
-    assert.match(appSource, /const OWNER_ALLOWED_MODALS = new Set\(\['assistantModal', 'assistantVoiceDownloadModal'\]\);/, 'owners may open only the assistant and its speech-download dialog');
+    assert.match(appSource, /const OWNER_ALLOWED_MODALS = new Set\(\['assistantModal'\]\);/, 'owners may open only the assistant and its speech-download dialog');
 });
 
 test('owner notices and notifications never surface the manager feed', () => {

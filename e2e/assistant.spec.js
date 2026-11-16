@@ -112,6 +112,8 @@ async function askAssistantQuestion(page, question) {
 
 test('assistant opens from the launcher and answers local questions', async ({ page }) => {
     await seedAndOpenAssistant(page);
+    await expect(page.locator('#assistantInput')).toBeVisible();
+    await expect(page.locator('#assistantVoiceButton, #assistantSoundButton, #assistantVoiceDownloadModal')).toHaveCount(0);
     const botMessages = page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble');
     await expect(botMessages.first()).toContainText('أهلاً يا أستاذ');
     await expect(page.locator('#assistantInput')).toHaveAttribute('placeholder', /الخزنة/);
@@ -137,6 +139,23 @@ test('assistant opens from the launcher and answers local questions', async ({ p
     await page.locator('#assistantInput').press('Enter');
     await expect(botMessages.last()).toContainText('إجمالي المصروفات');
     await expect(botMessages.last()).toContainText('نظافة');
+});
+
+test('owner questions about another unit or resident receive a privacy refusal', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    await page.evaluate(() => {
+        window.currentUserRole = 'owner';
+        currentResidentId = 'r1';
+        document.body.classList.add('owner-mode');
+    });
+
+    const botMessages = page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble');
+    for (const question of ['متأخرات شقة ٧', 'سارة حسن دفعت كام؟']) {
+        await askAssistantQuestion(page, question);
+        await expect(botMessages.last()).toContainText('ما أقدرش أراجع بيانات شقة');
+        await expect(botMessages.last()).not.toContainText('سارة حسن');
+        await expect(botMessages.last()).not.toContainText('200 ج.م');
+    }
 });
 
 test('the manager conversation stays offline and read-only in the real app', async ({ page }) => {

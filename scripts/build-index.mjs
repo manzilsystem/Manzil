@@ -30,9 +30,6 @@ const SHARED_RELEASE_ASSETS = new Set(['js/telemetry.js', 'js/subscription-rates
 const ASSET_DIRS = ['css', 'js', 'icons'];
 const ASSET_FILES = ['manifest.json'];
 
-// The committed onnxruntime build stays in the asset digest so a runtime
-// upgrade always rolls the release id along with its lazy-loaded URL.
-
 function listFiles(dir, base = dir) {
     if (!fs.existsSync(dir)) return [];
     return fs.readdirSync(dir, { withFileTypes: true })

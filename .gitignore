@@ -16,13 +16,7 @@ playwright-report/
 reports/
 .screenshots/
 
-# Local AI/voice assets: the runtime ships, the weights are downloaded on consent
+# Large local model experiments stay outside the application bundle.
 js/vendor/*
-# The local speech runtime ships with the app so it needs no CDN.
-!js/vendor/onnxruntime-web.min.js
-!js/vendor/onnxruntime-web-LICENSE.txt
-!js/vendor/ort-wasm-simd-threaded.mjs
-!js/vendor/ort-wasm-simd-threaded.wasm
-!js/vendor/egyptian-arabic-wav2vec2-LICENSE.txt
 docs/assistant-local-ai-evaluation.md
 licenses/
