@@ -164,10 +164,19 @@ function createHarness(seed = true, identity = {}, options = {}) {
         restoreAssistantSession,
         appendAssistantMessage,
         openAssistantOperation,
+        parseAssistantMutationCommand,
+        buildAssistantMutationPreview,
+        cancelAssistantMutation,
+        mutationDraftSnapshot: () => assistantMutationDraft,
+        parseAssistantResidentEntryCommand,
+        buildAssistantResidentEntryPreview,
+        cancelAssistantResidentEntry,
+        residentEntryDraftSnapshot: () => assistantResidentEntryDraft,
         assistantOperationRequestId,
         assistantOperationStatus: () => assistantOperationContext?.status || null,
         requireAssistantOperationReadyForCommit,
         beginAssistantOperationCommit,
+        startAssistantOperationContext,
         markAssistantOperationSaveUncertain,
         completeAssistantOperation,
         clearAssistantOperationContext,
@@ -519,6 +528,20 @@ test('all assistant-origin financial forms share the same request-id commit and 
     assert.match(supabaseSource, /p_request_id:\s*requestId/, 'the stable id reaches the existing atomic Supabase RPC');
 });
 
+test('assistant edits and deletions use manager gates, record-specific confirmation and audit ids', () => {
+    for (const [name, type] of [['deleteResident', 'resident_delete'], ['deleteIncome', 'income_delete'], ['deleteExpense', 'expense_delete'], ['deleteAdjustment', 'adjustment_delete']]) {
+        const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const body = crudSource.match(new RegExp(`async function ${escaped}\\(id, requestId = null\\) \\{([\\s\\S]*?)\\n\\}`, 'm'))?.[1];
+        assert.ok(body, `${name} accepts only the targeted optional assistant request id`);
+        assert.match(body, new RegExp(`crudBeginAssistantDelete\\('${type}', requestId\\)`));
+        assert.match(body, /assistantAuditDetails|crudAssistantAuditDetails/);
+        assert.match(body, /saveWithRollback\(previousState, assistantRequestId\)/);
+        assert.match(body, /markAssistantOperationSaveUncertain\(assistantRequestId\)/);
+    }
+    assert.match(crudSource, /async function handleResidentSubmit\(e\)[\s\S]*?crudAssistantOperationReady\('resident'\)[\s\S]*?saveWithRollback\(previousState, assistantRequestId\)/);
+    assert.match(crudSource, /async function handleIncomeEditSubmit\(event\)[\s\S]*?crudAssistantOperationReady\('income'\)[\s\S]*?saveWithRollback\(previousState, assistantRequestId\)/);
+});
+
 test('owners cannot turn assistant operation commands into manager forms', () => {
     const { api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
     const answer = api.answerAssistantQuery('سجّل تحصيل 500 جنيه من سارة حسن شقة 7', NOW);
@@ -693,6 +716,90 @@ test('owner queries mentioning multiple manager metrics stay inside the owner sc
     const answer = api.answerAssistantQuery('التحصيلات والمصروفات والمتأخرات في نوفمبر 2026', NOW);
     assert.equal(answer.id, 'owner_scope');
     assert.doesNotMatch(answer.html, /إجمالي السيولة|المتأخرات المتراكمة/);
+});
+
+test('assistant mutation resolver requires an exact single match and does not treat apartment number as amount', () => {
+    const { api } = createHarness();
+    const ambiguous = api.parseAssistantMutationCommand('احذف تحصيل أحمد شقة 3 نوفمبر 2026', NOW);
+    assert.match(ambiguous.error, /2 سجلات مطابقة/);
+    const exact = api.parseAssistantMutationCommand('احذف تحصيل أحمد شقة 3 بمبلغ 40 جنيه نوفمبر 2026', NOW);
+    assert.equal(exact.id, 'i3');
+    assert.equal(exact.type, 'income');
+});
+
+test('assistant mutation resolver identifies a unique expense in the requested month', () => {
+    const { api } = createHarness();
+    const result = api.parseAssistantMutationCommand('عدل مصروف نوفمبر 2026 بمبلغ 60 جنيه إلى 75 جنيه', NOW);
+    assert.equal(result.id, 'e1', 'the old amount identifies the exact stored row');
+    assert.equal(result.type, 'expense');
+    assert.equal(result.action, 'edit');
+    assert.equal(result.requestedAmount, 75, 'the requested new amount is only staged for the official form');
+});
+
+test('assistant refuses to save a stale edit if the selected row changes after preview', () => {
+    const { api, context } = createHarness();
+    const expectedRecord = vm.runInContext('JSON.stringify(state.expenses.find(item => item.id === "e1"))', context);
+    context.toast = () => {};
+    api.startAssistantOperationContext({
+        id: 'e1', type: 'expense', action: 'edit', mode: 'edit', requestId: 'req-edit-1',
+        expectedRecord, raw: 'عدل مصروف نوفمبر'
+    });
+    vm.runInContext('state.expenses.find(item => item.id === "e1").amount = 61', context);
+    assert.equal(api.requireAssistantOperationReadyForCommit('expense'), false);
+    assert.equal(api.assistantOperationStatus(), 'uncertain');
+});
+
+test('assistant deletion preview is read-only and can be cancelled without touching state', () => {
+    const { api, context } = createHarness();
+    const before = vm.runInContext('JSON.stringify(state.expenses)', context);
+    const mutation = api.parseAssistantMutationCommand('احذف مصروف نوفمبر 2026 بمبلغ 60 جنيه', NOW);
+    const preview = api.buildAssistantMutationPreview(mutation);
+    assert.equal(preview.id, 'mutation-delete-preview');
+    assert.match(preview.html, /تأكيد الحذف/);
+    assert.equal(vm.runInContext('JSON.stringify(state.expenses)', context), before);
+    assert.ok(api.mutationDraftSnapshot());
+    context.toast = () => {};
+    api.cancelAssistantMutation();
+    assert.equal(api.mutationDraftSnapshot(), null);
+    assert.equal(vm.runInContext('JSON.stringify(state.expenses)', context), before);
+});
+
+test('assistant cannot delete a resident with linked payments and owners never receive mutation previews', () => {
+    const manager = createHarness();
+    const blocked = manager.api.parseAssistantMutationCommand('احذف الشقة أحمد شقة 3', NOW);
+    assert.match(blocked.error, /لا يمكن حذف شقة/);
+    const owner = createHarness(true, { role: 'owner', residentId: 'r1', ownerScoped: true });
+    const answer = owner.api.answerAssistantQuery('احذف تحصيل أحمد شقة 3 نوفمبر 2026', NOW);
+    assert.notEqual(answer.id, 'mutation-delete-preview');
+    assert.notEqual(answer.id, 'mutation-edit-preview');
+});
+
+test('assistant prepares new apartment and tenant details in a read-only preview', () => {
+    const { api, context } = createHarness();
+    const before = vm.runInContext('JSON.stringify(state.residents)', context);
+    const entry = api.parseAssistantResidentEntryCommand('أضف شقة جديدة باسم عمر سالم، شقة 8، الدور 2، اشتراك 120 جنيه، مؤجرة، اسم المستأجر يوسف', NOW);
+    assert.equal(entry.name, 'عمر سالم');
+    assert.equal(entry.apartmentNumber, '8');
+    assert.equal(entry.floor, '2');
+    assert.equal(entry.tenantName, 'يوسف');
+    const preview = api.buildAssistantResidentEntryPreview(entry);
+    assert.equal(preview.id, 'resident-entry-preview');
+    assert.match(preview.html, /المستأجر: يوسف/);
+    assert.equal(vm.runInContext('JSON.stringify(state.residents)', context), before);
+    context.toast = () => {};
+    api.cancelAssistantResidentEntry();
+    assert.equal(api.residentEntryDraftSnapshot(), null);
+    assert.equal(vm.runInContext('JSON.stringify(state.residents)', context), before);
+    const answer = api.answerAssistantQuery('أضف شقة جديدة باسم عمر سالم، شقة 8، الدور 2، اشتراك 120 جنيه، مؤجرة، اسم المستأجر يوسف', NOW);
+    assert.equal(answer.id, 'resident-entry-preview');
+});
+
+test('assistant apartment entry rejects duplicates and invalid floor mapping before opening the form', () => {
+    const { api } = createHarness();
+    const duplicate = api.parseAssistantResidentEntryCommand('أضف شقة جديدة باسم أحمد، شقة 3، الدور 1', NOW);
+    assert.match(duplicate.error, /مسجلة بالفعل/);
+    const wrongFloor = api.parseAssistantResidentEntryCommand('أضف شقة جديدة باسم عمر، شقة 8، الدور 1', NOW);
+    assert.match(wrongFloor.error, /لا يطابق الدور/);
 });
 
 test('change alerts flag large period shifts without claiming a diagnosis', () => {
