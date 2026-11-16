@@ -4298,6 +4298,8 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     font-weight: var(--weight-800);
     transition: background var(--motion-150) var(--ease-standard), border-color var(--motion-150) var(--ease-standard);
 }
+.assistant-report-actions { gap: var(--space-30); }
+.assistant-report-actions button { flex: 1 1 8.5rem; }
 .assistant-action-confirm { background: var(--accent-color); color: var(--accent-surface-ink); }
 .assistant-action-confirm:hover { filter: brightness(1.08); }
 .assistant-action-secondary { background: color-mix(in srgb, var(--accent-color) 10%, var(--bg-input)); color: var(--text-main); }

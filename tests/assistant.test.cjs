@@ -471,7 +471,11 @@ test('manager quick action opens official announcement form and report shortcut 
     const manager = createHarness(true, {}, { instrument: sandbox => { sandbox.openNoticeModal = () => calls.push('notice'); } });
     assert.equal(manager.api.runAssistantQuickAction('notice'), true);
     assert.deepEqual(calls, ['notice']);
-    assert.equal(manager.api.answerAssistantQuery('التقارير المتاحة', NOW).id, 'reports');
+    const reports = manager.api.answerAssistantQuery('التقارير المتاحة', NOW);
+    assert.equal(reports.id, 'reports');
+    for (const label of ['تقرير المالك', 'تقرير الفترة', 'تقرير المصروفات', 'الإعفاءات والتخفيضات', 'كشف حساب مالك']) {
+        assert.match(reports.html, new RegExp(label));
+    }
 
     const owner = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' }, {
         instrument: sandbox => { sandbox.openNoticeModal = () => calls.push('owner-notice'); }

@@ -1372,9 +1372,12 @@ function buildAssistantReportsAnswer() {
         'كشف حساب مالك: حركات الشهر والمستحق والمتأخرات.',
         'الإقفال الشهري والمتأخرات وسجل التدقيق.'
     ])}${assistantNote('افتح قسم «التقارير» من الشريط السفلي، وكل تقرير له معاينة وطباعة وتصدير CSV.')}
-        <div class="assistant-action-buttons" role="group" aria-label="فتح التقارير">
-            <button type="button" class="assistant-action-confirm" onclick="openAssistantReports('landlord')">فتح تقرير المالك</button>
-            <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('period')">فتح تقرير الفترة</button>
+        <div class="assistant-action-buttons assistant-report-actions" role="group" aria-label="فتح التقارير">
+            <button type="button" class="assistant-action-confirm" onclick="openAssistantReports('landlord')">تقرير المالك</button>
+            <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('period')">تقرير الفترة</button>
+            <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('expenses')">تقرير المصروفات</button>
+            <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('adjustments')">الإعفاءات والتخفيضات</button>
+            <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('statement')">كشف حساب مالك</button>
         </div>`;
     return { id: 'reports', title, html };
 }
