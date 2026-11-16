@@ -208,6 +208,39 @@ test('manager income request prefills only the matched apartment and explicit am
     expect(await page.evaluate(() => state.income.length)).toBe(countBefore);
 });
 
+test('manager can complete a missing expense amount in a follow-up before opening the form', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    const countBefore = await page.evaluate(() => state.expenses.length);
+    await askAssistantQuestion(page, 'أضف مصروف كهرباء');
+
+    let answer = page.locator('#assistantLog .assistant-msg.is-bot:not(.is-typing) .assistant-bubble').last();
+    await expect(answer).toContainText('المبلغ');
+    await expect(answer.locator('[data-assistant-action="expense-entry"]')).toHaveCount(0);
+
+    await askAssistantQuestion(page, '150 جنيه');
+    answer = page.locator('#assistantLog .assistant-msg.is-bot:not(.is-typing) .assistant-bubble').last();
+    await expect(answer).toContainText('لم يتم تسجيل أي شيء بعد');
+    await answer.locator('[data-assistant-action="expense-entry"]').click();
+
+    await expect(page.locator('#expenseModal')).toBeVisible();
+    await expect(page.locator('#expenseTitle')).toHaveValue('كهرباء');
+    await expect(page.locator('#expenseAmount')).toHaveValue('150');
+    expect(await page.evaluate(() => state.expenses.length)).toBe(countBefore);
+});
+
+test('manager can cancel an incomplete entry draft and continue with reports', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    await askAssistantQuestion(page, 'أضف مصروف نظافة');
+    const clarification = page.locator('#assistantLog .assistant-msg.is-bot:not(.is-typing) .assistant-bubble').last();
+    await expect(clarification.locator('[data-assistant-entry-cancel]')).toBeVisible();
+    await clarification.locator('[data-assistant-entry-cancel]').click();
+
+    const cancelled = page.locator('#assistantLog .assistant-msg.is-bot:not(.is-typing) .assistant-bubble').last();
+    await expect(cancelled).toContainText('ألغيت طلب الإدخال المؤقت');
+    await askAssistantQuestion(page, 'ملخص الشهر');
+    await expect(page.locator('#assistantLog .assistant-msg.is-bot:not(.is-typing) .assistant-bubble').last()).toContainText('التحصيل المسجل');
+});
+
 test('assistant reset, escape close, and launcher restore behave', async ({ page }) => {
     await seedAndOpenAssistant(page);
     const modal = page.locator('#assistantModal');

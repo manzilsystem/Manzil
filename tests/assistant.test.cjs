@@ -462,6 +462,32 @@ test('manager entry requests open only the native reviewed forms and never save 
     assert.equal(JSON.stringify(vm.runInContext('state', manager.context)), before);
 });
 
+test('incomplete manager entry requests ask for missing fields and can be cancelled', () => {
+    const { context, api } = createHarness(true);
+    const before = JSON.stringify(vm.runInContext('state', context));
+
+    const expenseClarification = api.answerAssistantQuery('أضف مصروف كهرباء', NOW);
+    assert.equal(expenseClarification.id, 'entry-clarification');
+    assert.match(expenseClarification.html, /المبلغ/);
+    assert.doesNotMatch(expenseClarification.html, /data-assistant-action="expense-entry"/);
+    const completeExpense = api.answerAssistantQuery('150 جنيه', NOW);
+    assert.equal(completeExpense.id, 'expense-entry');
+    assert.match(completeExpense.html, /data-assistant-action="expense-entry"/);
+
+    const incomeClarification = api.answerAssistantQuery('سجّل دفعة لشقة 3', NOW);
+    assert.equal(incomeClarification.id, 'entry-clarification');
+    assert.match(incomeClarification.html, /المبلغ/);
+    const completeIncome = api.answerAssistantQuery('125', NOW);
+    assert.equal(completeIncome.id, 'income-entry');
+    assert.match(completeIncome.html, /data-assistant-action="income-entry"/);
+
+    const cancelClarification = api.answerAssistantQuery('أضف مصروف نظافة', NOW);
+    assert.equal(cancelClarification.id, 'entry-clarification');
+    assert.equal(api.answerAssistantQuery('إلغاء المسودة', NOW).id, 'entry-cancelled');
+    assert.equal(api.answerAssistantQuery('ملخص الشهر', NOW).id, 'summary', 'an unrelated manager report must not be consumed as a form answer');
+    assert.equal(JSON.stringify(vm.runInContext('state', context)), before, 'clarification and cancel remain read-only');
+});
+
 test('assistant money figures equal the reference billing values', () => {
     const { context, api } = createHarness(true);
     const period = api.resolveAssistantPeriod('نوفمبر 2026', NOW);

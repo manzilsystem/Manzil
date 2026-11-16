@@ -74,6 +74,7 @@ const ASSISTANT_FOLLOWUPS_OWNER = Object.freeze({
 });
 
 let assistantContext = { period: null, residentId: null };
+let assistantPendingEntry = null;
 let assistantChat = [];
 
 function assistantIdentityKey() {
@@ -152,6 +153,7 @@ function restoreAssistantSession() {
         period: context && context.period && Array.isArray(context.period.months) ? context.period : null,
         residentId: context && typeof context.residentId === 'string' ? context.residentId : null
     };
+    assistantPendingEntry = null;
 }
 
 function rememberAssistantContext(text, period, resident) {
@@ -625,6 +627,7 @@ function parseAssistantExpenseDraft(text, now = new Date()) {
     const descriptionEnd = amountMatch ? amountMatch.index : String(text || '').length;
     let title = String(text || '').slice(0, descriptionEnd)
         .replace(/^\s*(?:من فضلك\s*)?(?:يا عم عبده\s*)?(?:سجّل|سجل|سجلي|أضف|اضف|ضيف|أدخل|ادخل|دوّن|دون|افتح نموذج|افتح تسجيل)\s*/u, '')
+        .replace(/^(?:الوصف(?:\s+المصروف)?|وصف\s+المصروف)\s*[:：-]?\s*/u, '')
         .replace(/^(?:مصروف(?:ات)?|مصاريف)\s*/u, '')
         .replace(/(?:يناير|فبراير|مارس|أبريل|ابريل|مايو|يونيو|يوليو|أغسطس|اغسطس|سبتمبر|أكتوبر|اكتوبر|نوفمبر|ديسمبر)\s*(?:20\d{2})?/gu, '')
         .replace(/20\d{2}/g, '')
@@ -680,6 +683,7 @@ function buildAssistantEntryActionAnswer(action, draft = null) {
 function executeAssistantEntryAction(action, draft = null) {
     if (typeof currentUserRole === 'undefined' || currentUserRole !== 'manager') return false;
     if (action === 'income-entry' && typeof openNewIncomeModal === 'function') {
+        assistantPendingEntry = null;
         openNewIncomeModal();
         if (draft && typeof draft === 'object' && !Array.isArray(draft)) {
             const residentSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeResident'));
@@ -699,6 +703,7 @@ function executeAssistantEntryAction(action, draft = null) {
         return true;
     }
     if (action === 'expense-entry' && typeof openExpenseModal === 'function') {
+        assistantPendingEntry = null;
         openExpenseModal();
         if (draft && typeof draft === 'object' && !Array.isArray(draft)) {
             const title = /** @type {HTMLInputElement | null} */ (document.getElementById('expenseTitle'));
@@ -717,6 +722,86 @@ function executeAssistantEntryAction(action, draft = null) {
         return true;
     }
     return false;
+}
+
+function assistantEntryMissingFields(action, draft) {
+    if (action === 'income-entry') {
+        return [!draft?.residentId && 'رقم الشقة أو اسم المالك', !draft?.amount && 'المبلغ']
+            .filter(Boolean);
+    }
+    return [!draft?.title && 'وصف المصروف', !draft?.amount && 'المبلغ']
+        .filter(Boolean);
+}
+
+function buildAssistantEntryClarificationAnswer(action, draft) {
+    const missing = assistantEntryMissingFields(action, draft);
+    const label = action === 'income-entry' ? 'التحصيل' : 'المصروف';
+    const present = [];
+    if (draft?.residentLabel) present.push(`الشقة: ${assistantEscape(draft.residentLabel)}`);
+    if (draft?.title) present.push(`الوصف: ${assistantEscape(draft.title)}`);
+    if (draft?.amount) present.push(`المبلغ: ${assistantEscape(assistantMoney(draft.amount))}`);
+    const known = present.length ? `<p class="assistant-note">فهمت حتى الآن: ${present.join(' · ')}</p>` : '';
+    return {
+        id: 'entry-clarification',
+        title: `محتاج تفاصيل لإعداد ${label}`,
+        html: `${known}<p class="assistant-note">من فضلك أرسل ${missing.join(' و')} في رسالة واحدة أو أكثر. لن أفتح النموذج قبل اكتمال هذه البيانات، ولن يتم تسجيل شيء.</p><div class="assistant-followups"><button type="button" class="assistant-chip is-followup" data-assistant-entry-cancel="1">إلغاء المسودة</button></div>`
+    };
+}
+
+function buildAssistantEntryCancelledAnswer() {
+    return { id: 'entry-cancelled', title: 'تم إلغاء المسودة', html: assistantNote('ألغيت طلب الإدخال المؤقت. لم أفتح نموذجًا ولم أسجل أي بيانات.') };
+}
+
+function isAssistantEntryCancelRequest(text) {
+    return /(الغاء|الغي|كنسل|تراجع عن|الغى المسوده)/.test(normalizeAssistantArabic(text));
+}
+
+function parseAssistantFollowupAmount(text) {
+    const raw = normalizeAssistantArabic(text).match(/^\s*(\d{1,9}(?:[.,]\d{1,2})?)\s*$/);
+    if (!raw) return null;
+    const amount = Number(raw[1].replace(/,/g, ''));
+    return Number.isFinite(amount) && amount > 0 && amount <= 100000000 ? amount : null;
+}
+
+function mergeAssistantEntryFollowup(pending, text, now = new Date()) {
+    if (!pending || !pending.draft) return null;
+    const addition = pending.action === 'income-entry'
+        ? parseAssistantIncomeDraft(text)
+        : parseAssistantExpenseDraft(text, now);
+    const merged = { ...pending.draft };
+    const allowed = pending.action === 'income-entry'
+        ? ['residentId', 'residentLabel', 'amount']
+        : ['title', 'amount', 'month', 'category'];
+    let changed = false;
+    for (const key of allowed) {
+        if (addition[key] !== undefined && addition[key] !== '' && addition[key] !== merged[key]) {
+            merged[key] = addition[key];
+            changed = true;
+        }
+    }
+    if (!merged.amount && (pending.action === 'expense-entry' || merged.residentId)) {
+        const bareAmount = parseAssistantFollowupAmount(text);
+        if (bareAmount) {
+            merged.amount = bareAmount;
+            changed = true;
+        }
+    }
+    if (!changed) return null;
+    return merged;
+}
+
+function isAssistantEntryFollowupIntent(text) {
+    if (!assistantPendingEntry) return false;
+    const normalized = normalizeAssistantArabic(text).trim();
+    if (/(?:بمبلغ|بقيمة|مبلغ)\s*\d|\d\s*(?:جنيه|ج\.?م)/u.test(normalized)) return true;
+    if (assistantPendingEntry.action === 'income-entry') {
+        if (!assistantPendingEntry.draft.amount && assistantPendingEntry.draft.residentId && /^\d{1,9}(?:[.,]\d{1,2})?$/.test(normalized)) return true;
+        if (/^(?:شقه|وحده|رقم)\s*\d{1,4}$/u.test(normalized)) return resolveAssistantResident(normalized).matches.length === 1;
+        const matched = resolveAssistantResident(text);
+        return Boolean(matched.resident && normalized === normalizeAssistantArabic(matched.resident.name || ''));
+    }
+    return /^(?:الوصف(?:\s+المصروف)?|وصف\s+المصروف)\s*[:：-]/u.test(normalized)
+        || (!assistantPendingEntry.draft.amount && /^\d{1,9}(?:[.,]\d{1,2})?$/.test(normalized));
 }
 
 function assistantRow(label, value, tone = '') {
@@ -1564,6 +1649,7 @@ function answerAssistantQuery(text, now = new Date()) {
     if (assistantDataSavePending()) return buildAssistantPendingSaveAnswer();
     const normalized = normalizeAssistantArabic(text);
     if (assistantIsOwner()) {
+        assistantPendingEntry = null;
         if (!normalized) return withAssistantAnswerMeta(buildAssistantOwnerHelpAnswer(), resolveAssistantPeriod(text, now), null);
         return answerOwnerAssistantQuery(text, now);
     }
@@ -1573,7 +1659,33 @@ function answerAssistantQuery(text, now = new Date()) {
         const draft = entryAction === 'expense-entry'
             ? parseAssistantExpenseDraft(text, now)
             : entryAction === 'income-entry' ? parseAssistantIncomeDraft(text) : null;
+        const missing = assistantEntryMissingFields(entryAction, draft);
+        if (missing.length) {
+            assistantPendingEntry = { action: entryAction, draft: draft || {} };
+            return buildAssistantEntryClarificationAnswer(entryAction, draft || {});
+        }
+        assistantPendingEntry = null;
         return withAssistantAnswerMeta(buildAssistantEntryActionAnswer(entryAction, draft), resolveAssistantPeriod(text, now), null, text);
+    }
+    if (assistantPendingEntry) {
+        if (isAssistantEntryCancelRequest(text)) {
+            assistantPendingEntry = null;
+            return buildAssistantEntryCancelledAnswer();
+        }
+        if (isAssistantEntryFollowupIntent(text)) {
+            const merged = mergeAssistantEntryFollowup(assistantPendingEntry, text, now);
+            if (merged) {
+                const action = assistantPendingEntry.action;
+                const missing = assistantEntryMissingFields(action, merged);
+                if (missing.length) {
+                    assistantPendingEntry = { action, draft: merged };
+                    return buildAssistantEntryClarificationAnswer(action, merged);
+                }
+                assistantPendingEntry = null;
+                return withAssistantAnswerMeta(buildAssistantEntryActionAnswer(action, merged), resolveAssistantPeriod(text, now), null, text);
+            }
+        }
+        assistantPendingEntry = null;
     }
     const residentMatch = resolveAssistantResident(text);
     if (residentMatch.matches.length > 1) {
@@ -1762,6 +1874,12 @@ function askAssistant(query) {
 
 function handleAssistantSuggestion(event) {
     const target = event?.target;
+    const cancelEntryButton = target && typeof target.closest === 'function' ? target.closest('[data-assistant-entry-cancel]') : null;
+    if (cancelEntryButton) {
+        assistantPendingEntry = null;
+        appendAssistantMessage('bot', assistantAnswerHtml(buildAssistantEntryCancelledAnswer()));
+        return;
+    }
     const actionButton = target && typeof target.closest === 'function' ? target.closest('[data-assistant-action]') : null;
     if (actionButton) {
         const action = actionButton.getAttribute('data-assistant-action') || '';
@@ -1785,6 +1903,7 @@ function resetAssistantChat() {
     if (log) log.innerHTML = '';
     assistantChat = [];
     assistantContext = { period: null, residentId: null };
+    assistantPendingEntry = null;
     persistAssistantChat();
     persistAssistantContext();
     appendAssistantMessage('bot', buildAssistantGreetingHtml());
