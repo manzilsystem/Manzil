@@ -486,6 +486,15 @@ test('arabic normalization and period resolution understand months, years and ro
     assert.equal(year.months.length, 12);
     assert.equal(year.months[0], 'يناير 2025');
     assert.equal(api.resolveAssistantPeriod('كل الفتره', NOW).type, 'all');
+    assert.equal(api.hasAssistantTimeHint('عايز أعرف اللي حصل دلوقتي'), true);
+});
+
+test('common Egyptian colloquial aliases reach the matching answer', () => {
+    const { api } = createHarness(true);
+    assert.equal(api.answerAssistantQuery('عايز أعرف المتحصلات', NOW).id, 'income');
+    assert.equal(api.answerAssistantQuery('اللي اتصرف في نوفمبر', NOW).id, 'expenses');
+    assert.equal(api.answerAssistantQuery('فلوس الخزنة كام؟', NOW).id, 'cashbox');
+    assert.equal(api.answerAssistantQuery('فيه جديد في العمارة؟', NOW).id, 'notices');
 });
 
 test('income answers separate subscriptions from other purposes', () => {
@@ -539,6 +548,17 @@ test('summary combines collections, expenses, current dues and unpaid units', ()
     assert.match(answer.html, /120 ج\.م/);
     assert.match(answer.html, /1 من 2/);
     assert.match(answer.html, /سارة حسن/);
+});
+
+test('summary keeps dues and outstanding balances in the requested month', () => {
+    const { api } = createHarness(true);
+    const october = api.answerAssistantQuery('ملخص أكتوبر 2026', NOW);
+    assert.equal(october.id, 'summary');
+    assert.match(october.title, /أكتوبر 2026/);
+    assert.match(october.html, /مستحق أكتوبر 2026/);
+    assert.match(october.html, /غير محصل أكتوبر 2026/);
+    assert.match(october.html, /90 ج\.م/);
+    assert.doesNotMatch(october.html, /غير محصل نوفمبر 2026/);
 });
 
 test('resident answers resolve by name or apartment and show adjustments', () => {

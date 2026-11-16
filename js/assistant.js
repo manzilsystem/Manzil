@@ -26,9 +26,9 @@ const ASSISTANT_SUGGESTIONS_OWNER = Object.freeze([
     { label: 'أكلم المدير', query: 'رقم المدير' }
 ]);
 
-const ASSISTANT_TYPING_DELAY_MS = 260;
+const ASSISTANT_TYPING_DELAY_MS = 140;
 const ASSISTANT_HISTORY_LIMIT = 30;
-const ASSISTANT_TIME_HINT = /(يناير|فبراير|مارس|ابريل|مايو|يونيو|يوليو|اغسطس|سبتمبر|اكتوبر|نوفمبر|ديسمبر|20[0-9]{2}|الشهر|شهر|السنه|سنه|عام|كل الفتره|كل الشهور|من البدايه)/;
+const ASSISTANT_TIME_HINT = /(يناير|فبراير|مارس|ابريل|مايو|يونيو|يوليو|اغسطس|سبتمبر|اكتوبر|نوفمبر|ديسمبر|20[0-9]{2}|الشهر|شهر|السنه|سنه|عام|النهارده|دلوقتي|حاليا|كل الفتره|كل الشهور|من البدايه|من بداية السنه|من اول السنه)/;
 const ASSISTANT_RESIDENT_FOLLOWUP = /^(هو|هي|وده|دي|وكمان|ودوره|ومن زمان|ولحد دلوقتي|وعليه)/;
 const ASSISTANT_CHAT_STORAGE_PREFIX = 'manzil-assistant-chat';
 const ASSISTANT_CONTEXT_STORAGE_PREFIX = 'manzil-assistant-context';
@@ -44,6 +44,7 @@ const ASSISTANT_FOLLOWUPS = Object.freeze({
     resident: ['مين عليه متأخرات؟', 'ملخص الشهر'],
     building: ['ملخص الشهر', 'مين عليه متأخرات؟'],
     reports: ['ملخص الشهر', 'تحصيل الشهر'],
+    notices: ['ملخص الشهر', 'آخر الحركات'],
     help: ['ملخص الشهر', 'رصيد الخزنة كام؟'],
     greeting: ['ملخص الشهر', 'مين عليه متأخرات؟'],
     thanks: ['ملخص الشهر', 'رصيد الخزنة كام؟'],
@@ -309,7 +310,9 @@ function getAssistantExpenseSnapshot(months) {
 }
 
 function getAssistantMonthSummary(period, now = new Date()) {
-    const month = getAssistantNowLabel(now);
+    const month = period && period.type === 'month' && period.label
+        ? period.label
+        : getAssistantNowLabel(now);
     const income = getAssistantIncomeSnapshot(period.months);
     const expenses = getAssistantExpenseSnapshot(period.months);
     const residents = Array.isArray(state.residents) ? state.residents : [];
@@ -477,16 +480,17 @@ function detectAssistantIntent(normalized, hasResident) {
     }
     if (/(السلام عليكم|سلام|صباح|مساء|ازيك|عامل ايه|اهلا|هاي)/.test(normalized)) return 'greeting';
     if (/(شكرا|تسلم|مشكور|ربنا يكرمك)/.test(normalized)) return 'thanks';
-    if (/(مساعده|ساعدني|بتعرف|تقدر تعمل|اوامر|خيارات|ازاي|كيف|استخدمك)/.test(normalized)) return 'help';
-    if (/(اعفاء|تخفيض|تسويه|خصم)/.test(normalized)) return 'adjustments';
-    if (/(متاخر|متاخرات|مستحق|مديون|مش دفع|غير مدفوع|مش دافع|مش سدد)/.test(normalized)) return 'arrears';
-    if (/(مصروف|مصاريف|صرف|منصرف)/.test(normalized)) return 'expenses';
-    if (/(تحصيل|تحصيلات|ايراد|دخل|وارد|دفع|مدفوع|متحصل)/.test(normalized)) return 'income';
-    if (/(خزنه|صندوق|رصيد|كاش|فلوس|سيوله)/.test(normalized)) return 'cashbox';
-    if (/(ملخص|وضع|احوال|نظره|اجمالي|صافي|نتيجه)/.test(normalized)) return 'summary';
-    if (/(اخر|احدث|حركات|عمليات)/.test(normalized)) return 'recent';
+    if (/(مساعده|ساعدني|بتعرف|تقدر تعمل|اوامر|خيارات|ازاي|كيف|استخدمك|ممكن تساعد)/.test(normalized)) return 'help';
+    if (/(اعفاء|تخفيض|تسويه|خصم|خصومات|سامحنا)/.test(normalized)) return 'adjustments';
+    if (/(متاخر|متاخرات|مستحق|مديون|مش دفع|غير مدفوع|مش دافع|مش سدد|متاخرين|عليه فلوس)/.test(normalized)) return 'arrears';
+    if (/(مصروف|مصاريف|صرف|منصرف|اتصرف|اللي اتدفع من الخزنه)/.test(normalized)) return 'expenses';
+    if (/(تحصيل|تحصيلات|ايراد|دخل|وارد|دفع|مدفوع|متحصل|المتحصلات|اللي اتجمع)/.test(normalized)) return 'income';
+    if (/(خزنه|صندوق|رصيد|كاش|فلوس|سيوله|الموجود في الخزنه)/.test(normalized)) return 'cashbox';
+    if (/(اعلان|اعلانات|لوحه|اخبار العماره|فيه جديد)/.test(normalized)) return 'notices';
+    if (/(ملخص|وضع|احوال|نظره|اجمالي|صافي|نتيجه|عاملين ايه)/.test(normalized)) return 'summary';
+    if (/(اخر|احدث|حركات|عمليات|اللي حصل)/.test(normalized)) return 'recent';
     if (/(تقرير|تقارير|طباعه|تصدير|كشف)/.test(normalized)) return 'reports';
-    if (/(عماره|مبني|مدير|شقق|سكان|وحدات|اسم)/.test(normalized)) return 'building';
+    if (/(عماره|مبني|مدير|شقق|سكان|وحدات|اسم|بيانات)/.test(normalized)) return 'building';
     return 'unknown';
 }
 
@@ -1021,11 +1025,11 @@ function detectOwnerAssistantIntent(normalized) {
     if (/(?:حساب|ايصال|دفعات|مدفوعات|متاخرات)\s+[ء-ي]{2,}(?:\s+[ء-ي]{2,})?(?:\s+(?:كام|عليه|عليها|دفع|دفعت|متاخر|مديون))?/.test(normalized)) return 'owner_scope';
     if (/^(?:[ء-ي]{2,}\s+){1,2}(?:عليه|عليها|دفع|دفعت|متاخر|مديون)/.test(normalized)) return 'owner_scope';
     if (/(تحصيل|مصروف|مصاريف|صرف|خزنه|صندوق|سيوله|صافي|اجمالي|كل الشقق|السكان|سكان العماره|الشقق التاني|تقرير|تقارير|طابق العماره|طوابق العماره|ادوار العماره|احصائيات|لوحة تحكم)/.test(normalized)) return 'owner_scope';
-    if (/(استحقاق|اخر يوم|مهله|موعد الدفع|يوم كام ادفع|قبل ما اتاخر|متاخر عن ميعاد)/.test(normalized)) return 'my_due_date';
-    if (/(طرق الدفع|وسائل الدفع|ادفع باي|ادفع ازاي|تحويل بنكي|انستاباي|انستا باي|محفزه|فيزا|بطاقه)/.test(normalized)) return 'payment_methods';
+    if (/(استحقاق|اخر يوم|مهله|موعد الدفع|امتى ادفع|يوم كام ادفع|قبل ما اتاخر|متاخر عن ميعاد)/.test(normalized)) return 'my_due_date';
+    if (/(طرق الدفع|وسائل الدفع|ادفع باي|ادفع ازاي|ازاي ادفع|تحويل بنكي|انستاباي|انستا باي|محفزه|فيزا|بطاقه)/.test(normalized)) return 'payment_methods';
     if (/(ايصال|دفعاتي|مدفوعات|حركاتي|دفعت|استلمت)/.test(normalized)) return 'my_receipts';
     if (/(اشعار|تنبيه|الرسائل اللي وصلت)/.test(normalized)) return 'my_notifications';
-    if (/(اعلان|اعلانات|لوحة|اخبار العماره)/.test(normalized)) return 'notices';
+    if (/(اعلان|اعلانات|لوحة|اخبار العماره|فيه جديد)/.test(normalized)) return 'notices';
     if (/(اعفاء|تخفيض|تسويه|خصم)/.test(normalized)) return 'my_adjustments';
     if (/(مدير|رقم|تليفون|موبايل|اكلم|اتصل|شكوى|شكاوي)/.test(normalized)) return 'contact';
     if (/(شقتي|وحدتي|بيانات حسابي|عمارتنا|مبنيانا)/.test(normalized)) return 'my_apartment';
@@ -1227,6 +1231,8 @@ function selectAssistantAnswer(intent, period, resident, now) {
             return buildAssistantRecentAnswer();
         case 'reports':
             return buildAssistantReportsAnswer();
+        case 'notices':
+            return buildAssistantNoticesAnswer();
         case 'building':
             return buildAssistantBuildingAnswer();
         case 'resident':
