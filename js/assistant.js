@@ -36,6 +36,7 @@ const ASSISTANT_CONTEXT_STORAGE_PREFIX = 'manzil-assistant-context';
 const ASSISTANT_FOLLOWUPS = Object.freeze({
     summary: ['مصروفات الشهر', 'مين عليه متأخرات؟', 'رصيد الخزنة كام؟'],
     executive: ['مقارنة الشهر', 'أكبر المصروفات', 'مين عليه متأخرات؟'],
+    change_alerts: ['ملخص الشهر', 'مقارنة الشهر', 'أكبر المصروفات'],
     income: ['مصروفات نفس الفترة', 'الإعفاءات والتخفيضات', 'مين عليه متأخرات؟'],
     expenses: ['تحصيل نفس الفترة', 'رصيد الخزنة كام؟', 'ملخص الشهر'],
     cashbox: ['آخر الحركات', 'ملخص الشهر', 'مين عليه متأخرات؟'],
@@ -566,6 +567,7 @@ function detectAssistantIntent(normalized, hasResident) {
     if (/(شكرا|تسلم|مشكور|ربنا يكرمك)/.test(normalized)) return 'thanks';
     if (/(خصوصيه|بياناتي|البيانات بتتخزن|بتتخزن فين|مين يقدر يشوف|امان|امن|صلاحيات|قراءة فقط|بتعمل ايه|ازاي استخدم|ازاي اسجل|ازاي اعدل|ازاي اطبع|ازاي اصدر)/.test(normalized)) return 'knowledge';
     if (/(مساعده|ساعدني|بتعرف|تقدر تعمل|اوامر|خيارات|ازاي|كيف|استخدمك|ممكن تساعد)/.test(normalized)) return 'help';
+    if (/(تغير غير طبيعي|تغيير كبير|فرق كبير|محتاج مراجعه|محتاج مراجعة|زاد قوي|زادت قوي|نزل قوي|انخفض قوي|ايه اللي اتغير|ايه اللي زاد)/.test(normalized)) return 'change_alerts';
     if (/(مقارنه|قارن|مقابل|زاد|زادت|قل|قلت|اكتر من|اقل من)/.test(normalized)) return 'comparison';
     if (/(اعفاء|تخفيض|تسويه|خصم|خصومات|سامحنا)/.test(normalized)) return 'adjustments';
     if (/(متاخر|متاخرات|مستحق|مديون|مش دفع|غير مدفوع|مش دافع|مش سدد|متاخرين|عليه فلوس)/.test(normalized)) return 'arrears';
@@ -712,6 +714,41 @@ function buildAssistantSummaryAnswer(period) {
     return { id: 'summary', title, html };
 }
 
+function buildAssistantChangeAlertsAnswer(period, now = new Date()) {
+    const periods = getAssistantComparisonPeriods(period, now);
+    const currentIncome = getAssistantIncomeSnapshot(periods.current.months).total;
+    const previousIncome = getAssistantIncomeSnapshot(periods.previous.months).total;
+    const currentExpenses = getAssistantExpenseSnapshot(periods.current.months).total;
+    const previousExpenses = getAssistantExpenseSnapshot(periods.previous.months).total;
+    const currentNet = currentIncome - currentExpenses;
+    const previousNet = previousIncome - previousExpenses;
+    const metrics = [
+        ['التحصيل', currentIncome, previousIncome],
+        ['المصروفات', currentExpenses, previousExpenses],
+        ['الصافي', currentNet, previousNet]
+    ];
+    const notable = metrics.filter(([, current, previous]) => {
+        const currentValue = Number(current);
+        const previousValue = Number(previous);
+        const delta = Math.abs(currentValue - previousValue);
+        return delta > 0 && (previousValue === 0 || delta / Math.max(Math.abs(previousValue), 1) >= 0.25);
+    });
+    const title = `تغيرات تستحق المراجعة · ${periods.current.label}`;
+    let html = `<p class="assistant-answer-subtitle">مقارنة مع ${assistantEscape(periods.previous.label)}</p>`;
+    if (notable.length) {
+        html += assistantList(notable.map(([label, current, previous]) => {
+            const currentValue = Number(current);
+            const previousValue = Number(previous);
+            const delta = currentValue - previousValue;
+            const direction = delta > 0 ? 'زيادة' : 'انخفاض';
+            return `${assistantEscape(label)}: ${assistantEscape(assistantMoney(currentValue))} مقابل ${assistantEscape(assistantMoney(previousValue))} · <strong>${direction} ${assistantEscape(assistantMoney(Math.abs(delta)))}</strong>`;
+        }));
+        html += assistantNote('دي مؤشرات للمراجعة وليست حكمًا بوجود خطأ. راجع تفاصيل الفترة والتصنيف قبل اتخاذ قرار.');
+    } else {
+        html += assistantNote('مفيش تغير كبير ظاهر في التحصيل أو المصروفات أو الصافي مقارنة بالشهر السابق.');
+    }
+    return { id: 'change_alerts', title, html };
+}
 function buildAssistantExecutiveAnswer(period) {
     const summary = getAssistantMonthSummary(period);
     const cash = getAssistantCashSnapshot();
@@ -1199,7 +1236,7 @@ function detectOwnerAssistantIntent(normalized) {
     if (/(مين عليه|مين عليها|مين عليهم|على مين|علي مين)/.test(normalized)) return 'owner_scope';
     if (/(?:حساب|ايصال|دفعات|مدفوعات|متاخرات)\s+[ء-ي]{2,}(?:\s+[ء-ي]{2,})?(?:\s+(?:كام|عليه|عليها|دفع|دفعت|متاخر|مديون))?/.test(normalized)) return 'owner_scope';
     if (/^(?:[ء-ي]{2,}\s+){1,2}(?:عليه|عليها|دفع|دفعت|متاخر|مديون)/.test(normalized)) return 'owner_scope';
-    if (/(ملخص تنفيذي|ملخص الاداره|ملخص العماره|تحصيل|مصروف|مصاريف|صرف|خزنه|صندوق|سيوله|صافي|اجمالي|كل الشقق|السكان|سكان العماره|الشقق التاني|تقرير|تقارير|طابق العماره|طوابق العماره|ادوار العماره|احصائيات|لوحة تحكم)/.test(normalized)) return 'owner_scope';
+    if (/(ملخص تنفيذي|ملخص الاداره|ملخص العماره|تغير غير طبيعي|تغيير كبير|فرق كبير|تحصيل|مصروف|مصاريف|صرف|خزنه|صندوق|سيوله|صافي|اجمالي|كل الشقق|السكان|سكان العماره|الشقق التاني|تقرير|تقارير|طابق العماره|طوابق العماره|ادوار العماره|احصائيات|لوحة تحكم)/.test(normalized)) return 'owner_scope';
     if (/(استحقاق|اخر يوم|مهله|موعد الدفع|امتى ادفع|يوم كام ادفع|قبل ما اتاخر|متاخر عن ميعاد)/.test(normalized)) return 'my_due_date';
     if (/(طرق الدفع|وسائل الدفع|ادفع باي|ادفع ازاي|ازاي ادفع|تحويل بنكي|انستاباي|انستا باي|محفزه|فيزا|بطاقه)/.test(normalized)) return 'payment_methods';
     if (/(ايصال|دفعاتي|مدفوعات|حركاتي|دفعت|استلمت)/.test(normalized)) return 'my_receipts';
@@ -1412,6 +1449,8 @@ function selectAssistantAnswer(intent, period, resident, now) {
             return buildAssistantSummaryAnswer(period);
         case 'executive':
             return buildAssistantExecutiveAnswer(period);
+        case 'change_alerts':
+            return buildAssistantChangeAlertsAnswer(period, now);
         case 'comparison':
             return buildAssistantComparisonAnswer(period, now);
         case 'recent':

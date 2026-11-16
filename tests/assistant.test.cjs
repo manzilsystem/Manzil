@@ -571,6 +571,22 @@ test('expense answers use all funds and group by category', () => {
     assert.doesNotMatch(answer.html, /صيانة أسانسير/);
 });
 
+test('change alerts flag large period shifts without claiming a diagnosis', () => {
+    const { context, api } = createHarness();
+    vm.runInContext(`state.income = [
+        { id: 'current', residentId: 'r1', month: 'نوفمبر 2026', amount: 300, paymentMethod: 'cash' },
+        { id: 'previous', residentId: 'r1', month: 'أكتوبر 2026', amount: 100, paymentMethod: 'cash' }
+    ]; state.expenses = [
+        { id: 'current-expense', month: 'نوفمبر 2026', title: 'صيانة', amount: 20 },
+        { id: 'previous-expense', month: 'أكتوبر 2026', title: 'صيانة', amount: 80 }
+    ];`, context);
+    const answer = api.answerAssistantQuery('إيه اللي اتغير بشكل غير طبيعي في نوفمبر 2026؟', NOW);
+    assert.equal(answer.id, 'change_alerts');
+    assert.match(answer.html, /التحصيل/);
+    assert.match(answer.html, /زيادة/);
+    assert.match(answer.html, /المصروفات/);
+    assert.match(answer.html, /مؤشرات للمراجعة/);
+});
 test('executive summary combines period metrics with cumulative management signals', () => {
     const { api } = createHarness();
     const answer = api.answerAssistantQuery('ملخص تنفيذي نوفمبر 2026', NOW);
