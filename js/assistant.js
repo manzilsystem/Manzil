@@ -324,6 +324,26 @@ function getAssistantIncomeSnapshot(months) {
     };
 }
 
+function getAssistantPaymentMethodSnapshot(months) {
+    const allowed = new Set(Array.isArray(months) ? months : []);
+    const methods = new Map();
+    (Array.isArray(state.income) ? state.income : [])
+        .filter(row => !allowed.size || allowed.has(row.month))
+        .forEach(row => {
+            const amountCents = typeof toCents === 'function' ? toCents(row.amount) : Math.round((Number(row.amount) || 0) * 100);
+            if (amountCents <= 0) return;
+            const code = String(row.paymentMethod || 'unknown');
+            methods.set(code, (methods.get(code) || 0) + amountCents);
+        });
+    return Array.from(methods.entries())
+        .map(([code, cents]) => ({
+            code,
+            label: typeof getIncomePaymentMethodLabel === 'function' ? getIncomePaymentMethodLabel(code) : code,
+            cents
+        }))
+        .sort((a, b) => b.cents - a.cents);
+}
+
 function getAssistantExpenseSnapshot(months) {
     const allowed = new Set(Array.isArray(months) ? months : []);
     const rows = (Array.isArray(state.expenses) ? state.expenses : []).filter(row => !allowed.size || allowed.has(row.month));
@@ -716,10 +736,14 @@ function buildAssistantSummaryAnswer(period) {
 
 function buildAssistantChangeAlertsAnswer(period, now = new Date()) {
     const periods = getAssistantComparisonPeriods(period, now);
-    const currentIncome = getAssistantIncomeSnapshot(periods.current.months).total;
-    const previousIncome = getAssistantIncomeSnapshot(periods.previous.months).total;
-    const currentExpenses = getAssistantExpenseSnapshot(periods.current.months).total;
-    const previousExpenses = getAssistantExpenseSnapshot(periods.previous.months).total;
+    const currentIncomeSnapshot = getAssistantIncomeSnapshot(periods.current.months);
+    const previousIncomeSnapshot = getAssistantIncomeSnapshot(periods.previous.months);
+    const currentExpenseSnapshot = getAssistantExpenseSnapshot(periods.current.months);
+    const previousExpenseSnapshot = getAssistantExpenseSnapshot(periods.previous.months);
+    const currentIncome = currentIncomeSnapshot.total;
+    const previousIncome = previousIncomeSnapshot.total;
+    const currentExpenses = currentExpenseSnapshot.total;
+    const previousExpenses = previousExpenseSnapshot.total;
     const currentNet = currentIncome - currentExpenses;
     const previousNet = previousIncome - previousExpenses;
     const metrics = [
@@ -748,6 +772,29 @@ function buildAssistantChangeAlertsAnswer(period, now = new Date()) {
             const direction = delta > 0 ? 'زيادة' : 'انخفاض';
             return `${assistantEscape(label)}: ${assistantEscape(assistantMoney(currentValue))} مقابل ${assistantEscape(assistantMoney(previousValue))} · <strong>${direction} ${assistantEscape(assistantMoney(Math.abs(delta)))}</strong>`;
         }));
+        if (notable.some(([label]) => label === 'التحصيل')) {
+            const previousMethods = new Map(getAssistantPaymentMethodSnapshot(periods.previous.months).map(item => [item.code, item]));
+            const methods = getAssistantPaymentMethodSnapshot(periods.current.months);
+            if (methods.length) {
+                html += assistantNote(`تفصيل التحصيل في ${periods.current.label}:`);
+                html += assistantList(methods.slice(0, 3).map(item => {
+                    const previous = previousMethods.get(item.code);
+                    const previousValue = previous ? previous.cents / 100 : 0;
+                    return `${assistantEscape(item.label)} — <strong>${assistantEscape(assistantMoney(item.cents / 100))}</strong> مقابل ${assistantEscape(assistantMoney(previousValue))} سابقًا`;
+                }));
+            }
+        }
+        if (notable.some(([label]) => label === 'المصروفات')) {
+            const currentTop = currentExpenseSnapshot.categories[0];
+            const previousTop = previousExpenseSnapshot.categories[0];
+            if (currentTop || previousTop) {
+                html += assistantNote('أكبر بند مصروف للمساعدة في فهم التغير:');
+                html += assistantList([
+                    `الحالي: ${assistantEscape(currentTop ? currentTop.label : 'مفيش بند مسجل')} — <strong>${assistantEscape(assistantMoney(currentTop ? currentTop.cents / 100 : 0))}</strong>`,
+                    `السابق: ${assistantEscape(previousTop ? previousTop.label : 'مفيش بند مسجل')} — <strong>${assistantEscape(assistantMoney(previousTop ? previousTop.cents / 100 : 0))}</strong>`
+                ]);
+            }
+        }
         html += assistantNote(`مصدر الأرقام: سجل التحصيلات وسجل المصروفات للفترتين. الصافي محسوب من التحصيل ناقص المصروفات المسجلة، ودي مؤشرات للمراجعة وليست حكمًا بوجود خطأ.`);
     } else {
         html += assistantNote('مفيش تغير كبير ظاهر في التحصيل أو المصروفات أو الصافي مقارنة بالشهر السابق.');
@@ -1241,7 +1288,7 @@ function detectOwnerAssistantIntent(normalized) {
     if (/(مين عليه|مين عليها|مين عليهم|على مين|علي مين)/.test(normalized)) return 'owner_scope';
     if (/(?:حساب|ايصال|دفعات|مدفوعات|متاخرات)\s+[ء-ي]{2,}(?:\s+[ء-ي]{2,})?(?:\s+(?:كام|عليه|عليها|دفع|دفعت|متاخر|مديون))?/.test(normalized)) return 'owner_scope';
     if (/^(?:[ء-ي]{2,}\s+){1,2}(?:عليه|عليها|دفع|دفعت|متاخر|مديون)/.test(normalized)) return 'owner_scope';
-    if (/(ملخص تنفيذي|ملخص الاداره|ملخص العماره|تغير غير طبيعي|تغيير كبير|فرق كبير|تحصيل|مصروف|مصاريف|صرف|خزنه|صندوق|سيوله|صافي|اجمالي|كل الشقق|السكان|سكان العماره|الشقق التاني|تقرير|تقارير|طابق العماره|طوابق العماره|ادوار العماره|احصائيات|لوحة تحكم)/.test(normalized)) return 'owner_scope';
+    if (/(ملخص تنفيذي|ملخص الاداره|ملخص العماره|(?:تغير|اتغير)(?: بشكل)? غير طبيعي|تغيير كبير|فرق كبير|تحصيل|مصروف|مصاريف|صرف|خزنه|صندوق|سيوله|صافي|اجمالي|كل الشقق|السكان|سكان العماره|الشقق التاني|تقرير|تقارير|طابق العماره|طوابق العماره|ادوار العماره|احصائيات|لوحة تحكم)/.test(normalized)) return 'owner_scope';
     if (/(استحقاق|اخر يوم|مهله|موعد الدفع|امتى ادفع|يوم كام ادفع|قبل ما اتاخر|متاخر عن ميعاد)/.test(normalized)) return 'my_due_date';
     if (/(طرق الدفع|وسائل الدفع|ادفع باي|ادفع ازاي|ازاي ادفع|تحويل بنكي|انستاباي|انستا باي|محفزه|فيزا|بطاقه)/.test(normalized)) return 'payment_methods';
     if (/(ايصال|دفعاتي|مدفوعات|حركاتي|دفعت|استلمت)/.test(normalized)) return 'my_receipts';

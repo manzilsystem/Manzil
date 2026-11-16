@@ -587,12 +587,22 @@ test('change alerts flag large period shifts without claiming a diagnosis', () =
     assert.match(answer.html, /المصروفات/);
     assert.match(answer.html, /مصدر الأرقام/);
     assert.match(answer.html, /مؤشرات للمراجعة/);
+    assert.match(answer.html, /تفصيل التحصيل/);
+    assert.match(answer.html, /أكبر بند مصروف/);
+    assert.match(answer.html, /نقد/);
     assert.deepEqual(Array.from(answer.followUps, item => item.query), [
         'تحصيل نوفمبر 2026',
         'أكبر المصروفات نوفمبر 2026',
         'ملخص نوفمبر 2026'
     ]);
     assert.match(answer.html, /data-assistant-query="تحصيل نوفمبر 2026"/);
+});
+test('owners cannot reach manager-only change details', () => {
+    const { api } = createHarness(true, { role: 'owner', residentId: 'r1', ownerScoped: true });
+    const answer = api.answerAssistantQuery('إيه اللي اتغير بشكل غير طبيعي؟', NOW);
+    assert.equal(answer.id, 'owner_scope');
+    assert.doesNotMatch(answer.html, /تفصيل التحصيل|أكبر بند مصروف|مصدر الأرقام/);
+    assert.doesNotMatch(answer.html, /ج\.م/);
 });
 test('executive summary combines period metrics with cumulative management signals', () => {
     const { api } = createHarness();
