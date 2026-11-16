@@ -132,6 +132,8 @@ function createHarness(seed = true, identity = {}, options = {}) {
     }
     const api = vm.runInContext(`({
         answerAssistantQuery,
+        parseAssistantExpenseDraft,
+        parseAssistantIncomeDraft,
         executeAssistantEntryAction,
         buildAssistantGreetingHtml,
         cloneStateSnapshot,
@@ -424,13 +426,27 @@ test('assistant answers are read-only and never write without a confirmation flo
 test('manager entry requests open only the native reviewed forms and never save data', () => {
     const manager = createHarness(true);
     const before = JSON.stringify(vm.runInContext('state', manager.context));
-    const incomeAnswer = manager.api.answerAssistantQuery('سجّل دفعة لأحمد', NOW);
-    const expenseAnswer = manager.api.answerAssistantQuery('أضف مصروف كهرباء', NOW);
+    const incomeCommand = 'سجّل دفعة لشقة 3 بمبلغ 125 جنيه';
+    const incomeAnswer = manager.api.answerAssistantQuery(incomeCommand, NOW);
+    const incomeDraft = manager.api.parseAssistantIncomeDraft(incomeCommand);
+    const expenseCommand = 'أضف مصروف كهرباء بمبلغ 150 جنيه في نوفمبر 2026';
+    const expenseAnswer = manager.api.answerAssistantQuery(expenseCommand, NOW);
+    const draft = manager.api.parseAssistantExpenseDraft(expenseCommand, NOW);
     assert.equal(incomeAnswer.id, 'income-entry');
     assert.equal(expenseAnswer.id, 'expense-entry');
     assert.match(incomeAnswer.html, /data-assistant-action="income-entry"/);
+    assert.match(incomeAnswer.html, /data-assistant-draft=/);
     assert.match(expenseAnswer.html, /data-assistant-action="expense-entry"/);
     assert.match(incomeAnswer.html, /لم يتم تسجيل أي شيء بعد/);
+    assert.equal(draft.title, 'كهرباء');
+    assert.equal(draft.amount, 150);
+    assert.equal(draft.month, 'نوفمبر 2026');
+    assert.equal(draft.category, 'كهرباء');
+    assert.match(expenseAnswer.html, /data-assistant-draft=/);
+    assert.equal(incomeDraft.residentId, 'r1');
+    assert.equal(incomeDraft.amount, 125);
+    assert.equal(Object.hasOwn(incomeDraft, 'month'), false, 'the assistant must not infer an income month');
+    assert.equal(Object.hasOwn(incomeDraft, 'paymentMethod'), false, 'the assistant must not infer a payment method');
     assert.equal(JSON.stringify(vm.runInContext('state', manager.context)), before);
 
     const calls = [];

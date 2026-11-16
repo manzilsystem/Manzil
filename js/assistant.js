@@ -613,25 +613,107 @@ function detectAssistantEntryAction(normalized) {
     return null;
 }
 
-function buildAssistantEntryActionAnswer(action) {
+function parseAssistantExpenseDraft(text, now = new Date()) {
+    const amountMatch = String(text || '').match(/(?:بمبلغ|بقيمة|مبلغ)\s*([\d٠-٩۰-۹]+(?:[.,][\d٠-٩۰-۹]{1,2})?)|([\d٠-٩۰-۹]+(?:[.,][\d٠-٩۰-۹]{1,2})?)\s*(?:جنيه(?:ات)?|ج\.?م)/u);
+    const draft = {};
+    if (amountMatch) {
+        const rawAmount = amountMatch[1] || amountMatch[2];
+        const amount = Number(normalizeAssistantArabic(rawAmount).replace(/,/g, ''));
+        if (Number.isFinite(amount) && amount > 0 && amount <= 100000000) draft.amount = amount;
+    }
+
+    const descriptionEnd = amountMatch ? amountMatch.index : String(text || '').length;
+    let title = String(text || '').slice(0, descriptionEnd)
+        .replace(/^\s*(?:من فضلك\s*)?(?:يا عم عبده\s*)?(?:سجّل|سجل|سجلي|أضف|اضف|ضيف|أدخل|ادخل|دوّن|دون|افتح نموذج|افتح تسجيل)\s*/u, '')
+        .replace(/^(?:مصروف(?:ات)?|مصاريف)\s*/u, '')
+        .replace(/(?:يناير|فبراير|مارس|أبريل|ابريل|مايو|يونيو|يوليو|أغسطس|اغسطس|سبتمبر|أكتوبر|اكتوبر|نوفمبر|ديسمبر)\s*(?:20\d{2})?/gu, '')
+        .replace(/20\d{2}/g, '')
+        .replace(/\b(?:عن|لشهر|في|شهر)\s*$/u, '')
+        .replace(/[،,:؛.\s]+$/u, '')
+        .trim();
+    if (title && title.length <= 200) draft.title = title;
+
+    if (hasAssistantTimeHint(text)) {
+        const period = resolveAssistantPeriod(text, now);
+        if (period.type === 'month' && period.label) draft.month = period.label;
+    }
+
+    const categoryLabels = ['كهرباء', 'صيانة أسانسير', 'نظافة', 'أعمال سباكة وصنايعي', 'أخرى'];
+    const normalizedTitle = normalizeAssistantArabic(draft.title || '');
+    draft.category = categoryLabels.find(label => normalizedTitle.includes(normalizeAssistantArabic(label))) || '';
+    return draft;
+}
+
+function parseAssistantIncomeDraft(text) {
+    const draft = {};
+    const resolved = resolveAssistantResident(text);
+    if (resolved.matches.length === 1 && resolved.resident && resolved.resident.id) {
+        draft.residentId = resolved.resident.id;
+        draft.residentLabel = `${assistantApartmentLabel(resolved.resident)} · ${assistantResidentName(resolved.resident)}`;
+    }
+    const parsedAmount = parseAssistantExpenseDraft(text).amount;
+    if (Number.isFinite(parsedAmount) && parsedAmount > 0) draft.amount = parsedAmount;
+    return draft;
+}
+
+function buildAssistantEntryActionAnswer(action, draft = null) {
     const income = action === 'income-entry';
     const label = income ? 'التحصيل' : 'المصروف';
     const actionLabel = income ? 'فتح نموذج التحصيل' : 'فتح نموذج المصروف';
+    const payload = draft && Object.keys(draft).length
+        ? ` data-assistant-draft="${assistantEscape(JSON.stringify(draft))}"` : '';
+    const suppliedItems = [];
+    if (draft?.residentLabel) suppliedItems.push(`الشقة: ${assistantEscape(draft.residentLabel)}`);
+    if (draft?.title) suppliedItems.push(`الوصف: ${assistantEscape(draft.title)}`);
+    if (draft?.amount) suppliedItems.push(`المبلغ: ${assistantEscape(assistantMoney(draft.amount))}`);
+    const supplied = suppliedItems.length ? ` جهزت الحقول الواضحة فقط (${suppliedItems.join(' · ')}).` : '';
+    const extraReview = income
+        ? ' تأكد بنفسك من الشهور المختارة وطريقة الدفع ومعاينة التوزيع قبل الحفظ.'
+        : '';
     return {
         id: action,
         title: `نموذج ${label} جاهز للمراجعة`,
-        html: `${assistantNote(`هفتح لك نموذج ${label} الأصلي. راجع كل البيانات ومعاينة التوزيع أو الرصيد، ثم احفظ من النموذج بنفسك؛ لم يتم تسجيل أي شيء بعد.`)}<div class="assistant-followups"><button type="button" class="assistant-chip is-followup" data-assistant-action="${action}">${actionLabel}</button></div>`
+        html: `${assistantNote(`هفتح لك نموذج ${label} الأصلي.${supplied}${extraReview} راجع الحقول ومعاينة التوزيع أو الرصيد، ثم احفظ من النموذج بنفسك؛ لم يتم تسجيل أي شيء بعد.`)}<div class="assistant-followups"><button type="button" class="assistant-chip is-followup" data-assistant-action="${action}"${payload}>${actionLabel}</button></div>`
     };
 }
 
-function executeAssistantEntryAction(action) {
+function executeAssistantEntryAction(action, draft = null) {
     if (typeof currentUserRole === 'undefined' || currentUserRole !== 'manager') return false;
     if (action === 'income-entry' && typeof openNewIncomeModal === 'function') {
         openNewIncomeModal();
+        if (draft && typeof draft === 'object' && !Array.isArray(draft)) {
+            const residentSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeResident'));
+            const residentExists = typeof state !== 'undefined' && Array.isArray(state.residents)
+                && state.residents.some(resident => resident.id === draft.residentId);
+            if (residentSelect && residentExists && typeof draft.residentId === 'string') {
+                residentSelect.value = draft.residentId;
+                if (typeof handleIncomeResidentChange === 'function') handleIncomeResidentChange();
+                if (typeof setIncomeWizardStep === 'function') setIncomeWizardStep(2);
+            }
+            const amount = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
+            if (amount && Number.isFinite(Number(draft.amount)) && Number(draft.amount) > 0 && Number(draft.amount) <= 100000000) {
+                amount.value = String(Number(draft.amount));
+                if (typeof handleIncomeAmountInput === 'function') handleIncomeAmountInput();
+            }
+        }
         return true;
     }
     if (action === 'expense-entry' && typeof openExpenseModal === 'function') {
         openExpenseModal();
+        if (draft && typeof draft === 'object' && !Array.isArray(draft)) {
+            const title = /** @type {HTMLInputElement | null} */ (document.getElementById('expenseTitle'));
+            const amount = /** @type {HTMLInputElement | null} */ (document.getElementById('expenseAmount'));
+            const month = /** @type {HTMLSelectElement | null} */ (document.getElementById('expenseMonth'));
+            const category = /** @type {HTMLSelectElement | null} */ (document.getElementById('expenseCategory'));
+            if (title && typeof draft.title === 'string' && draft.title.length <= 200) title.value = draft.title;
+            if (amount && Number.isFinite(Number(draft.amount)) && Number(draft.amount) > 0 && Number(draft.amount) <= 100000000) amount.value = String(Number(draft.amount));
+            if (month && typeof draft.month === 'string' && Array.from(month.options || []).some(option => option.value === draft.month)) month.value = draft.month;
+            if (category && typeof draft.category === 'string') {
+                const option = Array.from(category.options || []).find(item => normalizeAssistantArabic(item.value || item.textContent) === normalizeAssistantArabic(draft.category));
+                if (option) category.value = option.value;
+            }
+            if (typeof previewExpense === 'function') previewExpense();
+        }
         return true;
     }
     return false;
@@ -1487,7 +1569,12 @@ function answerAssistantQuery(text, now = new Date()) {
     }
     if (!normalized) return withAssistantAnswerMeta(buildAssistantHelpAnswer(), resolveAssistantPeriod(text, now), null);
     const entryAction = detectAssistantEntryAction(normalized);
-    if (entryAction) return withAssistantAnswerMeta(buildAssistantEntryActionAnswer(entryAction), resolveAssistantPeriod(text, now), null, text);
+    if (entryAction) {
+        const draft = entryAction === 'expense-entry'
+            ? parseAssistantExpenseDraft(text, now)
+            : entryAction === 'income-entry' ? parseAssistantIncomeDraft(text) : null;
+        return withAssistantAnswerMeta(buildAssistantEntryActionAnswer(entryAction, draft), resolveAssistantPeriod(text, now), null, text);
+    }
     const residentMatch = resolveAssistantResident(text);
     if (residentMatch.matches.length > 1) {
         const answer = {
@@ -1678,7 +1765,12 @@ function handleAssistantSuggestion(event) {
     const actionButton = target && typeof target.closest === 'function' ? target.closest('[data-assistant-action]') : null;
     if (actionButton) {
         const action = actionButton.getAttribute('data-assistant-action') || '';
-        if (!executeAssistantEntryAction(action) && typeof toast === 'function') {
+        let draft = null;
+        const rawDraft = actionButton.getAttribute('data-assistant-draft');
+        if (rawDraft) {
+            try { draft = JSON.parse(rawDraft); } catch { draft = null; }
+        }
+        if (!executeAssistantEntryAction(action, draft) && typeof toast === 'function') {
             toast('الإجراء متاح لمدير المبنى فقط. لم يتم تسجيل أي بيانات.', 'error');
         }
         return;
