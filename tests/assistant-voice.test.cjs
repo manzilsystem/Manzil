@@ -23,14 +23,19 @@ test('the speech runtime, its license and the model license are committed', () =
     assert.doesNotThrow(() => new vm.Script(voice, { filename: 'assistant-voice.js' }));
 });
 
-test('only the pinned Egyptian model may be fetched, and its bytes are verified', () => {
+test('only the pinned GitHub model chunks may be fetched, and their assembled bytes are verified', () => {
     const urls = voice.match(/https?:\/\/[^'"\s]+/g) || [];
     assert.deepEqual(urls, [
-        'https://huggingface.co/agharib/egyptian-arabic-wav2vec2-xlsr-53-onnx/resolve/888b8be067d3a1ac2ca72806832f29e8786a3341/onnx/model_int8.onnx'
-    ], 'the pinned revision is the only remote endpoint');
+        'https://raw.githubusercontent.com/manzilsystem/manzil-assistant-assets/4dbb976b416dedcd1a2f42c0be7841e8c503c66b/speech/egyptian-arabic-wav2vec2/model_int8.onnx.part-'
+    ], 'the pinned GitHub repository revision is the only model endpoint');
+    assert.doesNotMatch(voice, /huggingface\.co|hf\.co/);
     assert.match(voice, /ASSISTANT_ASR_REVISION = '888b8be067d3a1ac2ca72806832f29e8786a3341'/);
     assert.match(voice, /ASSISTANT_ASR_MODEL_SIZE = 317268245/);
     assert.match(voice, /ASSISTANT_ASR_MODEL_SHA256 = '2d8525c7b0e27eff0d43aa061c440b95105ce994f0c76f398e75a4d7659bbcc6'/);
+    assert.match(voice, /ASSISTANT_ASR_MODEL_CHUNK_SIZE = 41943040/);
+    assert.match(voice, /ASSISTANT_ASR_MODEL_CHUNK_COUNT = Math\.ceil\(ASSISTANT_ASR_MODEL_SIZE \/ ASSISTANT_ASR_MODEL_CHUNK_SIZE\)/);
+    assert.match(voice, /async function assistantVoiceDownloadModel\(signal\)/);
+    assert.match(voice, /const expectedSize = Math\.min\(ASSISTANT_ASR_MODEL_CHUNK_SIZE, ASSISTANT_ASR_MODEL_SIZE - totalSize\)/);
     assert.match(voice, /crypto\.subtle\.digest\('SHA-256'/);
     assert.match(voice, /digest !== ASSISTANT_ASR_MODEL_SHA256/);
 });
@@ -45,13 +50,15 @@ test('the recording and transcript stay on the device', () => {
     assert.match(voice, /indexedDB\.open\(ASSISTANT_ASR_DB, 1\)/);
 });
 
-test('the runtime loads lazily and only after the consent dialog', () => {
+test('the model and runtime load automatically on the first microphone request without a download-confirmation prompt', () => {
     assert.match(voice, /function assistantVoiceLoadRuntime\(\)/);
     assert.match(voice, /script\.src = `\$\{ASSISTANT_VOICE_ORT_SRC\}\?v=\$\{assistantVoiceRelease\(\)\}`/);
-    const consent = voice.indexOf("window.confirm('لتفعيل الإدخال الصوتي التجريبي");
-    const runtime = voice.indexOf('await assistantVoiceLoadModel()', consent);
-    assert.ok(consent > -1 && runtime > consent, 'the download starts only after an explicit confirmation');
-    assert.match(voice, /بحجم 317MB/);
+    const microphone = voice.indexOf('async function startAssistantVoiceInput()');
+    const runtime = voice.indexOf('await assistantVoiceLoadModel()', microphone);
+    assert.ok(microphone > -1 && runtime > microphone, 'the first microphone request starts automatic loading');
+    assert.doesNotMatch(voice, /window\.confirm\('لتفعيل الإدخال الصوتي التجريبي/);
+    assert.match(voice, /await assistantVoiceBeginRecording\(\)/);
+    assert.match(voice, /317MB/);
     assert.ok(!template.includes('onnxruntime'), 'the runtime must not be a static script in the template');
     assert.ok(!html.includes('onnxruntime'), 'the runtime must not be requested on first paint');
     assert.ok(!html.includes('ort-wasm'), 'the WASM backend must not be requested on first paint');
@@ -69,8 +76,7 @@ test('the service worker serves the runtime WASM loader as a JavaScript module',
     assert.ok(mjs > -1 && hashed > mjs, 'the module must be normalized before the immutable-asset branch');
 });
 
-test('the microphone needs a second explicit click after the model is ready', () => {
-    assert.match(voice, /if \(!sessionReady\) \{[\s\S]*?اضغط زر الميكروفون مرة أخرى لبدء التسجيل[\s\S]*?return;/);
+test('the first microphone click starts recording after verification, with bounded capture and track release', () => {
     assert.match(voice, /navigator\.mediaDevices\.getUserMedia\(\{ audio: true \}\)/);
     assert.match(voice, /ASSISTANT_ASR_MAX_RECORDING_MS = 15000/);
     assert.match(voice, /assistantVoiceStopRecording\(true\)/, 'closing the modal discards the recording');
@@ -96,6 +102,6 @@ test('the modal exposes accessible voice controls inside the form', () => {
     assert.match(modal, /<p id="assistantVoiceStatus"[^>]*role="status"[^>]*hidden>/);
     assert.match(modal, /<button type="button" id="assistantVoiceCancelButton"[^>]*hidden>/);
     assert.match(modal, /<button type="button" id="assistantVoiceDeleteButton"[^>]*hidden>/);
-    assert.match(modal, /الإدخال الصوتي تجريبي واختياري/);
+    assert.match(modal, /317MB[\s\S]*?تلقائيًا من مستودع GitHub/);
     assert.ok(!modal.includes('بدون إنترنت أو خدمات خارجية'), 'the footnote must not claim voice never uses the network');
 });

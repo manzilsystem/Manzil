@@ -1,7 +1,9 @@
-const ASSISTANT_ASR_MODEL_URL = 'https://huggingface.co/agharib/egyptian-arabic-wav2vec2-xlsr-53-onnx/resolve/888b8be067d3a1ac2ca72806832f29e8786a3341/onnx/model_int8.onnx';
+const ASSISTANT_ASR_MODEL_CHUNK_BASE_URL = 'https://raw.githubusercontent.com/manzilsystem/manzil-assistant-assets/4dbb976b416dedcd1a2f42c0be7841e8c503c66b/speech/egyptian-arabic-wav2vec2/model_int8.onnx.part-';
 const ASSISTANT_ASR_REVISION = '888b8be067d3a1ac2ca72806832f29e8786a3341';
 const ASSISTANT_ASR_MODEL_SIZE = 317268245;
 const ASSISTANT_ASR_MODEL_SHA256 = '2d8525c7b0e27eff0d43aa061c440b95105ce994f0c76f398e75a4d7659bbcc6';
+const ASSISTANT_ASR_MODEL_CHUNK_SIZE = 41943040;
+const ASSISTANT_ASR_MODEL_CHUNK_COUNT = Math.ceil(ASSISTANT_ASR_MODEL_SIZE / ASSISTANT_ASR_MODEL_CHUNK_SIZE);
 const ASSISTANT_VOICE_ORT_SRC = 'js/vendor/onnxruntime-web.min.js';
 const ASSISTANT_ASR_DB = 'assistant-speech-models';
 const ASSISTANT_ASR_STORE = 'models';
@@ -191,6 +193,30 @@ async function assistantVoiceSyncModelControls() {
     }
 }
 
+async function assistantVoiceDownloadModel(signal) {
+    const chunks = [];
+    let totalSize = 0;
+
+    for (let index = 0; index < ASSISTANT_ASR_MODEL_CHUNK_COUNT; index++) {
+        const chunkName = String(index).padStart(2, '0');
+        const response = await fetch(`${ASSISTANT_ASR_MODEL_CHUNK_BASE_URL}${chunkName}`, {
+            mode: 'cors',
+            signal
+        });
+        if (!response.ok) throw new Error(`Model chunk ${index + 1} download failed (${response.status})`);
+
+        const chunk = await response.blob();
+        const expectedSize = Math.min(ASSISTANT_ASR_MODEL_CHUNK_SIZE, ASSISTANT_ASR_MODEL_SIZE - totalSize);
+        if (chunk.size !== expectedSize) throw new Error(`Model chunk ${index + 1} has an unexpected size`);
+        chunks.push(chunk);
+        totalSize += chunk.size;
+        assistantVoiceStatus(`جارٍ تنزيل نموذج الصوت من مستودع GitHub (${index + 1}/${ASSISTANT_ASR_MODEL_CHUNK_COUNT})…`);
+    }
+
+    if (totalSize !== ASSISTANT_ASR_MODEL_SIZE) throw new Error('The downloaded speech model has an unexpected size');
+    return new Blob(chunks, { type: 'application/octet-stream' });
+}
+
 async function assistantVoiceLoadModel() {
     if (assistantAsrSession) return assistantAsrSession;
     if (assistantAsrSessionPromise) return assistantAsrSessionPromise;
@@ -200,18 +226,12 @@ async function assistantVoiceLoadModel() {
         let modelBlob = await assistantVoiceGetCachedModel();
         let modelBytes = null;
         if (!modelBlob) {
-            assistantVoiceStatus('جارٍ تنزيل النموذج المصري المفتوح (317MB). لن يبدأ الميكروفون أثناء التنزيل.');
+            assistantVoiceStatus('جارٍ تنزيل نموذج الصوت المصري تلقائيًا من GitHub (317MB)…');
             assistantVoiceDownloadController = new AbortController();
             const cancelButton = document.getElementById('assistantVoiceCancelButton');
             if (cancelButton) cancelButton.hidden = false;
             try {
-                const response = await fetch(ASSISTANT_ASR_MODEL_URL, {
-                    mode: 'cors',
-                    signal: assistantVoiceDownloadController.signal
-                });
-                if (!response.ok) throw new Error(`Model download failed (${response.status})`);
-                modelBlob = await response.blob();
-                if (modelBlob.size !== ASSISTANT_ASR_MODEL_SIZE) throw new Error('The downloaded speech model has an unexpected size');
+                modelBlob = await assistantVoiceDownloadModel(assistantVoiceDownloadController.signal);
                 assistantVoiceStatus('جارٍ التحقق من سلامة النموذج…');
                 modelBytes = await modelBlob.arrayBuffer();
                 const digest = await assistantVoiceModelDigest(modelBytes);
@@ -220,7 +240,7 @@ async function assistantVoiceLoadModel() {
                 assistantVoiceDownloadController = null;
                 if (cancelButton) cancelButton.hidden = true;
             }
-            assistantVoiceStatus('جارٍ حفظ النموذج على جهازك…');
+            assistantVoiceStatus('جارٍ حفظ النموذج في مساحة المتصفح…');
             await assistantVoiceWriteCachedModel(modelBlob);
             await assistantVoiceSyncModelControls();
         }
@@ -453,18 +473,9 @@ async function startAssistantVoiceInput() {
     assistantVoiceButton(false, true);
     try {
         const modelCached = await assistantVoiceHasCachedModel();
-        if (!modelCached && !window.confirm('لتفعيل الإدخال الصوتي التجريبي، سيُنزل التطبيق مرة واحدة مشغل التعرف (11MB) ونموذجًا مصريًا مفتوح المصدر (Apache-2.0) بحجم 317MB من Hugging Face، ويتحقق من بصمته ثم يحفظه على جهازك. لن يبدأ الميكروفون قبل ضغطك عليه مرة أخرى، ولن يُرسل أي صوت أو نص إلى الخارج. هل تتابع؟')) {
-            assistantVoiceStatus('لم يتم تنزيل النموذج. يمكنك استخدام الشات الكتابي في أي وقت.');
-            return;
-        }
-
-        const sessionReady = Boolean(assistantAsrSession);
-        assistantVoiceStatus(modelCached ? 'جارٍ تجهيز نموذج التعرف الصوتي محليًا…' : 'جارٍ تنزيل النموذج المفتوح لأول مرة…');
+        assistantVoiceStatus(modelCached ? 'جارٍ تجهيز نموذج التعرف الصوتي محليًا…' : 'جارٍ تنزيل نموذج الصوت من GitHub لأول مرة…');
         await assistantVoiceLoadModel();
-        if (!sessionReady) {
-            assistantVoiceStatus('أصبح النموذج جاهزًا. اضغط زر الميكروفون مرة أخرى لبدء التسجيل.');
-            return;
-        }
+        assistantVoiceStatus('اكتمل تجهيز النموذج. جارٍ فتح الميكروفون…');
         await assistantVoiceBeginRecording();
     } catch (error) {
         if (error && error.name === 'AbortError') {
@@ -501,7 +512,7 @@ async function deleteAssistantVoiceModel() {
             await assistantVoiceSyncModelControls();
             return;
         }
-        if (!window.confirm('سيُحذف نموذج التعرف الصوتي (317MB) من الجهاز، ولن يعمل الميكروفون حتى تعيد تنزيله. هل تريد المتابعة؟')) return;
+        if (!window.confirm('سيُحذف نموذج التعرف الصوتي (317MB) من مساحة المتصفح، وسيُنزّل تلقائيًا من مستودع GitHub عند استخدام الميكروفون مرة أخرى. هل تريد المتابعة؟')) return;
         await assistantVoiceDeleteCachedModel();
         if (assistantAsrSession) {
             const session = assistantAsrSession;
@@ -510,7 +521,7 @@ async function deleteAssistantVoiceModel() {
             await session.release();
         }
         await assistantVoiceSyncModelControls();
-        assistantVoiceStatus('تم حذف نموذج الصوت من الجهاز. سيُطلب تنزيله مجددًا قبل استخدام الميكروفون.');
+        assistantVoiceStatus('تم حذف نموذج الصوت من مساحة المتصفح. سيُنزّل تلقائيًا من GitHub عند استخدام الميكروفون مجددًا.');
     } catch (error) {
         console.error('Assistant speech model deletion failed:', error);
         assistantVoiceStatus('تعذر حذف النموذج من مساحة المتصفح. يمكنك مسح بيانات الموقع من إعدادات المتصفح.');
