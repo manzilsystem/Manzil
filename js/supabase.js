@@ -694,7 +694,7 @@ async function saveState() {
     }
 
     state.lastUpdated = Date.now();
-    const requestId = generateId();
+    const requestId = arguments[0] || generateId();
     let payload;
     try {
         payload = {

@@ -12,15 +12,24 @@ function applyNoticeTemplate(type) {
     /** @type {HTMLInputElement} */ (document.getElementById('noticeInput')).value = t[type] || '';
 }
 
-async function handleNoticeSubmit() {
+async function publishNoticeWithRequestId(text, requestId = null) {
     if (!requireManager()) return;
-    const text = /** @type {HTMLInputElement} */ (document.getElementById('noticeInput')).value.trim();
     if (!text) { toast('اكتب نص الإعلان','error'); return; }
     const previousState = cloneStateSnapshot();
     state.notices.push({ id: generateId(), text, date: new Date().toISOString() });
     logAction('إعلان جديد', text.substring(0, 40));
-    if (!await saveWithRollback(previousState)) return;
-    closeModal('noticeModal'); renderNotices(); toast('تم النشر','success');
+    if (!await saveWithRollback(previousState, requestId)) return false;
+    renderNotices();
+    return true;
+}
+
+async function handleNoticeSubmit() {
+    if (!requireManager()) return;
+    const text = /** @type {HTMLInputElement} */ (document.getElementById('noticeInput')).value.trim();
+    if (!text) { toast('اكتب نص الإعلان','error'); return; }
+    if (!await publishNoticeWithRequestId(text)) return;
+    closeModal('noticeModal');
+    toast('تم النشر','success');
 }
 
 async function deleteNotice(id) {

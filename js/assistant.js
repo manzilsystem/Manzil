@@ -75,6 +75,7 @@ const ASSISTANT_FOLLOWUPS_OWNER = Object.freeze({
 
 let assistantContext = { period: null, residentId: null };
 let assistantChat = [];
+let assistantNoticeDraft = null;
 
 function assistantIdentityKey() {
     if (typeof currentUserRole !== 'undefined' && currentUserRole === 'owner') {
@@ -617,6 +618,52 @@ function assistantList(items) {
 
 function assistantNote(text) {
     return `<p class="assistant-note">${assistantEscape(text)}</p>`;
+}
+
+function parseAssistantNoticeCommand(text) {
+    if (assistantIsOwner()) return '';
+    const raw = String(text || '').trim();
+    const normalized = normalizeAssistantArabic(raw);
+    if (!/(?:اعمل|اكتب|انشر|جهز|جهزلي|جهز لي)/.test(normalized) || !/اعلان/.test(normalized)) return '';
+    return raw.replace(/^.*?إعلان\s*[:：-]?\s*/is, '').replace(/^.*?اعلان\s*[:：-]?\s*/i, '').trim();
+}
+
+function buildAssistantNoticePreview(text) {
+    const noticeText = String(text || '').trim();
+    if (!noticeText) return null;
+    assistantNoticeDraft = { text: noticeText, requestId: generateId() };
+    return {
+        id: 'notice-preview',
+        title: 'معاينة إعلان قبل النشر',
+        html: `<div class="assistant-action-preview"><p class="assistant-notice-preview">${assistantEscape(noticeText).replace(/\n/g, '<br>')}</p>
+            <p class="assistant-note">الإعلان لم يُحفظ بعد. راجعه ثم أكد النشر صراحة.</p>
+            <div class="assistant-action-buttons" role="group" aria-label="تأكيد نشر الإعلان">
+                <button type="button" class="assistant-action-confirm" onclick="confirmAssistantNotice()">تأكيد النشر</button>
+                <button type="button" class="assistant-action-cancel" onclick="cancelAssistantNotice()">إلغاء</button>
+            </div></div>`
+    };
+}
+
+async function confirmAssistantNotice() {
+    if (!assistantNoticeDraft) {
+        if (typeof toast === 'function') toast('لا توجد مسودة إعلان معلقة.', 'error');
+        return false;
+    }
+    const draft = assistantNoticeDraft;
+    if (typeof publishNoticeWithRequestId !== 'function') {
+        if (typeof toast === 'function') toast('مسار نشر الإعلان غير متاح الآن.', 'error');
+        return false;
+    }
+    const saved = await publishNoticeWithRequestId(draft.text, draft.requestId);
+    if (!saved) return false;
+    assistantNoticeDraft = null;
+    if (typeof toast === 'function') toast('تم نشر الإعلان بعد التأكيد.', 'success');
+    return true;
+}
+
+function cancelAssistantNotice() {
+    assistantNoticeDraft = null;
+    if (typeof toast === 'function') toast('تم إلغاء مسودة الإعلان.', 'info');
 }
 
 function assistantApartmentLabel(resident) {
@@ -1454,6 +1501,8 @@ function answerAssistantQuery(text, now = new Date()) {
         return answerOwnerAssistantQuery(text, now);
     }
     if (!normalized) return withAssistantAnswerMeta(buildAssistantHelpAnswer(), resolveAssistantPeriod(text, now), null);
+    const noticeText = parseAssistantNoticeCommand(text);
+    if (noticeText) return withAssistantAnswerMeta(buildAssistantNoticePreview(noticeText), resolveAssistantPeriod(text, now), null, text);
     const residentMatch = resolveAssistantResident(text);
     if (residentMatch.matches.length > 1) {
         const answer = {

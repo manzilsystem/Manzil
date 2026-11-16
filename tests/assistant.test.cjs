@@ -420,6 +420,17 @@ test('assistant answers are read-only and never write without a confirmation flo
     assert.doesNotMatch(assistantSource, /\b(?:addIncome|addExpense|saveState|persistState|deleteResident|deleteIncome|deleteExpense)\s*\(/, 'no mutation helpers are wired into the assistant');
 });
 
+test('manager announcement commands create a preview with explicit confirmation only', () => {
+    const { context, api } = createHarness(true);
+    const before = JSON.stringify(vm.runInContext('state', context));
+    const answer = api.answerAssistantQuery('اكتب إعلان: سيتم إيقاف الأسانسير غدًا للصيانة', NOW);
+
+    assert.equal(answer.id, 'notice-preview');
+    assert.match(answer.html, /تأكيد النشر/);
+    assert.match(answer.html, /سيتم إيقاف الأسانسير غدًا للصيانة/);
+    assert.equal(JSON.stringify(vm.runInContext('state', context)), before);
+});
+
 test('assistant money figures equal the reference billing values', () => {
     const { context, api } = createHarness(true);
     const period = api.resolveAssistantPeriod('نوفمبر 2026', NOW);
