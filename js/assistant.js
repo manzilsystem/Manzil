@@ -35,6 +35,7 @@ const ASSISTANT_CONTEXT_STORAGE_PREFIX = 'manzil-assistant-context';
 
 const ASSISTANT_FOLLOWUPS = Object.freeze({
     summary: ['مصروفات الشهر', 'مين عليه متأخرات؟', 'رصيد الخزنة كام؟'],
+    executive: ['مقارنة الشهر', 'أكبر المصروفات', 'مين عليه متأخرات؟'],
     income: ['مصروفات نفس الفترة', 'الإعفاءات والتخفيضات', 'مين عليه متأخرات؟'],
     expenses: ['تحصيل نفس الفترة', 'رصيد الخزنة كام؟', 'ملخص الشهر'],
     cashbox: ['آخر الحركات', 'ملخص الشهر', 'مين عليه متأخرات؟'],
@@ -574,6 +575,7 @@ function detectAssistantIntent(normalized, hasResident) {
     if (/(تحصيل|تحصيلات|ايراد|دخل|وارد|دفع|مدفوع|متحصل|المتحصلات|اللي اتجمع)/.test(normalized)) return 'income';
     if (/(خزنه|صندوق|رصيد|كاش|فلوس|سيوله|الموجود في الخزنه)/.test(normalized)) return 'cashbox';
     if (/(اعلان|اعلانات|لوحه|اخبار العماره|فيه جديد)/.test(normalized)) return 'notices';
+    if (/(ملخص تنفيذي|ملخص الاداره|ملخص العماره|الخلاصه السريعه)/.test(normalized)) return 'executive';
     if (/(ملخص|وضع|احوال|نظره|اجمالي|صافي|نتيجه|عاملين ايه)/.test(normalized)) return 'summary';
     if (/(اخر|احدث|حركات|عمليات|اللي حصل)/.test(normalized)) return 'recent';
     if (/(تقرير|تقارير|طباعه|تصدير|كشف)/.test(normalized)) return 'reports';
@@ -710,6 +712,21 @@ function buildAssistantSummaryAnswer(period) {
     return { id: 'summary', title, html };
 }
 
+function buildAssistantExecutiveAnswer(period) {
+    const summary = getAssistantMonthSummary(period);
+    const cash = getAssistantCashSnapshot();
+    const arrears = getAssistantArrearsSnapshot();
+    const title = `ملخص تنفيذي · ${period.label}`;
+    let html = '<p class="assistant-answer-subtitle">لقطة سريعة للإدارة</p>';
+    html += assistantRow('التحصيل', assistantMoney(summary.income.total), summary.income.total > 0 ? 'good' : '');
+    html += assistantRow('المصروفات', assistantMoney(summary.expenses.total), summary.expenses.total > 0 ? 'bad' : '');
+    html += assistantRow('الصافي', assistantMoney(summary.net), summary.net >= 0 ? 'good' : 'bad');
+    html += assistantRow('إجمالي السيولة', assistantMoney(cash.total), cash.total >= 0 ? 'good' : 'bad');
+    html += assistantRow('المتأخرات المتراكمة', assistantMoney(arrears.totalDebt), arrears.totalDebt > 0 ? 'warn' : 'good');
+    html += assistantRow('شقق عليها متأخرات', assistantNumber(arrears.overdueResidents), arrears.overdueResidents > 0 ? 'warn' : 'good');
+    html += assistantNote('التحصيل والمصروفات والصافي تخص الفترة المحددة، بينما السيولة والمتأخرات أرقام تراكمية من السجل المتاح.');
+    return { id: 'executive', title, html };
+}
 function buildAssistantArrearsAnswer() {
     const snapshot = getAssistantArrearsSnapshot();
     const title = 'المتأخرات المتراكمة';
@@ -1182,7 +1199,7 @@ function detectOwnerAssistantIntent(normalized) {
     if (/(مين عليه|مين عليها|مين عليهم|على مين|علي مين)/.test(normalized)) return 'owner_scope';
     if (/(?:حساب|ايصال|دفعات|مدفوعات|متاخرات)\s+[ء-ي]{2,}(?:\s+[ء-ي]{2,})?(?:\s+(?:كام|عليه|عليها|دفع|دفعت|متاخر|مديون))?/.test(normalized)) return 'owner_scope';
     if (/^(?:[ء-ي]{2,}\s+){1,2}(?:عليه|عليها|دفع|دفعت|متاخر|مديون)/.test(normalized)) return 'owner_scope';
-    if (/(تحصيل|مصروف|مصاريف|صرف|خزنه|صندوق|سيوله|صافي|اجمالي|كل الشقق|السكان|سكان العماره|الشقق التاني|تقرير|تقارير|طابق العماره|طوابق العماره|ادوار العماره|احصائيات|لوحة تحكم)/.test(normalized)) return 'owner_scope';
+    if (/(ملخص تنفيذي|ملخص الاداره|ملخص العماره|تحصيل|مصروف|مصاريف|صرف|خزنه|صندوق|سيوله|صافي|اجمالي|كل الشقق|السكان|سكان العماره|الشقق التاني|تقرير|تقارير|طابق العماره|طوابق العماره|ادوار العماره|احصائيات|لوحة تحكم)/.test(normalized)) return 'owner_scope';
     if (/(استحقاق|اخر يوم|مهله|موعد الدفع|امتى ادفع|يوم كام ادفع|قبل ما اتاخر|متاخر عن ميعاد)/.test(normalized)) return 'my_due_date';
     if (/(طرق الدفع|وسائل الدفع|ادفع باي|ادفع ازاي|ازاي ادفع|تحويل بنكي|انستاباي|انستا باي|محفزه|فيزا|بطاقه)/.test(normalized)) return 'payment_methods';
     if (/(ايصال|دفعاتي|مدفوعات|حركاتي|دفعت|استلمت)/.test(normalized)) return 'my_receipts';
@@ -1393,6 +1410,8 @@ function selectAssistantAnswer(intent, period, resident, now) {
             return buildAssistantCashAnswer();
         case 'summary':
             return buildAssistantSummaryAnswer(period);
+        case 'executive':
+            return buildAssistantExecutiveAnswer(period);
         case 'comparison':
             return buildAssistantComparisonAnswer(period, now);
         case 'recent':

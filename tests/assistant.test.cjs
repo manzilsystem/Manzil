@@ -571,6 +571,17 @@ test('expense answers use all funds and group by category', () => {
     assert.doesNotMatch(answer.html, /صيانة أسانسير/);
 });
 
+test('executive summary combines period metrics with cumulative management signals', () => {
+    const { api } = createHarness();
+    const answer = api.answerAssistantQuery('ملخص تنفيذي نوفمبر 2026', NOW);
+    assert.equal(answer.id, 'executive');
+    assert.match(answer.title, /نوفمبر 2026/);
+    assert.match(answer.html, /التحصيل/);
+    assert.match(answer.html, /المصروفات/);
+    assert.match(answer.html, /إجمالي السيولة/);
+    assert.match(answer.html, /المتأخرات المتراكمة/);
+    assert.match(answer.html, /تخص الفترة المحددة/);
+});
 test('summary combines collections, expenses, current dues and unpaid units', () => {
     const { api } = createHarness();
     const summary = api.getAssistantMonthSummary({ type: 'month', label: 'نوفمبر 2026', months: ['نوفمبر 2026'] }, NOW);
@@ -902,6 +913,12 @@ test('an owner assistant reads only the apartment bound to its resident id', () 
     assert.doesNotMatch(bill.html, /أحمد|شقة 3/, 'even with a wider resident read the owner stays on their own unit');
 });
 
+test('owners cannot request the manager executive summary', () => {
+    const owner = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    const answer = owner.api.answerAssistantQuery('ملخص تنفيذي نوفمبر 2026', NOW);
+    assert.equal(answer.id, 'owner_scope');
+    assert.doesNotMatch(answer.html, /إجمالي السيولة|إجمالي المتأخرات/);
+});
 test('building-wide questions are refused for owners instead of answered with their slice', () => {
     const { api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
     for (const query of ['إجمالي تحصيل العمارة', 'مصروفات الشهر', 'رصيد الخزنة كام؟', 'تقرير المالك', 'عدد السكان']) {
