@@ -26,6 +26,7 @@ const ASSISTANT_SUGGESTIONS_OWNER = Object.freeze([
     { label: 'أكلم المدير', query: 'رقم المدير' }
 ]);
 const ASSISTANT_MANAGER_QUICK_ACTIONS = Object.freeze([
+    { label: 'إضافة شقة', query: 'أضف شقة' },
     { label: 'تسجيل تحصيل', query: 'سجل تحصيل' },
     { label: 'إضافة مصروف', query: 'أضف مصروف' },
     { label: 'تسجيل إعفاء', query: 'سجل إعفاء' },
@@ -134,6 +135,27 @@ function parseAssistantOperationReason(raw) {
     return String(match[1] || '')
         .replace(/\s+(?:عن|فى|في|لشهر|شهر)\s+(?:يناير|فبراير|مارس|أبريل|ابريل|مايو|يونيو|يوليو|أغسطس|اغسطس|سبتمبر|أكتوبر|اكتوبر|نوفمبر|ديسمبر)(?:\s+20\d{2})?.*$/i, '')
         .trim();
+}
+
+function parseAssistantResidentCommand(raw, normalized, now = new Date()) {
+    const assistantLegacyResidentWord = '\u0633\u0627\u0643\u0646';
+    const hasResidentWord = normalized.includes(assistantLegacyResidentWord) || /مالك/.test(normalized);
+    const hasAddUnitCommand = /(?:اضف|ضيف|ادخل|إدخل)\s+(?:شقه|وحده)/.test(normalized);
+    if (!/(?:اضف|ضيف|سجل|سجّل|ادخل|إدخل)/.test(normalized) || (!hasResidentWord && !hasAddUnitCommand)) return null;
+    if (/(?:تحصيل|دفعة|دفعه|استلام|قبض|مصروف|فاتوره|فاتورة|اعفاء|إعفاء|تخفيض|خصم|تسويه|تسوية)/.test(normalized)) return null;
+    const apartmentMatch = normalized.match(/(?:شقه|وحده)\s*(?:رقم\s*)?(\d{1,4})/);
+    if (!apartmentMatch) return null;
+    const nameMatch = String(raw).match(new RegExp(`(?:${assistantLegacyResidentWord}|مالك)\\s+(.+?)(?=\\s+(?:شقه|شقة|وحده|وحدة)(?:\\s|$))`, 'i'));
+    const name = nameMatch ? nameMatch[1].replace(/[،,:-]+$/, '').trim() : '';
+    const phoneMatch = String(raw).match(/(?:هاتف|تليفون|موبايل|رقم\s+الموبايل)\s*[:：-]?\s*([+\d٠-٩۰-۹][\d٠-٩۰-۹\s-]{7,})/i);
+    const amountMatch = normalized.match(/(?:اشتراك|شهري|بقيمة)\s+(.+?)(?=\s+(?:جنيه|ج\.م|جم|ج)(?:\s|$))/i);
+    const amount = amountMatch ? assistantParsedAmount(amountMatch[1]) : null;
+    const period = resolveAssistantPeriodWithContext(raw, now);
+    return {
+        type: 'resident', name, apartmentNumber: apartmentMatch[1],
+        phone: phoneMatch ? phoneMatch[1].replace(/[٠-٩۰-۹]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit))) : '',
+        amount, billingStartMonth: period && period.type === 'month' ? period.label : '', raw
+    };
 }
 
 function parseAssistantOperationPurpose(normalized) {
@@ -775,6 +797,8 @@ function parseAssistantOperationCommand(text, now = new Date()) {
     const period = resolveAssistantPeriodWithContext(raw, now);
     const residentMatch = resolveAssistantResident(raw);
     const resident = residentMatch.matches.length === 1 ? residentMatch.matches[0] : null;
+    const residentOperation = parseAssistantResidentCommand(raw, normalized, now);
+    if (residentOperation) return residentOperation;
     const hasIncomeVerb = /(?:سجل|سجّل|اضف|أضف|ضيف|استلم|قبض|سدد|سداد)/.test(normalized);
     const hasExpenseWord = /(?:مصروف|فاتوره|فاتورة|صرف)/.test(normalized);
     const hasAdjustmentWord = /(?:اعفاء|إعفاء|تخفيض|خصم|تسويه|تسوية)/.test(normalized);
@@ -816,6 +840,11 @@ function parseAssistantOperationCommand(text, now = new Date()) {
 function assistantOperationMissing(operation) {
     if (!operation) return ['بيانات العملية'];
     const missing = [];
+    if (operation.type === 'resident') {
+        if (!operation.name) missing.push('اسم المالك');
+        if (!operation.apartmentNumber) missing.push('رقم الشقة');
+        return missing;
+    }
     if (!operation.amount) missing.push('المبلغ');
     if (operation.type !== 'expense' && !operation.resident) {
         missing.push(operation.residentMatches?.length > 1 ? 'رقم الشقة لتحديد المالك' : 'المالك أو رقم الشقة');
@@ -890,7 +919,7 @@ function buildAssistantOperationChangeNote(previous, patch) {
 function buildAssistantOperationPreview(operation, now = new Date()) {
     if (!operation) return null;
     assistantOperationDraft = operation;
-    const labels = { income: 'تحصيل', expense: 'مصروف', adjustment: 'إعفاء أو تخفيض أو تسوية' };
+    const labels = { income: 'تحصيل', expense: 'مصروف', adjustment: 'إعفاء أو تخفيض أو تسوية', resident: 'بيانات الشقة' };
     const missing = assistantOperationMissing(operation);
     if (missing.length) {
         return {
@@ -900,7 +929,9 @@ function buildAssistantOperationPreview(operation, now = new Date()) {
         };
     }
     const adjustmentKindLabels = { waiver: 'إعفاء', discount: 'تخفيض', settlement: 'تسوية' };
-    const target = operation.type === 'expense'
+    const target = operation.type === 'resident'
+        ? `${operation.name || '—'} · شقة ${operation.apartmentNumber || '—'}${operation.amount ? ` · اشتراك ${assistantMoney(operation.amount)}` : ''}${operation.phone ? ` · ${operation.phone}` : ''}`
+        : operation.type === 'expense'
         ? `${operation.title} · ${assistantMoney(operation.amount)} · ${operation.month} · ${operation.category || 'أخرى'} · ${ASSISTANT_CASH_LABELS[operation.cashAccountCode] || ASSISTANT_CASH_LABELS.main}`
         : `${operation.type === 'adjustment' ? `${adjustmentKindLabels[operation.kind] || 'إجراء'} · ` : ''}${assistantResidentName(operation.resident)} · شقة ${operation.resident.apartmentNumber} · ${assistantMoney(operation.amount)} · ${operation.month}${operation.type === 'income' ? ` · ${operation.purpose === 'subscription' ? 'اشتراك شهري' : operation.purpose} · ${ASSISTANT_OPERATION_PAYMENT_METHODS[operation.paymentMethod] || ''} · ${ASSISTANT_CASH_LABELS[operation.cashAccountCode] || ASSISTANT_CASH_LABELS.main}` : ''}`;
     const assumed = operation.cashAccountAssumed ? assistantNote('لم تذكر الصندوق؛ استخدمت الخزنة الرئيسية كافتراض قابل للتعديل قبل التنفيذ.') : '';
@@ -946,7 +977,8 @@ function openAssistantOperation() {
     if (!assistantOperationDraft || assistantIsOwner()) return false;
     const draft = assistantOperationDraft;
     const opener = draft.type === 'income' ? 'openAssistantIncomeDraft'
-        : draft.type === 'expense' ? 'openAssistantExpenseDraft' : 'openAssistantAdjustmentDraft';
+        : draft.type === 'expense' ? 'openAssistantExpenseDraft'
+            : draft.type === 'resident' ? 'openAssistantResidentDraft' : 'openAssistantAdjustmentDraft';
     const openForm = assistantGlobalFunction(opener);
     if (openForm) {
         openForm(draft);
@@ -965,9 +997,11 @@ async function confirmAssistantOperation() {
         return false;
     }
     const openerName = draft.type === 'income' ? 'openAssistantIncomeDraft'
-        : draft.type === 'expense' ? 'openAssistantExpenseDraft' : 'openAssistantAdjustmentDraft';
+        : draft.type === 'expense' ? 'openAssistantExpenseDraft'
+            : draft.type === 'resident' ? 'openAssistantResidentDraft' : 'openAssistantAdjustmentDraft';
     const handlerName = draft.type === 'income' ? 'handleIncomeSubmit'
-        : draft.type === 'expense' ? 'handleExpenseSubmit' : 'handleAdjustmentSubmit';
+        : draft.type === 'expense' ? 'handleExpenseSubmit'
+            : draft.type === 'resident' ? 'handleResidentSubmit' : 'handleAdjustmentSubmit';
     const openForm = assistantGlobalFunction(openerName);
     const submitForm = assistantGlobalFunction(handlerName);
     if (!openForm || !submitForm) {
@@ -978,6 +1012,7 @@ async function confirmAssistantOperation() {
     const collectionBefore = Array.isArray(state.income) ? state.income.length : 0;
     const expenseBefore = Array.isArray(state.expenses) ? state.expenses.length : 0;
     const adjustmentBefore = Array.isArray(state.adjustments) ? state.adjustments.length : 0;
+    const residentBefore = Array.isArray(state.residents) ? state.residents.length : 0;
     assistantOperationDraft = null;
     try {
         if (openForm(draft) === false) throw new Error('assistant form did not open');
@@ -990,9 +1025,11 @@ async function confirmAssistantOperation() {
     const collectionAfter = Array.isArray(state.income) ? state.income.length : 0;
     const expenseAfter = Array.isArray(state.expenses) ? state.expenses.length : 0;
     const adjustmentAfter = Array.isArray(state.adjustments) ? state.adjustments.length : 0;
+    const residentAfter = Array.isArray(state.residents) ? state.residents.length : 0;
     const saved = draft.type === 'income' ? collectionAfter > collectionBefore
         : draft.type === 'expense' ? expenseAfter > expenseBefore
-            : adjustmentAfter > adjustmentBefore;
+            : draft.type === 'resident' ? residentAfter > residentBefore
+                : adjustmentAfter > adjustmentBefore;
     if (!saved) assistantOperationDraft = draft;
     if (!saved && typeof toast === 'function') toast('لم يتم الحفظ. راجع الحقول أو رسالة التحقق في النموذج.', 'error');
     if (saved) {

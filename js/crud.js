@@ -374,6 +374,29 @@ function openResidentModal(mode, id) {
 
 function editResident(id) { openResidentModal('edit', id); }
 
+function openAssistantResidentDraft(draft) {
+    if (!requireManager()) return false;
+    openResidentModal('create');
+    const name = /** @type {HTMLInputElement | null} */ (document.getElementById('residentName'));
+    const apartment = /** @type {HTMLSelectElement | null} */ (document.getElementById('residentApartment'));
+    const phone = /** @type {HTMLInputElement | null} */ (document.getElementById('residentPhone'));
+    const amount = /** @type {HTMLInputElement | null} */ (document.getElementById('residentAmount'));
+    const billingStart = /** @type {HTMLInputElement | null} */ (document.getElementById('residentBillingStart'));
+    if (name) name.value = String(draft?.name || '');
+    if (apartment && draft?.apartmentNumber) {
+        updateResidentApartmentOptions();
+        apartment.value = String(draft.apartmentNumber);
+    }
+    if (phone) phone.value = String(draft?.phone || '');
+    if (amount && draft?.amount) amount.value = String(draft.amount);
+    if (billingStart && draft?.billingStartMonth) {
+        const match = String(draft.billingStartMonth).match(/(20\d{2})$/);
+        const month = typeof monthLabelToKey === 'function' ? monthLabelToKey(draft.billingStartMonth) : '';
+        billingStart.value = month || (match ? `${match[1]}-01` : '');
+    }
+    return true;
+}
+
 function buildResidentProfileHtml(resident) {
     const currentMonth = getCurrentMonth();
     const currentAmount = typeof getMonthlyDueAmountForMonth === 'function'

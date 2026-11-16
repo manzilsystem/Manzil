@@ -510,6 +510,26 @@ test('complete manager operation previews expose a second explicit save action',
     assert.match(answer.html, /نقدي/);
     assert.match(answer.html, /الخزنة الرئيسية/);
 });
+
+test('manager can prepare a new resident from a natural-language request without saving before confirmation', () => {
+    const { context, api } = createHarness(true);
+    const before = JSON.stringify(vm.runInContext('state.residents', context));
+    const answer = api.answerAssistantQuery('أضف ساكن كريم محمود شقة 9 اشتراك 350 جنيه هاتف 01012345678', NOW);
+    assert.equal(answer.id, 'operation-preview');
+    assert.match(answer.html, /كريم محمود/);
+    assert.match(answer.html, /شقة 9/);
+    assert.match(answer.html, /350/);
+    assert.match(answer.html, /تنفيذ وحفظ/);
+    assert.equal(JSON.stringify(vm.runInContext('state.residents', context)), before);
+    assert.match(assistantSource, /openAssistantResidentDraft/);
+});
+
+test('resident creation requests never become manager forms for owners', () => {
+    const { api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    const answer = api.answerAssistantQuery('أضف ساكن كريم شقة 9 اشتراك 350 جنيه', NOW);
+    assert.notEqual(answer.id, 'operation-preview');
+});
+
 test('operation parser understands local amount formats without confusing apartment or year numbers', () => {
     const { api } = createHarness(true);
     assert.equal(api.assistantParsedAmount('سجّل تحصيل من شقة ٧ عن نوفمبر ٢٠٢٦ بمبلغ ١٬٥٠٠ جنيه'), 1500);
