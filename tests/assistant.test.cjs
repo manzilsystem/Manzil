@@ -644,6 +644,13 @@ test('ambiguous resident names ask for the apartment instead of guessing', () =>
     assert.match(answer.html, /حدد رقم الشقة/);
 });
 
+test('arrears answers explain the oldest unpaid month and longest delay', () => {
+    const { context, api } = createHarness();
+    const answer = api.answerAssistantQuery('مين عليه متأخرات؟', NOW);
+    assert.equal(answer.id, 'arrears');
+    assert.match(answer.html, /أقدم شهر غير مسدد/);
+    assert.match(answer.html, /أطول مدة تأخر/);
+});
 test('arrears answers surface cumulative debt and handle the clean case', () => {
     const { context, api } = createHarness();
     vm.runInContext(`state.residents.push({ id: 'r-old', name: 'حسن قديم', apartmentNumber: '99', monthlyAmount: 50, billingStartMonth: '2020-01-01', createdAt: '2020-01-01T00:00:00.000Z' });`, context);

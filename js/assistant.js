@@ -450,22 +450,31 @@ function getAssistantMonthSummary(period, now = new Date()) {
 function getAssistantArrearsSnapshot() {
     if (typeof buildArrearsReport === 'function') {
         const report = buildArrearsReport();
+        const residents = report.residents || [];
+        const oldestFor = item => item.oldestMonth || (Array.isArray(item.unpaidMonths) && item.unpaidMonths[0]
+            ? (typeof item.unpaidMonths[0] === 'object' ? item.unpaidMonths[0].month : item.unpaidMonths[0]) : null);
+        const details = residents.flatMap(item => Array.isArray(item.unpaidMonths) ? item.unpaidMonths : []);
+        const oldestMonth = residents.map(oldestFor).filter(Boolean).sort()[0] || null;
         return {
             totalDebt: Number(report.totalDebt) || 0,
             overdueResidents: Number(report.overdueResidents) || 0,
             overdueMonths: Number(report.overdueMonths) || 0,
-            residents: report.residents || [],
+            oldestMonth,
+            maxDaysOverdue: Math.max(...residents.map(item => Number(item.daysOverdue) || 0), ...details.map(item => Number(item.daysOverdue) || 0), 0),
+            residents,
             buckets: report.buckets || {}
         };
     }
     const residents = (Array.isArray(state.residents) ? state.residents : []).map(resident => {
         const debt = typeof calculateCumulativeDebt === 'function' ? calculateCumulativeDebt(resident.id) : { count: 0, totalDebt: 0, unpaidMonths: [] };
-        return { resident, count: debt.count, totalDebt: debt.totalDebt, unpaidMonths: debt.unpaidMonths, bucket: 'شهر واحد' };
+        return { resident, count: debt.count, totalDebt: debt.totalDebt, unpaidMonths: debt.unpaidMonths, oldestMonth: debt.oldestMonth, daysOverdue: debt.daysOverdue, bucket: 'شهر واحد' };
     }).filter(item => item.count > 0).sort((a, b) => b.totalDebt - a.totalDebt);
     return {
         totalDebt: residents.reduce((sum, item) => sum + Math.round(item.totalDebt * 100), 0) / 100,
         overdueResidents: residents.length,
         overdueMonths: residents.reduce((sum, item) => sum + item.count, 0),
+        oldestMonth: residents.map(item => item.oldestMonth).filter(Boolean).sort()[0] || null,
+        maxDaysOverdue: residents.reduce((max, item) => Math.max(max, Number(item.daysOverdue) || 0), 0),
         residents,
         buckets: {}
     };
@@ -708,10 +717,14 @@ function buildAssistantArrearsAnswer() {
     html += assistantRow('إجمالي المتأخرات', assistantMoney(snapshot.totalDebt), snapshot.totalDebt > 0 ? 'bad' : 'good');
     html += assistantRow('شقق عليها متأخرات', assistantNumber(snapshot.overdueResidents));
     html += assistantRow('عدد الشهور المتأخرة', assistantNumber(snapshot.overdueMonths));
+    if (snapshot.oldestMonth) html += assistantRow('أقدم شهر غير مسدد', snapshot.oldestMonth, 'warn');
+    if (snapshot.maxDaysOverdue > 0) html += assistantRow('أطول مدة تأخر', `${assistantNumber(snapshot.maxDaysOverdue)} يومًا`, 'warn');
     if (snapshot.residents.length) {
-        html += assistantList(snapshot.residents.slice(0, 6).map(item =>
-            `${assistantEscape(assistantApartmentLabel(item.resident))} · ${assistantEscape(assistantResidentName(item.resident))} — <strong>${assistantEscape(assistantMoney(item.totalDebt))}</strong> (${assistantNumber(item.count)} شهر)`
-        ));
+        html += assistantList(snapshot.residents.slice(0, 6).map(item => {
+            const rawOldest = item.oldestMonth || (Array.isArray(item.unpaidMonths) ? item.unpaidMonths[0] : '');
+            const oldest = rawOldest && typeof rawOldest === 'object' ? rawOldest.month : rawOldest;
+            return `${assistantEscape(assistantApartmentLabel(item.resident))} · ${assistantEscape(assistantResidentName(item.resident))} — <strong>${assistantEscape(assistantMoney(item.totalDebt))}</strong> (${assistantNumber(item.count)} شهر${oldest ? ` · أقدم: ${assistantEscape(oldest)}` : ''})`;
+        }));
     } else {
         html += assistantNote('تمام! مفيش أي متأخرات مسجلة حاليًا.');
     }
