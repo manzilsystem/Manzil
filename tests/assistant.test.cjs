@@ -153,6 +153,7 @@ function createHarness(seed = true, identity = {}, options = {}) {
         normalizeAssistantArabic,
         resolveAssistantPeriod,
         resolveAssistantResident,
+        assistantParsedAmount,
         assistantEscape,
         runAssistantQuickAction,
         buildAssistantFollowUps,
@@ -508,6 +509,20 @@ test('complete manager operation previews expose a second explicit save action',
     assert.match(answer.html, /تنفيذ وحفظ/);
     assert.match(answer.html, /نقدي/);
     assert.match(answer.html, /الخزنة الرئيسية/);
+});
+test('operation parser understands local amount formats without confusing apartment or year numbers', () => {
+    const { api } = createHarness(true);
+    assert.equal(api.assistantParsedAmount('سجّل تحصيل من شقة ٧ عن نوفمبر ٢٠٢٦ بمبلغ ١٬٥٠٠ جنيه'), 1500);
+    assert.equal(api.assistantParsedAmount('أضف مصروف 1,250 جنيه'), 1250);
+    assert.equal(api.assistantParsedAmount('أضف مصروف نصف ألف جنيه'), 500);
+    assert.equal(api.assistantParsedAmount('سجّل تحصيل من شقة ٧ عن نوفمبر ٢٠٢٦'), null);
+});
+test('short manager commands accept Arabic digits and sadded payment wording', () => {
+    const { api } = createHarness(true);
+    const answer = api.answerAssistantQuery('سجّل سداد ١٬٥٠٠ جنيه لسارة حسن من شقة ٧ عن نوفمبر ٢٠٢٦ نقدي', NOW);
+    assert.equal(answer.id, 'operation-preview');
+    assert.match(answer.html, /١|1|1500/);
+    assert.match(answer.html, /سارة حسن/);
 });
 test('a missing operation can be completed in the next manager message', () => {
     const { api } = createHarness(true);

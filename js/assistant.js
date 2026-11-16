@@ -733,12 +733,38 @@ function cancelAssistantNotice() {
     if (typeof toast === 'function') toast('تم إلغاء مسودة الإعلان.', 'info');
 }
 
-function assistantParsedAmount(text) {
-    const normalized = normalizeAssistantArabic(text).replace(/،/g, ',');
-    const match = normalized.match(/(?:^|\s)(\d+(?:[.,]\d{1,2})?)(?=\s|$|ج| جنيه)/);
-    if (!match) return null;
-    const amount = Number(match[1].replace(',', '.'));
+function parseAssistantNumericToken(token) {
+    const raw = String(token || '').replace(/[\s٬]/g, '');
+    if (!raw) return null;
+    const comma = raw.includes(',');
+    const dot = raw.includes('.');
+    let normalized = raw;
+    if (comma && dot) normalized = raw.replace(/,/g, '');
+    else if (comma) normalized = /,\d{1,2}$/.test(raw) ? raw.replace(',', '.') : raw.replace(/,/g, '');
+    else if (dot && /\.\d{3}$/.test(raw)) normalized = raw.replace('.', '');
+    const amount = Number(normalized);
     return Number.isFinite(amount) && amount > 0 ? amount : null;
+}
+
+function assistantParsedAmount(text) {
+    const normalized = normalizeAssistantArabic(text).replace(/[،٬]/g, ',');
+    const numberPattern = '(\\d+(?:[,.]\\d{1,3})*)';
+    const currencyMatch = normalized.match(new RegExp(`${numberPattern}\\s*(?:جنيه(?:ات)?|ج\\.?م|جم|ج)(?!\\w)`));
+    if (currencyMatch) return parseAssistantNumericToken(currencyMatch[1]);
+    if (/(?:نصف|نص)\s*الف/.test(normalized)) return 500;
+    if (/مليون\b/.test(normalized)) return 1000000;
+    if (/الف\b/.test(normalized)) return 1000;
+
+    const candidates = [];
+    const tokenPattern = new RegExp(numberPattern, 'g');
+    let match;
+    while ((match = tokenPattern.exec(normalized))) {
+        const token = match[1];
+        const before = normalized.slice(Math.max(0, match.index - 14), match.index);
+        if (/20\d{2}$/.test(token) || /(?:شقه|وحده|رقم)\s*$/.test(before)) continue;
+        candidates.push(token);
+    }
+    return candidates.length ? parseAssistantNumericToken(candidates[0]) : null;
 }
 
 function parseAssistantOperationCommand(text, now = new Date()) {
@@ -749,10 +775,10 @@ function parseAssistantOperationCommand(text, now = new Date()) {
     const period = resolveAssistantPeriodWithContext(raw, now);
     const residentMatch = resolveAssistantResident(raw);
     const resident = residentMatch.matches.length === 1 ? residentMatch.matches[0] : null;
-    const hasIncomeVerb = /(?:سجل|سجّل|اضف|أضف|ضيف|استلم|قبض)/.test(normalized);
+    const hasIncomeVerb = /(?:سجل|سجّل|اضف|أضف|ضيف|استلم|قبض|سدد|سداد)/.test(normalized);
     const hasExpenseWord = /(?:مصروف|فاتوره|فاتورة|صرف)/.test(normalized);
     const hasAdjustmentWord = /(?:اعفاء|إعفاء|تخفيض|خصم|تسويه|تسوية)/.test(normalized);
-    if (hasIncomeVerb && !hasExpenseWord && !hasAdjustmentWord && /(?:تحصيل|دفعة|دفعه|استلام|استلم|قبض|حصّل|حصل)/.test(normalized)) {
+    if (hasIncomeVerb && !hasExpenseWord && !hasAdjustmentWord && /(?:تحصيل|دفعة|دفعه|استلام|استلم|قبض|حصّل|حصل|سدد|سداد)/.test(normalized)) {
         const purpose = parseAssistantOperationPurpose(normalized);
         const explicitCash = parseAssistantCashAccount(normalized);
         const cashAccountCode = explicitCash || (purpose === 'development' ? 'development' : purpose === 'emergency' ? 'emergency' : 'main');
