@@ -58,6 +58,7 @@ const ASSISTANT_FOLLOWUPS_OWNER = Object.freeze({
     my_receipts: ['عليّا كام الشهر ده؟', 'إعلانات المبنى'],
     my_due_date: ['عليّا كام الشهر ده؟', 'أقدر أدفع بإيه؟'],
     payment_methods: ['آخر يوم للدفع كام؟', 'رقم المدير'],
+    payment_breakdown: ['تحصيل الشهر', 'مقارنة التحصيل'],
     my_notifications: ['إعلانات المبنى', 'عليّا كام الشهر ده؟'],
     notices: ['إشعاراتي', 'رقم المدير'],
     contact: ['أقدر أدفع بإيه؟', 'عليّا كام الشهر ده؟'],
@@ -559,6 +560,7 @@ function detectAssistantIntent(normalized, hasResident) {
     if (/(اعفاء|تخفيض|تسويه|خصم|خصومات|سامحنا)/.test(normalized)) return 'adjustments';
     if (/(متاخر|متاخرات|مستحق|مديون|مش دفع|غير مدفوع|مش دافع|مش سدد|متاخرين|عليه فلوس)/.test(normalized)) return 'arrears';
     if (/(مصروف|مصاريف|صرف|منصرف|اتصرف|اللي اتدفع من الخزنه)/.test(normalized)) return 'expenses';
+    if (/(طرق التحصيل|اتدفعت بايه|دفعوا ازاي|وسيله الدفع|وسائل التحصيل|حسب طريقه الدفع)/.test(normalized)) return 'payment_breakdown';
     if (/(تحصيل|تحصيلات|ايراد|دخل|وارد|دفع|مدفوع|متحصل|المتحصلات|اللي اتجمع)/.test(normalized)) return 'income';
     if (/(خزنه|صندوق|رصيد|كاش|فلوس|سيوله|الموجود في الخزنه)/.test(normalized)) return 'cashbox';
     if (/(اعلان|اعلانات|لوحه|اخبار العماره|فيه جديد)/.test(normalized)) return 'notices';
@@ -612,6 +614,35 @@ function buildAssistantIncomeAnswer(period) {
     return { id: 'income', title, html };
 }
 
+function buildAssistantPaymentBreakdownAnswer(period) {
+    const allowed = new Set(Array.isArray(period.months) ? period.months : []);
+    const rows = (Array.isArray(state.income) ? state.income : []).filter(row => !allowed.size || allowed.has(row.month));
+    const totals = new Map();
+    let cents = 0;
+    rows.forEach(row => {
+        const amountCents = typeof toCents === 'function' ? toCents(row.amount) : Math.round((Number(row.amount) || 0) * 100);
+        if (amountCents <= 0) return;
+        const code = String(row.paymentMethod || 'unknown');
+        totals.set(code, (totals.get(code) || 0) + amountCents);
+        cents += amountCents;
+    });
+    const methods = Array.from(totals.entries()).sort((a, b) => b[1] - a[1]);
+    const labelFor = code => typeof getIncomePaymentMethodLabel === 'function'
+        ? getIncomePaymentMethodLabel(code)
+        : ({ cash: 'نقدي', wallet: 'محفظة إلكترونية', instapay: 'إنستاباي', bank_transfer: 'تحويل بنكي' }[code] || 'غير محددة');
+    const title = `طرق تحصيل ${period.label}`;
+    let html = assistantRow('إجمالي التحصيل', assistantMoney(cents / 100), cents > 0 ? 'good' : '');
+    html += assistantRow('عدد الدفعات', assistantNumber(rows.length));
+    if (methods.length) {
+        html += assistantList(methods.map(([code, value]) =>
+            `${assistantEscape(labelFor(code))} — <strong>${assistantEscape(assistantMoney(value / 100))}</strong>`
+        ));
+    } else {
+        html += assistantNote('مفيش تحصيلات مسجلة في الفترة دي.');
+    }
+    html += assistantNote('التقرير تجميعي للقراءة فقط؛ التفاصيل الكاملة موجودة في سجل التحصيل ويمكن فلترتها بطريقة الدفع.');
+    return { id: 'payment_breakdown', title, html };
+}
 function buildAssistantExpensesAnswer(period) {
     const snapshot = getAssistantExpenseSnapshot(period.months);
     const title = `مصروفات ${period.label}`;
@@ -1319,6 +1350,8 @@ function selectAssistantAnswer(intent, period, resident, now) {
             return buildAssistantExpensesAnswer(period);
         case 'income':
             return buildAssistantIncomeAnswer(period);
+        case 'payment_breakdown':
+            return buildAssistantPaymentBreakdownAnswer(period);
         case 'cashbox':
             return buildAssistantCashAnswer();
         case 'summary':

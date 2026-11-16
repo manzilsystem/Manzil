@@ -509,6 +509,22 @@ test('comparison answers use the selected month and its immediately previous mon
     assert.match(answer.html, /زيادة 75 ج\.م/);
 });
 
+test('payment breakdown answers aggregate the selected period by method', () => {
+    const { context, api } = createHarness();
+    vm.runInContext(`state.income = [
+        { id: 'cash-1', residentId: 'r1', month: 'نوفمبر 2026', amount: 70, paymentMethod: 'cash' },
+        { id: 'cash-2', residentId: 'r2', month: 'نوفمبر 2026', amount: 30, paymentMethod: 'cash' },
+        { id: 'insta-1', residentId: 'r1', month: 'نوفمبر 2026', amount: 40, paymentMethod: 'instapay' },
+        { id: 'old', residentId: 'r1', month: 'أكتوبر 2026', amount: 999, paymentMethod: 'bank_transfer' }
+    ];`, context);
+    const answer = api.answerAssistantQuery('التحصيلات اتدفعت بإيه في نوفمبر 2026؟', NOW);
+    assert.equal(answer.id, 'payment_breakdown');
+    assert.match(answer.html, /نقدًا/);
+    assert.match(answer.html, /100 ج\.م/);
+    assert.match(answer.html, /InstaPay/);
+    assert.match(answer.html, /40 ج\.م/);
+    assert.doesNotMatch(answer.html, /999 ج\.م/);
+});
 test('income answers separate subscriptions from other purposes', () => {
     const { api } = createHarness();
     const income = api.getAssistantIncomeSnapshot(['نوفمبر 2026']);
