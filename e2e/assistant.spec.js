@@ -173,6 +173,19 @@ test('the manager conversation stays offline and read-only in the real app', asy
     expect(after, 'the assistant must never write state').toBe(before);
 });
 
+test('manager expense request opens the existing form but does not record an expense', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    const countBefore = await page.evaluate(() => state.expenses.length);
+    await askAssistantQuestion(page, 'أضف مصروف كهرباء');
+
+    const answer = page.locator('#assistantLog .assistant-msg.is-bot:not(.is-typing) .assistant-bubble').last();
+    await expect(answer).toContainText('لم يتم تسجيل أي شيء بعد');
+    await answer.locator('[data-assistant-action="expense-entry"]').click();
+
+    await expect(page.locator('#expenseModal')).toBeVisible();
+    expect(await page.evaluate(() => state.expenses.length)).toBe(countBefore);
+});
+
 test('assistant reset, escape close, and launcher restore behave', async ({ page }) => {
     await seedAndOpenAssistant(page);
     const modal = page.locator('#assistantModal');

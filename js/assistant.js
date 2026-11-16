@@ -605,6 +605,38 @@ function detectAssistantIntent(normalized, hasResident) {
     return 'unknown';
 }
 
+function detectAssistantEntryAction(normalized) {
+    const asksToEnter = /(سجل|سجلي|اضف|ضيف|ادخل|دون|افتح نموذج|افتح تسجيل)/.test(normalized);
+    if (!asksToEnter) return null;
+    if (/(دفعه|تحصيل|قبض)/.test(normalized)) return 'income-entry';
+    if (/(مصروف|مصروفات|مصاريف)/.test(normalized)) return 'expense-entry';
+    return null;
+}
+
+function buildAssistantEntryActionAnswer(action) {
+    const income = action === 'income-entry';
+    const label = income ? 'التحصيل' : 'المصروف';
+    const actionLabel = income ? 'فتح نموذج التحصيل' : 'فتح نموذج المصروف';
+    return {
+        id: action,
+        title: `نموذج ${label} جاهز للمراجعة`,
+        html: `${assistantNote(`هفتح لك نموذج ${label} الأصلي. راجع كل البيانات ومعاينة التوزيع أو الرصيد، ثم احفظ من النموذج بنفسك؛ لم يتم تسجيل أي شيء بعد.`)}<div class="assistant-followups"><button type="button" class="assistant-chip is-followup" data-assistant-action="${action}">${actionLabel}</button></div>`
+    };
+}
+
+function executeAssistantEntryAction(action) {
+    if (typeof currentUserRole === 'undefined' || currentUserRole !== 'manager') return false;
+    if (action === 'income-entry' && typeof openNewIncomeModal === 'function') {
+        openNewIncomeModal();
+        return true;
+    }
+    if (action === 'expense-entry' && typeof openExpenseModal === 'function') {
+        openExpenseModal();
+        return true;
+    }
+    return false;
+}
+
 function assistantRow(label, value, tone = '') {
     const className = tone ? ` is-${tone}` : '';
     return `<div class="assistant-row${className}"><span>${assistantEscape(label)}</span><strong>${assistantEscape(value)}</strong></div>`;
@@ -1454,6 +1486,8 @@ function answerAssistantQuery(text, now = new Date()) {
         return answerOwnerAssistantQuery(text, now);
     }
     if (!normalized) return withAssistantAnswerMeta(buildAssistantHelpAnswer(), resolveAssistantPeriod(text, now), null);
+    const entryAction = detectAssistantEntryAction(normalized);
+    if (entryAction) return withAssistantAnswerMeta(buildAssistantEntryActionAnswer(entryAction), resolveAssistantPeriod(text, now), null, text);
     const residentMatch = resolveAssistantResident(text);
     if (residentMatch.matches.length > 1) {
         const answer = {
@@ -1641,6 +1675,14 @@ function askAssistant(query) {
 
 function handleAssistantSuggestion(event) {
     const target = event?.target;
+    const actionButton = target && typeof target.closest === 'function' ? target.closest('[data-assistant-action]') : null;
+    if (actionButton) {
+        const action = actionButton.getAttribute('data-assistant-action') || '';
+        if (!executeAssistantEntryAction(action) && typeof toast === 'function') {
+            toast('الإجراء متاح لمدير المبنى فقط. لم يتم تسجيل أي بيانات.', 'error');
+        }
+        return;
+    }
     const chip = target && typeof target.closest === 'function' ? target.closest('[data-assistant-query]') : null;
     if (!chip) return;
     askAssistant(chip.getAttribute('data-assistant-query') || '');

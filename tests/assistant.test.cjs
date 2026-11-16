@@ -132,6 +132,7 @@ function createHarness(seed = true, identity = {}, options = {}) {
     }
     const api = vm.runInContext(`({
         answerAssistantQuery,
+        executeAssistantEntryAction,
         buildAssistantGreetingHtml,
         cloneStateSnapshot,
         hasPendingStateSave,
@@ -418,6 +419,31 @@ test('assistant answers are read-only and never write without a confirmation flo
     assert.doesNotMatch(assistantSource, /\bstate\s*(?:\.\s*[\w$]+|\[[^\]]+\])\s*=(?!=)/, 'the assistant never assigns into `state`');
     assert.doesNotMatch(assistantSource, /supabaseClient|\.rpc\(|\.from\(\s*['"][^'"]*['"]\s*\)[\s\S]{0,40}\.(?:insert|update|upsert|delete)\b/, 'no database write path is reachable');
     assert.doesNotMatch(assistantSource, /\b(?:addIncome|addExpense|saveState|persistState|deleteResident|deleteIncome|deleteExpense)\s*\(/, 'no mutation helpers are wired into the assistant');
+});
+
+test('manager entry requests open only the native reviewed forms and never save data', () => {
+    const manager = createHarness(true);
+    const before = JSON.stringify(vm.runInContext('state', manager.context));
+    const incomeAnswer = manager.api.answerAssistantQuery('سجّل دفعة لأحمد', NOW);
+    const expenseAnswer = manager.api.answerAssistantQuery('أضف مصروف كهرباء', NOW);
+    assert.equal(incomeAnswer.id, 'income-entry');
+    assert.equal(expenseAnswer.id, 'expense-entry');
+    assert.match(incomeAnswer.html, /data-assistant-action="income-entry"/);
+    assert.match(expenseAnswer.html, /data-assistant-action="expense-entry"/);
+    assert.match(incomeAnswer.html, /لم يتم تسجيل أي شيء بعد/);
+    assert.equal(JSON.stringify(vm.runInContext('state', manager.context)), before);
+
+    const calls = [];
+    manager.context.openNewIncomeModal = () => calls.push('income');
+    manager.context.openExpenseModal = () => calls.push('expense');
+    assert.equal(manager.api.executeAssistantEntryAction('income-entry'), true);
+    assert.equal(manager.api.executeAssistantEntryAction('expense-entry'), true);
+    assert.deepEqual(calls, ['income', 'expense']);
+
+    vm.runInContext("currentUserRole = 'owner'", manager.context);
+    assert.equal(manager.api.executeAssistantEntryAction('income-entry'), false);
+    assert.deepEqual(calls, ['income', 'expense'], 'owner cannot launch manager entry forms');
+    assert.equal(JSON.stringify(vm.runInContext('state', manager.context)), before);
 });
 
 test('assistant money figures equal the reference billing values', () => {
