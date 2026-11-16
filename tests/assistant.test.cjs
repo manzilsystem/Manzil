@@ -159,6 +159,7 @@ function createHarness(seed = true, identity = {}, options = {}) {
         hasAssistantTimeHint,
         assistantFollowsResident,
         resolveAssistantPeriodWithContext,
+        assistantOperationSuccessHtml,
         confirmAssistantOperation,
         restoreAssistantSession,
         appendAssistantMessage,
@@ -526,6 +527,20 @@ test('explicit operation confirmation delegates to the official save handler', a
     assert.equal(saved, true);
     assert.equal(vm.runInContext('state.income.length', context), before + 1);
     assert.equal(vm.runInContext('state.income.at(-1).id', context), 'assistant-confirmed');
+});
+
+test('confirmed operations return a clear in-chat result with next steps', () => {
+    const { api } = createHarness(true);
+    const html = api.assistantOperationSuccessHtml({
+        type: 'income',
+        amount: 500,
+        month: 'نوفمبر 2026',
+        resident: RESIDENTS[1]
+    });
+    assert.match(html, /تم حفظ التحصيل بنجاح/);
+    assert.match(html, /سارة حسن/);
+    assert.match(html, /ملخص الشهر/);
+    assert.match(html, /آخر الحركات/);
 });
 
 test('owners cannot turn assistant operation commands into manager forms', () => {

@@ -877,6 +877,26 @@ function assistantActionButtons(operation, ready) {
     return `<div class="assistant-action-buttons" role="group" aria-label="مراجعة عملية المدير">${execute}<button type="button" class="assistant-action-secondary" onclick="openAssistantOperation()">${openLabel}</button><button type="button" class="assistant-action-cancel" onclick="cancelAssistantOperation()">إلغاء</button></div>`;
 }
 
+function assistantOperationSuccessHtml(operation) {
+    const labels = { income: 'التحصيل', expense: 'المصروف', adjustment: 'الإجراء المالي' };
+    const kindLabels = { waiver: 'إعفاء', discount: 'تخفيض', settlement: 'تسوية' };
+    const typeLabel = labels[operation?.type] || 'العملية';
+    const kind = operation?.type === 'adjustment' ? ` (${kindLabels[operation.kind] || 'إجراء'})` : '';
+    const target = operation?.type === 'expense'
+        ? `${operation.title} · ${assistantMoney(operation.amount)} · ${operation.month}`
+        : `${assistantResidentName(operation?.resident)} · شقة ${operation?.resident?.apartmentNumber || '—'} · ${assistantMoney(operation?.amount)} · ${operation?.month}`;
+    const nextQuery = operation?.type === 'expense' ? 'مصروفات الشهر' : 'ملخص الشهر';
+    return `<div class="assistant-operation-success" role="status">
+        <p class="assistant-success-title"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> تم حفظ ${assistantEscape(typeLabel)}${assistantEscape(kind)} بنجاح</p>
+        <p class="assistant-success-detail">${assistantEscape(target)}</p>
+        <p class="assistant-note">تم التنفيذ من خلال قواعد التطبيق الرسمية، وسجّل النظام العملية في سجل التدقيق.</p>
+        <div class="assistant-action-buttons" role="group" aria-label="الخطوة التالية بعد الحفظ">
+            <button type="button" class="assistant-action-secondary" data-assistant-query="${assistantEscape(nextQuery)}">${assistantEscape(nextQuery)}</button>
+            <button type="button" class="assistant-action-secondary" data-assistant-query="آخر الحركات">آخر الحركات</button>
+        </div>
+    </div>`;
+}
+
 function openAssistantOperation() {
     if (!assistantOperationDraft || assistantIsOwner()) return false;
     const draft = assistantOperationDraft;
@@ -930,6 +950,19 @@ async function confirmAssistantOperation() {
             : adjustmentAfter > adjustmentBefore;
     if (!saved) assistantOperationDraft = draft;
     if (!saved && typeof toast === 'function') toast('لم يتم الحفظ. راجع الحقول أو رسالة التحقق في النموذج.', 'error');
+    if (saved) {
+        const successHtml = assistantOperationSuccessHtml(draft);
+        const reopenAssistant = () => {
+            if (!document.getElementById('assistantModal')) return;
+            openAssistantModal();
+            appendAssistantMessage('bot', successHtml);
+        };
+        // The income flow may open the receipt modal after its submit handler
+        // resolves. Reopen on the next turn so the assistant remains the
+        // user's operational workspace without bypassing the receipt.
+        if (typeof setTimeout === 'function') setTimeout(reopenAssistant, 0);
+        else reopenAssistant();
+    }
     return saved;
 }
 

@@ -4262,6 +4262,27 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 }
 .assistant-list li { font-size: var(--font-72); line-height: var(--leading-170); }
 .assistant-note { margin-top: var(--space-45); color: var(--text-muted); font-size: var(--font-67); line-height: var(--leading-170); }
+.assistant-operation-success {
+    display: grid;
+    gap: var(--space-25);
+    padding: var(--space-55);
+    border: 1px solid color-mix(in srgb, var(--state-success) 36%, var(--border-color));
+    border-radius: var(--radius-75);
+    background: color-mix(in srgb, var(--state-success) 7%, transparent);
+}
+.assistant-success-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-35);
+    color: var(--state-success);
+    font-size: var(--font-76);
+    font-weight: var(--weight-900);
+}
+.assistant-success-detail {
+    color: var(--text-main);
+    font-size: var(--font-72);
+    font-weight: var(--weight-700);
+}
 .assistant-action-buttons {
     display: flex;
     flex-wrap: wrap;
