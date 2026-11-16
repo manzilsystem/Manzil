@@ -1314,9 +1314,30 @@
             </form>
             <p id="assistantVoiceStatus" class="assistant-voice-status" role="status" hidden></p>
             <div class="assistant-voice-actions">
-                <button type="button" id="assistantVoiceCancelButton" class="assistant-voice-action" onclick="cancelAssistantVoiceDownload()" hidden>إلغاء التنزيل</button>
                 <button type="button" id="assistantVoiceDeleteButton" class="assistant-voice-action" onclick="deleteAssistantVoiceModel()" hidden>حذف نموذج الصوت من الجهاز</button>
             </div>
             <p class="assistant-footnote"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> كل الردود محسوبة داخل جهازك من بيانات التطبيق. عند أول ضغط على الميكروفون يُنزّل نموذج التعرف المصري (317MB) تلقائيًا من مستودع GitHub ويُحفظ في مساحة المتصفح؛ الصوت والتفريغ يعملان محليًا، ويُعرض النص للمراجعة قبل الإرسال.</p>
+        </div>
+    </div>
+
+    <!-- First-use speech model download dialog -->
+    <div id="assistantVoiceDownloadModal" role="dialog" aria-modal="true" aria-labelledby="assistantVoiceDownloadTitle" aria-describedby="assistantVoiceDownloadDescription assistantVoiceDownloadStatus" aria-hidden="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-[70] p-4">
+        <div class="app-card assistant-voice-download-card border shadow-2xl animate-fadeIn">
+            <div class="assistant-voice-download-heading">
+                <span class="assistant-voice-download-icon" aria-hidden="true"><i class="fa-solid fa-microphone-lines"></i></span>
+                <div>
+                    <h3 id="assistantVoiceDownloadTitle">تنزيل نموذج التعرف الصوتي</h3>
+                    <p id="assistantVoiceDownloadDescription">يُنزّل النموذج تلقائيًا في أول استخدام للميكروفون فقط (317MB)، ثم يُحفظ في مساحة هذا المتصفح. التسجيل والتفريغ يبقيان على جهازك.</p>
+                </div>
+            </div>
+            <progress id="assistantVoiceDownloadProgress" class="assistant-voice-download-progress" max="100" value="0" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="تقدم تنزيل نموذج التعرف الصوتي">0%</progress>
+            <div class="assistant-voice-download-meta" aria-hidden="true">
+                <span id="assistantVoiceDownloadPercentage">0%</span>
+                <span id="assistantVoiceDownloadBytes">0 / 317 MB</span>
+            </div>
+            <p id="assistantVoiceDownloadStatus" class="assistant-voice-download-status" role="status" aria-live="polite">جارٍ تهيئة تنزيل النموذج…</p>
+            <div class="assistant-voice-download-actions">
+                <button type="button" id="assistantVoiceCancelButton" class="assistant-voice-action" onclick="cancelAssistantVoiceDownload()" hidden>إلغاء التنزيل</button>
+            </div>
         </div>
     </div>
