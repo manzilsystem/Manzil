@@ -61,10 +61,45 @@ test('nothing speech-related is fetched before the user asks for voice', async (
     await openAssistant(page);
     expect(await speechRequests(page), 'the runtime and model must stay lazy').toEqual([]);
     await expect(page.locator('#assistantVoiceDeleteButton')).toBeHidden();
+    await expect(page.locator('#assistantVoiceDownloadModal')).toBeHidden();
     expect(await countMicrophoneCalls(page)).toBe(0);
 });
 
-test('the first microphone click automatically requests the pinned GitHub model without a download-confirmation dialog', async ({ page }) => {
+test('the first microphone click opens the model progress dialog and requests the pinned GitHub model', async ({ page }) => {
+    await seedManager(page);
+    await openAssistant(page);
+    const requests = [];
+    let resolveRequestSeen;
+    const requestSeen = new Promise(resolve => { resolveRequestSeen = resolve; });
+    page.on('request', request => {
+        if (request.url().includes('raw.githubusercontent.com/manzilsystem/manzil-assistant-assets/')) {
+            requests.push(request.url());
+            resolveRequestSeen();
+        }
+    });
+    await page.route('**/raw.githubusercontent.com/manzilsystem/manzil-assistant-assets/**', async route => {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        try { await route.abort('failed'); } catch {}
+    });
+
+    await page.locator('#assistantVoiceButton').click();
+
+    await requestSeen;
+    await expect(page.locator('#assistantVoiceDownloadModal')).toBeVisible();
+    await expect(page.locator('#assistantVoiceDownloadProgress')).toHaveAttribute('aria-valuenow', '0');
+    await expect(page.locator('#assistantVoiceDownloadPercentage')).toHaveText('0%');
+    await expect(page.locator('#assistantVoiceDownloadBytes')).toHaveText('0 / 317 MB');
+    await expect(page.locator('#assistantVoiceCancelButton')).toBeVisible();
+    await page.locator('#assistantVoiceCancelButton').click();
+    await expect(page.locator('#assistantVoiceDownloadModal')).toBeHidden();
+    await expect(page.locator('#assistantVoiceStatus')).toContainText('تم إلغاء تنزيل النموذج', { timeout: 30_000 });
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatch(/raw\.githubusercontent\.com\/manzilsystem\/manzil-assistant-assets\/4dbb976b416dedcd1a2f42c0be7841e8c503c66b\/speech\/egyptian-arabic-wav2vec2\/model_int8\.onnx\.part-00$/);
+    expect(await countMicrophoneCalls(page), 'cancelling keeps the mic closed').toBe(0);
+});
+
+test('a failed GitHub model chunk closes the progress dialog without opening the microphone', async ({ page }) => {
     await seedManager(page);
     await openAssistant(page);
     const requests = [];
@@ -74,6 +109,7 @@ test('the first microphone click automatically requests the pinned GitHub model 
     await page.locator('#assistantVoiceButton').click();
 
     await expect(page.locator('#assistantVoiceStatus')).toContainText('تعذر تجهيز الصوت', { timeout: 30_000 });
+    await expect(page.locator('#assistantVoiceDownloadModal')).toBeHidden();
     expect(requests).toHaveLength(1);
     expect(requests[0]).toMatch(/raw\.githubusercontent\.com\/manzilsystem\/manzil-assistant-assets\/4dbb976b416dedcd1a2f42c0be7841e8c503c66b\/speech\/egyptian-arabic-wav2vec2\/model_int8\.onnx\.part-00$/);
     expect(await countMicrophoneCalls(page), 'the mic remains closed until verified model data is available').toBe(0);
@@ -92,6 +128,7 @@ test('a failed GitHub model chunk never opens the microphone or fills the transc
 
     await expect(page.locator('#assistantVoiceStatus')).toBeVisible();
     await expect(page.locator('#assistantVoiceStatus')).toContainText('تعذر تجهيز الصوت', { timeout: 30_000 });
+    await expect(page.locator('#assistantVoiceDownloadModal')).toBeHidden();
     expect(modelRequests.length, 'the first pinned GitHub chunk is the only attempted model request').toBe(1);
     expect(modelRequests[0]).toMatch(/raw\.githubusercontent\.com\/manzilsystem\/manzil-assistant-assets\/4dbb976b416dedcd1a2f42c0be7841e8c503c66b\/speech\/egyptian-arabic-wav2vec2\/model_int8\.onnx\.part-00$/);
     const requests = await speechRequests(page);

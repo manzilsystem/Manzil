@@ -27,6 +27,7 @@ let assistantVoiceBusy = false;
 let assistantVoiceDiscardRecording = false;
 let assistantVoiceDownloadController = null;
 let assistantVoiceRuntimePromise = null;
+let assistantVoiceLastAnnouncedProgress = -1;
 
 function assistantVoiceRelease() {
     return (typeof window.MANZIL_RELEASE === 'string' && window.MANZIL_RELEASE) || 'dev';
@@ -72,6 +73,69 @@ function assistantVoiceStatus(message) {
     if (!status) return;
     status.textContent = message;
     status.hidden = !message;
+}
+
+function assistantVoiceDownloadStatus(message) {
+    const status = document.getElementById('assistantVoiceDownloadStatus');
+    if (status) status.textContent = message;
+    assistantVoiceStatus(message);
+}
+
+function assistantVoiceUpdateDownloadProgress(loadedBytes) {
+    const progress = document.getElementById('assistantVoiceDownloadProgress');
+    const percentageLabel = document.getElementById('assistantVoiceDownloadPercentage');
+    const bytesLabel = document.getElementById('assistantVoiceDownloadBytes');
+    const percentage = Math.max(0, Math.min(100, Math.floor((loadedBytes / ASSISTANT_ASR_MODEL_SIZE) * 100)));
+    if (progress) {
+        progress.value = percentage;
+        progress.setAttribute('aria-valuenow', String(percentage));
+    }
+    if (percentageLabel) percentageLabel.textContent = `${percentage}%`;
+    if (bytesLabel) bytesLabel.textContent = `${Math.min(317, Math.floor(loadedBytes / 1_000_000))} / 317 MB`;
+    if (percentage !== assistantVoiceLastAnnouncedProgress) {
+        assistantVoiceLastAnnouncedProgress = percentage;
+        assistantVoiceDownloadStatus(`جارٍ تنزيل نموذج التعرف الصوتي: ${percentage}%…`);
+    }
+}
+
+function assistantVoiceShowDownloadDialog() {
+    const modal = document.getElementById('assistantVoiceDownloadModal');
+    if (!modal) return;
+    const progress = document.getElementById('assistantVoiceDownloadProgress');
+    const percentageLabel = document.getElementById('assistantVoiceDownloadPercentage');
+    const bytesLabel = document.getElementById('assistantVoiceDownloadBytes');
+    const cancelButton = document.getElementById('assistantVoiceCancelButton');
+    assistantVoiceLastAnnouncedProgress = -1;
+    if (progress) {
+        progress.value = 0;
+        progress.setAttribute('aria-valuenow', '0');
+    }
+    if (percentageLabel) percentageLabel.textContent = '0%';
+    if (bytesLabel) bytesLabel.textContent = '0 / 317 MB';
+    if (cancelButton) cancelButton.hidden = false;
+    modal.setAttribute('aria-busy', 'true');
+    assistantVoiceDownloadStatus('جارٍ تهيئة تنزيل النموذج…');
+    if (typeof openModal === 'function') openModal('assistantVoiceDownloadModal');
+    else {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        modal.setAttribute('aria-hidden', 'false');
+    }
+}
+
+function assistantVoiceCloseDownloadDialog() {
+    const modal = document.getElementById('assistantVoiceDownloadModal');
+    const cancelButton = document.getElementById('assistantVoiceCancelButton');
+    if (cancelButton) cancelButton.hidden = true;
+    if (!modal) return;
+    modal.setAttribute('aria-busy', 'false');
+    if (modal.classList.contains('hidden')) return;
+    if (typeof closeModal === 'function') closeModal('assistantVoiceDownloadModal');
+    else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modal.setAttribute('aria-hidden', 'true');
+    }
 }
 
 function assistantVoiceButton(recording, busy = false) {
@@ -193,6 +257,36 @@ async function assistantVoiceSyncModelControls() {
     }
 }
 
+async function assistantVoiceReadModelChunk(response, expectedSize, downloadedSize) {
+    const reader = response.body?.getReader();
+    if (!reader) {
+        const blob = await response.blob();
+        if (blob.size !== expectedSize) throw new Error('The downloaded speech model chunk has an unexpected size');
+        assistantVoiceUpdateDownloadProgress(downloadedSize + blob.size);
+        return blob;
+    }
+
+    const pieces = [];
+    let size = 0;
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            size += value.byteLength;
+            if (size > expectedSize) throw new Error('The downloaded speech model chunk is larger than expected');
+            pieces.push(value);
+            assistantVoiceUpdateDownloadProgress(downloadedSize + size);
+        }
+    } catch (error) {
+        try { await reader.cancel(error); } catch {}
+        throw error;
+    } finally {
+        reader.releaseLock();
+    }
+    if (size !== expectedSize) throw new Error('The downloaded speech model chunk has an unexpected size');
+    return new Blob(pieces, { type: 'application/octet-stream' });
+}
+
 async function assistantVoiceDownloadModel(signal) {
     const chunks = [];
     let totalSize = 0;
@@ -205,12 +299,12 @@ async function assistantVoiceDownloadModel(signal) {
         });
         if (!response.ok) throw new Error(`Model chunk ${index + 1} download failed (${response.status})`);
 
-        const chunk = await response.blob();
         const expectedSize = Math.min(ASSISTANT_ASR_MODEL_CHUNK_SIZE, ASSISTANT_ASR_MODEL_SIZE - totalSize);
+        const chunk = await assistantVoiceReadModelChunk(response, expectedSize, totalSize);
         if (chunk.size !== expectedSize) throw new Error(`Model chunk ${index + 1} has an unexpected size`);
         chunks.push(chunk);
         totalSize += chunk.size;
-        assistantVoiceStatus(`جارٍ تنزيل نموذج الصوت من مستودع GitHub (${index + 1}/${ASSISTANT_ASR_MODEL_CHUNK_COUNT})…`);
+        assistantVoiceDownloadStatus(`جارٍ تنزيل نموذج الصوت من مستودع GitHub (${index + 1}/${ASSISTANT_ASR_MODEL_CHUNK_COUNT})…`);
     }
 
     if (totalSize !== ASSISTANT_ASR_MODEL_SIZE) throw new Error('The downloaded speech model has an unexpected size');
@@ -222,38 +316,47 @@ async function assistantVoiceLoadModel() {
     if (assistantAsrSessionPromise) return assistantAsrSessionPromise;
 
     assistantAsrSessionPromise = (async () => {
-        const ort = await assistantVoiceLoadRuntime();
         let modelBlob = await assistantVoiceGetCachedModel();
-        let modelBytes = null;
-        if (!modelBlob) {
-            assistantVoiceStatus('جارٍ تنزيل نموذج الصوت المصري تلقائيًا من GitHub (317MB)…');
+        const needsDownload = !modelBlob;
+        if (needsDownload) {
             assistantVoiceDownloadController = new AbortController();
-            const cancelButton = document.getElementById('assistantVoiceCancelButton');
-            if (cancelButton) cancelButton.hidden = false;
-            try {
+            assistantVoiceShowDownloadDialog();
+        }
+
+        const cancelButton = document.getElementById('assistantVoiceCancelButton');
+        try {
+            const ort = await assistantVoiceLoadRuntime();
+            if (needsDownload && assistantVoiceDownloadController.signal.aborted) {
+                throw new DOMException('The speech model download was cancelled', 'AbortError');
+            }
+            let modelBytes = null;
+            if (needsDownload) {
                 modelBlob = await assistantVoiceDownloadModel(assistantVoiceDownloadController.signal);
-                assistantVoiceStatus('جارٍ التحقق من سلامة النموذج…');
+                assistantVoiceDownloadStatus('اكتمل التنزيل. جارٍ التحقق من سلامة النموذج…');
                 modelBytes = await modelBlob.arrayBuffer();
                 const digest = await assistantVoiceModelDigest(modelBytes);
                 if (digest !== ASSISTANT_ASR_MODEL_SHA256) throw new Error('The downloaded speech model failed integrity verification');
-            } finally {
+                assistantVoiceDownloadStatus('تم التحقق. جارٍ حفظ النموذج في مساحة المتصفح…');
+                await assistantVoiceWriteCachedModel(modelBlob);
+                await assistantVoiceSyncModelControls();
+            }
+
+            if (needsDownload) assistantVoiceDownloadStatus('تم حفظ النموذج. جارٍ تشغيل محرك التعرف…');
+            ort.env.wasm.wasmPaths = new URL('js/vendor/', document.baseURI).href;
+            ort.env.wasm.numThreads = 1;
+            if (!modelBytes) modelBytes = await modelBlob.arrayBuffer();
+            assistantAsrSession = await ort.InferenceSession.create(modelBytes, {
+                executionProviders: ['wasm']
+            });
+            modelBytes = null;
+            await assistantVoiceSyncModelControls();
+            return assistantAsrSession;
+        } finally {
+            if (needsDownload) {
                 assistantVoiceDownloadController = null;
                 if (cancelButton) cancelButton.hidden = true;
             }
-            assistantVoiceStatus('جارٍ حفظ النموذج في مساحة المتصفح…');
-            await assistantVoiceWriteCachedModel(modelBlob);
-            await assistantVoiceSyncModelControls();
         }
-
-        ort.env.wasm.wasmPaths = new URL('js/vendor/', document.baseURI).href;
-        ort.env.wasm.numThreads = 1;
-        if (!modelBytes) modelBytes = await modelBlob.arrayBuffer();
-        assistantAsrSession = await ort.InferenceSession.create(modelBytes, {
-            executionProviders: ['wasm']
-        });
-        modelBytes = null;
-        await assistantVoiceSyncModelControls();
-        return assistantAsrSession;
     })();
 
     try {
@@ -475,9 +578,11 @@ async function startAssistantVoiceInput() {
         const modelCached = await assistantVoiceHasCachedModel();
         assistantVoiceStatus(modelCached ? 'جارٍ تجهيز نموذج التعرف الصوتي محليًا…' : 'جارٍ تنزيل نموذج الصوت من GitHub لأول مرة…');
         await assistantVoiceLoadModel();
+        assistantVoiceCloseDownloadDialog();
         assistantVoiceStatus('اكتمل تجهيز النموذج. جارٍ فتح الميكروفون…');
         await assistantVoiceBeginRecording();
     } catch (error) {
+        assistantVoiceCloseDownloadDialog();
         if (error && error.name === 'AbortError') {
             assistantVoiceStatus('تم إلغاء تنزيل النموذج. يمكنك استخدام الشات الكتابي.');
             await assistantVoiceSyncModelControls();
@@ -498,7 +603,7 @@ async function startAssistantVoiceInput() {
 
 function cancelAssistantVoiceDownload() {
     if (!assistantVoiceDownloadController) return;
-    assistantVoiceStatus('جارٍ إلغاء تنزيل النموذج…');
+    assistantVoiceDownloadStatus('جارٍ إلغاء تنزيل النموذج…');
     assistantVoiceDownloadController.abort();
 }
 
@@ -538,6 +643,8 @@ const assistantVoiceModal = document.getElementById('assistantModal');
 if (assistantVoiceModal && typeof MutationObserver === 'function') {
     new MutationObserver(() => {
         if (assistantVoiceModal.classList.contains('hidden')) {
+            if (assistantVoiceDownloadController) assistantVoiceDownloadController.abort();
+            assistantVoiceCloseDownloadDialog();
             assistantVoiceStopRecording(true);
             if (assistantVoiceStream) {
                 assistantVoiceStream.getTracks().forEach(track => track.stop());

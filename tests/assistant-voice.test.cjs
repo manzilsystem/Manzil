@@ -13,6 +13,7 @@ const modal = read('src/partials/modals.html');
 const template = read('src/index.template.html');
 const html = read('index.html');
 const sw = read('sw.js');
+const app = read('js/app.js');
 
 test('the speech runtime, its license and the model license are committed', () => {
     assert.match(read('js/vendor/onnxruntime-web.min.js'), /onnxruntime/);
@@ -66,6 +67,19 @@ test('the model and runtime load automatically on the first microphone request w
     assert.match(sw, /'\.\/js\/assistant-voice\.js\?v=[0-9a-f]{10}'/);
     const shell = sw.match(/const APP_SHELL = \[([\s\S]*?)\];/)[1];
     assert.ok(!shell.includes('onnxruntime') && !shell.includes('ort-wasm'), 'the runtime must not bloat the app shell');
+});
+
+test('the first model download opens an accessible progress dialog that owners may use and cancel', () => {
+    assert.match(voice, /function assistantVoiceShowDownloadDialog\(\)/);
+    assert.match(voice, /function assistantVoiceUpdateDownloadProgress\(loadedBytes\)/);
+    assert.match(voice, /response\.body\?\.getReader\(\)/);
+    assert.match(voice, /assistantVoiceUpdateDownloadProgress\(downloadedSize \+ size\)/);
+    assert.match(modal, /id="assistantVoiceDownloadModal" role="dialog" aria-modal="true"[^>]*aria-labelledby="assistantVoiceDownloadTitle"/);
+    assert.match(modal, /<progress id="assistantVoiceDownloadProgress"[^>]*max="100" value="0"[^>]*aria-valuenow="0"/);
+    assert.match(modal, /id="assistantVoiceDownloadPercentage"/);
+    assert.match(modal, /id="assistantVoiceDownloadBytes"/);
+    assert.match(app, /OWNER_ALLOWED_MODALS = new Set\(\['assistantModal', 'assistantVoiceDownloadModal'\]\)/);
+    assert.match(app, /window\.cancelAssistantVoiceDownload\?\.\(\)/);
 });
 
 test('the service worker serves the runtime WASM loader as a JavaScript module', () => {

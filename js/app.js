@@ -48,7 +48,7 @@ function focusModal(modal) {
 }
 
 // Modals an owner may open: the assistant is read-only and answers only from the owner's own scoped data.
-const OWNER_ALLOWED_MODALS = new Set(['assistantModal']);
+const OWNER_ALLOWED_MODALS = new Set(['assistantModal', 'assistantVoiceDownloadModal']);
 
 function openModal(id) {
     if (id !== 'pinLockModal' && !OWNER_ALLOWED_MODALS.has(id) && !requireManager()) return;
@@ -74,6 +74,7 @@ function openModal(id) {
 function closeModal(id) {
     const modal = document.getElementById(id);
     if (!modal) return;
+    if (id === 'assistantVoiceDownloadModal') window.cancelAssistantVoiceDownload?.();
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     modal.setAttribute('aria-hidden', 'true');

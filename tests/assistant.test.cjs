@@ -886,7 +886,7 @@ test('owners keep the launcher and can open the assistant without manager rights
     assert.match(supabaseSource, /if \(typeof syncAssistantFab === 'function'\) syncAssistantFab\(\)/, 'the launcher syncs once the session is known');
     assert.match(stateSource, /var currentProfileName = null;/);
     assert.match(appSource, /if \(id !== 'pinLockModal' && !OWNER_ALLOWED_MODALS\.has\(id\) && !requireManager\(\)\) return;/);
-    assert.match(appSource, /const OWNER_ALLOWED_MODALS = new Set\(\['assistantModal'\]\);/, 'the assistant is the only modal an owner may open');
+    assert.match(appSource, /const OWNER_ALLOWED_MODALS = new Set\(\['assistantModal', 'assistantVoiceDownloadModal'\]\);/, 'owners may open only the assistant and its speech-download dialog');
 });
 
 test('owner notices and notifications never surface the manager feed', () => {
