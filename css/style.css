@@ -4283,6 +4283,33 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 .assistant-action-secondary:hover { border-color: var(--accent-color); background: color-mix(in srgb, var(--accent-color) 18%, var(--bg-input)); }
 .assistant-action-cancel { background: transparent; color: var(--text-muted); }
 .assistant-action-cancel:hover { border-color: var(--state-danger); color: var(--state-danger); }
+.assistant-quick-actions {
+    padding: var(--space-65) var(--space-80) var(--space-50);
+    border-top: 1px solid var(--border-color);
+    background: color-mix(in srgb, var(--accent-color) 4%, transparent);
+}
+.assistant-quick-actions[hidden] { display: none; }
+.assistant-quick-actions-title { margin: var(--space-none) var(--space-none) var(--space-45); font-size: var(--font-70); font-weight: var(--weight-800); }
+.assistant-quick-actions-list { display: flex; flex-wrap: wrap; gap: var(--space-35); }
+.assistant-quick-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-55);
+    min-height: 2.35rem;
+    padding: var(--space-35) var(--space-65);
+    border: 1px solid color-mix(in srgb, var(--accent-color) 45%, var(--border-color));
+    border-radius: var(--radius-70);
+    background: var(--bg-input);
+    color: var(--text-main);
+    font-size: var(--font-68);
+    font-weight: var(--weight-800);
+    transition: background var(--motion-150) var(--ease-standard), border-color var(--motion-150) var(--ease-standard), transform var(--motion-150) var(--ease-standard);
+}
+.assistant-quick-action span { color: var(--accent-color); font-size: var(--font-90); line-height: var(--leading-120); }
+.assistant-quick-action:hover { border-color: var(--accent-color); background: color-mix(in srgb, var(--accent-color) 12%, var(--bg-input)); transform: translateY(-1px); }
+.assistant-quick-action:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; }
+.assistant-quick-actions-hint { margin: var(--space-40) var(--space-none) var(--space-none); color: var(--text-muted); font-size: var(--font-62); line-height: var(--leading-160); }
 .assistant-suggestions {
     display: flex;
     gap: var(--space-40);

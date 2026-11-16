@@ -279,6 +279,27 @@ test('عم عبده is written-only and exposes no microphone, recording, or spe
     assert.doesNotMatch(appSource, /getUserMedia|MediaRecorder|speechSynthesis|SpeechSynthesisUtterance/i);
 });
 
+test('manager quick actions are visible, start incomplete operation drafts, and remain hidden from owners', () => {
+    const { api: managerApi } = createHarness(true);
+    const queries = ['سجل تحصيل', 'أضف مصروف', 'سجل إعفاء', 'اعمل تسوية'];
+    for (const query of queries) {
+        const answer = managerApi.answerAssistantQuery(query, NOW);
+        assert.equal(answer.id, 'operation-missing', `${query} should enter the existing incomplete-draft flow`);
+        assert.match(answer.html, /ناقص/);
+    }
+    assert.match(assistantSource, /function populateAssistantQuickActions\(\)/);
+    assert.match(assistantSource, /if \(section\) section\.hidden = !isManager/);
+    assert.match(html, /id="assistantQuickActions"[^>]*hidden/);
+    assert.match(html, /إجراءات المدير السريعة/);
+    assert.match(css, /\.assistant-quick-action:focus-visible/);
+
+    const { api: ownerApi } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    for (const query of queries) {
+        const answer = ownerApi.answerAssistantQuery(query, NOW);
+        assert.notEqual(answer.id, 'operation-preview');
+    }
+});
+
 test('an owner cannot inspect another apartment by number, resident name, or building-wide wording', () => {
     const { context, api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
     vm.runInContext(`state.residents = ${JSON.stringify(RESIDENTS)}; state.income = ${JSON.stringify(INCOME)};`, context);

@@ -25,6 +25,12 @@ const ASSISTANT_SUGGESTIONS_OWNER = Object.freeze([
     { label: 'إعلانات المبنى', query: 'إعلانات المبنى' },
     { label: 'أكلم المدير', query: 'رقم المدير' }
 ]);
+const ASSISTANT_MANAGER_QUICK_ACTIONS = Object.freeze([
+    { label: 'تسجيل تحصيل', query: 'سجل تحصيل' },
+    { label: 'إضافة مصروف', query: 'أضف مصروف' },
+    { label: 'تسجيل إعفاء', query: 'سجل إعفاء' },
+    { label: 'تسجيل تسوية', query: 'اعمل تسوية' }
+]);
 
 const ASSISTANT_TYPING_DELAY_MS = 140;
 const ASSISTANT_HISTORY_LIMIT = 30;
@@ -1921,6 +1927,17 @@ function populateAssistantSuggestions() {
     ).join('');
 }
 
+function populateAssistantQuickActions() {
+    const section = document.getElementById('assistantQuickActions');
+    const container = document.getElementById('assistantQuickActionButtons');
+    const isManager = !assistantIsOwner();
+    if (section) section.hidden = !isManager;
+    if (!container || !isManager) return;
+    container.innerHTML = ASSISTANT_MANAGER_QUICK_ACTIONS.map(item =>
+        `<button type="button" class="assistant-quick-action" data-assistant-query="${assistantEscape(item.query)}">${assistantEscape(item.label)}<span aria-hidden="true">＋</span></button>`
+    ).join('');
+}
+
 function restoreAssistantChat() {
     restoreAssistantSession();
     if (assistantChat.length) {
@@ -1937,6 +1954,7 @@ function openAssistantModal() {
     }
     if (typeof openModal === 'function') openModal('assistantModal');
     syncAssistantFab();
+    populateAssistantQuickActions();
     populateAssistantSuggestions();
     const log = document.getElementById('assistantLog');
     if (log && !log.children.length) restoreAssistantChat();

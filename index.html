@@ -18,7 +18,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css?v=80e6aab07f">
+    <link rel="stylesheet" href="css/style.css?v=9943edf8f7">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -2178,6 +2178,11 @@
                 <button type="button" class="assistant-icon-button" onclick="closeModal('assistantModal')" aria-label="إغلاق مساعد عم عبده"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             </header>
             <div id="assistantLog" class="assistant-log" role="log" aria-live="polite" aria-label="محادثة عم عبده البواب" onclick="handleAssistantSuggestion(event)"></div>
+            <section id="assistantQuickActions" class="assistant-quick-actions" aria-label="إجراءات المدير السريعة" hidden>
+                <p class="assistant-quick-actions-title">إجراءات المدير</p>
+                <div id="assistantQuickActionButtons" class="assistant-quick-actions-list" onclick="handleAssistantSuggestion(event)"></div>
+                <p class="assistant-quick-actions-hint">هتبدأ المسودة، وعم عبده هيطلب البيانات الناقصة ويعرضها عليك قبل الحفظ.</p>
+            </section>
             <div id="assistantSuggestions" class="assistant-suggestions" aria-label="أسئلة مقترحة" onclick="handleAssistantSuggestion(event)"></div>
             <form class="assistant-form" onsubmit="sendAssistantMessage(event)">
                 <label for="assistantInput" class="sr-only">اكتب سؤالك لعم عبده</label>
@@ -2189,7 +2194,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-8869f875e3"></script>
+    <script src="js/telemetry.js?v=manzil-ff6aca0b23"></script>
     <script src="js/state.js?v=a1327e49bc"></script>
     <script src="js/access.js?v=0e8f36ff5c"></script>
     <script src="js/render.js?v=38a35471ba"></script>
@@ -2202,7 +2207,7 @@
     <script src="js/cashbox.js?v=3ca9f6a1d8"></script>
     <script src="js/monthly-close.js?v=3931791f32"></script>
     <script src="js/backup.js?v=6f6d4ebbf1"></script>
-    <script src="js/assistant.js?v=6bf7f550c8"></script>
+    <script src="js/assistant.js?v=85fe28ebe9"></script>
     <script src="js/app.js?v=bb82ca8bd3"></script>
 </body>
 </html>
