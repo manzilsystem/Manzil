@@ -208,6 +208,27 @@ test('assistant report navigation closes chat before showing the reports screen'
     await expect(page.locator('#tab-reports')).toBeVisible();
 });
 
+test('assistant manager shortcuts stay inside the dialog on narrow screens', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    await page.locator('#assistantTools > summary').click();
+
+    const list = page.locator('#assistantQuickActionButtons');
+    if (page.viewportSize().width <= 420) {
+        await expect.poll(() => list.evaluate(element => getComputedStyle(element).display)).toBe('grid');
+    }
+    const dialog = await page.locator('#assistantModal .assistant-shell').boundingBox();
+    const buttons = await list.locator('.assistant-quick-action').evaluateAll(elements => elements.map(element => {
+        const rect = element.getBoundingClientRect();
+        return { left: rect.left, right: rect.right, width: element.clientWidth, scrollWidth: element.scrollWidth };
+    }));
+    expect(buttons.length).toBeGreaterThan(0);
+    for (const button of buttons) {
+        expect(button.left).toBeGreaterThanOrEqual(dialog.x - 1);
+        expect(button.right).toBeLessThanOrEqual(dialog.x + dialog.width + 1);
+        expect(button.scrollWidth).toBeLessThanOrEqual(button.width + 1);
+    }
+});
+
 test('assistant notice shortcut closes chat before opening the notice form', async ({ page }) => {
     await seedAndOpenAssistant(page);
     await page.locator('#assistantTools > summary').click();

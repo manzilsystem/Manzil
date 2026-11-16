@@ -4347,8 +4347,11 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 .assistant-disclosure-body { padding: var(--space-25) var(--space-80) var(--space-65); }
 .assistant-tools-body {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-55);
+    min-width: 0;
     max-height: min(34vh, 15rem);
+    overflow-x: hidden;
     overflow-y: auto;
     padding: var(--space-35) var(--space-80) var(--space-65);
     overscroll-behavior: contain;
@@ -4483,6 +4486,11 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 @media (max-width: 420px) {
     .assistant-bubble { max-width: 94%; }
     .assistant-head-copy p { display: none; }
+    .assistant-tools-body > *,
+    .assistant-quick-actions-list { min-width: 0; width: 100%; }
+    .assistant-quick-actions-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .assistant-quick-action { width: 100%; min-width: 0; gap: var(--space-35); padding-inline: var(--space-40); white-space: normal; }
+    .assistant-quick-action span { flex: 0 0 auto; }
 }
 @media print {
     #assistantModal { display: none !important; }
