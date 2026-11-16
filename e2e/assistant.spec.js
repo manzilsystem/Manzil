@@ -238,6 +238,32 @@ test('assistant notice shortcut closes chat before opening the notice form', asy
     await expect(page.locator('#noticeModal')).toBeVisible();
 });
 
+test('assistant operation card button opens the official income form', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    await page.locator('#assistantTools > summary').click();
+    await page.locator('#assistantQuickActionButtons [data-assistant-query="سجل تحصيل"]').click();
+
+    const openForm = page.locator('#assistantLog').getByRole('button', { name: 'فتح النموذج لاستكمالها' });
+    await expect(openForm).toBeVisible();
+    await openForm.click();
+
+    await expect(page.locator('#assistantModal')).toBeHidden();
+    await expect(page.locator('#incomeModal')).toBeVisible();
+    await expect(page.locator('#incomeWizardStep1')).toBeVisible();
+    await expect(page.locator('#incomeResident')).toHaveValue('');
+});
+
+test('assistant does not offer a broken adjustment form action without a resident', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    await page.locator('#assistantInput').fill('سجل إعفاء');
+    await page.locator('#assistantInput').press('Enter');
+
+    const log = page.locator('#assistantLog');
+    await expect(log).toContainText('المالك أو رقم الشقة');
+    await expect(log.getByRole('button', { name: 'فتح النموذج لاستكمالها' })).toHaveCount(0);
+    await expect(log.getByRole('button', { name: 'إلغاء' })).toBeVisible();
+});
+
 test.describe('assistant floating launcher', () => {
     test.beforeEach(async ({ page }) => {
         await loadShell(page);

@@ -969,8 +969,17 @@ function assistantActionButtons(operation, ready) {
     const execute = ready && assistantOperationCanExecute(operation)
         ? '<button type="button" class="assistant-action-confirm" onclick="confirmAssistantOperation()">تنفيذ وحفظ</button>'
         : '';
-    const openLabel = ready ? 'فتح النموذج للمراجعة' : 'فتح النموذج لاستكمالها';
-    return `<div class="assistant-action-buttons" role="group" aria-label="مراجعة عملية المدير">${execute}<button type="button" class="assistant-action-secondary" onclick="openAssistantOperation()">${openLabel}</button><button type="button" class="assistant-action-cancel" onclick="cancelAssistantOperation()">إلغاء</button></div>`;
+    const openForm = assistantOperationCanOpenForm(operation)
+        ? `<button type="button" class="assistant-action-secondary" onclick="openAssistantOperation()">${ready ? 'فتح النموذج للمراجعة' : 'فتح النموذج لاستكمالها'}</button>`
+        : '';
+    return `<div class="assistant-action-buttons" role="group" aria-label="مراجعة عملية المدير">${execute}${openForm}<button type="button" class="assistant-action-cancel" onclick="cancelAssistantOperation()">إلغاء</button></div>`;
+}
+
+function assistantOperationCanOpenForm(operation) {
+    if (!operation) return false;
+    if (operation.type === 'adjustment') return Boolean(operation.resident?.id);
+    if (operation.type === 'resident_edit') return Boolean(operation.residentId);
+    return true;
 }
 
 function assistantOperationSuccessHtml(operation) {
@@ -1005,8 +1014,19 @@ function openAssistantOperation() {
             : (draft.type === 'resident' || draft.type === 'resident_edit') ? 'openAssistantResidentDraft' : 'openAssistantAdjustmentDraft';
     const openForm = assistantGlobalFunction(opener);
     if (openForm) {
+        if (!assistantOperationCanOpenForm(draft)) return false;
         if (!closeAssistantForNavigation()) return false;
-        openForm(draft);
+        let opened = false;
+        try {
+            opened = openForm(draft) !== false;
+        } catch (error) {
+            console.error('Assistant operation form failed to open.', error);
+        }
+        if (!opened) {
+            if (typeof toast === 'function') toast('تعذر فتح النموذج؛ أكمل البيانات الناقصة في المحادثة وحاول مرة أخرى.', 'error');
+            openAssistantModal();
+            return false;
+        }
         assistantOperationDraft = null;
         return true;
     }

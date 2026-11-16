@@ -2283,12 +2283,15 @@ function openNewIncomeModal() {
 }
 
 function openAssistantIncomeDraft(draft) {
-    if (!requireManager() || !draft?.resident?.id) return false;
+    if (!requireManager() || !draft) return false;
     openNewIncomeModal();
     const residentSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeResident'));
     if (!residentSelect) return false;
-    residentSelect.value = draft.resident.id;
-    handleIncomeResidentChange();
+    const residentId = draft.resident?.id || '';
+    if (residentId) {
+        residentSelect.value = residentId;
+        handleIncomeResidentChange();
+    }
     const purposeSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomePurpose'));
     const purpose = draft.purpose || 'subscription';
     if (purposeSelect) purposeSelect.value = purpose;
@@ -2301,7 +2304,7 @@ function openAssistantIncomeDraft(draft) {
     if (amountInput) amountInput.value = String(draft.amount || '');
     const notesInput = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('incomeNotes'));
     if (notesInput) notesInput.value = draft.notes || 'أُعدّ بناءً على طلب المدير عبر عم عبده — راجع البيانات قبل الحفظ.';
-    if (purpose === 'subscription') {
+    if (purpose === 'subscription' && residentId) {
         const targetMonth = String(draft.month || '');
         const checkbox = /** @type {HTMLInputElement | undefined} */ (Array.from(document.querySelectorAll('#incomeMonthsGrid input[data-income-month]'))
             .find(input => input.getAttribute('data-income-month') === targetMonth));
@@ -2317,7 +2320,7 @@ function openAssistantIncomeDraft(draft) {
         if (monthSelect && monthKey) monthSelect.value = monthKey;
     }
     handleIncomeAmountInput();
-    setIncomeWizardStep(3);
+    setIncomeWizardStep(!residentId || purpose === 'settlement' ? 1 : Number(draft.amount) > 0 ? 3 : 2);
     return true;
 }
 
