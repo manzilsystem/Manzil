@@ -808,6 +808,22 @@ function openAdjustmentModal(residentId) {
     openModal('adjustmentModal');
 }
 
+function openAssistantAdjustmentDraft(draft) {
+    if (!requireManager() || !draft?.resident?.id) return false;
+    openAdjustmentModal(draft.resident.id);
+    const kind = /** @type {HTMLSelectElement | null} */ (document.getElementById('adjustmentKind'));
+    const month = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentMonth'));
+    const amount = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentAmount'));
+    const reason = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('adjustmentReason'));
+    if (kind) kind.value = ['waiver', 'discount', 'settlement'].includes(draft.kind) ? draft.kind : 'waiver';
+    if (month && typeof monthLabelToKey === 'function') month.value = monthLabelToKey(draft.month) || month.value;
+    if (amount) amount.value = String(draft.amount || '');
+    if (reason) reason.value = 'أُعدّ بناءً على طلب المدير عبر عم عبده — اكتب أو راجع السبب قبل الحفظ.';
+    updateAdjustmentFormState();
+    updateAdjustmentDueHint();
+    return true;
+}
+
 function openAdjustmentFromProfile(residentId) {
     if (!requireManager()) return;
     closeModal('residentProfileModal');
@@ -2242,6 +2258,41 @@ function openNewIncomeModal() {
     openModal('incomeModal');
 }
 
+function openAssistantIncomeDraft(draft) {
+    if (!requireManager() || !draft?.resident?.id) return false;
+    openNewIncomeModal();
+    const residentSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeResident'));
+    if (!residentSelect) return false;
+    residentSelect.value = draft.resident.id;
+    handleIncomeResidentChange();
+    const purposeSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomePurpose'));
+    const purpose = draft.purpose || 'subscription';
+    if (purposeSelect) purposeSelect.value = purpose;
+    handleIncomePurposeChange();
+    const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
+    if (amountInput) amountInput.value = String(draft.amount || '');
+    const notesInput = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('incomeNotes'));
+    if (notesInput) notesInput.value = 'أُعدّ بناءً على طلب المدير عبر عم عبده — راجع البيانات قبل الحفظ.';
+    if (purpose === 'subscription') {
+        const targetMonth = String(draft.month || '');
+        const checkbox = /** @type {HTMLInputElement | undefined} */ (Array.from(document.querySelectorAll('#incomeMonthsGrid input[data-income-month]'))
+            .find(input => input.getAttribute('data-income-month') === targetMonth));
+        if (checkbox && !checkbox.disabled) {
+            incomeSelectedMonths = new Set([targetMonth]);
+            checkbox.checked = true;
+            handleIncomeMonthToggle(checkbox);
+            if (amountInput) amountInput.value = String(draft.amount || '');
+        }
+    } else {
+        const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
+        const monthKey = typeof monthLabelToKey === 'function' ? monthLabelToKey(draft.month) : '';
+        if (monthSelect && monthKey) monthSelect.value = monthKey;
+    }
+    handleIncomeAmountInput();
+    setIncomeWizardStep(3);
+    return true;
+}
+
 function previewIncomeAllocation() {
     const purpose = syncIncomePurposeCashAccount('incomePurpose', 'incomeCashAccount', {
         hintId: 'incomePurposeCashHint'
@@ -2912,6 +2963,21 @@ function openExpenseModal() {
     /** @type {any} */ (document.getElementById('expensePreview'))?.classList.add('hidden');
     resetExpenseOverdraft();
     openModal('expenseModal');
+}
+
+function openAssistantExpenseDraft(draft) {
+    if (!requireManager()) return false;
+    openExpenseModal();
+    const title = /** @type {HTMLInputElement | null} */ (document.getElementById('expenseTitle'));
+    const amount = /** @type {HTMLInputElement | null} */ (document.getElementById('expenseAmount'));
+    const month = /** @type {HTMLSelectElement | null} */ (document.getElementById('expenseMonth'));
+    const notes = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('expenseNotes'));
+    if (title) title.value = String(draft?.title || 'مصروف من طلب المدير');
+    if (amount) amount.value = String(draft?.amount || '');
+    if (month && typeof monthLabelToKey === 'function') month.value = monthLabelToKey(draft?.month) || month.value;
+    if (notes) notes.value = 'أُعدّ بناءً على طلب المدير عبر عم عبده — راجع الصندوق والتفاصيل قبل الحفظ.';
+    previewExpense();
+    return true;
 }
 
 function openExpenseEditModal(id) {

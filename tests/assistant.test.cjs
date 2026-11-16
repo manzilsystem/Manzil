@@ -438,6 +438,29 @@ test('manager report answers expose a role-safe direct navigation action', () =>
     assert.match(assistantSource, /if \(assistantIsOwner\(\)\) return false;/);
 });
 
+test('manager operation commands produce safe previews without mutating state', () => {
+    const { context, api } = createHarness(true);
+    const before = JSON.stringify(vm.runInContext('state', context));
+    const income = api.answerAssistantQuery('سجّل تحصيل 500 جنيه من سارة حسن شقة 7 عن نوفمبر 2026', NOW);
+    const expense = api.answerAssistantQuery('أضف مصروف كهرباء 800 جنيه عن نوفمبر 2026', NOW);
+    const adjustment = api.answerAssistantQuery('اعمل إعفاء 100 جنيه لسارة حسن شقة 7 عن نوفمبر 2026', NOW);
+
+    assert.equal(income.id, 'operation-preview');
+    assert.match(income.html, /فتح النموذج للمراجعة/);
+    assert.equal(expense.id, 'operation-preview');
+    assert.match(expense.html, /كهرباء/);
+    assert.equal(adjustment.id, 'operation-preview');
+    assert.match(adjustment.html, /إعفاء/);
+    assert.equal(JSON.stringify(vm.runInContext('state', context)), before);
+});
+
+test('owners cannot turn assistant operation commands into manager forms', () => {
+    const { api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    const answer = api.answerAssistantQuery('سجّل تحصيل 500 جنيه من سارة حسن شقة 7', NOW);
+    assert.notEqual(answer.id, 'operation-preview');
+    assert.match(answer.html, /مش متاحة|صلاحيات|حسابك|شقتك/);
+});
+
 test('assistant money figures equal the reference billing values', () => {
     const { context, api } = createHarness(true);
     const period = api.resolveAssistantPeriod('نوفمبر 2026', NOW);

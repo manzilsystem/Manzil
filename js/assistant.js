@@ -76,6 +76,7 @@ const ASSISTANT_FOLLOWUPS_OWNER = Object.freeze({
 let assistantContext = { period: null, residentId: null };
 let assistantChat = [];
 let assistantNoticeDraft = null;
+let assistantOperationDraft = null;
 
 function assistantIdentityKey() {
     if (typeof currentUserRole !== 'undefined' && currentUserRole === 'owner') {
@@ -664,6 +665,89 @@ async function confirmAssistantNotice() {
 function cancelAssistantNotice() {
     assistantNoticeDraft = null;
     if (typeof toast === 'function') toast('تم إلغاء مسودة الإعلان.', 'info');
+}
+
+function assistantParsedAmount(text) {
+    const normalized = normalizeAssistantArabic(text).replace(/،/g, ',');
+    const match = normalized.match(/(?:^|\s)(\d+(?:[.,]\d{1,2})?)(?=\s|$|ج| جنيه)/);
+    if (!match) return null;
+    const amount = Number(match[1].replace(',', '.'));
+    return Number.isFinite(amount) && amount > 0 ? amount : null;
+}
+
+function parseAssistantOperationCommand(text, now = new Date()) {
+    if (assistantIsOwner()) return null;
+    const raw = String(text || '').trim();
+    const normalized = normalizeAssistantArabic(raw);
+    const amount = assistantParsedAmount(raw);
+    const period = resolveAssistantPeriodWithContext(raw, now);
+    const residentMatch = resolveAssistantResident(raw);
+    const resident = residentMatch.matches.length === 1 ? residentMatch.matches[0] : null;
+    const hasIncomeVerb = /(?:سجل|سجّل|اضف|أضف|ضيف|استلم|قبض)/.test(normalized);
+    const hasExpenseWord = /(?:مصروف|فاتوره|فاتورة|صرف)/.test(normalized);
+    const hasAdjustmentWord = /(?:اعفاء|إعفاء|تخفيض|خصم|تسويه|تسوية)/.test(normalized);
+    if (hasIncomeVerb && !hasExpenseWord && !hasAdjustmentWord && /(?:تحصيل|دفعة|دفعه|استلام)/.test(normalized)) {
+        return { type: 'income', amount, resident, residentMatches: residentMatch.matches, month: period.label, raw };
+    }
+    if ((hasIncomeVerb || /(?:سجل|سجّل|اضف|أضف|ضيف|ادفع|إدفع)/.test(normalized)) && hasExpenseWord) {
+        const title = raw.replace(/^.*?(?:مصروف|فاتورة|فاتوره)\s*[:：-]?\s*/is, '')
+            .replace(/\b\d+(?:[.,]\d{1,2})?\s*(?:ج\.?م|جنيه|جنيهات)?\b/gi, '')
+            .trim();
+        return { type: 'expense', amount, title: title || 'مصروف من طلب المدير', month: period.label, raw };
+    }
+    if ((hasIncomeVerb || /(?:اعمل|اعمل لي|طبق|سجل|سجّل|اضف|أضف)/.test(normalized)) && hasAdjustmentWord) {
+        const kind = /(?:تسويه|تسوية)/.test(normalized) ? 'settlement' : /(?:تخفيض|خصم)/.test(normalized) ? 'discount' : 'waiver';
+        return { type: 'adjustment', kind, amount, resident, residentMatches: residentMatch.matches, month: period.label, raw };
+    }
+    return null;
+}
+
+function buildAssistantOperationPreview(operation, now = new Date()) {
+    if (!operation) return null;
+    assistantOperationDraft = operation;
+    const labels = { income: 'تحصيل', expense: 'مصروف', adjustment: 'إعفاء أو تخفيض أو تسوية' };
+    const missing = [];
+    if (!operation.amount) missing.push('المبلغ');
+    if (operation.type !== 'expense' && !operation.resident) {
+        missing.push(operation.residentMatches?.length > 1 ? 'رقم الشقة لتحديد المالك' : 'المالك أو رقم الشقة');
+    }
+    if (operation.type === 'adjustment' && !operation.amount) missing.push('قيمة الإجراء');
+    if (missing.length) {
+        return { id: 'operation-missing', title: `بيانات ${labels[operation.type]} ناقصة`, html: `${assistantNote(`أقدر أجهز ${labels[operation.type]}، لكن ناقص: ${missing.join(' و')}.`)}${assistantNote('مثال: «سجّل تحصيل 500 جنيه من أحمد شقة 3 عن نوفمبر» أو «أضف مصروف كهرباء 800 جنيه».')}` };
+    }
+    const adjustmentKindLabels = { waiver: 'إعفاء', discount: 'تخفيض', settlement: 'تسوية' };
+    const target = operation.type === 'expense'
+        ? `${operation.title} · ${assistantMoney(operation.amount)} · ${operation.month}`
+        : `${operation.type === 'adjustment' ? `${adjustmentKindLabels[operation.kind] || 'إجراء'} · ` : ''}${assistantResidentName(operation.resident)} · شقة ${operation.resident.apartmentNumber} · ${assistantMoney(operation.amount)} · ${operation.month}`;
+    return {
+        id: 'operation-preview',
+        title: `معاينة ${labels[operation.type]} قبل الإدخال`,
+        html: `<div class="assistant-action-preview"><p class="assistant-notice-preview">${assistantEscape(target)}</p>
+            <p class="assistant-note">لم تُحفظ البيانات. افتح النموذج الرسمي لمراجعة التفاصيل وإكمال طريقة الدفع أو السبب ثم اضغط حفظ.</p>
+            <div class="assistant-action-buttons" role="group" aria-label="مراجعة عملية المدير">
+                <button type="button" class="assistant-action-confirm" onclick="openAssistantOperation()">فتح النموذج للمراجعة</button>
+                <button type="button" class="assistant-action-cancel" onclick="cancelAssistantOperation()">إلغاء</button>
+            </div></div>`
+    };
+}
+
+function openAssistantOperation() {
+    if (!assistantOperationDraft || assistantIsOwner()) return false;
+    const draft = assistantOperationDraft;
+    const opener = draft.type === 'income' ? 'openAssistantIncomeDraft'
+        : draft.type === 'expense' ? 'openAssistantExpenseDraft' : 'openAssistantAdjustmentDraft';
+    if (typeof window !== 'undefined' && typeof window[opener] === 'function') {
+        window[opener](draft);
+        assistantOperationDraft = null;
+        return true;
+    }
+    if (typeof toast === 'function') toast('نموذج العملية غير متاح الآن.', 'error');
+    return false;
+}
+
+function cancelAssistantOperation() {
+    assistantOperationDraft = null;
+    if (typeof toast === 'function') toast('تم إلغاء مسودة العملية.', 'info');
 }
 
 function assistantApartmentLabel(resident) {
@@ -1515,6 +1599,8 @@ function answerAssistantQuery(text, now = new Date()) {
     if (!normalized) return withAssistantAnswerMeta(buildAssistantHelpAnswer(), resolveAssistantPeriod(text, now), null);
     const noticeText = parseAssistantNoticeCommand(text);
     if (noticeText) return withAssistantAnswerMeta(buildAssistantNoticePreview(noticeText), resolveAssistantPeriod(text, now), null, text);
+    const operation = parseAssistantOperationCommand(text, now);
+    if (operation) return withAssistantAnswerMeta(buildAssistantOperationPreview(operation, now), resolveAssistantPeriod(text, now), operation.resident, text);
     const residentMatch = resolveAssistantResident(text);
     if (residentMatch.matches.length > 1) {
         const answer = {
