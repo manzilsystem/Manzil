@@ -312,12 +312,12 @@ function toggleResidentTenantFields() {
     if (tenantName) tenantName.required = enabled;
 }
 
-function openResidentModal(mode, id) {
-    if (!requireManager()) return;
+function openResidentModal(mode, id, options = {}) {
+    if (!requireManager()) return false;
     const isEdit = mode === 'edit';
     if (!isEdit && (!state.floorCount || !state.apartmentsPerFloor)) {
         toast('حدد عدد الأدوار وعدد الشقق في إعدادات العقار أولًا.', 'error');
-        return;
+        return false;
     }
     editingResidentId = isEdit ? id : null;
     const amountInput = /** @type {any} */ (document.getElementById('residentAmount'));
@@ -369,15 +369,16 @@ function openResidentModal(mode, id) {
         /** @type {any} */ (document.getElementById('residentAmountHelp'))?.classList.add('hidden');
         historyButton?.classList.add('hidden');
     }
-    openModal('residentModal');
+    if (options.showModal !== false) openModal('residentModal');
+    return true;
 }
 
 function editResident(id) { openResidentModal('edit', id); }
 
-function openAssistantResidentDraft(draft) {
+function openAssistantResidentDraft(draft, options = {}) {
     if (!requireManager()) return false;
     const editing = draft?.type === 'resident_edit' && draft?.residentId;
-    openResidentModal(editing ? 'edit' : 'create', editing ? draft.residentId : undefined);
+    if (openResidentModal(editing ? 'edit' : 'create', editing ? draft.residentId : undefined, options) === false) return false;
     const name = /** @type {HTMLInputElement | null} */ (document.getElementById('residentName'));
     const apartment = /** @type {HTMLSelectElement | null} */ (document.getElementById('residentApartment'));
     const phone = /** @type {HTMLInputElement | null} */ (document.getElementById('residentPhone'));
@@ -801,12 +802,12 @@ function resetAdjustmentForm() {
     updateAdjustmentDueHint();
 }
 
-function openAdjustmentModal(residentId) {
-    if (!requireManager()) return;
+function openAdjustmentModal(residentId, options = {}) {
+    if (!requireManager()) return false;
     const resident = state.residents.find(item => item.id === residentId);
     if (!resident) {
         toast('تعذر العثور على الشقة. حدّث البيانات ثم حاول مرة أخرى.', 'error');
-        return;
+        return false;
     }
     adjustmentResidentId = resident.id;
     editingAdjustmentId = null;
@@ -829,12 +830,13 @@ function openAdjustmentModal(residentId) {
     renderAdjustmentList(resident);
     updateAdjustmentFormState();
     updateAdjustmentDueHint();
-    openModal('adjustmentModal');
+    if (options.showModal !== false) openModal('adjustmentModal');
+    return true;
 }
 
-function openAssistantAdjustmentDraft(draft) {
+function openAssistantAdjustmentDraft(draft, options = {}) {
     if (!requireManager() || !draft?.resident?.id) return false;
-    openAdjustmentModal(draft.resident.id);
+    if (openAdjustmentModal(draft.resident.id, options) === false) return false;
     const kind = /** @type {HTMLSelectElement | null} */ (document.getElementById('adjustmentKind'));
     const month = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentMonth'));
     const amount = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentAmount'));
@@ -2274,17 +2276,19 @@ function changeIncomeWizardStep(direction) {
     setIncomeWizardStep(incomeWizardStep + direction);
 }
 
-function openNewIncomeModal() {
-    if (!requireManager()) return;
+function openNewIncomeModal(options = {}) {
+    if (!requireManager()) return false;
     if (typeof populateSelects === 'function') populateSelects();
     resetIncomeFormFields();
     setIncomeWizardStep(1);
-    openModal('incomeModal');
+    if (options.showModal !== false) openModal('incomeModal');
+    return true;
 }
 
-function openAssistantIncomeDraft(draft) {
-    if (!requireManager() || !draft) return false;
-    openNewIncomeModal();
+function openAssistantIncomeDraft(draft, options = {}) {
+    if (!requireManager()) return false;
+    if (openNewIncomeModal(options) === false) return false;
+    if (!draft?.resident?.id) return true;
     const residentSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeResident'));
     if (!residentSelect) return false;
     const residentId = draft.resident?.id || '';
@@ -2693,7 +2697,7 @@ async function handleIncomeSubmit(e) {
                     : 'تم تسجيل التحصيل',
             'success'
         );
-        if (typeof openIncomeReceiptModal === 'function' && rows.length) openIncomeReceiptModal(rows[0].id);
+        if (!e?.assistantFromChat && typeof openIncomeReceiptModal === 'function' && rows.length) openIncomeReceiptModal(rows[0].id);
     } finally {
         incomeSaving = false;
         if (submit) {
@@ -2980,8 +2984,8 @@ function previewExpense() {
     preview.classList.remove('hidden');
 }
 
-function openExpenseModal() {
-    if (!requireManager()) return;
+function openExpenseModal(options = {}) {
+    if (!requireManager()) return false;
     editingExpenseId = null;
     /** @type {any} */ (document.getElementById('expenseForm'))?.reset();
     /** @type {any} */ (document.getElementById('expenseTitle')).value = '';
@@ -2993,12 +2997,13 @@ function openExpenseModal() {
     /** @type {any} */ (document.getElementById('expenseSubmitButton')).textContent = 'حفظ المصروف';
     /** @type {any} */ (document.getElementById('expensePreview'))?.classList.add('hidden');
     resetExpenseOverdraft();
-    openModal('expenseModal');
+    if (options.showModal !== false) openModal('expenseModal');
+    return true;
 }
 
-function openAssistantExpenseDraft(draft) {
+function openAssistantExpenseDraft(draft, options = {}) {
     if (!requireManager()) return false;
-    openExpenseModal();
+    if (openExpenseModal(options) === false) return false;
     const title = /** @type {HTMLInputElement | null} */ (document.getElementById('expenseTitle'));
     const amount = /** @type {HTMLInputElement | null} */ (document.getElementById('expenseAmount'));
     const category = /** @type {HTMLSelectElement | null} */ (document.getElementById('expenseCategory'));
@@ -3012,6 +3017,10 @@ function openAssistantExpenseDraft(draft) {
     if (month && typeof monthLabelToKey === 'function') month.value = monthLabelToKey(draft?.month) || month.value;
     if (notes) notes.value = draft?.notes || 'أُعدّ بناءً على طلب المدير عبر عم عبده — راجع الصندوق والتفاصيل قبل الحفظ.';
     previewExpense();
+    if (options.confirmMainOverdraft === true && cashAccount?.value === 'main') {
+        const overdraftConfirm = /** @type {HTMLInputElement | null} */ (document.getElementById('expenseOverdraftConfirm'));
+        if (overdraftConfirm) overdraftConfirm.checked = true;
+    }
     return true;
 }
 

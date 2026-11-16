@@ -34,7 +34,8 @@ test('tenant details appear only in the manager apartment form and manager profi
     const restoreVerification = read('tests/post-restore-verify.sql');
     assert.match(modal, /id="residentIsRented"/);
     assert.match(modal, /بيانات المستأجر تظهر للمدير فقط/);
-    assert.match(crud, /function openResidentModal\(mode, id\) \{\s*if \(!requireManager\(\)\) return;/);
+    assert.match(crud, /function openResidentModal\(mode, id, options = \{\}\) \{\s*if \(!requireManager\(\)\) return false;/);
+    assert.match(crud, /if \(options\.showModal !== false\) openModal\('residentModal'\)/);
     assert.match(crud, /function openResidentProfile\(residentId\) \{\s*if \(!requireManager\(\)\) return;/);
     assert.match(crud, /resident\.isRented === true \?/);
     assert.doesNotMatch(reports, /tenantName|tenantPhone|leaseStart|rentAmount|depositAmount/);

@@ -562,9 +562,22 @@ test('complete manager operation previews expose a second explicit save action',
     const { api } = createHarness(true);
     const answer = api.answerAssistantQuery('سجّل تحصيل 500 جنيه من سارة حسن شقة 7 عن نوفمبر 2026 نقدي في الخزنة الرئيسية', NOW);
     assert.equal(answer.id, 'operation-preview');
-    assert.match(answer.html, /تنفيذ وحفظ/);
+    assert.match(answer.html, /تأكيد وتسجيل/);
     assert.match(answer.html, /نقدي/);
     assert.match(answer.html, /الخزنة الرئيسية/);
+});
+test('expense previews warn about main-vault overdraft and block an insufficient dedicated fund', () => {
+    const { context, api } = createHarness(true);
+    vm.runInContext(`getCashAccountBalance = code => ({ main: 1200, development: 300, emergency: 50 }[code] || 0)`, context);
+
+    const mainVault = api.answerAssistantQuery('أضف مصروف كهرباء 1300 جنيه عن نوفمبر 2026 في الخزنة الرئيسية', NOW);
+    assert.match(mainVault.html, /سيصبح .* بعد المصروف/);
+    assert.match(mainVault.html, /سيُسجَّل في سجل التدقيق/);
+    assert.match(mainVault.html, /تأكيد وتسجيل/);
+
+    const development = api.answerAssistantQuery('أضف مصروف صيانة 400 جنيه عن نوفمبر 2026 في صندوق التطوير', NOW);
+    assert.match(development.html, /رصيد صندوق التطوير .* لا يكفي/);
+    assert.doesNotMatch(development.html, /تأكيد وتسجيل/);
 });
 
 test('manager can prepare a new resident from a natural-language request without saving before confirmation', () => {
@@ -575,7 +588,7 @@ test('manager can prepare a new resident from a natural-language request without
     assert.match(answer.html, /كريم محمود/);
     assert.match(answer.html, /شقة 9/);
     assert.match(answer.html, /350/);
-    assert.match(answer.html, /تنفيذ وحفظ/);
+    assert.match(answer.html, /تأكيد وتسجيل/);
     assert.equal(JSON.stringify(vm.runInContext('state.residents', context)), before);
     assert.match(assistantSource, /openAssistantResidentDraft/);
 });
@@ -593,7 +606,7 @@ test('manager can prepare a resident edit through the official form path without
     assert.equal(answer.id, 'operation-preview');
     assert.match(answer.html, /سارة حسن/);
     assert.match(answer.html, /01099999999/);
-    assert.match(answer.html, /تنفيذ وحفظ/);
+    assert.match(answer.html, /تأكيد وتسجيل/);
     assert.equal(JSON.stringify(vm.runInContext('state.residents', context)), before);
     assert.match(assistantSource, /draft\.type === 'resident_edit'/);
 });
@@ -617,7 +630,7 @@ test('a missing operation can be completed in the next manager message', () => {
     assert.equal(api.answerAssistantQuery('سجّل تحصيل 500 جنيه من سارة حسن شقة 7 عن نوفمبر 2026', NOW).id, 'operation-missing');
     const completed = api.answerAssistantQuery('نقدي في الخزنة الرئيسية', NOW);
     assert.equal(completed.id, 'operation-preview');
-    assert.match(completed.html, /تنفيذ وحفظ/);
+    assert.match(completed.html, /تأكيد وتسجيل/);
 });
 test('operation follow-ups update the draft and explain every changed field', () => {
     const { api } = createHarness(true);
@@ -628,14 +641,18 @@ test('operation follow-ups update the draft and explain every changed field', ()
     assert.match(updated.html, /المبلغ/);
     assert.match(updated.html, /ديسمبر 2026/);
     assert.match(updated.html, /صندوق التطوير/);
-    assert.match(updated.html, /تنفيذ وحفظ/);
+    assert.match(updated.html, /تأكيد وتسجيل/);
 });
-test('explicit operation confirmation delegates to the official save handler', async () => {
+test('explicit operation confirmation uses the official save handler without opening forms or closing chat', async () => {
     const { context, api } = createHarness(true);
     vm.runInContext(`
-        closeModal = () => {};
-        openAssistantIncomeDraft = () => true;
-        handleIncomeSubmit = async () => {
+        assistantModalClosed = false;
+        assistantFormShowModal = null;
+        assistantFromChat = false;
+        closeModal = () => { assistantModalClosed = true; };
+        openAssistantIncomeDraft = (draft, options) => { assistantFormShowModal = options.showModal; return true; };
+        handleIncomeSubmit = async event => {
+            assistantFromChat = event.assistantFromChat;
             state.income.push({ id: 'assistant-confirmed' });
         };
     `, context);
@@ -645,6 +662,24 @@ test('explicit operation confirmation delegates to the official save handler', a
     assert.equal(saved, true);
     assert.equal(vm.runInContext('state.income.length', context), before + 1);
     assert.equal(vm.runInContext('state.income.at(-1).id', context), 'assistant-confirmed');
+    assert.equal(vm.runInContext('assistantFormShowModal', context), false);
+    assert.equal(vm.runInContext('assistantFromChat', context), true);
+    assert.equal(vm.runInContext('assistantModalClosed', context), false);
+    assert.match(api.chatSnapshot().at(-1).html, /تم حفظ التحصيل بنجاح/);
+});
+
+test('failed official save keeps the operation draft and explains the validation error in chat', async () => {
+    const { context, api } = createHarness(true);
+    vm.runInContext(`
+        toast = () => {};
+        openAssistantIncomeDraft = () => true;
+        handleIncomeSubmit = async () => { toast('اختر شهرًا واحدًا على الأقل.', 'error'); };
+    `, context);
+    api.answerAssistantQuery('سجّل تحصيل 500 جنيه من سارة حسن شقة 7 عن نوفمبر 2026 نقدي في الخزنة الرئيسية', NOW);
+
+    assert.equal(await api.confirmAssistantOperation(), false);
+    assert.match(api.chatSnapshot().at(-1).html, /اختر شهرًا واحدًا على الأقل/);
+    assert.match(api.chatSnapshot().at(-1).html, /افتح النموذج للمراجعة/);
 });
 
 test('confirmed operations return a clear in-chat result with next steps', () => {

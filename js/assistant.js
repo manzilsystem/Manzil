@@ -876,7 +876,23 @@ function assistantOperationMissing(operation) {
 
 function assistantOperationCanExecute(operation) {
     return Boolean(operation && assistantOperationMissing(operation).length === 0
-        && (operation.type !== 'expense' || operation.title));
+        && (operation.type !== 'expense' || operation.title)
+        && !assistantExpenseBalanceInfo(operation)?.fundInsufficient);
+}
+
+function assistantExpenseBalanceInfo(operation) {
+    if (operation?.type !== 'expense' || typeof getCashAccountBalance !== 'function') return null;
+    const cashAccountCode = ['main', 'development', 'emergency'].includes(operation.cashAccountCode)
+        ? operation.cashAccountCode : 'main';
+    const balance = Number(getCashAccountBalance(cashAccountCode)) || 0;
+    const amount = Number(operation.amount) || 0;
+    return {
+        cashAccountCode,
+        balance,
+        balanceAfter: balance - amount,
+        mainOverdraft: cashAccountCode === 'main' && amount > balance + 0.000001,
+        fundInsufficient: cashAccountCode !== 'main' && amount > balance + 0.000001
+    };
 }
 
 function assistantOperationFollowupPatch(text, operation) {
@@ -955,19 +971,25 @@ function buildAssistantOperationPreview(operation, now = new Date()) {
         ? `${operation.title} · ${assistantMoney(operation.amount)} · ${operation.month} · ${operation.category || 'أخرى'} · ${ASSISTANT_CASH_LABELS[operation.cashAccountCode] || ASSISTANT_CASH_LABELS.main}`
         : `${operation.type === 'adjustment' ? `${adjustmentKindLabels[operation.kind] || 'إجراء'} · ` : ''}${assistantResidentName(operation.resident)} · شقة ${operation.resident.apartmentNumber} · ${assistantMoney(operation.amount)} · ${operation.month}${operation.type === 'income' ? ` · ${operation.purpose === 'subscription' ? 'اشتراك شهري' : operation.purpose} · ${ASSISTANT_OPERATION_PAYMENT_METHODS[operation.paymentMethod] || ''} · ${ASSISTANT_CASH_LABELS[operation.cashAccountCode] || ASSISTANT_CASH_LABELS.main}` : ''}`;
     const assumed = operation.cashAccountAssumed ? assistantNote('لم تذكر الصندوق؛ استخدمت الخزنة الرئيسية كافتراض قابل للتعديل قبل التنفيذ.') : '';
+    const balanceInfo = assistantExpenseBalanceInfo(operation);
+    const balanceNotice = balanceInfo?.mainOverdraft
+        ? assistantNote(`تنبيه: رصيد الخزنة الرئيسية ${assistantMoney(balanceInfo.balance)}، وسيصبح ${assistantMoney(balanceInfo.balanceAfter)} بعد المصروف. الضغط على «تأكيد وتسجيل» يوافق صراحةً على التجاوز، وسيُسجَّل في سجل التدقيق.`)
+        : balanceInfo?.fundInsufficient
+            ? assistantNote(`رصيد ${ASSISTANT_CASH_LABELS[balanceInfo.cashAccountCode]} (${assistantMoney(balanceInfo.balance)}) لا يكفي لهذا المصروف. اذكر صندوقًا آخر أو مبلغًا أقل قبل التسجيل.`)
+            : '';
     return {
         id: 'operation-preview',
         title: `معاينة ${labels[operation.type]} قبل الإدخال`,
         html: `<div class="assistant-action-preview"><p class="assistant-notice-preview">${assistantEscape(target)}</p>
             ${operation.followupNote ? `<p class="assistant-change-note" role="status">${assistantEscape(operation.followupNote)}</p>` : ''}
-            ${assumed}<p class="assistant-note">لم تُحفظ البيانات بعد. «تنفيذ وحفظ» يمررها للنموذج الرسمي ويشغّل كل قواعد التحقق، ويمكنك فتح النموذج لتعديل أي تفصيلة.</p>
+            ${assumed}${balanceNotice}<p class="assistant-note">راجع الملخص ثم أكّد التسجيل هنا؛ ستبقى المحادثة مفتوحة وتُطبّق قواعد التحقق والحفظ المعتادة. فتح النموذج للمراجعة التفصيلية متاح اختياريًا.</p>
             ${assistantActionButtons(operation, true)}</div>`
     };
 }
 
 function assistantActionButtons(operation, ready) {
     const execute = ready && assistantOperationCanExecute(operation)
-        ? '<button type="button" class="assistant-action-confirm" onclick="confirmAssistantOperation()">تنفيذ وحفظ</button>'
+        ? '<button type="button" class="assistant-action-confirm" onclick="confirmAssistantOperation()">تأكيد وتسجيل</button>'
         : '';
     const openForm = assistantOperationCanOpenForm(operation)
         ? `<button type="button" class="assistant-action-secondary" onclick="openAssistantOperation()">${ready ? 'فتح النموذج للمراجعة' : 'فتح النموذج لاستكمالها'}</button>`
@@ -1053,20 +1075,36 @@ async function confirmAssistantOperation() {
         if (typeof toast === 'function') toast('مسار الحفظ الرسمي غير متاح الآن؛ افتح النموذج وحاول مرة أخرى.', 'error');
         return false;
     }
-    if (!closeAssistantForNavigation()) return false;
     const collectionBefore = Array.isArray(state.income) ? state.income.length : 0;
     const expenseBefore = Array.isArray(state.expenses) ? state.expenses.length : 0;
     const adjustmentBefore = Array.isArray(state.adjustments) ? state.adjustments.length : 0;
     const residentBefore = Array.isArray(state.residents) ? state.residents.length : 0;
     const residentSnapshotBefore = JSON.stringify(state.residents || []);
     assistantOperationDraft = null;
+    const balanceInfo = assistantExpenseBalanceInfo(draft);
+    const toastHost = typeof globalThis !== 'undefined' ? globalThis : null;
+    const originalToast = toastHost && typeof toastHost.toast === 'function' ? toastHost.toast : null;
+    const validationMessages = [];
+    if (originalToast) {
+        toastHost.toast = (message, type) => {
+            if (type === 'error') validationMessages.push(String(message || ''));
+            return originalToast.call(toastHost, message, type);
+        };
+    }
     try {
-        if (openForm(draft) === false) throw new Error('assistant form did not open');
-        await submitForm({ preventDefault() {} });
+        if (openForm(draft, {
+            showModal: false,
+            confirmMainOverdraft: Boolean(balanceInfo?.mainOverdraft)
+        }) === false) throw new Error('assistant form could not be prepared');
+        await submitForm({ preventDefault() {}, assistantFromChat: true });
     } catch (error) {
         assistantOperationDraft = draft;
-        if (typeof toast === 'function') toast('تعذر تشغيل مسار الحفظ الرسمي؛ لم تُحفظ العملية.', 'error');
+        if (typeof toast === 'function') toast('تعذر تشغيل مسار الحفظ الرسمي؛ لم تُسجل العملية.', 'error');
+        const detail = validationMessages[validationMessages.length - 1];
+        appendAssistantOperationFailure(`تعذر تشغيل مسار الحفظ الرسمي${detail ? `: ${detail}` : ''}. لم تُسجل العملية؛ بقيت المسودة ويمكنك المحاولة مرة أخرى.`);
         return false;
+    } finally {
+        if (originalToast) toastHost.toast = originalToast;
     }
     const collectionAfter = Array.isArray(state.income) ? state.income.length : 0;
     const expenseAfter = Array.isArray(state.expenses) ? state.expenses.length : 0;
@@ -1078,21 +1116,35 @@ async function confirmAssistantOperation() {
             : (draft.type === 'resident' || draft.type === 'resident_edit') ? (draft.type === 'resident' ? residentAfter > residentBefore : residentChanged)
                 : adjustmentAfter > adjustmentBefore;
     if (!saved) assistantOperationDraft = draft;
-    if (!saved && typeof toast === 'function') toast('لم يتم الحفظ. راجع الحقول أو رسالة التحقق في النموذج.', 'error');
+    if (!saved) {
+        if (typeof toast === 'function') toast('لم تُسجل العملية. راجع رسالة التحقق أو عدّل التفاصيل.', 'error');
+        const detail = validationMessages[validationMessages.length - 1];
+        appendAssistantOperationFailure(`لم تُسجل العملية${detail ? `: ${detail}` : ''}. عدّل التفاصيل هنا أو افتح النموذج للمراجعة إذا رغبت.`);
+    }
     if (saved) {
-        const successHtml = assistantOperationSuccessHtml(draft);
-        const reopenAssistant = () => {
-            if (!document.getElementById('assistantModal')) return;
-            openAssistantModal();
-            appendAssistantMessage('bot', successHtml);
-        };
-        // The income flow may open the receipt modal after its submit handler
-        // resolves. Reopen on the next turn so the assistant remains the
-        // user's operational workspace without bypassing the receipt.
-        if (typeof setTimeout === 'function') setTimeout(reopenAssistant, 0);
-        else reopenAssistant();
+        assistantMarkOperationDraftCompleted();
+        appendAssistantMessage('bot', assistantOperationSuccessHtml(draft));
     }
     return saved;
+}
+function appendAssistantOperationFailure(message) {
+    appendAssistantMessage('bot', `<p class="assistant-note">${assistantEscape(message)}</p>`);
+}
+function assistantMarkOperationDraftCompleted() {
+    const completedNote = assistantNote('تم تنفيذ العملية بعد تأكيدك.');
+    const actionPattern = /<div class="assistant-action-buttons" role="group" aria-label="مراجعة عملية المدير">[\s\S]*?<\/div>/;
+    for (let index = assistantChat.length - 1; index >= 0; index -= 1) {
+        const message = assistantChat[index];
+        if (message.role === 'bot' && actionPattern.test(message.html)) {
+            message.html = message.html.replace(actionPattern, completedNote);
+            break;
+        }
+    }
+    persistAssistantChat();
+    const log = document.getElementById('assistantLog');
+    const buttons = log?.querySelectorAll('.assistant-action-preview .assistant-action-buttons');
+    const lastButtons = buttons && buttons.length ? buttons[buttons.length - 1] : null;
+    if (lastButtons) lastButtons.outerHTML = completedNote;
 }
 
 function cancelAssistantOperation() {

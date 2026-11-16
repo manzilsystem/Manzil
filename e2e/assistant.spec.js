@@ -147,6 +147,25 @@ test('assistant opens from the launcher and answers local questions', async ({ p
     await expect(botMessages.last()).toContainText('نظافة');
 });
 
+test('a confirmed manager collection saves in chat without opening a CRUD form or receipt', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    const before = await page.evaluate(() => state.income.length);
+    await page.locator('#assistantInput').fill('سجل تحصيل 150 جنيه من سارة حسن شقة 7 عن نوفمبر 2026 نقدي');
+    await page.locator('#assistantInput').press('Enter');
+
+    const preview = page.locator('#assistantLog .assistant-action-preview');
+    await expect(preview).toContainText('سارة حسن');
+    // Keep this acceptance check on seeded in-memory data; never write to the shared backend.
+    await page.evaluate(() => { window.saveWithRollback = async () => true; });
+    await page.getByRole('button', { name: 'تأكيد وتسجيل', exact: true }).click();
+
+    await expect(page.locator('#assistantModal')).toBeVisible();
+    await expect(page.locator('#incomeModal')).toBeHidden();
+    await expect(page.locator('#incomeReceiptModal')).toBeHidden();
+    await expect(page.locator('#assistantLog')).toContainText('تم حفظ التحصيل بنجاح');
+    await expect.poll(() => page.evaluate(() => state.income.length)).toBeGreaterThan(before);
+});
+
 test('owner questions about another unit or resident receive a privacy refusal', async ({ page }) => {
     await seedAndOpenAssistant(page);
     await page.evaluate(() => {
