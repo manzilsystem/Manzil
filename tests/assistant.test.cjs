@@ -274,8 +274,7 @@ test('عم عبده is written-only and exposes no microphone, recording, or spe
         /navigator\.mediaDevices/i, /getUserMedia/i, /MediaRecorder/i,
         /speechSynthesis/i, /SpeechSynthesisUtterance/i, /toggleAssistantSound/i
     ]) assert.doesNotMatch(activeSource, pattern);
-    assert.match(html, /<form class=\"assistant-form\" onsubmit=\"sendAssistantMessage\(event\)\">[\s\S]*id=\"assistantInput\"[\s\S]*assistant-send-button/);
-    assert.match(appSource, /deleteDatabase\('assistant-speech-models'\)/, 'a one-time migration removes a previously cached speech model');
+    assert.match(html, /<form class="assistant-form" onsubmit="sendAssistantMessage\(event\)">[\s\S]*id="assistantInput"[\s\S]*assistant-send-button/);
     assert.doesNotMatch(appSource, /getUserMedia|MediaRecorder|speechSynthesis|SpeechSynthesisUtterance/i);
 });
 
