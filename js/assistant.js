@@ -77,6 +77,7 @@ let assistantContext = { period: null, residentId: null };
 let assistantChat = [];
 let assistantNoticeDraft = null;
 let assistantOperationDraft = null;
+let assistantOperationContext = null;
 
 function assistantIdentityKey() {
     if (typeof currentUserRole !== 'undefined' && currentUserRole === 'owner') {
@@ -704,7 +705,20 @@ function parseAssistantOperationCommand(text, now = new Date()) {
 
 function buildAssistantOperationPreview(operation, now = new Date()) {
     if (!operation) return null;
-    assistantOperationDraft = operation;
+    if (assistantOperationContext) {
+        return {
+            id: 'operation-pending',
+            title: 'هناك عملية قيد المراجعة',
+            html: assistantNote(assistantOperationContext.status === 'uncertain'
+                ? 'نتيجة الحفظ السابق غير مؤكدة. حدّث البيانات وتحقق من سجل التدقيق قبل بدء عملية جديدة.'
+                : 'أكمل أو ألغِ النموذج المفتوح أولًا قبل بدء عملية أخرى؛ لن أستبدل بيانات العملية الحالية.')
+        };
+    }
+    assistantOperationDraft = {
+        ...operation,
+        requestId: operation.requestId || (typeof generateId === 'function' ? generateId() : `assistant-${Date.now()}`)
+    };
+    operation = assistantOperationDraft;
     const labels = { income: 'تحصيل', expense: 'مصروف', adjustment: 'إعفاء أو تخفيض أو تسوية' };
     const missing = [];
     if (!operation.amount) missing.push('المبلغ');
@@ -732,21 +746,135 @@ function buildAssistantOperationPreview(operation, now = new Date()) {
 }
 
 function openAssistantOperation() {
-    if (!assistantOperationDraft || assistantIsOwner()) return false;
+    if (!assistantOperationDraft || assistantIsOwner() || assistantOperationContext) return false;
     const draft = assistantOperationDraft;
     const opener = draft.type === 'income' ? 'openAssistantIncomeDraft'
         : draft.type === 'expense' ? 'openAssistantExpenseDraft' : 'openAssistantAdjustmentDraft';
     if (typeof window !== 'undefined' && typeof window[opener] === 'function') {
-        window[opener](draft);
+        if (window[opener](draft) === false) return false;
+        startAssistantOperationContext(draft);
         assistantOperationDraft = null;
+        if (typeof closeModal === 'function') closeModal('assistantModal');
         return true;
     }
     if (typeof toast === 'function') toast('نموذج العملية غير متاح الآن.', 'error');
     return false;
 }
 
+function assistantOperationSubmitButton(type) {
+    if (typeof document === 'undefined') return null;
+    if (type === 'income') return document.getElementById('incomeSubmitButton');
+    if (type === 'expense') return document.getElementById('expenseSubmitButton');
+    if (type === 'adjustment') return document.getElementById('adjustmentSaveButton');
+    return null;
+}
+
+function assistantOperationConfirmationLabel(type) {
+    return ({
+        income: 'تأكيد وتسجيل التحصيل عبر عم عبده',
+        expense: 'تأكيد وتسجيل المصروف عبر عم عبده',
+        adjustment: 'تأكيد وحفظ الإجراء عبر عم عبده'
+    })[type] || 'تأكيد العملية عبر عم عبده';
+}
+
+function getAssistantOperationSubmitLabel(type, fallbackLabel) {
+    return assistantOperationContext?.type === type
+        ? assistantOperationConfirmationLabel(type)
+        : fallbackLabel;
+}
+
+function startAssistantOperationContext(draft) {
+    const button = assistantOperationSubmitButton(draft.type);
+    assistantOperationContext = {
+        requestId: draft.requestId,
+        type: draft.type,
+        raw: String(draft.raw || ''),
+        status: 'ready',
+        submitButton: button,
+        originalSubmitLabel: button ? button.textContent : null
+    };
+    if (button) button.textContent = assistantOperationConfirmationLabel(draft.type);
+}
+
+function assistantOperationRequestId(type = null) {
+    if (!assistantOperationContext || (type && assistantOperationContext.type !== type)) return null;
+    return assistantOperationContext.requestId;
+}
+
+function assistantAuditDetails(details) {
+    if (!assistantOperationContext) return details;
+    const request = String(assistantOperationContext.raw || '')
+        .replace(/[\u0000-\u001f\u007f]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 240);
+    const base = String(details ?? '').trim();
+    return `${base}${base ? ' · ' : ''}المصدر: عم عبده · مرجع الطلب: ${assistantOperationContext.requestId}${request ? ` · طلب المدير: ${request}` : ''}`;
+}
+
+function requireAssistantOperationReadyForCommit(type) {
+    if (!assistantOperationContext) return true;
+    if (assistantIsOwner() || currentUserRole !== 'manager' || assistantOperationContext.type !== type) {
+        if (typeof toast === 'function') toast('تعذر مطابقة نموذج العملية مع طلب عم عبده. ألغِ النموذج وأعد فتح الطلب الصحيح.', 'error');
+        return false;
+    }
+    if (assistantOperationContext.status === 'saving') {
+        if (typeof toast === 'function') toast('العملية قيد الحفظ بالفعل. انتظر نتيجة التأكيد.', 'info');
+        return false;
+    }
+    if (assistantOperationContext.status === 'uncertain') {
+        if (typeof toast === 'function') toast('نتيجة الحفظ السابق غير مؤكدة. حدّث البيانات وتحقق من سجل التدقيق قبل إعادة المحاولة لتجنب التكرار.', 'error');
+        return false;
+    }
+    return true;
+}
+
+function beginAssistantOperationCommit(type) {
+    if (!requireAssistantOperationReadyForCommit(type)) return false;
+    if (!assistantOperationContext) return null;
+    assistantOperationContext.status = 'saving';
+    return assistantOperationContext.requestId;
+}
+
+function markAssistantOperationSaveUncertain(requestId) {
+    if (assistantOperationContext?.requestId === requestId) assistantOperationContext.status = 'uncertain';
+}
+
+function completeAssistantOperation(requestId = null) {
+    if (!assistantOperationContext || (requestId && assistantOperationContext.requestId !== requestId)) return false;
+    const context = assistantOperationContext;
+    assistantOperationContext = null;
+    if (context.submitButton && context.originalSubmitLabel !== null) {
+        context.submitButton.textContent = context.originalSubmitLabel;
+    }
+    return true;
+}
+
+function clearAssistantOperationContext() {
+    if (assistantOperationContext && assistantOperationContext.status !== 'ready') {
+        const context = assistantOperationContext;
+        if (context.submitButton && context.originalSubmitLabel !== null) {
+            context.submitButton.textContent = context.originalSubmitLabel;
+        }
+        context.submitButton = null;
+        context.originalSubmitLabel = null;
+        return true;
+    }
+    return completeAssistantOperation();
+}
+
 function cancelAssistantOperation() {
+    const context = assistantOperationContext;
+    if (context && context.status !== 'ready') {
+        if (typeof toast === 'function') toast('لا يمكن إلغاء تأكيد جارٍ أو نتيجته غير مؤكدة. حدّث البيانات وتحقق من سجل التدقيق أولًا.', 'error');
+        return;
+    }
     assistantOperationDraft = null;
+    if (context) {
+        const modalId = ({ income: 'incomeModal', expense: 'expenseModal', adjustment: 'adjustmentModal' })[context.type];
+        completeAssistantOperation(context.requestId);
+        if (modalId && typeof closeModal === 'function') closeModal(modalId);
+    }
     if (typeof toast === 'function') toast('تم إلغاء مسودة العملية.', 'info');
 }
 
@@ -1125,7 +1253,7 @@ function buildAssistantKnowledgeAnswer() {
         'اسألني بالعامية أو بالفصحى عن التحصيلات والمصروفات والمتأخرات والخزائن والتقارير.',
         'أقدر أشرح بيانات العمارة وأعرض آخر الحركات والإعفاءات والتخفيضات.',
         'إجاباتي تُحسب محليًا من بيانات الجلسة ولا أرسل المحادثة أو بيانات العمارة لخدمة خارجية.',
-        'المساعد للقراءة فقط؛ أي إضافة أو تعديل أو حذف يتم من شاشات التطبيق وبصلاحيات المدير.'
+        'الأسئلة والتقارير للقراءة فقط. أجهّز مسودة التحصيل أو المصروف أو الإعفاء/التسوية، ولا تُحفظ إلا بعد مراجعتك وضغط «تأكيد» في نموذج التطبيق بصلاحيات المدير.'
     ];
     return { id: 'knowledge', title, html: assistantList(items) + assistantNote(owner ? 'جرّب: «إيصالاتي» أو «آخر يوم للدفع كام؟».' : 'جرّب: «مين يقدر يشوف البيانات؟» أو «إزاي أستخدم التقارير؟».') };
 }

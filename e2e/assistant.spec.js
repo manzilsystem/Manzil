@@ -173,6 +173,40 @@ test('the manager conversation stays offline and read-only in the real app', asy
     expect(after, 'the assistant must never write state').toBe(before);
 });
 
+test('the manager confirms an assistant collection in the official form and gets a request-linked audit record', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    const month = await page.evaluate(() => `${monthsNames[new Date().getMonth()]} ${new Date().getFullYear()}`);
+    const command = `سجّل تحصيل 50 جنيه من سارة حسن شقة 7 عن ${month}`;
+    const beforeCount = await page.evaluate(() => state.income.length);
+    await page.evaluate(() => {
+        window.__savedAssistantRequestId = null;
+        window.saveState = async requestId => {
+            window.__savedAssistantRequestId = requestId;
+            return true;
+        };
+    });
+
+    await askAssistantQuestion(page, command);
+    await page.getByRole('button', { name: 'فتح النموذج للمراجعة' }).click();
+    await expect(page.locator('#incomeModal')).toBeVisible();
+    const confirmButton = page.locator('#incomeSubmitButton');
+    await expect(confirmButton).toHaveText('تأكيد وتسجيل التحصيل عبر عم عبده');
+    await page.locator('#incomePaymentMethod').selectOption('cash');
+    await confirmButton.click();
+    await expect(page.locator('#incomeModal')).toBeHidden();
+
+    const result = await page.evaluate(() => ({
+        requestId: window.__savedAssistantRequestId,
+        incomeCount: state.income.length,
+        audit: state.auditLogs[0]?.details || ''
+    }));
+    expect(result.incomeCount).toBe(beforeCount + 1);
+    expect(result.requestId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+    expect(result.audit).toContain('المصدر: عم عبده');
+    expect(result.audit).toContain(`مرجع الطلب: ${result.requestId}`);
+    expect(result.audit).toContain(`طلب المدير: ${command}`);
+});
+
 test('assistant reset, escape close, and launcher restore behave', async ({ page }) => {
     await seedAndOpenAssistant(page);
     const modal = page.locator('#assistantModal');

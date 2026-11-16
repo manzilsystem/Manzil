@@ -12,6 +12,7 @@ const css = fs.readFileSync(path.join(root, 'css', 'style.css'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 const supabaseSource = fs.readFileSync(path.join(root, 'js', 'supabase.js'), 'utf8');
 const appSource = fs.readFileSync(path.join(root, 'js', 'app.js'), 'utf8');
+const crudSource = fs.readFileSync(path.join(root, 'js', 'crud.js'), 'utf8');
 
 const NOW = new Date(2026, 10, 15, 12, 0, 0);
 
@@ -83,12 +84,14 @@ function createHarness(seed = true, identity = {}, options = {}) {
         crypto: { randomUUID: () => 'test-id' },
         requestAnimationFrame: callback => callback(),
         currentUserRole: 'manager',
-        activeBuildingId: 'building-1'
+        activeBuildingId: 'building-1',
+        window: null
     };
     // Optional hook so a test can swap in spies (e.g. network stubs) before the
     // sources load, without the harness having to know about them.
     if (typeof options.instrument === 'function') options.instrument(sandbox);
     const context = vm.createContext(sandbox);
+    vm.runInContext('window = globalThis', context);
     vm.runInContext(stateSource, context, { filename: 'js/state.js' });
     vm.runInContext(assistantSource, context, { filename: 'js/assistant.js' });
     vm.runInContext(`
@@ -160,6 +163,15 @@ function createHarness(seed = true, identity = {}, options = {}) {
         resolveAssistantPeriodWithContext,
         restoreAssistantSession,
         appendAssistantMessage,
+        openAssistantOperation,
+        assistantOperationRequestId,
+        assistantOperationStatus: () => assistantOperationContext?.status || null,
+        requireAssistantOperationReadyForCommit,
+        beginAssistantOperationCommit,
+        markAssistantOperationSaveUncertain,
+        completeAssistantOperation,
+        clearAssistantOperationContext,
+        logAction,
         chatSnapshot: () => assistantChat,
         contextSnapshot: () => assistantContext,
         ASSISTANT_NAME,
@@ -388,10 +400,9 @@ test('assistant runtime keeps the written chat local and away from durable stora
     assert.doesNotMatch(assistantSource, /supabaseClient|\.rpc\(|\.from\(\s*['"]/, 'the assistant reads `state` only — never the database directly');
 });
 
-test('assistant answers are read-only and never write without a confirmation flow', () => {
-    // Answering must leave the frozen `state` untouched — even for prompts that
-    // sound like a command — because S21 write actions (preview + explicit confirm)
-    // are not wired into the assistant yet. This locks the read-only invariant.
+test('assistant answers stay read-only until the manager confirms in an official form', () => {
+    // Producing an answer or draft must leave `state` untouched. Mutations remain
+    // in the existing manager forms and are never written directly by the chat.
     const snapshotState = context => JSON.stringify(vm.runInContext('state', context));
 
     const manager = createHarness(true);
@@ -452,6 +463,60 @@ test('manager operation commands produce safe previews without mutating state', 
     assert.equal(adjustment.id, 'operation-preview');
     assert.match(adjustment.html, /إعفاء/);
     assert.equal(JSON.stringify(vm.runInContext('state', context)), before);
+});
+
+test('assistant operations use one explicit form confirmation and add request-linked audit details', () => {
+    const { context, api } = createHarness(true);
+    const command = 'سجّل تحصيل 500 جنيه من سارة حسن شقة 7 عن نوفمبر 2026';
+    const before = JSON.stringify(vm.runInContext('state', context));
+    assert.equal(api.answerAssistantQuery(command, NOW).id, 'operation-preview');
+    assert.equal(JSON.stringify(vm.runInContext('state', context)), before, 'preview does not mutate app state');
+
+    vm.runInContext('toast = () => {}', context);
+    vm.runInContext('window.openAssistantIncomeDraft = () => true', context);
+    assert.equal(api.openAssistantOperation(), true, 'the preview opens the existing income form');
+    const requestId = api.assistantOperationRequestId('income');
+    assert.equal(requestId, 'test-id');
+    assert.equal(api.requireAssistantOperationReadyForCommit('income'), true);
+    assert.equal(api.beginAssistantOperationCommit('income'), requestId, 'the official form becomes the single final confirmation point');
+    assert.equal(api.beginAssistantOperationCommit('income'), false, 'a second click while saving is blocked');
+
+    api.logAction('تحصيل اشتراك', 'سارة حسن - 500 ج.م');
+    const audit = vm.runInContext('state.auditLogs[0].details', context);
+    assert.match(audit, /المصدر: عم عبده/);
+    assert.match(audit, /مرجع الطلب: test-id/);
+    assert.match(audit, /طلب المدير: سجّل تحصيل 500 جنيه من سارة حسن شقة 7 عن نوفمبر 2026/);
+
+    assert.equal(api.completeAssistantOperation(requestId), true, 'a confirmed save clears its assistant context');
+    api.logAction('مصروف', 'كهرباء - 50 ج.م');
+    assert.equal(vm.runInContext('state.auditLogs[0].details', context), 'كهرباء - 50 ج.م', 'ordinary operations are not mislabeled as assistant work');
+});
+
+test('an ambiguous assistant save remains locked after closing the form until the manager refreshes', () => {
+    const { context, api } = createHarness(true);
+    vm.runInContext('toast = () => {}', context);
+    api.answerAssistantQuery('أضف مصروف كهرباء 800 جنيه عن نوفمبر 2026', NOW);
+    vm.runInContext('window.openAssistantExpenseDraft = () => true', context);
+    assert.equal(api.openAssistantOperation(), true);
+    const requestId = api.assistantOperationRequestId('expense');
+    assert.equal(api.beginAssistantOperationCommit('expense'), requestId);
+    api.markAssistantOperationSaveUncertain(requestId);
+    assert.equal(api.requireAssistantOperationReadyForCommit('expense'), false);
+    api.clearAssistantOperationContext();
+    assert.equal(api.assistantOperationRequestId('expense'), requestId, 'closing the form does not discard an unresolved idempotency key');
+    assert.equal(api.answerAssistantQuery('سجّل تحصيل 100 جنيه من أحمد شقة 3', NOW).id, 'operation-pending');
+});
+
+test('all assistant-origin financial forms share the same request-id commit and audit path', () => {
+    for (const type of ['income', 'expense', 'adjustment']) {
+        assert.match(crudSource, new RegExp(`crudBeginAssistantOperationCommit\\('${type}'\\)`), `${type} has the unified confirmation guard`);
+        assert.match(crudSource, /saveWithRollback\(previousState, assistantRequestId\)/, `${type} uses atomic request-id persistence`);
+        assert.match(crudSource, /markAssistantOperationSaveUncertain\(assistantRequestId\)/, `${type} locks ambiguous retries`);
+    }
+    assert.match(crudSource, /crudAssistantOperationReady\('adjustment'\)[\s\S]*?crudAssistantOperationReady\('income'\)[\s\S]*?crudAssistantOperationReady\('expense'\)/, 'all three forms use the shared assistant confirmation gate');
+    assert.match(stateSource, /assistantAuditDetails\(details\)/, 'the shared audit logger adds request source metadata');
+    assert.match(appSource, /clearAssistantOperationContext\(\)/, 'closing the official form cleans up or retains the correct context');
+    assert.match(supabaseSource, /p_request_id:\s*requestId/, 'the stable id reaches the existing atomic Supabase RPC');
 });
 
 test('owners cannot turn assistant operation commands into manager forms', () => {
@@ -787,6 +852,8 @@ test('the local knowledge center explains privacy, read-only behavior and role s
     assert.match(knowledge.html, /محليًا/);
     assert.match(knowledge.html, /قراءة فقط/);
     assert.match(knowledge.html, /صلاحيات المدير/);
+    assert.match(knowledge.html, /مسودة التحصيل أو المصروف/);
+    assert.match(knowledge.html, /لا تُحفظ إلا بعد مراجعتك وضغط/);
 
     const owner = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
     const ownerKnowledge = owner.api.answerAssistantQuery('إزاي أستخدم عم عبده؟', NOW);

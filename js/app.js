@@ -72,6 +72,10 @@ function openModal(id) {
 }
 
 function closeModal(id) {
+    if (['incomeModal', 'expenseModal', 'adjustmentModal'].includes(id)
+        && typeof clearAssistantOperationContext === 'function') {
+        clearAssistantOperationContext();
+    }
     const modal = document.getElementById(id);
     if (!modal) return;
     modal.classList.add('hidden');

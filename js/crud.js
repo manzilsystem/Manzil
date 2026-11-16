@@ -5,6 +5,23 @@ let editingIncomeId = null;
 let expenseSaving = false;
 let editingExpenseId = null;
 
+function crudAssistantOperationReady(type) {
+    return typeof requireAssistantOperationReadyForCommit !== 'function'
+        || requireAssistantOperationReadyForCommit(type);
+}
+
+function crudBeginAssistantOperationCommit(type) {
+    return typeof beginAssistantOperationCommit === 'function'
+        ? beginAssistantOperationCommit(type)
+        : null;
+}
+
+function crudAssistantOperationSubmitLabel(type, fallbackLabel) {
+    return typeof getAssistantOperationSubmitLabel === 'function'
+        ? getAssistantOperationSubmitLabel(type, fallbackLabel)
+        : fallbackLabel;
+}
+
 const CRUD_INCOME_PURPOSES = ['subscription', 'services', 'development', 'emergency', 'penalty', 'donation', 'other', 'settlement'];
 const CRUD_INCOME_PURPOSE_FORM_CODES = ['subscription', 'development', 'emergency', 'settlement', 'other'];
 const CRUD_INCOME_PURPOSE_LABELS = {
@@ -861,6 +878,7 @@ function cancelAdjustmentEdit() {
 async function handleAdjustmentSubmit(event) {
     if (!requireManager()) return;
     event.preventDefault();
+    if (!crudAssistantOperationReady('adjustment')) return;
     const resident = state.residents.find(item => item.id === adjustmentResidentId);
     if (!resident) {
         toast('تعذر العثور على الشقة. أعد فتح نافذة الإعفاء والتخفيض.', 'error');
@@ -945,6 +963,8 @@ async function handleAdjustmentSubmit(event) {
         }
     }
 
+    const assistantRequestId = crudBeginAssistantOperationCommit('adjustment');
+    if (assistantRequestId === false) return;
     const previousState = cloneStateSnapshot();
     const label = adjustmentMonthKeyToLabel(monthKey);
     state.adjustments = Array.isArray(state.adjustments) ? state.adjustments : [];
@@ -972,7 +992,11 @@ async function handleAdjustmentSubmit(event) {
         logAction('إضافة ' + getAdjustmentKindLabel(kind), `${resident.name} - شقة ${resident.apartmentNumber} - ${label} - ${formatSubscriptionAmount(amountCents / 100)} ج.م`);
     }
 
-    if (!await saveWithRollback(previousState)) return;
+    if (!await saveWithRollback(previousState, assistantRequestId)) {
+        if (assistantRequestId) markAssistantOperationSaveUncertain(assistantRequestId);
+        return;
+    }
+    if (assistantRequestId) completeAssistantOperation(assistantRequestId);
     toast(editingAdjustmentId
         ? 'تم تحديث الإجراء.'
         : kind === 'settlement'
@@ -2522,6 +2546,7 @@ function previewIncomeAllocation() {
 async function handleIncomeSubmit(e) {
     if (!requireManager() || incomeSaving) return;
     e.preventDefault();
+    if (!crudAssistantOperationReady('income')) return;
     if (!validateIncomeWizardStep(1) || !validateIncomeWizardStep(2)) return;
     const residentId = /** @type {any} */ (document.getElementById('incomeResident')).value;
     const amount = Number(/** @type {any} */ (document.getElementById('incomeAmount')).value);
@@ -2602,6 +2627,8 @@ async function handleIncomeSubmit(e) {
     const hasExtras = extraLines.length > 0;
     const allocatedCount = allocation ? allocation.allocations.length : 1;
 
+    const assistantRequestId = crudBeginAssistantOperationCommit('income');
+    if (assistantRequestId === false) return;
     incomeSaving = true;
     const submit = /** @type {any} */ (document.getElementById('incomeSubmitButton'));
     if (submit) {
@@ -2650,7 +2677,11 @@ async function handleIncomeSubmit(e) {
     }
 
     try {
-        if (!await saveWithRollback(previousState)) return;
+        if (!await saveWithRollback(previousState, assistantRequestId)) {
+            if (assistantRequestId) markAssistantOperationSaveUncertain(assistantRequestId);
+            return;
+        }
+        if (assistantRequestId) completeAssistantOperation(assistantRequestId);
         closeModal('incomeModal');
         resetIncomeFormFields();
         renderAll();
@@ -2667,7 +2698,7 @@ async function handleIncomeSubmit(e) {
         incomeSaving = false;
         if (submit) {
             submit.disabled = false;
-            submit.textContent = hasExtras ? 'حفظ الدفعة المختلطة' : purpose === 'settlement' ? 'تسجيل دفعة التسوية' : 'حفظ التحصيل وتوزيعه';
+            submit.textContent = crudAssistantOperationSubmitLabel('income', hasExtras ? 'حفظ الدفعة المختلطة' : purpose === 'settlement' ? 'تسجيل دفعة التسوية' : 'حفظ التحصيل وتوزيعه');
         }
     }
 }
@@ -3001,6 +3032,7 @@ function openExpenseEditModal(id) {
 async function handleExpenseSubmit(e) {
     if (!requireManager() || expenseSaving) return;
     e.preventDefault();
+    if (!crudAssistantOperationReady('expense')) return;
     const title = /** @type {any} */ (document.getElementById('expenseTitle')).value.trim();
     const amount = Number(/** @type {any} */ (document.getElementById('expenseAmount')).value);
     const category = /** @type {any} */ (document.getElementById('expenseCategory')).value;
@@ -3033,6 +3065,8 @@ async function handleExpenseSubmit(e) {
         previewExpense();
         return;
     }
+    const assistantRequestId = crudBeginAssistantOperationCommit('expense');
+    if (assistantRequestId === false) return;
     expenseSaving = true;
     const submit = /** @type {any} */ (document.getElementById('expenseSubmitButton'));
     if (submit) { submit.disabled = true; submit.textContent = 'جارٍ الحفظ...'; }
@@ -3049,7 +3083,11 @@ async function handleExpenseSubmit(e) {
         logAction('تجاوز رصيد الخزنة', title + ' - ' + fmtNum(amount) + ' (الرصيد بعد الصرف: ' + fmtNum(balanceAfter) + ')');
     }
     try {
-        if (!await saveWithRollback(previousState)) return;
+        if (!await saveWithRollback(previousState, assistantRequestId)) {
+            if (assistantRequestId) markAssistantOperationSaveUncertain(assistantRequestId);
+            return;
+        }
+        if (assistantRequestId) completeAssistantOperation(assistantRequestId);
         editingExpenseId = null;
         closeModal('expenseModal');
         /** @type {any} */ (document.getElementById('expenseForm')).reset();
@@ -3060,7 +3098,7 @@ async function handleExpenseSubmit(e) {
         toast(existingExpense ? 'تم تعديل المصروف بنجاح.' : 'تم تسجيل المصروف', 'success');
     } finally {
         expenseSaving = false;
-        if (submit) { submit.disabled = false; submit.textContent = 'حفظ المصروف'; }
+        if (submit) { submit.disabled = false; submit.textContent = crudAssistantOperationSubmitLabel('expense', 'حفظ المصروف'); }
     }
 }
 
