@@ -2213,12 +2213,20 @@ function formatAssistantUserText(text) {
     return assistantEscape(text).replace(/\n/g, '<br>');
 }
 
+function assistantMessageTime() {
+    try {
+        return new Intl.DateTimeFormat('ar-EG', { hour: '2-digit', minute: '2-digit' }).format(new Date());
+    } catch (error) {
+        return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+}
+
 function renderAssistantMessage(role, html) {
     const log = document.getElementById('assistantLog');
     if (!log) return null;
     const message = document.createElement('div');
     message.className = `assistant-msg is-${role}`;
-    message.innerHTML = `<div class="assistant-bubble">${html}</div>`;
+    message.innerHTML = `<div class="assistant-bubble">${html}<span class="assistant-message-meta">${assistantMessageTime()} <span aria-hidden="true">✓</span></span></div>`;
     log.appendChild(message);
     log.scrollTop = log.scrollHeight;
     return message;
@@ -2240,7 +2248,7 @@ function showAssistantTyping() {
     const message = document.createElement('div');
     message.className = 'assistant-msg is-bot is-typing';
     message.setAttribute('aria-hidden', 'true');
-    message.innerHTML = '<div class="assistant-bubble"><span class="assistant-typing-dot"></span><span class="assistant-typing-dot"></span><span class="assistant-typing-dot"></span></div>';
+    message.innerHTML = '<div class="assistant-bubble"><span class="assistant-typing-label">عم عبده بيكتب</span><span class="assistant-typing-dot"></span><span class="assistant-typing-dot"></span><span class="assistant-typing-dot"></span></div>';
     log.appendChild(message);
     log.scrollTop = log.scrollHeight;
     return message;
@@ -2323,6 +2331,12 @@ function sendAssistantMessage(event) {
     if (typeof setTimeout === 'function' && ASSISTANT_TYPING_DELAY_MS > 0) setTimeout(deliver, ASSISTANT_TYPING_DELAY_MS);
     else deliver();
     if (typeof input.focus === 'function') input.focus();
+}
+
+function handleAssistantComposerKeydown(event) {
+    if (!event || event.key !== 'Enter' || event.shiftKey) return;
+    if (typeof event.preventDefault === 'function') event.preventDefault();
+    sendAssistantMessage(event);
 }
 
 function askAssistant(query) {

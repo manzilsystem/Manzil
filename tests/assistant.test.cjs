@@ -226,6 +226,9 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(html, /id="assistantLog"[^>]*role="log"[^>]*aria-live="polite"/);
     assert.match(html, /id="assistantLog"[^>]*onclick="handleAssistantSuggestion\(event\)"/, 'follow-up chips inside the log reuse the delegated handler');
     assert.match(html, /id="assistantInput"[^>]*maxlength="240"/);
+    assert.match(html, /<textarea[^>]*id="assistantInput"[^>]*rows="1"/);
+    assert.match(html, /onkeydown="handleAssistantComposerKeydown\(event\)"/);
+    assert.match(html, /Shift\+Enter لسطر جديد/);
     assert.match(html, /id="assistantSuggestions"[^>]*onclick="handleAssistantSuggestion\(event\)"/);
     assert.match(html, /onsubmit="sendAssistantMessage\(event\)"/);
     assert.match(html, /<button type="button" id="assistantFab"[^>]*onclick="openAssistantModal\(\)"/);
@@ -270,6 +273,9 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(assistantSource, /new MutationObserver\(\(\) => syncAssistantFab\(\)\)\.observe\(modal/);
     assert.doesNotMatch(assistantSource, /addEventListener\('focus'/, 'a visibility-hidden launcher is not focusable, so no focus handler is needed');
     assert.match(css, /\.assistant-msg\.is-user \.assistant-bubble/);
+    assert.match(css, /\.assistant-message-meta \{/);
+    assert.match(assistantSource, /function handleAssistantComposerKeydown\(event\)/);
+    assert.match(assistantSource, /عم عبده بيكتب/);
     assert.match(css, /@media print \{\s*#assistantModal \{ display: none !important; \}/);
 });
 
@@ -376,7 +382,7 @@ test('assistant is local-only and never touches the network', () => {
     assert.doesNotMatch(assistantSource, /https?:\/\//);
     assert.doesNotMatch(assistantSource, /supabase/i);
     assert.match(assistantSource, /ومساعدك المحلي/, 'the assistant introduces itself as a local helper');
-    assert.match(html, /<p><span class="assistant-online-dot" aria-hidden="true"><\/span> واقف على الباب وبيخدمك<\/p>/, 'the head keeps the one-line status note and nothing more');
+    assert.match(html, /<p><span class="assistant-online-dot" aria-hidden="true"><\/span> متاح الآن · محادثة محلية<\/p>/, 'the head keeps the local-chat status note');
 });
 
 test('assistant runtime keeps the written chat local and away from durable storage', () => {

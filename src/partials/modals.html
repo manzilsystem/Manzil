@@ -1298,7 +1298,7 @@
                 <span id="assistantHeadAvatar" class="assistant-avatar"><img src="icons/assistant-abbah.png" alt="" width="38" height="38" decoding="async"></span>
                 <div class="assistant-head-copy">
                     <h3 id="assistantModalTitle">عم عبده البواب</h3>
-                    <p><span class="assistant-online-dot" aria-hidden="true"></span> واقف على الباب وبيخدمك</p>
+                    <p><span class="assistant-online-dot" aria-hidden="true"></span> متاح الآن · محادثة محلية</p>
                 </div>
                 <button type="button" class="assistant-icon-button" onclick="resetAssistantChat()" aria-label="بدء محادثة جديدة" title="محادثة جديدة"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>
                 <button type="button" class="assistant-icon-button" onclick="closeModal('assistantModal')" aria-label="إغلاق مساعد عم عبده"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
@@ -1320,7 +1320,7 @@
             </details>
             <form class="assistant-form" onsubmit="sendAssistantMessage(event)">
                 <label for="assistantInput" class="sr-only">اكتب سؤالك لعم عبده</label>
-                <input type="text" id="assistantInput" class="app-input" maxlength="240" autocomplete="off" enterkeyhint="send" placeholder="اسألني عن التحصيل، المتأخرات، الخزنة…">
+                <textarea id="assistantInput" class="app-input" maxlength="240" autocomplete="off" enterkeyhint="send" rows="1" onkeydown="handleAssistantComposerKeydown(event)" placeholder="اكتب سؤالك…&#10;Enter للإرسال · Shift+Enter لسطر جديد"></textarea>
                 <button type="submit" class="assistant-send-button" aria-label="إرسال السؤال كتابةً"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
             </form>
             <p class="assistant-footnote"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> قراءة حسب صلاحيتك · أي إضافة تتطلب مراجعتك وتأكيدك؛ الحذف والتعديل من شاشات التطبيق.</p>

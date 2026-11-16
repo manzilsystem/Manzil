@@ -4227,6 +4227,16 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     line-height: var(--leading-180);
     overflow-wrap: anywhere;
 }
+.assistant-message-meta {
+    display: block;
+    margin-top: var(--space-30);
+    color: var(--text-muted);
+    font-size: var(--font-55);
+    line-height: var(--leading-120);
+    text-align: end;
+    direction: ltr;
+    opacity: var(--opacity-75);
+}
 .assistant-msg.is-bot .assistant-bubble {
     background: var(--surface-raised, color-mix(in srgb, var(--bg-input) 82%, transparent));
     border: 1px solid var(--border-color);
@@ -4240,6 +4250,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     color: var(--assistant-ink-on-accent-default);
     font-weight: var(--weight-600);
 }
+.assistant-msg.is-user .assistant-message-meta { color: currentColor; }
 [data-theme="emerald"] .assistant-msg.is-user .assistant-bubble { color: var(--assistant-ink-on-accent-emerald); }
 [data-theme="sand"] .assistant-msg.is-user .assistant-bubble { color: var(--assistant-ink-on-accent); }
 .assistant-answer-title { margin-bottom: var(--space-35); font-size: var(--font-80); font-weight: var(--weight-900); color: var(--accent-color); }
@@ -4426,6 +4437,12 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     min-height: 1.6rem;
     padding: var(--space-60) var(--space-80);
 }
+.assistant-typing-label {
+    margin-inline-end: var(--space-20);
+    color: var(--text-muted);
+    font-size: var(--font-60);
+    font-weight: var(--weight-700);
+}
 .assistant-typing-dot {
     width: .38rem;
     height: .38rem;
@@ -4449,7 +4466,8 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     padding: var(--space-65) var(--space-80);
     border-top: 1px solid var(--border-color);
 }
-.assistant-form input {
+.assistant-form input,
+.assistant-form textarea {
     flex: 1;
     min-width: 0;
     min-height: 2.6rem;
@@ -4458,7 +4476,13 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     border-radius: var(--radius-90);
     font-size: var(--font-75);
 }
-.assistant-form input:focus { outline: 2px solid color-mix(in srgb, var(--accent-color) 65%, transparent); outline-offset: 1px; }
+.assistant-form textarea {
+    max-height: 7rem;
+    resize: vertical;
+    line-height: var(--leading-150);
+}
+.assistant-form input:focus,
+.assistant-form textarea:focus { outline: 2px solid color-mix(in srgb, var(--accent-color) 65%, transparent); outline-offset: 1px; }
 .assistant-send-button {
     display: inline-flex;
     align-items: center;
