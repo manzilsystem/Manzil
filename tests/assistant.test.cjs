@@ -677,6 +677,24 @@ test('expense answers use all funds and group by category', () => {
     assert.doesNotMatch(answer.html, /صيانة أسانسير/);
 });
 
+test('compound manager questions combine collection and expenses for the requested period', () => {
+    const { api } = createHarness();
+    const answer = api.answerAssistantQuery('التحصيلات والمصروفات والمتأخرات في نوفمبر 2026', NOW);
+    assert.equal(answer.id, 'executive');
+    assert.match(answer.title, /نوفمبر 2026/);
+    assert.match(answer.html, /التحصيل/);
+    assert.match(answer.html, /المصروفات/);
+    assert.match(answer.html, /إجمالي السيولة/);
+    assert.match(answer.html, /المتأخرات المتراكمة/);
+});
+
+test('owner queries mentioning multiple manager metrics stay inside the owner scope', () => {
+    const { api } = createHarness(true, { role: 'owner', residentId: 'r1', ownerScoped: true });
+    const answer = api.answerAssistantQuery('التحصيلات والمصروفات والمتأخرات في نوفمبر 2026', NOW);
+    assert.equal(answer.id, 'owner_scope');
+    assert.doesNotMatch(answer.html, /إجمالي السيولة|المتأخرات المتراكمة/);
+});
+
 test('change alerts flag large period shifts without claiming a diagnosis', () => {
     const { context, api } = createHarness();
     vm.runInContext(`state.income = [

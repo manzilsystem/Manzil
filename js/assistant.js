@@ -608,6 +608,16 @@ function detectAssistantIntent(normalized, hasResident) {
     return 'unknown';
 }
 
+function detectAssistantCompoundIntent(normalized) {
+    const domains = [
+        /(?:تحصيل|تحصيلات|ايراد|دخل|وارد|مدفوع|متحصل|المتحصلات|اللي اتجمع)/.test(normalized),
+        /(?:مصروف|مصاريف|صرف|منصرف|اتصرف)/.test(normalized),
+        /(?:متاخر|متاخرات|مستحق|مديون|غير مدفوع|مش سدد|عليه فلوس)/.test(normalized),
+        /(?:خزنه|صندوق|رصيد|سيوله)/.test(normalized)
+    ];
+    return domains.filter(Boolean).length >= 2 ? 'executive' : null;
+}
+
 function assistantRow(label, value, tone = '') {
     const className = tone ? ` is-${tone}` : '';
     return `<div class="assistant-row${className}"><span>${assistantEscape(label)}</span><strong>${assistantEscape(value)}</strong></div>`;
@@ -1742,7 +1752,7 @@ function answerAssistantQuery(text, now = new Date()) {
     }
     const remembered = assistantFollowsResident(text) ? assistantRememberedResident() : null;
     const resident = residentMatch.resident || remembered;
-    const intent = detectAssistantIntent(normalized, Boolean(resident));
+    const intent = detectAssistantCompoundIntent(normalized) || detectAssistantIntent(normalized, Boolean(resident));
     const period = resolveAssistantPeriodWithContext(text, now);
     const answer = selectAssistantAnswer(intent, period, resident, now);
     return withAssistantAnswerMeta(answer, period, resident, text);
