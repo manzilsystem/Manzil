@@ -431,6 +431,13 @@ test('manager announcement commands create a preview with explicit confirmation 
     assert.equal(JSON.stringify(vm.runInContext('state', context)), before);
 });
 
+test('manager report answers expose a role-safe direct navigation action', () => {
+    assert.match(assistantSource, /function openAssistantReports\(reportTab = 'landlord'\)/);
+    assert.match(assistantSource, /openAssistantReports\('landlord'\)/);
+    assert.match(assistantSource, /openAssistantReports\('period'\)/);
+    assert.match(assistantSource, /if \(assistantIsOwner\(\)\) return false;/);
+});
+
 test('assistant money figures equal the reference billing values', () => {
     const { context, api } = createHarness(true);
     const period = api.resolveAssistantPeriod('نوفمبر 2026', NOW);

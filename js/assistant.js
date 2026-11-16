@@ -1045,6 +1045,14 @@ function buildAssistantKnowledgeAnswer() {
     ];
     return { id: 'knowledge', title, html: assistantList(items) + assistantNote(owner ? 'جرّب: «إيصالاتي» أو «آخر يوم للدفع كام؟».' : 'جرّب: «مين يقدر يشوف البيانات؟» أو «إزاي أستخدم التقارير؟».') };
 }
+
+function openAssistantReports(reportTab = 'landlord') {
+    if (assistantIsOwner()) return false;
+    if (typeof switchTab === 'function') switchTab('reports');
+    if (typeof switchReportTab === 'function') setTimeout(() => switchReportTab(reportTab), 0);
+    return true;
+}
+
 function buildAssistantReportsAnswer() {
     const title = 'التقارير المتاحة';
     const html = `${assistantList([
@@ -1054,7 +1062,11 @@ function buildAssistantReportsAnswer() {
         'تقرير الإعفاءات والتخفيضات: حسب الفترة والشقة والنوع.',
         'كشف حساب مالك: حركات الشهر والمستحق والمتأخرات.',
         'الإقفال الشهري والمتأخرات وسجل التدقيق.'
-    ])}${assistantNote('افتح قسم «التقارير» من الشريط السفلي، وكل تقرير له معاينة وطباعة وتصدير CSV.')}`;
+    ])}${assistantNote('افتح قسم «التقارير» من الشريط السفلي، وكل تقرير له معاينة وطباعة وتصدير CSV.')}
+        <div class="assistant-action-buttons" role="group" aria-label="فتح التقارير">
+            <button type="button" class="assistant-action-confirm" onclick="openAssistantReports('landlord')">فتح تقرير المالك</button>
+            <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('period')">فتح تقرير الفترة</button>
+        </div>`;
     return { id: 'reports', title, html };
 }
 

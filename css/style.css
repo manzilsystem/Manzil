@@ -4262,6 +4262,27 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 }
 .assistant-list li { font-size: var(--font-72); line-height: var(--leading-170); }
 .assistant-note { margin-top: var(--space-45); color: var(--text-muted); font-size: var(--font-67); line-height: var(--leading-170); }
+.assistant-action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-35);
+    margin-top: var(--space-55);
+}
+.assistant-action-buttons button {
+    min-height: 2.35rem;
+    padding: var(--space-35) var(--space-65);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-70);
+    font-size: var(--font-67);
+    font-weight: var(--weight-800);
+    transition: background var(--motion-150) var(--ease-standard), border-color var(--motion-150) var(--ease-standard);
+}
+.assistant-action-confirm { background: var(--accent-color); color: var(--accent-surface-ink); }
+.assistant-action-confirm:hover { filter: brightness(1.08); }
+.assistant-action-secondary { background: color-mix(in srgb, var(--accent-color) 10%, var(--bg-input)); color: var(--text-main); }
+.assistant-action-secondary:hover { border-color: var(--accent-color); background: color-mix(in srgb, var(--accent-color) 18%, var(--bg-input)); }
+.assistant-action-cancel { background: transparent; color: var(--text-muted); }
+.assistant-action-cancel:hover { border-color: var(--state-danger); color: var(--state-danger); }
 .assistant-suggestions {
     display: flex;
     gap: var(--space-40);
