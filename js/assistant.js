@@ -1005,6 +1005,7 @@ function openAssistantOperation() {
             : (draft.type === 'resident' || draft.type === 'resident_edit') ? 'openAssistantResidentDraft' : 'openAssistantAdjustmentDraft';
     const openForm = assistantGlobalFunction(opener);
     if (openForm) {
+        if (!closeAssistantForNavigation()) return false;
         openForm(draft);
         assistantOperationDraft = null;
         return true;
@@ -1032,7 +1033,7 @@ async function confirmAssistantOperation() {
         if (typeof toast === 'function') toast('مسار الحفظ الرسمي غير متاح الآن؛ افتح النموذج وحاول مرة أخرى.', 'error');
         return false;
     }
-    if (typeof closeModal === 'function') closeModal('assistantModal');
+    if (!closeAssistantForNavigation()) return false;
     const collectionBefore = Array.isArray(state.income) ? state.income.length : 0;
     const expenseBefore = Array.isArray(state.expenses) ? state.expenses.length : 0;
     const adjustmentBefore = Array.isArray(state.adjustments) ? state.adjustments.length : 0;
@@ -1465,6 +1466,7 @@ function buildAssistantKnowledgeAnswer() {
 
 function openAssistantReports(reportTab = 'landlord') {
     if (assistantIsOwner()) return false;
+    if (!closeAssistantForNavigation()) return false;
     if (typeof switchTab === 'function') switchTab('reports');
     if (typeof switchReportTab === 'function') setTimeout(() => switchReportTab(reportTab), 0);
     return true;
@@ -1474,6 +1476,7 @@ function parseAssistantReportRequest(raw, now = new Date()) {
     const normalized = normalizeAssistantArabic(raw);
     const period = resolveAssistantPeriodWithContext(raw, now);
     const residentMatch = resolveAssistantResident(raw);
+    const hasExplicitPeriod = /(?:يناير|فبراير|مارس|ابريل|أبريل|مايو|يونيو|يوليو|اغسطس|أغسطس|سبتمبر|اكتوبر|أكتوبر|نوفمبر|ديسمبر|20\d{2}|الشهر الحالي|الشهر ده|الشهر الماضي)/.test(normalized);
     let tab = 'landlord';
     if (/(مصروف|مصاريف|صرف)/.test(normalized)) tab = 'expenses';
     else if (/(اعفاء|تخفيض|تسويه|خصم)/.test(normalized)) tab = 'adjustments';
@@ -1481,13 +1484,13 @@ function parseAssistantReportRequest(raw, now = new Date()) {
     else if (/(فتره|فترة|عدة شهور|مجموعة شهور)/.test(normalized)) tab = 'period';
     return {
         tab,
-        month: period?.type === 'month' ? period.label : '',
+        month: hasExplicitPeriod && period?.type === 'month' ? period.label : '',
         residentId: residentMatch.matches.length === 1 ? residentMatch.matches[0].id : ''
     };
 }
 function openAssistantReportsRequest(tab = 'landlord', month = '', residentId = '') {
     if (assistantIsOwner()) return false;
-    openAssistantReports(tab);
+    if (!openAssistantReports(tab)) return false;
     setTimeout(() => {
         if (month && tab === 'landlord') {
             const select = /** @type {HTMLSelectElement | null} */ (document.getElementById('reportMonthSelect'));
@@ -1506,25 +1509,35 @@ function openAssistantReportsRequest(tab = 'landlord', month = '', residentId = 
     }, 0);
     return true;
 }
+function closeAssistantForNavigation() {
+    if (!assistantModalIsOpen()) return true;
+    if (typeof closeModal !== 'function') return false;
+    closeModal('assistantModal');
+    return !assistantModalIsOpen();
+}
 function buildAssistantReportsAnswer(request = null) {
     const title = 'التقارير المتاحة';
     const requested = request && (request.month || request.residentId || request.tab !== 'landlord');
     const requestedLabel = request?.month ? `تم تجهيز شهر ${request.month}` : request?.residentId ? 'تم تجهيز المالك المحدد' : '';
     const html = `${assistantList([
-        'تقرير المالك الشهري: تحصيل ومصروفات الشهر مع فلاتر الغرض والصندوق وطريقة الدفع والشقة.',
-        'تقرير فترة: مقارنة مجموعة شهور مع فلاتر.',
-        'تقرير المصروفات: حسب الفترة والصندوق والتصنيف.',
-        'تقرير الإعفاءات والتخفيضات: حسب الفترة والشقة والنوع.',
-        'كشف حساب مالك: حركات الشهر والمستحق والمتأخرات.',
-        'الإقفال الشهري والمتأخرات وسجل التدقيق.'
+        'تقرير المالك الشهري والفترة: التحصيل والمصروفات مع الفلاتر.',
+        'تقارير المصروفات والإعفاءات والتخفيضات.',
+        'كشف حساب المالك والإقفال الشهري والمتأخرات.'
     ])}${assistantNote(requested ? `${requestedLabel || 'تم تجهيز التقرير المطلوب'} — راجع الفلاتر ثم اضغط «معاينة» قبل الطباعة أو التصدير CSV.` : 'افتح قسم «التقارير» من الشريط السفلي، وكل تقرير له معاينة وطباعة وتصدير CSV.')}
         <div class="assistant-action-buttons assistant-report-actions" role="group" aria-label="فتح التقارير">
             ${requested ? `<button type="button" class="assistant-action-confirm" onclick="openAssistantReportsRequest('${assistantEscape(request.tab)}','${assistantEscape(request.month || '')}','${assistantEscape(request.residentId || '')}')">فتح التقرير المطلوب</button>` : ''}
+            ${requested ? '<button type="button" class="assistant-action-secondary" onclick="openAssistantReports()">كل التقارير</button>' : `
+            <button type="button" class="assistant-action-confirm" onclick="openAssistantReports()">فتح التقارير</button>
+            <details class="assistant-disclosure assistant-report-options">
+                <summary class="assistant-disclosure-summary"><span>اختيار نوع التقرير</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+                <div class="assistant-disclosure-body assistant-action-buttons">
             <button type="button" class="assistant-action-confirm" onclick="openAssistantReports('landlord')">تقرير المالك</button>
             <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('period')">تقرير الفترة</button>
             <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('expenses')">تقرير المصروفات</button>
             <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('adjustments')">الإعفاءات والتخفيضات</button>
             <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('statement')">كشف حساب مالك</button>
+                </div>
+            </details>`}
         </div>`;
     return { id: 'reports', title, html };
 }
@@ -2126,6 +2139,7 @@ function populateAssistantQuickActions() {
 function runAssistantQuickAction(action) {
     if (assistantIsOwner()) return false;
     if (action === 'notice' && typeof openNoticeModal === 'function') {
+        if (!closeAssistantForNavigation()) return false;
         openNoticeModal();
         return true;
     }

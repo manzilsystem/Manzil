@@ -18,7 +18,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css?v=4a830edd8e">
+    <link rel="stylesheet" href="css/style.css?v=e66f90d0be">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -2178,17 +2178,18 @@
                 <button type="button" class="assistant-icon-button" onclick="closeModal('assistantModal')" aria-label="إغلاق مساعد عم عبده"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             </header>
             <div id="assistantLog" class="assistant-log" role="log" aria-live="polite" aria-label="محادثة عم عبده البواب" onclick="handleAssistantSuggestion(event)"></div>
-            <details id="assistantQuickActions" class="assistant-disclosure assistant-quick-actions" aria-label="إجراءات المدير السريعة" hidden>
-                <summary class="assistant-disclosure-summary"><span>مهام المدير</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
-                <div class="assistant-disclosure-body">
-                    <div id="assistantQuickActionButtons" class="assistant-quick-actions-list" onclick="handleAssistantSuggestion(event)"></div>
-                    <p class="assistant-quick-actions-hint">جهّز عملية للمراجعة قبل الحفظ، افتح التقارير، أو انتقل لنموذج الإعلان الرسمي.</p>
-                </div>
-            </details>
-            <details class="assistant-disclosure assistant-suggestions-disclosure">
-                <summary id="assistantSuggestionsSummary" class="assistant-disclosure-summary"><span>أسئلة جاهزة</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
-                <div class="assistant-disclosure-body">
-                    <div id="assistantSuggestions" class="assistant-suggestions" aria-label="أسئلة مقترحة" onclick="handleAssistantSuggestion(event)"></div>
+            <details id="assistantTools" class="assistant-disclosure assistant-tools" aria-label="اختصارات وأسئلة المساعد">
+                <summary class="assistant-disclosure-summary"><span>اختصارات وأسئلة جاهزة</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+                <div class="assistant-tools-body">
+                    <section id="assistantQuickActions" class="assistant-quick-actions" aria-label="مهام المدير السريعة" hidden>
+                        <h4 class="assistant-tools-label">مهام المدير</h4>
+                        <div id="assistantQuickActionButtons" class="assistant-quick-actions-list" onclick="handleAssistantSuggestion(event)"></div>
+                        <p class="assistant-quick-actions-hint">جهّز عملية للمراجعة قبل الحفظ، افتح التقارير، أو انتقل لنموذج الإعلان الرسمي.</p>
+                    </section>
+                    <section class="assistant-suggestions-disclosure" aria-labelledby="assistantSuggestionsSummary">
+                        <h4 id="assistantSuggestionsSummary" class="assistant-tools-label">أسئلة جاهزة</h4>
+                        <div id="assistantSuggestions" class="assistant-suggestions" aria-label="أسئلة مقترحة" onclick="handleAssistantSuggestion(event)"></div>
+                    </section>
                 </div>
             </details>
             <form class="assistant-form" onsubmit="sendAssistantMessage(event)">
@@ -2201,7 +2202,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-0a4d8a0bb6"></script>
+    <script src="js/telemetry.js?v=manzil-a5723a5e1f"></script>
     <script src="js/state.js?v=a1327e49bc"></script>
     <script src="js/access.js?v=0e8f36ff5c"></script>
     <script src="js/render.js?v=38a35471ba"></script>
@@ -2214,7 +2215,7 @@
     <script src="js/cashbox.js?v=3ca9f6a1d8"></script>
     <script src="js/monthly-close.js?v=3931791f32"></script>
     <script src="js/backup.js?v=6f6d4ebbf1"></script>
-    <script src="js/assistant.js?v=05795f0a83"></script>
+    <script src="js/assistant.js?v=8f5dd4782f"></script>
     <script src="js/app.js?v=bb82ca8bd3"></script>
 </body>
 </html>

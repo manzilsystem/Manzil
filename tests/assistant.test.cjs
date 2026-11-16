@@ -156,6 +156,8 @@ function createHarness(seed = true, identity = {}, options = {}) {
         assistantParsedAmount,
         assistantEscape,
         runAssistantQuickAction,
+        openAssistantOperation,
+        openAssistantReports,
         buildAssistantFollowUps,
         hasAssistantTimeHint,
         assistantFollowsResident,
@@ -292,11 +294,12 @@ test('manager quick actions are visible, start incomplete operation drafts, and 
     }
     assert.match(assistantSource, /function populateAssistantQuickActions\(\)/);
     assert.match(assistantSource, /if \(section\) section\.hidden = !isManager/);
-    assert.match(html, /id="assistantQuickActions"[^>]*hidden/);
-    assert.match(html, /<details id="assistantQuickActions"[^>]*>/);
-    assert.match(html, /<details class="assistant-disclosure assistant-suggestions-disclosure">/);
-    assert.doesNotMatch(html, /<details[^>]*\bopen\b/, 'quick actions and suggestions start collapsed to keep the chat clear');
-    assert.match(html, /إجراءات المدير السريعة/);
+    assert.match(html, /<details id="assistantTools" class="assistant-disclosure assistant-tools"/);
+    assert.match(html, /<section id="assistantQuickActions"[^>]*hidden/);
+    assert.match(html, /<section class="assistant-suggestions-disclosure"/);
+    assert.doesNotMatch(html, /<details[^>]*\bopen\b/, 'assistant shortcuts start collapsed to keep the chat clear');
+    assert.match(css, /\.assistant-tools-body\s*\{[^}]*max-height:[^}]*overflow-y:\s*auto/s);
+    assert.match(html, /مهام المدير/);
     assert.match(css, /\.assistant-disclosure-summary:focus-visible/);
     assert.match(css, /\.assistant-quick-action:focus-visible/);
 
@@ -462,9 +465,42 @@ test('manager announcement commands create a preview with explicit confirmation 
 
 test('manager report answers expose a role-safe direct navigation action', () => {
     assert.match(assistantSource, /function openAssistantReports\(reportTab = 'landlord'\)/);
+    assert.match(assistantSource, /function closeAssistantForNavigation\(\)/);
+    assert.match(assistantSource, /if \(!closeAssistantForNavigation\(\)\) return false;/);
     assert.match(assistantSource, /openAssistantReports\('landlord'\)/);
     assert.match(assistantSource, /openAssistantReports\('period'\)/);
     assert.match(assistantSource, /if \(assistantIsOwner\(\)\) return false;/);
+});
+
+test('assistant closes its dialog before opening reports, operation forms, or notices', () => {
+    const calls = [];
+    let assistantOpen = true;
+    const { context, api } = createHarness(true, {}, {
+        instrument: sandbox => {
+            const modal = { classList: { contains: name => name === 'hidden' && !assistantOpen } };
+            sandbox.document.getElementById = id => id === 'assistantModal' ? modal : null;
+            sandbox.closeModal = id => { calls.push(`close:${id}`); assistantOpen = false; };
+            sandbox.switchTab = tab => calls.push(`tab:${tab}`);
+            sandbox.switchReportTab = tab => calls.push(`report:${tab}`);
+            sandbox.setTimeout = callback => { callback(); return 0; };
+            sandbox.openAssistantExpenseDraft = () => calls.push('expense-form');
+            sandbox.openNoticeModal = () => calls.push('notice-form');
+        }
+    });
+
+    assert.equal(api.openAssistantReports('expenses'), true);
+    assert.deepEqual(calls, ['close:assistantModal', 'tab:reports', 'report:expenses']);
+
+    calls.length = 0;
+    assistantOpen = true;
+    vm.runInContext("assistantOperationDraft = { type: 'expense' }", context);
+    assert.equal(api.openAssistantOperation(), true);
+    assert.deepEqual(calls, ['close:assistantModal', 'expense-form']);
+
+    calls.length = 0;
+    assistantOpen = true;
+    assert.equal(api.runAssistantQuickAction('notice'), true);
+    assert.deepEqual(calls, ['close:assistantModal', 'notice-form']);
 });
 
 test('manager quick action opens official announcement form and report shortcut returns actionable reports', () => {

@@ -113,17 +113,17 @@ async function askAssistantQuestion(page, question) {
 test('assistant opens from the launcher and answers local questions', async ({ page }) => {
     await seedAndOpenAssistant(page);
     await expect(page.locator('#assistantInput')).toBeVisible();
-    await expect(page.locator('#assistantQuickActions')).not.toHaveJSProperty('open', true);
-    await expect(page.locator('.assistant-suggestions-disclosure')).not.toHaveJSProperty('open', true);
-    await page.locator('#assistantQuickActions > summary').click();
+    const tools = page.locator('#assistantTools');
+    await expect(tools).not.toHaveJSProperty('open', true);
+    await page.locator('#assistantTools > summary').click();
     await expect(page.locator('#assistantQuickActions').getByRole('button', { name: 'تسجيل تحصيل', exact: true })).toBeVisible();
-    await page.locator('#assistantQuickActions > summary').click();
+    await page.locator('#assistantTools > summary').click();
     await expect(page.locator('#assistantVoiceButton, #assistantSoundButton, #assistantVoiceDownloadModal')).toHaveCount(0);
     const botMessages = page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble');
     await expect(botMessages.first()).toContainText('أهلاً يا أستاذ');
     await expect(page.locator('#assistantInput')).toHaveAttribute('placeholder', /الخزنة/);
 
-    await page.locator('.assistant-suggestions-disclosure > summary').click();
+    await page.locator('#assistantTools > summary').click();
     await page.locator('#assistantSuggestions [data-assistant-query="رصيد الخزنة كام؟"]').click();
     await expect(botMessages.last()).toContainText('الخزنة الرئيسية');
     await expect(botMessages.last()).toContainText('1,550 ج.م');
@@ -193,6 +193,28 @@ test('assistant reset, escape close, and launcher restore behave', async ({ page
     await page.locator('#assistantFab').click();
     await expect(modal).toBeVisible();
     await expect(page.locator('#assistantLog .assistant-msg')).toHaveCount(1);
+});
+
+test('assistant report navigation closes chat before showing the reports screen', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    const toolbox = page.locator('#assistantTools');
+    await expect(toolbox).not.toHaveAttribute('open', '');
+
+    await page.getByRole('textbox', { name: 'اكتب سؤالك لعم عبده' }).fill('التقارير المتاحة');
+    await page.getByRole('button', { name: 'إرسال السؤال كتابةً' }).click();
+    await page.locator('#assistantLog').getByRole('button', { name: 'فتح التقارير' }).click();
+
+    await expect(page.locator('#assistantModal')).toBeHidden();
+    await expect(page.locator('#tab-reports')).toBeVisible();
+});
+
+test('assistant notice shortcut closes chat before opening the notice form', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    await page.locator('#assistantTools > summary').click();
+    await page.getByRole('button', { name: 'إعداد إعلان' }).click();
+
+    await expect(page.locator('#assistantModal')).toBeHidden();
+    await expect(page.locator('#noticeModal')).toBeVisible();
 });
 
 test.describe('assistant floating launcher', () => {
@@ -380,7 +402,7 @@ test.describe('assistant inside the owner portal', () => {
     test('the launcher stays in the owner portal and greets the owner by name', async ({ page }) => {
         const botMessages = await seedOwnerAssistant(page);
         await expect(botMessages.first()).toContainText('أهلاً يا أحمد علي');
-        await page.locator('.assistant-suggestions-disclosure > summary').click();
+        await page.locator('#assistantTools > summary').click();
         await expect(page.locator('#assistantSuggestions [data-assistant-query="عليّا كام الشهر ده؟"]')).toBeVisible();
         await expect(page.locator('#assistantSuggestions [data-assistant-query="رصيد الخزنة كام؟"]')).toHaveCount(0);
         await expect(page.locator('#assistantInput')).toHaveAttribute('placeholder', 'اسألني عن حسابك، إيصالاتك، ميعاد الدفع…');
