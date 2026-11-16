@@ -1007,6 +1007,20 @@ test('cashbox answers show each fund and total liquidity', () => {
     assert.match(answer.html, /1,550 ج\.م/);
 });
 
+test('manager task list turns outstanding balances into prioritized follow-up actions', () => {
+    const { api } = createHarness();
+    const answer = api.answerAssistantQuery('اعمل قائمة متابعة للمدير', NOW);
+    assert.equal(answer.id, 'manager_tasks');
+    assert.match(answer.title, /قائمة متابعة المدير/);
+    assert.match(answer.html, /اتصالات التحصيل المقترحة|تحصيلات الشهر المقترحة/);
+    assert.match(answer.html, /سارة حسن/);
+    assert.match(answer.html, /فتح تقرير المتأخرات/);
+    assert.match(answer.html, /ليست إرسالًا تلقائيًا/);
+
+    const owner = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    assert.notEqual(owner.api.answerAssistantQuery('مهام المدير', NOW).id, 'manager_tasks');
+});
+
 test('adjustment answers scope by month and separate waivers from discounts', () => {
     const { api } = createHarness();
     const november = api.answerAssistantQuery('الإعفاءات والتخفيضات', NOW);

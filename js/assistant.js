@@ -693,6 +693,7 @@ function detectAssistantIntent(normalized, hasResident) {
     if (/(تغير غير طبيعي|تغيير كبير|فرق كبير|محتاج مراجعه|محتاج مراجعة|زاد قوي|زادت قوي|نزل قوي|انخفض قوي|ايه اللي اتغير|ايه اللي زاد)/.test(normalized)) return 'change_alerts';
     if (/(مقارنه|قارن|مقابل|زاد|زادت|قل|قلت|اكتر من|اقل من)/.test(normalized)) return 'comparison';
     if (/(اعفاء|تخفيض|تسويه|خصم|خصومات|سامحنا)/.test(normalized)) return 'adjustments';
+    if (/(قايمه متابعه|قائمه متابعه|قائمة متابعة|مهام المدير|ابدأ بايه|ابدا بايه|مين اكلمه|مين اكلم|اولويات التحصيل|اتابع مين)/.test(normalized)) return 'manager_tasks';
     if (/(متاخر|متاخرات|مستحق|مديون|مش دفع|غير مدفوع|مش دافع|مش سدد|متاخرين|عليه فلوس)/.test(normalized)) return 'arrears';
     if (/(اكبر مصروف|اعلى مصروف|اغلى مصروف|اكبر المصروفات|المصروفات الاكبر|اكبر المصاريف)/.test(normalized)) return 'top_expenses';
     if (/(مصروف|مصاريف|صرف|منصرف|اتصرف|اللي اتدفع من الخزنه)/.test(normalized)) return 'expenses';
@@ -1369,6 +1370,37 @@ function buildAssistantArrearsAnswer() {
     }
     html += assistantNote('المتأخرات محسوبة من الاشتراكات المستحقة بعد خصم المدفوع والإعفاءات، وليس من إجمالي المصروفات.');
     return { id: 'arrears', title, html };
+}
+
+function buildAssistantManagerTasksAnswer(period) {
+    const summary = getAssistantMonthSummary(period);
+    const arrears = getAssistantArrearsSnapshot();
+    const title = `قائمة متابعة المدير · ${period.label}`;
+    let html = '<p class="assistant-answer-subtitle">ابدأ بالأولوية الأعلى ثم راجع العملية قبل تسجيلها</p>';
+    html += assistantRow('أولوية المتابعة', assistantNumber(arrears.overdueResidents), arrears.overdueResidents ? 'warn' : 'good');
+    html += assistantRow(`غير محصل ${summary.month}`, assistantMoney(summary.outstandingTotal), summary.outstandingTotal ? 'warn' : 'good');
+    if (arrears.residents.length) {
+        html += '<p class="assistant-answer-subtitle">اتصالات التحصيل المقترحة</p>';
+        html += assistantList(arrears.residents.slice(0, 5).map((item, index) => {
+            const resident = item.resident || {};
+            const oldest = item.oldestMonth || (Array.isArray(item.unpaidMonths) ? item.unpaidMonths[0] : '');
+            const oldestLabel = oldest && typeof oldest === 'object' ? oldest.month : oldest;
+            return `${assistantEscape(`${index + 1}. اتصل بـ ${assistantResidentName(resident)} · ${assistantApartmentLabel(resident)}`)} — <strong>${assistantEscape(assistantMoney(item.totalDebt))}</strong>${oldestLabel ? ` · أقدم ${assistantEscape(oldestLabel)}` : ''}`;
+        }));
+    } else if (summary.unpaid.length) {
+        html += '<p class="assistant-answer-subtitle">تحصيلات الشهر المقترحة</p>';
+        html += assistantList(summary.unpaid.slice(0, 5).map((item, index) =>
+            `${assistantEscape(`${index + 1}. راجع ${assistantResidentName(item.resident)} · ${assistantApartmentLabel(item.resident)}`)} — <strong>${assistantEscape(assistantMoney(item.outstanding))}</strong>`
+        ));
+    } else {
+        html += assistantNote('مفيش متابعة مالية عاجلة ظاهرة من السجلات الحالية.');
+    }
+    html += assistantNote('الترتيب حسب أعلى مبلغ مستحق مسجل. القائمة اقتراح للمراجعة وليست إرسالًا تلقائيًا أو تسجيلًا لعملية.');
+    html += `<div class="assistant-action-buttons" role="group" aria-label="إجراءات قائمة المتابعة">
+        <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('arrears')">فتح تقرير المتأخرات</button>
+        <button type="button" class="assistant-action-secondary" data-assistant-query="ملخص الشهر">ملخص الشهر</button>
+    </div>`;
+    return { id: 'manager_tasks', title, html };
 }
 
 function buildAssistantCashAnswer() {
@@ -2100,6 +2132,8 @@ function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
             return buildAssistantAdjustmentsAnswer(period);
         case 'arrears':
             return buildAssistantArrearsAnswer();
+        case 'manager_tasks':
+            return buildAssistantManagerTasksAnswer(period);
         case 'expenses':
             return buildAssistantExpensesAnswer(period);
         case 'top_expenses':
