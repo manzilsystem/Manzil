@@ -541,6 +541,21 @@ test('income answers separate subscriptions from other purposes', () => {
     assert.match(answer.html, /40 ج\.م/);
 });
 
+test('top expense answers sort only the selected period', () => {
+    const { context, api } = createHarness();
+    vm.runInContext(`state.expenses = [
+        { id: 'big', month: 'نوفمبر 2026', title: 'إصلاح المصعد', amount: 180, category: 'صيانة' },
+        { id: 'small', month: 'نوفمبر 2026', title: 'لمبات', amount: 25, category: 'كهرباء' },
+        { id: 'old', month: 'أكتوبر 2026', title: 'مصروف قديم', amount: 999, category: 'قديم' }
+    ];`, context);
+    const answer = api.answerAssistantQuery('أكبر المصروفات في نوفمبر 2026؟', NOW);
+    assert.equal(answer.id, 'top_expenses');
+    assert.match(answer.html, /إصلاح المصعد/);
+    assert.match(answer.html, /180 ج\.م/);
+    assert.match(answer.html, /لمبات/);
+    assert.doesNotMatch(answer.html, /مصروف قديم|999 ج\.م/);
+    assert.ok(answer.html.indexOf('إصلاح المصعد') < answer.html.indexOf('لمبات'));
+});
 test('expense answers use all funds and group by category', () => {
     const { api } = createHarness();
     const expenses = api.getAssistantExpenseSnapshot(['نوفمبر 2026']);
