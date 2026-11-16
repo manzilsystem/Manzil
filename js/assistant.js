@@ -160,9 +160,9 @@ function rememberAssistantContext(text, period, resident) {
     persistAssistantContext();
 }
 
-function buildAssistantFollowUps(answerId, period) {
+function buildAssistantFollowUps(answerId, period, customQueries = null) {
     const map = assistantIsOwner() ? ASSISTANT_FOLLOWUPS_OWNER : ASSISTANT_FOLLOWUPS;
-    const queries = map[answerId] || map.unknown;
+    const queries = Array.isArray(customQueries) && customQueries.length ? customQueries : (map[answerId] || map.unknown);
     const label = period && period.type === 'month' ? period.label : null;
     return queries.slice(0, 3).map(query => {
         const scoped = query.replace(/(نفس الفترة|الشهر)/, label || 'الشهر');
@@ -170,8 +170,8 @@ function buildAssistantFollowUps(answerId, period) {
     });
 }
 
-function assistantFollowUpsHtml(answerId, period) {
-    const items = buildAssistantFollowUps(answerId, period);
+function assistantFollowUpsHtml(answerId, period, customQueries = null) {
+    const items = buildAssistantFollowUps(answerId, period, customQueries);
     if (!items.length) return '';
     return `<div class="assistant-followups" aria-label="متابعة مقترحة">${items.map(item =>
         `<button type="button" class="assistant-chip is-followup" data-assistant-query="${assistantEscape(item.query)}">${assistantEscape(item.label)}</button>`
@@ -733,6 +733,11 @@ function buildAssistantChangeAlertsAnswer(period, now = new Date()) {
         const delta = Math.abs(currentValue - previousValue);
         return delta > 0 && (previousValue === 0 || delta / Math.max(Math.abs(previousValue), 1) >= 0.25);
     });
+    const followUpQueries = [];
+    if (notable.some(([label]) => label === 'التحصيل')) followUpQueries.push(`تحصيل ${periods.current.label}`);
+    if (notable.some(([label]) => label === 'المصروفات')) followUpQueries.push(`أكبر المصروفات ${periods.current.label}`);
+    if (notable.some(([label]) => label === 'الصافي')) followUpQueries.push(`ملخص ${periods.current.label}`);
+    followUpQueries.push(`مقارنة ${periods.current.label}`);
     const title = `تغيرات تستحق المراجعة · ${periods.current.label}`;
     let html = `<p class="assistant-answer-subtitle">مقارنة مع ${assistantEscape(periods.previous.label)}</p>`;
     if (notable.length) {
@@ -743,11 +748,11 @@ function buildAssistantChangeAlertsAnswer(period, now = new Date()) {
             const direction = delta > 0 ? 'زيادة' : 'انخفاض';
             return `${assistantEscape(label)}: ${assistantEscape(assistantMoney(currentValue))} مقابل ${assistantEscape(assistantMoney(previousValue))} · <strong>${direction} ${assistantEscape(assistantMoney(Math.abs(delta)))}</strong>`;
         }));
-        html += assistantNote('دي مؤشرات للمراجعة وليست حكمًا بوجود خطأ. راجع تفاصيل الفترة والتصنيف قبل اتخاذ قرار.');
+        html += assistantNote(`مصدر الأرقام: سجل التحصيلات وسجل المصروفات للفترتين. الصافي محسوب من التحصيل ناقص المصروفات المسجلة، ودي مؤشرات للمراجعة وليست حكمًا بوجود خطأ.`);
     } else {
         html += assistantNote('مفيش تغير كبير ظاهر في التحصيل أو المصروفات أو الصافي مقارنة بالشهر السابق.');
     }
-    return { id: 'change_alerts', title, html };
+    return { id: 'change_alerts', title, html, followUpQueries };
 }
 function buildAssistantExecutiveAnswer(period) {
     const summary = getAssistantMonthSummary(period);
@@ -1479,8 +1484,9 @@ function selectAssistantAnswer(intent, period, resident, now) {
 }
 
 function withAssistantAnswerMeta(answer, period, resident, text = '') {
-    answer.followUps = buildAssistantFollowUps(answer.id, period);
-    answer.html += assistantFollowUpsHtml(answer.id, period);
+    answer.followUps = buildAssistantFollowUps(answer.id, period, answer.followUpQueries);
+    answer.html += assistantFollowUpsHtml(answer.id, period, answer.followUpQueries);
+    delete answer.followUpQueries;
     if (text) rememberAssistantContext(text, period, resident);
     return answer;
 }

@@ -585,7 +585,14 @@ test('change alerts flag large period shifts without claiming a diagnosis', () =
     assert.match(answer.html, /التحصيل/);
     assert.match(answer.html, /زيادة/);
     assert.match(answer.html, /المصروفات/);
+    assert.match(answer.html, /مصدر الأرقام/);
     assert.match(answer.html, /مؤشرات للمراجعة/);
+    assert.deepEqual(Array.from(answer.followUps, item => item.query), [
+        'تحصيل نوفمبر 2026',
+        'أكبر المصروفات نوفمبر 2026',
+        'ملخص نوفمبر 2026'
+    ]);
+    assert.match(answer.html, /data-assistant-query="تحصيل نوفمبر 2026"/);
 });
 test('executive summary combines period metrics with cumulative management signals', () => {
     const { api } = createHarness();
