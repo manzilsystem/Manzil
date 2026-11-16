@@ -679,6 +679,7 @@ function getAssistantResidentSnapshot(resident, now = new Date(), monthLabel = '
 }
 
 function detectAssistantIntent(normalized, hasResident) {
+    if (/(تقرير|تقارير|طباعه|تصدير|كشف)/.test(normalized) && /(?:مصروف|مصاريف|صرف|مالك|فتره|فترة|اعفاء|تخفيض|تسويه|كشف حساب)/.test(normalized)) return 'reports';
     if (hasResident) {
         if (/(السلام عليكم|سلام|صباح|مساء|ازيك|عامل ايه|اهلا)/.test(normalized)) return 'greeting';
         if (/(شكرا|تسلم|مشكور|ربنا يكرمك)/.test(normalized)) return 'thanks';
@@ -688,6 +689,7 @@ function detectAssistantIntent(normalized, hasResident) {
     if (/(شكرا|تسلم|مشكور|ربنا يكرمك)/.test(normalized)) return 'thanks';
     if (/(خصوصيه|بياناتي|البيانات بتتخزن|بتتخزن فين|مين يقدر يشوف|امان|امن|صلاحيات|قراءة فقط|بتعمل ايه|ازاي استخدم|ازاي اسجل|ازاي اعدل|ازاي اطبع|ازاي اصدر)/.test(normalized)) return 'knowledge';
     if (/(مساعده|ساعدني|بتعرف|تقدر تعمل|اوامر|خيارات|ازاي|كيف|استخدمك|ممكن تساعد)/.test(normalized)) return 'help';
+    if (/(تقرير|تقارير|طباعه|تصدير|كشف)/.test(normalized) && /(?:مصروف|مصاريف|صرف|مالك|فتره|فترة|اعفاء|تخفيض|تسويه|كشف حساب)/.test(normalized)) return 'reports';
     if (/(تغير غير طبيعي|تغيير كبير|فرق كبير|محتاج مراجعه|محتاج مراجعة|زاد قوي|زادت قوي|نزل قوي|انخفض قوي|ايه اللي اتغير|ايه اللي زاد)/.test(normalized)) return 'change_alerts';
     if (/(مقارنه|قارن|مقابل|زاد|زادت|قل|قلت|اكتر من|اقل من)/.test(normalized)) return 'comparison';
     if (/(اعفاء|تخفيض|تسويه|خصم|خصومات|سامحنا)/.test(normalized)) return 'adjustments';
@@ -1467,9 +1469,47 @@ function openAssistantReports(reportTab = 'landlord') {
     if (typeof switchReportTab === 'function') setTimeout(() => switchReportTab(reportTab), 0);
     return true;
 }
-
-function buildAssistantReportsAnswer() {
+function parseAssistantReportRequest(raw, now = new Date()) {
+    if (assistantIsOwner()) return null;
+    const normalized = normalizeAssistantArabic(raw);
+    const period = resolveAssistantPeriodWithContext(raw, now);
+    const residentMatch = resolveAssistantResident(raw);
+    let tab = 'landlord';
+    if (/(مصروف|مصاريف|صرف)/.test(normalized)) tab = 'expenses';
+    else if (/(اعفاء|تخفيض|تسويه|خصم)/.test(normalized)) tab = 'adjustments';
+    else if (/(كشف حساب|حساب مالك|كشف مالك)/.test(normalized)) tab = 'statement';
+    else if (/(فتره|فترة|عدة شهور|مجموعة شهور)/.test(normalized)) tab = 'period';
+    return {
+        tab,
+        month: period?.type === 'month' ? period.label : '',
+        residentId: residentMatch.matches.length === 1 ? residentMatch.matches[0].id : ''
+    };
+}
+function openAssistantReportsRequest(tab = 'landlord', month = '', residentId = '') {
+    if (assistantIsOwner()) return false;
+    openAssistantReports(tab);
+    setTimeout(() => {
+        if (month && tab === 'landlord') {
+            const select = /** @type {HTMLSelectElement | null} */ (document.getElementById('reportMonthSelect'));
+            if (select && Array.from(select.options).some(option => option.value === month)) {
+                select.value = month;
+                if (typeof invalidateLandlordReportPreview === 'function') invalidateLandlordReportPreview();
+            }
+        }
+        if (residentId && tab === 'statement') {
+            const select = /** @type {HTMLSelectElement | null} */ (document.getElementById('statementResidentSelect'));
+            if (select && Array.from(select.options).some(option => option.value === residentId)) {
+                select.value = residentId;
+                if (typeof invalidateResidentStatementPreview === 'function') invalidateResidentStatementPreview();
+            }
+        }
+    }, 0);
+    return true;
+}
+function buildAssistantReportsAnswer(request = null) {
     const title = 'التقارير المتاحة';
+    const requested = request && (request.month || request.residentId || request.tab !== 'landlord');
+    const requestedLabel = request?.month ? `تم تجهيز شهر ${request.month}` : request?.residentId ? 'تم تجهيز المالك المحدد' : '';
     const html = `${assistantList([
         'تقرير المالك الشهري: تحصيل ومصروفات الشهر مع فلاتر الغرض والصندوق وطريقة الدفع والشقة.',
         'تقرير فترة: مقارنة مجموعة شهور مع فلاتر.',
@@ -1477,8 +1517,9 @@ function buildAssistantReportsAnswer() {
         'تقرير الإعفاءات والتخفيضات: حسب الفترة والشقة والنوع.',
         'كشف حساب مالك: حركات الشهر والمستحق والمتأخرات.',
         'الإقفال الشهري والمتأخرات وسجل التدقيق.'
-    ])}${assistantNote('افتح قسم «التقارير» من الشريط السفلي، وكل تقرير له معاينة وطباعة وتصدير CSV.')}
+    ])}${assistantNote(requested ? `${requestedLabel || 'تم تجهيز التقرير المطلوب'} — راجع الفلاتر ثم اضغط «معاينة» قبل الطباعة أو التصدير CSV.` : 'افتح قسم «التقارير» من الشريط السفلي، وكل تقرير له معاينة وطباعة وتصدير CSV.')}
         <div class="assistant-action-buttons assistant-report-actions" role="group" aria-label="فتح التقارير">
+            ${requested ? `<button type="button" class="assistant-action-confirm" onclick="openAssistantReportsRequest('${assistantEscape(request.tab)}','${assistantEscape(request.month || '')}','${assistantEscape(request.residentId || '')}')">فتح التقرير المطلوب</button>` : ''}
             <button type="button" class="assistant-action-confirm" onclick="openAssistantReports('landlord')">تقرير المالك</button>
             <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('period')">تقرير الفترة</button>
             <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('expenses')">تقرير المصروفات</button>
@@ -1956,11 +1997,11 @@ function answerAssistantQuery(text, now = new Date()) {
     const resident = residentMatch.resident || remembered;
     const intent = detectAssistantIntent(normalized, Boolean(resident));
     const period = resolveAssistantPeriodWithContext(text, now);
-    const answer = selectAssistantAnswer(intent, period, resident, now);
+    const answer = selectAssistantAnswer(intent, period, resident, now, text);
     return withAssistantAnswerMeta(answer, period, resident, text);
 }
 
-function selectAssistantAnswer(intent, period, resident, now) {
+function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
     switch (intent) {
         case 'greeting':
             return { id: 'greeting', title: 'وعليكم السلام', html: buildAssistantGreetingHtml(now) };
@@ -1995,7 +2036,7 @@ function selectAssistantAnswer(intent, period, resident, now) {
         case 'recent':
             return buildAssistantRecentAnswer();
         case 'reports':
-            return buildAssistantReportsAnswer();
+            return buildAssistantReportsAnswer(parseAssistantReportRequest(rawText, now));
         case 'notices':
             return buildAssistantNoticesAnswer();
         case 'building':

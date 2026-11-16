@@ -487,6 +487,26 @@ test('manager quick action opens official announcement form and report shortcut 
     assert.match(assistantSource, /openNoticeModal\(\)/);
 });
 
+test('manager report requests prepare the matching report and period without bypassing preview', () => {
+    const { api } = createHarness(true);
+    const expenses = api.answerAssistantQuery('تقرير المصروفات عن نوفمبر 2026', NOW);
+    assert.equal(expenses.id, 'reports');
+    assert.match(expenses.html, /فتح التقرير المطلوب/);
+    assert.match(expenses.html, /راجع الفلاتر ثم اضغط «معاينة»/);
+    assert.match(expenses.html, /openAssistantReportsRequest\('expenses'/);
+
+    const statement = api.answerAssistantQuery('كشف حساب سارة حسن شقة 7', NOW);
+    assert.equal(statement.id, 'reports');
+    assert.match(statement.html, /openAssistantReportsRequest\('statement'/);
+});
+
+test('owners never receive executable report navigation actions', () => {
+    const { api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    const answer = api.answerAssistantQuery('تقرير المصروفات عن نوفمبر 2026', NOW);
+    assert.notEqual(answer.id, 'reports');
+    assert.doesNotMatch(answer.html, /فتح التقرير المطلوب/);
+});
+
 test('manager operation commands produce safe previews without mutating state', () => {
     const { context, api } = createHarness(true);
     const before = JSON.stringify(vm.runInContext('state', context));
