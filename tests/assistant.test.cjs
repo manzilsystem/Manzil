@@ -158,6 +158,7 @@ function createHarness(seed = true, identity = {}, options = {}) {
         hasAssistantTimeHint,
         assistantFollowsResident,
         resolveAssistantPeriodWithContext,
+        confirmAssistantOperation,
         restoreAssistantSession,
         appendAssistantMessage,
         chatSnapshot: () => assistantChat,
@@ -388,10 +389,9 @@ test('assistant runtime keeps the written chat local and away from durable stora
     assert.doesNotMatch(assistantSource, /supabaseClient|\.rpc\(|\.from\(\s*['"]/, 'the assistant reads `state` only — never the database directly');
 });
 
-test('assistant answers are read-only and never write without a confirmation flow', () => {
-    // Answering must leave the frozen `state` untouched — even for prompts that
-    // sound like a command — because S21 write actions (preview + explicit confirm)
-    // are not wired into the assistant yet. This locks the read-only invariant.
+test('assistant answers stay read-only until the explicit operation confirmation', () => {
+    // Parsing and previewing must leave the application state untouched. The
+    // separate confirmation action is the only path allowed to call a save form.
     const snapshotState = context => JSON.stringify(vm.runInContext('state', context));
 
     const manager = createHarness(true);
@@ -414,7 +414,8 @@ test('assistant answers are read-only and never write without a confirmation flo
     }
     assert.equal(snapshotState(owner.context), ownerBefore, 'owner answers are read-only too');
 
-    // Source-level: the assistant owns no write primitive at all.
+    // Source-level: the assistant does not assign records itself or reach the
+    // database; it delegates a confirmed operation to the existing form flow.
     assert.doesNotMatch(assistantSource, /\bstate\s*(?:\.\s*[\w$]+|\[[^\]]+\])\s*=(?!=)/, 'the assistant never assigns into `state`');
     assert.doesNotMatch(assistantSource, /supabaseClient|\.rpc\(|\.from\(\s*['"][^'"]*['"]\s*\)[\s\S]{0,40}\.(?:insert|update|upsert|delete)\b/, 'no database write path is reachable');
     assert.doesNotMatch(assistantSource, /\b(?:addIncome|addExpense|saveState|persistState|deleteResident|deleteIncome|deleteExpense)\s*\(/, 'no mutation helpers are wired into the assistant');
@@ -445,13 +446,44 @@ test('manager operation commands produce safe previews without mutating state', 
     const expense = api.answerAssistantQuery('أضف مصروف كهرباء 800 جنيه عن نوفمبر 2026', NOW);
     const adjustment = api.answerAssistantQuery('اعمل إعفاء 100 جنيه لسارة حسن شقة 7 عن نوفمبر 2026', NOW);
 
-    assert.equal(income.id, 'operation-preview');
-    assert.match(income.html, /فتح النموذج للمراجعة/);
+    assert.equal(income.id, 'operation-missing');
+    assert.match(income.html, /طريقة الدفع/);
     assert.equal(expense.id, 'operation-preview');
     assert.match(expense.html, /كهرباء/);
-    assert.equal(adjustment.id, 'operation-preview');
-    assert.match(adjustment.html, /إعفاء/);
+    assert.equal(adjustment.id, 'operation-missing');
+    assert.match(adjustment.html, /سبب الإجراء/);
     assert.equal(JSON.stringify(vm.runInContext('state', context)), before);
+});
+test('complete manager operation previews expose a second explicit save action', () => {
+    const { api } = createHarness(true);
+    const answer = api.answerAssistantQuery('سجّل تحصيل 500 جنيه من سارة حسن شقة 7 عن نوفمبر 2026 نقدي في الخزنة الرئيسية', NOW);
+    assert.equal(answer.id, 'operation-preview');
+    assert.match(answer.html, /تنفيذ وحفظ/);
+    assert.match(answer.html, /نقدي/);
+    assert.match(answer.html, /الخزنة الرئيسية/);
+});
+test('a missing operation can be completed in the next manager message', () => {
+    const { api } = createHarness(true);
+    assert.equal(api.answerAssistantQuery('سجّل تحصيل 500 جنيه من سارة حسن شقة 7 عن نوفمبر 2026', NOW).id, 'operation-missing');
+    const completed = api.answerAssistantQuery('نقدي في الخزنة الرئيسية', NOW);
+    assert.equal(completed.id, 'operation-preview');
+    assert.match(completed.html, /تنفيذ وحفظ/);
+});
+test('explicit operation confirmation delegates to the official save handler', async () => {
+    const { context, api } = createHarness(true);
+    vm.runInContext(`
+        closeModal = () => {};
+        openAssistantIncomeDraft = () => true;
+        handleIncomeSubmit = async () => {
+            state.income.push({ id: 'assistant-confirmed' });
+        };
+    `, context);
+    api.answerAssistantQuery('سجّل تحصيل 500 جنيه من سارة حسن شقة 7 عن نوفمبر 2026 نقدي في الخزنة الرئيسية', NOW);
+    const before = vm.runInContext('state.income.length', context);
+    const saved = await api.confirmAssistantOperation();
+    assert.equal(saved, true);
+    assert.equal(vm.runInContext('state.income.length', context), before + 1);
+    assert.equal(vm.runInContext('state.income.at(-1).id', context), 'assistant-confirmed');
 });
 
 test('owners cannot turn assistant operation commands into manager forms', () => {

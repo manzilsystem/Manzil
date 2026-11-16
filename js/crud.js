@@ -818,7 +818,7 @@ function openAssistantAdjustmentDraft(draft) {
     if (kind) kind.value = ['waiver', 'discount', 'settlement'].includes(draft.kind) ? draft.kind : 'waiver';
     if (month && typeof monthLabelToKey === 'function') month.value = monthLabelToKey(draft.month) || month.value;
     if (amount) amount.value = String(draft.amount || '');
-    if (reason) reason.value = 'أُعدّ بناءً على طلب المدير عبر عم عبده — اكتب أو راجع السبب قبل الحفظ.';
+    if (reason) reason.value = draft.reason || 'أُعدّ بناءً على طلب المدير عبر عم عبده — اكتب أو راجع السبب قبل الحفظ.';
     updateAdjustmentFormState();
     updateAdjustmentDueHint();
     return true;
@@ -2269,10 +2269,14 @@ function openAssistantIncomeDraft(draft) {
     const purpose = draft.purpose || 'subscription';
     if (purposeSelect) purposeSelect.value = purpose;
     handleIncomePurposeChange();
+    const paymentMethodSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomePaymentMethod'));
+    if (paymentMethodSelect && draft.paymentMethod) paymentMethodSelect.value = draft.paymentMethod;
+    const cashAccountSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeCashAccount'));
+    if (cashAccountSelect && draft.cashAccountCode) cashAccountSelect.value = draft.cashAccountCode;
     const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
     if (amountInput) amountInput.value = String(draft.amount || '');
     const notesInput = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('incomeNotes'));
-    if (notesInput) notesInput.value = 'أُعدّ بناءً على طلب المدير عبر عم عبده — راجع البيانات قبل الحفظ.';
+    if (notesInput) notesInput.value = draft.notes || 'أُعدّ بناءً على طلب المدير عبر عم عبده — راجع البيانات قبل الحفظ.';
     if (purpose === 'subscription') {
         const targetMonth = String(draft.month || '');
         const checkbox = /** @type {HTMLInputElement | undefined} */ (Array.from(document.querySelectorAll('#incomeMonthsGrid input[data-income-month]'))
@@ -2970,12 +2974,16 @@ function openAssistantExpenseDraft(draft) {
     openExpenseModal();
     const title = /** @type {HTMLInputElement | null} */ (document.getElementById('expenseTitle'));
     const amount = /** @type {HTMLInputElement | null} */ (document.getElementById('expenseAmount'));
+    const category = /** @type {HTMLSelectElement | null} */ (document.getElementById('expenseCategory'));
+    const cashAccount = /** @type {HTMLSelectElement | null} */ (document.getElementById('expenseCashAccount'));
     const month = /** @type {HTMLSelectElement | null} */ (document.getElementById('expenseMonth'));
     const notes = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('expenseNotes'));
     if (title) title.value = String(draft?.title || 'مصروف من طلب المدير');
     if (amount) amount.value = String(draft?.amount || '');
+    if (category && draft?.category) category.value = draft.category;
+    if (cashAccount && draft?.cashAccountCode) cashAccount.value = draft.cashAccountCode;
     if (month && typeof monthLabelToKey === 'function') month.value = monthLabelToKey(draft?.month) || month.value;
-    if (notes) notes.value = 'أُعدّ بناءً على طلب المدير عبر عم عبده — راجع الصندوق والتفاصيل قبل الحفظ.';
+    if (notes) notes.value = draft?.notes || 'أُعدّ بناءً على طلب المدير عبر عم عبده — راجع الصندوق والتفاصيل قبل الحفظ.';
     previewExpense();
     return true;
 }
