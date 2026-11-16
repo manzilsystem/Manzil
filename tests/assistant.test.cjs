@@ -154,6 +154,7 @@ function createHarness(seed = true, identity = {}, options = {}) {
         resolveAssistantPeriod,
         resolveAssistantResident,
         assistantEscape,
+        runAssistantQuickAction,
         buildAssistantFollowUps,
         hasAssistantTimeHint,
         assistantFollowsResident,
@@ -458,6 +459,22 @@ test('manager report answers expose a role-safe direct navigation action', () =>
     assert.match(assistantSource, /openAssistantReports\('landlord'\)/);
     assert.match(assistantSource, /openAssistantReports\('period'\)/);
     assert.match(assistantSource, /if \(assistantIsOwner\(\)\) return false;/);
+});
+
+test('manager quick action opens official announcement form and report shortcut returns actionable reports', () => {
+    const calls = [];
+    const manager = createHarness(true, {}, { instrument: sandbox => { sandbox.openNoticeModal = () => calls.push('notice'); } });
+    assert.equal(manager.api.runAssistantQuickAction('notice'), true);
+    assert.deepEqual(calls, ['notice']);
+    assert.equal(manager.api.answerAssistantQuery('التقارير المتاحة', NOW).id, 'reports');
+
+    const owner = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' }, {
+        instrument: sandbox => { sandbox.openNoticeModal = () => calls.push('owner-notice'); }
+    });
+    assert.equal(owner.api.runAssistantQuickAction('notice'), false);
+    assert.deepEqual(calls, ['notice']);
+    assert.match(assistantSource, /data-assistant-action=/);
+    assert.match(assistantSource, /openNoticeModal\(\)/);
 });
 
 test('manager operation commands produce safe previews without mutating state', () => {

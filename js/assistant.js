@@ -29,7 +29,9 @@ const ASSISTANT_MANAGER_QUICK_ACTIONS = Object.freeze([
     { label: 'تسجيل تحصيل', query: 'سجل تحصيل' },
     { label: 'إضافة مصروف', query: 'أضف مصروف' },
     { label: 'تسجيل إعفاء', query: 'سجل إعفاء' },
-    { label: 'تسجيل تسوية', query: 'اعمل تسوية' }
+    { label: 'تسجيل تسوية', query: 'اعمل تسوية' },
+    { label: 'التقارير والمخرجات', query: 'التقارير المتاحة' },
+    { label: 'إعداد إعلان', action: 'notice' }
 ]);
 
 const ASSISTANT_TYPING_DELAY_MS = 140;
@@ -1934,8 +1936,17 @@ function populateAssistantQuickActions() {
     if (section) section.hidden = !isManager;
     if (!container || !isManager) return;
     container.innerHTML = ASSISTANT_MANAGER_QUICK_ACTIONS.map(item =>
-        `<button type="button" class="assistant-quick-action" data-assistant-query="${assistantEscape(item.query)}">${assistantEscape(item.label)}<span aria-hidden="true">＋</span></button>`
+        `<button type="button" class="assistant-quick-action" ${item.action ? `data-assistant-action="${assistantEscape(item.action)}"` : `data-assistant-query="${assistantEscape(item.query)}"`}>${assistantEscape(item.label)}<span aria-hidden="true">${item.action ? '↗' : '＋'}</span></button>`
     ).join('');
+}
+
+function runAssistantQuickAction(action) {
+    if (assistantIsOwner()) return false;
+    if (action === 'notice' && typeof openNoticeModal === 'function') {
+        openNoticeModal();
+        return true;
+    }
+    return false;
 }
 
 function restoreAssistantChat() {
@@ -1996,6 +2007,11 @@ function askAssistant(query) {
 
 function handleAssistantSuggestion(event) {
     const target = event?.target;
+    const actionButton = target && typeof target.closest === 'function' ? target.closest('[data-assistant-action]') : null;
+    if (actionButton) {
+        runAssistantQuickAction(actionButton.getAttribute('data-assistant-action') || '');
+        return;
+    }
     const chip = target && typeof target.closest === 'function' ? target.closest('[data-assistant-query]') : null;
     if (!chip) return;
     askAssistant(chip.getAttribute('data-assistant-query') || '');
