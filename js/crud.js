@@ -842,7 +842,7 @@ function openAssistantAdjustmentDraft(draft, options = {}) {
     const amount = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentAmount'));
     const reason = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('adjustmentReason'));
     if (kind) kind.value = ['waiver', 'discount', 'settlement'].includes(draft.kind) ? draft.kind : 'waiver';
-    if (month && typeof monthLabelToKey === 'function') month.value = monthLabelToKey(draft.month) || month.value;
+    if (month && typeof monthLabelToKey === 'function') month.value = monthLabelToKey(draft.month)?.slice(0, 7) || month.value;
     if (amount) amount.value = String(draft.amount || '');
     if (reason) reason.value = draft.reason || 'أُعدّ بناءً على طلب المدير عبر عم عبده — اكتب أو راجع السبب قبل الحفظ.';
     updateAdjustmentFormState();
@@ -2320,8 +2320,7 @@ function openAssistantIncomeDraft(draft, options = {}) {
         }
     } else {
         const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('incomeMonth'));
-        const monthKey = typeof monthLabelToKey === 'function' ? monthLabelToKey(draft.month) : '';
-        if (monthSelect && monthKey) monthSelect.value = monthKey;
+        if (monthSelect && draft.month) monthSelect.value = draft.month;
     }
     handleIncomeAmountInput();
     setIncomeWizardStep(!residentId || purpose === 'settlement' ? 1 : Number(draft.amount) > 0 ? 3 : 2);
@@ -3014,7 +3013,7 @@ function openAssistantExpenseDraft(draft, options = {}) {
     if (amount) amount.value = String(draft?.amount || '');
     if (category && draft?.category) category.value = draft.category;
     if (cashAccount && draft?.cashAccountCode) cashAccount.value = draft.cashAccountCode;
-    if (month && typeof monthLabelToKey === 'function') month.value = monthLabelToKey(draft?.month) || month.value;
+    if (month && draft?.month) month.value = draft.month;
     if (notes) notes.value = draft?.notes || 'أُعدّ بناءً على طلب المدير عبر عم عبده — راجع الصندوق والتفاصيل قبل الحفظ.';
     previewExpense();
     if (options.confirmMainOverdraft === true && cashAccount?.value === 'main') {

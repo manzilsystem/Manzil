@@ -113,18 +113,14 @@ async function askAssistantQuestion(page, question) {
 test('assistant opens from the launcher and answers local questions', async ({ page }) => {
     await seedAndOpenAssistant(page);
     await expect(page.locator('#assistantInput')).toBeVisible();
-    const tools = page.locator('#assistantTools');
-    await expect(tools).not.toHaveJSProperty('open', true);
-    await page.locator('#assistantTools > summary').click();
-    await expect(page.locator('#assistantQuickActions').getByRole('button', { name: 'تسجيل تحصيل', exact: true })).toBeVisible();
-    await page.locator('#assistantTools > summary').click();
+    await expect(page.locator('#assistantTools, #assistantQuickActions, #assistantSuggestions')).toHaveCount(0);
     await expect(page.locator('#assistantVoiceButton, #assistantSoundButton, #assistantVoiceDownloadModal')).toHaveCount(0);
     const botMessages = page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble');
     await expect(botMessages.first()).toContainText('أهلاً يا أستاذ');
     await expect(page.locator('#assistantInput')).toHaveAttribute('placeholder', /الخزنة/);
 
-    await page.locator('#assistantTools > summary').click();
-    await page.locator('#assistantSuggestions [data-assistant-query="رصيد الخزنة كام؟"]').click();
+    await page.locator('#assistantInput').fill('رصيد الخزنة كام؟');
+    await page.locator('#assistantInput').press('Enter');
     await expect(botMessages.last()).toContainText('الخزنة الرئيسية');
     await expect(botMessages.last()).toContainText('1,550 ج.م');
 
@@ -157,13 +153,33 @@ test('a confirmed manager collection saves in chat without opening a CRUD form o
     await expect(preview).toContainText('سارة حسن');
     // Keep this acceptance check on seeded in-memory data; never write to the shared backend.
     await page.evaluate(() => { window.saveWithRollback = async () => true; });
-    await page.getByRole('button', { name: 'تأكيد وتسجيل', exact: true }).click();
+    await page.locator('#assistantInput').fill('أكد التسجيل');
+    await page.locator('#assistantInput').press('Enter');
 
     await expect(page.locator('#assistantModal')).toBeVisible();
     await expect(page.locator('#incomeModal')).toBeHidden();
     await expect(page.locator('#incomeReceiptModal')).toBeHidden();
     await expect(page.locator('#assistantLog')).toContainText('تم حفظ التحصيل بنجاح');
     await expect.poll(() => page.evaluate(() => state.income.length)).toBeGreaterThan(before);
+});
+
+test('a colloquial expense is previewed and saved only after typed confirmation', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    const before = await page.evaluate(() => state.expenses.length);
+    await page.locator('#assistantInput').fill('قيد مصروف كهرباء 300 جنيه عن نوفمبر 2026');
+    await page.locator('#assistantInput').press('Enter');
+    await expect(page.locator('#assistantLog')).toContainText('معاينة مصروف');
+    await expect(page.locator('#assistantLog')).toContainText('300');
+    await expect(page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble button')).toHaveCount(0);
+    // Keep the regression on seeded in-memory data, never on the shared backend.
+    await page.evaluate(() => { window.saveWithRollback = async () => true; });
+    await page.locator('#assistantInput').fill('أكد التسجيل');
+    await page.locator('#assistantInput').press('Enter');
+    await expect(page.locator('#assistantLog')).toContainText('تم حفظ المصروف بنجاح');
+    await expect.poll(() => page.evaluate(() => state.expenses.length)).toBe(before + 1);
+    const lastExpense = await page.evaluate(() => state.expenses[state.expenses.length - 1]);
+    expect(lastExpense.category).toBe('كهرباء');
+    expect(Number(lastExpense.amount)).toBe(300);
 });
 
 test('owner questions about another unit or resident receive a privacy refusal', async ({ page }) => {
@@ -214,66 +230,51 @@ test('assistant reset, escape close, and launcher restore behave', async ({ page
     await expect(page.locator('#assistantLog .assistant-msg')).toHaveCount(1);
 });
 
-test('assistant report navigation closes chat before showing the reports screen', async ({ page }) => {
+test('assistant opens the formal reports screen only when asked, without an in-chat button', async ({ page }) => {
     await seedAndOpenAssistant(page);
-    const toolbox = page.locator('#assistantTools');
-    await expect(toolbox).not.toHaveAttribute('open', '');
-
-    await page.getByRole('textbox', { name: 'اكتب سؤالك لعم عبده' }).fill('التقارير المتاحة');
-    await page.getByRole('button', { name: 'إرسال السؤال كتابةً' }).click();
-    await page.locator('#assistantLog').getByRole('button', { name: 'فتح التقارير' }).click();
+    await page.getByRole('textbox', { name: 'اكتب سؤالك لعم عبده' }).fill('افتح شاشة التقارير');
+    await page.getByRole('textbox', { name: 'اكتب سؤالك لعم عبده' }).press('Enter');
 
     await expect(page.locator('#assistantModal')).toBeHidden();
     await expect(page.locator('#tab-reports')).toBeVisible();
 });
 
-test('assistant manager shortcuts stay inside the dialog on narrow screens', async ({ page }) => {
+test('chat responses stay free of buttons while the composer remains available on narrow screens', async ({ page }) => {
     await seedAndOpenAssistant(page);
-    await page.locator('#assistantTools > summary').click();
-
-    const list = page.locator('#assistantQuickActionButtons');
-    if (page.viewportSize().width <= 420) {
-        await expect.poll(() => list.evaluate(element => getComputedStyle(element).display)).toBe('grid');
-    }
-    const dialog = await page.locator('#assistantModal .assistant-shell').boundingBox();
-    const buttons = await list.locator('.assistant-quick-action').evaluateAll(elements => elements.map(element => {
-        const rect = element.getBoundingClientRect();
-        return { left: rect.left, right: rect.right, width: element.clientWidth, scrollWidth: element.scrollWidth };
-    }));
-    expect(buttons.length).toBeGreaterThan(0);
-    for (const button of buttons) {
-        expect(button.left).toBeGreaterThanOrEqual(dialog.x - 1);
-        expect(button.right).toBeLessThanOrEqual(dialog.x + dialog.width + 1);
-        expect(button.scrollWidth).toBeLessThanOrEqual(button.width + 1);
-    }
+    await page.locator('#assistantInput').fill('رصيد الخزنة كام؟');
+    await page.locator('#assistantInput').press('Enter');
+    await expect(page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble button')).toHaveCount(0);
+    await expect(page.locator('#assistantInput')).toHaveAttribute('maxlength', '1000');
 });
 
-test('generic apartment shortcuts start an in-chat operation draft', async ({ page }) => {
+test('natural language requests start in-chat operation drafts without shortcut buttons', async ({ page }) => {
     await seedAndOpenAssistant(page);
-    await page.locator('#assistantTools > summary').click();
-    await page.locator('#assistantQuickActionButtons [data-assistant-query="أضف شقة"]').click();
+    await page.locator('#assistantInput').fill('أضف شقة');
+    await page.locator('#assistantInput').press('Enter');
     await expect(page.locator('#assistantLog')).toContainText('بيانات الشقة ناقصة');
-    await page.locator('#assistantQuickActionButtons [data-assistant-query="عدّل بيانات شقة"]').click();
+    await page.locator('#assistantInput').fill('عدّل بيانات شقة');
+    await page.locator('#assistantInput').press('Enter');
     await expect(page.locator('#assistantLog')).toContainText('تعديل بيانات الشقة ناقصة');
 });
 
-test('assistant notice shortcut closes chat before opening the notice form', async ({ page }) => {
+test('assistant notice drafts use typed cancellation and have no in-chat action buttons', async ({ page }) => {
     await seedAndOpenAssistant(page);
-    await page.locator('#assistantTools > summary').click();
-    await page.getByRole('button', { name: 'إعداد إعلان' }).click();
-
-    await expect(page.locator('#assistantModal')).toBeHidden();
-    await expect(page.locator('#noticeModal')).toBeVisible();
+    await page.locator('#assistantInput').fill('اكتب إعلان: سيتم غلق المياه غدًا');
+    await page.locator('#assistantInput').press('Enter');
+    await expect(page.locator('#assistantLog')).toContainText('اكتب «انشر الإعلان»');
+    await expect(page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble button')).toHaveCount(0);
+    await page.locator('#assistantInput').fill('إلغاء الإعلان');
+    await page.locator('#assistantInput').press('Enter');
+    await expect(page.locator('#assistantLog')).toContainText('لم يتم حفظ أي تغيير');
 });
 
-test('assistant operation card button opens the official income form', async ({ page }) => {
+test('a typed command opens the official income form for review', async ({ page }) => {
     await seedAndOpenAssistant(page);
-    await page.locator('#assistantTools > summary').click();
-    await page.locator('#assistantQuickActionButtons [data-assistant-query="سجل تحصيل"]').click();
-
-    const openForm = page.locator('#assistantLog').getByRole('button', { name: 'فتح النموذج لاستكمالها' });
-    await expect(openForm).toBeVisible();
-    await openForm.click();
+    await page.locator('#assistantInput').fill('سجل تحصيل');
+    await page.locator('#assistantInput').press('Enter');
+    await expect(page.locator('#assistantLog')).toContainText('افتح النموذج');
+    await page.locator('#assistantInput').fill('افتح النموذج');
+    await page.locator('#assistantInput').press('Enter');
 
     await expect(page.locator('#assistantModal')).toBeHidden();
     await expect(page.locator('#incomeModal')).toBeVisible();
@@ -288,8 +289,8 @@ test('assistant does not offer a broken adjustment form action without a residen
 
     const log = page.locator('#assistantLog');
     await expect(log).toContainText('المالك أو رقم الشقة');
-    await expect(log.getByRole('button', { name: 'فتح النموذج لاستكمالها' })).toHaveCount(0);
-    await expect(log.getByRole('button', { name: 'إلغاء' })).toBeVisible();
+    await expect(log).toContainText('اكتب «إلغاء» للتراجع');
+    await expect(log.locator('.assistant-msg.is-bot .assistant-bubble button')).toHaveCount(0);
 });
 
 test.describe('assistant floating launcher', () => {
@@ -378,7 +379,7 @@ test.describe('assistant floating launcher', () => {
 });
 
 test.describe('assistant remembers the conversation', () => {
-    test('follow-up chips continue in the month already on screen', async ({ page }) => {
+    test('typed follow-up questions continue in the month already on screen', async ({ page }) => {
         await seedAndOpenAssistant(page);
         const botMessages = page.locator('#assistantLog .assistant-msg.is-bot:not(.is-typing) .assistant-bubble');
 
@@ -387,9 +388,8 @@ test.describe('assistant remembers the conversation', () => {
         await expect(botMessages.last()).toContainText('تحصيل أكتوبر 2026');
         await expect(page.locator('#assistantLog .is-typing')).toHaveCount(0);
 
-        const chip = page.locator('#assistantLog [data-assistant-query="مصروفات أكتوبر 2026"]');
-        await expect(chip).toBeVisible();
-        await chip.click();
+        await page.locator('#assistantInput').fill('ومصروفاته؟');
+        await page.locator('#assistantInput').press('Enter');
         await expect(botMessages.last()).toContainText('مصروفات أكتوبر 2026');
     });
 
@@ -477,9 +477,7 @@ test.describe('assistant inside the owner portal', () => {
     test('the launcher stays in the owner portal and greets the owner by name', async ({ page }) => {
         const botMessages = await seedOwnerAssistant(page);
         await expect(botMessages.first()).toContainText('أهلاً يا أحمد علي');
-        await page.locator('#assistantTools > summary').click();
-        await expect(page.locator('#assistantSuggestions [data-assistant-query="عليّا كام الشهر ده؟"]')).toBeVisible();
-        await expect(page.locator('#assistantSuggestions [data-assistant-query="رصيد الخزنة كام؟"]')).toHaveCount(0);
+        await expect(page.locator('#assistantTools, #assistantQuickActions, #assistantSuggestions')).toHaveCount(0);
         await expect(page.locator('#assistantInput')).toHaveAttribute('placeholder', 'اسألني عن حسابك، إيصالاتك، ميعاد الدفع…');
 
         const fabBox = await page.locator('#assistantFab').boundingBox();

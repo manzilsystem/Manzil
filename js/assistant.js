@@ -9,35 +9,7 @@ const ASSISTANT_CASH_LABELS = Object.freeze({
     development: 'صندوق التطوير',
     emergency: 'صندوق الصيانة الطارئة'
 });
-const ASSISTANT_SUGGESTIONS = Object.freeze([
-    { label: 'ملخص الشهر', query: 'ملخص الشهر' },
-    { label: 'مين عليه متأخرات؟', query: 'مين عليه متأخرات؟' },
-    { label: 'رصيد الخزنة', query: 'رصيد الخزنة كام؟' },
-    { label: 'تحصيل الشهر', query: 'تحصيل الشهر' },
-    { label: 'مصروفات الشهر', query: 'مصروفات الشهر' },
-    { label: 'الإعفاءات', query: 'الإعفاءات والتخفيضات' }
-]);
-const ASSISTANT_SUGGESTIONS_OWNER = Object.freeze([
-    { label: 'حسابي الشهر ده', query: 'عليّا كام الشهر ده؟' },
-    { label: 'إيصالاتي', query: 'إيصالاتي' },
-    { label: 'آخر يوم للدفع', query: 'آخر يوم للدفع كام؟' },
-    { label: 'طرق الدفع', query: 'أقدر أدفع بإيه؟' },
-    { label: 'إعلانات المبنى', query: 'إعلانات المبنى' },
-    { label: 'أكلم المدير', query: 'رقم المدير' }
-]);
-const ASSISTANT_MANAGER_QUICK_ACTIONS = Object.freeze([
-    { label: 'إضافة شقة', query: 'أضف شقة' },
-    { label: 'تعديل شقة', query: 'عدّل بيانات شقة' },
-    { label: 'تسجيل تحصيل', query: 'سجل تحصيل' },
-    { label: 'إضافة مصروف', query: 'أضف مصروف' },
-    { label: 'تسجيل إعفاء', query: 'سجل إعفاء' },
-    { label: 'تسجيل تسوية', query: 'اعمل تسوية' },
-    { label: 'مهام المدير', query: 'مهام المدير' },
-    { label: 'التقارير والمخرجات', query: 'التقارير المتاحة' },
-    { label: 'إعداد إعلان', action: 'notice' }
-]);
-
-const ASSISTANT_TYPING_DELAY_MS = 140;
+const ASSISTANT_TYPING_DELAY_MS = 0;
 const ASSISTANT_HISTORY_LIMIT = 30;
 const ASSISTANT_TIME_HINT = /(يناير|فبراير|مارس|ابريل|مايو|يونيو|يوليو|اغسطس|سبتمبر|اكتوبر|نوفمبر|ديسمبر|20[0-9]{2}|الشهر|شهر|السنه|سنه|عام|النهارده|دلوقتي|حاليا|كل الفتره|كل الشهور|من البدايه|من بداية السنه|من اول السنه)/;
 const ASSISTANT_RESIDENT_FOLLOWUP = /^(هو|هي|وده|دي|وكمان|ودوره|ومن زمان|ولحد دلوقتي|وعليه)/;
@@ -94,6 +66,9 @@ const ASSISTANT_OPERATION_PAYMENT_METHODS = Object.freeze({
     instapay: 'InstaPay',
     bank_transfer: 'تحويل بنكي'
 });
+
+const ASSISTANT_CONFIRM_WORDS = /^(?:اكد(?: التسجيل| الحفظ| العملية| التحصيل| المصروف)?|اعتمد(?: التسجيل| العملية)?|نفذ(?: التسجيل| العملية)?|سجلها|سجل التحصيل|سجل المصروف|احفظها|موافق(?: على التسجيل)?|موافقه|ايوه|ايوا|نعم|تمام)$/;
+const ASSISTANT_CANCEL_WORDS = /^(?:الغاء|الغاء العملية|الغاء المسودة|الغاء الاعلان|الغ|لا خلاص|مش عايز|مش عاوز|بلاش|وقف)$/;
 const ASSISTANT_OPERATION_CATEGORIES = Object.freeze({
     electricity: 'كهرباء',
     elevator: 'صيانة أسانسير',
@@ -244,7 +219,7 @@ function persistAssistantChat() {
 }
 
 function isSafeAssistantHtml(html) {
-    return !/<\s*(script|iframe|object|embed)/i.test(html) && !/\son\w+\s*=/i.test(html);
+    return !/<\s*(script|iframe|object|embed|button)\b/i.test(html) && !/\son\w+\s*=/i.test(html);
 }
 
 function restoreAssistantSession() {
@@ -278,11 +253,7 @@ function buildAssistantFollowUps(answerId, period, customQueries = null) {
 }
 
 function assistantFollowUpsHtml(answerId, period, customQueries = null) {
-    const items = buildAssistantFollowUps(answerId, period, customQueries);
-    if (!items.length) return '';
-    return `<div class="assistant-followups" aria-label="متابعة مقترحة">${items.map(item =>
-        `<button type="button" class="assistant-chip is-followup" data-assistant-query="${assistantEscape(item.query)}">${assistantEscape(item.label)}</button>`
-    ).join('')}</div>`;
+    return '';
 }
 
 function getAssistantMonthNames() {
@@ -685,7 +656,7 @@ function getAssistantResidentSnapshot(resident, now = new Date(), monthLabel = '
 }
 
 function detectAssistantIntent(normalized, hasResident) {
-    if (/(تقرير|تقارير|طباعه|تصدير|كشف)/.test(normalized) && /(?:مصروف|مصاريف|صرف|مالك|فتره|فترة|اعفاء|تخفيض|تسويه|كشف حساب)/.test(normalized)) return 'reports';
+    if (/(تقرير|تقارير|طباعه|تصدير|كشف)/.test(normalized) && /(?:مصروف|مصاريف|صرف|مالك|فتره|فترة|اعفاء|تخفيض|تسويه|كشف حساب|تحصيل|ايراد|متاخر|مديون|مستحق)/.test(normalized)) return 'reports';
     if (hasResident) {
         if (/(السلام عليكم|سلام|صباح|مساء|ازيك|عامل ايه|اهلا)/.test(normalized)) return 'greeting';
         if (/(شكرا|تسلم|مشكور|ربنا يكرمك)/.test(normalized)) return 'thanks';
@@ -695,7 +666,7 @@ function detectAssistantIntent(normalized, hasResident) {
     if (/(شكرا|تسلم|مشكور|ربنا يكرمك)/.test(normalized)) return 'thanks';
     if (/(خصوصيه|بياناتي|البيانات بتتخزن|بتتخزن فين|مين يقدر يشوف|امان|امن|صلاحيات|قراءة فقط|بتعمل ايه|ازاي استخدم|ازاي اسجل|ازاي اعدل|ازاي اطبع|ازاي اصدر)/.test(normalized)) return 'knowledge';
     if (/(مساعده|ساعدني|بتعرف|تقدر تعمل|اوامر|خيارات|ازاي|كيف|استخدمك|ممكن تساعد)/.test(normalized)) return 'help';
-    if (/(تقرير|تقارير|طباعه|تصدير|كشف)/.test(normalized) && /(?:مصروف|مصاريف|صرف|مالك|فتره|فترة|اعفاء|تخفيض|تسويه|كشف حساب)/.test(normalized)) return 'reports';
+    if (/(تقرير|تقارير|طباعه|تصدير|كشف)/.test(normalized) && /(?:مصروف|مصاريف|صرف|مالك|فتره|فترة|اعفاء|تخفيض|تسويه|كشف حساب|تحصيل|ايراد|متاخر|مديون|مستحق)/.test(normalized)) return 'reports';
     if (/(تغير غير طبيعي|تغيير كبير|فرق كبير|محتاج مراجعه|محتاج مراجعة|زاد قوي|زادت قوي|نزل قوي|انخفض قوي|ايه اللي اتغير|ايه اللي زاد)/.test(normalized)) return 'change_alerts';
     if (/(مقارنه|قارن|مقابل|زاد|زادت|قل|قلت|اكتر من|اقل من)/.test(normalized)) return 'comparison';
     if (/(اعفاء|تخفيض|تسويه|خصم|خصومات|سامحنا)/.test(normalized)) return 'adjustments';
@@ -745,11 +716,7 @@ function buildAssistantNoticePreview(text) {
         id: 'notice-preview',
         title: 'معاينة إعلان قبل النشر',
         html: `<div class="assistant-action-preview"><p class="assistant-notice-preview">${assistantEscape(noticeText).replace(/\n/g, '<br>')}</p>
-            <p class="assistant-note">الإعلان لم يُحفظ بعد. راجعه ثم أكد النشر صراحة.</p>
-            <div class="assistant-action-buttons" role="group" aria-label="تأكيد نشر الإعلان">
-                <button type="button" class="assistant-action-confirm" onclick="confirmAssistantNotice()">تأكيد النشر</button>
-                <button type="button" class="assistant-action-cancel" onclick="cancelAssistantNotice()">إلغاء</button>
-            </div></div>`
+            <p class="assistant-note">الإعلان مسودة ولم يُنشر. بعد مراجعة النص اكتب «انشر الإعلان»، أو اكتب «إلغاء الإعلان» للتراجع.</p></div>`
     };
 }
 
@@ -770,9 +737,9 @@ async function confirmAssistantNotice() {
     return true;
 }
 
-function cancelAssistantNotice() {
+function cancelAssistantNotice(options = {}) {
     assistantNoticeDraft = null;
-    if (typeof toast === 'function') toast('تم إلغاء مسودة الإعلان.', 'info');
+    if (!options.silent && typeof toast === 'function') toast('تم إلغاء مسودة الإعلان.', 'info');
 }
 
 function parseAssistantNumericToken(token) {
@@ -819,10 +786,14 @@ function parseAssistantOperationCommand(text, now = new Date()) {
     const resident = residentMatch.matches.length === 1 ? residentMatch.matches[0] : null;
     const residentOperation = parseAssistantResidentCommand(raw, normalized, now, resident);
     if (residentOperation) return residentOperation;
-    const hasIncomeVerb = /(?:سجل|سجّل|اضف|أضف|ضيف|استلم|قبض|سدد|سداد)/.test(normalized);
-    const hasExpenseWord = /(?:مصروف|فاتوره|فاتورة|صرف)/.test(normalized);
+    const hasIncomeVerb = /(?:سجل|سجّل|سجللي|سجلي|قيد|قيدلي|دون|دوّن|اثبت|أثبت|اضف|أضف|ضيف|ادخل|إدخل|استلم|استلمت|استلمنا|قبضت|سدد|سداد|اخدت|أخذت)/.test(normalized)
+        || /(?:^|[\s،,])(?:دفعت|حولت|حصلت?|قبض)\s+(?=\d)/.test(normalized)
+        || /(?:اعمل|اعمل لي|جهز|جهزلي)\s+(?:تحصيل|دفعة|دفعه|سداد)/.test(normalized);
+    const hasExpenseWord = /(?:مصروف|فاتوره|فاتورة|صرف|كهرب|عداد|اسانسير|مصعد|نظاف|سباك|سباگه)/.test(normalized);
     const hasAdjustmentWord = /(?:اعفاء|إعفاء|تخفيض|خصم|تسويه|تسوية)/.test(normalized);
-    if (hasIncomeVerb && !hasExpenseWord && !hasAdjustmentWord && /(?:تحصيل|دفعة|دفعه|دفع|استلام|استلم|قبض|حصّل|حصل|سدد|سداد)/.test(normalized)) {
+
+    if (/(?:تقرير|تقارير|كشف حساب|اطلع تقرير)/.test(normalized)) return null;
+    if (hasIncomeVerb && !hasExpenseWord && !hasAdjustmentWord && /(?:تحصيل|دفعة|دفعه|دفع|استلام|استلم|قبض|حصّل|حصل|سدد|سداد|فلوس|مبلغ)/.test(normalized)) {
         const purpose = parseAssistantOperationPurpose(normalized);
         const explicitCash = parseAssistantCashAccount(normalized);
         const cashAccountCode = explicitCash || (purpose === 'development' ? 'development' : purpose === 'emergency' ? 'emergency' : 'main');
@@ -833,14 +804,16 @@ function parseAssistantOperationCommand(text, now = new Date()) {
             notes: parseAssistantOperationReason(raw)
         };
     }
-    if ((hasIncomeVerb || /(?:سجل|سجّل|اضف|أضف|ضيف|ادفع|إدفع)/.test(normalized)) && hasExpenseWord) {
-        const title = raw.replace(/^.*?(?:مصروف|فاتورة|فاتوره)\s*[:：-]?\s*/is, '')
-            .replace(/\b\d+(?:[.,]\d{1,2})?\s*(?:ج\.?م|جنيه|جنيهات)?\b/gi, '')
+    if ((hasIncomeVerb || /(?:اعمل|اعمل لي|سجل|سجّل|قيد|دون|دوّن|اضف|أضف|ضيف|ادفع|إدفع|صرفت|صرفنا)/.test(normalized)) && hasExpenseWord) {
+        const title = raw.replace(/^.*?(?:مصروف(?:ات)?|فاتورة|فاتوره|صرفنا|صرفت|صرف|قيد|دون|دوّن)\s*[:：-]?\s*/is, '')
+            .replace(/[\d٠-٩۰-۹]+(?:[.,٫٬][\d٠-٩۰-۹]{1,3})*\s*(?:ج\.?م|جم|جنيه(?:ات)?|ج)?/gi, '')
             .replace(/(?:عن|فى|في|لشهر|شهر)\s+(?:يناير|فبراير|مارس|أبريل|ابريل|مايو|يونيو|يوليو|أغسطس|اغسطس|سبتمبر|أكتوبر|اكتوبر|نوفمبر|ديسمبر)(?:\s+20\d{2})?/gi, '')
-            .trim();
+            .replace(/\s+(?:من|على)\s+(?:الخزنه|الخزينة|صندوق التطوير|صندوق الصيانه الطارئه|صندوق الصيانة الطارئة).*$/i, '')
+            .replace(/^(?:ال)?(?:مصروف(?:ات)?|فاتورة|فاتوره)\s*/i, '')
+            .replace(/\s+/g, ' ').replace(/^[،,:؛\s-]+|[،,:؛\s-]+$/g, '').trim();
         const explicitCash = parseAssistantCashAccount(normalized);
         return {
-            type: 'expense', amount, title: title || 'مصروف من طلب المدير', month: period.label, raw,
+            type: 'expense', amount, title, month: period.label, raw,
             category: parseAssistantExpenseCategory(normalized),
             cashAccountCode: explicitCash || 'main',
             cashAccountAssumed: !explicitCash,
@@ -871,6 +844,7 @@ function assistantOperationMissing(operation) {
         return missing;
     }
     if (!operation.amount) missing.push('المبلغ');
+    if (operation.type === 'expense' && !String(operation.title || '').trim()) missing.push('وصف المصروف أو بنده');
     if (operation.type !== 'expense' && !operation.resident) {
         missing.push(operation.residentMatches?.length > 1 ? 'رقم الشقة لتحديد المالك' : 'المالك أو رقم الشقة');
     }
@@ -906,7 +880,7 @@ function assistantOperationFollowupPatch(text, operation) {
     if (!operation || assistantIsOwner()) return null;
     const raw = String(text || '').trim();
     const normalized = normalizeAssistantArabic(raw);
-    if (/(?:سجل|سجّل|اضف|أضف|ضيف|استلم|قبض|اعمل|طبق|انشر|اكتب|مصروف|اعفاء|إعفاء|تخفيض|خصم)/.test(normalized)) return null;
+    if (/(?:سجل|سجّل|سجللي|سجلي|قيد|قيدلي|دون|دوّن|اثبت|اضف|أضف|ضيف|استلم|قبض|اعمل|طبق|انشر|اكتب)/.test(normalized)) return null;
     const patch = {};
     const method = parseAssistantPaymentMethod(normalized);
     const cashAccountCode = parseAssistantCashAccount(normalized);
@@ -915,7 +889,10 @@ function assistantOperationFollowupPatch(text, operation) {
     const period = resolveAssistantPeriod(raw, new Date());
     const reason = parseAssistantOperationReason(raw);
     const hasReasonSignal = /(?:بسبب|علشان|عشان|السبب)/.test(normalized);
-    const hasOperationDetail = Boolean(method || cashAccountCode || amount || residentMatch.matches.length || hasReasonSignal);
+    const category = operation.type === 'expense' ? parseAssistantExpenseCategory(normalized) : ASSISTANT_OPERATION_CATEGORIES.other;
+    const expenseTitleMatch = operation.type === 'expense' && raw.match(/(?:وصف|بند|اسم المصروف|المصروف هو)\s*[:：-]?\s*(.+)$/i);
+    const hasOperationDetail = Boolean(method || cashAccountCode || amount || residentMatch.matches.length || hasReasonSignal
+        || (operation.type === 'expense' && (category !== ASSISTANT_OPERATION_CATEGORIES.other || expenseTitleMatch)));
     if (!hasOperationDetail) return null;
     if (method) patch.paymentMethod = method;
     if (cashAccountCode) patch.cashAccountCode = cashAccountCode;
@@ -928,6 +905,22 @@ function assistantOperationFollowupPatch(text, operation) {
     if (reason) {
         if (operation.type === 'adjustment') patch.reason = reason;
         else patch.notes = reason;
+    }
+    if (operation.type === 'expense') {
+        if (category !== ASSISTANT_OPERATION_CATEGORIES.other) {
+            patch.category = category;
+            if (!operation.title && !expenseTitleMatch) patch.title = category;
+        }
+        if (expenseTitleMatch) patch.title = expenseTitleMatch[1].trim();
+    }
+    if (operation.type === 'income') {
+        const purpose = parseAssistantOperationPurpose(normalized);
+        if (/(?:اشتراك|شهري)/.test(normalized)) patch.purpose = 'subscription';
+        else if (/(?:تطوير|تحسين|صيانه طارئه|طوارئ|غرض اخر|غرض تاني|اخرى)/.test(normalized)) {
+            patch.purpose = purpose;
+            if (purpose === 'development') patch.cashAccountCode = 'development';
+            if (purpose === 'emergency') patch.cashAccountCode = 'emergency';
+        }
     }
     return Object.keys(patch).length ? patch : null;
 }
@@ -980,7 +973,7 @@ function buildAssistantOperationPreview(operation, now = new Date()) {
     const assumed = operation.cashAccountAssumed ? assistantNote('لم تذكر الصندوق؛ استخدمت الخزنة الرئيسية كافتراض قابل للتعديل قبل التنفيذ.') : '';
     const balanceInfo = assistantExpenseBalanceInfo(operation);
     const balanceNotice = balanceInfo?.mainOverdraft
-        ? assistantNote(`تنبيه: رصيد الخزنة الرئيسية ${assistantMoney(balanceInfo.balance)}، وسيصبح ${assistantMoney(balanceInfo.balanceAfter)} بعد المصروف. الضغط على «تأكيد وتسجيل» يوافق صراحةً على التجاوز، وسيُسجَّل في سجل التدقيق.`)
+        ? assistantNote(`تنبيه: رصيد الخزنة الرئيسية ${assistantMoney(balanceInfo.balance)}، وسيصبح ${assistantMoney(balanceInfo.balanceAfter)} بعد المصروف. كتابة «أكد التسجيل» تعني موافقتك الصريحة على التجاوز، وسيُسجَّل ذلك في سجل التدقيق.`)
         : balanceInfo?.fundInsufficient
             ? assistantNote(`رصيد ${ASSISTANT_CASH_LABELS[balanceInfo.cashAccountCode]} (${assistantMoney(balanceInfo.balance)}) لا يكفي لهذا المصروف. اذكر صندوقًا آخر أو مبلغًا أقل قبل التسجيل.`)
             : '';
@@ -989,19 +982,20 @@ function buildAssistantOperationPreview(operation, now = new Date()) {
         title: `معاينة ${labels[operation.type]} قبل الإدخال`,
         html: `<div class="assistant-action-preview"><p class="assistant-notice-preview">${assistantEscape(target)}</p>
             ${operation.followupNote ? `<p class="assistant-change-note" role="status">${assistantEscape(operation.followupNote)}</p>` : ''}
-            ${assumed}${balanceNotice}<p class="assistant-note">راجع الملخص ثم أكّد التسجيل هنا؛ ستبقى المحادثة مفتوحة وتُطبّق قواعد التحقق والحفظ المعتادة. فتح النموذج للمراجعة التفصيلية متاح اختياريًا.</p>
-            ${assistantActionButtons(operation, true)}</div>`
+            ${assumed}${balanceNotice}${assistantOperationCanExecute(operation) ? '<p class="assistant-note">راجع الملخص ثم اكتب «أكد التسجيل» لإتمام الحفظ. ستبقى المحادثة مفتوحة وتُطبّق قواعد التحقق والحفظ المعتادة.</p>' : ''}
+            ${assistantActionButtons(operation, assistantOperationCanExecute(operation))}</div>`
     };
 }
 
 function assistantActionButtons(operation, ready) {
-    const execute = ready && assistantOperationCanExecute(operation)
-        ? '<button type="button" class="assistant-action-confirm" onclick="confirmAssistantOperation()">تأكيد وتسجيل</button>'
-        : '';
-    const openForm = assistantOperationCanOpenForm(operation)
-        ? `<button type="button" class="assistant-action-secondary" onclick="openAssistantOperation()">${ready ? 'فتح النموذج للمراجعة' : 'فتح النموذج لاستكمالها'}</button>`
-        : '';
-    return `<div class="assistant-action-buttons" role="group" aria-label="مراجعة عملية المدير">${execute}${openForm}<button type="button" class="assistant-action-cancel" onclick="cancelAssistantOperation()">إلغاء</button></div>`;
+    const blockedByFunds = assistantExpenseBalanceInfo(operation)?.fundInsufficient;
+    const nextStep = ready
+        ? 'اكتب «أكد التسجيل» بعد مراجعة البيانات لإتمام العملية.'
+        : blockedByFunds
+            ? 'لا يمكن تسجيل هذا المصروف من الصندوق المحدد؛ اذكر صندوقًا آخر أو مبلغًا أقل.'
+            : 'أرسل البيانات الناقصة في رسالة تالية، أو اكتب «إلغاء» للتراجع.';
+    const formHint = assistantOperationCanOpenForm(operation) ? ' وللمراجعة في شاشة التطبيق اكتب «افتح النموذج».' : '';
+    return `<p class="assistant-note assistant-next-step" role="status">${nextStep}${formHint}</p>`;
 }
 
 function assistantOperationCanOpenForm(operation) {
@@ -1027,11 +1021,7 @@ function assistantOperationSuccessHtml(operation) {
     return `<div class="assistant-operation-success" role="status">
         <p class="assistant-success-title"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> تم حفظ ${assistantEscape(typeLabel)}${assistantEscape(kind)} بنجاح</p>
         <p class="assistant-success-detail">${assistantEscape(target)}</p>
-        <p class="assistant-note">تم التنفيذ من خلال قواعد التطبيق الرسمية، وسجّل النظام العملية في سجل التدقيق.</p>
-        <div class="assistant-action-buttons" role="group" aria-label="الخطوة التالية بعد الحفظ">
-            <button type="button" class="assistant-action-secondary" data-assistant-query="${assistantEscape(nextQuery)}">${assistantEscape(nextQuery)}</button>
-            <button type="button" class="assistant-action-secondary" data-assistant-query="آخر الحركات">آخر الحركات</button>
-        </div>
+        <p class="assistant-note">تم التنفيذ من خلال قواعد التطبيق الرسمية، وسجّل النظام العملية في سجل التدقيق. يمكنك الآن أن تسألني: «${assistantEscape(nextQuery)}» أو «آخر الحركات».</p>
     </div>`;
 }
 
@@ -1138,8 +1128,8 @@ function appendAssistantOperationFailure(message) {
     appendAssistantMessage('bot', `<p class="assistant-note">${assistantEscape(message)}</p>`);
 }
 function assistantMarkOperationDraftCompleted() {
-    const completedNote = assistantNote('تم تنفيذ العملية بعد تأكيدك.');
-    const actionPattern = /<div class="assistant-action-buttons" role="group" aria-label="مراجعة عملية المدير">[\s\S]*?<\/div>/;
+    const completedNote = `<p class="assistant-note assistant-next-step" role="status">تم تنفيذ العملية بعد تأكيدك.</p>`;
+    const actionPattern = /<p class="assistant-note assistant-next-step" role="status">[\s\S]*?<\/p>/;
     for (let index = assistantChat.length - 1; index >= 0; index -= 1) {
         const message = assistantChat[index];
         if (message.role === 'bot' && actionPattern.test(message.html)) {
@@ -1149,14 +1139,14 @@ function assistantMarkOperationDraftCompleted() {
     }
     persistAssistantChat();
     const log = document.getElementById('assistantLog');
-    const buttons = log?.querySelectorAll('.assistant-action-preview .assistant-action-buttons');
-    const lastButtons = buttons && buttons.length ? buttons[buttons.length - 1] : null;
-    if (lastButtons) lastButtons.outerHTML = completedNote;
+    const steps = log?.querySelectorAll('.assistant-action-preview .assistant-next-step');
+    const lastStep = steps && steps.length ? steps[steps.length - 1] : null;
+    if (lastStep) lastStep.outerHTML = completedNote;
 }
 
-function cancelAssistantOperation() {
+function cancelAssistantOperation(options = {}) {
     assistantOperationDraft = null;
-    if (typeof toast === 'function') toast('تم إلغاء مسودة العملية.', 'info');
+    if (!options.silent && typeof toast === 'function') toast('تم إلغاء مسودة العملية.', 'info');
 }
 
 function assistantApartmentLabel(resident) {
@@ -1402,10 +1392,7 @@ function buildAssistantManagerTasksAnswer(period) {
         html += assistantNote('مفيش متابعة مالية عاجلة ظاهرة من السجلات الحالية.');
     }
     html += assistantNote('الترتيب حسب أعلى مبلغ مستحق مسجل. القائمة اقتراح للمراجعة وليست إرسالًا تلقائيًا أو تسجيلًا لعملية.');
-    html += `<div class="assistant-action-buttons" role="group" aria-label="إجراءات قائمة المتابعة">
-        <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('arrears')">فتح تقرير المتأخرات</button>
-        <button type="button" class="assistant-action-secondary" data-assistant-query="ملخص الشهر">ملخص الشهر</button>
-    </div>`;
+    html += assistantNote('لو عايز تفاصيل أوسع، اكتب «تقرير المتأخرات» أو «ملخص الشهر».');
     return { id: 'manager_tasks', title, html };
 }
 
@@ -1551,7 +1538,7 @@ function buildAssistantHelpAnswer() {
         'نشر إعلان بعد معاينته وتأكيد النشر.',
         'آخر الحركات وبيانات العمارة.',
         'أماكن التقارير وكيف تطبع أو تصدّر CSV.'
-    ])}${assistantNote('اكتب سؤالك بالعامية أو بالفصحى. في أي عملية مالية سيعرض عم عبده الملخص أولًا، ولن يحفظها إلا بعد ضغط «تنفيذ وحفظ».')}`;
+    ])}${assistantNote('اكتب طلبك بالعامية أو بالفصحى. سيعرض عم عبده معاينة لأي إدخال، ولن يحفظه إلا بعد أن تكتب «أكد التسجيل».')}`;
     return { id: 'help', title, html };
 }
 
@@ -1569,7 +1556,7 @@ function buildAssistantKnowledgeAnswer() {
         'الإجابات والتقارير قراءة فقط؛ لا يتغير السجل إلا من مسار تنفيذ واضح بعد تأكيد المدير.',
         'بيانات العمارة وإجراءاتها لا تظهر إلا للمستخدم ذي صلاحيات المدير.',
         'إجاباتي تُحسب محليًا من بيانات الجلسة ولا أرسل المحادثة أو بيانات العمارة لخدمة خارجية.',
-        'أقدر أجهز إضافة تحصيل أو مصروف أو تسوية، لكن الحفظ لا يحدث إلا بعد مراجعتك وضغط «تنفيذ وحفظ»؛ الحذف والتعديل يظلّان من شاشات التطبيق.'
+        'أقدر أجهز تحصيلًا أو مصروفًا أو تسوية من كلامك؛ راجع المعاينة واكتب «أكد التسجيل» للحفظ. الحذف والتعديل يتمان من شاشات التطبيق.'
     ];
     return { id: 'knowledge', title, html: assistantList(items) + assistantNote(owner ? 'جرّب: «إيصالاتي» أو «آخر يوم للدفع كام؟».' : 'جرّب: «مين يقدر يشوف البيانات؟» أو «إزاي أستخدم التقارير؟».') };
 }
@@ -1590,12 +1577,17 @@ function parseAssistantReportRequest(raw, now = new Date()) {
     let tab = 'landlord';
     if (/(مصروف|مصاريف|صرف)/.test(normalized)) tab = 'expenses';
     else if (/(اعفاء|تخفيض|تسويه|خصم)/.test(normalized)) tab = 'adjustments';
+    else if (/(متاخر|مديون|مستحق)/.test(normalized)) tab = 'arrears';
+    else if (/(تحصيل|تحصيلات|ايراد|وارد)/.test(normalized)) tab = 'income';
     else if (/(كشف حساب|حساب مالك|كشف مالك)/.test(normalized)) tab = 'statement';
     else if (/(فتره|فترة|عدة شهور|مجموعة شهور)/.test(normalized)) tab = 'period';
     return {
         tab,
         month: hasExplicitPeriod && period?.type === 'month' ? period.label : '',
-        residentId: residentMatch.matches.length === 1 ? residentMatch.matches[0].id : ''
+        residentId: residentMatch.matches.length === 1 ? residentMatch.matches[0].id : '',
+        period,
+        explicitReport: /(?:تقرير|كشف|اعمل|اطلع|طلع)/.test(normalized)
+            && /(?:مالي|مالك|شهري|مصاريف|مصروف|صرف|تحصيل|ايراد|متاخر|مديون|مستحق|اعفاء|تخفيض|تسويه|فتره|فترة)/.test(normalized)
     };
 }
 function openAssistantReportsRequest(tab = 'landlord', month = '', residentId = '') {
@@ -1626,29 +1618,57 @@ function closeAssistantForNavigation() {
     return !assistantModalIsOpen();
 }
 function buildAssistantReportsAnswer(request = null) {
+    const period = request?.period || resolveAssistantPeriod('');
+    if (request && request.tab === 'expenses') {
+        const answer = buildAssistantExpensesAnswer(period);
+        answer.id = 'reports';
+        answer.title = `تقرير المصروفات · ${period.label}`;
+        answer.html += assistantNote('هذا ملخص من السجل المحلي؛ اكتب «أكبر المصروفات» لعرض البنود الأعلى قيمة.');
+        return answer;
+    }
+    if (request && request.tab === 'adjustments') {
+        const answer = buildAssistantAdjustmentsAnswer(period);
+        answer.id = 'reports';
+        answer.title = `تقرير الإعفاءات والتخفيضات · ${period.label}`;
+        return answer;
+    }
+    if (request && request.tab === 'income') {
+        const answer = buildAssistantIncomeAnswer(period);
+        answer.id = 'reports';
+        answer.title = `تقرير التحصيل · ${period.label}`;
+        return answer;
+    }
+    if (request && request.tab === 'arrears') {
+        const answer = buildAssistantArrearsAnswer();
+        answer.id = 'reports';
+        return answer;
+    }
+    if (request && request.tab === 'statement' && request.residentId) {
+        const resident = (Array.isArray(state.residents) ? state.residents : []).find(item => item.id === request.residentId);
+        if (resident) {
+            const answer = buildAssistantResidentAnswer(resident);
+            answer.id = 'reports';
+            answer.title = `كشف حساب · ${assistantResidentName(resident)}`;
+            return answer;
+        }
+    }
+    if (request && request.tab === 'period') {
+        const income = buildAssistantIncomeAnswer(period);
+        const expenses = buildAssistantExpensesAnswer(period);
+        return { id: 'reports', title: `تقرير الفترة · ${period.label}`, html: `<section>${income.html}</section><section>${expenses.html}</section><p class="assistant-note">البيانات معروضة من السجلات المحلية.</p>` };
+    }
+    if (request?.explicitReport) {
+        const answer = buildAssistantExecutiveAnswer(period);
+        answer.id = 'reports';
+        answer.title = `تقرير مالي · ${period.label}`;
+        return answer;
+    }
     const title = 'التقارير المتاحة';
-    const requested = request && (request.month || request.residentId || request.tab !== 'landlord');
-    const requestedLabel = request?.month ? `تم تجهيز شهر ${request.month}` : request?.residentId ? 'تم تجهيز المالك المحدد' : '';
     const html = `${assistantList([
         'تقرير المالك الشهري والفترة: التحصيل والمصروفات مع الفلاتر.',
         'تقارير المصروفات والإعفاءات والتخفيضات.',
         'كشف حساب المالك والإقفال الشهري والمتأخرات.'
-    ])}${assistantNote(requested ? `${requestedLabel || 'تم تجهيز التقرير المطلوب'} — راجع الفلاتر ثم اضغط «معاينة» قبل الطباعة أو التصدير CSV.` : 'افتح قسم «التقارير» من الشريط السفلي، وكل تقرير له معاينة وطباعة وتصدير CSV.')}
-        <div class="assistant-action-buttons assistant-report-actions" role="group" aria-label="فتح التقارير">
-            ${requested ? `<button type="button" class="assistant-action-confirm" onclick="openAssistantReportsRequest('${assistantEscape(request.tab)}','${assistantEscape(request.month || '')}','${assistantEscape(request.residentId || '')}')">فتح التقرير المطلوب</button>` : ''}
-            ${requested ? '<button type="button" class="assistant-action-secondary" onclick="openAssistantReports()">كل التقارير</button>' : `
-            <button type="button" class="assistant-action-confirm" onclick="openAssistantReports()">فتح التقارير</button>
-            <details class="assistant-disclosure assistant-report-options">
-                <summary class="assistant-disclosure-summary"><span>اختيار نوع التقرير</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
-                <div class="assistant-disclosure-body assistant-action-buttons">
-            <button type="button" class="assistant-action-confirm" onclick="openAssistantReports('landlord')">تقرير المالك</button>
-            <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('period')">تقرير الفترة</button>
-            <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('expenses')">تقرير المصروفات</button>
-            <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('adjustments')">الإعفاءات والتخفيضات</button>
-            <button type="button" class="assistant-action-secondary" onclick="openAssistantReports('statement')">كشف حساب مالك</button>
-                </div>
-            </details>`}
-        </div>`;
+    ])}${assistantNote('اطلب التقرير بصيغة طبيعية، مثل «تقرير مصروفات نوفمبر» أو «كشف حساب سارة حسن»؛ سأعرض النتيجة هنا من بيانات المبنى المحلية. ويمكن فتح شاشة التقارير الرسمية للطباعة أو CSV بكتابة «افتح شاشة التقارير».')}`;
     return { id: 'reports', title, html };
 }
 
@@ -2022,6 +2042,18 @@ function assistantDataSavePending() {
     return typeof hasPendingStateSave === 'function' && hasPendingStateSave();
 }
 
+function assistantIsConfirmation(text) {
+    return ASSISTANT_CONFIRM_WORDS.test(normalizeAssistantArabic(text));
+}
+
+function assistantIsCancellation(text) {
+    return ASSISTANT_CANCEL_WORDS.test(normalizeAssistantArabic(text));
+}
+
+function assistantIsNoticePublishRequest(text) {
+    return /^(?:انشر|نشر|اكد نشر|اكد الاعلان|اعتمد الاعلان)(?: الاعلان)?$/.test(normalizeAssistantArabic(text));
+}
+
 function answerOwnerAssistantQuery(text, now = new Date()) {
     const normalized = normalizeAssistantArabic(text);
     if (assistantOwnerRequestsForeignUnit(normalized)) {
@@ -2053,7 +2085,7 @@ function buildAssistantGreetingHtml(now = new Date()) {
     html += assistantRow('تحصيل الشهر', assistantMoney(summary.income.total));
     html += assistantRow('غير محصل الشهر', assistantMoney(summary.outstandingTotal), summary.outstandingTotal > 0 ? 'warn' : 'good');
     html += assistantRow('إجمالي المتأخرات', assistantMoney(arrears.totalDebt), arrears.totalDebt > 0 ? 'bad' : 'good');
-    html += assistantNote('اسألني عن أي شهر أو شقة، أو اختار من الأسئلة المقترحة تحت.');
+    html += assistantNote('اكتب طلبك أو سؤالك مباشرةً، مثل «قيد مصروف كهرباء 300 جنيه» أو «تقرير التحصيل لشهر نوفمبر».');
     return html;
 }
 
@@ -2095,9 +2127,25 @@ function answerAssistantQuery(text, now = new Date()) {
         return answerOwnerAssistantQuery(text, now);
     }
     if (!normalized) return withAssistantAnswerMeta(buildAssistantHelpAnswer(), resolveAssistantPeriod(text, now), null);
-    if (assistantOperationDraft && /^(?:الغاء|إلغاء|لا خلاص|مش عايز|بلاش)$/.test(normalized)) {
-        cancelAssistantOperation();
+    if ((assistantOperationDraft || assistantNoticeDraft) && assistantIsCancellation(text)) {
+        if (assistantNoticeDraft) cancelAssistantNotice({ silent: true });
+        if (assistantOperationDraft) cancelAssistantOperation({ silent: true });
         return withAssistantAnswerMeta({ id: 'operation-cancelled', title: 'تم إلغاء المسودة', html: assistantNote('تمام، لم يتم حفظ أي تغيير.') }, resolveAssistantPeriod(text, now), null, text);
+    }
+    if (assistantNoticeDraft && assistantIsNoticePublishRequest(text)) {
+        return withAssistantAnswerMeta({ id: 'notice-confirm-request', title: 'تأكيد نشر الإعلان', html: assistantNote('سأنشر نص الإعلان الذي راجعته الآن.') }, resolveAssistantPeriod(text, now), null, text);
+    }
+    if (assistantOperationDraft && assistantIsConfirmation(text)) {
+        if (!assistantOperationCanExecute(assistantOperationDraft)) {
+            return withAssistantAnswerMeta(buildAssistantOperationPreview(assistantOperationDraft, now), resolveAssistantPeriod(text, now), assistantOperationDraft.resident || null, text);
+        }
+        return withAssistantAnswerMeta({ id: 'operation-confirm-request', title: 'جارٍ تسجيل العملية بعد تأكيدك', html: assistantNote('لحظة، أطبّق التحقق والحفظ بالطريقة الرسمية.') }, resolveAssistantPeriod(text, now), assistantOperationDraft.resident || null, text);
+    }
+    if (assistantOperationDraft && /^(?:افتح النموذج|افتح شاشة الادخال|كمل في النموذج)$/.test(normalized)) {
+        return withAssistantAnswerMeta({ id: 'operation-open-form-request', title: 'فتح نموذج المراجعة', html: assistantNote('سأفتح شاشة التطبيق لمراجعة البيانات واستكمالها.') }, resolveAssistantPeriod(text, now), assistantOperationDraft.resident || null, text);
+    }
+    if (/^(?:افتح|روح|اذهب الى|وديني الى) (?:شاشه )?التقارير$/.test(normalized)) {
+        return withAssistantAnswerMeta({ id: 'reports-open-request', title: 'فتح شاشة التقارير', html: assistantNote('سأفتح لك شاشة التقارير الرسمية.') }, resolveAssistantPeriod(text, now), null, text);
     }
     const operationFollowup = mergeAssistantOperationFollowup(text, now);
     if (operationFollowup) return withAssistantAnswerMeta(operationFollowup, resolveAssistantPeriod(text, now), assistantOperationDraft?.resident || null, text);
@@ -2209,7 +2257,6 @@ function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
 
 function withAssistantAnswerMeta(answer, period, resident, text = '') {
     answer.followUps = buildAssistantFollowUps(answer.id, period, answer.followUpQueries);
-    answer.html += assistantFollowUpsHtml(answer.id, period, answer.followUpQueries);
     delete answer.followUpQueries;
     if (text) rememberAssistantContext(text, period, resident);
     return answer;
@@ -2260,36 +2307,6 @@ function showAssistantTyping() {
     return message;
 }
 
-function populateAssistantSuggestions() {
-    const container = document.getElementById('assistantSuggestions');
-    if (!container || container.children.length) return;
-    const suggestions = assistantIsOwner() ? ASSISTANT_SUGGESTIONS_OWNER : ASSISTANT_SUGGESTIONS;
-    container.innerHTML = suggestions.map(item =>
-        `<button type="button" class="assistant-chip" data-assistant-query="${assistantEscape(item.query)}">${assistantEscape(item.label)}</button>`
-    ).join('');
-}
-
-function populateAssistantQuickActions() {
-    const section = document.getElementById('assistantQuickActions');
-    const container = document.getElementById('assistantQuickActionButtons');
-    const isManager = !assistantIsOwner();
-    if (section) section.hidden = !isManager;
-    if (!container || !isManager) return;
-    container.innerHTML = ASSISTANT_MANAGER_QUICK_ACTIONS.map(item =>
-        `<button type="button" class="assistant-quick-action" ${item.action ? `data-assistant-action="${assistantEscape(item.action)}"` : `data-assistant-query="${assistantEscape(item.query)}"`}>${assistantEscape(item.label)}<span aria-hidden="true">${item.action ? '↗' : '＋'}</span></button>`
-    ).join('');
-}
-
-function runAssistantQuickAction(action) {
-    if (assistantIsOwner()) return false;
-    if (action === 'notice' && typeof openNoticeModal === 'function') {
-        if (!closeAssistantForNavigation()) return false;
-        openNoticeModal();
-        return true;
-    }
-    return false;
-}
-
 function restoreAssistantChat() {
     restoreAssistantSession();
     if (assistantChat.length) {
@@ -2306,8 +2323,6 @@ function openAssistantModal() {
     }
     if (typeof openModal === 'function') openModal('assistantModal');
     syncAssistantFab();
-    populateAssistantQuickActions();
-    populateAssistantSuggestions();
     const log = document.getElementById('assistantLog');
     if (log && !log.children.length) restoreAssistantChat();
     requestAnimationFrame(() => {
@@ -2333,6 +2348,19 @@ function sendAssistantMessage(event) {
     const deliver = () => {
         if (typing && typing.parentNode) typing.parentNode.removeChild(typing);
         appendAssistantMessage('bot', assistantAnswerHtml(answer));
+        if (answer.id === 'operation-confirm-request') {
+            void confirmAssistantOperation();
+        } else if (answer.id === 'notice-confirm-request') {
+            void confirmAssistantNotice().then(saved => {
+                appendAssistantMessage('bot', assistantNote(saved
+                    ? 'تم نشر الإعلان بعد تأكيدك.'
+                    : 'لم يُنشر الإعلان. راجع البيانات وحاول مرة أخرى أو اكتب «إلغاء الإعلان».'));
+            });
+        } else if (answer.id === 'operation-open-form-request') {
+            openAssistantOperation();
+        } else if (answer.id === 'reports-open-request') {
+            openAssistantReports();
+        }
     };
     if (typeof setTimeout === 'function' && ASSISTANT_TYPING_DELAY_MS > 0) setTimeout(deliver, ASSISTANT_TYPING_DELAY_MS);
     else deliver();
@@ -2352,23 +2380,13 @@ function askAssistant(query) {
     sendAssistantMessage();
 }
 
-function handleAssistantSuggestion(event) {
-    const target = event?.target;
-    const actionButton = target && typeof target.closest === 'function' ? target.closest('[data-assistant-action]') : null;
-    if (actionButton) {
-        runAssistantQuickAction(actionButton.getAttribute('data-assistant-action') || '');
-        return;
-    }
-    const chip = target && typeof target.closest === 'function' ? target.closest('[data-assistant-query]') : null;
-    if (!chip) return;
-    askAssistant(chip.getAttribute('data-assistant-query') || '');
-}
-
 function resetAssistantChat() {
     const log = document.getElementById('assistantLog');
     if (log) log.innerHTML = '';
     assistantChat = [];
     assistantContext = { period: null, residentId: null };
+    assistantNoticeDraft = null;
+    assistantOperationDraft = null;
     persistAssistantChat();
     persistAssistantContext();
     appendAssistantMessage('bot', buildAssistantGreetingHtml());

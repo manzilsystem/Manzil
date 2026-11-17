@@ -2177,36 +2177,22 @@
                 <button type="button" class="assistant-icon-button" onclick="resetAssistantChat()" aria-label="بدء محادثة جديدة" title="محادثة جديدة"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>
                 <button type="button" class="assistant-icon-button" onclick="closeModal('assistantModal')" aria-label="إغلاق مساعد عم عبده"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             </header>
-            <div id="assistantLog" class="assistant-log" role="log" aria-live="polite" aria-label="محادثة عم عبده البواب" onclick="handleAssistantSuggestion(event)"></div>
-            <details id="assistantTools" class="assistant-disclosure assistant-tools" aria-label="اختصارات وأسئلة المساعد">
-                <summary class="assistant-disclosure-summary"><span>اختصارات وأسئلة جاهزة</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
-                <div class="assistant-tools-body">
-                    <section id="assistantQuickActions" class="assistant-quick-actions" aria-label="مهام المدير السريعة" hidden>
-                        <h4 class="assistant-tools-label">مهام المدير</h4>
-                        <div id="assistantQuickActionButtons" class="assistant-quick-actions-list" onclick="handleAssistantSuggestion(event)"></div>
-                        <p class="assistant-quick-actions-hint">المعاينة مطلوبة قبل الحفظ أو نشر الإعلان.</p>
-                    </section>
-                    <section class="assistant-suggestions-disclosure" aria-labelledby="assistantSuggestionsSummary">
-                        <h4 id="assistantSuggestionsSummary" class="assistant-tools-label">أسئلة جاهزة</h4>
-                        <div id="assistantSuggestions" class="assistant-suggestions" aria-label="أسئلة مقترحة" onclick="handleAssistantSuggestion(event)"></div>
-                    </section>
-                </div>
-            </details>
+            <div id="assistantLog" class="assistant-log" role="log" aria-live="polite" aria-label="محادثة عم عبده البواب"></div>
             <form class="assistant-form" onsubmit="sendAssistantMessage(event)">
                 <label for="assistantInput" class="sr-only">اكتب سؤالك لعم عبده</label>
-                <textarea id="assistantInput" class="app-input" maxlength="240" autocomplete="off" enterkeyhint="send" rows="1" onkeydown="handleAssistantComposerKeydown(event)" placeholder="اكتب سؤالك…&#10;Enter للإرسال · Shift+Enter لسطر جديد"></textarea>
+                <textarea id="assistantInput" class="app-input" maxlength="1000" autocomplete="off" enterkeyhint="send" rows="1" onkeydown="handleAssistantComposerKeydown(event)" placeholder="اكتب طلبك أو سؤالك…&#10;Enter للإرسال · Shift+Enter لسطر جديد"></textarea>
                 <button type="submit" class="assistant-send-button" aria-label="إرسال السؤال كتابةً"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
             </form>
-            <p class="assistant-footnote"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> قراءة حسب صلاحيتك · أي إضافة تتطلب مراجعتك وتأكيدك؛ الحذف والتعديل من شاشات التطبيق.</p>
+            <p class="assistant-footnote"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> محلي ويعمل حسب صلاحيتك · لا يُحفظ أي إدخال إلا بعد مراجعتك وكتابة «أكد التسجيل».</p>
         </div>
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-484836d8b7"></script>
+    <script src="js/telemetry.js?v=manzil-f9bed8c830"></script>
     <script src="js/state.js?v=a1327e49bc"></script>
     <script src="js/access.js?v=0e8f36ff5c"></script>
     <script src="js/render.js?v=38a35471ba"></script>
-    <script src="js/crud.js?v=a57195ccdb"></script>
+    <script src="js/crud.js?v=2d1ef4332d"></script>
     <script src="js/notices.js?v=708550996a"></script>
     <script src="js/reports.js?v=d2b90393e7"></script>
     <script src="js/settings.js?v=c274fd024a"></script>
@@ -2215,7 +2201,7 @@
     <script src="js/cashbox.js?v=3ca9f6a1d8"></script>
     <script src="js/monthly-close.js?v=3931791f32"></script>
     <script src="js/backup.js?v=6f6d4ebbf1"></script>
-    <script src="js/assistant.js?v=feac672b6b"></script>
+    <script src="js/assistant.js?v=ed89615885"></script>
     <script src="js/app.js?v=bb82ca8bd3"></script>
 </body>
 </html>

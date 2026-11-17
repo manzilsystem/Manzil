@@ -155,7 +155,6 @@ function createHarness(seed = true, identity = {}, options = {}) {
         resolveAssistantResident,
         assistantParsedAmount,
         assistantEscape,
-        runAssistantQuickAction,
         openAssistantOperation,
         openAssistantReports,
         buildAssistantFollowUps,
@@ -168,8 +167,7 @@ function createHarness(seed = true, identity = {}, options = {}) {
         appendAssistantMessage,
         chatSnapshot: () => assistantChat,
         contextSnapshot: () => assistantContext,
-        ASSISTANT_NAME,
-        ASSISTANT_SUGGESTIONS
+        ASSISTANT_NAME
     })`, context);
     return { context, api, storage: sandbox.sessionStorage };
 }
@@ -224,12 +222,13 @@ test('assistant income summary keeps settlement payments separate from other pur
 test('assistant modal, launcher, script and styles are wired into the app', () => {
     assert.match(html, /id="assistantModal"/);
     assert.match(html, /id="assistantLog"[^>]*role="log"[^>]*aria-live="polite"/);
-    assert.match(html, /id="assistantLog"[^>]*onclick="handleAssistantSuggestion\(event\)"/, 'follow-up chips inside the log reuse the delegated handler');
-    assert.match(html, /id="assistantInput"[^>]*maxlength="240"/);
+    assert.match(html, /id="assistantLog"[^>]*role="log"[^>]*aria-live="polite"/);
+    assert.match(html, /id="assistantInput"[^>]*maxlength="1000"/);
     assert.match(html, /<textarea[^>]*id="assistantInput"[^>]*rows="1"/);
     assert.match(html, /onkeydown="handleAssistantComposerKeydown\(event\)"/);
     assert.match(html, /Shift\+Enter لسطر جديد/);
-    assert.match(html, /id="assistantSuggestions"[^>]*onclick="handleAssistantSuggestion\(event\)"/);
+    assert.doesNotMatch(html, /assistantTools|assistantSuggestions|assistantQuickActions|مهام المدير|أسئلة مقترحة/);
+    assert.doesNotMatch(assistantSource, /<button\b/i, 'assistant responses contain no clickable in-chat controls');
     assert.match(html, /onsubmit="sendAssistantMessage\(event\)"/);
     assert.match(html, /<button type="button" id="assistantFab"[^>]*onclick="openAssistantModal\(\)"/);
     assert.match(html, /aria-label="اسأل عم عبده البواب"/);
@@ -261,11 +260,9 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(serviceWorker, /\.\/icons\/assistant-abbah\.png/);
     assert.match(serviceWorker, /\.\/icons\/assistant-abbah-full\.png/);
     assert.match(assistantSource, /ASSISTANT_FAB_SCROLL_DEADZONE/, 'scroll direction drives the launcher');
-    assert.match(assistantSource, /ASSISTANT_FOLLOWUPS/, 'every answer carries follow-up questions');
+    assert.match(assistantSource, /ASSISTANT_FOLLOWUPS/, 'follow-up knowledge remains available to the response logic');
     assert.match(assistantSource, /isSafeAssistantHtml/, 'a stored chat log is re-checked before it renders');
     assert.match(assistantSource, /sessionStorage\.setItem\(keys\.chat/, 'the chat survives reopening the assistant');
-    assert.match(css, /\.assistant-followups \{/);
-    assert.match(css, /\.assistant-chip\.is-followup \{/);
     assert.match(css, /\.assistant-typing-dot \{/);
     assert.match(css, /@keyframes assistant-typing-bounce/);
     assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\.assistant-typing-dot \{ animation: none; \}/);
@@ -290,7 +287,7 @@ test('عم عبده is written-only and exposes no microphone, recording, or spe
     assert.doesNotMatch(appSource, /getUserMedia|MediaRecorder|speechSynthesis|SpeechSynthesisUtterance/i);
 });
 
-test('manager quick actions are visible, start incomplete operation drafts, and remain hidden from owners', () => {
+test('free-form typed requests start incomplete manager drafts without quick-action menus', () => {
     const { api: managerApi } = createHarness(true);
     const queries = ['سجل تحصيل', 'أضف مصروف', 'سجل إعفاء', 'اعمل تسوية'];
     for (const query of queries) {
@@ -298,17 +295,8 @@ test('manager quick actions are visible, start incomplete operation drafts, and 
         assert.equal(answer.id, 'operation-missing', `${query} should enter the existing incomplete-draft flow`);
         assert.match(answer.html, /ناقص/);
     }
-    assert.match(assistantSource, /function populateAssistantQuickActions\(\)/);
-    assert.match(assistantSource, /if \(section\) section\.hidden = !isManager/);
-    assert.match(html, /<details id="assistantTools" class="assistant-disclosure assistant-tools"/);
-    assert.match(html, /<section id="assistantQuickActions"[^>]*hidden/);
-    assert.match(html, /<section class="assistant-suggestions-disclosure"/);
-    assert.doesNotMatch(html, /<details[^>]*\bopen\b/, 'assistant shortcuts start collapsed to keep the chat clear');
-    assert.match(css, /\.assistant-tools-body\s*\{[^}]*max-height:[^}]*overflow-y:\s*auto/s);
-    assert.match(html, /مهام المدير/);
-    assert.match(assistantSource, /\{ label: 'مهام المدير', query: 'مهام المدير' \}/);
-    assert.match(css, /\.assistant-disclosure-summary:focus-visible/);
-    assert.match(css, /\.assistant-quick-action:focus-visible/);
+    assert.doesNotMatch(html, /assistantTools|assistantQuickActions|assistantSuggestions|مهام المدير|أسئلة مقترحة/);
+    assert.doesNotMatch(assistantSource, /function populateAssistantQuickActions|function handleAssistantSuggestion/);
 
     const { api: ownerApi } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
     for (const query of queries) {
@@ -465,7 +453,8 @@ test('manager announcement commands create a preview with explicit confirmation 
     const answer = api.answerAssistantQuery('اكتب إعلان: سيتم إيقاف الأسانسير غدًا للصيانة', NOW);
 
     assert.equal(answer.id, 'notice-preview');
-    assert.match(answer.html, /تأكيد النشر/);
+    assert.match(answer.html, /اكتب «انشر الإعلان»/);
+    assert.doesNotMatch(answer.html, /<button/i);
     assert.match(answer.html, /سيتم إيقاف الأسانسير غدًا للصيانة/);
     assert.equal(JSON.stringify(vm.runInContext('state', context)), before);
 });
@@ -474,12 +463,12 @@ test('manager report answers expose a role-safe direct navigation action', () =>
     assert.match(assistantSource, /function openAssistantReports\(reportTab = 'landlord'\)/);
     assert.match(assistantSource, /function closeAssistantForNavigation\(\)/);
     assert.match(assistantSource, /if \(!closeAssistantForNavigation\(\)\) return false;/);
-    assert.match(assistantSource, /openAssistantReports\('landlord'\)/);
-    assert.match(assistantSource, /openAssistantReports\('period'\)/);
+    assert.match(assistantSource, /openAssistantReports\(\)/);
+    assert.match(assistantSource, /افتح شاشة التقارير/);
     assert.match(assistantSource, /if \(assistantIsOwner\(\)\) return false;/);
 });
 
-test('assistant closes its dialog before opening reports, operation forms, or notices', () => {
+test('typed navigation and operation-form requests close the assistant before opening official screens', () => {
     const calls = [];
     let assistantOpen = true;
     const { context, api } = createHarness(true, {}, {
@@ -506,41 +495,42 @@ test('assistant closes its dialog before opening reports, operation forms, or no
 
     calls.length = 0;
     assistantOpen = true;
-    assert.equal(api.runAssistantQuickAction('notice'), true);
-    assert.deepEqual(calls, ['close:assistantModal', 'notice-form']);
+    const openScreen = api.answerAssistantQuery('افتح شاشة التقارير', NOW);
+    assert.equal(openScreen.id, 'reports-open-request');
+    assert.equal(api.openAssistantReports(), true);
+    assert.deepEqual(calls, ['close:assistantModal', 'tab:reports', 'report:landlord']);
 });
 
-test('manager quick action opens official announcement form and report shortcut returns actionable reports', () => {
-    const calls = [];
-    const manager = createHarness(true, {}, { instrument: sandbox => { sandbox.openNoticeModal = () => calls.push('notice'); } });
-    assert.equal(manager.api.runAssistantQuickAction('notice'), true);
-    assert.deepEqual(calls, ['notice']);
-    const reports = manager.api.answerAssistantQuery('التقارير المتاحة', NOW);
-    assert.equal(reports.id, 'reports');
-    for (const label of ['تقرير المالك', 'تقرير الفترة', 'تقرير المصروفات', 'الإعفاءات والتخفيضات', 'كشف حساب مالك']) {
-        assert.match(reports.html, new RegExp(label));
-    }
-
-    const owner = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' }, {
-        instrument: sandbox => { sandbox.openNoticeModal = () => calls.push('owner-notice'); }
-    });
-    assert.equal(owner.api.runAssistantQuickAction('notice'), false);
-    assert.deepEqual(calls, ['notice']);
-    assert.match(assistantSource, /data-assistant-action=/);
-    assert.match(assistantSource, /openNoticeModal\(\)/);
+test('announcement drafts use typed publish/cancel commands and responses contain no buttons', () => {
+    const { api } = createHarness(true);
+    const draft = api.answerAssistantQuery('اكتب إعلان صيانة الأسانسير يوم الخميس', NOW);
+    assert.equal(draft.id, 'notice-preview');
+    assert.match(draft.html, /اكتب «انشر الإعلان»/);
+    assert.doesNotMatch(draft.html, /<button/i);
+    const publish = api.answerAssistantQuery('انشر الإعلان', NOW);
+    assert.equal(publish.id, 'notice-confirm-request');
+    const cancel = api.answerAssistantQuery('إلغاء الإعلان', NOW);
+    assert.equal(cancel.id, 'operation-cancelled');
+    assert.match(cancel.html, /لم يتم حفظ أي تغيير/);
 });
 
-test('manager report requests prepare the matching report and period without bypassing preview', () => {
+test('manager report requests return the selected report figures directly in chat', () => {
     const { api } = createHarness(true);
     const expenses = api.answerAssistantQuery('تقرير المصروفات عن نوفمبر 2026', NOW);
     assert.equal(expenses.id, 'reports');
-    assert.match(expenses.html, /فتح التقرير المطلوب/);
-    assert.match(expenses.html, /راجع الفلاتر ثم اضغط «معاينة»/);
-    assert.match(expenses.html, /openAssistantReportsRequest\('expenses'/);
+    assert.match(expenses.title, /تقرير المصروفات.*نوفمبر 2026/);
+    assert.match(expenses.html, /إجمالي المصروفات/);
+    assert.match(expenses.html, /نظافة/);
+    assert.doesNotMatch(expenses.html, /<button/i);
+
+    const income = api.answerAssistantQuery('تقرير التحصيل نوفمبر 2026', NOW);
+    assert.equal(income.id, 'reports');
+    assert.match(income.title, /تقرير التحصيل/);
+    assert.match(income.html, /إجمالي التحصيل/);
 
     const statement = api.answerAssistantQuery('كشف حساب سارة حسن شقة 7', NOW);
     assert.equal(statement.id, 'reports');
-    assert.match(statement.html, /openAssistantReportsRequest\('statement'/);
+    assert.match(statement.title, /سارة حسن/);
 });
 
 test('owners never receive executable report navigation actions', () => {
@@ -565,11 +555,39 @@ test('manager operation commands produce safe previews without mutating state', 
     assert.match(adjustment.html, /سبب الإجراء/);
     assert.equal(JSON.stringify(vm.runInContext('state', context)), before);
 });
+test('local language rules understand short collection and expense commands and require typed confirmation', () => {
+    const { context, api } = createHarness(true);
+    const before = JSON.stringify(vm.runInContext('state', context));
+    const expense = api.answerAssistantQuery('قيد مصروف كهرباء ٣٠٠ جنيه عن نوفمبر 2026', NOW);
+    assert.equal(expense.id, 'operation-preview');
+    assert.match(expense.html, /كهرباء/);
+    assert.match(expense.title, /معاينة مصروف/);
+    assert.match(expense.html, /أكد التسجيل/);
+
+    const missing = api.answerAssistantQuery('قيد مصروف', NOW);
+    assert.equal(missing.id, 'operation-missing');
+    assert.match(missing.html, /المبلغ/);
+    assert.match(missing.html, /وصف المصروف/);
+
+    const collection = api.answerAssistantQuery('اعمل تحصيل 250 من سارة حسن شقة 7 كاش', NOW);
+    assert.equal(collection.id, 'operation-preview');
+    assert.match(collection.html, /250/);
+    assert.match(collection.html, /سارة حسن/);
+    assert.match(collection.html, /نقدي/);
+    assert.doesNotMatch(collection.html, /<button/i);
+
+    const confirmation = api.answerAssistantQuery('نعم', NOW);
+    assert.equal(confirmation.id, 'operation-confirm-request');
+    assert.equal(JSON.stringify(vm.runInContext('state', context)), before, 'drafting and typed confirmation prompts never write application state');
+    const cancellation = api.answerAssistantQuery('الغاء', NOW);
+    assert.equal(cancellation.id, 'operation-cancelled');
+    assert.equal(JSON.stringify(vm.runInContext('state', context)), before);
+});
 test('complete manager operation previews expose a second explicit save action', () => {
     const { api } = createHarness(true);
     const answer = api.answerAssistantQuery('سجّل تحصيل 500 جنيه من سارة حسن شقة 7 عن نوفمبر 2026 نقدي في الخزنة الرئيسية', NOW);
     assert.equal(answer.id, 'operation-preview');
-    assert.match(answer.html, /تأكيد وتسجيل/);
+    assert.match(answer.html, /أكد التسجيل/);
     assert.match(answer.html, /نقدي/);
     assert.match(answer.html, /الخزنة الرئيسية/);
 });
@@ -579,12 +597,12 @@ test('expense previews warn about main-vault overdraft and block an insufficient
 
     const mainVault = api.answerAssistantQuery('أضف مصروف كهرباء 1300 جنيه عن نوفمبر 2026 في الخزنة الرئيسية', NOW);
     assert.match(mainVault.html, /سيصبح .* بعد المصروف/);
-    assert.match(mainVault.html, /سيُسجَّل في سجل التدقيق/);
-    assert.match(mainVault.html, /تأكيد وتسجيل/);
+    assert.match(mainVault.html, /سيُسجَّل ذلك في سجل التدقيق/);
+    assert.match(mainVault.html, /أكد التسجيل/);
 
     const development = api.answerAssistantQuery('أضف مصروف صيانة 400 جنيه عن نوفمبر 2026 في صندوق التطوير', NOW);
     assert.match(development.html, /رصيد صندوق التطوير .* لا يكفي/);
-    assert.doesNotMatch(development.html, /تأكيد وتسجيل/);
+    assert.doesNotMatch(development.html, /أكد التسجيل/);
 });
 
 test('manager can prepare a new resident from a natural-language request without saving before confirmation', () => {
@@ -595,7 +613,7 @@ test('manager can prepare a new resident from a natural-language request without
     assert.match(answer.html, /كريم محمود/);
     assert.match(answer.html, /شقة 9/);
     assert.match(answer.html, /350/);
-    assert.match(answer.html, /تأكيد وتسجيل/);
+    assert.match(answer.html, /أكد التسجيل/);
     assert.equal(JSON.stringify(vm.runInContext('state.residents', context)), before);
     assert.match(assistantSource, /openAssistantResidentDraft/);
 });
@@ -623,7 +641,7 @@ test('manager can prepare a resident edit through the official form path without
     assert.equal(answer.id, 'operation-preview');
     assert.match(answer.html, /سارة حسن/);
     assert.match(answer.html, /01099999999/);
-    assert.match(answer.html, /تأكيد وتسجيل/);
+    assert.match(answer.html, /أكد التسجيل/);
     assert.equal(JSON.stringify(vm.runInContext('state.residents', context)), before);
     assert.match(assistantSource, /draft\.type === 'resident_edit'/);
 });
@@ -652,14 +670,14 @@ test('natural paid subscription wording becomes a confirmation flow', () => {
     assert.match(preview.html, /سارة حسن/);
     assert.match(preview.html, /200/);
     assert.match(preview.html, /نوفمبر 2026/);
-    assert.match(preview.html, /تأكيد وتسجيل/);
+    assert.match(preview.html, /أكد التسجيل/);
 });
 test('a missing operation can be completed in the next manager message', () => {
     const { api } = createHarness(true);
     assert.equal(api.answerAssistantQuery('سجّل تحصيل 500 جنيه من سارة حسن شقة 7 عن نوفمبر 2026', NOW).id, 'operation-missing');
     const completed = api.answerAssistantQuery('نقدي في الخزنة الرئيسية', NOW);
     assert.equal(completed.id, 'operation-preview');
-    assert.match(completed.html, /تأكيد وتسجيل/);
+    assert.match(completed.html, /أكد التسجيل/);
 });
 test('operation follow-ups update the draft and explain every changed field', () => {
     const { api } = createHarness(true);
@@ -670,7 +688,7 @@ test('operation follow-ups update the draft and explain every changed field', ()
     assert.match(updated.html, /المبلغ/);
     assert.match(updated.html, /ديسمبر 2026/);
     assert.match(updated.html, /صندوق التطوير/);
-    assert.match(updated.html, /تأكيد وتسجيل/);
+    assert.match(updated.html, /أكد التسجيل/);
 });
 test('explicit operation confirmation uses the official save handler without opening forms or closing chat', async () => {
     const { context, api } = createHarness(true);
@@ -907,7 +925,7 @@ test('change alerts flag large period shifts without claiming a diagnosis', () =
         'أكبر المصروفات نوفمبر 2026',
         'ملخص نوفمبر 2026'
     ]);
-    assert.match(answer.html, /data-assistant-query="تحصيل نوفمبر 2026"/);
+    assert.doesNotMatch(answer.html, /data-assistant-query=/);
 });
 test('owners cannot reach manager-only change details', () => {
     const { api } = createHarness(true, { role: 'owner', residentId: 'r1', ownerScoped: true });
@@ -1043,7 +1061,7 @@ test('manager task list turns outstanding balances into prioritized follow-up ac
     assert.match(answer.title, /قائمة متابعة المدير/);
     assert.match(answer.html, /اتصالات التحصيل المقترحة|تحصيلات الشهر المقترحة/);
     assert.match(answer.html, /سارة حسن/);
-    assert.match(answer.html, /فتح تقرير المتأخرات/);
+    assert.match(answer.html, /اكتب «تقرير المتأخرات»/);
     assert.match(answer.html, /ليست إرسالًا تلقائيًا/);
 
     const owner = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
@@ -1106,7 +1124,7 @@ test('recent movements, building data, reports guide and help intents answer', (
 
     const reports = api.answerAssistantQuery('التقارير', NOW);
     assert.equal(reports.id, 'reports');
-    assert.match(reports.html, /تقرير المالك/);
+    assert.match(reports.html, /اطلب التقرير بصيغة طبيعية/);
     assert.match(reports.html, /CSV/);
 
     const help = api.answerAssistantQuery('بتعرف تعمل ايه؟', NOW);
@@ -1130,8 +1148,7 @@ test('greeting, thanks, unknown and suggestions stay friendly and safe', () => {
     assert.match(unknown.title, /مش لاقي إجابة/);
     assert.match(unknown.html, /معلش يا أستاذ/);
 
-    assert.equal(api.ASSISTANT_SUGGESTIONS.length, 6);
-    api.ASSISTANT_SUGGESTIONS.forEach(item => assert.ok(item.label && item.query));
+    assert.doesNotMatch(assistantSource, /ASSISTANT_SUGGESTIONS/);
     assert.equal(api.ASSISTANT_NAME, 'عم عبده البواب');
 });
 
@@ -1177,12 +1194,12 @@ test('the doorman remembers the discussed period and reuses it for follow-ups', 
     assert.match(explicit.title, /نوفمبر 2026/, 'an explicit month still wins over memory');
 });
 
-test('follow-up chips name the month that was just discussed', () => {
+test('follow-up suggestions remain available as response metadata without rendering clickable chips', () => {
     const { api } = createHarness();
     const answer = api.answerAssistantQuery('ملخص أكتوبر 2026', NOW);
     assert.deepEqual(Array.from(answer.followUps, item => item.query), ['مصروفات أكتوبر 2026', 'مين عليه متأخرات؟', 'رصيد الخزنة كام؟']);
-    assert.match(answer.html, /class="assistant-followups"/);
-    assert.match(answer.html, /data-assistant-query="مصروفات أكتوبر 2026"/);
+    assert.doesNotMatch(answer.html, /class="assistant-followups"/);
+    assert.doesNotMatch(answer.html, /data-assistant-query=/);
 
     const unscoped = api.buildAssistantFollowUps('income', { type: 'year', label: 'سنة 2026', months: [] });
     assert.equal(unscoped[0].query, 'مصروفات الشهر', 'a year period has no single month to name');
@@ -1354,7 +1371,7 @@ test('owners keep the launcher and can open the assistant without manager rights
     assert.doesNotMatch(assistantSource, /function openAssistantModal\(\) \{[\s\S]{0,80}requireManager/, 'the assistant is no longer manager-only');
     assert.doesNotMatch(css, /body\.owner-mode \.assistant-fab\s*[,{][^}]*display:\s*none/, 'the launcher must stay visible in the owner portal');
     assert.match(css, /body\.owner-mode \.assistant-fab \{ bottom:/, 'and sit lower while the bottom nav is hidden');
-    assert.match(assistantSource, /const suggestions = assistantIsOwner\(\) \? ASSISTANT_SUGGESTIONS_OWNER : ASSISTANT_SUGGESTIONS;/);
+    assert.doesNotMatch(assistantSource, /ASSISTANT_SUGGESTIONS/);
     assert.match(assistantSource, /const map = assistantIsOwner\(\) \? ASSISTANT_FOLLOWUPS_OWNER : ASSISTANT_FOLLOWUPS;/);
     assert.match(supabaseSource, /\.select\('must_change_pin,theme_preference,full_name'\)/, 'the display name rides in with the profile');
     assert.match(supabaseSource, /currentProfileName = typeof profile\?\.full_name/);
