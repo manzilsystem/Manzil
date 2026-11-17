@@ -1,6 +1,6 @@
 // @ts-check
-// عم عبده البواب — a local, deterministic assistant. It never calls the network:
-// every answer is computed from `state` and the existing billing helpers.
+// عم عبده البواب — a local, deterministic assistant. Answers are computed from
+// `state`; authenticated sessions may optionally persist the conversation history.
 
 const ASSISTANT_NAME = 'عم عبده البواب';
 const ASSISTANT_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
@@ -61,6 +61,8 @@ let assistantContext = { period: null, residentId: null };
 let assistantChat = [];
 let assistantNoticeDraft = null;
 let assistantOperationDraft = null;
+let assistantRemoteHydrated = false;
+let assistantRemoteHydrating = false;
 const ASSISTANT_OPERATION_PAYMENT_METHODS = Object.freeze({
     cash: 'نقدي',
     wallet: 'محفظة إلكترونية',
@@ -216,6 +218,53 @@ function persistAssistantChat() {
         sessionStorage.setItem(keys.chat, JSON.stringify(assistantChat.slice(-ASSISTANT_HISTORY_LIMIT)));
     } catch {
         /* same: the assistant keeps working from memory */
+    }
+}
+
+function assistantChatStore() {
+    return typeof window !== 'undefined' && window.manzilAssistantChatStore
+        ? window.manzilAssistantChatStore
+        : null;
+}
+
+function persistAssistantRemoteMessage(role, body, metadata = {}) {
+    const store = assistantChatStore();
+    if (!store || typeof store.append !== 'function' || !assistantRemoteHydrated || metadata.greeting) return;
+    void store.append(role === 'user' ? 'user' : 'assistant', body, metadata).catch(error => {
+        console.warn('Could not persist assistant chat message:', error);
+    });
+}
+
+async function hydrateAssistantChatFromRemote() {
+    const store = assistantChatStore();
+    if (!store || typeof store.load !== 'function' || assistantRemoteHydrated || assistantRemoteHydrating) return false;
+    assistantRemoteHydrating = true;
+    try {
+        const history = await store.load();
+        if (!history) return false;
+        const messages = Array.isArray(history.messages) ? history.messages : [];
+        assistantChat = messages.map(message => ({
+            role: message.sender_type === 'user' ? 'user' : 'bot',
+            html: message.sender_type === 'user'
+                ? formatAssistantUserText(message.body)
+                : (isSafeAssistantHtml(message.body) ? message.body : assistantEscape(message.body))
+        })).filter(message => message.html).slice(-ASSISTANT_HISTORY_LIMIT);
+        if (history.context && typeof history.context === 'object') {
+            const remoteContext = /** @type {any} */ (history.context);
+            assistantContext = {
+                period: remoteContext.period && Array.isArray(remoteContext.period.months) ? remoteContext.period : null,
+                residentId: typeof remoteContext.residentId === 'string' ? remoteContext.residentId : null
+            };
+        }
+        assistantRemoteHydrated = true;
+        persistAssistantChat();
+        persistAssistantContext();
+        return true;
+    } catch (error) {
+        console.warn('Could not load assistant chat history:', error);
+        return false;
+    } finally {
+        assistantRemoteHydrating = false;
     }
 }
 
@@ -2324,9 +2373,12 @@ function renderAssistantMessage(role, html) {
     return message;
 }
 
-function appendAssistantMessage(role, html) {
+function appendAssistantMessage(role, html, plainText = null, metadata = {}) {
     assistantChat.push({ role, html });
     persistAssistantChat();
+    if (plainText !== null || role === 'bot') {
+        persistAssistantRemoteMessage(role, plainText === null ? html : plainText, metadata);
+    }
     return renderAssistantMessage(role, html);
 }
 
@@ -2352,7 +2404,7 @@ function restoreAssistantChat() {
         assistantChat.forEach(item => renderAssistantMessage(item.role, item.html));
         return;
     }
-    appendAssistantMessage('bot', buildAssistantGreetingHtml());
+    appendAssistantMessage('bot', buildAssistantGreetingHtml(), null, { greeting: true });
 }
 
 function openAssistantModal() {
@@ -2363,7 +2415,12 @@ function openAssistantModal() {
     if (typeof openModal === 'function') openModal('assistantModal');
     syncAssistantFab();
     const log = document.getElementById('assistantLog');
-    if (log && !log.children.length) restoreAssistantChat();
+    if (log && !log.children.length) {
+        void hydrateAssistantChatFromRemote().finally(() => {
+            if (!log.children.length) restoreAssistantChat();
+            else assistantChat.forEach(item => renderAssistantMessage(item.role, item.html));
+        });
+    }
     requestAnimationFrame(() => {
         const input = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('assistantInput'));
         if (!input) return;
@@ -2384,12 +2441,12 @@ function sendAssistantMessage(event) {
     if (!text) return;
     input.value = '';
     updateAssistantComposerState();
-    appendAssistantMessage('user', formatAssistantUserText(text));
+    appendAssistantMessage('user', formatAssistantUserText(text), text);
     const answer = answerAssistantQuery(text);
     const typing = showAssistantTyping();
     const deliver = () => {
         if (typing && typing.parentNode) typing.parentNode.removeChild(typing);
-        appendAssistantMessage('bot', assistantAnswerHtml(answer));
+        appendAssistantMessage('bot', assistantAnswerHtml(answer), null, { answerId: answer.id });
         if (answer.id === 'operation-confirm-request') {
             setAssistantBusy(true);
             void confirmAssistantOperation().finally(() => setAssistantBusy(false));
@@ -2437,7 +2494,7 @@ function resetAssistantChat() {
     updateAssistantComposerState();
     persistAssistantChat();
     persistAssistantContext();
-    appendAssistantMessage('bot', buildAssistantGreetingHtml());
+    appendAssistantMessage('bot', buildAssistantGreetingHtml(), null, { greeting: true });
 }
 
 const ASSISTANT_FAB_SCROLL_DEADZONE = 8;

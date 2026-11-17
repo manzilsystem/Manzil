@@ -353,6 +353,75 @@ async function supabaseQueryAllById(table, columns = '*', pageSize = 1000) {
     }
 }
 
+function assistantChatScopeKey() {
+    return currentUserRole === 'owner'
+        ? `owner-${String(typeof currentResidentId === 'string' ? currentResidentId : '')}`
+        : 'manager';
+}
+
+function assistantChatResidentId() {
+    return currentUserRole === 'owner' && typeof currentResidentId === 'string' && currentResidentId
+        ? currentResidentId
+        : null;
+}
+
+async function loadAssistantChatHistory() {
+    if (!activeSession?.user?.id || !activeBuildingId) return null;
+    const scopeKey = assistantChatScopeKey();
+    const { data: conversation, error: conversationError } = await supabaseClient
+        .from('assistant_conversations')
+        .select('id,context,updated_at')
+        .eq('building_id', activeBuildingId)
+        .eq('scope_key', scopeKey)
+        .limit(1)
+        .maybeSingle();
+    if (conversationError) throw conversationError;
+    if (!conversation) return { messages: [], context: {} };
+    const { data: messages, error: messagesError } = await supabaseClient
+        .from('assistant_messages')
+        .select('sender_type,body,created_at')
+        .eq('conversation_id', conversation.id)
+        .order('created_at', { ascending: true })
+        .limit(30);
+    if (messagesError) throw messagesError;
+    return { messages: messages || [], context: conversation.context || {} };
+}
+
+async function appendAssistantChatMessage(senderType, body, metadata = {}) {
+    if (!activeSession?.user?.id || !activeBuildingId) return false;
+    const scopeKey = assistantChatScopeKey();
+    const { data: conversation, error: conversationError } = await supabaseClient
+        .from('assistant_conversations')
+        .upsert({
+            building_id: activeBuildingId,
+            user_id: activeSession.user.id,
+            resident_id: assistantChatResidentId(),
+            scope_key: scopeKey,
+            title: 'عم عبده'
+        }, { onConflict: 'building_id,user_id,scope_key' })
+        .select('id')
+        .single();
+    if (conversationError) throw conversationError;
+    const { error: messageError } = await supabaseClient
+        .from('assistant_messages')
+        .insert({
+            conversation_id: conversation.id,
+            building_id: activeBuildingId,
+            sender_id: senderType === 'user' ? activeSession.user.id : null,
+            sender_type: senderType === 'user' ? 'user' : 'assistant',
+            body: String(body || '').slice(0, 12000),
+            metadata: metadata && typeof metadata === 'object' ? metadata : {}
+        });
+    if (messageError) throw messageError;
+    return true;
+}
+
+window.manzilAssistantChatStore = Object.freeze({
+    isAvailable: () => Boolean(activeSession?.user?.id && activeBuildingId),
+    load: loadAssistantChatHistory,
+    append: appendAssistantChatMessage
+});
+
 function stopOwnerNotificationsRealtime() {
     if (!ownerNotificationsChannel) return;
     const channel = ownerNotificationsChannel;
