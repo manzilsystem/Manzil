@@ -239,6 +239,7 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(html, /<button type="button" id="assistantFab"[^>]*onclick="openAssistantModal\(\)"/);
     assert.match(html, /aria-label="اسأل عم عبده البواب"/);
     assert.match(html, /class="assistant-avatar-frame assistant-fab-avatar"><img src="icons\/assistant-abbah-full\.png\?v=/, 'the launcher shows the full-body doorman');
+    assert.match(html, /id="assistantHeadAvatar" class="assistant-avatar"><img src="icons\/assistant-abbah-full\.png\?v=/, 'the circular chat avatar uses the full-body doorman');
     assert.match(html, /class="assistant-fab-greeting"[^>]*>نورت يا بيه! عم عبده في خدمتك 👋</, 'the doorman greets before the first click');
     assert.doesNotMatch(html, /class="assistant-fab-copy"/, 'the launcher is now a bare full-body character, not a labelled chip');
     assert.match(css, /\.assistant-avatar-frame img \{[\s\S]*filter: drop-shadow\(0 14px 34px var\(--assistant-fab-shadow\)\)/, 'the portrait casts a realistic drop shadow');
@@ -260,7 +261,7 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(css, /body\.owner-mode \.assistant-fab/);
     assert.match(css, /@media print \{ \.assistant-fab \{ display: none !important; \} \}/);
     assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.assistant-fab/);
-    assert.match(css, /\.assistant-avatar img \{[\s\S]*transform: scale\(1\.7\);[\s\S]*transform-origin: 50% 28%;/, 'the modal head uses the same framing as the launcher');
+    assert.match(css, /\.assistant-avatar img \{[\s\S]*object-fit: contain;[\s\S]*object-position: center bottom;[\s\S]*transform: none;[\s\S]*transform-origin: center bottom;/, 'the circular avatar contains the full-body art');
     assert.match(css, /\.assistant-hero \{/);
     assert.match(assistantSource, /icons\/assistant-abbah-full\.png/, 'the greeting shows the full-body avatar');
     assert.match(serviceWorker, /\.\/icons\/assistant-abbah\.png/);
@@ -1108,6 +1109,35 @@ test('assistant combines colloquial questions across liquidity, expenses and arr
     assert.match(answer.html, /الخزنة|الصندوق/);
 });
 
+test('assistant understands terse subjects and controls report detail level', () => {
+    const { api } = createHarness();
+    const expensePlan = api.buildAssistantQueryPlan('كهرباء', NOW);
+    assert.equal(Array.from(expensePlan.intentIds).join(','), 'expenses');
+    assert.equal(expensePlan.expenseCategory, 'كهرباء');
+    assert.equal(expensePlan.responseMode, 'summary');
+
+    const electricity = api.answerAssistantQuery('كهرباء', NOW);
+    assert.equal(electricity.id, 'expenses');
+    assert.match(electricity.title, /كهرباء/);
+    assert.match(electricity.html, /كهرباء/);
+    assert.doesNotMatch(electricity.html, /نظافة/);
+
+    const brief = api.answerAssistantQuery('تقرير مختصر عن المدفوع', NOW);
+    assert.equal(brief.id, 'income');
+    assert.doesNotMatch(brief.html, /سارة حسن/);
+    assert.match(brief.html, /ملخص سريع/);
+
+    const detailed = api.answerAssistantQuery('تقرير مفصل عن المصروفات', NOW);
+    assert.equal(detailed.id, 'expenses');
+    assert.match(detailed.title, /تفاصيل/);
+    assert.match(detailed.html, /كهرباء/);
+    assert.match(detailed.html, /٢٠٢٦|2026/);
+
+    const commonTypo = api.answerAssistantQuery('تقري مفلص عن المصروفات', NOW);
+    assert.equal(commonTypo.id, 'expenses');
+    assert.match(commonTypo.title, /تفاصيل/);
+});
+
 test('assistant fixed evaluation set keeps intent, period, apartment and role scope accurate', () => {
     const results = [];
     for (const example of assistantEvaluation.cases) {
@@ -1137,6 +1167,12 @@ test('assistant fixed evaluation set keeps intent, period, apartment and role sc
         }
         if (example.responseId && answer.id !== example.responseId) {
             failures.push(`response expected ${example.responseId}, got ${answer.id}`);
+        }
+        if (example.responseMode && plan.responseMode !== example.responseMode) {
+            failures.push(`response mode expected ${example.responseMode}, got ${plan.responseMode}`);
+        }
+        if (Object.prototype.hasOwnProperty.call(example, 'expenseCategory') && plan.expenseCategory !== example.expenseCategory) {
+            failures.push(`expense category expected ${example.expenseCategory}, got ${plan.expenseCategory}`);
         }
         if (answer.id === 'compound') {
             const renderedIntents = Array.from(answer.html.matchAll(/data-assistant-intent="([^"]+)"/g), match => match[1]);
