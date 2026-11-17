@@ -1434,3 +1434,34 @@ test('owner and manager notification reads stay split at the source', () => {
     assert.match(assistantSource, /function buildAssistantOwnerNotificationsAnswer\([\s\S]{0,240}state\.ownerNotifications/, 'the owner notifications tool reads the account-scoped store');
     assert.doesNotMatch(assistantSource, /state\.managerNotifications/, 'the two notification stores never mix inside the assistant');
 });
+
+test('assistant understands the full app guide and operational support sections', () => {
+    const { api } = createHarness(true, { role: 'manager', profileName: 'أ. محمد' });
+    const guide = api.answerAssistantQuery('وريني كل أقسام التطبيق', NOW);
+    assert.equal(guide.id, 'app_guide');
+    assert.match(guide.html, /النسخ الاحتياطي/);
+    assert.match(guide.html, /المستأجر/);
+    const settings = api.answerAssistantQuery('إعدادات ميعاد الاستحقاق وطرق الدفع', NOW);
+    assert.equal(settings.id, 'settings');
+    assert.match(settings.html, /فترة السماح/);
+    const backup = api.answerAssistantQuery('إزاي أعمل باك اب؟', NOW);
+    assert.equal(backup.id, 'backup');
+    assert.match(backup.html, /لا ينشئ نسخة/);
+});
+
+test('assistant resolves colloquial previous-year and all-period requests', () => {
+    const { api } = createHarness(true, { role: 'manager' });
+    const previousYear = api.answerAssistantQuery('تحصيل السنة اللي فاتت', NOW);
+    assert.equal(previousYear.id, 'income');
+    assert.match(previousYear.title, /سنة 2025/);
+    const allPeriods = api.answerAssistantQuery('إجمالي عام للمصروفات', NOW);
+    assert.equal(allPeriods.id, 'expenses');
+    assert.match(allPeriods.title, /كل الفترات/);
+});
+
+test('owner questions about manager settings and backups remain scoped', () => {
+    const { api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    for (const query of ['إعدادات العمارة', 'النسخة الاحتياطية', 'سجل التدقيق']) {
+        assert.equal(api.answerAssistantQuery(query, NOW).id, 'owner_scope', query);
+    }
+});

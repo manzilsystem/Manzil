@@ -12,7 +12,7 @@ const ASSISTANT_CASH_LABELS = Object.freeze({
 const ASSISTANT_TYPING_DELAY_MS = 0;
 const ASSISTANT_HISTORY_LIMIT = 30;
 const ASSISTANT_MAX_MESSAGE_LENGTH = 1000;
-const ASSISTANT_TIME_HINT = /(يناير|فبراير|مارس|ابريل|مايو|يونيو|يوليو|اغسطس|سبتمبر|اكتوبر|نوفمبر|ديسمبر|20[0-9]{2}|الشهر|شهر|السنه|سنه|عام|النهارده|دلوقتي|حاليا|كل الفتره|كل الشهور|من البدايه|من بداية السنه|من اول السنه)/;
+const ASSISTANT_TIME_HINT = /(يناير|فبراير|مارس|ابريل|مايو|يونيو|يوليو|اغسطس|سبتمبر|اكتوبر|نوفمبر|ديسمبر|20[0-9]{2}|الشهر|شهر|السنه|سنه|عام|النهارده|دلوقتي|حاليا|كل الفتره|كل الفترات|كل الشهور|من البدايه|من البداية|من بداية السنه|من اول السنه|السنه اللي فاتت|العام اللي فات)/;
 const ASSISTANT_RESIDENT_FOLLOWUP = /^(هو|هي|وده|دي|وكمان|ودوره|ومن زمان|ولحد دلوقتي|وعليه)/;
 const ASSISTANT_CHAT_STORAGE_PREFIX = 'manzil-assistant-chat';
 const ASSISTANT_CONTEXT_STORAGE_PREFIX = 'manzil-assistant-context';
@@ -34,6 +34,9 @@ const ASSISTANT_FOLLOWUPS = Object.freeze({
     notices: ['ملخص الشهر', 'آخر الحركات'],
     help: ['ملخص الشهر', 'رصيد الخزنة كام؟'],
     knowledge: ['إزاي أستخدم التقارير؟', 'مين يقدر يشوف البيانات؟'],
+    app_guide: ['إزاي أغير الإعدادات؟', 'وريني التقارير'],
+    settings: ['طرق الدفع المتاحة', 'إزاي أستخدم النسخ الاحتياطي؟'],
+    backup: ['بيانات العمارة', 'إزاي أستخدم التقارير؟'],
     greeting: ['ملخص الشهر', 'مين عليه متأخرات؟'],
     thanks: ['ملخص الشهر', 'رصيد الخزنة كام؟'],
     unknown: ['ملخص الشهر', 'مين عليه متأخرات؟']
@@ -377,7 +380,7 @@ function resolveAssistantPeriod(text, now = new Date()) {
     let monthIndex = monthMatches.length ? monthMatches[0].index : -1;
     let year = explicitYear || now.getFullYear();
 
-    if (monthIndex < 0 && /(الشهر الماضي|الشهر اللي فات|الشهر السابق|شهر ماضي|الشهر اللي قبل)/.test(normalized)) {
+    if (monthIndex < 0 && /(الشهر الماضي|الشهر اللي فات|الشهر اللى فات|الشهر الفات|الشهر السابق|شهر ماضي|الشهر اللي قبل|الشهر اللى قبل)/.test(normalized)) {
         const previous = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         monthIndex = previous.getMonth();
         year = explicitYear || previous.getFullYear();
@@ -391,7 +394,7 @@ function resolveAssistantPeriod(text, now = new Date()) {
         }
     }
 
-    if (monthIndex < 0 && /(كل الفتره|كل الشهور|من البدايه|كل السنين|اجمالي عام)/.test(normalized)) {
+    if (monthIndex < 0 && /(كل الفتره|كل الفترات|كل الشهور|من البدايه|من البداية|كل السنين|اجمالي عام|من اول ما بدأنا|من البداية خالص)/.test(normalized)) {
         const seen = new Set();
         (Array.isArray(state.income) ? state.income : []).forEach(row => { if (row.month) seen.add(row.month); });
         (Array.isArray(state.expenses) ? state.expenses : []).forEach(row => { if (row.month) seen.add(row.month); });
@@ -399,6 +402,12 @@ function resolveAssistantPeriod(text, now = new Date()) {
         return { type: 'all', label: 'كل الفترات', months, year: null, month: null };
     }
 
+    const wantsPreviousYear = monthIndex < 0 && /(السنه اللي فاتت|السنه اللى فاتت|العام اللي فات|العام اللى فات|السنة السابقة|العام السابق)/.test(normalized);
+    if (wantsPreviousYear) {
+        const previousYear = (explicitYear || now.getFullYear()) - 1;
+        const months = names.map(name => `${name} ${previousYear}`);
+        return { type: 'year', label: `سنة ${previousYear}`, months, year: previousYear, month: null };
+    }
     const wantsYear = monthIndex < 0 && (
         Boolean(explicitYear) ||
         /(السنه|سنه|عام|خلال سنه|هذه السنه|السنه دي)/.test(normalized)
@@ -715,6 +724,12 @@ function detectAssistantIntent(normalized, hasResident) {
     if (/(السلام عليكم|سلام|صباح|مساء|ازيك|عامل ايه|اهلا|هاي)/.test(normalized)) return 'greeting';
     if (/(شكرا|تسلم|مشكور|ربنا يكرمك)/.test(normalized)) return 'thanks';
     if (/(خصوصيه|بياناتي|البيانات بتتخزن|بتتخزن فين|مين يقدر يشوف|امان|امن|صلاحيات|قراءة فقط|بتعمل ايه|ازاي استخدم|ازاي اسجل|ازاي اعدل|ازاي اطبع|ازاي اصدر)/.test(normalized)) return 'knowledge';
+    if (/(?:ال)?نسخه (?:ال)?احتياطيه|(?:ال)?نسخه (?:ال)?احتياطية|باك اب|backup|استعاده بيانات|استرجاع البيانات|استيراد ملف|تصدير البيانات/i.test(normalized)) return 'backup';
+    if (/(اعدادات|إعدادات|ضبط|تخصيص|المظهر|الثيم|ميعاد الاستحقاق|فتره السماح|فترة السماح|طرق الدفع المفعله|رساله التذكير|نموذج الايصال)/.test(normalized)) return 'settings';
+    if (/(دليل الاستخدام|خريطة التطبيق|اقسام التطبيق|أقسام التطبيق|الشاشات|الاقسام كلها|كل اقسام|كل أقسام|اعمل ايه في التطبيق)/.test(normalized)) return 'app_guide';
+    if (/(سجل التدقيق|سجل العمليات|مين عمل|مين عدل|التدقيق|audit)/i.test(normalized)) return 'reports';
+    if (/(مستاجر|مستأجر|عقد|ايجار|إيجار|بيانات المستأجر)/.test(normalized)) return 'building';
+    if (/(سعر الاشتراك|اسعار الاشتراك|أسعار الاشتراك|تاريخ الاشتراك|ورقه الاسعار|ورقة الأسعار)/.test(normalized)) return 'building';
     if (/(مساعده|ساعدني|بتعرف|تقدر تعمل|اوامر|خيارات|ازاي|كيف|استخدمك|ممكن تساعد)/.test(normalized)) return 'help';
     if (/(تقرير|تقارير|طباعه|تصدير|كشف)/.test(normalized) && /(?:مصروف|مصاريف|صرف|مالك|فتره|فترة|اعفاء|تخفيض|تسويه|كشف حساب|تحصيل|ايراد|متاخر|مديون|مستحق)/.test(normalized)) return 'reports';
     if (/(تغير غير طبيعي|تغيير كبير|فرق كبير|محتاج مراجعه|محتاج مراجعة|زاد قوي|زادت قوي|نزل قوي|انخفض قوي|ايه اللي اتغير|ايه اللي زاد)/.test(normalized)) return 'change_alerts';
@@ -1584,12 +1599,60 @@ function buildAssistantHelpAnswer() {
         'رصيد الخزنة الرئيسية وصندوق التطوير وصندوق الطوارئ.',
         'حساب مالك بالاسم أو برقم الشقة.',
         'الإعفاءات والتخفيضات المسجلة.',
+        'إدارة الشقق والاشتراكات وسجل الأسعار وبيانات المستأجرين.',
+        'حركات الصناديق والتحويلات بين الخزائن وطرق الدفع.',
         'تجهيز تحصيل أو مصروف أو إعفاء/تسوية ثم حفظه بعد تأكيدك الصريح.',
         'نشر إعلان بعد معاينته وتأكيد النشر.',
-        'آخر الحركات وبيانات العمارة.',
-        'أماكن التقارير وكيف تطبع أو تصدّر CSV.'
-    ])}${assistantNote('اكتب طلبك بالعامية أو بالفصحى. سيعرض عم عبده معاينة لأي إدخال، ولن يحفظه إلا بعد أن تكتب «أكد التسجيل».')}`;
+        'آخر الحركات وبيانات العمارة والإعدادات والنسخ الاحتياطي.',
+        'التقارير التفصيلية: الملاك، الفترة، المصروفات، الإعفاءات، الإقفال، المتأخرات وسجل التدقيق.'
+    ])}${assistantNote('اكتب سؤالك كما تتكلم: «الفلوس راحت فين؟»، «مين متأخر؟»، «عايز كشف حساب شقة 7»، أو «إزاي أغير ميعاد الاستحقاق؟». سيعرض عم عبده معاينة لأي إدخال، ولن يحفظه إلا بعد تأكيدك الصريح.')}`;
     return { id: 'help', title, html };
+}
+
+function buildAssistantAppGuideAnswer() {
+    const sections = [
+        '<strong>الرئيسية:</strong> ملخص التحصيل والمصروفات ونسبة السداد.',
+        '<strong>التحصيلات:</strong> تسجيل الدفعات، الإيصالات، الغرض، طريقة الدفع والصندوق.',
+        '<strong>المصروفات:</strong> تسجيل المصروف، التصنيف، الشهر والصندوق مع تنبيه الرصيد.',
+        '<strong>الخزائن:</strong> أرصدة الصندوق الرئيسي والتطوير والطوارئ والتحويلات بينها.',
+        '<strong>الشقق والملاك:</strong> الملف، الاشتراك، الأسعار التاريخية، المستأجر وبيانات التواصل.',
+        '<strong>التقارير:</strong> المالك، الفترة، المصروفات، الإعفاءات، الإقفال، المتأخرات والتدقيق.',
+        '<strong>الإعدادات:</strong> بيانات العمارة، الدفع، الاشتراك، المظهر، الإيصالات، التذكيرات والحساب.',
+        '<strong>الحماية:</strong> النسخ الاحتياطي والاستعادة وسجل العمليات والصلاحيات.'
+    ];
+    return {
+        id: 'app_guide',
+        title: 'خريطة التطبيق',
+        html: `${assistantList(sections)}${assistantNote('قل لي اسم القسم أو هدفك، وليس لازم تحفظ اسم الزر. مثال: «عايز أعرف مين ما دفعش»، «سجل كهرباء 800»، «فين نسخة احتياطية؟»، أو «وريني تقرير التدقيق».')}`
+    };
+}
+
+function buildAssistantSettingsAnswer() {
+    const enabledMethods = typeof normalizePaymentSettings === 'function'
+        ? Object.entries(normalizePaymentSettings(state.paymentSettings || {}))
+            .filter(([, method]) => method?.enabled)
+            .map(([code]) => typeof getIncomePaymentMethodLabel === 'function' ? getIncomePaymentMethodLabel(code) : code)
+        : [];
+    let html = '';
+    html += assistantRow('يوم استحقاق الاشتراك', `يوم ${assistantNumber(state.subscriptionDueDay || 1)}`);
+    html += assistantRow('فترة السماح', `${assistantNumber(state.subscriptionGraceDays || 0)} يوم`);
+    html += assistantRow('التوزيع الافتراضي للدفعات', state.paymentAllocationPolicy === 'selected_month_first' ? 'الشهر المحدد أولًا' : 'الأقدم أولًا');
+    html += assistantRow('طرق الدفع المفعّلة', enabledMethods.length ? enabledMethods.join('، ') : 'غير محددة');
+    html += assistantNote('للتعديل افتح الإعدادات ثم القسم المناسب. عم عبده يشرح الإعدادات، لكنه لا يغيّر قواعد الاشتراك أو الحسابات من تلقاء نفسه.');
+    return { id: 'settings', title: 'إعدادات التطبيق', html };
+}
+
+function buildAssistantBackupAnswer() {
+    return {
+        id: 'backup',
+        title: 'النسخ الاحتياطي والاستعادة',
+        html: assistantList([
+            'أنشئ نسخة احتياطية قبل الاستيراد أو أي تغيير كبير.',
+            'راجع وقت النسخة وحجمها وبصمتها قبل التنزيل.',
+            'الاستعادة عملية حساسة؛ لا تبدأ إلا بعد اختيار النسخة وكتابة كلمة التأكيد المطلوبة.',
+            'استيراد ملف JSON المحلي يمر عبر التحقق قبل استبدال البيانات.'
+        ]) + assistantNote('افتح الإعدادات ← النسخ الاحتياطي. عم عبده لا ينشئ نسخة أو يستعيدها بمجرد السؤال حفاظًا على بيانات العمارة.')
+    };
 }
 
 function buildAssistantKnowledgeAnswer() {
@@ -1999,7 +2062,7 @@ function detectOwnerAssistantIntent(normalized) {
     if (/(مين عليه|مين عليها|مين عليهم|على مين|علي مين)/.test(normalized)) return 'owner_scope';
     if (/(?:حساب|ايصال|دفعات|مدفوعات|متاخرات)\s+[ء-ي]{2,}(?:\s+[ء-ي]{2,})?(?:\s+(?:كام|عليه|عليها|دفع|دفعت|متاخر|مديون))?/.test(normalized)) return 'owner_scope';
     if (/^(?:[ء-ي]{2,}\s+){1,2}(?:عليه|عليها|دفع|دفعت|متاخر|مديون)/.test(normalized)) return 'owner_scope';
-    if (/(ملخص تنفيذي|ملخص الاداره|ملخص العماره|(?:تغير|اتغير)(?: بشكل)? غير طبيعي|تغيير كبير|فرق كبير|تحصيل|مصروف|مصاريف|صرف|خزنه|صندوق|سيوله|صافي|اجمالي|كل الشقق|السكان|سكان العماره|الشقق التاني|تقرير|تقارير|طابق العماره|طوابق العماره|ادوار العماره|احصائيات|لوحة تحكم)/.test(normalized)) return 'owner_scope';
+    if (/(ملخص تنفيذي|ملخص الاداره|ملخص العماره|(?:تغير|اتغير)(?: بشكل)? غير طبيعي|تغيير كبير|فرق كبير|تحصيل|مصروف|مصاريف|صرف|خزنه|صندوق|سيوله|صافي|اجمالي|كل الشقق|السكان|سكان العماره|الشقق التاني|تقرير|تقارير|طابق العماره|طوابق العماره|ادوار العماره|احصائيات|لوحة تحكم|اعدادات|إعدادات|(?:ال)?نسخه (?:ال)?احتياطيه|(?:ال)?نسخه (?:ال)?احتياطية|باك اب|سجل التدقيق|سجل العمليات|المستاجرين|المستأجرين|سعر الاشتراك|ورقة الاسعار)/.test(normalized)) return 'owner_scope';
     if (/(استحقاق|اخر يوم|مهله|موعد الدفع|امتى ادفع|يوم كام ادفع|قبل ما اتاخر|متاخر عن ميعاد)/.test(normalized)) return 'my_due_date';
     if (/(طرق الدفع|وسائل الدفع|ادفع باي|ادفع ازاي|ازاي ادفع|تحويل بنكي|انستاباي|انستا باي|محفزه|فيزا|بطاقه)/.test(normalized)) return 'payment_methods';
     if (/(ايصال|دفعاتي|مدفوعات|حركاتي|دفعت|استلمت)/.test(normalized)) return 'my_receipts';
@@ -2046,12 +2109,13 @@ function selectOwnerAssistantAnswer(intent, period, now) {
             return {
                 id: 'unknown',
                 title: 'مش لاقي إجابة واضحة',
-                html: `<p class="assistant-note">معلش ${assistantAddress()}، السؤال ده مش واضح بالنسبة لي. جرّب تسألني عن:</p>${assistantList([
+                html: `<p class="assistant-note">معلش ${assistantAddress()}، فهمت إنك محتاج مساعدة لكن السؤال محتاج تحديد بسيط. هل تقصد حسابك، التحصيل، المصروفات، الإعلانات، الإشعارات، أم طريقة استخدام قسم من التطبيق؟</p>${assistantList([
                     'كام عليك في الشهر ده.',
                     'إيصالاتك في شهر معين.',
                     'آخر يوم للدفع وفترة السماح.',
                     'طرق الدفع المفعّلة.',
-                    'إعلانات المبنى وإشعاراتك.'
+                    'إعلانات المبنى وإشعاراتك.',
+                    'مثال: «عايز أعرف إعدادات الاستحقاق» أو «فين النسخة الاحتياطية؟»'
                 ])}`
             };
     }
@@ -2226,7 +2290,7 @@ function answerAssistantQuery(text, now = new Date()) {
 function buildAssistantCompoundAnswer(normalized, period, now, rawText = '') {
     /** @type {Array<[string, RegExp]>} */
     const candidates = [
-        ['summary', /(?:ملخص|وضع|احوال|نظره|اجمالي|صافي|نتيجه|عاملين ايه)/],
+        ['summary', /(?:ملخص|وضع|احوال|نظره|نتيجه|عاملين ايه)/],
         ['income', /(?:تحصيل|تحصيلات|ايراد|دخل|وارد|دفع|مدفوع|متحصل|المتحصلات|اللي اتجمع)/],
         ['arrears', /(?:متاخر|متاخرات|مستحق|مديون|مش دفع|غير مدفوع|مش دافع|مش سدد|متاخرين|عليه فلوس)/],
         ['expenses', /(?:مصروف|مصاريف|صرف|منصرف|اتصرف|اللي اتدفع من الخزنه)/],
@@ -2256,6 +2320,12 @@ function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
             return buildAssistantHelpAnswer();
         case 'knowledge':
             return buildAssistantKnowledgeAnswer();
+        case 'app_guide':
+            return buildAssistantAppGuideAnswer();
+        case 'settings':
+            return buildAssistantSettingsAnswer();
+        case 'backup':
+            return buildAssistantBackupAnswer();
         case 'adjustments':
             return buildAssistantAdjustmentsAnswer(period);
         case 'arrears':
@@ -2294,12 +2364,13 @@ function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
             return {
                 id: 'unknown',
                 title: 'مش لاقي إجابة واضحة',
-                html: `<p class="assistant-note">معلش ${assistantAddress()}، السؤال ده مش واضح بالنسبة لي. جرّب تسألني عن:</p>${assistantList([
+                html: `<p class="assistant-note">معلش ${assistantAddress()}، فهمت إنك محتاج مساعدة لكن السؤال محتاج تحديد بسيط. اذكر القسم أو الرقم أو الشهر، وأنا أرتب لك الإجابة.</p>${assistantList([
                     'ملخص الشهر أو تحصيل شهر معين.',
                     'مين عليه متأخرات.',
                     'رصيد الخزنة.',
                     'حساب مالك بالاسم أو رقم الشقة.',
-                    'الإعفاءات والتخفيضات.'
+                    'الإعفاءات والتخفيضات.',
+                    'الإعدادات والنسخ الاحتياطي وسجل التدقيق.'
                 ])}`
             };
     }
