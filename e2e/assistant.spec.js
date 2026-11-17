@@ -248,6 +248,15 @@ test('assistant manager shortcuts stay inside the dialog on narrow screens', asy
     }
 });
 
+test('generic apartment shortcuts start an in-chat operation draft', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    await page.locator('#assistantTools > summary').click();
+    await page.locator('#assistantQuickActionButtons [data-assistant-query="أضف شقة"]').click();
+    await expect(page.locator('#assistantLog')).toContainText('بيانات الشقة ناقصة');
+    await page.locator('#assistantQuickActionButtons [data-assistant-query="عدّل بيانات شقة"]').click();
+    await expect(page.locator('#assistantLog')).toContainText('تعديل بيانات الشقة ناقصة');
+});
+
 test('assistant notice shortcut closes chat before opening the notice form', async ({ page }) => {
     await seedAndOpenAssistant(page);
     await page.locator('#assistantTools > summary').click();

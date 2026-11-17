@@ -600,6 +600,16 @@ test('manager can prepare a new resident from a natural-language request without
     assert.match(assistantSource, /openAssistantResidentDraft/);
 });
 
+test('generic apartment shortcuts enter the chat operation flow', () => {
+    const { api } = createHarness(true);
+    const add = api.answerAssistantQuery('أضف شقة', NOW);
+    assert.equal(add.id, 'operation-missing');
+    assert.match(add.html, /المالك|رقم الشقة/);
+    const edit = api.answerAssistantQuery('عدّل بيانات شقة', NOW);
+    assert.equal(edit.id, 'operation-missing');
+    assert.match(edit.html, /المالك|رقم الشقة/);
+});
+
 test('resident creation requests never become manager forms for owners', () => {
     const { api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
     const answer = api.answerAssistantQuery('أضف ساكن كريم شقة 9 اشتراك 350 جنيه', NOW);

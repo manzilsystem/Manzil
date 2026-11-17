@@ -147,6 +147,11 @@ function parseAssistantResidentCommand(raw, normalized, now = new Date(), target
     if (!/(?:اضف|ضيف|سجل|سجّل|ادخل|إدخل|عدل|عدّل|غير|غيّر|حدّث|حدث|تعديل|تحديث)/.test(normalized) || (!hasResidentWord && !hasAddUnitCommand && !hasEditUnitCommand)) return null;
     if (/(?:تحصيل|دفعة|دفعه|استلام|قبض|مصروف|فاتوره|فاتورة|اعفاء|إعفاء|تخفيض|خصم|تسويه|تسوية)/.test(normalized)) return null;
     const apartmentMatch = normalized.match(/(?:شقه|وحده)\s*(?:رقم\s*)?(\d{1,4})/);
+    if (!apartmentMatch && (hasAddUnitCommand || hasEditUnitCommand)) {
+        return hasEditUnitCommand
+            ? { type: 'resident_edit', residentId: targetResident?.id || null, name: targetResident?.name || '', apartmentNumber: targetResident?.apartmentNumber || '', phone: '', amount: null, billingStartMonth: '', raw }
+            : { type: 'resident', name: '', apartmentNumber: '', phone: '', amount: null, billingStartMonth: '', raw };
+    }
     if (!apartmentMatch) return null;
     const nameMatch = String(raw).match(new RegExp(`(?:${assistantLegacyResidentWord}|مالك)\\s+(.+?)(?=\\s+(?:شقه|شقة|وحده|وحدة)(?:\\s|$))`, 'i'));
     const name = nameMatch ? nameMatch[1].replace(/[،,:-]+$/, '').trim() : '';
