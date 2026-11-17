@@ -12,7 +12,7 @@ const css = fs.readFileSync(path.join(root, 'css', 'style.css'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 const supabaseSource = fs.readFileSync(path.join(root, 'js', 'supabase.js'), 'utf8');
 const appSource = fs.readFileSync(path.join(root, 'js', 'app.js'), 'utf8');
-
+const assistantEvaluation = JSON.parse(fs.readFileSync(path.join(root, 'tests', 'fixtures', 'assistant-query-evaluation.json'), 'utf8'));
 const NOW = new Date(2026, 10, 15, 12, 0, 0);
 
 const RESIDENTS = [
@@ -140,6 +140,7 @@ function createHarness(seed = true, identity = {}, options = {}) {
         assistantUserDisplayName,
         detectOwnerAssistantIntent,
         detectAssistantIntent,
+        buildAssistantQueryPlan,
         getAssistantArrearsSnapshot,
         getAssistantCashSnapshot,
         getAssistantExpenseSnapshot,
@@ -1105,6 +1106,47 @@ test('assistant combines colloquial questions across liquidity, expenses and arr
     assert.match(answer.html, /المصروفات/);
     assert.match(answer.html, /المتأخرات/);
     assert.match(answer.html, /الخزنة|الصندوق/);
+});
+
+test('assistant fixed evaluation set keeps intent, period, apartment and role scope accurate', () => {
+    const mismatches = [];
+    for (const example of assistantEvaluation.cases) {
+        const identity = example.role === 'owner'
+            ? { role: 'owner', residentId: 'r1', ownerScoped: true }
+            : { role: 'manager' };
+        const { api } = createHarness(true, identity);
+        const plan = api.buildAssistantQueryPlan(example.query, NOW);
+        const actual = {
+            intentIds: plan.intentIds,
+            periodLabel: plan.period.label,
+            scope: plan.scope,
+            scopeViolation: Boolean(plan.scopeViolation),
+            apartmentNumber: plan.apartment ? String(plan.apartment.number) : null
+        };
+        const expected = {
+            intentIds: example.intentIds,
+            periodLabel: example.periodLabel,
+            scope: example.scope,
+            scopeViolation: Boolean(example.scopeViolation),
+            apartmentNumber: example.apartmentNumber || null
+        };
+        const answer = api.answerAssistantQuery(example.query, NOW);
+        if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+            mismatches.push(`${example.id}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+        }
+        if (example.responseId && answer.id !== example.responseId) {
+            mismatches.push(`${example.id}: expected response ${example.responseId}, got ${answer.id}`);
+        }
+        if (answer.id === 'compound') {
+            const renderedIntents = Array.from(answer.html.matchAll(/data-assistant-intent="([^"]+)"/g), match => match[1]);
+            if (JSON.stringify(renderedIntents) !== JSON.stringify(plan.intentIds)) {
+                mismatches.push(`${example.id}: compound sections rendered as ${JSON.stringify(renderedIntents)}`);
+            }
+        }
+    }
+    assert.equal(assistantEvaluation.version, 1);
+    assert.ok(assistantEvaluation.cases.length >= 20, 'the fixed evaluation set should cover at least 20 scenarios');
+    assert.deepEqual(mismatches, [], `assistant evaluation accuracy fell below 100%:\n${mismatches.join('\n')}`);
 });
 
 test('adjustment answers scope by month and separate waivers from discounts', () => {

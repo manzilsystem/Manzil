@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "description": "Fixed regression set for local assistant intent, query planning, period resolution, apartment binding, and role scope.",
+  "cases": [
+    { "id": "manager-expense-colloquial", "role": "manager", "query": "الفلوس راحت فين؟", "intentIds": ["expenses"], "responseId": "expenses", "periodLabel": "نوفمبر 2026", "scope": "building" },
+    { "id": "manager-expense-formal", "role": "manager", "query": "المصروفات في نوفمبر 2026", "intentIds": ["expenses"], "responseId": "expenses", "periodLabel": "نوفمبر 2026", "scope": "building" },
+    { "id": "manager-income-colloquial", "role": "manager", "query": "عايز أعرف التحصيلات في نوفمبر 2026", "intentIds": ["income"], "responseId": "income", "periodLabel": "نوفمبر 2026", "scope": "building" },
+    { "id": "manager-arrears-colloquial", "role": "manager", "query": "مين لسه مادفعش؟", "intentIds": ["arrears"], "responseId": "arrears", "periodLabel": "نوفمبر 2026", "scope": "building" },
+    { "id": "manager-cashbox", "role": "manager", "query": "كام في الصندوق؟", "intentIds": ["cashbox"], "responseId": "cashbox", "periodLabel": "نوفمبر 2026", "scope": "building" },
+    { "id": "manager-payment-methods", "role": "manager", "query": "دفعوا إزاي في نوفمبر 2026؟", "intentIds": ["payment_breakdown"], "responseId": "payment_breakdown", "periodLabel": "نوفمبر 2026", "scope": "building" },
+    { "id": "manager-summary", "role": "manager", "query": "ملخص نوفمبر 2026", "intentIds": ["summary"], "responseId": "summary", "periodLabel": "نوفمبر 2026", "scope": "building" },
+    { "id": "manager-adjustments", "role": "manager", "query": "إعفاءات نوفمبر 2026", "intentIds": ["adjustments"], "responseId": "adjustments", "periodLabel": "نوفمبر 2026", "scope": "building" },
+    { "id": "manager-top-expenses", "role": "manager", "query": "أكبر المصروفات في نوفمبر 2026", "intentIds": ["top_expenses"], "responseId": "top_expenses", "periodLabel": "نوفمبر 2026", "scope": "building" },
+    { "id": "manager-compound-order", "role": "manager", "query": "عايز أعرف المصروفات في نوفمبر 2026 وبعدها التحصيلات والمتأخرات", "intentIds": ["expenses", "income", "arrears"], "responseId": "compound", "periodLabel": "نوفمبر 2026", "scope": "building" },
+    { "id": "manager-compound-reversed-order", "role": "manager", "query": "المتأخرات وكمان المصروفات وبعدها التحصيل", "intentIds": ["arrears", "expenses", "income"], "responseId": "compound", "periodLabel": "نوفمبر 2026", "scope": "building" },
+    { "id": "manager-compound-deduplicates", "role": "manager", "query": "رصيد الخزنة كام في نوفمبر 2026، والخزنة الرئيسية، وكمان المصروفات", "intentIds": ["cashbox", "expenses"], "responseId": "compound", "periodLabel": "نوفمبر 2026", "scope": "building" },
+    { "id": "manager-apartment-and-period", "role": "manager", "query": "شقة 7 دفعت كام في نوفمبر 2026؟", "intentIds": ["resident"], "responseId": "resident", "periodLabel": "نوفمبر 2026", "scope": "building", "apartmentNumber": "7" },
+    { "id": "manager-resident-name", "role": "manager", "query": "سارة حسن دفعت كام؟", "intentIds": ["resident"], "responseId": "resident", "periodLabel": "نوفمبر 2026", "scope": "building", "apartmentNumber": "7" },
+    { "id": "owner-my-bill", "role": "owner", "query": "حسابي كام في نوفمبر 2026؟", "intentIds": ["my_bill"], "responseId": "my_bill", "periodLabel": "نوفمبر 2026", "scope": "resident", "apartmentNumber": "3" },
+    { "id": "owner-receipts", "role": "owner", "query": "إيصالاتي في أكتوبر 2026", "intentIds": ["my_receipts"], "periodLabel": "أكتوبر 2026", "scope": "resident", "apartmentNumber": "3" },
+    { "id": "owner-due-date", "role": "owner", "query": "آخر يوم للدفع امتى؟", "intentIds": ["my_due_date"], "periodLabel": "نوفمبر 2026", "scope": "resident", "apartmentNumber": "3" },
+    { "id": "owner-payment-methods", "role": "owner", "query": "طرق الدفع المتاحة؟", "intentIds": ["payment_methods"], "periodLabel": "نوفمبر 2026", "scope": "resident", "apartmentNumber": "3" },
+    { "id": "owner-notices", "role": "owner", "query": "إعلانات العمارة الجديدة", "intentIds": ["notices"], "periodLabel": "نوفمبر 2026", "scope": "resident", "apartmentNumber": "3" },
+    { "id": "owner-building-data-blocked", "role": "owner", "query": "رصيد الخزنة كام؟", "intentIds": ["owner_scope"], "responseId": "owner_scope", "periodLabel": "نوفمبر 2026", "scope": "resident", "scopeViolation": true, "apartmentNumber": "3" },
+    { "id": "owner-foreign-apartment-blocked", "role": "owner", "query": "حساب شقة 7 كام؟", "intentIds": ["owner_scope"], "responseId": "owner_scope", "periodLabel": "نوفمبر 2026", "scope": "resident", "scopeViolation": true, "apartmentNumber": "3" }
+  ]
+}

@@ -2197,13 +2197,11 @@ function assistantIsNoticePublishRequest(text) {
 }
 
 function answerOwnerAssistantQuery(text, now = new Date()) {
-    const normalized = normalizeAssistantArabic(text);
-    if (assistantOwnerRequestsForeignUnit(normalized)) {
-        return withAssistantAnswerMeta(buildAssistantForeignUnitAnswer(), resolveAssistantPeriod(text, now), null, text);
+    const plan = buildAssistantQueryPlan(text, now);
+    if (plan.scopeReason === 'foreign-unit') {
+        return withAssistantAnswerMeta(buildAssistantForeignUnitAnswer(), plan.period, null, text);
     }
-    const intent = detectOwnerAssistantIntent(normalized);
-    const period = resolveAssistantPeriodWithContext(text, now);
-    return withAssistantAnswerMeta(selectOwnerAssistantAnswer(intent, period, now), period, null, text);
+    return withAssistantAnswerMeta(selectOwnerAssistantAnswer(plan.intentIds[0], plan.period, now), plan.period, null, text);
 }
 
 function assistantHeroHtml() {
@@ -2258,6 +2256,86 @@ function assistantRememberedResident() {
         .find(resident => resident.id === assistantContext.residentId) || null;
 }
 
+function detectAssistantCompoundIntents(normalized) {
+    /** @type {Array<[string, RegExp]>} */
+    const candidates = [
+        ['summary', /(?:ملخص|وضع|احوال|نظره|نتيجه|عاملين ايه|الدنيا ايه)/],
+        ['income', /(?:(?<!طرق ال)تحصيل|تحصيلات|ايراد|دخل|وارد|دفع|مدفوع|متحصل|المتحصلات|اللي اتجمع|اللي دخل|اتجمع كام)/],
+        ['arrears', /(?:متاخر|متاخرات|مستحق|مديون|مش دفع|غير مدفوع|مش دافع|مش سدد|متاخرين|عليه فلوس|لسه مادفعش|ما دفعش)/],
+        ['expenses', /(?:مصروف|مصاريف|صرف|منصرف|اتصرف|اللي اتدفع من الخزنه|الفلوس راحت فين|اتصرف في ايه)/],
+        ['cashbox', /(?:خزنه|صندوق|رصيد|كاش|فلوس|سيوله|الموجود في الخزنه|كام في الخزنه|كام في الصندوق)/],
+        ['payment_breakdown', /(?:طرق التحصيل|اتدفعت بايه|دفعوا ازاي|دفعنا ازاي|الناس دفعت ازاي)/],
+        ['manager_tasks', /(?:قايمه متابعه|قائمه متابعه|قائمة متابعة|مهام المدير|ابدأ بايه|ابدا بايه|مين اكلمه|مين اكلم|اولويات التحصيل|اتابع مين)/]
+    ];
+    const paymentPhrase = /(?:التحصيلات طرق التحصيل|طرق التحصيل|التحصيلات اتدفعت بايه|اتدفعت بايه|دفعوا ازاي|دفعنا ازاي|الناس دفعت ازاي)/g;
+    return candidates
+        .map(([intent, pattern], order) => {
+            const candidateText = intent === 'payment_breakdown'
+                ? normalized
+                : normalized.replace(paymentPhrase, phrase => ' '.repeat(phrase.length));
+            const match = pattern.exec(candidateText);
+            return match ? { intent, position: match.index, order } : null;
+        })
+        .filter(Boolean)
+        .sort((left, right) => left.position - right.position || left.order - right.order)
+        .reduce((intents, match) => {
+            if (!intents.includes(match.intent)) intents.push(match.intent);
+            return intents;
+        }, []);
+}
+
+function buildAssistantQueryPlan(text, now = new Date()) {
+    const normalized = normalizeAssistantArabic(text);
+    const role = assistantIsOwner() ? 'owner' : 'manager';
+    if (role === 'owner') {
+        const foreignUnitRequest = assistantOwnerRequestsForeignUnit(normalized);
+        const intent = detectOwnerAssistantIntent(normalized);
+        const scopeViolation = foreignUnitRequest || intent === 'owner_scope';
+        const resident = assistantOwnerResident();
+        const period = foreignUnitRequest
+            ? resolveAssistantPeriod(text, now)
+            : resolveAssistantPeriodWithContext(text, now);
+        return {
+            role,
+            scope: 'resident',
+            scopeViolation,
+            scopeReason: foreignUnitRequest ? 'foreign-unit' : scopeViolation ? 'role-boundary' : null,
+            normalized,
+            period,
+            intentIds: [scopeViolation ? 'owner_scope' : intent],
+            apartment: resident ? { id: resident.id, number: resident.apartmentNumber } : null,
+            residentMatches: []
+        };
+    }
+
+    const residentMatch = resolveAssistantResident(text);
+    const remembered = residentMatch.matches.length === 0 && assistantFollowsResident(text)
+        ? assistantRememberedResident()
+        : null;
+    const resident = residentMatch.resident || remembered;
+    const period = residentMatch.matches.length > 1
+        ? resolveAssistantPeriod(text, now)
+        : resolveAssistantPeriodWithContext(text, now);
+    const compoundIntents = resident || residentMatch.matches.length > 1
+        ? []
+        : detectAssistantCompoundIntents(normalized);
+    const intentIds = compoundIntents.length > 1
+        ? compoundIntents
+        : [detectAssistantIntent(normalized, Boolean(resident))];
+
+    return {
+        role,
+        scope: 'building',
+        scopeViolation: false,
+        normalized,
+        period,
+        intentIds,
+        resident,
+        residentMatches: residentMatch.matches,
+        apartment: resident ? { id: resident.id, number: resident.apartmentNumber } : null
+    };
+}
+
 function answerAssistantQuery(text, now = new Date()) {
     if (!['manager', 'owner'].includes(currentUserRole)) {
         return { id: 'access-denied', title: 'غير مصرح', html: assistantNote('المساعد متاح للمدير والمالك فقط.') };
@@ -2295,52 +2373,34 @@ function answerAssistantQuery(text, now = new Date()) {
     if (noticeText) return withAssistantAnswerMeta(buildAssistantNoticePreview(noticeText), resolveAssistantPeriod(text, now), null, text);
     const operation = parseAssistantOperationCommand(text, now);
     if (operation) return withAssistantAnswerMeta(buildAssistantOperationPreview(operation, now), resolveAssistantPeriod(text, now), operation.resident, text);
-    const residentMatch = resolveAssistantResident(text);
-    if (residentMatch.matches.length > 1) {
+    const plan = buildAssistantQueryPlan(text, now);
+    if (plan.residentMatches.length > 1) {
         const answer = {
             id: 'resident-choice',
             title: 'في أكتر من مالك مطابق',
-            html: `${assistantList(residentMatch.matches.map(resident =>
+            html: `${assistantList(plan.residentMatches.map(resident =>
                 `${assistantEscape(assistantApartmentLabel(resident))} · ${assistantEscape(assistantResidentName(resident))}`
             ))}${assistantNote('حدد رقم الشقة في سؤالك، مثال: «شقة 3 دفع كام؟».')}`
         };
-        return withAssistantAnswerMeta(answer, resolveAssistantPeriod(text, now), null, text);
+        return withAssistantAnswerMeta(answer, plan.period, null, text);
     }
-    const remembered = assistantFollowsResident(text) ? assistantRememberedResident() : null;
-    const resident = residentMatch.resident || remembered;
-    const period = resolveAssistantPeriodWithContext(text, now);
-    const compound = !resident && buildAssistantCompoundAnswer(normalized, period, now, text);
-    if (compound) return withAssistantAnswerMeta(compound, period, null, text);
-    const intent = detectAssistantIntent(normalized, Boolean(resident));
-    const answer = selectAssistantAnswer(intent, period, resident, now, text);
-    return withAssistantAnswerMeta(answer, period, resident, text);
+    const compound = !plan.resident && buildAssistantCompoundAnswer(plan, now, text);
+    if (compound) return withAssistantAnswerMeta(compound, plan.period, null, text);
+    const answer = selectAssistantAnswer(plan.intentIds[0], plan.period, plan.resident, now, text);
+    return withAssistantAnswerMeta(answer, plan.period, plan.resident, text);
 }
-function buildAssistantCompoundAnswer(normalized, period, now, rawText = '') {
-    /** @type {Array<[string, RegExp]>} */
-    const candidates = [
-        ['summary', /(?:ملخص|وضع|احوال|نظره|نتيجه|عاملين ايه|الدنيا ايه)/],
-        ['income', /(?:(?<!طرق ال)تحصيل|تحصيلات|ايراد|دخل|وارد|دفع|مدفوع|متحصل|المتحصلات|اللي اتجمع|اللي دخل|اتجمع كام)/],
-        ['arrears', /(?:متاخر|متاخرات|مستحق|مديون|مش دفع|غير مدفوع|مش دافع|مش سدد|متاخرين|عليه فلوس|لسه مادفعش|ما دفعش)/],
-        ['expenses', /(?:مصروف|مصاريف|صرف|منصرف|اتصرف|اللي اتدفع من الخزنه|الفلوس راحت فين|اتصرف في ايه)/],
-        ['cashbox', /(?:خزنه|صندوق|رصيد|كاش|فلوس|سيوله|الموجود في الخزنه|كام في الخزنه|كام في الصندوق)/],
-        ['payment_breakdown', /(?:طرق التحصيل|اتدفعت بايه|دفعوا ازاي|دفعنا ازاي|الناس دفعت ازاي)/],
-        ['manager_tasks', /(?:قايمه متابعه|قائمه متابعه|قائمة متابعة|مهام المدير|ابدأ بايه|ابدا بايه|مين اكلمه|مين اكلم|اولويات التحصيل|اتابع مين)/]
-    ];
-    const paymentPhrase = /(?:التحصيلات طرق التحصيل|طرق التحصيل|التحصيلات اتدفعت بايه|اتدفعت بايه|دفعوا ازاي|دفعنا ازاي|الناس دفعت ازاي)/g;
-    const intents = candidates.filter(([intent, pattern]) => {
-        const candidateText = intent === 'payment_breakdown' ? normalized : normalized.replace(paymentPhrase, '');
-        return pattern.test(candidateText);
-    }).map(([intent]) => intent);
+function buildAssistantCompoundAnswer(plan, now, rawText = '') {
+    const { period, intentIds } = plan;
+    const intents = intentIds;
     if (intents.length < 2) return null;
-    const unique = Array.from(new Set(intents));
-    const sections = unique.map(intent => {
+    const sections = intents.map(intent => {
         const answer = selectAssistantAnswer(intent, period, null, now, rawText);
-        return `<section class="assistant-compound-section"><h4>${assistantEscape(answer.title)}</h4>${answer.html}</section>`;
+        return `<section class="assistant-compound-section" data-assistant-intent="${assistantEscape(intent)}"><h4>${assistantEscape(answer.title)}</h4>${answer.html}</section>`;
     }).join('');
     return {
         id: 'compound',
         title: 'إجابة مجمعة',
-        html: `<p class="assistant-answer-subtitle">فهمت إنك بتسأل عن ${assistantNumber(unique.length)} نقاط في ${assistantEscape(period.label)}:</p>${sections}${assistantNote('تقدر تكمّل بسؤال متابعة طبيعي، مثل: «قارن الشهر ده باللي قبله» أو «افتح تقرير المتأخرات».')}`
+        html: `<p class="assistant-answer-subtitle">فهمت إنك بتسأل عن ${assistantNumber(intents.length)} نقاط في ${assistantEscape(period.label)}:</p>${sections}${assistantNote('تقدر تكمّل بسؤال متابعة طبيعي، مثل: «قارن الشهر ده باللي قبله» أو «افتح تقرير المتأخرات».')}`
     };
 }
 function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
