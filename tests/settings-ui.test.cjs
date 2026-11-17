@@ -207,7 +207,7 @@ test('settings header uses the original Manzil app identity and unified visual s
 test('appearance settings preview the original Manzil wordmark and app icon', () => {
     const appearance = html.slice(html.indexOf('id="settings-panel-appearance"'), html.indexOf('id="settings-panel-backup"'));
     assert.match(appearance, /settings-brand-preview/);
-    assert.match(appearance, /src="icons\/manzil-brand\.svg\?v=/);
+    assert.match(appearance, /src="icons\/manzil-brand\.png\?v=/);
     assert.match(appearance, /src="icons\/manzil-logo\.png\?v=/);
     assert.match(appearance, /الشعار الرئيسي/);
     assert.match(appearance, /أيقونة التطبيق/);
