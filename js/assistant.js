@@ -324,6 +324,11 @@ function normalizeAssistantArabic(value) {
         .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
         .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
         .replace(/[\u200e\u200f]/g, '')
+        .replace(/دلوقتى|دلوقتي|دلوقت/g, 'حاليا')
+        .replace(/الفلوس راحت فين|فلوسنا راحت فين|الفلوس اتصرفت فين|اتصرفنا في ايه/g, 'المصاريف')
+        .replace(/مين لسه مادفعش|مين ما دفعش|مين مدفعش|مين مش دافع/g, 'مين عليه متاخرات')
+        .replace(/كام في الخزنه|كام في الصندوق|الخزنه فيها كام/g, 'رصيد الخزنه')
+        .replace(/دفعوا ازاي|اتدفعت بايه|دفعنا ازاي|الناس دفعت ازاي/g, 'طرق التحصيل')
         .replace(/\s+/g, ' ')
         .trim()
         .toLowerCase();
@@ -2290,14 +2295,19 @@ function answerAssistantQuery(text, now = new Date()) {
 function buildAssistantCompoundAnswer(normalized, period, now, rawText = '') {
     /** @type {Array<[string, RegExp]>} */
     const candidates = [
-        ['summary', /(?:ملخص|وضع|احوال|نظره|نتيجه|عاملين ايه)/],
-        ['income', /(?:تحصيل|تحصيلات|ايراد|دخل|وارد|دفع|مدفوع|متحصل|المتحصلات|اللي اتجمع)/],
-        ['arrears', /(?:متاخر|متاخرات|مستحق|مديون|مش دفع|غير مدفوع|مش دافع|مش سدد|متاخرين|عليه فلوس)/],
-        ['expenses', /(?:مصروف|مصاريف|صرف|منصرف|اتصرف|اللي اتدفع من الخزنه)/],
-        ['cashbox', /(?:خزنه|صندوق|رصيد|كاش|فلوس|سيوله|الموجود في الخزنه)/],
+        ['summary', /(?:ملخص|وضع|احوال|نظره|نتيجه|عاملين ايه|الدنيا ايه)/],
+        ['income', /(?:(?<!طرق ال)تحصيل|تحصيلات|ايراد|دخل|وارد|دفع|مدفوع|متحصل|المتحصلات|اللي اتجمع|اللي دخل|اتجمع كام)/],
+        ['arrears', /(?:متاخر|متاخرات|مستحق|مديون|مش دفع|غير مدفوع|مش دافع|مش سدد|متاخرين|عليه فلوس|لسه مادفعش|ما دفعش)/],
+        ['expenses', /(?:مصروف|مصاريف|صرف|منصرف|اتصرف|اللي اتدفع من الخزنه|الفلوس راحت فين|اتصرف في ايه)/],
+        ['cashbox', /(?:خزنه|صندوق|رصيد|كاش|فلوس|سيوله|الموجود في الخزنه|كام في الخزنه|كام في الصندوق)/],
+        ['payment_breakdown', /(?:طرق التحصيل|اتدفعت بايه|دفعوا ازاي|دفعنا ازاي|الناس دفعت ازاي)/],
         ['manager_tasks', /(?:قايمه متابعه|قائمه متابعه|قائمة متابعة|مهام المدير|ابدأ بايه|ابدا بايه|مين اكلمه|مين اكلم|اولويات التحصيل|اتابع مين)/]
     ];
-    const intents = candidates.filter(([, pattern]) => pattern.test(normalized)).map(([intent]) => intent);
+    const paymentPhrase = /(?:التحصيلات طرق التحصيل|طرق التحصيل|التحصيلات اتدفعت بايه|اتدفعت بايه|دفعوا ازاي|دفعنا ازاي|الناس دفعت ازاي)/g;
+    const intents = candidates.filter(([intent, pattern]) => {
+        const candidateText = intent === 'payment_breakdown' ? normalized : normalized.replace(paymentPhrase, '');
+        return pattern.test(candidateText);
+    }).map(([intent]) => intent);
     if (intents.length < 2) return null;
     const unique = Array.from(new Set(intents));
     const sections = unique.map(intent => {

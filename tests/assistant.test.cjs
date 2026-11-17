@@ -1089,6 +1089,23 @@ test('chat answers multiple manager questions in one structured response', () =>
     assert.match(answer.html, /سؤال متابعة طبيعي/);
 });
 
+test('assistant normalizes Egyptian colloquial aliases before intent detection', () => {
+    const { api } = createHarness();
+    assert.equal(api.answerAssistantQuery('دلوقتي كام في الخزنة؟', NOW).id, 'cashbox');
+    assert.equal(api.answerAssistantQuery('الفلوس راحت فين؟', NOW).id, 'expenses');
+    assert.equal(api.answerAssistantQuery('مين لسه مادفعش؟', NOW).id, 'arrears');
+    assert.equal(api.answerAssistantQuery('دفعوا ازاي؟', NOW).id, 'payment_breakdown');
+});
+
+test('assistant combines colloquial questions across liquidity, expenses and arrears', () => {
+    const { api } = createHarness();
+    const answer = api.answerAssistantQuery('عايز أعرف فلوسنا راحت فين وكمان مين لسه مادفعش ورصيد الصندوق كام؟', NOW);
+    assert.equal(answer.id, 'compound');
+    assert.match(answer.html, /المصروفات/);
+    assert.match(answer.html, /المتأخرات/);
+    assert.match(answer.html, /الخزنة|الصندوق/);
+});
+
 test('adjustment answers scope by month and separate waivers from discounts', () => {
     const { api } = createHarness();
     const november = api.answerAssistantQuery('الإعفاءات والتخفيضات', NOW);
