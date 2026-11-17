@@ -4148,10 +4148,10 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
-    width: 2.4rem;
-    height: 2.4rem;
+    width: 2.65rem;
+    height: 3.15rem;
     overflow: hidden;
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-70);
     border: 1px solid color-mix(in srgb, var(--accent-color) 45%, var(--border-color));
     background: color-mix(in srgb, var(--accent-color) 16%, var(--bg-input));
     transition: box-shadow var(--motion-240) var(--ease-standard);
@@ -4164,7 +4164,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     transform: none;
     transform-origin: center bottom;
 }
-/* While the doorman speaks, the head portrait nods and the medallion glows. */
+/* While the doorman speaks, the full-body portrait nods and the frame glows. */
 
 
 
