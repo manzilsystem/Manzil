@@ -743,6 +743,11 @@ function getAssistantResidentSnapshot(resident, now = new Date(), monthLabel = '
 }
 
 function detectAssistantIntent(normalized, hasResident) {
+    const responseMode = detectAssistantResponseMode(normalized);
+    if (responseMode === 'detailed' || responseMode === 'brief') {
+        if (/(?:مصروف|مصاريف|صرف|منصرف|كهرب|نظافه|نظافة|صيانه|صيانة|مياه|ميه|حراسه|حراسة)/.test(normalized)) return 'expenses';
+        if (/(?:تحصيل|تحصيلات|مدفوع|مدفوعات|دفع|دفعات|دخل|ايراد)/.test(normalized)) return 'income';
+    }
     if (/(تقرير|تقارير|طباعه|تصدير|كشف)/.test(normalized) && /(?:مصروف|مصاريف|صرف|مالك|فتره|فترة|اعفاء|تخفيض|تسويه|كشف حساب|تحصيل|ايراد|متاخر|مديون|مستحق)/.test(normalized)) return 'reports';
     if (hasResident) {
         if (/(السلام عليكم|سلام|صباح|مساء|ازيك|عامل ايه|اهلا)/.test(normalized)) return 'greeting';
@@ -767,6 +772,7 @@ function detectAssistantIntent(normalized, hasResident) {
     if (/(متاخر|متاخرات|مستحق|مديون|مش دفع|غير مدفوع|مش دافع|مش سدد|متاخرين|عليه فلوس)/.test(normalized)) return 'arrears';
     if (/(اكبر مصروف|اعلى مصروف|اغلى مصروف|اكبر المصروفات|المصروفات الاكبر|اكبر المصاريف)/.test(normalized)) return 'top_expenses';
     if (/(مصروف|مصاريف|صرف|منصرف|اتصرف|اللي اتدفع من الخزنه)/.test(normalized)) return 'expenses';
+    if (/(كهرب|نور|عداد كهرب|ميه|مياه|عداد ميه|نضافه|نظافة|نظف|صيانه|صيانة|تصليح|اسانسير|أسانسير|حراسه|حراسة|بواب|امن|أمن)/.test(normalized)) return 'expenses';
     if (/(طرق التحصيل|اتدفعت بايه|دفعوا ازاي|وسيله الدفع|وسائل التحصيل|حسب طريقه الدفع)/.test(normalized)) return 'payment_breakdown';
     if (/(تحصيل|تحصيلات|ايراد|دخل|وارد|دفع|مدفوع|متحصل|المتحصلات|اللي اتجمع)/.test(normalized)) return 'income';
     if (/(خزنه|صندوق|رصيد|كاش|فلوس|سيوله|الموجود في الخزنه)/.test(normalized)) return 'cashbox';
@@ -1251,23 +1257,64 @@ function assistantResidentName(resident) {
     return String(resident?.name || 'مالك محذوف');
 }
 
-function buildAssistantIncomeAnswer(period) {
+function detectAssistantResponseMode(normalized) {
+    if (/(?:مختصر|سريع|الخلاصه|الخلاصة|باختصار)/.test(normalized)) return 'brief';
+    if (/(?:مفصل|مفصلة|مفصله|مفلص|تفصيل|تفاصيل|تفصيلي|بند بند)/.test(normalized)) return 'detailed';
+    return 'summary';
+}
+
+function detectAssistantExpenseCategory(normalized) {
+    /** @type {Array<[string, RegExp]>} */
+    const categories = [
+        ['كهرباء', /(?:كهرب|نور|عداد كهرب)/],
+        ['مياه', /(?:ميه|مياه|عداد ميه)/],
+        ['نظافة', /(?:نضافه|نظافة|نظف)/],
+        ['صيانة', /(?:صيانه|صيانة|تصليح|اسانسير|أسانسير)/],
+        ['حراسة', /(?:حراسه|حراسة|بواب|امن|أمن)/]
+    ];
+    return categories.find(([, pattern]) => pattern.test(normalized))?.[0] || null;
+}
+
+function buildAssistantResponseOptions(rawText, intent) {
+    const normalized = normalizeAssistantArabic(rawText || '');
+    const expenseCategory = intent === 'expenses' ? detectAssistantExpenseCategory(normalized) : null;
+    const responseMode = detectAssistantResponseMode(normalized);
+    return {
+        responseMode: expenseCategory && responseMode === 'summary' ? 'detailed' : responseMode,
+        expenseCategory
+    };
+}
+
+function buildAssistantIncomeAnswer(period, options = {}) {
     const snapshot = getAssistantIncomeSnapshot(period.months);
-    const title = `تحصيل ${period.label}`;
+    const rows = (Array.isArray(state.income) ? state.income : [])
+        .filter(row => !period.months?.length || period.months.includes(row.month))
+        .slice()
+        .sort((left, right) => new Date(right.date || 0).getTime() - new Date(left.date || 0).getTime());
+    const title = `تحصيل ${period.label}${options.responseMode === 'detailed' ? ' · تفاصيل' : ''}`;
     let html = '';
     html += assistantRow('إجمالي التحصيل', assistantMoney(snapshot.total), snapshot.total > 0 ? 'good' : '');
     html += assistantRow('اشتراكات شهرية', assistantMoney(snapshot.subscriptionTotal));
     if (snapshot.settlementTotal > 0) html += assistantRow('دفعات تسوية', assistantMoney(snapshot.settlementTotal));
     html += assistantRow('أغراض أخرى', assistantMoney(snapshot.otherTotal));
     html += assistantRow('عدد الدفعات', assistantNumber(snapshot.count));
-    if (snapshot.purposes.length) {
+    if (options.responseMode === 'detailed' && rows.length) {
+        html += assistantList(rows.slice(0, 8).map(row => {
+            const resident = (Array.isArray(state.residents) ? state.residents : []).find(item => item.id === row.residentId);
+            const date = row.date ? ` · ${assistantDateLabel(row.date)}` : '';
+            const method = row.paymentMethod ? ` · ${row.paymentMethod}` : '';
+            return `${assistantEscape(resident ? assistantResidentName(resident) : 'دفعة')}${date}${method} — <strong>${assistantEscape(assistantMoney(row.amount))}</strong>`;
+        }));
+    } else if (options.responseMode !== 'brief' && snapshot.purposes.length) {
         html += assistantList(snapshot.purposes.slice(0, 4).map(item =>
             `${assistantEscape(item.label)} — <strong>${assistantEscape(assistantMoney(item.cents / 100))}</strong>`
         ));
-    } else {
+    } else if (!snapshot.count) {
         html += assistantNote('مفيش تحصيلات مسجلة في الفترة دي.');
     }
-    html += assistantNote('الاشتراكات منفصلة عن التحصيلات الأخرى، والملاحظات التفصيلية موجودة في سجل التحصيل.');
+    html += assistantNote(options.responseMode === 'brief'
+        ? 'ده ملخص سريع للتحصيل؛ اطلب «تقرير مفصل عن المدفوع» لعرض الدفعات واحدة واحدة.'
+        : 'الاشتراكات منفصلة عن التحصيلات الأخرى، والملاحظات التفصيلية موجودة في سجل التحصيل.');
     return { id: 'income', title, html };
 }
 
@@ -1321,20 +1368,33 @@ function buildAssistantTopExpensesAnswer(period) {
     html += assistantNote('الترتيب حسب قيمة المصروف، والتفاصيل الكاملة موجودة في قسم المصروفات والتقارير.');
     return { id: 'top_expenses', title, html };
 }
-function buildAssistantExpensesAnswer(period) {
+function buildAssistantExpensesAnswer(period, options = {}) {
     const snapshot = getAssistantExpenseSnapshot(period.months);
-    const title = `مصروفات ${period.label}`;
+    const category = options.expenseCategory;
+    const rows = category
+        ? snapshot.rows.filter(row => normalizeAssistantArabic(`${row.category || ''} ${row.title || ''}`).includes(normalizeAssistantArabic(category)))
+        : snapshot.rows;
+    const totalCents = rows.reduce((sum, row) => sum + (typeof toCents === 'function' ? toCents(row.amount) : Math.round((Number(row.amount) || 0) * 100)), 0);
+    const title = `${category ? `مصروف ${category}` : 'مصروفات'} ${period.label}${options.responseMode === 'detailed' ? ' · تفاصيل' : ''}`;
     let html = '';
-    html += assistantRow('إجمالي المصروفات', assistantMoney(snapshot.total), snapshot.total > 0 ? 'bad' : '');
-    html += assistantRow('عدد المصروفات', assistantNumber(snapshot.count));
-    if (snapshot.categories.length) {
+    html += assistantRow('إجمالي المصروفات', assistantMoney(totalCents / 100), totalCents > 0 ? 'bad' : '');
+    html += assistantRow('عدد المصروفات', assistantNumber(rows.length));
+    if (options.responseMode === 'detailed' && rows.length) {
+        html += assistantList(rows.slice().sort((left, right) => new Date(right.date || 0).getTime() - new Date(left.date || 0).getTime()).slice(0, 8).map(row => {
+            const label = row.title || row.category || 'مصروف';
+            const date = row.date ? ` · ${assistantDateLabel(row.date)}` : '';
+            return `${assistantEscape(label)}${date} — <strong>${assistantEscape(assistantMoney(row.amount))}</strong>`;
+        }));
+    } else if (options.responseMode !== 'brief' && !category && snapshot.categories.length) {
         html += assistantList(snapshot.categories.slice(0, 4).map(item =>
             `${assistantEscape(item.label)} — <strong>${assistantEscape(assistantMoney(item.cents / 100))}</strong>`
         ));
-    } else {
+    } else if (!rows.length) {
         html += assistantNote('مفيش مصروفات مسجلة في الفترة دي.');
     }
-    html += assistantNote('المصروفات تشمل كل الصناديق، والتفاصيل الكاملة في قسم المصروفات والتقارير.');
+    html += assistantNote(options.responseMode === 'brief'
+        ? 'ده ملخص سريع للمصروفات؛ اطلب «تقرير مفصل عن المصروفات» لعرض البنود والتواريخ.'
+        : 'المصروفات تشمل كل الصناديق، والتفاصيل الكاملة في قسم المصروفات والتقارير.');
     return { id: 'expenses', title, html };
 }
 
@@ -2302,6 +2362,8 @@ function buildAssistantQueryPlan(text, now = new Date()) {
             scopeReason: foreignUnitRequest ? 'foreign-unit' : scopeViolation ? 'role-boundary' : null,
             normalized,
             period,
+            responseMode: detectAssistantResponseMode(normalized),
+            expenseCategory: null,
             intentIds: [scopeViolation ? 'owner_scope' : intent],
             apartment: resident ? { id: resident.id, number: resident.apartmentNumber } : null,
             residentMatches: []
@@ -2329,6 +2391,8 @@ function buildAssistantQueryPlan(text, now = new Date()) {
         scopeViolation: false,
         normalized,
         period,
+        responseMode: detectAssistantResponseMode(normalized),
+        expenseCategory: detectAssistantExpenseCategory(normalized),
         intentIds,
         resident,
         residentMatches: residentMatch.matches,
@@ -2426,11 +2490,11 @@ function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
         case 'manager_tasks':
             return buildAssistantManagerTasksAnswer(period);
         case 'expenses':
-            return buildAssistantExpensesAnswer(period);
+            return buildAssistantExpensesAnswer(period, buildAssistantResponseOptions(rawText, intent));
         case 'top_expenses':
             return buildAssistantTopExpensesAnswer(period);
         case 'income':
-            return buildAssistantIncomeAnswer(period);
+            return buildAssistantIncomeAnswer(period, buildAssistantResponseOptions(rawText, intent));
         case 'payment_breakdown':
             return buildAssistantPaymentBreakdownAnswer(period);
         case 'cashbox':

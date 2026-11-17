@@ -1108,6 +1108,35 @@ test('assistant combines colloquial questions across liquidity, expenses and arr
     assert.match(answer.html, /الخزنة|الصندوق/);
 });
 
+test('assistant understands terse subjects and controls report detail level', () => {
+    const { api } = createHarness();
+    const expensePlan = api.buildAssistantQueryPlan('كهرباء', NOW);
+    assert.equal(Array.from(expensePlan.intentIds).join(','), 'expenses');
+    assert.equal(expensePlan.expenseCategory, 'كهرباء');
+    assert.equal(expensePlan.responseMode, 'summary');
+
+    const electricity = api.answerAssistantQuery('كهرباء', NOW);
+    assert.equal(electricity.id, 'expenses');
+    assert.match(electricity.title, /كهرباء/);
+    assert.match(electricity.html, /كهرباء/);
+    assert.doesNotMatch(electricity.html, /نظافة/);
+
+    const brief = api.answerAssistantQuery('تقرير مختصر عن المدفوع', NOW);
+    assert.equal(brief.id, 'income');
+    assert.doesNotMatch(brief.html, /سارة حسن/);
+    assert.match(brief.html, /ملخص سريع/);
+
+    const detailed = api.answerAssistantQuery('تقرير مفصل عن المصروفات', NOW);
+    assert.equal(detailed.id, 'expenses');
+    assert.match(detailed.title, /تفاصيل/);
+    assert.match(detailed.html, /كهرباء/);
+    assert.match(detailed.html, /٢٠٢٦|2026/);
+
+    const commonTypo = api.answerAssistantQuery('تقري مفلص عن المصروفات', NOW);
+    assert.equal(commonTypo.id, 'expenses');
+    assert.match(commonTypo.title, /تفاصيل/);
+});
+
 test('assistant fixed evaluation set keeps intent, period, apartment and role scope accurate', () => {
     const results = [];
     for (const example of assistantEvaluation.cases) {
@@ -1137,6 +1166,12 @@ test('assistant fixed evaluation set keeps intent, period, apartment and role sc
         }
         if (example.responseId && answer.id !== example.responseId) {
             failures.push(`response expected ${example.responseId}, got ${answer.id}`);
+        }
+        if (example.responseMode && plan.responseMode !== example.responseMode) {
+            failures.push(`response mode expected ${example.responseMode}, got ${plan.responseMode}`);
+        }
+        if (Object.prototype.hasOwnProperty.call(example, 'expenseCategory') && plan.expenseCategory !== example.expenseCategory) {
+            failures.push(`expense category expected ${example.expenseCategory}, got ${plan.expenseCategory}`);
         }
         if (answer.id === 'compound') {
             const renderedIntents = Array.from(answer.html.matchAll(/data-assistant-intent="([^"]+)"/g), match => match[1]);
