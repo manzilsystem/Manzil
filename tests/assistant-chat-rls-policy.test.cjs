@@ -12,6 +12,8 @@ const plan = fs.readFileSync(
     path.join(root, 'docs', 'assistant-natural-language-and-rls.md'),
     'utf8'
 );
+const supabaseSource = fs.readFileSync(path.join(root, 'js', 'supabase.js'), 'utf8');
+const assistantSource = fs.readFileSync(path.join(root, 'js', 'assistant.js'), 'utf8');
 
 test('assistant chat tables are protected by RLS and do not grant anon access', () => {
     assert.match(migration, /alter table public\.assistant_conversations enable row level security/);
@@ -40,4 +42,17 @@ test('RLS plan documents manager-owner isolation and write restrictions', () => 
     ]) {
         assert.ok(plan.includes(phrase), `missing RLS scenario: ${phrase}`);
     }
+});
+
+test('clearing assistant chat hides prior append-only messages after reload', () => {
+    assert.match(supabaseSource, /select\('id,context,updated_at'\)/);
+    assert.match(supabaseSource, /conversation\.context\?\.chat_epoch/);
+    assert.match(supabaseSource, /messagesQuery\.eq\('metadata->>chat_epoch', chatEpoch\)/);
+    assert.match(supabaseSource, /async function clearAssistantChatHistory\(\)/);
+    assert.match(supabaseSource, /update\(\{ context: \{ \.\.\.\(conversation\.context \|\| \{\}\), period: null, residentId: null, chat_epoch: chatEpoch \} \}\)/);
+    assert.match(supabaseSource, /clear: clearAssistantChatHistory/);
+    assert.match(assistantSource, /function clearAssistantRemoteHistory\(\)/);
+    assert.match(assistantSource, /assistantRemoteWriteQueue = assistantRemoteWriteQueue\.then/);
+    assert.match(assistantSource, /assistantChatRevision \+= 1/);
+    assert.doesNotMatch(supabaseSource, /from\('assistant_messages'\)\s*\.delete\(/);
 });

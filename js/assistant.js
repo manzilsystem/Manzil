@@ -66,6 +66,10 @@ let assistantNoticeDraft = null;
 let assistantOperationDraft = null;
 let assistantRemoteHydrated = false;
 let assistantRemoteHydrating = false;
+let assistantRemoteWriteQueue = Promise.resolve();
+let assistantRemoteClearFailed = false;
+let assistantChatRevision = 0;
+let assistantViewportListenersBound = false;
 const ASSISTANT_OPERATION_PAYMENT_METHODS = Object.freeze({
     cash: 'نقدي',
     wallet: 'محفظة إلكترونية',
@@ -233,18 +237,37 @@ function assistantChatStore() {
 function persistAssistantRemoteMessage(role, body, metadata = {}) {
     const store = assistantChatStore();
     if (!store || typeof store.append !== 'function' || !assistantRemoteHydrated || metadata.greeting) return;
-    void store.append(role === 'user' ? 'user' : 'assistant', body, metadata).catch(error => {
+    assistantRemoteWriteQueue = assistantRemoteWriteQueue.then(async () => {
+        if (assistantRemoteClearFailed) return;
+        await store.append(role === 'user' ? 'user' : 'assistant', body, metadata);
+    }).catch(error => {
         console.warn('Could not persist assistant chat message:', error);
     });
+}
+
+function clearAssistantRemoteHistory() {
+    const store = assistantChatStore();
+    if (!store || typeof store.clear !== 'function') return Promise.resolve(true);
+    assistantRemoteWriteQueue = assistantRemoteWriteQueue.then(async () => {
+        const cleared = await store.clear();
+        if (!cleared) throw new Error('Assistant chat clear was not acknowledged');
+        assistantRemoteClearFailed = false;
+    }).catch(error => {
+        assistantRemoteClearFailed = true;
+        console.warn('Could not clear assistant chat history:', error);
+    });
+    return assistantRemoteWriteQueue.then(() => !assistantRemoteClearFailed);
 }
 
 async function hydrateAssistantChatFromRemote() {
     const store = assistantChatStore();
     if (!store || typeof store.load !== 'function' || assistantRemoteHydrated || assistantRemoteHydrating) return false;
     assistantRemoteHydrating = true;
+    const revision = assistantChatRevision;
     try {
         const history = await store.load();
         if (!history) return false;
+        if (revision !== assistantChatRevision) return true;
         const messages = Array.isArray(history.messages) ? history.messages : [];
         assistantChat = messages.map(message => ({
             role: message.sender_type === 'user' ? 'user' : 'bot',
@@ -2488,12 +2511,48 @@ function restoreAssistantChat() {
     appendAssistantMessage('bot', buildAssistantGreetingHtml(), null, { greeting: true });
 }
 
+function syncAssistantMobileViewport() {
+    const modal = document.getElementById('assistantModal');
+    if (!modal || modal.classList.contains('hidden')) return;
+    const mobile = typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 640px)').matches;
+    const viewport = window.visualViewport;
+    if (!mobile || !viewport) {
+        modal.classList.remove('assistant-mobile-viewport');
+        modal.style.removeProperty('--assistant-visual-top');
+        modal.style.removeProperty('--assistant-visual-height');
+        return;
+    }
+    modal.style.setProperty('--assistant-visual-top', `${Math.max(0, viewport.offsetTop)}px`);
+    modal.style.setProperty('--assistant-visual-height', `${viewport.height}px`);
+    modal.classList.add('assistant-mobile-viewport');
+    const input = document.getElementById('assistantInput');
+    if (input && document.activeElement === input) {
+        requestAnimationFrame(() => {
+            const log = document.getElementById('assistantLog');
+            if (log) log.scrollTop = log.scrollHeight;
+        });
+    }
+}
+
+function bindAssistantMobileViewport() {
+    if (assistantViewportListenersBound) return;
+    assistantViewportListenersBound = true;
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', syncAssistantMobileViewport);
+        window.visualViewport.addEventListener('scroll', syncAssistantMobileViewport);
+    }
+    window.addEventListener('resize', syncAssistantMobileViewport);
+    window.addEventListener('orientationchange', syncAssistantMobileViewport);
+}
+
 function openAssistantModal() {
     if (typeof currentUserRole !== 'undefined' && currentUserRole !== 'manager' && currentUserRole !== 'owner') {
         if (typeof toast === 'function') toast('المساعد متاح للمدير وللمالك في حدود حسابه', 'error');
         return;
     }
     if (typeof openModal === 'function') openModal('assistantModal');
+    bindAssistantMobileViewport();
+    syncAssistantMobileViewport();
     syncAssistantFab();
     const log = document.getElementById('assistantLog');
     if (log && !log.children.length) {
@@ -2564,6 +2623,9 @@ function askAssistant(query) {
 
 function resetAssistantChat() {
     if (document.getElementById('assistantModal')?.dataset.assistantBusy === 'true') return;
+    assistantChatRevision += 1;
+    assistantRemoteHydrated = true;
+    const remoteClear = clearAssistantRemoteHistory();
     const log = document.getElementById('assistantLog');
     if (log) log.innerHTML = '';
     assistantChat = [];
@@ -2576,6 +2638,11 @@ function resetAssistantChat() {
     persistAssistantChat();
     persistAssistantContext();
     appendAssistantMessage('bot', buildAssistantGreetingHtml(), null, { greeting: true });
+    void remoteClear.then(cleared => {
+        if (!cleared && typeof toast === 'function') {
+            toast('تم مسح المحادثة من هذه الصفحة، لكن تعذّر مزامنة المسح. تحقق من الاتصال ثم أعد المحاولة.', 'error');
+        }
+    });
 }
 
 const ASSISTANT_FAB_SCROLL_DEADZONE = 8;

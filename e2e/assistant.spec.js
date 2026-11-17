@@ -365,6 +365,37 @@ test('assistant does not offer a broken adjustment form action without a residen
     await expect(log.locator('.assistant-msg.is-bot .assistant-bubble button')).toHaveCount(0);
 });
 
+test('mobile assistant keeps the composer visible as the keyboard reduces the visual viewport', async ({ page }) => {
+    test.skip(page.viewportSize().width > 640, 'mobile viewport behavior');
+    await page.setViewportSize({ width: 390, height: 820 });
+    await seedAndOpenAssistant(page);
+    const modal = page.locator('#assistantModal');
+    const log = page.locator('#assistantLog');
+    const input = page.locator('#assistantInput');
+    const sendButton = page.locator('#assistantSendButton');
+    await expect(modal).toHaveClass(/assistant-mobile-viewport/);
+
+    await page.evaluate(() => {
+        for (let index = 0; index < 18; index += 1) {
+            appendAssistantMessage('bot', `<p>رسالة طويلة لاختبار تمرير سجل المحادثة رقم ${index + 1}.</p>`);
+        }
+        const logElement = document.getElementById('assistantLog');
+        logElement.scrollTop = 0;
+        document.getElementById('assistantInput').focus();
+    });
+    await page.setViewportSize({ width: 390, height: 470 });
+    await expect.poll(() => modal.evaluate(element => element.style.getPropertyValue('--assistant-visual-height')))
+        .toBe('470px');
+    await expect.poll(() => modal.evaluate(element => element.getBoundingClientRect().height))
+        .toBeLessThanOrEqual(470);
+    await expect.poll(() => log.evaluate(element => element.scrollTop + element.clientHeight >= element.scrollHeight - 2))
+        .toBe(true);
+    await expect.poll(() => input.evaluate(element => getComputedStyle(element).fontSize)).toBe('16px');
+    const buttonBox = await sendButton.boundingBox();
+    expect(buttonBox.width).toBeGreaterThanOrEqual(44);
+    expect(buttonBox.height).toBeGreaterThanOrEqual(44);
+});
+
 test.describe('assistant floating launcher', () => {
     test.beforeEach(async ({ page }) => {
         await loadShell(page);

@@ -165,6 +165,7 @@ function createHarness(seed = true, identity = {}, options = {}) {
         confirmAssistantOperation,
         restoreAssistantSession,
         appendAssistantMessage,
+        resetAssistantChat,
         chatSnapshot: () => assistantChat,
         contextSnapshot: () => assistantContext,
         ASSISTANT_NAME
@@ -1265,6 +1266,31 @@ test('the chat and its context survive a reopen and reset wipes both', () => {
     `, context);
     assert.equal(JSON.parse(storage.getItem('manzil-assistant-context:building-1:manager')).period, null);
     assert.equal(api.chatSnapshot().length, 1, 'reset leaves only the fresh greeting');
+});
+
+test('starting a new chat clears remote history before later messages are appended', async () => {
+    const events = [];
+    let releaseClear;
+    const clearGate = new Promise(resolve => { releaseClear = resolve; });
+    const { context, api } = createHarness(true, {}, {
+        instrument: sandbox => {
+            sandbox.window = sandbox;
+            sandbox.manzilAssistantChatStore = {
+                clear: async () => { events.push('clear-start'); await clearGate; events.push('clear-done'); return true; },
+                append: async (_sender, body) => { events.push(`append:${body}`); }
+            };
+        }
+    });
+    vm.runInContext('assistantRemoteHydrated = true', context);
+    api.resetAssistantChat();
+    api.appendAssistantMessage('user', '<p>سؤال جديد</p>', 'سؤال جديد');
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(events, ['clear-start'], 'new messages wait behind the durable clear marker');
+    releaseClear();
+    await new Promise(resolve => setImmediate(resolve));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(events, ['clear-start', 'clear-done', 'append:سؤال جديد']);
+    assert.equal(api.chatSnapshot().length, 2, 'the local chat contains only its greeting and the new message');
 });
 
 test('a tampered chat log is dropped instead of rendered', () => {

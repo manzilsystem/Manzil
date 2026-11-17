@@ -4664,6 +4664,12 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 }
 @media (max-width: 640px) {
     #assistantModal { align-items: flex-end !important; padding: var(--space-none) !important; }
+    #assistantModal.assistant-mobile-viewport {
+        top: var(--assistant-visual-top, 0px) !important;
+        bottom: auto !important;
+        height: var(--assistant-visual-height, 100dvh) !important;
+        overflow: hidden;
+    }
     #assistantModal > .assistant-shell {
         width: 100%;
         height: min(92vh, 58rem);
@@ -4671,12 +4677,23 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
         border-radius: var(--radius-150) var(--radius-150) var(--radius-none) var(--radius-none);
         border-bottom: 0;
     }
+    #assistantModal.assistant-mobile-viewport > .assistant-shell {
+        height: min(92%, 58rem);
+        max-height: 100%;
+    }
     .assistant-head { padding: var(--space-65) var(--space-70); }
+    .assistant-icon-button { width: 2.75rem; height: 2.75rem; min-width: 44px; min-height: 44px; }
     .assistant-head-copy p { display: flex; max-width: min(62vw, 15rem); }
     .assistant-log { padding: var(--space-65); }
     .assistant-bubble { max-width: 94%; }
     .assistant-form { gap: var(--space-40); padding-inline: var(--space-65); }
-    .assistant-footnote { padding-inline: var(--space-70); font-size: var(--font-56); }
+    .assistant-form .assistant-composer-frame textarea { min-height: 2.75rem; font-size: var(--font-input-mobile); }
+    .assistant-send-button { min-width: 44px; min-height: 44px; }
+    .assistant-footnote {
+        padding-inline: var(--space-70);
+        padding-bottom: calc(var(--space-65) + env(safe-area-inset-bottom, 0px));
+        font-size: var(--font-56);
+    }
 }
 @supports (height: 100dvh) {
     @media (max-width: 640px) {
