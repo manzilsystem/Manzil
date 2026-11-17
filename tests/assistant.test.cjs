@@ -306,6 +306,7 @@ test('manager quick actions are visible, start incomplete operation drafts, and 
     assert.doesNotMatch(html, /<details[^>]*\bopen\b/, 'assistant shortcuts start collapsed to keep the chat clear');
     assert.match(css, /\.assistant-tools-body\s*\{[^}]*max-height:[^}]*overflow-y:\s*auto/s);
     assert.match(html, /مهام المدير/);
+    assert.match(assistantSource, /\{ label: 'مهام المدير', query: 'مهام المدير' \}/);
     assert.match(css, /\.assistant-disclosure-summary:focus-visible/);
     assert.match(css, /\.assistant-quick-action:focus-visible/);
 

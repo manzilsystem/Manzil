@@ -32,6 +32,7 @@ const ASSISTANT_MANAGER_QUICK_ACTIONS = Object.freeze([
     { label: 'إضافة مصروف', query: 'أضف مصروف' },
     { label: 'تسجيل إعفاء', query: 'سجل إعفاء' },
     { label: 'تسجيل تسوية', query: 'اعمل تسوية' },
+    { label: 'مهام المدير', query: 'مهام المدير' },
     { label: 'التقارير والمخرجات', query: 'التقارير المتاحة' },
     { label: 'إعداد إعلان', action: 'notice' }
 ]);
