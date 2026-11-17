@@ -18,7 +18,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css?v=fdcf928bf2">
+    <link rel="stylesheet" href="css/style.css?v=1c08eba07b">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -2173,6 +2173,7 @@
                 <div class="assistant-head-copy">
                     <h3 id="assistantModalTitle">عم عبده البواب</h3>
                     <p><span class="assistant-online-dot" aria-hidden="true"></span> متاح الآن · محادثة محلية</p>
+                <span id="assistantStatus" class="sr-only" aria-live="polite"><span id="assistantStatusDot" class="assistant-online-dot" aria-hidden="true"></span><span id="assistantStatusText">متاح الآن · محادثة محلية</span></span>
                 </div>
                 <button type="button" class="assistant-icon-button" onclick="resetAssistantChat()" aria-label="بدء محادثة جديدة" title="محادثة جديدة"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>
                 <button type="button" class="assistant-icon-button" onclick="closeModal('assistantModal')" aria-label="إغلاق مساعد عم عبده"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
@@ -2180,15 +2181,24 @@
             <div id="assistantLog" class="assistant-log" role="log" aria-live="polite" aria-label="محادثة عم عبده البواب"></div>
             <form class="assistant-form" onsubmit="sendAssistantMessage(event)">
                 <label for="assistantInput" class="sr-only">اكتب سؤالك لعم عبده</label>
-                <textarea id="assistantInput" class="app-input" maxlength="1000" autocomplete="off" enterkeyhint="send" rows="1" onkeydown="handleAssistantComposerKeydown(event)" placeholder="اكتب طلبك أو سؤالك…&#10;Enter للإرسال · Shift+Enter لسطر جديد"></textarea>
-                <button type="submit" class="assistant-send-button" aria-label="إرسال السؤال كتابةً"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
+                <div class="assistant-composer-frame">
+                    <textarea id="assistantInput" class="app-input" maxlength="1000" autocomplete="off" enterkeyhint="send" rows="1" aria-describedby="assistantInputHint assistantInputCounter" oninput="updateAssistantComposerState()" onkeydown="handleAssistantComposerKeydown(event)" placeholder="اكتب طلبك أو سؤالك…"></textarea>
+                    <div class="assistant-composer-meta">
+                        <span id="assistantInputHint">Enter للإرسال · Shift+Enter لسطر جديد</span>
+                        <span id="assistantInputCounter" aria-hidden="true">0/1000</span>
+                    </div>
+                </div>
+                <button type="submit" id="assistantSendButton" class="assistant-send-button" aria-label="إرسال السؤال كتابةً" disabled>
+                    <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+                    <span class="assistant-send-spinner" aria-hidden="true"></span>
+                </button>
             </form>
             <p class="assistant-footnote"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> محلي ويعمل حسب صلاحيتك · لا يُحفظ أي إدخال إلا بعد مراجعتك وكتابة «أكد التسجيل».</p>
         </div>
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-f9bed8c830"></script>
+    <script src="js/telemetry.js?v=manzil-cd47c2fe95"></script>
     <script src="js/state.js?v=a1327e49bc"></script>
     <script src="js/access.js?v=0e8f36ff5c"></script>
     <script src="js/render.js?v=38a35471ba"></script>
@@ -2201,7 +2211,7 @@
     <script src="js/cashbox.js?v=3ca9f6a1d8"></script>
     <script src="js/monthly-close.js?v=3931791f32"></script>
     <script src="js/backup.js?v=6f6d4ebbf1"></script>
-    <script src="js/assistant.js?v=ed89615885"></script>
+    <script src="js/assistant.js?v=f3d73a2f07"></script>
     <script src="js/app.js?v=bb82ca8bd3"></script>
 </body>
 </html>

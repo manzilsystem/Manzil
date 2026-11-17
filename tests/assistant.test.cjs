@@ -225,7 +225,11 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(html, /id="assistantLog"[^>]*role="log"[^>]*aria-live="polite"/);
     assert.match(html, /id="assistantInput"[^>]*maxlength="1000"/);
     assert.match(html, /<textarea[^>]*id="assistantInput"[^>]*rows="1"/);
+    assert.match(html, /id="assistantStatusText"/);
+    assert.match(html, /id="assistantInputCounter"/);
+    assert.match(html, /id="assistantSendButton"[^>]*disabled/);
     assert.match(html, /onkeydown="handleAssistantComposerKeydown\(event\)"/);
+    assert.match(html, /oninput="updateAssistantComposerState\(\)"/);
     assert.match(html, /Shift\+Enter لسطر جديد/);
     assert.doesNotMatch(html, /assistantTools|assistantSuggestions|assistantQuickActions|مهام المدير|أسئلة مقترحة/);
     assert.doesNotMatch(assistantSource, /<button\b/i, 'assistant responses contain no clickable in-chat controls');
@@ -271,6 +275,12 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.doesNotMatch(assistantSource, /addEventListener\('focus'/, 'a visibility-hidden launcher is not focusable, so no focus handler is needed');
     assert.match(css, /\.assistant-msg\.is-user \.assistant-bubble/);
     assert.match(css, /\.assistant-message-meta \{/);
+    assert.match(css, /\.assistant-composer-frame:focus-within/);
+    assert.match(css, /\.assistant-shell\[aria-busy="true"\] \.assistant-send-spinner/);
+    assert.match(css, /@media \(max-width: 640px\)[\s\S]*#assistantModal > \.assistant-shell/);
+    assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.assistant-send-spinner/);
+    assert.match(assistantSource, /function updateAssistantComposerState\(\)/);
+    assert.match(assistantSource, /function setAssistantBusy\(isBusy/);
     assert.match(assistantSource, /function handleAssistantComposerKeydown\(event\)/);
     assert.match(assistantSource, /عم عبده بيكتب/);
     assert.match(css, /@media print \{\s*#assistantModal \{ display: none !important; \}/);

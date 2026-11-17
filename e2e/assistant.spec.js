@@ -152,14 +152,20 @@ test('a confirmed manager collection saves in chat without opening a CRUD form o
     const preview = page.locator('#assistantLog .assistant-action-preview');
     await expect(preview).toContainText('سارة حسن');
     // Keep this acceptance check on seeded in-memory data; never write to the shared backend.
-    await page.evaluate(() => { window.saveWithRollback = async () => true; });
+    await page.evaluate(() => {
+        window.saveWithRollback = () => new Promise(resolve => window.setTimeout(() => resolve(true), 250));
+    });
     await page.locator('#assistantInput').fill('أكد التسجيل');
     await page.locator('#assistantInput').press('Enter');
 
+    await expect(page.locator('#assistantStatusText')).toContainText('جارٍ التحقق والحفظ');
+    await expect(page.locator('#assistantInput')).toHaveJSProperty('readOnly', true);
+    await expect(page.locator('#assistantSendButton')).toBeDisabled();
     await expect(page.locator('#assistantModal')).toBeVisible();
     await expect(page.locator('#incomeModal')).toBeHidden();
     await expect(page.locator('#incomeReceiptModal')).toBeHidden();
     await expect(page.locator('#assistantLog')).toContainText('تم حفظ التحصيل بنجاح');
+    await expect(page.locator('#assistantStatusText')).toContainText('جاهز');
     await expect.poll(() => page.evaluate(() => state.income.length)).toBeGreaterThan(before);
 });
 

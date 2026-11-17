@@ -11,6 +11,7 @@ const ASSISTANT_CASH_LABELS = Object.freeze({
 });
 const ASSISTANT_TYPING_DELAY_MS = 0;
 const ASSISTANT_HISTORY_LIMIT = 30;
+const ASSISTANT_MAX_MESSAGE_LENGTH = 1000;
 const ASSISTANT_TIME_HINT = /(يناير|فبراير|مارس|ابريل|مايو|يونيو|يوليو|اغسطس|سبتمبر|اكتوبر|نوفمبر|ديسمبر|20[0-9]{2}|الشهر|شهر|السنه|سنه|عام|النهارده|دلوقتي|حاليا|كل الفتره|كل الشهور|من البدايه|من بداية السنه|من اول السنه)/;
 const ASSISTANT_RESIDENT_FOLLOWUP = /^(هو|هي|وده|دي|وكمان|ودوره|ومن زمان|ولحد دلوقتي|وعليه)/;
 const ASSISTANT_CHAT_STORAGE_PREFIX = 'manzil-assistant-chat';
@@ -2274,6 +2275,44 @@ function assistantMessageTime() {
     }
 }
 
+function updateAssistantComposerState() {
+    const input = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('assistantInput'));
+    const button = /** @type {HTMLButtonElement | null} */ (document.getElementById('assistantSendButton'));
+    const counter = document.getElementById('assistantInputCounter');
+    if (!input) return;
+    input.style.height = 'auto';
+    input.style.height = `${Math.min(input.scrollHeight, 132)}px`;
+    if (counter) counter.textContent = `${input.value.length}/${ASSISTANT_MAX_MESSAGE_LENGTH}`;
+    if (button) button.disabled = Boolean(input.readOnly) || !input.value.trim();
+}
+
+function setAssistantBusy(isBusy, message = 'جارٍ التحقق والحفظ…') {
+    const modal = document.getElementById('assistantModal');
+    const shell = modal?.querySelector('.assistant-shell');
+    const input = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('assistantInput'));
+    const button = /** @type {HTMLButtonElement | null} */ (document.getElementById('assistantSendButton'));
+    const resetButton = /** @type {HTMLButtonElement | null} */ (modal?.querySelector('[onclick="resetAssistantChat()"]') || null);
+    const status = document.getElementById('assistantStatusText');
+    const statusDot = document.getElementById('assistantStatusDot');
+    const visibleStatus = modal?.querySelector('.assistant-head-copy > p');
+    const visibleStatusText = visibleStatus
+        ? [...visibleStatus.childNodes].find(node => node.nodeType === Node.TEXT_NODE)
+        : null;
+    const nextStatus = isBusy ? message : 'جاهز · محادثة محلية';
+    if (visibleStatusText) visibleStatusText.nodeValue = ` ${nextStatus}`;
+    if (modal) modal.dataset.assistantBusy = String(isBusy);
+    if (shell) {
+        shell.setAttribute('aria-busy', String(isBusy));
+        shell.classList.toggle('is-processing', isBusy);
+    }
+    if (input) input.readOnly = isBusy;
+    if (resetButton) resetButton.disabled = isBusy;
+    if (status) status.textContent = nextStatus;
+    if (statusDot) statusDot.classList.toggle('is-working', isBusy);
+    if (button) button.setAttribute('aria-label', isBusy ? 'جارٍ معالجة الطلب' : 'إرسال السؤال كتابةً');
+    updateAssistantComposerState();
+}
+
 function renderAssistantMessage(role, html) {
     const log = document.getElementById('assistantLog');
     if (!log) return null;
@@ -2326,22 +2365,25 @@ function openAssistantModal() {
     const log = document.getElementById('assistantLog');
     if (log && !log.children.length) restoreAssistantChat();
     requestAnimationFrame(() => {
-        const input = /** @type {HTMLInputElement | null} */ (document.getElementById('assistantInput'));
+        const input = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('assistantInput'));
         if (!input) return;
         input.placeholder = assistantIsOwner()
             ? 'اسألني عن حسابك، إيصالاتك، ميعاد الدفع…'
             : 'اسألني عن التحصيل، المتأخرات، الخزنة…';
+        updateAssistantComposerState();
         if (typeof input.focus === 'function') input.focus();
     });
 }
 
 function sendAssistantMessage(event) {
     if (event && typeof event.preventDefault === 'function') event.preventDefault();
-    const input = /** @type {HTMLInputElement | null} */ (document.getElementById('assistantInput'));
+    const input = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('assistantInput'));
     if (!input) return;
+    if (document.getElementById('assistantModal')?.dataset.assistantBusy === 'true') return;
     const text = String(input.value || '').trim();
     if (!text) return;
     input.value = '';
+    updateAssistantComposerState();
     appendAssistantMessage('user', formatAssistantUserText(text));
     const answer = answerAssistantQuery(text);
     const typing = showAssistantTyping();
@@ -2349,13 +2391,15 @@ function sendAssistantMessage(event) {
         if (typing && typing.parentNode) typing.parentNode.removeChild(typing);
         appendAssistantMessage('bot', assistantAnswerHtml(answer));
         if (answer.id === 'operation-confirm-request') {
-            void confirmAssistantOperation();
+            setAssistantBusy(true);
+            void confirmAssistantOperation().finally(() => setAssistantBusy(false));
         } else if (answer.id === 'notice-confirm-request') {
+            setAssistantBusy(true, 'جارٍ نشر الإعلان بعد تأكيدك…');
             void confirmAssistantNotice().then(saved => {
                 appendAssistantMessage('bot', assistantNote(saved
                     ? 'تم نشر الإعلان بعد تأكيدك.'
                     : 'لم يُنشر الإعلان. راجع البيانات وحاول مرة أخرى أو اكتب «إلغاء الإعلان».'));
-            });
+            }).finally(() => setAssistantBusy(false));
         } else if (answer.id === 'operation-open-form-request') {
             openAssistantOperation();
         } else if (answer.id === 'reports-open-request') {
@@ -2374,19 +2418,23 @@ function handleAssistantComposerKeydown(event) {
 }
 
 function askAssistant(query) {
-    const input = /** @type {HTMLInputElement | null} */ (document.getElementById('assistantInput'));
+    const input = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('assistantInput'));
     if (!input) return;
     input.value = String(query || '');
     sendAssistantMessage();
 }
 
 function resetAssistantChat() {
+    if (document.getElementById('assistantModal')?.dataset.assistantBusy === 'true') return;
     const log = document.getElementById('assistantLog');
     if (log) log.innerHTML = '';
     assistantChat = [];
     assistantContext = { period: null, residentId: null };
     assistantNoticeDraft = null;
     assistantOperationDraft = null;
+    const input = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('assistantInput'));
+    if (input) input.value = '';
+    updateAssistantComposerState();
     persistAssistantChat();
     persistAssistantContext();
     appendAssistantMessage('bot', buildAssistantGreetingHtml());
