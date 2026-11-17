@@ -188,6 +188,72 @@ test('a colloquial expense is previewed and saved only after typed confirmation'
     expect(Number(lastExpense.amount)).toBe(300);
 });
 
+test('compound colloquial manager questions return ordered sections without extra prompts', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    const botMessages = page.locator('#assistantLog .assistant-msg.is-bot:not(.is-typing) .assistant-bubble');
+
+    await page.locator('#assistantInput').fill('فلوسنا راحت فين وكمان مين لسه مادفعش ورصيد الصندوق كام؟');
+    await page.locator('#assistantInput').press('Enter');
+
+    await expect(botMessages.last()).toContainText('إجابة مجمعة');
+    await expect(botMessages.last()).toContainText('إجمالي المصروفات');
+    await expect(botMessages.last()).toContainText('إجمالي المتأخرات');
+    await expect(botMessages.last()).toContainText('الخزنة الرئيسية');
+    await expect(botMessages.last()).toContainText('سؤال متابعة طبيعي');
+});
+
+test('owner compound questions never reveal building-wide amounts or other residents', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    await page.evaluate(() => {
+        window.currentUserRole = 'owner';
+        window.currentResidentId = 'r1';
+        document.body.classList.add('owner-mode');
+    });
+    const botMessages = page.locator('#assistantLog .assistant-msg.is-bot:not(.is-typing) .assistant-bubble');
+
+    await page.locator('#assistantInput').fill('حسابي ورصيد الخزنة ومين عليه متأخرات؟');
+    await page.locator('#assistantInput').press('Enter');
+    await expect(botMessages.last()).toContainText('ده يخص الإدارة');
+    await expect(botMessages.last()).not.toContainText('سارة حسن');
+    await expect(botMessages.last()).not.toContainText('60 ج.م');
+});
+
+test('incomplete write requests are completed in chat before confirmation', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    const before = await page.evaluate(() => state.income.length);
+
+    await page.locator('#assistantInput').fill('سجل تحصيل 150 جنيه');
+    await page.locator('#assistantInput').press('Enter');
+    await expect(page.locator('#assistantLog')).toContainText('بيانات تحصيل ناقصة');
+    await expect(page.locator('#assistantLog')).toContainText('المالك أو رقم الشقة');
+
+    await page.locator('#assistantInput').fill('من سارة حسن شقة 7 نقدي');
+    await page.locator('#assistantInput').press('Enter');
+    await expect(page.locator('#assistantLog')).toContainText('معاينة تحصيل قبل الإدخال');
+    await expect(page.locator('#assistantLog')).toContainText('سارة حسن');
+    await expect.poll(() => page.evaluate(() => state.income.length)).toBe(before);
+
+    await page.evaluate(() => { window.saveWithRollback = async () => true; });
+    await page.locator('#assistantInput').fill('أكد التسجيل');
+    await page.locator('#assistantInput').press('Enter');
+    await expect(page.locator('#assistantLog')).toContainText('تم حفظ التحصيل بنجاح');
+    await expect.poll(() => page.evaluate(() => state.income.length)).toBe(before + 1);
+});
+
+test('typed cancellation discards a write draft without changing application state', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    const before = await page.evaluate(() => JSON.stringify({ income: state.income, expenses: state.expenses, adjustments: state.adjustments }));
+
+    await page.locator('#assistantInput').fill('قيد مصروف كهرباء 300 جنيه عن نوفمبر 2026');
+    await page.locator('#assistantInput').press('Enter');
+    await expect(page.locator('#assistantLog')).toContainText('معاينة مصروف');
+
+    await page.locator('#assistantInput').fill('إلغاء');
+    await page.locator('#assistantInput').press('Enter');
+    await expect(page.locator('#assistantLog')).toContainText('تم إلغاء المسودة');
+    await expect.poll(() => page.evaluate(() => JSON.stringify({ income: state.income, expenses: state.expenses, adjustments: state.adjustments }))).toBe(before);
+});
+
 test('owner questions about another unit or resident receive a privacy refusal', async ({ page }) => {
     await seedAndOpenAssistant(page);
     await page.evaluate(() => {
