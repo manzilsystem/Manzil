@@ -239,6 +239,7 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(html, /<button type="button" id="assistantFab"[^>]*onclick="openAssistantModal\(\)"/);
     assert.match(html, /aria-label="اسأل عم عبده البواب"/);
     assert.match(html, /class="assistant-avatar-frame assistant-fab-avatar"><img src="icons\/assistant-abbah-full\.png\?v=/, 'the launcher shows the full-body doorman');
+    assert.match(html, /id="assistantHeadAvatar" class="assistant-avatar"><img src="icons\/assistant-abbah-full\.png\?v=/, 'the circular chat avatar uses the full-body doorman');
     assert.match(html, /class="assistant-fab-greeting"[^>]*>نورت يا بيه! عم عبده في خدمتك 👋</, 'the doorman greets before the first click');
     assert.doesNotMatch(html, /class="assistant-fab-copy"/, 'the launcher is now a bare full-body character, not a labelled chip');
     assert.match(css, /\.assistant-avatar-frame img \{[\s\S]*filter: drop-shadow\(0 14px 34px var\(--assistant-fab-shadow\)\)/, 'the portrait casts a realistic drop shadow');
@@ -260,7 +261,7 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(css, /body\.owner-mode \.assistant-fab/);
     assert.match(css, /@media print \{ \.assistant-fab \{ display: none !important; \} \}/);
     assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.assistant-fab/);
-    assert.match(css, /\.assistant-avatar img \{[\s\S]*transform: scale\(1\.7\);[\s\S]*transform-origin: 50% 28%;/, 'the modal head uses the same framing as the launcher');
+    assert.match(css, /\.assistant-avatar img \{[\s\S]*object-fit: contain;[\s\S]*object-position: center bottom;[\s\S]*transform: none;[\s\S]*transform-origin: center bottom;/, 'the circular avatar contains the full-body art');
     assert.match(css, /\.assistant-hero \{/);
     assert.match(assistantSource, /icons\/assistant-abbah-full\.png/, 'the greeting shows the full-body avatar');
     assert.match(serviceWorker, /\.\/icons\/assistant-abbah\.png/);
