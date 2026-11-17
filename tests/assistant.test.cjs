@@ -632,6 +632,18 @@ test('short manager commands accept Arabic digits and sadded payment wording', (
     assert.match(answer.html, /١|1|1500/);
     assert.match(answer.html, /سارة حسن/);
 });
+test('natural paid subscription wording becomes a confirmation flow', () => {
+    const { api } = createHarness(true);
+    const incomplete = api.answerAssistantQuery('سجل ان سارة حسن دفعت 200 اشتراك شهر نوفمبر 2026', NOW);
+    assert.equal(incomplete.id, 'operation-missing');
+    assert.match(incomplete.html, /طريقة الدفع/);
+    const preview = api.answerAssistantQuery('نقدي', NOW);
+    assert.equal(preview.id, 'operation-preview');
+    assert.match(preview.html, /سارة حسن/);
+    assert.match(preview.html, /200/);
+    assert.match(preview.html, /نوفمبر 2026/);
+    assert.match(preview.html, /تأكيد وتسجيل/);
+});
 test('a missing operation can be completed in the next manager message', () => {
     const { api } = createHarness(true);
     assert.equal(api.answerAssistantQuery('سجّل تحصيل 500 جنيه من سارة حسن شقة 7 عن نوفمبر 2026', NOW).id, 'operation-missing');

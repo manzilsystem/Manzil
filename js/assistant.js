@@ -817,7 +817,7 @@ function parseAssistantOperationCommand(text, now = new Date()) {
     const hasIncomeVerb = /(?:سجل|سجّل|اضف|أضف|ضيف|استلم|قبض|سدد|سداد)/.test(normalized);
     const hasExpenseWord = /(?:مصروف|فاتوره|فاتورة|صرف)/.test(normalized);
     const hasAdjustmentWord = /(?:اعفاء|إعفاء|تخفيض|خصم|تسويه|تسوية)/.test(normalized);
-    if (hasIncomeVerb && !hasExpenseWord && !hasAdjustmentWord && /(?:تحصيل|دفعة|دفعه|استلام|استلم|قبض|حصّل|حصل|سدد|سداد)/.test(normalized)) {
+    if (hasIncomeVerb && !hasExpenseWord && !hasAdjustmentWord && /(?:تحصيل|دفعة|دفعه|دفع|استلام|استلم|قبض|حصّل|حصل|سدد|سداد)/.test(normalized)) {
         const purpose = parseAssistantOperationPurpose(normalized);
         const explicitCash = parseAssistantCashAccount(normalized);
         const cashAccountCode = explicitCash || (purpose === 'development' ? 'development' : purpose === 'emergency' ? 'emergency' : 'main');
