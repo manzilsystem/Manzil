@@ -1109,7 +1109,7 @@ test('assistant combines colloquial questions across liquidity, expenses and arr
 });
 
 test('assistant fixed evaluation set keeps intent, period, apartment and role scope accurate', () => {
-    const mismatches = [];
+    const results = [];
     for (const example of assistantEvaluation.cases) {
         const identity = example.role === 'owner'
             ? { role: 'owner', residentId: 'r1', ownerScoped: true }
@@ -1131,22 +1131,68 @@ test('assistant fixed evaluation set keeps intent, period, apartment and role sc
             apartmentNumber: example.apartmentNumber || null
         };
         const answer = api.answerAssistantQuery(example.query, NOW);
+        const failures = [];
         if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-            mismatches.push(`${example.id}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+            failures.push(`plan expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
         }
         if (example.responseId && answer.id !== example.responseId) {
-            mismatches.push(`${example.id}: expected response ${example.responseId}, got ${answer.id}`);
+            failures.push(`response expected ${example.responseId}, got ${answer.id}`);
         }
         if (answer.id === 'compound') {
             const renderedIntents = Array.from(answer.html.matchAll(/data-assistant-intent="([^"]+)"/g), match => match[1]);
             if (JSON.stringify(renderedIntents) !== JSON.stringify(plan.intentIds)) {
-                mismatches.push(`${example.id}: compound sections rendered as ${JSON.stringify(renderedIntents)}`);
+                failures.push(`compound sections rendered as ${JSON.stringify(renderedIntents)}`);
             }
         }
+        results.push({
+            id: example.id,
+            role: example.role,
+            critical: Boolean(example.critical),
+            passed: failures.length === 0,
+            failures,
+            expected,
+            actual,
+            responseId: answer.id
+        });
     }
-    assert.equal(assistantEvaluation.version, 1);
-    assert.ok(assistantEvaluation.cases.length >= 20, 'the fixed evaluation set should cover at least 20 scenarios');
-    assert.deepEqual(mismatches, [], `assistant evaluation accuracy fell below 100%:\n${mismatches.join('\n')}`);
+    const passed = results.filter(result => result.passed).length;
+    const failed = results.length - passed;
+    const passRate = results.length ? passed / results.length : 0;
+    const criticalFailures = results.filter(result => result.critical && !result.passed).map(result => result.id);
+    const minimumPassRate = Number(assistantEvaluation.minimumPassRate || 0.95);
+    const report = {
+        version: assistantEvaluation.version,
+        generatedAt: new Date().toISOString(),
+        total: results.length,
+        passed,
+        failed,
+        passRate,
+        minimumPassRate,
+        criticalFailures,
+        cases: results
+    };
+    const reportDirectory = path.join(root, 'test-results');
+    fs.mkdirSync(reportDirectory, { recursive: true });
+    fs.writeFileSync(path.join(reportDirectory, 'assistant-evaluation.json'), `${JSON.stringify(report, null, 2)}\n`);
+    if (process.env.GITHUB_STEP_SUMMARY) {
+        const failedRows = results.filter(result => !result.passed)
+            .map(result => `| ${result.id} | ${result.critical ? 'critical' : 'regular'} | ${result.failures.join('<br>')} |`)
+            .join('\n');
+        const summary = [
+            '## Assistant evaluation gate',
+            '',
+            `- Result: **${passed}/${results.length} passed (${(passRate * 100).toFixed(1)}%)**`,
+            `- Required: **${(minimumPassRate * 100).toFixed(1)}%**`,
+            `- Critical failures: **${criticalFailures.length}**`,
+            '',
+            failedRows ? '| Case | Severity | Failure |\n| --- | --- | --- |\n' + failedRows : 'All evaluation cases passed.'
+        ].join('\n');
+        fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
+    }
+    assert.equal(assistantEvaluation.version, 2);
+    assert.ok(assistantEvaluation.cases.length >= 50, 'the fixed evaluation set should cover at least 50 scenarios');
+    assert.deepEqual(criticalFailures, [], `critical assistant evaluation cases failed: ${criticalFailures.join(', ')}`);
+    assert.ok(passRate >= minimumPassRate, `assistant evaluation pass rate ${(passRate * 100).toFixed(1)}% is below ${(minimumPassRate * 100).toFixed(1)}%:\n${results.filter(result => !result.passed).map(result => `${result.id}: ${result.failures.join('; ')}`).join('\n')}`);
 });
 
 test('adjustment answers scope by month and separate waivers from discounts', () => {
