@@ -1445,19 +1445,19 @@ test('the assistant floating-button shadow palette resolves from canonical token
         assert.equal(css.split(declaration).length - 1, 1, `${declaration} must be declared exactly once`);
     }
 
-    const fab = blocks(css, '\\.assistant-fab')[0];
-    assert.ok(fab, 'expected a rule for the assistant floating action button');
-    assert.ok(/box-shadow:\s*0 14px 34px var\(--assistant-fab-shadow\)/.test(fab[1]),
-        'the assistant FAB must cast its drop shadow via var(--assistant-fab-shadow)');
+    const fab = blocks(css, '\\.assistant-avatar-frame img')[0];
+    assert.ok(fab, 'expected a rule for the assistant full-body portrait');
+    assert.ok(/drop-shadow\(0 14px 34px var\(--assistant-fab-shadow\)\)/.test(fab[1]),
+        'the assistant portrait must cast its drop shadow via var(--assistant-fab-shadow)');
     assert.ok(!/rgba\(2, 6, 23/.test(fab[1]),
-        'the assistant FAB must not keep a raw rgba(2, 6, 23, …) shadow literal');
+        'the assistant portrait must not keep a raw rgba(2, 6, 23, …) shadow literal');
 
-    const compact = blocks(css, '\\.assistant-fab\\.is-compact')[0];
-    assert.ok(compact, 'expected a rule for the compact assistant FAB');
-    assert.ok(/box-shadow:\s*0 9px 22px var\(--assistant-fab-shadow-compact\)/.test(compact[1]),
-        'the compact assistant FAB must cast its drop shadow via var(--assistant-fab-shadow-compact)');
+    const compact = blocks(css, '\\.assistant-fab\\.is-compact \\.assistant-fab-avatar img')[0];
+    assert.ok(compact, 'expected a rule for the compact assistant portrait');
+    assert.ok(/drop-shadow\(0 9px 22px var\(--assistant-fab-shadow-compact\)\)/.test(compact[1]),
+        'the compact assistant portrait must cast its drop shadow via var(--assistant-fab-shadow-compact)');
     assert.ok(!/rgba\(2, 6, 23/.test(compact[1]),
-        'the compact assistant FAB must not keep a raw rgba(2, 6, 23, …) shadow literal');
+        'the compact assistant portrait must not keep a raw rgba(2, 6, 23, …) shadow literal');
 
     // Both literals were unique to this palette; they may only survive in their token
     // definitions (the remaining rgba(2, 6, 23, …) alphas belong to excluded surfaces).
@@ -1748,4 +1748,196 @@ test('the browser theme colour palette has a single source of truth', () => {
         'backup.js must not redeclare the theme colour palette');
     assert.match(backup, /applyThemeToDocument\(state\.currentTheme\)/,
         'the JSON import must apply the imported theme through the canonical applier');
+});
+
+test('the shared report PDF shell palette resolves from canonical tokens', () => {
+    // Part 66: every report PDF (statements, monthly close, summary) is generated
+    // into a detached element before html2pdf renders it, so it cannot inherit the
+    // app :root tokens. The shared shell in js/reports.js now declares one
+    // REPORT_PDF_PALETTE and the shell constants, the table head, and the cell
+    // helpers reference it. Each value matches the literal it replaced, so the
+    // generated PDFs are unchanged.
+    const source = read('js/reports.js');
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const paletteMatch = source.match(/const REPORT_PDF_PALETTE = Object\.freeze\(\{([\s\S]*?)\}\);/);
+    assert.ok(paletteMatch, 'expected a frozen REPORT_PDF_PALETTE token map');
+    const palette = paletteMatch[1];
+
+    const tokens = {
+        ink: '#111827',
+        surface: '#fff',
+        rule: '#334155',
+        line: '#cbd5e1',
+        hairline: '#e2e8f0',
+        muted: '#475569',
+        faint: '#64748b'
+    };
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: '${value}'`;
+        assert.match(palette, new RegExp(escape(declaration)),
+            `the report PDF palette must declare ${declaration}`);
+        assert.equal(palette.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+    }
+
+    // The raw literals only survive inside the canonical palette map.
+    assert.equal((palette.match(/#[0-9a-fA-F]{3,8}\b/g) || []).length, 7,
+        'all 7 report PDF shell colors must be declared once in the palette map');
+
+    // The shared shell style constants must consume the palette, not raw colors.
+    for (const name of ['REPORT_PDF_HEADER_STYLE', 'REPORT_PDF_META_STYLE', 'REPORT_PDF_FOOTER_STYLE', 'REPORT_PDF_TABLE_HEAD_STYLE']) {
+        const line = source.split('\n').find(entry => entry.includes(`const ${name} =`));
+        assert.ok(line, `expected ${name} in js/reports.js`);
+        assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(line), `${name} must not keep a raw hex color`);
+        assert.ok(line.includes('REPORT_PDF_PALETTE.'), `${name} must consume REPORT_PDF_PALETTE`);
+    }
+
+    // The shared document, empty-row, and cell helpers must consume the palette too.
+    for (const name of ['reportPdfDocumentOpen', 'reportPdfEmptyRow', 'statementPdfCell', 'statementPdfHeadCell']) {
+        const body = source.match(new RegExp(`function ${name}\\([^]*?\\n\\}`));
+        assert.ok(body, `expected ${name} in js/reports.js`);
+        assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(body[0]), `${name} must not keep a raw hex color`);
+        assert.ok(body[0].includes('REPORT_PDF_PALETTE.'), `${name} must consume REPORT_PDF_PALETTE`);
+    }
+});
+
+test('the monthly close PDF palette resolves from canonical tokens', () => {
+    // Part 67: the monthly close PDF is generated into a detached element before
+    // html2pdf renders it, so it cannot inherit the app :root tokens. It now reuses
+    // the shared REPORT_PDF_PALETTE from js/reports.js and declares locally only the
+    // two reconciliation tone colours it owns. Each value matches the literal it
+    // replaced, so the generated PDF is unchanged.
+    const source = read('js/monthly-close.js');
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const paletteMatch = source.match(/const MONTHLY_CLOSE_PDF_PALETTE = Object\.freeze\(\{([\s\S]*?)\}\);/);
+    assert.ok(paletteMatch, 'expected a frozen MONTHLY_CLOSE_PDF_PALETTE token map');
+    const palette = paletteMatch[1];
+
+    const tokens = {
+        reconciled: '#047857',
+        discrepancy: '#b91c1c'
+    };
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: '${value}'`;
+        assert.match(palette, new RegExp(escape(declaration)),
+            `the monthly close palette must declare ${declaration}`);
+        assert.equal(palette.split(declaration).length - 1, 1,
+            `${declaration} must be declared exactly once`);
+    }
+
+    // The raw literals only survive inside the canonical palette map.
+    assert.equal((palette.match(/#[0-9a-fA-F]{3,8}\b/g) || []).length, 2,
+        'both monthly close tone colors must be declared once in the palette map');
+
+    // The shared cell style constant must consume the shared report palette.
+    const cellLine = source.split('\n').find(entry => entry.includes('const MONTHLY_CLOSE_CELL_STYLE ='));
+    assert.ok(cellLine, 'expected MONTHLY_CLOSE_CELL_STYLE in js/monthly-close.js');
+    assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(cellLine), 'MONTHLY_CLOSE_CELL_STYLE must not keep a raw hex color');
+    assert.ok(cellLine.includes('REPORT_PDF_PALETTE.'), 'MONTHLY_CLOSE_CELL_STYLE must consume REPORT_PDF_PALETTE');
+
+    // The render and export functions must consume the palettes and keep no raw hex.
+    for (const [name, body] of [
+        ['renderMonthlyClosePdfHtml', source.match(/function renderMonthlyClosePdfHtml\([^]*?\n\}/)],
+        ['exportMonthlyClosePdf', source.match(/async function exportMonthlyClosePdf\([^]*?\n\}/)]
+    ]) {
+        assert.ok(body, `expected ${name} in js/monthly-close.js`);
+        assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(body[0]), `${name} must not keep a raw hex color`);
+        assert.ok(body[0].includes('REPORT_PDF_PALETTE.') || body[0].includes('MONTHLY_CLOSE_PDF_PALETTE.'),
+            `${name} must consume the shared or monthly close palette`);
+    }
+
+    // No raw hex literal may survive anywhere in the module outside the palette map.
+    const withoutPalette = source.replace(paletteMatch[0], '');
+    assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(withoutPalette),
+        'js/monthly-close.js must not keep any raw hex color outside the palette map');
+});
+
+test('the report PDF builders route structural literals to REPORT_PDF_PALETTE', () => {
+    // Part 68: the hand-written tables in the report PDF builders inlined their cell
+    // borders, table-head fills, empty cells, footnotes and the export surface. They now
+    // use shared constants that consume REPORT_PDF_PALETTE, so no raw structural colour
+    // survives outside the palette map. Content tone colours (emerald/rose/amber) are
+    // content, not structure, and stay as literals.
+    const source = read('js/reports.js');
+
+    const paletteMatch = source.match(/const REPORT_PDF_PALETTE = Object\.freeze\(\{([\s\S]*?)\}\);/);
+    assert.ok(paletteMatch, 'expected a frozen REPORT_PDF_PALETTE token map');
+    assert.equal((paletteMatch[1].match(/#[0-9a-fA-F]{3,8}\b/g) || []).length, 7,
+        'the report PDF palette must declare its seven structural colours once');
+
+    // The shared structural constants must exist, resolve from the palette, and keep no hex.
+    for (const name of [
+        'REPORT_PDF_CELL_STYLE',
+        'REPORT_PDF_EMPTY_CELL_BASE',
+        'REPORT_PDF_EMPTY_CELL_STYLE',
+        'REPORT_PDF_FOOTNOTE_STYLE',
+        'REPORT_PDF_SUMMARY_NOTE_STYLE'
+    ]) {
+        const line = source.split('\n').find(entry => entry.includes(`const ${name} =`));
+        assert.ok(line, `expected ${name} in js/reports.js`);
+        assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(line), `${name} must not keep a raw hex color`);
+        assert.ok(line.includes('REPORT_PDF_PALETTE.') || line.includes('REPORT_PDF_EMPTY_CELL_BASE'),
+            `${name} must consume the shared palette`);
+    }
+
+    // Outside the palette map only the content tone colours may remain as raw hex.
+    const withoutPalette = source.replace(paletteMatch[0], '');
+    const leftovers = withoutPalette.match(/#[0-9a-fA-F]{3,8}\b/g) || [];
+    const allowedTones = new Set(['#047857', '#be123c', '#b45309']);
+    const unexpected = leftovers.filter(token => !allowedTones.has(token.toLowerCase()));
+    assert.deepEqual(unexpected, [],
+        'js/reports.js must route every structural hex literal to REPORT_PDF_PALETTE');
+
+    // The content tones are deliberately kept, so they must still be present.
+    for (const tone of allowedTones) {
+        assert.ok(withoutPalette.toLowerCase().includes(tone),
+            `the content tone ${tone} must stay in the report PDF builders`);
+    }
+
+    // The export helpers must paint the surface from the palette, not a raw hex.
+    const exports = source.split('\n').filter(entry => entry.includes('backgroundColor:'));
+    assert.ok(exports.length >= 2, 'expected the report PDF export helpers');
+    for (const entry of exports) {
+        assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(entry),
+            'the report PDF export helper must not keep a raw hex surface');
+        assert.ok(entry.includes('REPORT_PDF_PALETTE.surface'),
+            'the report PDF export helper must consume REPORT_PDF_PALETTE.surface');
+    }
+});
+
+test('the service-worker update toast resolves from canonical tokens', () => {
+    // Part 69: the in-app "update available" toast built in js/sw-register.js inlined
+    // its teal surface, white ink, edge and shadow as raw literals. It now resolves
+    // from the canonical update-toast tokens declared once in :root. Each token matches
+    // the literal it replaced, so no visual change is introduced.
+    const css = read('css/style.css');
+    const rootBlock = blocks(css, ':root')[0][1];
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const tokens = {
+        '--update-toast-surface': '#0f766e',
+        '--update-toast-ink': '#fff',
+        '--update-toast-edge': 'rgba(255,255,255,.6)',
+        '--update-toast-shadow': 'rgba(0,0,0,.35)'
+    };
+    for (const [name, value] of Object.entries(tokens)) {
+        const declaration = `${name}: ${value};`;
+        assert.match(rootBlock, new RegExp(escape(declaration)), `:root must declare ${declaration}`);
+        assert.equal(css.split(declaration).length - 1, 1, `${declaration} must be declared exactly once`);
+    }
+
+    // The toast builder must consume every token and keep no raw hex literal.
+    const source = read('js/sw-register.js');
+    assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(source),
+        'js/sw-register.js must not keep a raw hex colour literal');
+    for (const name of Object.keys(tokens)) {
+        assert.ok(new RegExp(`var\\(${escape(name)}\\)`).test(source),
+            `the update toast must consume var(${name})`);
+    }
+
+    // #0f766e was unique to this palette; it may only survive in its token definition.
+    const found = css.match(new RegExp(escape('#0f766e'), 'g')) || [];
+    assert.equal(found.length, 1, '#0f766e must only appear in the canonical token definition');
 });

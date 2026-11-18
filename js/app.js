@@ -47,7 +47,7 @@ function focusModal(modal) {
     modal.focus();
 }
 
-// Modals an owner may open: the assistant is read-only and answers only from the owner's own scoped data.
+// An owner may open only the read-only assistant, which remains scoped to the linked unit.
 const OWNER_ALLOWED_MODALS = new Set(['assistantModal']);
 
 function openModal(id) {

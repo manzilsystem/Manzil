@@ -38,6 +38,32 @@ test('deleting a notice records the deletion in the audit log', async () => {
     assert.deepEqual(sandbox.state.auditLogs, [{ action: 'حذف إعلان', details: 'إعلان الصيانة' }]);
 });
 
+test('publishing a notice passes the same request_id to the atomic save path', async () => {
+    let receivedRequestId = null;
+    const sandbox = {
+        state: { notices: [], auditLogs: [] },
+        requireManager: () => true,
+        generateId: () => 'notice-id',
+        cloneStateSnapshot: () => JSON.parse(JSON.stringify(sandbox.state)),
+        saveWithRollback: async (_previousState, requestId) => {
+            receivedRequestId = requestId;
+            return true;
+        },
+        renderNotices() {},
+        toast() {},
+        logAction(action, details) { sandbox.state.auditLogs.push({ action, details }); },
+    };
+    const app = vm.runInNewContext(`${source}\n({ publishNoticeWithRequestId })`, sandbox, {
+        filename: 'js/notices.js',
+    });
+
+    const saved = await app.publishNoticeWithRequestId('إعلان اختبار', 'request-123');
+
+    assert.equal(saved, true);
+    assert.equal(receivedRequestId, 'request-123');
+    assert.equal(sandbox.state.notices.length, 1);
+});
+
 
 test('notice and WhatsApp handlers are loaded as a dedicated cached module', () => {
     for (const name of ['openNoticeModal', 'applyNoticeTemplate', 'handleNoticeSubmit', 'deleteNotice', 'shareNoticeToWhatsApp', 'copyNoticeToClipboard', 'cleanPhone', 'sendWhatsAppReminder', 'sendIncomeReceiptOnWhatsApp']) {

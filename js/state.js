@@ -342,20 +342,24 @@ let saveRollbackPendingCount = 0;
 let saveRollbackBaseline = null;
 let saveExecutionQueue = Promise.resolve();
 
-function enqueueStateSave() {
-    const queuedSave = saveExecutionQueue.then(() => saveState());
+function hasPendingStateSave() {
+    return saveRollbackPendingCount > 0;
+}
+
+function enqueueStateSave(requestId = null) {
+    const queuedSave = saveExecutionQueue.then(() => saveState(requestId));
     saveExecutionQueue = queuedSave.then(() => undefined, () => undefined);
     return queuedSave;
 }
 
-async function saveWithRollback(previousState) {
+async function saveWithRollback(previousState, requestId = null) {
     if (saveRollbackPendingCount === 0) saveRollbackBaseline = previousState;
     saveRollbackPendingCount += 1;
     const attemptedState = cloneStateSnapshot();
 
     let saved = false;
     try {
-        saved = await enqueueStateSave();
+        saved = await enqueueStateSave(requestId);
     } catch (error) {
         console.error('Save operation failed:', error);
     }

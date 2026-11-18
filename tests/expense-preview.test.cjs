@@ -28,7 +28,8 @@ test('expense submit prevents concurrent duplicate submissions and resets previe
 
 
 test('expense records can be edited and the previous account amount is credited during validation', () => {
-    assert.match(crud, /function openExpenseModal\(\)/);
+    assert.match(crud, /function openExpenseModal\(options = \{\}\)/);
+    assert.match(crud, /if \(options\.showModal !== false\) openModal\('expenseModal'\)/);
     assert.match(crud, /function openExpenseEditModal\(id\)/);
     assert.match(crud, /state\.expenses = state\.expenses\.map\(item => item\.id === editingExpenseId/);
     assert.match(crud, /getCashAccountBalance\(cashAccountCode\) \+\s*\(existingExpense && \(existingExpense\.cashAccountCode \|\| 'main'\) === cashAccountCode/);

@@ -7,18 +7,18 @@ interface ManzilSupabaseConfig {
     anonKey?: string;
 }
 
-interface AssistantAvatar3DController {
-    mount: () => void;
-    unmount: () => void;
-    state: () => 'idle' | 'loading' | 'ready' | 'error' | 'unsupported';
-    isReady: () => boolean;
+interface ManzilAssistantChatStore {
+    isAvailable?: () => boolean;
+    load?: () => Promise<{ messages?: Array<{ sender_type?: string; body?: string; created_at?: string }>; context?: Record<string, unknown> } | null>;
+    append?: (senderType: 'user' | 'assistant', body: string, metadata?: Record<string, unknown>) => Promise<boolean>;
+    clear?: () => Promise<boolean>;
 }
 
 interface Window {
-    AssistantAvatar3D?: AssistantAvatar3DController;
     currentUserRole?: string;
     supabase?: any;
     manzilSupabaseConfig?: ManzilSupabaseConfig;
+    manzilAssistantChatStore?: ManzilAssistantChatStore;
     manzilReportError?: (message: unknown) => void;
     manzilErrorLog?: () => unknown[];
     MANZIL_RELEASE?: string;
