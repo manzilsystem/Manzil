@@ -1941,3 +1941,24 @@ test('the service-worker update toast resolves from canonical tokens', () => {
     const found = css.match(new RegExp(escape('#0f766e'), 'g')) || [];
     assert.equal(found.length, 1, '#0f766e must only appear in the canonical token definition');
 });
+
+test('the settings danger hover ink resolves from its canonical token', () => {
+    const css = read('css/style.css');
+    const settingsBlock = blocks(css, '#settingsModal')[0][1];
+    const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const declaration = '--settings-danger-hover-ink: #fda4af;';
+
+    assert.match(settingsBlock, new RegExp(escape(declaration)),
+        `#settingsModal must declare ${declaration}`);
+    assert.equal(css.split(declaration).length - 1, 1,
+        `${declaration} must be declared exactly once`);
+
+    const hover = css.match(/#settingsModal \.settings-secondary-button\.is-danger:hover \{([^}]*)\}/);
+    assert.ok(hover, 'expected the settings danger button hover rule');
+    assert.match(hover[1], /color:\s*var\(--settings-danger-hover-ink\)/,
+        'the settings danger hover must use its canonical ink token');
+    assert.doesNotMatch(hover[1], /#fda4af/,
+        'the settings danger hover must not keep a raw color literal');
+    assert.equal((css.match(/#fda4af/g) || []).length, 1,
+        '#fda4af must only appear in the canonical token definition');
+});
