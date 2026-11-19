@@ -353,6 +353,108 @@ async function supabaseQueryAllById(table, columns = '*', pageSize = 1000) {
     }
 }
 
+function assistantChatScopeKey() {
+    return currentUserRole === 'owner'
+        ? `owner-${String(typeof currentResidentId === 'string' ? currentResidentId : '')}`
+        : 'manager';
+}
+
+function assistantChatResidentId() {
+    return currentUserRole === 'owner' && typeof currentResidentId === 'string' && currentResidentId
+        ? currentResidentId
+        : null;
+}
+
+async function loadAssistantChatHistory() {
+    if (!activeSession?.user?.id || !activeBuildingId) return null;
+    const scopeKey = assistantChatScopeKey();
+    const { data: conversation, error: conversationError } = await supabaseClient
+        .from('assistant_conversations')
+        .select('id,context,updated_at')
+        .eq('building_id', activeBuildingId)
+        .eq('scope_key', scopeKey)
+        .limit(1)
+        .maybeSingle();
+    if (conversationError) throw conversationError;
+    if (!conversation) return { messages: [], context: {} };
+    let messagesQuery = supabaseClient
+        .from('assistant_messages')
+        .select('sender_type,body,created_at')
+        .eq('conversation_id', conversation.id)
+        .order('created_at', { ascending: true })
+        .limit(30);
+    const chatEpoch = typeof conversation.context?.chat_epoch === 'string' ? conversation.context.chat_epoch : null;
+    if (chatEpoch) messagesQuery = messagesQuery.eq('metadata->>chat_epoch', chatEpoch);
+    const { data: messages, error: messagesError } = await messagesQuery;
+    if (messagesError) throw messagesError;
+    return { messages: messages || [], context: conversation.context || {} };
+}
+
+async function appendAssistantChatMessage(senderType, body, metadata = {}) {
+    if (!activeSession?.user?.id || !activeBuildingId) return false;
+    const scopeKey = assistantChatScopeKey();
+    const { data: conversation, error: conversationError } = await supabaseClient
+        .from('assistant_conversations')
+        .upsert({
+            building_id: activeBuildingId,
+            user_id: activeSession.user.id,
+            resident_id: assistantChatResidentId(),
+            scope_key: scopeKey,
+            title: 'عم عبده'
+        }, { onConflict: 'building_id,user_id,scope_key' })
+        .select('id,context')
+        .single();
+    if (conversationError) throw conversationError;
+    const { error: messageError } = await supabaseClient
+        .from('assistant_messages')
+        .insert({
+            conversation_id: conversation.id,
+            building_id: activeBuildingId,
+            sender_id: senderType === 'user' ? activeSession.user.id : null,
+            sender_type: senderType === 'user' ? 'user' : 'assistant',
+            body: String(body || '').slice(0, 12000),
+            metadata: {
+                ...(metadata && typeof metadata === 'object' ? metadata : {}),
+                ...(typeof conversation.context?.chat_epoch === 'string' ? { chat_epoch: conversation.context.chat_epoch } : {})
+            }
+        });
+    if (messageError) throw messageError;
+    return true;
+}
+
+async function clearAssistantChatHistory() {
+    if (!activeSession?.user?.id || !activeBuildingId) return false;
+    const scopeKey = assistantChatScopeKey();
+    const { data: conversation, error: conversationError } = await supabaseClient
+        .from('assistant_conversations')
+        .upsert({
+            building_id: activeBuildingId,
+            user_id: activeSession.user.id,
+            resident_id: assistantChatResidentId(),
+            scope_key: scopeKey,
+            title: 'عم عبده'
+        }, { onConflict: 'building_id,user_id,scope_key' })
+        .select('id,context')
+        .single();
+    if (conversationError) throw conversationError;
+    const chatEpoch = typeof crypto?.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const { error: clearError } = await supabaseClient
+        .from('assistant_conversations')
+        .update({ context: { ...(conversation.context || {}), period: null, residentId: null, chat_epoch: chatEpoch } })
+        .eq('id', conversation.id);
+    if (clearError) throw clearError;
+    return true;
+}
+
+window.manzilAssistantChatStore = Object.freeze({
+    isAvailable: () => Boolean(activeSession?.user?.id && activeBuildingId),
+    load: loadAssistantChatHistory,
+    append: appendAssistantChatMessage,
+    clear: clearAssistantChatHistory
+});
+
 function stopOwnerNotificationsRealtime() {
     if (!ownerNotificationsChannel) return;
     const channel = ownerNotificationsChannel;

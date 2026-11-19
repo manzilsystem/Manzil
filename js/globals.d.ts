@@ -7,10 +7,18 @@ interface ManzilSupabaseConfig {
     anonKey?: string;
 }
 
+interface ManzilAssistantChatStore {
+    isAvailable?: () => boolean;
+    load?: () => Promise<{ messages?: Array<{ sender_type?: string; body?: string; created_at?: string }>; context?: Record<string, unknown> } | null>;
+    append?: (senderType: 'user' | 'assistant', body: string, metadata?: Record<string, unknown>) => Promise<boolean>;
+    clear?: () => Promise<boolean>;
+}
+
 interface Window {
     currentUserRole?: string;
     supabase?: any;
     manzilSupabaseConfig?: ManzilSupabaseConfig;
+    manzilAssistantChatStore?: ManzilAssistantChatStore;
     manzilReportError?: (message: unknown) => void;
     manzilErrorLog?: () => unknown[];
     MANZIL_RELEASE?: string;
