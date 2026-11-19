@@ -908,6 +908,7 @@ async function saveState() {
 function clearAuthenticatedState() {
     stopOwnerNotificationsRealtime();
     stopManagerNotificationsRealtime();
+    if (typeof resetAssistantSessionForAuthChange === 'function') resetAssistantSessionForAuthChange();
     authGeneration += 1;
     if (pendingBuildingSelection) {
         const pending = pendingBuildingSelection;
