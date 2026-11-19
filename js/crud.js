@@ -412,6 +412,7 @@ function openAssistantResidentDraft(draft, options = {}) {
     const name = /** @type {HTMLInputElement | null} */ (document.getElementById('residentName'));
     const apartment = /** @type {HTMLSelectElement | null} */ (document.getElementById('residentApartment'));
     const phone = /** @type {HTMLInputElement | null} */ (document.getElementById('residentPhone'));
+    const tenantName = /** @type {HTMLInputElement | null} */ (document.getElementById('residentTenantName'));
     const amount = /** @type {HTMLInputElement | null} */ (document.getElementById('residentAmount'));
     const billingStart = /** @type {HTMLInputElement | null} */ (document.getElementById('residentBillingStart'));
     if (name && draft?.name) name.value = String(draft.name);
@@ -420,6 +421,7 @@ function openAssistantResidentDraft(draft, options = {}) {
         apartment.value = String(draft.apartmentNumber);
     }
     if (phone && draft?.phone) phone.value = String(draft.phone);
+    if (tenantName && draft?.tenantName) tenantName.value = String(draft.tenantName);
     const tenantPhone = /** @type {HTMLInputElement | null} */ (document.getElementById('residentTenantPhone'));
     if (tenantPhone && draft?.tenantPhone) tenantPhone.value = String(draft.tenantPhone);
     if (amount && draft?.amount) amount.value = String(draft.amount);
