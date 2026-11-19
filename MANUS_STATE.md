@@ -1,9 +1,9 @@
 # MANUS_STATE — لقطة استئناف Manzil
 
-آخر تحديث: 2026-11-19، بعد رفع PR #464 وبدء فحوص GitHub.
+آخر تحديث: 2026-11-19، بعد دمج PR #466 والتحقق من نشر Pages.
 
 ## المستودع وGitHub
-المستودع [manzilsystem/Manzil](https://github.com/manzilsystem/Manzil). رأس `main` الحالي `86259d4a61daef3ee3190b85eb432d582938f16e` بعد [PR #463](https://github.com/manzilsystem/Manzil/pull/463)، وآخر تغيير تطبيقي مدمج [PR #462](https://github.com/manzilsystem/Manzil/pull/462) عند `f5dd257834129c82e78d98a40e7d2fad5ee7858a`. فرع `feat/assistant-report-routing` مرفوع، و[PR #464](https://github.com/manzilsystem/Manzil/pull/464) مفتوح إلى `main`؛ commit التطبيق `af98e3dca1b24d7fdfa0802f5f01bd3807dc53ea`. لا توجد PRs أخرى مفتوحة. فحوص PR #464: **6 قيد التنفيذ، 0 فاشلة، 1 متخطٍ** (Supabase Preview) وقت آخر فحص؛ الدمج لم يحدث بعد.
+المستودع [manzilsystem/Manzil](https://github.com/manzilsystem/Manzil). رأس `main` الحالي `c70855c` بعد [PR #466](https://github.com/manzilsystem/Manzil/pull/466)، وآخر تغيير تطبيقي سابق [PR #464](https://github.com/manzilsystem/Manzil/pull/464) عند `e961f02`. لا توجد PRs مفتوحة. فحوص PR #466 و`main`: Quality وNode/PostgreSQL وLighthouse وBrowser E2E وPages ناجحة، وSupabase Preview متخطٍ.
 
 ## S20/S21 — ما أُنجز والمتبقي
 وُجد أن `openAssistantReportsRequest` غير موصول بإرسال رسائل المساعد؛ أمر المدير الصريح بفتح تقرير كان يفتح التبويب الافتراضي فقط. على فرع #464 أُوصل الطلب إلى التبويب الرسمي المحدد، وربط التحصيل بتقرير الملاك الموجود فعلًا، وحدد الشهر في فلاتر الشهر/الفترة المدعومة، واختير مالك فريد عند طلب كشفه. يُرفض توجيه التقارير للمالك. هذه ميزة تنقّل فقط، دون قراءة/كتابة مالية جديدة.
@@ -13,16 +13,16 @@
 ## الاختبارات والفحوص
 | النطاق | النتيجة |
 |---|---|
-| Node على فرع #464 | `npm test`: 967/967 ناجح |
+| Node على main بعد #466 | `npm test`: 968/968 ناجح |
 | فحص الأنواع | `npm run typecheck`: نجاح |
-| الأصول المولدة | `npm run build:index` و`npm run check:index`: نجاح؛ الإصدار المحلي `manzil-0a7e48f0a1` |
+| الأصول المولدة | `npm run build:index` و`npm run check:index`: نجاح؛ الإصدار المنشور `manzil-e7b863a6d6` |
 | whitespace | `git diff --check`: نجاح |
 | Playwright المحلي | متخطٍ؛ `@playwright/test` ومتصفح Chromium غير مثبتين. أُضيف E2E لفتح تبويب المصروفات، وينتظر فحص المتصفح في CI |
-| GitHub PR #464 | ستة checks قيد التنفيذ؛ Supabase Preview متخطٍ؛ لا فشل حتى الآن |
-| main قبل التغيير | Quality Checks وPages ناجحان بعد PR #463؛ فحوص #462 ناجحة، وSupabase Preview متخطٍ |
+| GitHub PR #466 وmain | ستة checks ناجحة، Supabase Preview متخطٍ؛ Browser E2E على main: 207 ناجحة واختبار واحد متخطٍ |
+| التحقق الحي | الصفحة و`sw.js` أعادا HTTP 200 ويحملان `manzil-e7b863a6d6`؛ `css/style.css` يحمل `--settings-danger-hover-ink: #fda4af` |
 
 ## Supabase وسلامة البيانات
-المشروع الحي Manzil، ref `musvcrkljccubwbcrtjs`، المنطقة `eu-north-1`، والحالة `ACTIVE_HEALTHY`. أحدث migration `assistant_chat` (`20261117012340`). فحوص advisor الحالية: خمسة جداول عليها RLS بلا سياسات (INFO، منع افتراضي في RLS)، امتداد `pg_net` في `public` (WARN)، دالتان `SECURITY DEFINER` متاحتان لـ`authenticated` (WARN)، وحماية كلمات المرور المسرّبة معطلة (WARN). لم تُقرأ صفوف المستخدمين، ولم تُجرَ أي كتابة أو تغييرات إعدادات/RLS أو تطبيق migrations؛ Supabase Preview في #464 متخطٍ لا ناجح.
+المشروع الحي Manzil، ref `musvcrkljccubwbcrtjs`، المنطقة `eu-north-1`، والحالة `ACTIVE_HEALTHY`. لم تُجرَ أي كتابة أو تغييرات إعدادات/RLS أو تطبيق migrations؛ Supabase Preview في #466 متخطٍ لا ناجح.
 
 ## التنظيف والخطوة التالية
-أعيدت الأصول المولدة بالطريقة الرسمية؛ لم يُحذف أي ملف أو وظيفة. الخطوة التالية متابعة فحوص #464، والتأكد من نتيجتها وموافقة/سياسة المستودع قبل الدمج. بعد نجاح الشروط يُدمج PR، ويُتحقق من دخوله إلى `main`، ثم يُحذف فرع الميزة وحده؛ تُثبت النتائج النهائية هنا. لا يُغيّر مسار الإيجار أو صلاحياته ضمن هذا العمل.
+أعيدت الأصول المولدة بالطريقة الرسمية؛ أُنجز S24 الجزء 70 بتوحيد رمز لون تحويم حالة الخطر في إعدادات الجلسة مع اختبار حارس، بلا تغيير مالي أو صلاحيات أو قاعدة بيانات. الخطوة التالية المحددة: تدقيق فجوة قراءة حسب الدور في S20، ولا يبدأ جزء جديد قبل إثباته باختبار.
