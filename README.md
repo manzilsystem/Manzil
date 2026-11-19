@@ -25,11 +25,11 @@ npm run check:index   # يفشل إن كان index.html غير محدَّث
 
 | الأمر | التغطية | الحالة |
 |---|---|---|
-| `npm test` | 959 اختبار Node: الحالة، الصلاحيات، التقارير، الحفظ الذري، التحصيل والصناديق، النسخ الاحتياطي، المساعد المحلي، الإشعارات ومدة التأخر، آلية التحديث التلقائي | يمر |
+| `npm test` | 963 اختبار Node: الحالة، الصلاحيات، التقارير، الحفظ الذري، التحصيل والصناديق، النسخ الاحتياطي، المساعد المحلي، الإشعارات ومدة التأخر، آلية التحديث التلقائي | يمر محليًا في تحقق 2026-11-19 |
 | `npm run typecheck` | `tsc --noEmit` على وحدات JS المعلَّمة بـ`// @ts-check` | يمر |
-| `npm run e2e` | 202 اختبار Playwright (desktop + mobile) | [201 ناجح، 1 متخطٍ في آخر فحص main بتاريخ 2026-11-19](https://github.com/manzilsystem/Manzil/actions/runs/44511940031) |
-| `deno test supabase/functions` | 61 اختبار Edge Functions مع خادم Supabase وهمي | يمر |
-| تكامل PostgreSQL | يعمل في CI عبر `supabase db reset --local` و`tests/post-restore-verify.sql` | يمر |
+| `npm run e2e` | 204 حالة Playwright مُكتشفة (desktop + mobile) | [نجح تشغيل main بعد PR #460](https://github.com/manzilsystem/Manzil/actions/runs/44537827032)؛ لم يُشغّل محليًا |
+| `deno test supabase/functions` | اختبارات Edge Functions مع خادم Supabase وهمي | فحص Edge في PR #460 ناجح؛ لم يُشغّل محليًا |
+| تكامل PostgreSQL | يعمل في CI عبر `supabase db reset --local` و`tests/post-restore-verify.sql` | فحص PostgreSQL في PR #460 ناجح؛ لم يُشغّل محليًا |
 
 CI يعمل على كل Pull Request وتحديث `main`: `node-tests.yml` و`e2e.yml` و`quality-checks.yml` و`lighthouse.yml` و`supabase-local-seed.yml`.
 
