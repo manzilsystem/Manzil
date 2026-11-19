@@ -300,7 +300,7 @@ test('the manager confirms an assistant collection in the official form and gets
     });
 
     await askAssistantQuestion(page, command);
-    await page.getByRole('button', { name: 'فتح النموذج للمراجعة' }).click();
+    await askAssistantQuestion(page, 'افتح النموذج');
     await expect(page.locator('#incomeModal')).toBeVisible();
     const confirmButton = page.locator('#incomeSubmitButton');
     await expect(confirmButton).toHaveText('تأكيد وتسجيل التحصيل عبر عم عبده');
