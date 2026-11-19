@@ -1697,6 +1697,7 @@ test('building-wide questions are refused for owners instead of answered with th
         assert.match(answer.html, /دي تخص إدارة العمارة|بتظهر في حسابك/);
         assert.doesNotMatch(answer.html, /1,200|390|200\.00/, 'no building aggregate leaks into the refusal');
     }
+    assert.equal(api.answerAssistantQuery('الفلوس راحت فين؟', NOW).id, 'owner_scope');
     const adjustments = api.answerAssistantQuery('الإعفاءات والتخفيضات', NOW);
     assert.equal(adjustments.id, 'my_adjustments');
     assert.doesNotMatch(adjustments.html, /سارة|خصم أخوة/);
