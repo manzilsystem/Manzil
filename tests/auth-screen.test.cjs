@@ -53,7 +53,7 @@ test('sign-in copy no longer carries superseded fallback rules', () => {
     assert.doesNotMatch(css, /--auth-ink-secondary\s*:/);
     assert.doesNotMatch(css, /\.auth-trust-note i\s*\{\s*color:\s*#a5b4fc\s*;\s*\}/);
     assert.doesNotMatch(css, /\.auth-rights\s*\{\s*color:\s*#94a3b8\s*;\s*\}/);
-    assert.match(css, /#pinLockModal \.auth-trust-note i\s*\{\s*color:\s*#27c2cb\s*;\s*\}/);
+    assert.match(css, /#pinLockModal \.auth-trust-note i\s*\{\s*color:\s*var\(--auth-ink-trust-icon\)\s*;\s*\}/);
 
     const trustNoteRules = [...css.matchAll(/(?:^|\n)\.auth-trust-note\s*\{([^}]*)\}/g)];
     assert.equal(trustNoteRules.length, 1, 'expected only the current trust note base rule');
