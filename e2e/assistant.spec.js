@@ -363,6 +363,32 @@ test('natural language requests start in-chat operation drafts without shortcut 
     await expect(page.locator('#assistantLog')).toContainText('تعديل بيانات الشقة ناقصة');
 });
 
+test('assistant opens resident edit with tenant phone in its own field and preserves the owner phone and billing start', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    const existingBillingStart = await page.evaluate(() => {
+        const resident = state.residents.find(item => item.apartmentNumber === '7');
+        resident.isRented = true;
+        resident.phone = '01011112222';
+        resident.tenantName = 'يوسف';
+        resident.tenantPhone = '01033334444';
+        renderAll();
+        return resident.billingStartMonth;
+    });
+
+    await page.locator('#assistantInput').fill('عدّل بيانات شقة 7 هاتف المستأجر 01099998888');
+    await page.locator('#assistantInput').press('Enter');
+    await expect(page.locator('#assistantLog')).toContainText('هاتف المستأجر 01099998888');
+    await page.locator('#assistantInput').fill('افتح النموذج');
+    await page.locator('#assistantInput').press('Enter');
+
+    await expect(page.locator('#residentModal')).toBeVisible();
+    await expect(page.locator('#residentPhone')).toHaveValue('01011112222');
+    await expect(page.locator('#residentTenantPhone')).toHaveValue('01099998888');
+    await expect(page.locator('#residentTenantName')).toHaveValue('يوسف');
+    await expect(page.locator('#residentBillingStart')).toHaveValue(existingBillingStart.slice(0, 7));
+    await expect(page.locator('#residentIsRented')).toBeChecked();
+});
+
 test('assistant notice drafts use typed cancellation and have no in-chat action buttons', async ({ page }) => {
     await seedAndOpenAssistant(page);
     await page.locator('#assistantInput').fill('اكتب إعلان: سيتم غلق المياه غدًا');
