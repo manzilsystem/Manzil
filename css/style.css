@@ -1440,6 +1440,9 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
        changes nothing visually. */
     --settings-warning-ink: #d97706;
     --settings-danger-ink: #dc2626;
+    /* Canonical hover ink for the danger action. It is theme-invariant and
+       matches the literal it replaces, so the hover state stays unchanged. */
+    --settings-danger-hover-ink: #fda4af;
     /* Canonical accent colors for the five settings card tones that do not
        map to an existing settings token (teal→--settings-accent,
        gold→--settings-gold, emerald→--settings-emerald are already routed).
@@ -3927,7 +3930,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #settingsModal .settings-secondary-button.is-danger:hover {
     border-color: var(--settings-danger-veil-50);
-    color: #fda4af;
+    color: var(--settings-danger-hover-ink);
 }
 
 /* ---------- Settings v2 responsive ---------- */
