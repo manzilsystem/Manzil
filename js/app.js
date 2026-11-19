@@ -72,7 +72,7 @@ function openModal(id) {
 }
 
 function closeModal(id) {
-    if (['incomeModal', 'expenseModal', 'adjustmentModal'].includes(id)
+    if (['incomeModal', 'expenseModal', 'adjustmentModal', 'residentModal'].includes(id)
         && typeof clearAssistantOperationContext === 'function') {
         clearAssistantOperationContext();
     }

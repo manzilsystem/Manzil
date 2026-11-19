@@ -1736,6 +1736,7 @@ test('all assistant-origin financial forms share the same request-id commit and 
     assert.match(crudSource, /crudAssistantOperationReady\('adjustment'\)[\s\S]*?crudAssistantOperationReady\('income'\)[\s\S]*?crudAssistantOperationReady\('expense'\)/, 'all three forms use the shared assistant confirmation gate');
     assert.match(stateSource, /assistantAuditDetails\(details\)/, 'the shared audit logger adds request source metadata');
     assert.match(appSource, /clearAssistantOperationContext\(\)/, 'closing the official form cleans up or retains the correct context');
+    assert.match(appSource, /function closeModal\(id\)[\s\S]{0,200}'residentModal'[\s\S]{0,120}clearAssistantOperationContext/, 'closing the resident form also clears or retains its assistant context safely');
     assert.match(supabaseSource, /p_request_id:\s*requestId/, 'the stable id reaches the existing atomic Supabase RPC');
 });
 test('assistant edits and deletions use manager gates, record-specific confirmation and audit ids', () => {
