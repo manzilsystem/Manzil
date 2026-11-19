@@ -25,9 +25,9 @@ npm run check:index   # يفشل إن كان index.html غير محدَّث
 
 | الأمر | التغطية | الحالة |
 |---|---|---|
-| `npm test` | 953 اختبار Node: الحالة، الصلاحيات، التقارير، الحفظ الذري، التحصيل والصناديق، النسخ الاحتياطي، المساعد المحلي، الإشعارات ومدة التأخر، آلية التحديث التلقائي | يمر |
+| `npm test` | 959 اختبار Node: الحالة، الصلاحيات، التقارير، الحفظ الذري، التحصيل والصناديق، النسخ الاحتياطي، المساعد المحلي، الإشعارات ومدة التأخر، آلية التحديث التلقائي | يمر |
 | `npm run typecheck` | `tsc --noEmit` على وحدات JS المعلَّمة بـ`// @ts-check` | يمر |
-| `npm run e2e` | 202 اختبار Playwright (desktop + mobile) | 201 ناجح، 1 متخطٍ في آخر فحص main بتاريخ 2026-11-19 |
+| `npm run e2e` | 202 اختبار Playwright (desktop + mobile) | [201 ناجح، 1 متخطٍ في آخر فحص main بتاريخ 2026-11-19](https://github.com/manzilsystem/Manzil/actions/runs/44511940031) |
 | `deno test supabase/functions` | 61 اختبار Edge Functions مع خادم Supabase وهمي | يمر |
 | تكامل PostgreSQL | يعمل في CI عبر `supabase db reset --local` و`tests/post-restore-verify.sql` | يمر |
 
