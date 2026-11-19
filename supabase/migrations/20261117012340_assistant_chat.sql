@@ -127,12 +127,14 @@ with check (
         sender_type = 'assistant'
         and sender_id is null
     )
+    )
     and exists (
-    select 1
-    from public.assistant_conversations conversation
-    where conversation.id = assistant_messages.conversation_id
-      and conversation.building_id = assistant_messages.building_id
-      and conversation.user_id = (select auth.uid())
+        select 1
+        from public.assistant_conversations conversation
+        where conversation.id = assistant_messages.conversation_id
+          and conversation.building_id = assistant_messages.building_id
+          and conversation.user_id = (select auth.uid())
+    )
 );
 
 create or replace function private.touch_assistant_conversation()
