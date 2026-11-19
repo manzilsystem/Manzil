@@ -1101,6 +1101,95 @@ function buildPeriodReport(fromMonth, toMonth, purposeFilter = '', cashAccountFi
     };
 }
 
+function canUsePeriodReportRpc() {
+    return typeof supabaseClient !== 'undefined'
+        && typeof supabaseClient?.rpc === 'function'
+        && typeof activeBuildingId !== 'undefined'
+        && Boolean(activeBuildingId)
+        && typeof currentUserRole !== 'undefined'
+        && currentUserRole === 'manager';
+}
+
+function normalizeServerPeriodReport(serverReport, localReport) {
+    if (!serverReport || !Array.isArray(serverReport.months) || !localReport) return null;
+    const months = serverReport.months.map(row => {
+        const key = String(row?.key || '').slice(0, 10);
+        const month = getStatementMonthLabel(key);
+        if (!/^\d{4}-\d{2}-01$/.test(key) || !month) return null;
+        const cents = value => Number.isFinite(Number(value)) ? Math.round(Number(value)) : 0;
+        const rate = row.rate === null || row.rate === undefined || row.rate === ''
+            ? null
+            : (Number.isFinite(Number(row.rate)) ? Math.round(Number(row.rate)) : null);
+        return {
+            key,
+            month,
+            expectedCents: cents(row.expectedCents),
+            adjustmentCents: cents(row.adjustmentCents),
+            totalIncomeCents: cents(row.totalIncomeCents),
+            movementCount: Math.max(0, Math.round(Number(row.movementCount) || 0)),
+            collectedCents: cents(row.collectedCents),
+            otherIncomeCents: cents(row.otherIncomeCents),
+            outstandingCents: cents(row.outstandingCents),
+            expenseCents: cents(row.expenseCents),
+            netCents: cents(row.netCents),
+            rate
+        };
+    });
+    const expectedKeys = localReport.months.map(row => row.key).join('|');
+    if (months.some(row => !row) || months.map(row => row.key).join('|') !== expectedKeys) return null;
+    const totals = months.reduce((acc, row) => {
+        acc.expectedCents += row.expectedCents;
+        acc.adjustmentCents += row.adjustmentCents;
+        acc.totalIncomeCents += row.totalIncomeCents;
+        acc.movementCount += row.movementCount;
+        acc.collectedCents += row.collectedCents;
+        acc.otherIncomeCents += row.otherIncomeCents;
+        acc.outstandingCents += row.outstandingCents;
+        acc.expenseCents += row.expenseCents;
+        if (row.outstandingCents > 0) acc.unpaidMonths += 1;
+        return acc;
+    }, { expectedCents: 0, adjustmentCents: 0, totalIncomeCents: 0, movementCount: 0, collectedCents: 0, otherIncomeCents: 0, outstandingCents: 0, expenseCents: 0, unpaidMonths: 0, netCents: 0, rate: null });
+    totals.netCents = totals.totalIncomeCents - totals.expenseCents;
+    totals.rate = localReport.showDues ? getPeriodCollectionRate(totals.expectedCents, totals.collectedCents) : null;
+    const methods = (Array.isArray(serverReport.methods) ? serverReport.methods : []).map(item => ({
+        label: item.code === 'unknown' ? 'غير محدد' : getIncomePaymentMethodLabel(item.code),
+        count: Math.max(0, Math.round(Number(item.count) || 0)),
+        cents: Number.isFinite(Number(item.cents)) ? Math.round(Number(item.cents)) : 0,
+        share: item.share === null || item.share === undefined ? null : Math.round(Number(item.share) || 0)
+    }));
+    const purposes = (Array.isArray(serverReport.purposes) ? serverReport.purposes : []).map(item => ({
+        label: reportPurposeLabel(item.code),
+        count: Math.max(0, Math.round(Number(item.count) || 0)),
+        cents: Number.isFinite(Number(item.cents)) ? Math.round(Number(item.cents)) : 0
+    }));
+    return {
+        ...localReport,
+        months,
+        totals,
+        methods,
+        purposes,
+        generatedAt: serverReport.generatedAt || new Date().toISOString(),
+        dataSource: 'database'
+    };
+}
+
+async function fetchPeriodReportFromDatabase(fromMonth, toMonth, purposeFilter, cashAccountFilter, residentFilter) {
+    if (!canUsePeriodReportRpc()) return null;
+    const fromKey = monthLabelToKey(fromMonth);
+    const toKey = monthLabelToKey(toMonth);
+    if (!fromKey || !toKey) return null;
+    const { data, error } = await supabaseClient.rpc('get_period_report', {
+        p_building_id: activeBuildingId,
+        p_from_month: fromKey,
+        p_to_month: toKey,
+        p_purpose_code: purposeFilter || null,
+        p_cash_account_code: cashAccountFilter || null,
+        p_resident_id: residentFilter || null
+    });
+    if (error) throw error;
+    return data;
+}
+
 function getPeriodReportSignature(fromMonth, toMonth, purposeFilter = '', cashAccountFilter = '', residentFilter = '') {
     const labels = new Set([fromMonth, toMonth]);
     const keys = new Set(buildPeriodMonthKeys(fromMonth, toMonth) || []);
@@ -1129,6 +1218,9 @@ function setPeriodReportActionsEnabled(enabled) {
 }
 
 function clearPeriodReportPreview(message) {
+    if (typeof window !== 'undefined') {
+        window.__manzilPeriodReportRequestToken = (window.__manzilPeriodReportRequestToken || 0) + 1;
+    }
     periodReportSnapshot = null;
     periodReportSignature = '';
     setPeriodReportActionsEnabled(false);
@@ -1266,6 +1358,7 @@ function renderPeriodReportHtml(report) {
             <header class="report-preview-header">
                 <h3 class="report-preview-title">${esc(state.buildingName || 'العمارة')}</h3>
                 <p class="report-preview-meta">تقرير الفترة ${esc(report.rangeLabel)}${report.purposeFilter ? ' • الغرض: ' + esc(report.purposeLabel) : ''}${report.cashAccountFilter ? ' • الصندوق: ' + esc(report.cashAccountLabel) : ''}${report.residentFilter ? ' • الشقة: ' + esc(report.residentLabel) : ''} • تم الإنشاء ${esc(formatDate(report.generatedAt))}</p>
+                ${report.dataSource === 'database' ? '<p class="report-preview-meta">مصدر الحساب: قاعدة البيانات بعد التحقق من صلاحية مدير المبنى</p>' : ''}
             </header>
             ${statsHtml}
             ${tableHtml}
@@ -1328,6 +1421,29 @@ function generatePeriodReport() {
     periodReportSnapshot = report;
     periodReportSignature = getPeriodReportSignature(from, to, purposeFilter, cashAccountFilter, residentFilter);
     setPeriodReportActionsEnabled(true);
+
+    if (!canUsePeriodReportRpc()) return;
+    const requestToken = (window.__manzilPeriodReportRequestToken = (window.__manzilPeriodReportRequestToken || 0) + 1);
+    setPeriodReportActionsEnabled(false);
+    fetchPeriodReportFromDatabase(from, to, purposeFilter, cashAccountFilter, residentFilter)
+        .then(serverReport => {
+            if (window.__manzilPeriodReportRequestToken !== requestToken) return;
+            const selected = getPeriodReportSelection();
+            if (selected.from !== from || selected.to !== to
+                || getReportPurposeFilter('periodReportPurpose') !== purposeFilter
+                || getReportCashAccountFilter('periodReportCashAccount') !== cashAccountFilter
+                || getReportResidentFilter('periodReportResident') !== residentFilter) return;
+            const normalized = normalizeServerPeriodReport(serverReport, report);
+            if (!normalized) return;
+            preview.innerHTML = renderPeriodReportHtml(normalized);
+            periodReportSnapshot = normalized;
+            setPeriodReportActionsEnabled(true);
+        })
+        .catch(error => {
+            if (window.__manzilPeriodReportRequestToken !== requestToken) return;
+            console.warn('Period report RPC unavailable; local report retained.', error);
+            setPeriodReportActionsEnabled(true);
+        });
 }
 
 function printPeriodReport() {

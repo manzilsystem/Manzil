@@ -121,8 +121,18 @@ function loadReport(options = {}) {
         Blob: class { constructor(parts, options) { sandbox.__blob = { parts, type: options && options.type }; } },
         URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} }
     };
+    if (options.rpcResult) {
+        sandbox.supabaseClient = {
+            rpc: async (...args) => {
+                sandbox.rpcCall = args;
+                return options.rpcResult;
+            }
+        };
+        sandbox.activeBuildingId = options.buildingId || 'building-1';
+        sandbox.currentUserRole = options.role || 'manager';
+    }
     const app = vm.runInNewContext(
-        reports + '\n({\n            buildPeriodReport, buildPeriodMonthKeys, generatePeriodReport, renderPeriodReportHtml,\n            applyPeriodReportPreset, onPeriodReportRangeChange, exportPeriodReportCsv, printPeriodReport,\n            getPeriodReportSignature, invalidatePeriodReportPreview, invalidatePeriodReportIfStale, clearPeriodReportPreview,\n            getPeriodMonthSpan, getPeriodRangeError, PERIOD_REPORT_MAX_MONTHS\n        })',
+        reports + '\n({\n            buildPeriodReport, buildPeriodMonthKeys, generatePeriodReport, renderPeriodReportHtml,\n            applyPeriodReportPreset, onPeriodReportRangeChange, exportPeriodReportCsv, printPeriodReport,\n            getPeriodReportSignature, invalidatePeriodReportPreview, invalidatePeriodReportIfStale, clearPeriodReportPreview,\n            getPeriodMonthSpan, getPeriodRangeError, PERIOD_REPORT_MAX_MONTHS,\n            normalizeServerPeriodReport, fetchPeriodReportFromDatabase\n        })',
         sandbox
     );
     sandbox.window = {
@@ -144,6 +154,47 @@ function loadReport(options = {}) {
     };
     return { app, sandbox, state, elements, calls };
 }
+
+test('period preview adopts an authorized database report and preserves its guards', async () => {
+    const { app, sandbox, elements } = loadReport({
+        rpcResult: {
+            data: {
+                months: [
+                    { key: '2024-01-01', expectedCents: 9000, adjustmentCents: 1000, totalIncomeCents: 6000, movementCount: 2, collectedCents: 5000, otherIncomeCents: 1000, outstandingCents: 4000, expenseCents: 2000, netCents: 4000, rate: 56 },
+                    { key: '2024-02-01', expectedCents: 10000, adjustmentCents: 0, totalIncomeCents: 0, movementCount: 0, collectedCents: 0, otherIncomeCents: 0, outstandingCents: 10000, expenseCents: 0, netCents: 0, rate: 0 },
+                    { key: '2024-03-01', expectedCents: 10000, adjustmentCents: 0, totalIncomeCents: 0, movementCount: 0, collectedCents: 0, otherIncomeCents: 0, outstandingCents: 10000, expenseCents: 0, netCents: 0, rate: 0 }
+                ],
+                methods: [{ code: 'cash', count: 2, cents: 6000, share: 100 }],
+                purposes: [{ code: 'subscription', count: 2, cents: 6000 }],
+                generatedAt: '2024-04-01T00:00:00.000Z'
+            },
+            error: null
+        }
+    });
+    app.generatePeriodReport();
+    await new Promise(resolve => setImmediate(resolve));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(sandbox.rpcCall[0], 'get_period_report');
+    assert.equal(JSON.stringify(sandbox.rpcCall[1]), JSON.stringify({
+        p_building_id: 'building-1',
+        p_from_month: '2024-01-01',
+        p_to_month: '2024-03-01',
+        p_purpose_code: null,
+        p_cash_account_code: null,
+        p_resident_id: null
+    }));
+    assert.equal(elements.periodReportPreview.innerHTML.includes('مصدر الحساب: قاعدة البيانات'), true);
+    assert.equal(sandbox.window.__manzilPeriodReportRequestToken > 0, true);
+});
+
+test('period preview keeps the local report when the database RPC fails', async () => {
+    const { app, elements } = loadReport({ rpcResult: { data: null, error: new Error('offline') } });
+    app.generatePeriodReport();
+    await new Promise(resolve => setImmediate(resolve));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(elements.periodReportPreview.innerHTML.includes('مصدر الحساب: قاعدة البيانات'), false, elements.periodReportPreview.innerHTML);
+    assert.equal(elements.periodReportPrintBtn.disabled, false);
+});
 
 test('period report bills every month in the range and totals in cents', () => {
     const { app } = loadReport();
