@@ -120,13 +120,14 @@ create policy assistant_messages_insert_own on public.assistant_messages
 for insert to authenticated
 with check (
     (
-        sender_type = 'user'
-        and sender_id = (select auth.uid())
-    )
-    or (
-        sender_type = 'assistant'
-        and sender_id is null
-    )
+        (
+            sender_type = 'user'
+            and sender_id = (select auth.uid())
+        )
+        or (
+            sender_type = 'assistant'
+            and sender_id is null
+        )
     )
     and exists (
         select 1
