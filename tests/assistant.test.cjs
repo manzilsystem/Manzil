@@ -704,6 +704,38 @@ test('manager can edit a rented resident tenant phone without routing it to the 
     assert.match(crudSource, /residentTenantPhone[\s\S]{0,160}draft\?\.tenantPhone/);
 });
 
+test('manager can edit a rented resident tenant name through the official form without changing subscription data', () => {
+    const { context, api } = createHarness(true);
+    vm.runInContext("state.residents.find(item => item.id === 'r2').isRented = true; state.residents.find(item => item.id === 'r2').tenantName = 'يوسف قديم'; state.residents.find(item => item.id === 'r2').tenantPhone = '01033334444'", context);
+    const before = JSON.stringify(vm.runInContext('state.residents', context));
+    const answer = api.answerAssistantQuery('عدّل بيانات سارة حسن اسم المستأجر: يوسف محمود', NOW);
+
+    assert.equal(answer.id, 'operation-preview');
+    assert.match(answer.html, /اسم المستأجر يوسف محمود/);
+    assert.match(answer.html, /أكد التسجيل/);
+    const draft = vm.runInContext('assistantOperationDraft', context);
+    assert.equal(draft.tenantName, 'يوسف محمود');
+    assert.equal(draft.tenantPhone, '', 'editing a name must not overwrite the tenant phone');
+    assert.equal(draft.phone, '', 'tenant information must not be routed to the owner phone');
+    assert.equal(draft.billingStartMonth, '', 'a tenant name update must not change the billing start month');
+    assert.equal(JSON.stringify(vm.runInContext('state.residents', context)), before, 'the edit remains read-only until confirmation');
+    const residentDraftSource = crudSource.slice(
+        crudSource.indexOf('function openAssistantResidentDraft('),
+        crudSource.indexOf('function buildResidentProfileHtml(')
+    );
+    assert.match(residentDraftSource, /residentTenantName[\s\S]*draft\?\.tenantName/);
+});
+
+test('assistant blocks a tenant name edit unless the apartment is already marked as rented', () => {
+    const { context, api } = createHarness(true);
+    const before = JSON.stringify(vm.runInContext('state.residents', context));
+    const answer = api.answerAssistantQuery('عدّل بيانات سارة حسن اسم المستأجر: يوسف محمود', NOW);
+
+    assert.equal(answer.id, 'operation-missing');
+    assert.match(answer.html, /الشقة مسجلة كمؤجرة/);
+    assert.equal(JSON.stringify(vm.runInContext('state.residents', context)), before);
+});
+
 test('assistant does not stage a tenant phone edit for an apartment not marked as rented', () => {
     const { context, api } = createHarness(true);
     const before = JSON.stringify(vm.runInContext('state.residents', context));
