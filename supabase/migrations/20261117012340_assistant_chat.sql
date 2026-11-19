@@ -120,19 +120,22 @@ create policy assistant_messages_insert_own on public.assistant_messages
 for insert to authenticated
 with check (
     (
-        sender_type = 'user'
-        and sender_id = (select auth.uid())
+        (
+            sender_type = 'user'
+            and sender_id = (select auth.uid())
+        )
+        or (
+            sender_type = 'assistant'
+            and sender_id is null
+        )
     )
-    or (
-        sender_type = 'assistant'
-        and sender_id is null
+    and exists (
+        select 1
+        from public.assistant_conversations conversation
+        where conversation.id = assistant_messages.conversation_id
+          and conversation.building_id = assistant_messages.building_id
+          and conversation.user_id = (select auth.uid())
     )
-) and exists (
-    select 1
-    from public.assistant_conversations conversation
-    where conversation.id = assistant_messages.conversation_id
-      and conversation.building_id = assistant_messages.building_id
-      and conversation.user_id = (select auth.uid())
 );
 
 create or replace function private.touch_assistant_conversation()
