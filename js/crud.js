@@ -414,12 +414,14 @@ function openAssistantResidentDraft(draft, options = {}) {
     const phone = /** @type {HTMLInputElement | null} */ (document.getElementById('residentPhone'));
     const amount = /** @type {HTMLInputElement | null} */ (document.getElementById('residentAmount'));
     const billingStart = /** @type {HTMLInputElement | null} */ (document.getElementById('residentBillingStart'));
-    if (name) name.value = String(draft?.name || '');
+    if (name && draft?.name) name.value = String(draft.name);
     if (apartment && draft?.apartmentNumber) {
         updateResidentApartmentOptions();
         apartment.value = String(draft.apartmentNumber);
     }
-    if (phone) phone.value = String(draft?.phone || '');
+    if (phone && draft?.phone) phone.value = String(draft.phone);
+    const tenantPhone = /** @type {HTMLInputElement | null} */ (document.getElementById('residentTenantPhone'));
+    if (tenantPhone && draft?.tenantPhone) tenantPhone.value = String(draft.tenantPhone);
     if (amount && draft?.amount) amount.value = String(draft.amount);
     if (billingStart && draft?.billingStartMonth) {
         const match = String(draft.billingStartMonth).match(/(20\d{2})$/);

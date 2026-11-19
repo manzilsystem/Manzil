@@ -136,30 +136,42 @@ function parseAssistantResidentCommand(raw, normalized, now = new Date(), target
     if (!/(?:اضف|ضيف|سجل|سجّل|ادخل|إدخل|عدل|عدّل|غير|غيّر|حدّث|حدث|تعديل|تحديث)/.test(normalized) || (!hasResidentWord && !hasAddUnitCommand && !hasEditUnitCommand)) return null;
     if (/(?:تحصيل|دفعة|دفعه|استلام|قبض|مصروف|فاتوره|فاتورة|اعفاء|إعفاء|تخفيض|خصم|تسويه|تسوية)/.test(normalized)) return null;
     const apartmentMatch = normalized.match(/(?:شقه|وحده)\s*(?:رقم\s*)?(\d{1,4})/);
-    if (!apartmentMatch && (hasAddUnitCommand || hasEditUnitCommand)) {
-        return hasEditUnitCommand
-            ? { type: 'resident_edit', residentId: targetResident?.id || null, name: targetResident?.name || '', apartmentNumber: targetResident?.apartmentNumber || '', phone: '', amount: null, billingStartMonth: '', raw }
-            : { type: 'resident', name: '', apartmentNumber: '', phone: '', amount: null, billingStartMonth: '', raw };
-    }
-    if (!apartmentMatch) return null;
     const nameMatch = String(raw).match(new RegExp(`(?:${assistantLegacyResidentWord}|مالك)\\s+(.+?)(?=\\s+(?:شقه|شقة|وحده|وحدة)(?:\\s|$))`, 'i'));
     const name = nameMatch ? nameMatch[1].replace(/[،,:-]+$/, '').trim() : '';
-    const phoneMatch = String(raw).match(/(?:هاتف|تليفون|موبايل|رقم\s+الموبايل)\s*[:：-]?\s*([+\d٠-٩۰-۹][\d٠-٩۰-۹\s-]{7,})/i);
+    const tenantPhoneMatch = String(raw).match(/(?:هاتف|تليفون|موبايل)\s+(?:المستأجر|المستاجر|مستأجر|مستاجر)\s*[:：-]?\s*([+\d٠-٩۰-۹][\d٠-٩۰-۹\s-]{7,})/i);
+    const phoneMatch = tenantPhoneMatch ? null : String(raw).match(/(?:هاتف|تليفون|موبايل|رقم\s+الموبايل)\s*[:：-]?\s*([+\d٠-٩۰-۹][\d٠-٩۰-۹\s-]{7,})/i);
+    const normalizePhone = value => String(value || '').replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632))
+        .replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776));
     const amountMatch = normalized.match(/(?:اشتراك|شهري|بقيمة)\s+(.+?)(?=\s+(?:جنيه|ج\.م|جم|ج)(?:\s|$))/i);
     const amount = amountMatch ? assistantParsedAmount(amountMatch[1]) : null;
     const period = resolveAssistantPeriodWithContext(raw, now);
     const isEdit = /(?:عدل|عدّل|غير|غيّر|حدّث|حدث|تعديل|تحديث)/.test(normalized);
+    if (!apartmentMatch && (hasAddUnitCommand || hasEditUnitCommand)) {
+        return hasEditUnitCommand
+            ? {
+                type: 'resident_edit', residentId: targetResident?.id || null,
+                name: targetResident?.name || '', apartmentNumber: targetResident?.apartmentNumber || '',
+                phone: phoneMatch ? normalizePhone(phoneMatch[1]) : '',
+                tenantPhone: tenantPhoneMatch ? normalizePhone(tenantPhoneMatch[1]) : '',
+                residentRented: targetResident?.isRented === true, amount,
+                billingStartMonth: period && period.type === 'month' && hasAssistantTimeHint(raw) ? period.label : '', raw
+            }
+            : { type: 'resident', name: '', apartmentNumber: '', phone: '', amount: null, billingStartMonth: '', raw };
+    }
+    if (!apartmentMatch) return null;
     if (isEdit) {
         return {
             type: 'resident_edit', residentId: targetResident?.id || null,
             name: targetResident?.name || name, apartmentNumber: targetResident?.apartmentNumber || apartmentMatch[1],
-            phone: phoneMatch ? phoneMatch[1].replace(/[٠-٩۰-۹]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit))) : '',
-            amount, billingStartMonth: period && period.type === 'month' ? period.label : '', raw
+            phone: phoneMatch ? normalizePhone(phoneMatch[1]) : '',
+            tenantPhone: tenantPhoneMatch ? normalizePhone(tenantPhoneMatch[1]) : '',
+            residentRented: targetResident?.isRented === true,
+            amount, billingStartMonth: period && period.type === 'month' && hasAssistantTimeHint(raw) ? period.label : '', raw
         };
     }
     return {
         type: 'resident', name, apartmentNumber: apartmentMatch[1],
-        phone: phoneMatch ? phoneMatch[1].replace(/[٠-٩۰-۹]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit))) : '',
+        phone: phoneMatch ? normalizePhone(phoneMatch[1]) : '',
         amount, billingStartMonth: period && period.type === 'month' ? period.label : '', raw
     };
 }
@@ -1285,7 +1297,8 @@ function assistantOperationMissing(operation) {
     const missing = [];
     if (operation.type === 'resident_edit') {
         if (!operation.residentId) missing.push('المالك أو رقم الشقة الصحيح');
-        if (!operation.phone && !operation.amount && !operation.billingStartMonth) missing.push('البيان المطلوب تعديله');
+        if (!operation.phone && !operation.tenantPhone && !operation.amount && !operation.billingStartMonth) missing.push('البيان المطلوب تعديله');
+        if (operation.tenantPhone && operation.residentRented !== true) missing.push('تأكيد أن الشقة مسجلة كمؤجرة');
         return missing;
     }
     if (operation.type === 'resident') {
@@ -1432,7 +1445,7 @@ function buildAssistantOperationPreview(operation, now = new Date()) {
     }
     const adjustmentKindLabels = { waiver: 'إعفاء', discount: 'تخفيض', settlement: 'تسوية' };
     const target = operation.type === 'resident_edit'
-        ? `${operation.name || '—'} · شقة ${operation.apartmentNumber || '—'}${operation.phone ? ` · هاتف ${operation.phone}` : ''}${operation.amount ? ` · اشتراك ${assistantMoney(operation.amount)}` : ''}${operation.billingStartMonth ? ` · بدء ${operation.billingStartMonth}` : ''}`
+        ? `${operation.name || '—'} · شقة ${operation.apartmentNumber || '—'}${operation.phone ? ` · هاتف المالك ${operation.phone}` : ''}${operation.tenantPhone ? ` · هاتف المستأجر ${operation.tenantPhone}` : ''}${operation.amount ? ` · اشتراك ${assistantMoney(operation.amount)}` : ''}${operation.billingStartMonth ? ` · بدء ${operation.billingStartMonth}` : ''}`
         : operation.type === 'resident'
         ? `${operation.name || '—'} · شقة ${operation.apartmentNumber || '—'}${operation.amount ? ` · اشتراك ${assistantMoney(operation.amount)}` : ''}${operation.phone ? ` · ${operation.phone}` : ''}`
         : operation.type === 'expense'

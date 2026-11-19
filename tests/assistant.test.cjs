@@ -681,7 +681,37 @@ test('manager can prepare a resident edit through the official form path without
     assert.match(answer.html, /01099999999/);
     assert.match(answer.html, /أكد التسجيل/);
     assert.equal(JSON.stringify(vm.runInContext('state.residents', context)), before);
+    const draft = vm.runInContext('assistantOperationDraft', context);
+    assert.equal(draft.billingStartMonth, '', 'a resident edit must not silently reset the billing start month');
+    assert.equal(draft.phone, '01099999999');
     assert.match(assistantSource, /draft\.type === 'resident_edit'/);
+});
+
+test('manager can edit a rented resident tenant phone without routing it to the owner phone field', () => {
+    const { context, api } = createHarness(true);
+    vm.runInContext("state.residents.find(item => item.id === 'r2').isRented = true", context);
+    vm.runInContext("state.residents.find(item => item.id === 'r2').phone = '01011112222'; state.residents.find(item => item.id === 'r2').tenantPhone = '01033334444'", context);
+    const before = JSON.stringify(vm.runInContext('state.residents', context));
+    const answer = api.answerAssistantQuery('عدّل بيانات سارة حسن هاتف المستأجر 01099998888', NOW);
+
+    assert.equal(answer.id, 'operation-preview');
+    assert.match(answer.html, /هاتف المستأجر/);
+    const draft = vm.runInContext('assistantOperationDraft', context);
+    assert.equal(draft.tenantPhone, '01099998888');
+    assert.equal(draft.phone, '', 'tenant contact must never be staged as the owner phone');
+    assert.equal(draft.billingStartMonth, '', 'a tenant phone update must not change the billing start month');
+    assert.equal(JSON.stringify(vm.runInContext('state.residents', context)), before, 'the edit remains read-only until the official form is confirmed');
+    assert.match(crudSource, /residentTenantPhone[\s\S]{0,160}draft\?\.tenantPhone/);
+});
+
+test('assistant does not stage a tenant phone edit for an apartment not marked as rented', () => {
+    const { context, api } = createHarness(true);
+    const before = JSON.stringify(vm.runInContext('state.residents', context));
+    const answer = api.answerAssistantQuery('عدّل بيانات شقة 7 هاتف المستأجر 01099998888', NOW);
+
+    assert.equal(answer.id, 'operation-missing');
+    assert.match(answer.html, /الشقة مسجلة كمؤجرة/);
+    assert.equal(JSON.stringify(vm.runInContext('state.residents', context)), before);
 });
 
 test('operation parser understands local amount formats without confusing apartment or year numbers', () => {
