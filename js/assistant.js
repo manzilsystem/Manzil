@@ -2368,11 +2368,16 @@ function parseAssistantReportRequest(raw, now = new Date()) {
     const period = resolveAssistantPeriodWithContext(raw, now);
     const residentMatch = resolveAssistantResident(raw);
     const hasExplicitPeriod = /(?:يناير|فبراير|مارس|ابريل|أبريل|مايو|يونيو|يوليو|اغسطس|أغسطس|سبتمبر|اكتوبر|أكتوبر|نوفمبر|ديسمبر|20\d{2}|الشهر الحالي|الشهر ده|الشهر الماضي)/.test(normalized);
+    const requestsIncome = /(?:تحصيل|تحصيلات|ايراد|وارد)/.test(normalized);
+    const requestsExpenses = /(?:مصروف|مصاريف|صرف)/.test(normalized);
+    const requestsOtherReport = /(?:اعفاء|تخفيض|تسويه|خصم|متاخر|مديون|مستحق|كشف حساب|حساب مالك|كشف مالك)/.test(normalized);
     let tab = 'landlord';
-    if (/(مصروف|مصاريف|صرف)/.test(normalized)) tab = 'expenses';
+    // The period report is the existing combined destination for collection and expenses.
+    if (requestsIncome && requestsExpenses && !requestsOtherReport) tab = 'period';
+    else if (requestsExpenses) tab = 'expenses';
     else if (/(اعفاء|تخفيض|تسويه|خصم)/.test(normalized)) tab = 'adjustments';
     else if (/(متاخر|مديون|مستحق)/.test(normalized)) tab = 'arrears';
-    else if (/(تحصيل|تحصيلات|ايراد|وارد)/.test(normalized)) tab = 'income';
+    else if (requestsIncome) tab = 'income';
     else if (/(كشف حساب|حساب مالك|كشف مالك)/.test(normalized)) tab = 'statement';
     else if (/(فتره|فترة|عدة شهور|مجموعة شهور)/.test(normalized)) tab = 'period';
     return {

@@ -573,6 +573,37 @@ test('explicit manager report-open requests route to the matching tab and select
     assert.equal(ownerApi.openAssistantReportsRequest('expenses', 'نوفمبر 2026', ''), false);
 });
 
+test('compound explicit income and expense report requests route to the combined period report', () => {
+    const calls = [];
+    const selects = {
+        periodReportFrom: { value: '', options: [{ value: 'نوفمبر 2026' }] },
+        periodReportTo: { value: '', options: [{ value: 'نوفمبر 2026' }] }
+    };
+    const { api } = createHarness(true, {}, {
+        instrument: sandbox => {
+            sandbox.document.getElementById = id => selects[id] || null;
+            sandbox.switchTab = tab => calls.push(`tab:${tab}`);
+            sandbox.switchReportTab = tab => calls.push(`report:${tab}`);
+            sandbox.setTimeout = callback => { callback(); return 0; };
+            sandbox.onPeriodReportRangeChange = () => calls.push('range:updated');
+        }
+    });
+    const answer = api.answerAssistantQuery('افتح تقرير التحصيلات والمصروفات عن نوفمبر 2026', NOW);
+
+    assert.equal(answer.id, 'reports-open-request');
+    assert.equal(answer.reportRequest.tab, 'period');
+    assert.equal(answer.reportRequest.month, 'نوفمبر 2026');
+    assert.match(answer.html, /تقرير الفترة/);
+    assert.equal(api.openAssistantReportsRequest(
+        answer.reportRequest.tab,
+        answer.reportRequest.month,
+        answer.reportRequest.residentId
+    ), true);
+    assert.equal(selects.periodReportFrom.value, 'نوفمبر 2026');
+    assert.equal(selects.periodReportTo.value, 'نوفمبر 2026');
+    assert.deepEqual(calls, ['tab:reports', 'report:period', 'range:updated']);
+});
+
 test('typed navigation and operation-form requests close the assistant before opening official screens', () => {
     const calls = [];
     let assistantOpen = true;
