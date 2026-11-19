@@ -128,6 +128,13 @@ function parseAssistantOperationReason(raw) {
         .trim();
 }
 
+function isValidAssistantIsoDate(value) {
+    const date = String(value || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+    const parsed = new Date(`${date}T00:00:00.000Z`);
+    return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date;
+}
+
 function parseAssistantResidentCommand(raw, normalized, now = new Date(), targetResident = null) {
     const assistantLegacyResidentWord = '\u0633\u0627\u0643\u0646';
     const hasResidentWord = normalized.includes(assistantLegacyResidentWord) || /مالك/.test(normalized);
@@ -139,9 +146,15 @@ function parseAssistantResidentCommand(raw, normalized, now = new Date(), target
     const nameMatch = String(raw).match(new RegExp(`(?:${assistantLegacyResidentWord}|مالك)\\s+(.+?)(?=\\s+(?:شقه|شقة|وحده|وحدة)(?:\\s|$))`, 'i'));
     const name = nameMatch ? nameMatch[1].replace(/[،,:-]+$/, '').trim() : '';
     const tenantPhoneMatch = String(raw).match(/(?:هاتف|تليفون|موبايل)\s+(?:المستأجر|المستاجر|مستأجر|مستاجر)\s*[:：-]?\s*([+\d٠-٩۰-۹][\d٠-٩۰-۹\s-]{7,})/i);
-    const tenantNameMatch = String(raw).match(/اسم\s+المستأجر\s*[:：-]?\s*([^،,\n]+?)(?=\s+(?:هاتف|تليفون|موبايل|شقة|وحدة|اشتراك|شهر)|[،,\n]|$)/i);
+    const tenantNameMatch = String(raw).match(/اسم\s+المستأجر\s*[:：-]?\s*([^،,\n]+?)(?=\s+(?:هاتف|تليفون|موبايل|شقة|وحدة|اشتراك|شهر|بداية\s+(?:الإيجار|الايجار)|نهاية\s+(?:الإيجار|الايجار))|[،,\n]|$)/i);
     const phoneMatch = tenantPhoneMatch ? null : String(raw).match(/(?:هاتف|تليفون|موبايل|رقم\s+الموبايل)\s*[:：-]?\s*([+\d٠-٩۰-۹][\d٠-٩۰-۹\s-]{7,})/i);
     const tenantName = tenantNameMatch ? tenantNameMatch[1].replace(/[،,:؛-]+$/, '').trim() : '';
+    const normalizeDateDigits = value => String(value || '').replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632))
+        .replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776));
+    const leaseStartMatch = String(raw).match(/(?:بداية\s+الإيجار|بداية\s+الايجار)\s*[:：-]?\s*([^\s،,؛]+)/i);
+    const leaseEndMatch = String(raw).match(/(?:نهاية\s+الإيجار|نهاية\s+الايجار)\s*[:：-]?\s*([^\s،,؛]+)/i);
+    const leaseStart = leaseStartMatch ? normalizeDateDigits(leaseStartMatch[1].replace(/[.،,؛]+$/, '')) : '';
+    const leaseEnd = leaseEndMatch ? normalizeDateDigits(leaseEndMatch[1].replace(/[.،,؛]+$/, '')) : '';
     const normalizePhone = value => String(value || '').replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632))
         .replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776));
     const amountMatch = normalized.match(/(?:اشتراك|شهري|بقيمة)\s+(.+?)(?=\s+(?:جنيه|ج\.م|جم|ج)(?:\s|$))/i);
@@ -156,6 +169,9 @@ function parseAssistantResidentCommand(raw, normalized, now = new Date(), target
                 phone: phoneMatch ? normalizePhone(phoneMatch[1]) : '',
                 tenantName,
                 tenantPhone: tenantPhoneMatch ? normalizePhone(tenantPhoneMatch[1]) : '',
+                leaseStart, leaseEnd,
+                residentLeaseStart: targetResident?.leaseStart || '',
+                residentLeaseEnd: targetResident?.leaseEnd || '',
                 residentRented: targetResident?.isRented === true, amount,
                 billingStartMonth: period && period.type === 'month' && hasAssistantTimeHint(raw) ? period.label : '', raw
             }
@@ -169,6 +185,9 @@ function parseAssistantResidentCommand(raw, normalized, now = new Date(), target
             phone: phoneMatch ? normalizePhone(phoneMatch[1]) : '',
             tenantName,
             tenantPhone: tenantPhoneMatch ? normalizePhone(tenantPhoneMatch[1]) : '',
+            leaseStart, leaseEnd,
+            residentLeaseStart: targetResident?.leaseStart || '',
+            residentLeaseEnd: targetResident?.leaseEnd || '',
             residentRented: targetResident?.isRented === true,
             amount, billingStartMonth: period && period.type === 'month' && hasAssistantTimeHint(raw) ? period.label : '', raw
         };
@@ -1301,8 +1320,14 @@ function assistantOperationMissing(operation) {
     const missing = [];
     if (operation.type === 'resident_edit') {
         if (!operation.residentId) missing.push('المالك أو رقم الشقة الصحيح');
-        if (!operation.phone && !operation.tenantName && !operation.tenantPhone && !operation.amount && !operation.billingStartMonth) missing.push('البيان المطلوب تعديله');
-        if ((operation.tenantName || operation.tenantPhone) && operation.residentRented !== true) missing.push('تأكيد أن الشقة مسجلة كمؤجرة');
+        if (!operation.phone && !operation.tenantName && !operation.tenantPhone && !operation.leaseStart && !operation.leaseEnd && !operation.amount && !operation.billingStartMonth) missing.push('البيان المطلوب تعديله');
+        if ((operation.tenantName || operation.tenantPhone || operation.leaseStart || operation.leaseEnd) && operation.residentRented !== true) missing.push('تأكيد أن الشقة مسجلة كمؤجرة');
+        if (operation.leaseStart && !isValidAssistantIsoDate(operation.leaseStart)) missing.push('بداية الإيجار بصيغة YYYY-MM-DD صحيحة');
+        if (operation.leaseEnd && !isValidAssistantIsoDate(operation.leaseEnd)) missing.push('نهاية الإيجار بصيغة YYYY-MM-DD صحيحة');
+        const effectiveLeaseStart = operation.leaseStart || operation.residentLeaseStart;
+        const effectiveLeaseEnd = operation.leaseEnd || operation.residentLeaseEnd;
+        if (isValidAssistantIsoDate(effectiveLeaseStart) && isValidAssistantIsoDate(effectiveLeaseEnd)
+            && effectiveLeaseEnd < effectiveLeaseStart) missing.push('نهاية الإيجار في أو بعد بدايته');
         return missing;
     }
     if (operation.type === 'resident') {
@@ -1449,7 +1474,7 @@ function buildAssistantOperationPreview(operation, now = new Date()) {
     }
     const adjustmentKindLabels = { waiver: 'إعفاء', discount: 'تخفيض', settlement: 'تسوية' };
     const target = operation.type === 'resident_edit'
-        ? `${operation.name || '—'} · شقة ${operation.apartmentNumber || '—'}${operation.phone ? ` · هاتف المالك ${operation.phone}` : ''}${operation.tenantName ? ` · اسم المستأجر ${operation.tenantName}` : ''}${operation.tenantPhone ? ` · هاتف المستأجر ${operation.tenantPhone}` : ''}${operation.amount ? ` · اشتراك ${assistantMoney(operation.amount)}` : ''}${operation.billingStartMonth ? ` · بدء ${operation.billingStartMonth}` : ''}`
+        ? `${operation.name || '—'} · شقة ${operation.apartmentNumber || '—'}${operation.phone ? ` · هاتف المالك ${operation.phone}` : ''}${operation.tenantName ? ` · اسم المستأجر ${operation.tenantName}` : ''}${operation.tenantPhone ? ` · هاتف المستأجر ${operation.tenantPhone}` : ''}${operation.leaseStart ? ` · بداية الإيجار ${operation.leaseStart}` : ''}${operation.leaseEnd ? ` · نهاية الإيجار ${operation.leaseEnd}` : ''}${operation.amount ? ` · اشتراك ${assistantMoney(operation.amount)}` : ''}${operation.billingStartMonth ? ` · بدء ${operation.billingStartMonth}` : ''}`
         : operation.type === 'resident'
         ? `${operation.name || '—'} · شقة ${operation.apartmentNumber || '—'}${operation.amount ? ` · اشتراك ${assistantMoney(operation.amount)}` : ''}${operation.phone ? ` · ${operation.phone}` : ''}`
         : operation.type === 'expense'
@@ -1496,7 +1521,7 @@ function assistantOperationSuccessHtml(operation) {
     const typeLabel = labels[operation?.type] || 'العملية';
     const kind = operation?.type === 'adjustment' ? ` (${kindLabels[operation.kind] || 'إجراء'})` : '';
     const target = operation?.type === 'resident_edit'
-        ? `${operation.name || '—'} · شقة ${operation.apartmentNumber || '—'}${operation.phone ? ` · ${operation.phone}` : ''}${operation.tenantName ? ` · اسم المستأجر ${operation.tenantName}` : ''}${operation.tenantPhone ? ` · هاتف المستأجر ${operation.tenantPhone}` : ''}${operation.amount ? ` · اشتراك ${assistantMoney(operation.amount)}` : ''}`
+        ? `${operation.name || '—'} · شقة ${operation.apartmentNumber || '—'}${operation.phone ? ` · ${operation.phone}` : ''}${operation.tenantName ? ` · اسم المستأجر ${operation.tenantName}` : ''}${operation.tenantPhone ? ` · هاتف المستأجر ${operation.tenantPhone}` : ''}${operation.leaseStart ? ` · بداية الإيجار ${operation.leaseStart}` : ''}${operation.leaseEnd ? ` · نهاية الإيجار ${operation.leaseEnd}` : ''}${operation.amount ? ` · اشتراك ${assistantMoney(operation.amount)}` : ''}`
         : operation?.type === 'resident'
         ? `${operation.name || '—'} · شقة ${operation.apartmentNumber || '—'}${operation.phone ? ` · ${operation.phone}` : ''}${operation.amount ? ` · اشتراك ${assistantMoney(operation.amount)}` : ''}`
         : operation?.type === 'expense'

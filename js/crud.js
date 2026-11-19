@@ -415,6 +415,8 @@ function openAssistantResidentDraft(draft, options = {}) {
     const tenantName = /** @type {HTMLInputElement | null} */ (document.getElementById('residentTenantName'));
     const amount = /** @type {HTMLInputElement | null} */ (document.getElementById('residentAmount'));
     const billingStart = /** @type {HTMLInputElement | null} */ (document.getElementById('residentBillingStart'));
+    const leaseStart = /** @type {HTMLInputElement | null} */ (document.getElementById('residentLeaseStart'));
+    const leaseEnd = /** @type {HTMLInputElement | null} */ (document.getElementById('residentLeaseEnd'));
     if (name && draft?.name) name.value = String(draft.name);
     if (apartment && draft?.apartmentNumber) {
         updateResidentApartmentOptions();
@@ -425,6 +427,8 @@ function openAssistantResidentDraft(draft, options = {}) {
     const tenantPhone = /** @type {HTMLInputElement | null} */ (document.getElementById('residentTenantPhone'));
     if (tenantPhone && draft?.tenantPhone) tenantPhone.value = String(draft.tenantPhone);
     if (amount && draft?.amount) amount.value = String(draft.amount);
+    if (leaseStart && draft?.leaseStart) leaseStart.value = String(draft.leaseStart);
+    if (leaseEnd && draft?.leaseEnd) leaseEnd.value = String(draft.leaseEnd);
     if (billingStart && draft?.billingStartMonth) {
         const match = String(draft.billingStartMonth).match(/(20\d{2})$/);
         const month = typeof monthLabelToKey === 'function' ? monthLabelToKey(draft.billingStartMonth) : '';
