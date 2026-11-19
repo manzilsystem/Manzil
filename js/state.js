@@ -330,7 +330,8 @@ var currentResidentId = null;
 var currentProfileName = null;
 
 function logAction(action, details) {
-    state.auditLogs.unshift({ id: generateId(), action, details, date: new Date().toISOString() });
+    const auditDetails = typeof assistantAuditDetails === 'function' ? assistantAuditDetails(details) : details;
+    state.auditLogs.unshift({ id: generateId(), action, details: auditDetails, date: new Date().toISOString() });
     if (state.auditLogs.length > 200) state.auditLogs = state.auditLogs.slice(0, 200);
 }
 

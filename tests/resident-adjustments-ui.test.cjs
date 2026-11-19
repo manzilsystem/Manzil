@@ -87,7 +87,7 @@ test('adjustment writes go through the atomic snapshot and the audit log', () =>
     assert.ok(crud.includes("logAction('حذف ' + getAdjustmentKindLabel(adjustment.kind)"));
     assert.match(crud, /saveWithRollback\(previousState\)/);
     assert.match(crud, /confirmRecordDeletion\(/);
-    assert.match(crud, /function deleteAdjustment\(id\)/);
+    assert.match(crud, /async function deleteAdjustment\(id, requestId = null\)/);
     assert.match(crud, /function editAdjustment\(id\)/);
     assert.match(crud, /function cancelAdjustmentEdit\(\)/);
 });

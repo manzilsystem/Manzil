@@ -5,6 +5,36 @@ let editingIncomeId = null;
 let expenseSaving = false;
 let editingExpenseId = null;
 
+function crudAssistantOperationReady(type) {
+    return typeof requireAssistantOperationReadyForCommit !== 'function'
+        || requireAssistantOperationReadyForCommit(type);
+}
+
+function crudBeginAssistantOperationCommit(type) {
+    return typeof beginAssistantOperationCommit === 'function'
+        ? beginAssistantOperationCommit(type)
+        : null;
+}
+
+function crudAssistantOperationSubmitLabel(type, fallbackLabel) {
+    return typeof getAssistantOperationSubmitLabel === 'function'
+        ? getAssistantOperationSubmitLabel(type, fallbackLabel)
+        : fallbackLabel;
+}
+
+function crudBeginAssistantDelete(type, requestId) {
+    if (!requestId) return null;
+    if (typeof assistantOperationRequestId !== 'function' || assistantOperationRequestId(type) !== requestId) {
+        toast('تعذر مطابقة تأكيد الحذف مع السجل المطلوب. أعد المعاينة ثم أكد مرة أخرى.', 'error');
+        return false;
+    }
+    return crudBeginAssistantOperationCommit(type);
+}
+
+function crudAssistantAuditDetails(details) {
+    return typeof assistantAuditDetails === 'function' ? assistantAuditDetails(details) : details;
+}
+
 const CRUD_INCOME_PURPOSES = ['subscription', 'services', 'development', 'emergency', 'penalty', 'donation', 'other', 'settlement'];
 const CRUD_INCOME_PURPOSE_FORM_CODES = ['subscription', 'development', 'emergency', 'settlement', 'other'];
 const CRUD_INCOME_PURPOSE_LABELS = {
@@ -887,6 +917,7 @@ function cancelAdjustmentEdit() {
 async function handleAdjustmentSubmit(event) {
     if (!requireManager()) return;
     event.preventDefault();
+    if (!crudAssistantOperationReady('adjustment')) return;
     const resident = state.residents.find(item => item.id === adjustmentResidentId);
     if (!resident) {
         toast('تعذر العثور على الشقة. أعد فتح نافذة الإعفاء والتخفيض.', 'error');
@@ -971,6 +1002,8 @@ async function handleAdjustmentSubmit(event) {
         }
     }
 
+    const assistantRequestId = crudBeginAssistantOperationCommit('adjustment');
+    if (assistantRequestId === false) return;
     const previousState = cloneStateSnapshot();
     const label = adjustmentMonthKeyToLabel(monthKey);
     state.adjustments = Array.isArray(state.adjustments) ? state.adjustments : [];
@@ -984,7 +1017,7 @@ async function handleAdjustmentSubmit(event) {
         target.effectiveMonth = effectiveMonth;
         target.amount = amountCents / 100;
         target.reason = reason;
-        logAction('تعديل ' + getAdjustmentKindLabel(kind), `${resident.name} - شقة ${resident.apartmentNumber} - ${label} - ${formatSubscriptionAmount(target.amount)} ج.م`);
+        logAction('تعديل ' + getAdjustmentKindLabel(kind), crudAssistantAuditDetails(`${resident.name} - شقة ${resident.apartmentNumber} - ${label} - ${formatSubscriptionAmount(target.amount)} ج.م`));
     } else {
         state.adjustments.push({
             id: generateId(),
@@ -995,10 +1028,14 @@ async function handleAdjustmentSubmit(event) {
             reason,
             createdAt: new Date().toISOString()
         });
-        logAction('إضافة ' + getAdjustmentKindLabel(kind), `${resident.name} - شقة ${resident.apartmentNumber} - ${label} - ${formatSubscriptionAmount(amountCents / 100)} ج.م`);
+        logAction('إضافة ' + getAdjustmentKindLabel(kind), crudAssistantAuditDetails(`${resident.name} - شقة ${resident.apartmentNumber} - ${label} - ${formatSubscriptionAmount(amountCents / 100)} ج.م`));
     }
 
-    if (!await saveWithRollback(previousState)) return;
+    if (!await saveWithRollback(previousState, assistantRequestId)) {
+        if (assistantRequestId) markAssistantOperationSaveUncertain(assistantRequestId);
+        return;
+    }
+    if (assistantRequestId) completeAssistantOperation(assistantRequestId);
     toast(editingAdjustmentId
         ? 'تم تحديث الإجراء.'
         : kind === 'settlement'
@@ -1007,22 +1044,31 @@ async function handleAdjustmentSubmit(event) {
     resetAdjustmentForm();
     renderAdjustmentList(resident);
 }
-async function deleteAdjustment(id) {
+async function deleteAdjustment(id, requestId = null) {
     if (!requireManager()) return;
     const adjustment = (Array.isArray(state.adjustments) ? state.adjustments : []).find(item => item.id === id);
-    if (!adjustment || adjustment.residentId !== adjustmentResidentId) return;
+    const assistantConfirmed = Boolean(requestId && typeof assistantOperationRequestId === 'function'
+        && assistantOperationRequestId('adjustment_delete') === requestId);
+    if (!adjustment || (adjustment.residentId !== adjustmentResidentId && !assistantConfirmed)) return;
     const monthLabel = adjustmentMonthKeyToLabel(String(adjustment.effectiveMonth || '').slice(0, 7));
     if (adjustment.kind === 'settlement' && typeof getSettlementPaidAmount === 'function'
         && getSettlementPaidAmount(adjustment.id) > 0) {
         toast('لا يمكن حذف تسوية سُجلت عليها دفعات. احذف حركاتها أولًا وفق إجراءات التصحيح.', 'error');
         return;
     }
-    if (!confirmRecordDeletion(`${getAdjustmentKindLabel(adjustment.kind)} شهر ${monthLabel} بقيمة ${formatSubscriptionAmount(adjustment.amount)} ج.م`)) return;
+    const assistantRequestId = requestId ? crudBeginAssistantDelete('adjustment_delete', requestId) : null;
+    if (requestId && assistantRequestId !== requestId) return;
+    if (!requestId && !confirmRecordDeletion(`${getAdjustmentKindLabel(adjustment.kind)} شهر ${monthLabel} بقيمة ${formatSubscriptionAmount(adjustment.amount)} ج.م`)) return;
     const previousState = cloneStateSnapshot();
     state.adjustments = (Array.isArray(state.adjustments) ? state.adjustments : []).filter(item => item.id !== id);
     const resident = state.residents.find(item => item.id === adjustment.residentId);
-    logAction('حذف ' + getAdjustmentKindLabel(adjustment.kind), `${resident ? resident.name : adjustment.residentId} - ${getAdjustmentKindLabel(adjustment.kind)} ${monthLabel}`);
-    if (!await saveWithRollback(previousState)) return;
+    const details = `${resident ? resident.name : adjustment.residentId} - ${getAdjustmentKindLabel(adjustment.kind)} ${monthLabel} - ${formatSubscriptionAmount(adjustment.amount)} ج.م`;
+    logAction('حذف ' + getAdjustmentKindLabel(adjustment.kind), assistantRequestId ? crudAssistantAuditDetails(details) : details);
+    if (!await saveWithRollback(previousState, assistantRequestId)) {
+        if (assistantRequestId) markAssistantOperationSaveUncertain(assistantRequestId);
+        return;
+    }
+    if (assistantRequestId) completeAssistantOperation(assistantRequestId);
     toast('تم حذف الإجراء.', 'success');
     if (editingAdjustmentId === id) resetAdjustmentForm();
     if (resident) renderAdjustmentList(resident);
@@ -1309,6 +1355,7 @@ async function saveSubscriptionPriceSheet(event) {
 async function handleResidentSubmit(e) {
     if (!requireManager()) return;
     e.preventDefault();
+    if (!crudAssistantOperationReady('resident')) return;
     const previousState = cloneStateSnapshot();
     const shouldProvisionOwner = ownerProvisionRequested;
     ownerProvisionRequested = false;
@@ -1375,6 +1422,8 @@ async function handleResidentSubmit(e) {
     if (state.residents.some(r => r.id !== editingResidentId && normalizeApartmentNumberKey(r.apartmentNumber) === normalizedApartment)) {
         toast('رقم الشقة مسجل بالفعل','error'); return;
     }
+    const assistantRequestId = crudBeginAssistantOperationCommit('resident');
+    if (assistantRequestId === false) return;
     let targetResidentId;
     if (editingResidentId) {
         const r = state.residents.find(x => x.id === editingResidentId);
@@ -1388,7 +1437,7 @@ async function handleResidentSubmit(e) {
                 const backfilled = ensureSubscriptionRateFromBillingStart(r);
                 let details = `${name} - شقة ${apartmentNumber}: ${billingStartMonth ? monthKeyToLabel(billingStartMonth) : 'من تاريخ الإضافة'}`;
                 if (backfilled !== null) details += ` · سعر تاريخي ${fmtNum(backfilled)} ج.م`;
-                logAction('تعديل بداية المحاسبة', details);
+                logAction('تعديل بداية المحاسبة', crudAssistantAuditDetails(details));
             }
             if (subscriptionChanged) {
                 const effectiveMonth = getLocalMonthKey();
@@ -1398,11 +1447,11 @@ async function handleResidentSubmit(e) {
                 r.subscriptionRates.push({ effectiveMonth: effectiveDate, monthlyAmount });
                 r.subscriptionRates.sort((a, b) => a.effectiveMonth.localeCompare(b.effectiveMonth));
                 r.monthlyAmount = getCurrentSubscriptionAmount(r);
-                logAction('تغيير قيمة الاشتراك', `${name} - ${previousAmount} إلى ${monthlyAmount} بدءًا من ${effectiveMonth}`);
+                logAction('تغيير قيمة الاشتراك', crudAssistantAuditDetails(`${name} - ${previousAmount} إلى ${monthlyAmount} بدءًا من ${effectiveMonth}`));
             } else {
                 r.monthlyAmount = monthlyAmount;
                 if (nextBillingStart === previousBillingStart) {
-                    logAction('تعديل شقة', `${name} - شقة ${apartmentNumber}`);
+                    logAction('تعديل شقة', crudAssistantAuditDetails(`${name} - شقة ${apartmentNumber}`));
                 }
             }
             targetResidentId = r.id;
@@ -1419,9 +1468,13 @@ async function handleResidentSubmit(e) {
         };
         state.residents.push(resident);
         targetResidentId = resident.id;
-        logAction('إضافة شقة', `${name} - شقة ${apartmentNumber}`);
+        logAction('إضافة شقة', crudAssistantAuditDetails(`${name} - شقة ${apartmentNumber}`));
     }
-    if (!await saveWithRollback(previousState)) return;
+    if (!await saveWithRollback(previousState, assistantRequestId)) {
+        if (assistantRequestId) markAssistantOperationSaveUncertain(assistantRequestId);
+        return;
+    }
+    if (assistantRequestId) completeAssistantOperation(assistantRequestId);
     closeModal('residentModal'); renderAll();
     toast(editingResidentId ? 'تم التعديل' : 'تمت الإضافة', 'success');
     if (shouldProvisionOwner && targetResidentId) await provisionOwnerAccess(targetResidentId);
@@ -1542,18 +1595,29 @@ function closeOwnerTempPinModal() {
     modal.classList.remove('flex');
 }
 
-async function deleteResident(id) {
+async function deleteResident(id, requestId = null) {
     if (!requireManager()) return;
     const r = state.residents.find(x => x.id === id); if (!r) return;
     if (state.income.some(payment => payment.residentId === id)) {
         toast('لا يمكن حذف شقة لها تحصيلات مسجلة؛ احتفظ بالسجل المالي ولا تحذف بياناتها.', 'error');
         return;
     }
-    if (!confirmRecordDeletion(`شقة ${r.name} (رقم ${r.apartmentNumber})`)) return;
+    if ((Array.isArray(state.adjustments) ? state.adjustments : []).some(item => item.residentId === id)) {
+        toast('لا يمكن حذف شقة لها إعفاءات أو تسويات مسجلة؛ احتفظ بالسجل المالي ولا تحذف بياناتها.', 'error');
+        return;
+    }
+    const assistantRequestId = requestId ? crudBeginAssistantDelete('resident_delete', requestId) : null;
+    if (requestId && assistantRequestId !== requestId) return;
+    if (!requestId && !confirmRecordDeletion(`شقة ${r.name} (رقم ${r.apartmentNumber})`)) return;
     const previousState = cloneStateSnapshot();
     state.residents = state.residents.filter(x => x.id !== id);
-    logAction('حذف شقة', `${r.name} - شقة ${r.apartmentNumber}`);
-    if (!await saveWithRollback(previousState)) return;
+    const details = `${r.name} - شقة ${r.apartmentNumber}`;
+    logAction('حذف شقة', assistantRequestId ? crudAssistantAuditDetails(details) : details);
+    if (!await saveWithRollback(previousState, assistantRequestId)) {
+        if (assistantRequestId) markAssistantOperationSaveUncertain(assistantRequestId);
+        return;
+    }
+    if (assistantRequestId) completeAssistantOperation(assistantRequestId);
     toast('تم حذف الشقة بنجاح', 'success');
 }
 
@@ -2556,6 +2620,7 @@ function previewIncomeAllocation() {
 async function handleIncomeSubmit(e) {
     if (!requireManager() || incomeSaving) return;
     e.preventDefault();
+    if (!crudAssistantOperationReady('income')) return;
     if (!validateIncomeWizardStep(1) || !validateIncomeWizardStep(2)) return;
     const residentId = /** @type {any} */ (document.getElementById('incomeResident')).value;
     const amount = Number(/** @type {any} */ (document.getElementById('incomeAmount')).value);
@@ -2636,6 +2701,8 @@ async function handleIncomeSubmit(e) {
     const hasExtras = extraLines.length > 0;
     const allocatedCount = allocation ? allocation.allocations.length : 1;
 
+    const assistantRequestId = crudBeginAssistantOperationCommit('income');
+    if (assistantRequestId === false) return;
     incomeSaving = true;
     const submit = /** @type {any} */ (document.getElementById('incomeSubmitButton'));
     if (submit) {
@@ -2684,7 +2751,11 @@ async function handleIncomeSubmit(e) {
     }
 
     try {
-        if (!await saveWithRollback(previousState)) return;
+        if (!await saveWithRollback(previousState, assistantRequestId)) {
+            if (assistantRequestId) markAssistantOperationSaveUncertain(assistantRequestId);
+            return;
+        }
+        if (assistantRequestId) completeAssistantOperation(assistantRequestId);
         closeModal('incomeModal');
         resetIncomeFormFields();
         renderAll();
@@ -2701,7 +2772,7 @@ async function handleIncomeSubmit(e) {
         incomeSaving = false;
         if (submit) {
             submit.disabled = false;
-            submit.textContent = hasExtras ? 'حفظ الدفعة المختلطة' : purpose === 'settlement' ? 'تسجيل دفعة التسوية' : 'حفظ التحصيل وتوزيعه';
+            submit.textContent = crudAssistantOperationSubmitLabel('income', hasExtras ? 'حفظ الدفعة المختلطة' : purpose === 'settlement' ? 'تسجيل دفعة التسوية' : 'حفظ التحصيل وتوزيعه');
         }
     }
 }
@@ -2771,6 +2842,7 @@ function openIncomeEditModal(id) {
 async function handleIncomeEditSubmit(event) {
     if (!requireManager() || incomeSaving) return;
     event.preventDefault();
+    if (!crudAssistantOperationReady('income')) return;
     const payment = state.income.find(item => item.id === editingIncomeId);
     if (!payment) {
         toast('تعذر العثور على التحصيل. أعد فتح سجل التحصيلات.', 'error');
@@ -2875,6 +2947,8 @@ async function handleIncomeEditSubmit(event) {
         return;
     }
 
+    const assistantRequestId = crudBeginAssistantOperationCommit('income');
+    if (assistantRequestId === false) return;
     incomeSaving = true;
     const submit = /** @type {any} */ (document.getElementById('incomeEditSubmitButton'));
     if (submit) {
@@ -2901,13 +2975,17 @@ async function handleIncomeEditSubmit(event) {
     payment.notes = distributionMatch
         ? distributionMatch[1] + (notes ? ' · ' + notes : '')
         : notes;
-    logAction('تعديل تحصيل', resident.name + ' - ' + previousMonth + ' إلى ' + month
+    logAction('تعديل تحصيل', crudAssistantAuditDetails(resident.name + ' - ' + previousMonth + ' إلى ' + month
         + ' - الغرض: ' + crudIncomePurposeLabel(purpose)
         + ' - طريقة الدفع: ' + getIncomePaymentMethodLabel(paymentMethod)
         + ' - الصندوق: ' + crudCashAccountLabel(cashAccountCode)
-        + ' - ' + fmtNum(previousAmount) + ' إلى ' + fmtNum(payment.amount));
+        + ' - ' + fmtNum(previousAmount) + ' إلى ' + fmtNum(payment.amount)));
     try {
-        if (!await saveWithRollback(previousState)) return;
+        if (!await saveWithRollback(previousState, assistantRequestId)) {
+            if (assistantRequestId) markAssistantOperationSaveUncertain(assistantRequestId);
+            return;
+        }
+        if (assistantRequestId) completeAssistantOperation(assistantRequestId);
         closeModal('incomeEditModal');
         editingIncomeId = null;
         renderAll();
@@ -2921,13 +2999,22 @@ async function handleIncomeEditSubmit(event) {
     }
 }
 
-async function deleteIncome(id) {
+async function deleteIncome(id, requestId = null) {
     if (!requireManager()) return;
-    if (!confirmRecordDeletion('هذا التحصيل')) return;
+    const payment = (Array.isArray(state.income) ? state.income : []).find(item => item.id === id);
+    if (!payment) { toast('تعذر العثور على التحصيل. حدّث السجل ثم أعد المحاولة.', 'error'); return; }
+    const assistantRequestId = requestId ? crudBeginAssistantDelete('income_delete', requestId) : null;
+    if (requestId && assistantRequestId !== requestId) return;
+    if (!requestId && !confirmRecordDeletion('هذا التحصيل')) return;
     const previousState = cloneStateSnapshot();
     state.income = state.income.filter(i => i.id !== id);
-    logAction('حذف تحصيل', id);
-    if (!await saveWithRollback(previousState)) return;
+    const details = `${payment.id} · ${fmtNum(payment.amount)} · ${payment.month || ''}`;
+    logAction('حذف تحصيل', assistantRequestId ? crudAssistantAuditDetails(details) : details);
+    if (!await saveWithRollback(previousState, assistantRequestId)) {
+        if (assistantRequestId) markAssistantOperationSaveUncertain(assistantRequestId);
+        return;
+    }
+    if (assistantRequestId) completeAssistantOperation(assistantRequestId);
     toast('تم حذف التحصيل بنجاح', 'success');
 }
 
@@ -3044,6 +3131,7 @@ function openExpenseEditModal(id) {
 async function handleExpenseSubmit(e) {
     if (!requireManager() || expenseSaving) return;
     e.preventDefault();
+    if (!crudAssistantOperationReady('expense')) return;
     const title = /** @type {any} */ (document.getElementById('expenseTitle')).value.trim();
     const amount = Number(/** @type {any} */ (document.getElementById('expenseAmount')).value);
     const category = /** @type {any} */ (document.getElementById('expenseCategory')).value;
@@ -3076,6 +3164,8 @@ async function handleExpenseSubmit(e) {
         previewExpense();
         return;
     }
+    const assistantRequestId = crudBeginAssistantOperationCommit('expense');
+    if (assistantRequestId === false) return;
     expenseSaving = true;
     const submit = /** @type {any} */ (document.getElementById('expenseSubmitButton'));
     if (submit) { submit.disabled = true; submit.textContent = 'جارٍ الحفظ...'; }
@@ -3083,7 +3173,7 @@ async function handleExpenseSubmit(e) {
     if (existingExpense) {
         state.expenses = state.expenses.map(item => item.id === editingExpenseId
             ? { ...item, title, amount, category, month, notes, cashAccountCode } : item);
-        logAction('تعديل مصروف', existingExpense.title + ' ← ' + title + ' - ' + fmtNum(amount));
+        logAction('تعديل مصروف', crudAssistantAuditDetails(existingExpense.title + ' ← ' + title + ' - ' + fmtNum(amount)));
     } else {
         state.expenses.push({ id: generateId(), title, amount, category, month, notes, cashAccountCode, date: new Date().toISOString() });
         logAction('مصروف', title + ' - ' + fmtNum(amount));
@@ -3092,7 +3182,11 @@ async function handleExpenseSubmit(e) {
         logAction('تجاوز رصيد الخزنة', title + ' - ' + fmtNum(amount) + ' (الرصيد بعد الصرف: ' + fmtNum(balanceAfter) + ')');
     }
     try {
-        if (!await saveWithRollback(previousState)) return;
+        if (!await saveWithRollback(previousState, assistantRequestId)) {
+            if (assistantRequestId) markAssistantOperationSaveUncertain(assistantRequestId);
+            return;
+        }
+        if (assistantRequestId) completeAssistantOperation(assistantRequestId);
         editingExpenseId = null;
         closeModal('expenseModal');
         /** @type {any} */ (document.getElementById('expenseForm')).reset();
@@ -3103,16 +3197,25 @@ async function handleExpenseSubmit(e) {
         toast(existingExpense ? 'تم تعديل المصروف بنجاح.' : 'تم تسجيل المصروف', 'success');
     } finally {
         expenseSaving = false;
-        if (submit) { submit.disabled = false; submit.textContent = 'حفظ المصروف'; }
+        if (submit) { submit.disabled = false; submit.textContent = crudAssistantOperationSubmitLabel('expense', 'حفظ المصروف'); }
     }
 }
 
-async function deleteExpense(id) {
+async function deleteExpense(id, requestId = null) {
     if (!requireManager()) return;
-    if (!confirmRecordDeletion('هذا المصروف')) return;
+    const expense = (Array.isArray(state.expenses) ? state.expenses : []).find(item => item.id === id);
+    if (!expense) { toast('تعذر العثور على المصروف. حدّث السجل ثم أعد المحاولة.', 'error'); return; }
+    const assistantRequestId = requestId ? crudBeginAssistantDelete('expense_delete', requestId) : null;
+    if (requestId && assistantRequestId !== requestId) return;
+    if (!requestId && !confirmRecordDeletion('هذا المصروف')) return;
     const previousState = cloneStateSnapshot();
     state.expenses = state.expenses.filter(e => e.id !== id);
-    logAction('حذف مصروف', id);
-    if (!await saveWithRollback(previousState)) return;
+    const details = `${expense.title} · ${fmtNum(expense.amount)} · ${expense.month || ''}`;
+    logAction('حذف مصروف', assistantRequestId ? crudAssistantAuditDetails(details) : details);
+    if (!await saveWithRollback(previousState, assistantRequestId)) {
+        if (assistantRequestId) markAssistantOperationSaveUncertain(assistantRequestId);
+        return;
+    }
+    if (assistantRequestId) completeAssistantOperation(assistantRequestId);
     toast('تم حذف المصروف بنجاح', 'success');
 }

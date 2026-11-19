@@ -64,6 +64,9 @@ let assistantContext = { period: null, residentId: null };
 let assistantChat = [];
 let assistantNoticeDraft = null;
 let assistantOperationDraft = null;
+let assistantOperationContext = null;
+let assistantMutationDraft = null;
+let assistantResidentEntryDraft = null;
 let assistantRemoteHydrated = false;
 let assistantRemoteHydrating = false;
 let assistantRemoteWriteQueue = Promise.resolve();
@@ -785,6 +788,16 @@ function detectAssistantIntent(normalized, hasResident) {
     return 'unknown';
 }
 
+function detectAssistantCompoundIntent(normalized) {
+    const domains = [
+        /(?:تحصيل|تحصيلات|ايراد|دخل|وارد|مدفوع|متحصل|المتحصلات|اللي اتجمع)/.test(normalized),
+        /(?:مصروف|مصاريف|صرف|منصرف|اتصرف)/.test(normalized),
+        /(?:متاخر|متاخرات|مستحق|مديون|غير مدفوع|مش سدد|عليه فلوس)/.test(normalized),
+        /(?:خزنه|صندوق|رصيد|سيوله)/.test(normalized)
+    ];
+    return domains.filter(Boolean).length >= 2 ? 'executive' : null;
+}
+
 function assistantRow(label, value, tone = '') {
     const className = tone ? ` is-${tone}` : '';
     return `<div class="assistant-row${className}"><span>${assistantEscape(label)}</span><strong>${assistantEscape(value)}</strong></div>`;
@@ -929,6 +942,297 @@ function parseAssistantOperationCommand(text, now = new Date()) {
     return null;
 }
 
+function parseAssistantMutationCommand(text, now = new Date()) {
+    if (assistantIsOwner()) return null;
+    const raw = String(text || '').trim();
+    const normalized = normalizeAssistantArabic(raw);
+    const action = /(?:احذف|امسح|الغ|حذف)/.test(normalized) ? 'delete'
+        : /(?:عدل|تعديل|تغيير|صحح|غير\s+(?:المبلغ|البيانات|التاريخ|الشهر|الوصف))/.test(normalized) ? 'edit' : null;
+    if (!action) return null;
+    const period = resolveAssistantPeriodWithContext(raw, now);
+    const amountMatch = raw.match(/(?:مبلغ|بمبلغ|بقيمة|مقداره)\s*(\d+(?:[.,]\d{1,2})?)|(?<!\d)(\d+(?:[.,]\d{1,2})?)\s*(?:جنيه(?:ات)?|ج\.?م)/i);
+    const amountValue = amountMatch ? Number(String(amountMatch[1] || amountMatch[2]).replace(',', '.')) : null;
+    const amount = Number.isFinite(amountValue) && amountValue > 0 ? amountValue : null;
+    const requestedAmountMatch = action === 'edit'
+        ? raw.match(/(?:إلى|الى|ليصبح|خليه|خليها)\s*(\d+(?:[.,]\d{1,2})?)(?:\s*(?:جنيه(?:ات)?|ج\.?م))?/i)
+        : null;
+    const requestedAmountValue = requestedAmountMatch ? Number(requestedAmountMatch[1].replace(',', '.')) : null;
+    const requestedAmount = Number.isFinite(requestedAmountValue) && requestedAmountValue > 0 ? requestedAmountValue : null;
+    const residentMatch = resolveAssistantResident(raw);
+    const periodKeys = new Set((period.months || []).map(label => typeof monthLabelToKey === 'function'
+        ? String(monthLabelToKey(label) || '').slice(0, 7) : String(label).slice(0, 7)));
+    let type = null;
+    let candidates = [];
+    if (/(?:تسويه|تسوية|اعفاء|تخفيض|خصم)/.test(normalized)) {
+        type = 'adjustment';
+        if (residentMatch.matches.length !== 1) return { action, type, raw, error: 'حدّد المالك أو رقم الشقة بدقة قبل المتابعة.' };
+        candidates = (Array.isArray(state.adjustments) ? state.adjustments : [])
+            .filter(item => item.residentId === residentMatch.resident.id && periodKeys.has(String(item.effectiveMonth || '').slice(0, 7)))
+            .filter(item => !/(?:تسويه|تسوية)/.test(normalized) || item.kind === 'settlement')
+            .filter(item => !/(?:اعفاء)/.test(normalized) || item.kind === 'waiver')
+            .filter(item => !/(?:تخفيض|خصم)/.test(normalized) || item.kind === 'discount');
+    } else if (/(?:تحصيل|دفعة|استلام)/.test(normalized)) {
+        type = 'income';
+        if (residentMatch.matches.length !== 1) return { action, type, raw, error: 'حدّد المالك أو رقم الشقة بدقة قبل المتابعة.' };
+        candidates = (Array.isArray(state.income) ? state.income : [])
+            .filter(item => item.residentId === residentMatch.resident.id && period.months.includes(item.month));
+        if (amount) candidates = candidates.filter(item => Math.round(Number(item.amount) * 100) === Math.round(amount * 100));
+    } else if (/(?:مصروف|فاتوره|فاتورة)/.test(normalized)) {
+        type = 'expense';
+        candidates = (Array.isArray(state.expenses) ? state.expenses : [])
+            .filter(item => period.months.includes(item.month));
+        if (amount) candidates = candidates.filter(item => Math.round(Number(item.amount) * 100) === Math.round(amount * 100));
+    } else if (/(?:شقه|وحده|مستاجر)/.test(normalized)) {
+        type = 'resident';
+        if (residentMatch.matches.length !== 1) return { action, type, raw, error: 'حدّد رقم الشقة أو اسم المالك بدقة قبل المتابعة.' };
+        candidates = residentMatch.matches;
+    } else {
+        return null;
+    }
+    if (candidates.length !== 1) return {
+        action, type, raw,
+        error: candidates.length > 1
+            ? `وجدت ${candidates.length} سجلات مطابقة. حدّد المبلغ أو بيانات أدق حتى لا أختار سجلًا بالخطأ.`
+            : 'لم أجد سجلًا مطابقًا في الفترة المحددة. راجع الشهر والمالك أو المبلغ ثم أعد الطلب.'
+    };
+    const record = candidates[0];
+    if (type === 'resident' && action === 'delete'
+        && ((Array.isArray(state.income) ? state.income : []).some(item => item.residentId === record.id)
+            || (Array.isArray(state.adjustments) ? state.adjustments : []).some(item => item.residentId === record.id))) {
+        return { action, type, raw, error: 'لا يمكن حذف شقة لها تحصيلات أو إعفاءات/تسويات مرتبطة؛ احتفظ بالسجل المالي ولا تحذف بياناتها.' };
+    }
+    return { action, type, id: record.id, record, resident: type === 'resident' ? record : residentMatch.resident, raw, period: period.label, requestedAmount };
+}
+
+function parseAssistantResidentEntryCommand(text) {
+    if (assistantIsOwner()) return null;
+    const raw = String(text || '').trim();
+    const normalized = normalizeAssistantArabic(raw);
+    if (!/(?:اضف|ضيف|سجل|انشئ)/.test(normalized)
+        || !/(?:شقه جديده|وحده جديده|مستاجر جديد|بيانات شقه جديده)/.test(normalized)
+        || /(?:تحصيل|دفعة|مصروف|فاتوره|اعفاء|تخفيض|تسويه|اعلان)/.test(normalized)) return null;
+    const number = value => value ? value.replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632)).replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776)) : '';
+    const apartmentNumber = number(raw.match(/(?:شقة|الوحدة)\s*(?:رقم\s*)?(\d+)/)?.[1] || '');
+    const floor = number(raw.match(/(?:الدور|الطابق)\s*(\d+)/)?.[1] || '');
+    const nameMatch = raw.match(/(?:باسم|اسم\s+المالك)\s*([\u0600-\u06FF\s]+?)(?=\s*(?:شقة|الوحدة|الدور|الطابق|هاتف|جوال|اشتراك|الإيجار|الايجار|مستأجر|المستأجر|\d{4}-\d{2}-\d{2}|$))/);
+    const name = nameMatch ? nameMatch[1].replace(/[،,:؛\s]+$/g, '').trim() : '';
+    const phone = raw.match(/(?:هاتف|جوال|موبايل)\s*[:：]?\s*([+\d٠-٩۰-۹\s-]{8,20})/)?.[1]?.trim() || '';
+    const subscriptionMatch = raw.match(/(?:اشتراك(?:\s+شهري)?|قيمة\s+الاشتراك)\s*[:：]?\s*(\d+(?:[.,]\d{1,2})?)/);
+    const rentMatch = raw.match(/(?:قيمة\s+)?(?:الإيجار|الايجار)\s*[:：]?\s*(\d+(?:[.,]\d{1,2})?)/);
+    const depositMatch = raw.match(/(?:التأمين|تامين)\s*[:：]?\s*(\d+(?:[.,]\d{1,2})?)/);
+    const tenantName = raw.match(/(?:اسم\s+)?المستأجر\s*[:：]?\s*([\u0600-\u06FF\s]+?)(?=\s*(?:هاتف|جوال|بداية|نهاية|الإيجار|الايجار|التأمين|تامين|شقة|الدور|اشتراك|\d{4}-\d{2}-\d{2}|$))/)?.[1]?.trim() || '';
+    const tenantPhone = raw.match(/(?:هاتف|جوال)\s+المستأجر\s*[:：]?\s*([+\d٠-٩۰-۹\s-]{8,20})/)?.[1]?.trim() || '';
+    const leaseStart = raw.match(/(?:بداية\s+الإيجار|بداية\s+الايجار)\s*[:：]?\s*(\d{4}-\d{2}-\d{2})/)?.[1] || '';
+    const leaseEnd = raw.match(/(?:نهاية\s+الإيجار|نهاية\s+الايجار)\s*[:：]?\s*(\d{4}-\d{2}-\d{2})/)?.[1] || '';
+    const subscriptionAmount = subscriptionMatch ? Number(subscriptionMatch[1].replace(',', '.')) : null;
+    const rentAmount = rentMatch ? Number(rentMatch[1].replace(',', '.')) : null;
+    const depositAmount = depositMatch ? Number(depositMatch[1].replace(',', '.')) : null;
+    const missing = [];
+    if (!name) missing.push('اسم المالك');
+    if (!apartmentNumber) missing.push('رقم الشقة');
+    if (!floor) missing.push('الدور');
+    if (missing.length) return { raw, error: `أحتاج ${missing.join(' و')} صراحةً. مثال: «أضف شقة جديدة باسم أحمد، شقة 8، الدور 2».` };
+    if (!Number(state.floorCount) || !Number(state.apartmentsPerFloor)) {
+        return { raw, error: 'لا أستطيع تجهيز شقة جديدة قبل ضبط عدد الأدوار والشقق لكل دور من إعدادات العقار.' };
+    }
+    if (!Number.isFinite(Number(apartmentNumber)) || !Number.isFinite(Number(floor))
+        || (subscriptionAmount !== null && (!Number.isFinite(subscriptionAmount) || subscriptionAmount < 0))
+        || (rentAmount !== null && (!Number.isFinite(rentAmount) || rentAmount < 0))
+        || (depositAmount !== null && (!Number.isFinite(depositAmount) || depositAmount < 0))) {
+        return { raw, error: 'راجع أرقام الشقة والدور والاشتراك والإيجار والتأمين؛ يجب أن تكون أرقامًا صحيحة وغير سالبة.' };
+    }
+    const floorNumber = Number(floor);
+    const apartmentValue = Number(apartmentNumber);
+    if (!Number.isInteger(floorNumber) || floorNumber < 1 || floorNumber > state.floorCount
+        || !Number.isInteger(apartmentValue)
+        || apartmentValue < (floorNumber - 1) * state.apartmentsPerFloor + 1
+        || apartmentValue > floorNumber * state.apartmentsPerFloor) {
+        return { raw, error: 'رقم الشقة لا يطابق الدور حسب توزيع العقار. راجع الدور ورقم الشقة قبل المتابعة.' };
+    }
+    const apartmentKey = value => String(value ?? '').replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632))
+        .replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776)).replace(/^0+(?=\d)/, '');
+    const existing = (Array.isArray(state.residents) ? state.residents : [])
+        .find(item => apartmentKey(item.apartmentNumber) === apartmentKey(apartmentNumber));
+    if (existing) return { raw, error: `الشقة ${apartmentNumber} مسجلة بالفعل باسم ${assistantResidentName(existing)}. استخدم أمر تعديل بياناتها بدل إضافة سجل مكرر.` };
+    const rented = Boolean(tenantName || /(?:مؤجره|مستاجر|مستاجره)/.test(normalized));
+    if (rented && !tenantName) return { raw, error: 'أضف اسم المستأجر صراحةً، أو افتح نموذج الشقة وأكمل بيانات المستأجر.' };
+    return { raw, name, apartmentNumber, floor, phone, subscriptionAmount, rented, tenantName, tenantPhone, leaseStart, leaseEnd, rentAmount, depositAmount };
+}
+
+function buildAssistantResidentEntryPreview(entry) {
+    if (!entry) return null;
+    if (entry.error) return { id: 'resident-entry-needs-clarification', title: 'بيانات الشقة ناقصة أو غير صالحة', html: assistantNote(entry.error) };
+    if (assistantOperationContext || assistantResidentEntryDraft || assistantMutationDraft) return {
+        id: 'mutation-pending', title: 'أكمل العملية الحالية أولًا', html: assistantNote('هناك عملية أخرى قيد المراجعة أو الحفظ.')
+    };
+    assistantResidentEntryDraft = { ...entry, requestId: generateId() };
+    const lines = [
+        `المالك: ${entry.name}`,
+        `الشقة: ${entry.apartmentNumber} · الدور ${entry.floor}`,
+        `الاشتراك: ${entry.subscriptionAmount === null ? 'القيمة الافتراضية المعتمدة' : assistantMoney(entry.subscriptionAmount)}`,
+        entry.rented ? `المستأجر: ${entry.tenantName}` : 'الشقة: غير مؤجرة'
+    ];
+    if (entry.rentAmount !== null) lines.push(`الإيجار: ${assistantMoney(entry.rentAmount)}`);
+    if (entry.depositAmount !== null) lines.push(`التأمين: ${assistantMoney(entry.depositAmount)}`);
+    return {
+        id: 'resident-entry-preview', title: 'معاينة بيانات الشقة والمستأجر',
+        html: `<div class="assistant-action-preview"><p class="assistant-notice-preview">${lines.map(assistantEscape).join('<br>')}</p>
+            <p class="assistant-note">لن تُسجل البيانات الآن. افتح نموذج الشقة الرسمي لمراجعتها وإكمال أي حقول ناقصة، ثم اضغط «تأكيد الحفظ» داخله.</p>
+            <div class="assistant-action-buttons" role="group" aria-label="مراجعة بيانات الشقة">
+                <button type="button" class="assistant-action-confirm" onclick="openAssistantResidentEntry()">فتح النموذج الرسمي</button>
+                <button type="button" class="assistant-action-cancel" onclick="cancelAssistantResidentEntry()">إلغاء</button>
+            </div></div>`
+    };
+}
+
+function openAssistantResidentEntry() {
+    const draft = assistantResidentEntryDraft;
+    if (!draft || assistantIsOwner() || currentUserRole !== 'manager' || assistantOperationContext) return false;
+    startAssistantOperationContext({ ...draft, type: 'resident', action: 'create', mode: 'create' });
+    if (typeof window.openResidentModal !== 'function') {
+        clearAssistantOperationContext();
+        if (typeof toast === 'function') toast('نموذج الشقة غير متاح الآن.', 'error');
+        return false;
+    }
+    window.openResidentModal('add');
+    const setValue = (id, value) => { const input = /** @type {HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null} */ (document.getElementById(id)); if (input && value !== null && value !== undefined && value !== '') input.value = String(value); };
+    const floor = /** @type {HTMLSelectElement | null} */ (document.getElementById('residentFloor'));
+    if (floor) floor.value = draft.floor;
+    if (typeof window.updateResidentApartmentOptions === 'function') window.updateResidentApartmentOptions(draft.apartmentNumber);
+    setValue('residentName', draft.name);
+    setValue('residentApartment', draft.apartmentNumber);
+    setValue('residentPhone', draft.phone);
+    setValue('residentAmount', draft.subscriptionAmount);
+    const rented = /** @type {HTMLInputElement | null} */ (document.getElementById('residentIsRented'));
+    if (rented) rented.checked = draft.rented;
+    setValue('residentTenantName', draft.tenantName);
+    setValue('residentTenantPhone', draft.tenantPhone);
+    setValue('residentLeaseStart', draft.leaseStart);
+    setValue('residentLeaseEnd', draft.leaseEnd);
+    setValue('residentRentAmount', draft.rentAmount);
+    setValue('residentDepositAmount', draft.depositAmount);
+    if (typeof window.toggleResidentTenantFields === 'function') window.toggleResidentTenantFields();
+    const submit = assistantOperationSubmitButton('resident', 'create');
+    if (submit) submit.textContent = assistantOperationConfirmationLabel('resident');
+    assistantResidentEntryDraft = null;
+    if (typeof closeModal === 'function') closeModal('assistantModal');
+    return true;
+}
+
+function cancelAssistantResidentEntry() {
+    assistantResidentEntryDraft = null;
+    if (typeof toast === 'function') toast('تم إلغاء مسودة بيانات الشقة دون حفظ.', 'info');
+}
+
+function assistantMutationRecordLabel(mutation) {
+    const record = mutation.record;
+    if (mutation.type === 'resident') return `الشقة ${record.apartmentNumber} · ${assistantResidentName(record)}`;
+    if (mutation.type === 'income') return `تحصيل ${assistantMoney(record.amount)}${mutation.requestedAmount ? ` (من ${assistantMoney(record.amount)} إلى ${assistantMoney(mutation.requestedAmount)})` : ''} · ${assistantResidentName(mutation.resident)} · شقة ${mutation.resident.apartmentNumber} · ${record.month}`;
+    if (mutation.type === 'expense') return `مصروف ${record.title} · ${assistantMoney(record.amount)}${mutation.requestedAmount ? ` (من ${assistantMoney(record.amount)} إلى ${assistantMoney(mutation.requestedAmount)})` : ''} · ${record.month}`;
+    const kind = { waiver: 'إعفاء', discount: 'تخفيض', settlement: 'تسوية' }[record.kind] || 'إجراء مالي';
+    return `${kind} ${assistantMoney(record.amount)}${mutation.requestedAmount ? ` (من ${assistantMoney(record.amount)} إلى ${assistantMoney(mutation.requestedAmount)})` : ''} · ${assistantResidentName(mutation.resident)} · شقة ${mutation.resident.apartmentNumber} · ${String(record.effectiveMonth || '').slice(0, 7)}`;
+}
+
+function buildAssistantMutationPreview(mutation) {
+    if (!mutation) return null;
+    if (mutation.error) return { id: 'mutation-needs-clarification', title: 'أحتاج تحديدًا أدق', html: assistantNote(mutation.error) };
+    if (assistantOperationContext || assistantMutationDraft) return {
+        id: 'mutation-pending', title: 'أكمل العملية الحالية أولًا',
+        html: assistantNote('هناك عملية أخرى قيد المراجعة أو الحفظ. أكملها أو ألغِها قبل بدء تعديل أو حذف جديد.')
+    };
+    assistantMutationDraft = { ...mutation, requestId: generateId(), expectedRecord: JSON.stringify(mutation.record) };
+    const deleting = mutation.action === 'delete';
+    return {
+        id: deleting ? 'mutation-delete-preview' : 'mutation-edit-preview',
+        title: deleting ? 'مراجعة حذف سجل' : 'مراجعة تعديل سجل',
+        html: `<div class="assistant-action-preview"><p class="assistant-notice-preview">${assistantEscape(assistantMutationRecordLabel(assistantMutationDraft))}</p>
+            <p class="assistant-note">${deleting ? 'لن يُحذف السجل إلا بعد ضغط «تأكيد الحذف» هنا، وسيُسجل الحذف في سجل العمليات. قد تمنع ضوابط النظام حذف السجلات المرتبطة.' : 'لم تتغير البيانات. افتح النموذج الرسمي وراجع الحقول ثم أكد الحفظ من داخله؛ سيُسجل التعديل في سجل العمليات.'}</p>
+            <div class="assistant-action-buttons" role="group" aria-label="مراجعة التغيير الإداري">
+                <button type="button" class="assistant-action-confirm" onclick="${deleting ? 'confirmAssistantMutationDelete' : 'openAssistantMutationEdit'}()">${deleting ? 'تأكيد الحذف' : 'فتح نموذج التعديل'}</button>
+                <button type="button" class="assistant-action-cancel" onclick="cancelAssistantMutation()">إلغاء</button>
+            </div></div>`
+    };
+}
+
+function openAssistantMutationEdit() {
+    const draft = assistantMutationDraft;
+    if (!draft || draft.action !== 'edit' || assistantIsOwner()) return false;
+    const currentRows = draft.type === 'resident' ? state.residents
+        : draft.type === 'income' ? state.income
+            : draft.type === 'expense' ? state.expenses : state.adjustments;
+    const currentRecord = (Array.isArray(currentRows) ? currentRows : []).find(item => item.id === draft.id);
+    if (!currentRecord || JSON.stringify(currentRecord) !== draft.expectedRecord) {
+        assistantMutationDraft = null;
+        if (typeof toast === 'function') toast('تغير السجل منذ المعاينة. أعد تحميل البيانات ثم جهّز التعديل من جديد.', 'error');
+        return false;
+    }
+    startAssistantOperationContext({ ...draft, mode: 'edit', action: 'edit' });
+    const opener = draft.type === 'resident' ? 'editResident'
+        : draft.type === 'income' ? 'openIncomeEditModal'
+            : draft.type === 'expense' ? 'openExpenseEditModal' : 'openAdjustmentModal';
+    if (typeof window[opener] !== 'function') {
+        clearAssistantOperationContext();
+        if (typeof toast === 'function') toast('نموذج التعديل غير متاح الآن.', 'error');
+        return false;
+    }
+    if (draft.type === 'adjustment') {
+        window[opener](draft.resident.id);
+        if (typeof window.editAdjustment === 'function') window.editAdjustment(draft.id);
+    } else window[opener](draft.id);
+    if (draft.requestedAmount && draft.type === 'income') {
+        const input = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeEditAmount'));
+        if (input) input.value = String(draft.requestedAmount);
+    } else if (draft.requestedAmount && draft.type === 'expense') {
+        const input = /** @type {HTMLInputElement | null} */ (document.getElementById('expenseAmount'));
+        if (input) input.value = String(draft.requestedAmount);
+        if (typeof window.previewExpense === 'function') window.previewExpense();
+    } else if (draft.requestedAmount && draft.type === 'adjustment') {
+        const input = /** @type {HTMLInputElement | null} */ (document.getElementById('adjustmentAmount'));
+        if (input) input.value = String(draft.requestedAmount);
+        if (typeof window.updateAdjustmentDueHint === 'function') window.updateAdjustmentDueHint();
+    }
+    const submitButton = assistantOperationSubmitButton(draft.type, 'edit');
+    if (submitButton) submitButton.textContent = assistantOperationConfirmationLabel(draft.type);
+    assistantMutationDraft = null;
+    if (typeof closeModal === 'function') closeModal('assistantModal');
+    return true;
+}
+
+async function confirmAssistantMutationDelete() {
+    const draft = assistantMutationDraft;
+    if (!draft || draft.processing || draft.action !== 'delete' || assistantIsOwner() || currentUserRole !== 'manager') return false;
+    const currentRows = draft.type === 'resident' ? state.residents
+        : draft.type === 'income' ? state.income
+            : draft.type === 'expense' ? state.expenses : state.adjustments;
+    const currentRecord = (Array.isArray(currentRows) ? currentRows : []).find(item => item.id === draft.id);
+    if (!currentRecord || JSON.stringify(currentRecord) !== draft.expectedRecord) {
+        assistantMutationDraft = null;
+        if (typeof toast === 'function') toast('تغير السجل منذ المعاينة. لم يُنفّذ الحذف؛ أعد المعاينة.', 'error');
+        return false;
+    }
+    draft.processing = true;
+    const type = `${draft.type}_delete`;
+    startAssistantOperationContext({ ...draft, type, mode: 'delete', action: 'delete' });
+    const deleter = draft.type === 'resident' ? 'deleteResident'
+        : draft.type === 'income' ? 'deleteIncome'
+            : draft.type === 'expense' ? 'deleteExpense' : 'deleteAdjustment';
+    if (typeof window[deleter] !== 'function') {
+        clearAssistantOperationContext();
+        if (typeof toast === 'function') toast('مسار الحذف غير متاح الآن.', 'error');
+        return false;
+    }
+    await window[deleter](draft.id, draft.requestId);
+    if (assistantOperationContext?.requestId === draft.requestId && assistantOperationContext.status === 'ready') clearAssistantOperationContext();
+    assistantMutationDraft = null;
+    return true;
+}
+
+function cancelAssistantMutation() {
+    assistantMutationDraft = null;
+    if (assistantOperationContext?.action === 'edit' && assistantOperationContext.status === 'ready') clearAssistantOperationContext();
+    if (typeof toast === 'function') toast('تم إلغاء العملية دون تغيير البيانات.', 'info');
+}
+
 function assistantOperationMissing(operation) {
     if (!operation) return ['بيانات العملية'];
     const missing = [];
@@ -1051,7 +1355,25 @@ function buildAssistantOperationChangeNote(previous, patch) {
 
 function buildAssistantOperationPreview(operation, now = new Date()) {
     if (!operation) return null;
-    assistantOperationDraft = operation;
+    if (assistantOperationContext || assistantMutationDraft || assistantResidentEntryDraft) {
+        const context = assistantOperationContext;
+        return {
+            id: 'operation-pending',
+            title: 'هناك عملية قيد المراجعة',
+            html: assistantNote(context?.status === 'uncertain'
+                ? 'نتيجة الحفظ السابق غير مؤكدة. حدّث البيانات وتحقق من سجل التدقيق قبل بدء عملية جديدة.'
+                : 'أكمل أو ألغِ النموذج أو المعاينة المفتوحة أولًا؛ لن أستبدل بيانات العملية الحالية.')
+        };
+    }
+    const residentEdit = operation.type === 'resident_edit'
+        ? (Array.isArray(state.residents) ? state.residents : []).find(item => item.id === operation.residentId)
+        : null;
+    assistantOperationDraft = {
+        ...operation,
+        requestId: operation.requestId || (typeof generateId === 'function' ? generateId() : `assistant-${Date.now()}`),
+        ...(residentEdit ? { expectedRecord: JSON.stringify(residentEdit) } : {})
+    };
+    operation = assistantOperationDraft;
     const labels = { income: 'تحصيل', expense: 'مصروف', adjustment: 'إعفاء أو تخفيض أو تسوية', resident: 'بيانات الشقة', resident_edit: 'تعديل بيانات الشقة' };
     const missing = assistantOperationMissing(operation);
     if (missing.length) {
@@ -1125,7 +1447,7 @@ function assistantOperationSuccessHtml(operation) {
 }
 
 function openAssistantOperation() {
-    if (!assistantOperationDraft || assistantIsOwner()) return false;
+    if (!assistantOperationDraft || assistantIsOwner() || assistantOperationContext) return false;
     const draft = assistantOperationDraft;
     const opener = draft.type === 'income' ? 'openAssistantIncomeDraft'
         : draft.type === 'expense' ? 'openAssistantExpenseDraft'
@@ -1145,11 +1467,160 @@ function openAssistantOperation() {
             openAssistantModal();
             return false;
         }
+        startAssistantOperationContext(draft);
         assistantOperationDraft = null;
         return true;
     }
     if (typeof toast === 'function') toast('نموذج العملية غير متاح الآن.', 'error');
     return false;
+}
+
+function assistantOperationSubmitButton(type, mode = 'create') {
+    if (typeof document === 'undefined') return null;
+    if (type === 'income') return document.getElementById(mode === 'edit' ? 'incomeEditSubmitButton' : 'incomeSubmitButton');
+    if (type === 'expense') return document.getElementById('expenseSubmitButton');
+    if (type === 'adjustment') return document.getElementById('adjustmentSaveButton');
+    if (type === 'resident') return document.querySelector('#residentForm button[type="submit"]');
+    return null;
+}
+
+function assistantOperationConfirmationLabel(type) {
+    if (assistantOperationContext?.action === 'edit') return ({
+        income: 'تأكيد تعديل التحصيل عبر عم عبده',
+        expense: 'تأكيد تعديل المصروف عبر عم عبده',
+        adjustment: 'تأكيد تعديل الإجراء عبر عم عبده',
+        resident: 'تأكيد تعديل بيانات الشقة عبر عم عبده'
+    })[type] || 'تأكيد التعديل عبر عم عبده';
+    return ({
+        income: 'تأكيد وتسجيل التحصيل عبر عم عبده',
+        expense: 'تأكيد وتسجيل المصروف عبر عم عبده',
+        adjustment: 'تأكيد وحفظ الإجراء عبر عم عبده',
+        resident: 'تأكيد حفظ بيانات الشقة عبر عم عبده'
+    })[type] || 'تأكيد العملية عبر عم عبده';
+}
+
+function getAssistantOperationSubmitLabel(type, fallbackLabel) {
+    return assistantOperationContext?.type === type
+        ? assistantOperationConfirmationLabel(type)
+        : fallbackLabel;
+}
+
+function startAssistantOperationContext(draft) {
+    const type = draft.type === 'resident_edit' ? 'resident' : draft.type;
+    const mode = draft.mode || (draft.type === 'resident_edit' ? 'edit' : 'create');
+    const action = draft.action || (draft.type === 'resident_edit' ? 'edit' : 'create');
+    const resident = draft.type === 'resident_edit'
+        ? (Array.isArray(state.residents) ? state.residents : []).find(item => item.id === draft.residentId)
+        : null;
+    const button = assistantOperationSubmitButton(type, mode);
+    const auditHost = typeof globalThis !== 'undefined' ? globalThis : null;
+    const originalLogAction = auditHost && typeof auditHost.logAction === 'function' ? auditHost.logAction : null;
+    const context = {
+        requestId: draft.requestId,
+        type,
+        action,
+        mode,
+        recordId: draft.id || draft.residentId || null,
+        expectedRecord: draft.expectedRecord || (resident ? JSON.stringify(resident) : null),
+        raw: String(draft.raw || ''),
+        status: 'ready',
+        submitButton: button,
+        originalSubmitLabel: button ? button.textContent : null,
+        auditHost,
+        originalLogAction,
+        wrappedLogAction: null
+    };
+    if (originalLogAction) {
+        context.wrappedLogAction = function (actionName, details, ...args) {
+            return originalLogAction.call(this, actionName, assistantAuditDetails(details), ...args);
+        };
+        auditHost.logAction = context.wrappedLogAction;
+    }
+    assistantOperationContext = context;
+    if (button) button.textContent = assistantOperationConfirmationLabel(type);
+}
+
+function assistantOperationRequestId(type = null) {
+    if (!assistantOperationContext || (type && assistantOperationContext.type !== type)) return null;
+    return assistantOperationContext.requestId;
+}
+
+function assistantAuditDetails(details) {
+    if (!assistantOperationContext) return details;
+    const request = String(assistantOperationContext.raw || '')
+        .replace(/[\u0000-\u001f\u007f]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 240);
+    const base = String(details ?? '').trim();
+    if (base.includes(`مرجع الطلب: ${assistantOperationContext.requestId}`)) return base;
+    return `${base}${base ? ' · ' : ''}المصدر: عم عبده · مرجع الطلب: ${assistantOperationContext.requestId}${request ? ` · طلب المدير: ${request}` : ''}`;
+}
+
+function requireAssistantOperationReadyForCommit(type) {
+    if (!assistantOperationContext) return true;
+    if (assistantIsOwner() || currentUserRole !== 'manager' || assistantOperationContext.type !== type) {
+        if (typeof toast === 'function') toast('تعذر مطابقة نموذج العملية مع طلب عم عبده. ألغِ النموذج وأعد فتح الطلب الصحيح.', 'error');
+        return false;
+    }
+    if (assistantOperationContext.status === 'saving') {
+        if (typeof toast === 'function') toast('العملية قيد الحفظ بالفعل. انتظر نتيجة التأكيد.', 'info');
+        return false;
+    }
+    if (assistantOperationContext.status === 'uncertain') {
+        if (typeof toast === 'function') toast('نتيجة الحفظ السابق غير مؤكدة. حدّث البيانات وتحقق من سجل التدقيق قبل إعادة المحاولة لتجنب التكرار.', 'error');
+        return false;
+    }
+    if (assistantOperationContext.action === 'edit' && assistantOperationContext.expectedRecord) {
+        const recordType = String(type).replace(/_delete$/, '');
+        const rows = recordType === 'resident' ? state.residents
+            : recordType === 'income' ? state.income
+                : recordType === 'expense' ? state.expenses : state.adjustments;
+        const current = (Array.isArray(rows) ? rows : []).find(item => item.id === assistantOperationContext.recordId);
+        if (!current || JSON.stringify(current) !== assistantOperationContext.expectedRecord) {
+            assistantOperationContext.status = 'uncertain';
+            if (typeof toast === 'function') toast('تغير السجل منذ فتح نموذج التعديل. لن أحفظ نسخة قديمة؛ حدّث البيانات وافتح التعديل من جديد.', 'error');
+            return false;
+        }
+    }
+    return true;
+}
+
+function beginAssistantOperationCommit(type) {
+    if (!requireAssistantOperationReadyForCommit(type)) return false;
+    if (!assistantOperationContext) return null;
+    assistantOperationContext.status = 'saving';
+    return assistantOperationContext.requestId;
+}
+
+function markAssistantOperationSaveUncertain(requestId) {
+    if (assistantOperationContext?.requestId === requestId) assistantOperationContext.status = 'uncertain';
+}
+
+function completeAssistantOperation(requestId = null) {
+    if (!assistantOperationContext || (requestId && assistantOperationContext.requestId !== requestId)) return false;
+    const context = assistantOperationContext;
+    assistantOperationContext = null;
+    if (context.submitButton && context.originalSubmitLabel !== null) {
+        context.submitButton.textContent = context.originalSubmitLabel;
+    }
+    if (context.auditHost && context.wrappedLogAction && context.auditHost.logAction === context.wrappedLogAction) {
+        context.auditHost.logAction = context.originalLogAction;
+    }
+    return true;
+}
+
+function clearAssistantOperationContext() {
+    if (assistantOperationContext && assistantOperationContext.status !== 'ready') {
+        const context = assistantOperationContext;
+        if (context.submitButton && context.originalSubmitLabel !== null) {
+            context.submitButton.textContent = context.originalSubmitLabel;
+        }
+        context.submitButton = null;
+        context.originalSubmitLabel = null;
+        return true;
+    }
+    return completeAssistantOperation();
 }
 
 async function confirmAssistantOperation() {
@@ -1164,7 +1635,7 @@ async function confirmAssistantOperation() {
             : (draft.type === 'resident' || draft.type === 'resident_edit') ? 'openAssistantResidentDraft' : 'openAssistantAdjustmentDraft';
     const handlerName = draft.type === 'income' ? 'handleIncomeSubmit'
         : draft.type === 'expense' ? 'handleExpenseSubmit'
-            : draft.type === 'resident' ? 'handleResidentSubmit' : 'handleAdjustmentSubmit';
+            : (draft.type === 'resident' || draft.type === 'resident_edit') ? 'handleResidentSubmit' : 'handleAdjustmentSubmit';
     const openForm = assistantGlobalFunction(openerName);
     const submitForm = assistantGlobalFunction(handlerName);
     if (!openForm || !submitForm) {
@@ -1176,6 +1647,14 @@ async function confirmAssistantOperation() {
     const adjustmentBefore = Array.isArray(state.adjustments) ? state.adjustments.length : 0;
     const residentBefore = Array.isArray(state.residents) ? state.residents.length : 0;
     const residentSnapshotBefore = JSON.stringify(state.residents || []);
+    if (assistantOperationContext) {
+        if (typeof toast === 'function') toast('هناك عملية أخرى قيد المراجعة؛ أكملها أو ألغِها قبل التأكيد.', 'error');
+        return false;
+    }
+    const contextDraft = draft.type === 'resident_edit'
+        ? { ...draft, type: 'resident', id: draft.residentId, mode: 'edit', action: 'edit' }
+        : draft;
+    startAssistantOperationContext(contextDraft);
     assistantOperationDraft = null;
     const balanceInfo = assistantExpenseBalanceInfo(draft);
     const toastHost = typeof globalThis !== 'undefined' ? globalThis : null;
@@ -1195,6 +1674,9 @@ async function confirmAssistantOperation() {
         await submitForm({ preventDefault() {}, assistantFromChat: true });
     } catch (error) {
         assistantOperationDraft = draft;
+        if (assistantOperationContext?.requestId === draft.requestId && assistantOperationContext.status === 'ready') {
+            clearAssistantOperationContext();
+        }
         if (typeof toast === 'function') toast('تعذر تشغيل مسار الحفظ الرسمي؛ لم تُسجل العملية.', 'error');
         const detail = validationMessages[validationMessages.length - 1];
         appendAssistantOperationFailure(`تعذر تشغيل مسار الحفظ الرسمي${detail ? `: ${detail}` : ''}. لم تُسجل العملية؛ بقيت المسودة ويمكنك المحاولة مرة أخرى.`);
@@ -1211,7 +1693,12 @@ async function confirmAssistantOperation() {
         : draft.type === 'expense' ? expenseAfter > expenseBefore
             : (draft.type === 'resident' || draft.type === 'resident_edit') ? (draft.type === 'resident' ? residentAfter > residentBefore : residentChanged)
                 : adjustmentAfter > adjustmentBefore;
-    if (!saved) assistantOperationDraft = draft;
+    if (!saved) {
+        assistantOperationDraft = draft;
+        if (assistantOperationContext?.requestId === draft.requestId && assistantOperationContext.status === 'ready') {
+            clearAssistantOperationContext();
+        }
+    }
     if (!saved) {
         if (typeof toast === 'function') toast('لم تُسجل العملية. راجع رسالة التحقق أو عدّل التفاصيل.', 'error');
         const detail = validationMessages[validationMessages.length - 1];
@@ -1244,8 +1731,21 @@ function assistantMarkOperationDraftCompleted() {
 }
 
 function cancelAssistantOperation(options = {}) {
+    const context = assistantOperationContext;
+    if (context && context.status !== 'ready') {
+        if (!options.silent && typeof toast === 'function') {
+            toast('لا يمكن إلغاء تأكيد جارٍ أو نتيجته غير مؤكدة. حدّث البيانات وتحقق من سجل التدقيق أولًا.', 'error');
+        }
+        return false;
+    }
     assistantOperationDraft = null;
+    if (context) {
+        const modalId = ({ income: 'incomeModal', expense: 'expenseModal', adjustment: 'adjustmentModal', resident: 'residentModal' })[context.type];
+        completeAssistantOperation(context.requestId);
+        if (modalId && typeof closeModal === 'function') closeModal(modalId);
+    }
     if (!options.silent && typeof toast === 'function') toast('تم إلغاء مسودة العملية.', 'info');
+    return true;
 }
 
 function assistantApartmentLabel(resident) {
@@ -1688,12 +2188,15 @@ function buildAssistantHelpAnswer() {
         'حساب مالك بالاسم أو برقم الشقة.',
         'الإعفاءات والتخفيضات المسجلة.',
         'إدارة الشقق والاشتراكات وسجل الأسعار وبيانات المستأجرين.',
+        'إضافة شقة جديدة وبيانات المستأجر بعد ضبط رقم الشقة والدور.',
+        'تعديل أو حذف سجل محدد بعد مطابقته ومعاينة بياناته.',
         'حركات الصناديق والتحويلات بين الخزائن وطرق الدفع.',
         'تجهيز تحصيل أو مصروف أو إعفاء/تسوية ثم حفظه بعد تأكيدك الصريح.',
         'نشر إعلان بعد معاينته وتأكيد النشر.',
         'آخر الحركات وبيانات العمارة والإعدادات والنسخ الاحتياطي.',
-        'التقارير التفصيلية: الملاك، الفترة، المصروفات، الإعفاءات، الإقفال، المتأخرات وسجل التدقيق.'
-    ])}${assistantNote('اكتب سؤالك كما تتكلم: «الفلوس راحت فين؟»، «مين متأخر؟»، «عايز كشف حساب شقة 7»، أو «إزاي أغير ميعاد الاستحقاق؟». سيعرض عم عبده معاينة لأي إدخال، ولن يحفظه إلا بعد تأكيدك الصريح.')}`;
+        'التقارير التفصيلية: الملاك، الفترة، المصروفات، الإعفاءات، الإقفال، المتأخرات وسجل التدقيق.',
+        'أماكن التقارير وكيف تطبع أو تصدّر CSV.'
+    ])}${assistantNote('اكتب سؤالك كما تتكلم: «الفلوس راحت فين؟»، «مين متأخر؟»، «عايز كشف حساب شقة 7»، أو «أضف شقة جديدة باسم أحمد، شقة 8، الدور 2». سيعرض عم عبده معاينة لأي إدخال، ولن يحفظه إلا بعد مراجعتك وتأكيدك الصريح.')}`;
     return { id: 'help', title, html };
 }
 
@@ -1757,7 +2260,7 @@ function buildAssistantKnowledgeAnswer() {
         'الإجابات والتقارير قراءة فقط؛ لا يتغير السجل إلا من مسار تنفيذ واضح بعد تأكيد المدير.',
         'بيانات العمارة وإجراءاتها لا تظهر إلا للمستخدم ذي صلاحيات المدير.',
         'إجاباتي تُحسب محليًا من بيانات الجلسة ولا أرسل المحادثة أو بيانات العمارة لخدمة خارجية.',
-        'أقدر أجهز تحصيلًا أو مصروفًا أو تسوية من كلامك؛ راجع المعاينة واكتب «أكد التسجيل» للحفظ. الحذف والتعديل يتمان من شاشات التطبيق.'
+        'صلاحيات المدير: الأسئلة والتقارير للقراءة فقط. أجهّز مسودة التحصيل أو المصروف أو بيانات الشقة/المستأجر والتعديل والحذف في معاينة؛ لا تُحفظ إلا بعد مراجعتك وضغط «تأكيد» داخل النموذج الرسمي أو كتابة «أكد التسجيل» في المحادثة. الحذف يتطلب تأكيدًا صريحًا ولا ينفذ إذا كانت البيانات غير محددة أو مرتبطة بسجل محمي.'
     ];
     return { id: 'knowledge', title, html: assistantList(items) + assistantNote(owner ? 'جرّب: «إيصالاتي» أو «آخر يوم للدفع كام؟».' : 'جرّب: «مين يقدر يشوف البيانات؟» أو «إزاي أستخدم التقارير؟».') };
 }
@@ -2435,7 +2938,14 @@ function answerAssistantQuery(text, now = new Date()) {
     if (operationFollowup) return withAssistantAnswerMeta(operationFollowup, resolveAssistantPeriod(text, now), assistantOperationDraft?.resident || null, text);
     const noticeText = parseAssistantNoticeCommand(text);
     if (noticeText) return withAssistantAnswerMeta(buildAssistantNoticePreview(noticeText), resolveAssistantPeriod(text, now), null, text);
+    const residentEntry = parseAssistantResidentEntryCommand(text);
+    if (residentEntry) return withAssistantAnswerMeta(buildAssistantResidentEntryPreview(residentEntry), resolveAssistantPeriod(text, now), null, text);
     const operation = parseAssistantOperationCommand(text, now);
+    if (operation?.type === 'resident_edit') {
+        return withAssistantAnswerMeta(buildAssistantOperationPreview(operation, now), resolveAssistantPeriod(text, now), null, text);
+    }
+    const mutation = parseAssistantMutationCommand(text, now);
+    if (mutation) return withAssistantAnswerMeta(buildAssistantMutationPreview(mutation), resolveAssistantPeriod(text, now), mutation.resident || null, text);
     if (operation) return withAssistantAnswerMeta(buildAssistantOperationPreview(operation, now), resolveAssistantPeriod(text, now), operation.resident, text);
     const plan = buildAssistantQueryPlan(text, now);
     if (plan.residentMatches.length > 1) {
