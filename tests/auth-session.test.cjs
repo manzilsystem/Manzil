@@ -592,6 +592,25 @@ test('expired recovery session clears the pending marker and keeps the app signe
     assert.equal(h.sandbox.document.body.classList.contains('session-locked'), true);
 });
 
+test('clearing authenticated state resets the assistant before dropping the prior identity', async () => {
+    const h = makeHarness();
+    let resetCount = 0;
+    h.sandbox.resetAssistantSessionForAuthChange = () => { resetCount += 1; };
+    await h.app.initSupabaseApp();
+    resetCount = 0;
+    h.app.setSnapshot({ activeSession: { user: { id: 'prior-manager' } } });
+    h.getAuthListener()('SIGNED_OUT', null);
+    await h.flushTimers();
+
+    assert.equal(resetCount, 1, 'sign-out executes the assistant reset hook');
+    assert.equal(h.app.getSnapshot().activeSession, null);
+    const body = supabaseSource.match(/function clearAuthenticatedState\(\) \{([\s\S]*?)\n\}/)?.[1] || '';
+    const assistantResetIndex = body.indexOf('resetAssistantSessionForAuthChange()');
+    const sessionClearIndex = body.indexOf('activeSession = null;');
+    assert.ok(assistantResetIndex >= 0, 'auth cleanup calls the assistant session reset');
+    assert.ok(assistantResetIndex < sessionClearIndex, 'the reset runs while the previous identity is still available');
+});
+
 
 test('canceling password recovery clears the shared lock and signs out locally', async () => {
     const h = makeHarness();

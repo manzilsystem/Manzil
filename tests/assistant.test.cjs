@@ -183,10 +183,13 @@ function createHarness(seed = true, identity = {}, options = {}) {
         assistantOperationSuccessHtml,
         confirmAssistantOperation,
         restoreAssistantSession,
+        resetAssistantSessionForAuthChange,
+        hydrateAssistantChatFromRemote,
         appendAssistantMessage,
         resetAssistantChat,
         chatSnapshot: () => assistantChat,
         contextSnapshot: () => assistantContext,
+        remoteStateSnapshot: () => ({ hydrated: assistantRemoteHydrated, hydrating: assistantRemoteHydrating }),
         ASSISTANT_NAME
     })`, context);
     return { context, api, storage: sandbox.sessionStorage };
@@ -1564,6 +1567,115 @@ test('assistant history is stored per identity so an owner never restores the ma
     assert.ok(!storage.map.has('manzil-assistant-chat:building-1:owner-r1'));
 });
 
+test('manager assistant history is isolated by authenticated account', () => {
+    const { context, api, storage } = createHarness();
+    vm.runInContext(`activeSession = { user: { id: 'manager-a' } };`, context);
+    api.appendAssistantMessage('bot', '<p>محادثة المدير الأول</p>');
+
+    vm.runInContext(`
+        activeSession = { user: { id: 'manager-b' } };
+        assistantChat = [];
+        assistantContext = { period: null, residentId: null };
+    `, context);
+    api.restoreAssistantSession();
+
+    assert.equal(api.chatSnapshot().length, 0, 'a second manager starts with their own local history');
+    assert.ok([...storage.map.keys()].some(key => key.includes('manager-a')), 'the first manager history remains in its own session key');
+});
+
+test('an auth change clears in-memory assistant context without deleting the previous account history', () => {
+    const log = { innerHTML: 'رسائل الحساب السابق' };
+    const input = { value: 'مدخل الحساب السابق' };
+    const { context, api, storage } = createHarness(true, {}, {
+        instrument: sandbox => {
+            const originalGetElementById = sandbox.document.getElementById;
+            sandbox.document.getElementById = id => id === 'assistantLog' ? log : id === 'assistantInput' ? input : originalGetElementById(id);
+        }
+    });
+    vm.runInContext(`
+        activeSession = { user: { id: 'manager-a' } };
+        assistantContext = { period: { type: 'month', label: 'نوفمبر 2026', months: ['نوفمبر 2026'] }, residentId: 'r1' };
+    `, context);
+    vm.runInContext(`assistantChat = [{ role: 'bot', html: '<p>محادثة المدير الأول</p>' }]; persistAssistantChat();`, context);
+    api.resetAssistantSessionForAuthChange();
+
+    assert.equal(api.chatSnapshot().length, 0);
+    assert.equal(api.contextSnapshot().period, null);
+    assert.equal(log.innerHTML, '', 'the previous account transcript is removed from the page');
+    assert.equal(input.value, '', 'the previous account draft is removed from the composer');
+    assert.ok([...storage.map.keys()].some(key => key.includes('manager-a')), 'the first account history is retained under its own key');
+    vm.runInContext(`activeSession = { user: { id: 'manager-b' } };`, context);
+    api.restoreAssistantSession();
+    assert.equal(api.chatSnapshot().length, 0, 'the next manager cannot restore the previous manager history');
+});
+
+test('queued assistant messages are discarded if authentication changes before persistence', async () => {
+    const persistedAs = [];
+    const { context, api } = createHarness(true, {}, {
+        instrument: sandbox => {
+            sandbox.window = sandbox;
+            sandbox.activeSession = { user: { id: 'manager-a' } };
+            sandbox.manzilAssistantChatStore = {
+                append: async () => { persistedAs.push(sandbox.activeSession?.user?.id || null); }
+            };
+        }
+    });
+    vm.runInContext('assistantRemoteHydrated = true', context);
+    api.appendAssistantMessage('user', '<p>سؤال المدير الأول</p>', 'سؤال المدير الأول');
+    context.activeSession = { user: { id: 'manager-b' } };
+    await new Promise(resolve => setImmediate(resolve));
+    await new Promise(resolve => setImmediate(resolve));
+
+    assert.deepEqual(persistedAs, [], 'a queued message must not be written under a newly active manager account');
+});
+
+test('a queued history clear cannot clear the next authenticated account', async () => {
+    const clearedAs = [];
+    const { context, api } = createHarness(true, {}, {
+        instrument: sandbox => {
+            sandbox.window = sandbox;
+            sandbox.activeSession = { user: { id: 'manager-a' } };
+            sandbox.manzilAssistantChatStore = {
+                clear: async () => { clearedAs.push(sandbox.activeSession?.user?.id || null); return true; }
+            };
+        }
+    });
+    vm.runInContext('assistantRemoteHydrated = true', context);
+    api.resetAssistantChat();
+    context.activeSession = { user: { id: 'manager-b' } };
+    await new Promise(resolve => setImmediate(resolve));
+    await new Promise(resolve => setImmediate(resolve));
+
+    assert.deepEqual(clearedAs, [], 'a delayed clear from manager A must not clear manager B remote history');
+});
+
+test('a late remote history load cannot replace the newly authenticated manager chat', async () => {
+    const releases = new Map();
+    const { context, api } = createHarness(true, {}, {
+        instrument: sandbox => {
+            sandbox.window = sandbox;
+            sandbox.activeSession = { user: { id: 'manager-a' } };
+            sandbox.manzilAssistantChatStore = {
+                load: () => new Promise(resolve => releases.set(sandbox.activeSession.user.id, resolve))
+            };
+        }
+    });
+    const oldLoad = api.hydrateAssistantChatFromRemote();
+    context.activeSession = { user: { id: 'manager-b' } };
+    api.resetAssistantSessionForAuthChange();
+    const newLoad = api.hydrateAssistantChatFromRemote();
+
+    releases.get('manager-a')({ messages: [{ sender_type: 'assistant', body: '<p>سجل المدير الأول</p>' }], context: {} });
+    await oldLoad;
+    assert.equal(api.chatSnapshot().length, 0, 'the old request cannot render into the new account');
+    assert.equal(api.remoteStateSnapshot().hydrating, true, 'the old request cannot clear the new account loading state');
+
+    releases.get('manager-b')({ messages: [{ sender_type: 'assistant', body: '<p>سجل المدير الثاني</p>' }], context: {} });
+    await newLoad;
+    assert.match(api.chatSnapshot()[0].html, /سجل المدير الثاني/);
+    assert.doesNotMatch(JSON.stringify(api.chatSnapshot()), /سجل المدير الأول/);
+});
+
 test('owners keep the launcher and can open the assistant without manager rights', () => {
     assert.match(assistantSource, /function isAssistantFabAllowed\(\) \{[\s\S]{0,220}currentUserRole !== 'manager' && currentUserRole !== 'owner'/);
     assert.match(assistantSource, /function openAssistantModal\(\) \{[\s\S]{0,240}currentUserRole !== 'manager' && currentUserRole !== 'owner'/);
@@ -1725,6 +1837,8 @@ test('an ambiguous assistant save remains locked after closing the form until th
     assert.equal(api.requireAssistantOperationReadyForCommit('expense'), false);
     api.clearAssistantOperationContext();
     assert.equal(api.assistantOperationRequestId('expense'), requestId, 'closing the form does not discard an unresolved idempotency key');
+    api.resetAssistantSessionForAuthChange();
+    assert.equal(api.assistantOperationRequestId('expense'), requestId, 'an auth reset also preserves the unresolved idempotency key');
     assert.equal(api.answerAssistantQuery('سجّل تحصيل 100 جنيه من أحمد شقة 3', NOW).id, 'operation-pending');
 });
 test('all assistant-origin financial forms share the same request-id commit and audit path', () => {

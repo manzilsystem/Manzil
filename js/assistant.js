@@ -72,6 +72,7 @@ let assistantRemoteHydrating = false;
 let assistantRemoteWriteQueue = Promise.resolve();
 let assistantRemoteClearFailed = false;
 let assistantChatRevision = 0;
+let assistantRemoteHydrationId = 0;
 let assistantViewportListenersBound = false;
 const ASSISTANT_OPERATION_PAYMENT_METHODS = Object.freeze({
     cash: 'نقدي',
@@ -175,7 +176,21 @@ function assistantIdentityKey() {
     if (typeof currentUserRole !== 'undefined' && currentUserRole === 'owner') {
         return `owner-${String(currentResidentId || 'none')}`;
     }
+    const userId = typeof activeSession !== 'undefined' && typeof activeSession?.user?.id === 'string'
+        ? activeSession.user.id
+        : '';
+    if (typeof currentUserRole !== 'undefined' && currentUserRole === 'manager' && userId) {
+        return `manager-${encodeURIComponent(userId)}`;
+    }
     return 'manager';
+}
+
+function assistantCurrentAuthIdentity() {
+    const building = typeof activeBuildingId === 'string' && activeBuildingId ? activeBuildingId : 'local';
+    const userId = typeof activeSession !== 'undefined' && typeof activeSession?.user?.id === 'string'
+        ? activeSession.user.id
+        : 'anonymous';
+    return `${building}:${assistantIdentityKey()}:${userId}`;
 }
 
 function assistantStorageKeys() {
@@ -240,37 +255,44 @@ function assistantChatStore() {
 function persistAssistantRemoteMessage(role, body, metadata = {}) {
     const store = assistantChatStore();
     if (!store || typeof store.append !== 'function' || !assistantRemoteHydrated || metadata.greeting) return;
+    const identity = assistantCurrentAuthIdentity();
     assistantRemoteWriteQueue = assistantRemoteWriteQueue.then(async () => {
-        if (assistantRemoteClearFailed) return;
+        if (identity !== assistantCurrentAuthIdentity() || assistantRemoteClearFailed) return;
         await store.append(role === 'user' ? 'user' : 'assistant', body, metadata);
     }).catch(error => {
-        console.warn('Could not persist assistant chat message:', error);
+        if (identity === assistantCurrentAuthIdentity()) console.warn('Could not persist assistant chat message:', error);
     });
 }
 
 function clearAssistantRemoteHistory() {
     const store = assistantChatStore();
     if (!store || typeof store.clear !== 'function') return Promise.resolve(true);
+    const identity = assistantCurrentAuthIdentity();
     assistantRemoteWriteQueue = assistantRemoteWriteQueue.then(async () => {
+        if (identity !== assistantCurrentAuthIdentity()) return;
         const cleared = await store.clear();
         if (!cleared) throw new Error('Assistant chat clear was not acknowledged');
-        assistantRemoteClearFailed = false;
+        if (identity === assistantCurrentAuthIdentity()) assistantRemoteClearFailed = false;
     }).catch(error => {
-        assistantRemoteClearFailed = true;
-        console.warn('Could not clear assistant chat history:', error);
+        if (identity === assistantCurrentAuthIdentity()) {
+            assistantRemoteClearFailed = true;
+            console.warn('Could not clear assistant chat history:', error);
+        }
     });
-    return assistantRemoteWriteQueue.then(() => !assistantRemoteClearFailed);
+    return assistantRemoteWriteQueue.then(() => identity !== assistantCurrentAuthIdentity() || !assistantRemoteClearFailed);
 }
 
 async function hydrateAssistantChatFromRemote() {
     const store = assistantChatStore();
     if (!store || typeof store.load !== 'function' || assistantRemoteHydrated || assistantRemoteHydrating) return false;
     assistantRemoteHydrating = true;
+    const hydrationId = ++assistantRemoteHydrationId;
+    const identity = assistantCurrentAuthIdentity();
     const revision = assistantChatRevision;
     try {
         const history = await store.load();
         if (!history) return false;
-        if (revision !== assistantChatRevision) return true;
+        if (hydrationId !== assistantRemoteHydrationId || identity !== assistantCurrentAuthIdentity() || revision !== assistantChatRevision) return false;
         const messages = Array.isArray(history.messages) ? history.messages : [];
         assistantChat = messages.map(message => ({
             role: message.sender_type === 'user' ? 'user' : 'bot',
@@ -290,10 +312,10 @@ async function hydrateAssistantChatFromRemote() {
         persistAssistantContext();
         return true;
     } catch (error) {
-        console.warn('Could not load assistant chat history:', error);
+        if (identity === assistantCurrentAuthIdentity()) console.warn('Could not load assistant chat history:', error);
         return false;
     } finally {
-        assistantRemoteHydrating = false;
+        if (hydrationId === assistantRemoteHydrationId) assistantRemoteHydrating = false;
     }
 }
 
@@ -313,6 +335,31 @@ function restoreAssistantSession() {
         period: context && context.period && Array.isArray(context.period.months) ? context.period : null,
         residentId: context && typeof context.residentId === 'string' ? context.residentId : null
     };
+}
+
+function resetAssistantSessionForAuthChange() {
+    assistantChatRevision += 1;
+    assistantRemoteHydrationId += 1;
+    assistantRemoteHydrated = false;
+    assistantRemoteHydrating = false;
+    assistantRemoteClearFailed = false;
+    assistantChat = [];
+    assistantContext = { period: null, residentId: null };
+    assistantNoticeDraft = null;
+    assistantOperationDraft = null;
+    assistantMutationDraft = null;
+    assistantResidentEntryDraft = null;
+    clearAssistantOperationContext();
+    const modal = document.getElementById('assistantModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modal.setAttribute('aria-hidden', 'true');
+    }
+    const log = document.getElementById('assistantLog');
+    if (log) log.innerHTML = '';
+    const input = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('assistantInput'));
+    if (input) input.value = '';
 }
 
 function rememberAssistantContext(text, period, resident) {
@@ -3190,7 +3237,10 @@ function openAssistantModal() {
     syncAssistantFab();
     const log = document.getElementById('assistantLog');
     if (log && !log.children.length) {
+        const identity = assistantCurrentAuthIdentity();
+        const revision = assistantChatRevision;
         void hydrateAssistantChatFromRemote().finally(() => {
+            if (identity !== assistantCurrentAuthIdentity() || revision !== assistantChatRevision) return;
             if (!log.children.length) restoreAssistantChat();
             else assistantChat.forEach(item => renderAssistantMessage(item.role, item.html));
         });
@@ -3213,12 +3263,17 @@ function sendAssistantMessage(event) {
     if (document.getElementById('assistantModal')?.dataset.assistantBusy === 'true') return;
     const text = String(input.value || '').trim();
     if (!text) return;
+    const revision = assistantChatRevision;
     input.value = '';
     updateAssistantComposerState();
     appendAssistantMessage('user', formatAssistantUserText(text), text);
     const answer = answerAssistantQuery(text);
     const typing = showAssistantTyping();
     const deliver = () => {
+        if (revision !== assistantChatRevision) {
+            if (typing && typing.parentNode) typing.parentNode.removeChild(typing);
+            return;
+        }
         if (typing && typing.parentNode) typing.parentNode.removeChild(typing);
         appendAssistantMessage('bot', assistantAnswerHtml(answer), null, { answerId: answer.id });
         if (answer.id === 'operation-confirm-request') {
