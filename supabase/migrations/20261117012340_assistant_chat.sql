@@ -127,7 +127,7 @@ with check (
         sender_type = 'assistant'
         and sender_id is null
     )
-) and exists (
+    and exists (
     select 1
     from public.assistant_conversations conversation
     where conversation.id = assistant_messages.conversation_id
