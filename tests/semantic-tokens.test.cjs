@@ -604,7 +604,8 @@ test('the branded sign-in palette resolves from its canonical tokens', () => {
         '--auth-ink-subtle': '#b6c6ca',
         '--auth-ink-faint': '#aebfc2',
         '--auth-ink-dim': '#90a5ac',
-        '--auth-ink-overline': '#35c4ca'
+        '--auth-ink-overline': '#35c4ca',
+        '--auth-ink-trust-icon': '#27c2cb'
     };
     const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -639,6 +640,10 @@ test('the branded sign-in palette resolves from its canonical tokens', () => {
     assert.ok(overline, 'expected the sign-in brand overline rule');
     assert.match(overline[1], /color:\s*var\(--auth-ink-overline\)/,
         'the sign-in brand overline must consume its canonical accent ink token');
+    const trustIcon = blocks(region, '#pinLockModal \\.auth-trust-note i')[0];
+    assert.ok(trustIcon, 'expected the sign-in trust icon rule');
+    assert.match(trustIcon[1], /color:\s*var\(--auth-ink-trust-icon\)/,
+        'the sign-in trust icon must consume its canonical accent ink token');
 });
 
 test('the settings veil scale resolves from its canonical tokens', () => {

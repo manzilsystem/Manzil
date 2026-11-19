@@ -1060,6 +1060,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   --auth-ink-faint: #aebfc2;
   --auth-ink-dim: #90a5ac;
   --auth-ink-overline: #35c4ca;
+  --auth-ink-trust-icon: #27c2cb;
   padding:clamp(var(--space-50),2.5vw,var(--space-200));
   background:
     radial-gradient(ellipse at 18% 18%,rgba(8,183,199,.12),transparent 38%),
@@ -1146,7 +1147,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 }
 #pinLockModal .auth-brand-footer { gap:var(--space-75); }
 #pinLockModal .auth-trust-note { color:var(--auth-ink-soft); }
-#pinLockModal .auth-trust-note i { color:#27c2cb; }
+#pinLockModal .auth-trust-note i { color:var(--auth-ink-trust-icon); }
 #pinLockModal .auth-rights { color:var(--auth-ink-dim); }
 #pinLockModal .auth-rights a { color:#e9c16d; }
 #pinLockModal .auth-login-panel {
