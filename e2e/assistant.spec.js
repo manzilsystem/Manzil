@@ -356,6 +356,17 @@ test('assistant opens the report panel named in an explicit manager request', as
     await expect(page.locator('[data-report-nav="expenses"]')).toHaveAttribute('aria-current', 'page');
 });
 
+test('assistant routes combined collection and expenses report requests to the period panel', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    await page.locator('#assistantInput').fill('افتح تقرير التحصيلات والمصروفات');
+    await page.locator('#assistantInput').press('Enter');
+
+    await expect(page.locator('#assistantModal')).toBeHidden();
+    await expect(page.locator('#tab-reports')).toBeVisible();
+    await expect(page.locator('#periodReportCard')).toBeVisible();
+    await expect(page.locator('[data-report-nav="period"]')).toHaveAttribute('aria-current', 'page');
+});
+
 test('chat responses stay free of buttons while the composer remains available on narrow screens', async ({ page }) => {
     await seedAndOpenAssistant(page);
     await page.locator('#assistantInput').fill('رصيد الخزنة كام؟');
