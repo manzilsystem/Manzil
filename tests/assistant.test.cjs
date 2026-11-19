@@ -726,6 +726,58 @@ test('manager can edit a rented resident tenant name through the official form w
     assert.match(residentDraftSource, /residentTenantName[\s\S]*draft\?\.tenantName/);
 });
 
+test('manager can stage rented lease dates through the official form without changing other resident data', () => {
+    const { context, api } = createHarness(true);
+    vm.runInContext("Object.assign(state.residents.find(item => item.id === 'r2'), { isRented: true, leaseStart: '2026-01-01', leaseEnd: '2026-12-31', rentAmount: 5000, depositAmount: 10000 })", context);
+    const before = JSON.stringify(vm.runInContext('state.residents', context));
+    const answer = api.answerAssistantQuery('عدّل بيانات سارة حسن اسم المستأجر: يوسف محمود بداية الإيجار: ٢٠٢٧-٠١-٠١ نهاية الإيجار: ٢٠٢٧-١٢-٣١', NOW);
+
+    assert.equal(answer.id, 'operation-preview');
+    assert.match(answer.html, /بداية الإيجار 2027-01-01/);
+    assert.match(answer.html, /نهاية الإيجار 2027-12-31/);
+    assert.match(answer.html, /أكد التسجيل/);
+    const draft = vm.runInContext('assistantOperationDraft', context);
+    assert.equal(draft.leaseStart, '2027-01-01');
+    assert.equal(draft.leaseEnd, '2027-12-31');
+    assert.equal(draft.tenantName, 'يوسف محمود', 'tenant name parsing must stop before lease date fields');
+    assert.equal(draft.billingStartMonth, '', 'lease dates must not change the billing start month');
+    assert.equal(draft.amount, null, 'lease date edits must not change subscription amounts');
+    assert.equal(draft.residentLeaseStart, '2026-01-01');
+    assert.equal(draft.residentLeaseEnd, '2026-12-31');
+    assert.equal(JSON.stringify(vm.runInContext('state.residents', context)), before, 'no data changes before explicit confirmation');
+    const residentDraftSource = crudSource.slice(
+        crudSource.indexOf('function openAssistantResidentDraft('),
+        crudSource.indexOf('function buildResidentProfileHtml(')
+    );
+    assert.match(residentDraftSource, /residentLeaseStart[\s\S]*draft\?\.leaseStart/);
+    assert.match(residentDraftSource, /residentLeaseEnd[\s\S]*draft\?\.leaseEnd/);
+});
+
+test('assistant rejects impossible or conflicting lease dates before staging a ready operation', () => {
+    const { context, api } = createHarness(true);
+    vm.runInContext("Object.assign(state.residents.find(item => item.id === 'r2'), { isRented: true, leaseStart: '2026-01-01', leaseEnd: '2026-12-31' })", context);
+
+    const impossible = api.answerAssistantQuery('عدّل بيانات سارة حسن بداية الإيجار: 2026-02-31', NOW);
+    assert.equal(impossible.id, 'operation-missing');
+    assert.match(impossible.html, /بداية الإيجار بصيغة YYYY-MM-DD صحيحة/);
+
+    const conflictingHarness = createHarness(true);
+    vm.runInContext("Object.assign(state.residents.find(item => item.id === 'r2'), { isRented: true, leaseStart: '2026-01-01', leaseEnd: '2026-12-31' })", conflictingHarness.context);
+    const conflicting = conflictingHarness.api.answerAssistantQuery('عدّل بيانات سارة حسن بداية الإيجار: 2027-01-01', NOW);
+    assert.equal(conflicting.id, 'operation-missing');
+    assert.match(conflicting.html, /نهاية الإيجار في أو بعد بدايته/);
+});
+
+test('assistant blocks lease date edits unless the apartment is already marked as rented', () => {
+    const { context, api } = createHarness(true);
+    const before = JSON.stringify(vm.runInContext('state.residents', context));
+    const answer = api.answerAssistantQuery('عدّل بيانات سارة حسن بداية الإيجار: 2026-12-01', NOW);
+
+    assert.equal(answer.id, 'operation-missing');
+    assert.match(answer.html, /الشقة مسجلة كمؤجرة/);
+    assert.equal(JSON.stringify(vm.runInContext('state.residents', context)), before);
+});
+
 test('assistant blocks a tenant name edit unless the apartment is already marked as rented', () => {
     const { context, api } = createHarness(true);
     const before = JSON.stringify(vm.runInContext('state.residents', context));

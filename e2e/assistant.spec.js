@@ -389,6 +389,54 @@ test('assistant opens resident edit with tenant phone in its own field and prese
     await expect(page.locator('#residentIsRented')).toBeChecked();
 });
 
+test('assistant opens resident edit with lease dates in their official fields without saving before confirmation', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    const existing = await page.evaluate(() => {
+        const resident = state.residents.find(item => item.apartmentNumber === '7');
+        Object.assign(resident, {
+            isRented: true,
+            phone: '01011112222',
+            tenantName: 'يوسف',
+            tenantPhone: '01033334444',
+            leaseStart: '2026-01-01',
+            leaseEnd: '2026-12-31',
+            rentAmount: 5000,
+            depositAmount: 10000
+        });
+        renderAll();
+        return {
+            billingStartMonth: resident.billingStartMonth,
+            ownerPhone: resident.phone,
+            tenantPhone: resident.tenantPhone,
+            rentAmount: resident.rentAmount,
+            depositAmount: resident.depositAmount
+        };
+    });
+
+    await page.locator('#assistantInput').fill('عدّل بيانات شقة 7 بداية الإيجار: 2027-01-01 نهاية الإيجار: 2027-12-31');
+    await page.locator('#assistantInput').press('Enter');
+    const preview = page.locator('#assistantLog .assistant-action-preview');
+    await expect(preview).toContainText('بداية الإيجار 2027-01-01');
+    await expect(preview).toContainText('نهاية الإيجار 2027-12-31');
+    await expect.poll(() => page.evaluate(() => state.residents.find(item => item.apartmentNumber === '7').leaseStart)).toBe('2026-01-01');
+
+    await page.locator('#assistantInput').fill('افتح النموذج');
+    await page.locator('#assistantInput').press('Enter');
+    await expect(page.locator('#residentModal')).toBeVisible();
+    await expect(page.locator('#residentLeaseStart')).toHaveValue('2027-01-01');
+    await expect(page.locator('#residentLeaseEnd')).toHaveValue('2027-12-31');
+    await expect(page.locator('#residentTenantName')).toHaveValue('يوسف');
+    await expect(page.locator('#residentTenantPhone')).toHaveValue(existing.tenantPhone);
+    await expect(page.locator('#residentPhone')).toHaveValue(existing.ownerPhone);
+    await expect(page.locator('#residentBillingStart')).toHaveValue(existing.billingStartMonth.slice(0, 7));
+    await expect(page.locator('#residentRentAmount')).toHaveValue(String(existing.rentAmount));
+    await expect(page.locator('#residentDepositAmount')).toHaveValue(String(existing.depositAmount));
+    await expect(page.locator('#residentIsRented')).toBeChecked();
+    const persisted = await page.evaluate(() => state.residents.find(item => item.apartmentNumber === '7'));
+    expect(persisted.leaseStart).toBe('2026-01-01');
+    expect(persisted.leaseEnd).toBe('2026-12-31');
+});
+
 test('assistant notice drafts use typed cancellation and have no in-chat action buttons', async ({ page }) => {
     await seedAndOpenAssistant(page);
     await page.locator('#assistantInput').fill('اكتب إعلان: سيتم غلق المياه غدًا');
