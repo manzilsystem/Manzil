@@ -159,6 +159,7 @@ function createHarness(seed = true, identity = {}, options = {}) {
         assistantEscape,
         openAssistantOperation,
         openAssistantReports,
+        openAssistantReportsRequest,
         buildAssistantFollowUps,
         hasAssistantTimeHint,
         assistantFollowsResident,
@@ -501,9 +502,75 @@ test('manager report answers expose a role-safe direct navigation action', () =>
     assert.match(assistantSource, /function openAssistantReports\(reportTab = 'landlord'\)/);
     assert.match(assistantSource, /function closeAssistantForNavigation\(\)/);
     assert.match(assistantSource, /if \(!closeAssistantForNavigation\(\)\) return false;/);
-    assert.match(assistantSource, /openAssistantReports\(\)/);
+    assert.match(assistantSource, /openAssistantReportsRequest\(request\.tab \|\| 'landlord'/);
     assert.match(assistantSource, /افتح شاشة التقارير/);
     assert.match(assistantSource, /if \(assistantIsOwner\(\)\) return false;/);
+});
+
+test('explicit manager report-open requests route to the matching tab and selected month', () => {
+    const calls = [];
+    const selects = {
+        reportMonthSelect: { value: '', options: [{ value: 'نوفمبر 2026' }] },
+        expensesReportFrom: { value: '', options: [{ value: 'نوفمبر 2026' }] },
+        expensesReportTo: { value: '', options: [{ value: 'نوفمبر 2026' }] }
+    };
+    let assistantOpen = true;
+    const { api } = createHarness(true, {}, {
+        instrument: sandbox => {
+            const modal = { classList: { contains: name => name === 'hidden' && !assistantOpen } };
+            sandbox.document.getElementById = id => id === 'assistantModal' ? modal : selects[id] || null;
+            sandbox.closeModal = id => { calls.push(`close:${id}`); assistantOpen = false; };
+            sandbox.switchTab = tab => calls.push(`tab:${tab}`);
+            sandbox.switchReportTab = tab => calls.push(`report:${tab}`);
+            sandbox.setTimeout = callback => { callback(); return 0; };
+            sandbox.invalidateLandlordReportPreview = () => calls.push('invalidate:landlord');
+            sandbox.onExpensesReportRangeChange = () => calls.push('invalidate:expenses');
+        }
+    });
+
+    const incomeRequest = api.answerAssistantQuery('افتح تقرير التحصيل في نوفمبر 2026', NOW);
+    assert.equal(incomeRequest.id, 'reports-open-request');
+    assert.equal(incomeRequest.reportRequest.tab, 'income');
+    assert.equal(incomeRequest.reportRequest.month, 'نوفمبر 2026');
+    assert.match(incomeRequest.html, /تقرير التحصيل لشهر نوفمبر 2026/);
+    assert.equal(api.openAssistantReportsRequest(
+        incomeRequest.reportRequest.tab,
+        incomeRequest.reportRequest.month,
+        incomeRequest.reportRequest.residentId
+    ), true);
+    assert.equal(selects.reportMonthSelect.value, 'نوفمبر 2026');
+    assert.deepEqual(calls, ['close:assistantModal', 'tab:reports', 'report:landlord', 'invalidate:landlord']);
+
+    const expenseControls = {
+        expensesReportFrom: { value: '', options: [{ value: 'نوفمبر 2026' }] },
+        expensesReportTo: { value: '', options: [{ value: 'نوفمبر 2026' }] }
+    };
+    const expenseCalls = [];
+    const expenseHarness = createHarness(true, {}, {
+        instrument: sandbox => {
+            sandbox.document.getElementById = id => expenseControls[id] || null;
+            sandbox.switchTab = tab => expenseCalls.push(`tab:${tab}`);
+            sandbox.switchReportTab = tab => expenseCalls.push(`report:${tab}`);
+            sandbox.setTimeout = callback => { callback(); return 0; };
+            sandbox.onExpensesReportRangeChange = () => expenseCalls.push('range:updated');
+        }
+    });
+    const expenseRequest = expenseHarness.api.answerAssistantQuery('افتح تقرير المصروفات عن نوفمبر 2026', NOW);
+    assert.equal(expenseRequest.id, 'reports-open-request');
+    assert.equal(expenseRequest.reportRequest.tab, 'expenses');
+    assert.equal(expenseHarness.api.openAssistantReportsRequest(
+        expenseRequest.reportRequest.tab,
+        expenseRequest.reportRequest.month,
+        expenseRequest.reportRequest.residentId
+    ), true);
+    assert.equal(expenseControls.expensesReportFrom.value, 'نوفمبر 2026');
+    assert.equal(expenseControls.expensesReportTo.value, 'نوفمبر 2026');
+    assert.deepEqual(expenseCalls, ['tab:reports', 'report:expenses', 'range:updated']);
+
+    const { api: ownerApi } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    const ownerRequest = ownerApi.answerAssistantQuery('افتح تقرير المصروفات عن نوفمبر 2026', NOW);
+    assert.notEqual(ownerRequest.id, 'reports-open-request');
+    assert.equal(ownerApi.openAssistantReportsRequest('expenses', 'نوفمبر 2026', ''), false);
 });
 
 test('typed navigation and operation-form requests close the assistant before opening official screens', () => {

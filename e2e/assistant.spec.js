@@ -345,6 +345,17 @@ test('assistant opens the formal reports screen only when asked, without an in-c
     await expect(page.locator('#tab-reports')).toBeVisible();
 });
 
+test('assistant opens the report panel named in an explicit manager request', async ({ page }) => {
+    await seedAndOpenAssistant(page);
+    await page.locator('#assistantInput').fill('افتح تقرير المصروفات');
+    await page.locator('#assistantInput').press('Enter');
+
+    await expect(page.locator('#assistantModal')).toBeHidden();
+    await expect(page.locator('#tab-reports')).toBeVisible();
+    await expect(page.locator('#expensesReportCard')).toBeVisible();
+    await expect(page.locator('[data-report-nav="expenses"]')).toHaveAttribute('aria-current', 'page');
+});
+
 test('chat responses stay free of buttons while the composer remains available on narrow screens', async ({ page }) => {
     await seedAndOpenAssistant(page);
     await page.locator('#assistantInput').fill('رصيد الخزنة كام؟');

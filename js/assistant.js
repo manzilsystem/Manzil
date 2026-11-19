@@ -2361,6 +2361,7 @@ function openAssistantReports(reportTab = 'landlord') {
     if (typeof switchReportTab === 'function') setTimeout(() => switchReportTab(reportTab), 0);
     return true;
 }
+
 function parseAssistantReportRequest(raw, now = new Date()) {
     if (assistantIsOwner()) return null;
     const normalized = normalizeAssistantArabic(raw);
@@ -2384,17 +2385,46 @@ function parseAssistantReportRequest(raw, now = new Date()) {
     };
 }
 function openAssistantReportsRequest(tab = 'landlord', month = '', residentId = '') {
-    if (assistantIsOwner()) return false;
-    if (!openAssistantReports(tab)) return false;
+    if (currentUserRole !== 'manager') return false;
+    const targetTab = tab === 'income' ? 'landlord' : tab;
+    const reportTabs = new Set(['landlord', 'period', 'expenses', 'adjustments', 'statement', 'monthlyClose', 'arrears', 'audit']);
+    if (!reportTabs.has(targetTab) || !openAssistantReports(targetTab)) return false;
     setTimeout(() => {
-        if (month && tab === 'landlord') {
-            const select = /** @type {HTMLSelectElement | null} */ (document.getElementById('reportMonthSelect'));
-            if (select && Array.from(select.options).some(option => option.value === month)) {
-                select.value = month;
-                if (typeof invalidateLandlordReportPreview === 'function') invalidateLandlordReportPreview();
+        const selectMonth = id => {
+            const select = /** @type {HTMLSelectElement | null} */ (document.getElementById(id));
+            if (!select || !Array.from(select.options).some(option => option.value === month)) return false;
+            select.value = month;
+            return true;
+        };
+        const selectRange = (fromId, toId) => {
+            const from = /** @type {HTMLSelectElement | null} */ (document.getElementById(fromId));
+            const to = /** @type {HTMLSelectElement | null} */ (document.getElementById(toId));
+            if (!from || !to
+                || !Array.from(from.options).some(option => option.value === month)
+                || !Array.from(to.options).some(option => option.value === month)) return false;
+            from.value = month;
+            to.value = month;
+            return true;
+        };
+        if (month && targetTab === 'landlord' && selectMonth('reportMonthSelect')) {
+            if (typeof invalidateLandlordReportPreview === 'function') invalidateLandlordReportPreview();
+        } else if (month && targetTab === 'period' && selectRange('periodReportFrom', 'periodReportTo')) {
+            if (typeof onPeriodReportRangeChange === 'function') onPeriodReportRangeChange();
+        } else if (month && targetTab === 'expenses' && selectRange('expensesReportFrom', 'expensesReportTo')) {
+            if (typeof onExpensesReportRangeChange === 'function') onExpensesReportRangeChange();
+        } else if (month && targetTab === 'adjustments' && selectRange('adjustmentsReportFrom', 'adjustmentsReportTo')) {
+            if (typeof invalidateAdjustmentsReportPreview === 'function') invalidateAdjustmentsReportPreview();
+        } else if (month && targetTab === 'arrears' && typeof monthLabelToKey === 'function') {
+            const monthKey = monthLabelToKey(month);
+            const from = /** @type {HTMLInputElement | null} */ (document.getElementById('arrearsFromMonth'));
+            const to = /** @type {HTMLInputElement | null} */ (document.getElementById('arrearsToMonth'));
+            if (monthKey && from && to) {
+                from.value = monthKey.slice(0, 7);
+                to.value = monthKey.slice(0, 7);
+                if (typeof renderArrearsReport === 'function') renderArrearsReport();
             }
         }
-        if (residentId && tab === 'statement') {
+        if (residentId && targetTab === 'statement') {
             const select = /** @type {HTMLSelectElement | null} */ (document.getElementById('statementResidentSelect'));
             if (select && Array.from(select.options).some(option => option.value === residentId)) {
                 select.value = residentId;
@@ -3020,8 +3050,19 @@ function answerAssistantQuery(text, now = new Date()) {
     if (assistantOperationDraft && /^(?:افتح النموذج|افتح شاشة الادخال|كمل في النموذج)$/.test(normalized)) {
         return withAssistantAnswerMeta({ id: 'operation-open-form-request', title: 'فتح نموذج المراجعة', html: assistantNote('سأفتح شاشة التطبيق لمراجعة البيانات واستكمالها.') }, resolveAssistantPeriod(text, now), assistantOperationDraft.resident || null, text);
     }
-    if (/^(?:افتح|روح|اذهب الى|وديني الى) (?:شاشه )?التقارير$/.test(normalized)) {
-        return withAssistantAnswerMeta({ id: 'reports-open-request', title: 'فتح شاشة التقارير', html: assistantNote('سأفتح لك شاشة التقارير الرسمية.') }, resolveAssistantPeriod(text, now), null, text);
+    if (/^(?:افتح|روح|اذهب الى|وديني الى)\s+(?:(?:شاشه|صفحه)\s+)?(?:التقارير|تقارير|التقرير|تقرير|كشف حساب|المتاخرات)(?:\s|$)/.test(normalized)) {
+        const reportRequest = parseAssistantReportRequest(text, now);
+        const reportLabel = {
+            landlord: 'الملاك', income: 'التحصيل', period: 'الفترة', expenses: 'المصروفات',
+            adjustments: 'الإعفاءات والتخفيضات', statement: 'كشف الحساب', arrears: 'المتأخرات'
+        }[reportRequest?.tab] || 'الملاك';
+        const periodLabel = reportRequest?.month ? ` لشهر ${assistantEscape(reportRequest.month)}` : '';
+        return withAssistantAnswerMeta({
+            id: 'reports-open-request',
+            title: 'فتح التقرير المطلوب',
+            html: assistantNote(`سأفتح تقرير ${reportLabel}${periodLabel} في شاشة التقارير الرسمية.`),
+            reportRequest: reportRequest || { tab: 'landlord', month: '', residentId: '' }
+        }, resolveAssistantPeriod(text, now), null, text);
     }
     const operationFollowup = mergeAssistantOperationFollowup(text, now);
     if (operationFollowup) return withAssistantAnswerMeta(operationFollowup, resolveAssistantPeriod(text, now), assistantOperationDraft?.resident || null, text);
@@ -3331,7 +3372,8 @@ function sendAssistantMessage(event) {
         } else if (answer.id === 'operation-open-form-request') {
             openAssistantOperation();
         } else if (answer.id === 'reports-open-request') {
-            openAssistantReports();
+            const request = answer.reportRequest || {};
+            openAssistantReportsRequest(request.tab || 'landlord', request.month || '', request.residentId || '');
         }
     };
     if (typeof setTimeout === 'function' && ASSISTANT_TYPING_DELAY_MS > 0) setTimeout(deliver, ASSISTANT_TYPING_DELAY_MS);
