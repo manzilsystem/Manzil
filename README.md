@@ -79,8 +79,7 @@ CI يعمل على كل Pull Request وتحديث `main`: `node-tests.yml` و`e2
 
 ## التوثيق
 
-- [خطة التطوير الحية](MANZIL-DEVELOPMENT-PLAN.md) — الحالة والقواعد المالية ومحاور العمل التسعة والشرائح والقرارات.
-- [سجل الجلسات](docs/plan-history.md)
+- [خطة التنفيذ وحالة التطوير المعتمدة](AI-EXECUTION-PLAN.md) — المصدر الوحيد لخطة التطوير، الأولويات، حالة المهام ونقطة الاستئناف.
 - [دليل تهيئة Supabase](docs/supabase-rollout.md)
 - [دليل استخدام عم عبده](docs/assistant-user-guide.md)
 - [خطة اللهجات والأسئلة المركبة واختبارات RLS](docs/assistant-natural-language-and-rls.md)
