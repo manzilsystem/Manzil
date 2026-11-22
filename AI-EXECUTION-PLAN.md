@@ -26,9 +26,9 @@ Manzil تطبيق ويب عربي RTL لإدارة العقارات/المبان
 |---|---|
 | المستودع | [manzilsystem/Manzil](https://github.com/manzilsystem/Manzil) |
 | الفرع الأساسي | `main` |
-| آخر Pull Request مدمج | [PR #482](https://github.com/manzilsystem/Manzil/pull/482) — توحيد خطة التنفيذ وحذف ملفات التخطيط القديمة |
-| Commit الدمج | `95389cea7f0759d61e63c6fdd17edab9b265255c` |
-| آخر Commit على `main` عند بدء P1.1 | `90040b39d9e5a70a56010cef7614e1f02a462052` |
+| آخر Pull Request مدمج | [PR #484](https://github.com/manzilsystem/Manzil/pull/484) — تسجيل دمج P1.1 وتحديث نقطة الاستئناف |
+| Commit الدمج | `bb5fe11cef6515faa2d4fbe14b833917c01d73a4` |
+| آخر Commit على `main` بعد تحديث الخطة | `bb5fe11cef6515faa2d4fbe14b833917c01d73a4` |
 | آخر تغيير تطبيقي سابق | [PR #479](https://github.com/manzilsystem/Manzil/pull/479) — ربط تقرير الفترة بـRPC مدير-فقط |
 | Commit التطبيق | `8857fa657c5573fdce389eb374be12d55058ce50` |
 | الإصدار المسجل في آخر خط أساس | `manzil-030bafcd68` |
@@ -38,11 +38,11 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 ### 2.2 آخر مهمة مكتملة
 
-**إعادة تنظيم التخطيط وتوحيد نقطة الاستئناف** — اكتملت بدمج PR #482 عند `95389cea7f0759d61e63c6fdd17edab9b265255c`. نُقلت حالة المشروع والاختبارات والقيود المالية والأمنية ومراحل P0–P8 إلى هذا الملف، وحُدّث README، وحُذفت ملفات التخطيط الثلاثة القديمة بعد التحقق من نقل محتواها. آخر مهمة تطوير تطبيقية قبل عملية التوثيق هي إصلاح تكامل تقرير الفترة في PR #481 عند `448739356c09da7455ebc9dcb80202d79bf8f3cc`.
+**تدقيق تغطية اختبارات Node (P1.1)** — اكتمل بدمج PR #483 عند `f4065c98ddfbc669bbe6c07f5e2dd5deecaf762a`. أثبت التدقيق وجود 128 ملف اختبار Node وعدم وجود إعداد لتقرير line/branch coverage أو threshold أو artifact. هذه فجوة قياس، وليست إثباتًا لانخفاض التغطية أو لسلوك غير مختبر. لم تتغير ملفات التطبيق أو الاختبارات أو قاعدة البيانات.
 
 ### 2.3 نتائج الاختبارات والفحوص الفعلية
 
-النتائج التالية مرتبطة بمرجع `main` عند `95389ce`. نتائج PR #482 تخص تغييرًا توثيقيًا فقط؛ لم تتغير ملفات التطبيق أو قاعدة البيانات أو الاختبارات:
+النتائج التالية تسجل فحوص خط الأساس السابق ثم فحوص PR #483 وPR #484. لم تتغير ملفات التطبيق أو قاعدة البيانات أو الاختبارات في هذين التغييرين التوثيقيين:
 
 | الفحص | النتيجة الفعلية | الدليل |
 |---|---|---|
@@ -58,6 +58,8 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | Browser E2E | آخر نتيجة موثقة في خط الأساس السابق: 209 ناجحة واختبار واحد متخطٍ؛ لم يظهر تشغيل E2E في PR #481 أو #482 أو #483 لعدم تغيير ملفات الواجهة أو E2E | [PR #479](https://github.com/manzilsystem/Manzil/pull/479) |
 | PR #483 — Node regression tests | ناجح على Commit `229b6e078c6b047ace7dd1eaa11f5a7cb5cdf984` | [CI run](https://github.com/manzilsystem/Manzil/actions/runs/45066501043) |
 | PR #483 — Supabase Preview | متخطٍ؛ لا تغييرات DB ولا فرع Supabase Preview مرتبط | [PR #483](https://github.com/manzilsystem/Manzil/pull/483) |
+| PR #484 — Quality Checks | ناجح؛ TypeScript و`check:index` وتقييم المساعد وNode regression tests كلها ناجحة | [CI run](https://github.com/manzilsystem/Manzil/actions/runs/45066978690) |
+| PR #484 — Supabase Preview | متخطٍ؛ تغيير توثيقي فقط ولا فرع Preview مرتبط | [PR #484](https://github.com/manzilsystem/Manzil/pull/484) |
 | PR #483 — Supabase Preview | متخطٍ؛ لم تتغير قاعدة البيانات أو migrations | [PR #483](https://github.com/manzilsystem/Manzil/pull/483) |
 | PR #482 — Quality Checks | ناجح؛ Node regression وTypeScript و`check:index` وتقييم المساعد كلها ناجحة | [Quality Checks run](https://github.com/manzilsystem/Manzil/actions/runs/45065858403) |
 | PR #482 — Supabase Preview | متخطٍ لعدم وجود تغييرات قاعدة بيانات | [PR #482](https://github.com/manzilsystem/Manzil/pull/482) |
@@ -220,6 +222,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 - آخر تقييم موثق للمساعد كان 65/65 مع أربع حالات حرجة ناجحة؛ يُعاد التدقيق فقط عند وجود تغيير أو فجوة جديدة.
 - تدقيق P1.1 الأولي: يحتوي المستودع على 128 ملف Node regression test من نمط `tests/*.test.cjs`، لكن `package.json` يشغّل `node --test tests/*.test.cjs` فقط، وQuality Checks يكرر الأمر نفسه؛ لا يوجد تفعيل لتقرير line/branch coverage أو threshold أو artifact خاص بتغطية Node. لذلك لا يمكن قياس تغطية المصدر أو إثبات الفجوات الكمية من عدد الاختبارات وحده. هذه فجوة قياس مثبتة، وليست دليلًا على أن سلوكًا بعينه غير مختبر. لم يُضف instrumentation ضمن مهمة التدقيق الحالية؛ أي إدخال له يُقيّم كتغيير مستقل بعد الاتفاق على النطاق والحدود.
 - PR #483 دُمج عند `f4065c98ddfbc669bbe6c07f5e2dd5deecaf762a`. فحص Node regression tests ناجح؛ Supabase Preview متخطٍ لعدم وجود تغييرات DB أو فرع Preview مرتبط. لم يُشغّل Browser E2E لعدم تغيير الواجهة أو اختبارات E2E.
+- PR #484 حدّث حالة P1.1 ونقطة الاستئناف، ودُمج عند `bb5fe11cef6515faa2d4fbe14b833917c01d73a4`. Quality Checks ناجحة بالكامل؛ Supabase Preview متخطٍ لأن التغيير توثيقي.
 - تدقيق P1.1 لم يُجرِ تغييرات على التطبيق أو الاختبارات أو قاعدة البيانات؛ ملف الخطة هو الملف الوحيد المتغير.
 - لا يُفترض أن Supabase Preview ناجح إذا كان متخطّيًا؛ اعرض حالة كل فحص كما هي.
 
@@ -260,5 +263,6 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | 2026-11-22 | آخر تغيير تكامل مدمج قبل توحيد التخطيط | [PR #481](https://github.com/manzilsystem/Manzil/pull/481) — `448739356c09da7455ebc9dcb80202d79bf8f3cc` | إصلاح إدراج migration تقرير الفترة في مشغل تكامل PostgreSQL؛ CI على main ناجح |
 | 2026-11-22 | توحيد التخطيط وحذف الملفات القديمة | [PR #482](https://github.com/manzilsystem/Manzil/pull/482) — `95389cea7f0759d61e63c6fdd17edab9b265255c` | اكتملت P0.1–P0.6؛ Quality Checks وPages build/deploy ناجحة؛ Supabase Preview فشل برسالة سابقة موثقة وغير مرتبطة بالتغيير |
 | 2026-11-22 | تدقيق تغطية اختبارات Node (P1.1) | [PR #483](https://github.com/manzilsystem/Manzil/pull/483) — merge commit `f4065c98ddfbc669bbe6c07f5e2dd5deecaf762a` (head `229b6e078c6b047ace7dd1eaa11f5a7cb5cdf984`) | 128 ملف اختبار؛ فجوة قياس line/branch coverage مثبتة؛ Node regression tests ناجحة؛ Supabase Preview متخطٍ؛ P1.1 Done |
+| 2026-11-22 | تسجيل نتيجة الدمج وتحديث نقطة الاستئناف | [PR #484](https://github.com/manzilsystem/Manzil/pull/484) — `bb5fe11cef6515faa2d4fbe14b833917c01d73a4` | تحديث حالة P1.1 إلى Done وتحديد P1.2؛ Quality Checks ناجحة |
 
 **استئناف العمل من هذه النقطة:** P1.1 مكتملة بدمج PR #483. ابدأ P1.2 فقط — مراجعة تكامل PostgreSQL وmigrations واختبارات RLS. لا تعِد تحليل المستودع كاملًا؛ افحص الملفات والاختبارات المرتبطة بالنطاق المحدد فقط.
