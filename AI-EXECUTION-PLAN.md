@@ -26,9 +26,9 @@ Manzil تطبيق ويب عربي RTL لإدارة العقارات/المبان
 |---|---|
 | المستودع | [manzilsystem/Manzil](https://github.com/manzilsystem/Manzil) |
 | الفرع الأساسي | `main` |
-| آخر Pull Request مدمج | [PR #486](https://github.com/manzilsystem/Manzil/pull/486) — تدقيق تكامل PostgreSQL وmigrations وRLS |
-| Commit الدمج | `ec9dd4f9ae72fc997897a05514995bdfbc18d32e` |
-| آخر Commit مدمج عبر PR #486 | `ec9dd4f9ae72fc997897a05514995bdfbc18d32e` |
+| آخر Pull Request مدمج | [PR #487](https://github.com/manzilsystem/Manzil/pull/487) — اختبارات حدود وصول المدير والمالك عبر المباني (P1.3) |
+| Commit الدمج | `e7b056815873b415757b09b9f7742a74eaa382a6` |
+| آخر Commit مدمج عبر PR #487 | `e7b056815873b415757b09b9f7742a74eaa382a6` |
 | آخر تغيير تطبيقي سابق | [PR #479](https://github.com/manzilsystem/Manzil/pull/479) — ربط تقرير الفترة بـRPC مدير-فقط |
 | Commit التطبيق | `8857fa657c5573fdce389eb374be12d55058ce50` |
 | الإصدار المسجل في آخر خط أساس | `manzil-030bafcd68` |
@@ -38,7 +38,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 ### 2.2 آخر مهمة مكتملة
 
-**مراجعة تكامل PostgreSQL وmigrations واختبارات RLS (P1.2)** — اكتملت بدمج PR #486 عند `ec9dd4f9ae72fc997897a05514995bdfbc18d32e`. راجعت مشغلات PostgreSQL وLocal Supabase وسلسلة الاختبارات المرتبطة؛ لم يظهر انحراف قابل لإعادة الإنتاج يستدعي تعديل migration أو policy. لا تغييرات وظيفية أو DB.
+**مراجعة صلاحيات المدير والمالك وحدود المبنى (P1.3)** — اكتملت بدمج [PR #487](https://github.com/manzilsystem/Manzil/pull/487) عند `e7b056815873b415757b09b9f7742a74eaa382a6`. أضيف اختبار Local Supabase بمبنى ثانٍ مؤقت للتحقق من نطاق قراءة المدير والمالك، ومنع التعديل عبر حدود المباني، وقراءة المالك فقط وغياب منح الكتابة المباشرة على residents. لم تُعدّل سياسات RLS أو migrations أو ملفات التطبيق؛ التغيير اقتصر على `tests/local-seed.verify.sql` و`tests/local-seed.test.cjs`.
 
 ### 2.3 نتائج الاختبارات والفحوص الفعلية
 
@@ -75,9 +75,9 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 ### 2.4 المهمة الحالية والخطوة التالية
 
-**المهمة الحالية:** لا توجد مهمة P1.2 مفتوحة؛ اكتملت بعد دمج PR #486 ونجاح فحوص Quality Checks.
+**المهمة الحالية:** لا توجد مهمة P1.3 مفتوحة؛ اكتملت بعد دمج PR #487 ونجاح فحوص Node وPostgreSQL وLocal Supabase وQuality Checks.
 
-**الخطوة التالية بالتحديد:** ابدأ P1.3 فقط — مراجعة صلاحيات المدير والمالك وحدود المبنى في المسارات الحالية. لا تغيّر الصلاحيات قبل إثبات فجوة.
+**الخطوة التالية بالتحديد:** ابدأ P1.4 فقط — مراجعة سلامة الأسرار والاعتمادات وسطح الهجوم. لا تُجرِ تغييرات قبل إثبات مشكلة محددة.
 
 ## 3. قواعد الحالة ومعايير الإكمال
 
@@ -118,7 +118,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 |---|---|---|---|
 | P1.1 | مراجعة تغطية اختبارات Node الحالية وتحديد فجوة واحدة عالية الأثر | Done | تقرير فجوة قابلة لإعادة الإنتاج أو توثيق عدم وجود فجوة؛ اكتملت بدمج PR #483 ونجاح فحص Node regression tests |
 | P1.2 | مراجعة تكامل PostgreSQL وmigrations واختبارات RLS | Done | التحقق من تغطية المسارات الحساسة وعدم وجود انحراف مثبت؛ لم يظهر انحراف قابل لإعادة الإنتاج، واكتمل التدقيق بدمج PR #486 |
-| P1.3 | مراجعة صلاحيات المدير والمالك وحدود المبنى في المسارات الحالية | Pending | اختبارات سلبية وإيجابية تثبت العزل؛ لا تغيير صلاحيات بلا فجوة |
+| P1.3 | مراجعة صلاحيات المدير والمالك وحدود المبنى في المسارات الحالية | Done | اكتملت بدمج PR #487؛ Local Supabase وNode/PostgreSQL وQuality Checks ناجحة؛ Supabase Preview متخطٍ لأن فروع Preview معطلة؛ لا تعديل لصلاحيات الإنتاج |
 | P1.4 | مراجعة سلامة الأسرار والاعتمادات وسطح الهجوم | Pending | نتيجة تدقيق قابلة للتحقق، وإصلاح مستقل فقط عند إثبات مشكلة |
 | P1.5 | مراجعة Browser E2E وإمكانية الوصول والأداء بحثًا عن فشل فعلي | Pending | نتائج تشغيل موثقة، مع عدم تكرار اختبارات تغطي السلوك بالفعل |
 
@@ -219,7 +219,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 ## 7. العوائق والملاحظات الحالية
 
-- لا توجد فجوة وظيفية جديدة مثبتة في هذه العملية؛ هي إعادة تنظيم توثيق فقط.
+- P1.3: أثبتت مراجعة الاختبارات نقصًا في اختبار عزل مبنى ثانٍ ومصفوفة صلاحيات المدير/المالك. أضيفت تغطية اختبارية في PR #487 ودُمجت؛ لا توجد حاجة مثبتة لتعديل سياسات RLS نفسها.
 - Supabase Preview على main بعد PR #482 فشل برسالة `Remote migration versions not found in local migrations directory`؛ الرسالة نفسها موثقة قبل PR #470، ولا توجد تغييرات قاعدة بيانات في PR #482. لا يُنسب هذا الفشل إلى إعادة تنظيم التخطيط.
 - لا يُعاد فتح أعمال S20/S21 أو S24 المنجزة دون اختبار يثبت فجوة مختلفة.
 - مسار تقرير الفترة في PR #479 مربوط بـRPC مدير-فقط مع fallback محلي؛ وأُضيفت migration إلى مشغل PostgreSQL في PR #481. لا تعِد تنفيذ هذا المسار.
@@ -273,5 +273,8 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | 2026-11-22 | تسجيل نتيجة الدمج وتحديث نقطة الاستئناف | [PR #484](https://github.com/manzilsystem/Manzil/pull/484) — `bb5fe11cef6515faa2d4fbe14b833917c01d73a4` | تحديث حالة P1.1 إلى Done وتحديد P1.2؛ Quality Checks ناجحة |
 | 2026-11-22 | استكمال بيانات مرجع الدمج | [PR #485](https://github.com/manzilsystem/Manzil/pull/485) — `79145d1f0bd3bc4e0941c5b0df98c818e5e7793c` | استكمال بيانات PR/SHA وفحوص CI في الخطة؛ Quality Checks ناجحة |
 | 2026-11-22 | تدقيق تكامل PostgreSQL وmigrations وRLS (P1.2) | [PR #486](https://github.com/manzilsystem/Manzil/pull/486) — `ec9dd4f9ae72fc997897a05514995bdfbc18d32e` | لا انحراف مثبت؛ PostgreSQL وLocal Supabase الأدلة السابقة ناجحة؛ Quality Checks على PR ناجحة؛ Supabase Preview متخطٍ بسبب تعطيل فروع Preview |
+| 2026-11-22 | اختبار حدود وصول المدير والمالك بين المباني (P1.3) | [PR #487](https://github.com/manzilsystem/Manzil/pull/487) — merge commit `e7b056815873b415757b09b9f7742a74eaa382a6` (head `4df942ee6bf46e7d51e1104dff2a96f7d4f9f397`) | Node regression وPostgreSQL integration وEdge Function checks وLocal Supabase migrations/seed/RLS وQuality Checks جميعها ناجحة؛ Supabase Preview متخطٍ لأن إنشاء فروع Preview معطل؛ لا تغييرات على RLS أو التطبيق |
 
-**استئناف العمل من هذه النقطة:** P1.1 وP1.2 مكتملتان بعد الدمج وتوثيق نتائج CI. المهمة التالية P1.3 فقط — مراجعة صلاحيات المدير والمالك وحدود المبنى. افحص المسارات والاختبارات المرتبطة دون إعادة تحليل المستودع كاملًا.
+- تفاصيل CI لـPR #487: [Quality Checks](https://github.com/manzilsystem/Manzil/actions/runs/45067781214) ناجح؛ [Node and PostgreSQL tests](https://github.com/manzilsystem/Manzil/actions/runs/45067781185) ناجح (state-tests وpostgres-integration وedge-function-check)؛ [Local Supabase seed validation](https://github.com/manzilsystem/Manzil/actions/runs/45067781165) ناجح، بما في ذلك بدء البيئة المحلية وتطبيق migrations وseed والتحقق من fixtures وcashboxes وmonthly close وRLS. Supabase Preview متخطٍ، وليس فحصًا ناجحًا.
+
+**استئناف العمل من هذه النقطة:** P1.1 وP1.2 وP1.3 مكتملة بعد الدمج وتوثيق نتائج CI. المهمة التالية P1.4 فقط — مراجعة سلامة الأسرار والاعتمادات وسطح الهجوم. افحص الملفات والمسارات المرتبطة دون إعادة تحليل المستودع كاملًا.
