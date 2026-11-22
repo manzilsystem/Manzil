@@ -26,9 +26,9 @@ Manzil تطبيق ويب عربي RTL لإدارة العقارات/المبان
 |---|---|
 | المستودع | [manzilsystem/Manzil](https://github.com/manzilsystem/Manzil) |
 | الفرع الأساسي | `main` |
-| آخر Pull Request مدمج | [PR #489](https://github.com/manzilsystem/Manzil/pull/489) — مراجعة Browser E2E وإمكانية الوصول والأداء (P1.5) |
-| Commit الدمج | `309a7fc85854a8c33c47a88f6695bd0596d85e91` |
-| آخر Commit مدمج عبر PR #489 | `309a7fc85854a8c33c47a88f6695bd0596d85e91` |
+| آخر Pull Request مدمج | [PR #490](https://github.com/manzilsystem/Manzil/pull/490) — تدقيق دورة حياة المبنى والشقق وربط العضويات (P2.1) |
+| Commit الدمج | `e7a39b1ca65d82dde244ea5fdf35ec71afd32919` |
+| آخر Commit مدمج عبر PR #490 | `e7a39b1ca65d82dde244ea5fdf35ec71afd32919` |
 | آخر تغيير تطبيقي سابق | [PR #479](https://github.com/manzilsystem/Manzil/pull/479) — ربط تقرير الفترة بـRPC مدير-فقط |
 | Commit التطبيق | `8857fa657c5573fdce389eb374be12d55058ce50` |
 | الإصدار المسجل في آخر خط أساس | `manzil-030bafcd68` |
@@ -38,7 +38,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 ### 2.2 آخر مهمة مكتملة
 
-**مراجعة Browser E2E وإمكانية الوصول والأداء (P1.5)** — اكتملت بتوثيق نتائج المراجعة في [PR #489](https://github.com/manzilsystem/Manzil/pull/489)، المدمج عند `309a7fc85854a8c33c47a88f6695bd0596d85e91`. Browser E2E السابق: 209 ناجحة وواحد متخطٍ. Lighthouse اكتمل بنجاح لكنه سجل وزن موارد 5,316,827 بايت مقابل ميزانية 2,000,000 بايت؛ لم يفشل CI لأن assertion تحذيري. لم تُسجل درجات رقمية لإمكانية الوصول أو فحص axe مستقل، لذلك لا ندعي اجتياز WCAG. التغيير توثيقي فقط دون تعديل التطبيق أو الواجهة.
+**تدقيق دورة حياة المبنى والشقق وربط العضويات (P2.1)** — اكتمل دون فجوة قابلة لإعادة الإنتاج تستدعي تغييرًا وظيفيًا، ووُثقت النتيجة في [PR #490](https://github.com/manzilsystem/Manzil/pull/490)، المدمج عند `e7a39b1ca65d82dde244ea5fdf35ec71afd32919`. راجع التدقيق الحفظ الذري، وحماية التاريخ المالي عند حذف الشقق، وإنشاء عضوية المالك وتنظيف العضوية اليتيمة، واختبارات عزل المباني. التغيير توثيقي فقط دون تعديل التطبيق أو قاعدة البيانات أو الاختبارات.
 
 ### 2.3 نتائج الاختبارات والفحوص الفعلية
 
@@ -70,14 +70,16 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | main بعد PR #482 — Pages build/deploy | بناء Jekyll والنشر إلى GitHub Pages ناجحان | [Pages run](https://github.com/manzilsystem/Manzil/actions/runs/45065927993) |
 | main بعد PR #482 — Quality Checks | ناجح؛ Node regression وTypeScript و`check:index` وتقييم المساعد ناجحة | [Quality Checks run](https://github.com/manzilsystem/Manzil/actions/runs/45065928372) |
 | main بعد PR #482 — Supabase Preview | فشل برسالة `Remote migration versions not found in local migrations directory`؛ هذا العائق موثق قبل هذه العملية في PR #470، ولا توجد تغييرات DB في #482 | [PR #482 checks](https://github.com/manzilsystem/Manzil/pull/482) |
+| PR #490 — Quality Checks | ناجح؛ TypeScript وcheck:index وتقييم المساعد وNode regression tests كلها ناجحة (run `45071058176`) | [CI run](https://github.com/manzilsystem/Manzil/actions/runs/45071058176) |
+| PR #490 — Supabase Preview | متخطٍ؛ إنشاء فروع Preview معطل، ولا تغييرات DB في PR | [PR #490](https://github.com/manzilsystem/Manzil/pull/490) |
 
 **ملاحظة الدقة:** لم تُشغّل الاختبارات محليًا في عملية التوثيق؛ تعذر الوصول الشبكي إلى GitHub من بيئة التنفيذ المحلية. فحوص CI الموثقة أعلاه هي مصدر النتائج. فشل Supabase Preview غير ناتج عن تغيير هذه العملية، وتأكدت الرسالة نفسها في تاريخ سابق قبل PR #470. لم يُشغّل Browser E2E لهذه العملية التوثيقية لعدم تغيير الواجهة أو الاختبارات.
 
 ### 2.4 المهمة الحالية والخطوة التالية
 
-**المهمة الحالية:** P2.1 — تدقيق دورة حياة المبنى والشقق وربط العضويات؛ اكتمل الفحص الفني ولا توجد فجوة مثبتة تستدعي تغييرًا وظيفيًا. يجري توثيق نتيجة التدقيق عبر PR مستقل.
+**المهمة الحالية:** لا توجد مهمة P2.1 مفتوحة؛ اكتملت بعد دمج PR #490 ونجاح فحوص Quality Checks المطلوبة.
 
-**الخطوة التالية بالتحديد:** بعد دمج توثيق P2.1 ونجاح فحوصه، ابدأ P2.2 فقط — تدقيق ملف المالك والمستأجر وحقول الإيجار.
+**الخطوة التالية بالتحديد:** ابدأ P2.2 فقط — تدقيق ملف المالك والمستأجر وحقول الإيجار.
 
 ## 3. قواعد الحالة ومعايير الإكمال
 
@@ -126,7 +128,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 | ID | المهمة الصغيرة | الحالة | معيار الاكتمال |
 |---|---|---|---|
-| P2.1 | تدقيق دورة حياة المبنى والشقق وربط العضويات | In Progress | اكتمل التدقيق دون فجوة مثبتة؛ توثيق النتائج في PR #490، وتصبح Done بعد الدمج ونجاح فحوصه |
+| P2.1 | تدقيق دورة حياة المبنى والشقق وربط العضويات | Done | اكتمل التدقيق دون فجوة مثبتة؛ PR #490 مدمج بعد نجاح Quality Checks؛ لا تغيير وظيفي أو DB |
 | P2.2 | تدقيق ملف المالك والمستأجر وحقول الإيجار | Pending | إثبات صحة العرض والتحرير والعزل وعدم تسرب البيانات |
 | P2.3 | تدقيق قواعد الاشتراك والأسعار الشهرية وتاريخ السريان | Pending | اختبارات حدود زمنية وتوافق تاريخي تغطي الفجوة المثبتة |
 | P2.4 | تدقيق التحصيل والدفعات المختلطة والتوزيع ومنع التكرار | Pending | ثوابت مالية واختبارات ذرية ناجحة |
@@ -249,7 +251,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 - P2.1 — دورة الشقق تحافظ على التاريخ المالي: RPC يمنع حذف شقة لها تحصيلات (`cannot_delete_resident_with_income_history`)؛ والواجهة تمنع حذف شقة لها تحصيلات أو إعفاءات/تسويات. عند إزالة شقة مسموح بحذفها، تُزال عضوية المالك التي لم تعد مرتبطة بأي شقة في المبنى. إضافة الشقة المرتبطة بحساب تنشئ عضوية owner، مع اختبار SQL يثبت الإنشاء والتنظيف.
 - P2.1 — اختبارات قائمة تغطي الحفظ الذري وتعارض الإصدار والربط عبر المباني وسجل التحصيلات وتنظيف عضوية المالك: `tests/atomic-persistence.integration.sql` و`tests/atomic-persistence.test.cjs`؛ كما تغطي اختبارات `tests/resident-persistence.test.cjs` و`tests/apartment-numbering.test.cjs` و`tests/building-context-selection.test.cjs` جوانب استمرارية الشقة وترقيمها واختيار عضوية المبنى. تدقيق عزل المدير/المالك بين مبنيين موجود في `tests/local-seed.verify.sql`.
 - P2.1 — لم تُثبت فجوة قابلة لإعادة الإنتاج في نطاق دورة حياة المبنى والشقق وربط العضويات؛ لا تغييرات على التطبيق أو migrations أو RLS أو الاختبارات. قيود الربط الحالية (مفتاح عضوية لكل مستخدم/مبنى وربط مستخدم واحد بشقة واحدة عبر قيد `residents.user_id UNIQUE`) تعامل كقواعد مخطط قائمة ولا تُغيّر دون متطلب منتج صريح.
-- P2.1 — PR #490 توثيقي فقط، والملف الوحيد المتغير هو `AI-EXECUTION-PLAN.md`. فحوص Quality Checks على PR هي بوابة التحقق؛ لم تُشغّل اختبارات محلية أو PostgreSQL محلية ضمن هذا التدقيق، ولا تُنسب نتائج CI السابقة إلى تشغيل جديد. لا يُسجّل P2.1 كـDone قبل الدمج ونجاح الفحوص المطلوبة.
+- P2.1 — PR #490 توثيقي فقط، والملف الوحيد المتغير هو `AI-EXECUTION-PLAN.md`. Quality Checks run `45071058176` نجح: تثبيت الاعتمادات، TypeScript، check:index، assistant evaluation، وNode regression tests؛ Supabase Preview متخطٍ لأن إنشاء فروع Preview معطل. لم تُشغّل اختبارات محلية أو PostgreSQL محلية ضمن التدقيق، ولا تُنسب نتائج CI السابقة إلى تشغيل جديد. P2.1 Done بعد الدمج.
 
 ## 8. القواعد المالية والأمنية الثابتة
 
@@ -294,7 +296,8 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | 2026-11-22 | اختبار حدود وصول المدير والمالك بين المباني (P1.3) | [PR #487](https://github.com/manzilsystem/Manzil/pull/487) — merge commit `e7b056815873b415757b09b9f7742a74eaa382a6` (head `4df942ee6bf46e7d51e1104dff2a96f7d4f9f397`) | Node regression وPostgreSQL integration وEdge Function checks وLocal Supabase migrations/seed/RLS وQuality Checks جميعها ناجحة؛ Supabase Preview متخطٍ لأن إنشاء فروع Preview معطل؛ لا تغييرات على RLS أو التطبيق |
 | 2026-11-22 | تدقيق سلامة الأسرار والاعتمادات وسطح الهجوم (P1.4) | [PR #488](https://github.com/manzilsystem/Manzil/pull/488) — merge commit `80882bccc6d7e4a17812b8fc31128838e81584c9` (head `96357459d91c7b937d4860b49e058dab14fe8ef7`) | Quality Checks run `45068943324` ناجح: npm ci وtypecheck وcheck:index وassistant evaluation وNode regression tests؛ Supabase Preview متخطٍ بسبب تعطيل فروع Preview؛ لا تغييرات تطبيقية أو إنتاجية؛ فجوة secret/dependency scanning موثقة؛ لم يُشغّل npm audit |
 | 2026-11-22 | مراجعة Browser E2E وإمكانية الوصول والأداء (P1.5) | [PR #489](https://github.com/manzilsystem/Manzil/pull/489) — merge commit `309a7fc85854a8c33c47a88f6695bd0596d85e91` (head `08f83661f256a0d0ee2b1e2dd115f2d115f036c2`) | Quality Checks run `45070081466` ناجح: npm ci وtypecheck وcheck:index وassistant evaluation وNode regression tests؛ Supabase Preview متخطٍ؛ Browser E2E السابق 209 passed و1 skipped؛ Lighthouse ناجح لكنه سجل وزن 5,316,827 بايت مقابل 2,000,000 كتحذير فقط؛ لا درجات axe/Accessibility رقمية موثقة |
+| 2026-11-22 | تدقيق دورة حياة المبنى والشقق وربط العضويات (P2.1) | [PR #490](https://github.com/manzilsystem/Manzil/pull/490) — merge commit `e7a39b1ca65d82dde244ea5fdf35ec71afd32919` (head `54dc260c840f475916e071d4afddf04641ba02b9`) | لا فجوة مثبتة؛ التوثيق فقط. Quality Checks run `45071058176` ناجح: npm ci وtypecheck وcheck:index وassistant evaluation وNode regression tests؛ Supabase Preview متخطٍ؛ لم تُشغّل اختبارات محلية جديدة |
 
 - تفاصيل CI لـPR #487: [Quality Checks](https://github.com/manzilsystem/Manzil/actions/runs/45067781214) ناجح؛ [Node and PostgreSQL tests](https://github.com/manzilsystem/Manzil/actions/runs/45067781185) ناجح (state-tests وpostgres-integration وedge-function-check)؛ [Local Supabase seed validation](https://github.com/manzilsystem/Manzil/actions/runs/45067781165) ناجح، بما في ذلك بدء البيئة المحلية وتطبيق migrations وseed والتحقق من fixtures وcashboxes وmonthly close وRLS. Supabase Preview متخطٍ، وليس فحصًا ناجحًا.
 
-**استئناف العمل من هذه النقطة:** P1.1 وP1.2 وP1.3 وP1.4 وP1.5 مكتملة بعد الدمج وتوثيق نتائج CI. المهمة التالية P2.1 فقط — تدقيق دورة حياة المبنى والشقق وربط العضويات. تجاوز وزن الموارد وغياب قياس axe موثقان كملاحظتين منفصلتين لمهمات لاحقة. PR #480 القديم ما زال مفتوحًا ومتباعدًا عن main ولا يدخل ضمن هذه المهمة.
+**استئناف العمل من هذه النقطة:** P1.1 وP1.2 وP1.3 وP1.4 وP1.5 وP2.1 مكتملة بعد الدمج وتوثيق نتائج CI. المهمة التالية P2.2 فقط — تدقيق ملف المالك والمستأجر وحقول الإيجار. تجاوز وزن الموارد وغياب قياس axe موثقان كملاحظتين منفصلتين لمهمات لاحقة. PR #480 القديم ما زال مفتوحًا ومتباعدًا عن main ولا يدخل ضمن P2.1.
