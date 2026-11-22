@@ -55,7 +55,9 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | Local Supabase seed | ناجح، بما فيه تطبيق migrations والتحقق | [Local Supabase run](https://github.com/manzilsystem/Manzil/actions/runs/45063471896) |
 | GitHub Pages build/deploy | ناجح | [Pages run](https://github.com/manzilsystem/Manzil/actions/runs/45063471292) |
 | `npm run build:index` | ناجح في خط الأساس السابق PR #479؛ لم يُسجل تشغيل مستقل له في PR #481 | [PR #479](https://github.com/manzilsystem/Manzil/pull/479) |
-| Browser E2E | آخر نتيجة موثقة في خط الأساس السابق: 209 ناجحة واختبار واحد متخطٍ؛ لم يظهر تشغيل E2E في PR #481 أو #482 لعدم تغيير ملفات الواجهة أو E2E | [PR #479](https://github.com/manzilsystem/Manzil/pull/479) |
+| Browser E2E | آخر نتيجة موثقة في خط الأساس السابق: 209 ناجحة واختبار واحد متخطٍ؛ لم يظهر تشغيل E2E في PR #481 أو #482 أو #483 لعدم تغيير ملفات الواجهة أو E2E | [PR #479](https://github.com/manzilsystem/Manzil/pull/479) |
+| PR #483 — Quality Checks | ناجح؛ تثبيت الاعتمادات وTypeScript و`check:index` وAssistant evaluation وNode regression tests كلها ناجحة | [Quality Checks run](https://github.com/manzilsystem/Manzil/actions/runs/45066428579) |
+| PR #483 — Supabase Preview | متخطٍ؛ لم تتغير قاعدة البيانات أو migrations | [PR #483](https://github.com/manzilsystem/Manzil/pull/483) |
 | PR #482 — Quality Checks | ناجح؛ Node regression وTypeScript و`check:index` وتقييم المساعد كلها ناجحة | [Quality Checks run](https://github.com/manzilsystem/Manzil/actions/runs/45065858403) |
 | PR #482 — Supabase Preview | متخطٍ لعدم وجود تغييرات قاعدة بيانات | [PR #482](https://github.com/manzilsystem/Manzil/pull/482) |
 | main بعد PR #482 — Pages build/deploy | بناء Jekyll والنشر إلى GitHub Pages ناجحان | [Pages run](https://github.com/manzilsystem/Manzil/actions/runs/45065927993) |
@@ -68,7 +70,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 **المهمة الحالية:** P1.1 — مراجعة تغطية اختبارات Node، الحالة **In Progress** على الفرع `audit/p1-1-node-test-coverage`.
 
-**الخطوة التالية بالتحديد:** استكمال توثيق نتيجة التدقيق في هذا PR والتحقق من فحوص CI. لن تُسجل P1.1 بحالة Done قبل دمج PR ونجاح الفحوص المطلوبة. بعد الدمج، ابدأ P1.2 فقط — مراجعة تكامل PostgreSQL وmigrations واختبارات RLS.
+**الخطوة التالية بالتحديد:** PR #483 مفتوح وفحوص CI المطلوبة ناجحة. انتظر المراجعة والدمج؛ تبقى P1.1 بحالة In Progress حتى الدمج. بعد الدمج وتحديث SHA النهائي، ابدأ P1.2 فقط — مراجعة تكامل PostgreSQL وmigrations واختبارات RLS.
 
 ## 3. قواعد الحالة ومعايير الإكمال
 
@@ -216,7 +218,8 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 - مسار تقرير الفترة في PR #479 مربوط بـRPC مدير-فقط مع fallback محلي؛ وأُضيفت migration إلى مشغل PostgreSQL في PR #481. لا تعِد تنفيذ هذا المسار.
 - آخر تقييم موثق للمساعد كان 65/65 مع أربع حالات حرجة ناجحة؛ يُعاد التدقيق فقط عند وجود تغيير أو فجوة جديدة.
 - تدقيق P1.1 الأولي: يحتوي المستودع على 128 ملف Node regression test من نمط `tests/*.test.cjs`، لكن `package.json` يشغّل `node --test tests/*.test.cjs` فقط، وQuality Checks يكرر الأمر نفسه؛ لا يوجد تفعيل لتقرير line/branch coverage أو threshold أو artifact خاص بتغطية Node. لذلك لا يمكن قياس تغطية المصدر أو إثبات الفجوات الكمية من عدد الاختبارات وحده. هذه فجوة قياس مثبتة، وليست دليلًا على أن سلوكًا بعينه غير مختبر. لم يُضف instrumentation ضمن مهمة التدقيق الحالية؛ أي إدخال له يُقيّم كتغيير مستقل بعد الاتفاق على النطاق والحدود.
-- تدقيق P1.1 لم يُجرِ تغييرات على التطبيق أو الاختبارات أو قاعدة البيانات. فحوص CI على PR الحالي مطلوبة لتأكيد سلامة التوثيق؛ تُسجل نتائجها بعد اكتمالها.
+- PR #483 مفتوح ولم يندمج بعد؛ Quality Checks نجحت بالكامل (بما فيها Node regression tests) وSupabase Preview متخطٍ لعدم وجود تغييرات DB. لا تُسجل P1.1 Done قبل الدمج.
+- تدقيق P1.1 لم يُجرِ تغييرات على التطبيق أو الاختبارات أو قاعدة البيانات؛ ملف الخطة هو الملف الوحيد المتغير.
 - لا يُفترض أن Supabase Preview ناجح إذا كان متخطّيًا؛ اعرض حالة كل فحص كما هي.
 
 ## 8. القواعد المالية والأمنية الثابتة
@@ -255,6 +258,6 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 |---|---|---|---|
 | 2026-11-22 | آخر تغيير تكامل مدمج قبل توحيد التخطيط | [PR #481](https://github.com/manzilsystem/Manzil/pull/481) — `448739356c09da7455ebc9dcb80202d79bf8f3cc` | إصلاح إدراج migration تقرير الفترة في مشغل تكامل PostgreSQL؛ CI على main ناجح |
 | 2026-11-22 | توحيد التخطيط وحذف الملفات القديمة | [PR #482](https://github.com/manzilsystem/Manzil/pull/482) — `95389cea7f0759d61e63c6fdd17edab9b265255c` | اكتملت P0.1–P0.6؛ Quality Checks وPages build/deploy ناجحة؛ Supabase Preview فشل برسالة سابقة موثقة وغير مرتبطة بالتغيير |
-| 2026-11-22 | بدء تدقيق تغطية اختبارات Node (P1.1) | الفرع `audit/p1-1-node-test-coverage`، أساسه `90040b39d9e5a70a56010cef7614e1f02a462052` | 128 ملف اختبار Node؛ لا توجد أداة/نتيجة قياس line أو branch coverage أو threshold؛ المهمة In Progress بانتظار PR وCI |
+| 2026-11-22 | تدقيق تغطية اختبارات Node (P1.1) | [PR #483](https://github.com/manzilsystem/Manzil/pull/483) — الفرع `audit/p1-1-node-test-coverage`، Commit `99d17a2e17f0d506df0ddccc6bbd41b01fdc32be` | 128 ملف اختبار؛ فجوة قياس line/branch coverage مثبتة؛ Quality Checks ناجحة؛ PR مفتوح، والمهمة In Progress حتى الدمج |
 
 **استئناف العمل من هذه النقطة:** بعد دمج PR إعادة تنظيم التخطيط والتحقق من نجاح فحوصه، حدّث P0.1–P0.6 إلى Done وفق ما تم فعليًا، ثم ابدأ فقط تدقيق P1.1. لا تبدأ أي مهمة أخرى بالتوازي ولا تعِد تحليل المشروع كاملًا؛ استخدم هذا الملف والوثائق التخصصية المشار إليها عند الحاجة.
