@@ -109,6 +109,20 @@ test('effective subscription month accepts YYYY-MM and rejects invalid months', 
     }
 });
 
+test('effective rate helper returns zero before the first recorded rate but preserves legacy fallback without history', () => {
+    const app = loadCrudHelpers();
+    const residentWithFutureBaseline = {
+        monthlyAmount: 150,
+        subscriptionRates: [{ effectiveMonth: '2026-03-01', monthlyAmount: 125 }]
+    };
+    const legacyResident = { monthlyAmount: 150, subscriptionRates: [] };
+
+    assert.equal(app.getSubscriptionAmountForMonthKey(residentWithFutureBaseline, '2026-02'), 0);
+    assert.equal(app.getSubscriptionAmountForMonthKey(residentWithFutureBaseline, '2026-03'), 125);
+    assert.equal(app.getSubscriptionAmountForMonthKey(legacyResident, '2026-02'), 150);
+    assert.equal(app.getSubscriptionAmountForMonthKey(residentWithFutureBaseline, 'invalid'), 150);
+});
+
 test('effective rate helper returns the latest rate effective in the selected month', () => {
     const app = loadCrudHelpers();
     const resident = { monthlyAmount: 150, subscriptionRates: [
