@@ -26,10 +26,9 @@ Manzil تطبيق ويب عربي RTL لإدارة العقارات/المبان
 |---|---|
 | المستودع | [manzilsystem/Manzil](https://github.com/manzilsystem/Manzil) |
 | الفرع الأساسي | `main` |
-| آخر Pull Request مدمج | [PR #487](https://github.com/manzilsystem/Manzil/pull/487) — اختبارات حدود وصول المدير والمالك عبر المباني (P1.3) |
-| Commit الدمج | `e7b056815873b415757b09b9f7742a74eaa382a6` |
-| آخر Commit على `main` | `852724542a42f8376d314b06c6197d9cc61dc007` — تحديث توثيقي بعد PR #487 |
-| آخر Commit مدمج عبر PR #487 | `e7b056815873b415757b09b9f7742a74eaa382a6` |
+| آخر Pull Request مدمج | [PR #488](https://github.com/manzilsystem/Manzil/pull/488) — تدقيق الأسرار والاعتمادات وسطح الهجوم (P1.4) |
+| Commit الدمج | `80882bccc6d7e4a17812b8fc31128838e81584c9` |
+| آخر Commit مدمج عبر PR #488 | `80882bccc6d7e4a17812b8fc31128838e81584c9` |
 | آخر تغيير تطبيقي سابق | [PR #479](https://github.com/manzilsystem/Manzil/pull/479) — ربط تقرير الفترة بـRPC مدير-فقط |
 | Commit التطبيق | `8857fa657c5573fdce389eb374be12d55058ce50` |
 | الإصدار المسجل في آخر خط أساس | `manzil-030bafcd68` |
@@ -39,7 +38,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 ### 2.2 آخر مهمة مكتملة
 
-**مراجعة صلاحيات المدير والمالك وحدود المبنى (P1.3)** — اكتملت بدمج [PR #487](https://github.com/manzilsystem/Manzil/pull/487) عند `e7b056815873b415757b09b9f7742a74eaa382a6`. أضيف اختبار Local Supabase بمبنى ثانٍ مؤقت للتحقق من نطاق قراءة المدير والمالك، ومنع التعديل عبر حدود المباني، وقراءة المالك فقط وغياب منح الكتابة المباشرة على residents. لم تُعدّل سياسات RLS أو migrations أو ملفات التطبيق؛ التغيير اقتصر على `tests/local-seed.verify.sql` و`tests/local-seed.test.cjs`.
+**مراجعة سلامة الأسرار والاعتمادات وسطح الهجوم (P1.4)** — اكتملت بتوثيق نتائج التدقيق في [PR #488](https://github.com/manzilsystem/Manzil/pull/488)، المدمج عند `80882bccc6d7e4a17812b8fc31128838e81584c9`. راجعت إعدادات الأسرار والاعتمادات ووظائف Edge ومسارات النسخ الاحتياطي والاستعادة وGitHub Actions. لم يظهر مفتاح فعلي في البحث النصي المحدد؛ ورُصد غياب فحص آلي ظاهر للأسرار والاعتمادات. لم يُشغّل `npm audit`، لذلك لا تُسجل نتيجة خلو الاعتمادات من الثغرات. التغيير توثيقي فقط دون تعديل التطبيق أو الإنتاج.
 
 ### 2.3 نتائج الاختبارات والفحوص الفعلية
 
@@ -76,9 +75,9 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 ### 2.4 المهمة الحالية والخطوة التالية
 
-**المهمة الحالية:** P1.4 قيد التوثيق بعد مراجعة النطاق الأمني والاعتمادات؛ لا تغييرات على التطبيق أو إعدادات الإنتاج.
+**المهمة الحالية:** لا توجد مهمة P1.4 مفتوحة؛ اكتملت بعد دمج PR #488 ونجاح فحوص Quality Checks المطلوبة.
 
-**الخطوة التالية بالتحديد:** إكمال PR تدقيق P1.4، انتظار فحوص CI، ثم الدمج وتسجيل SHA والنتائج. بعد ذلك ابدأ P1.5 فقط.
+**الخطوة التالية بالتحديد:** ابدأ P1.5 فقط — مراجعة Browser E2E وإمكانية الوصول والأداء بحثًا عن فشل فعلي. لا تغيّر الواجهة قبل إثبات فجوة قابلة لإعادة الإنتاج.
 
 ## 3. قواعد الحالة ومعايير الإكمال
 
@@ -120,7 +119,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | P1.1 | مراجعة تغطية اختبارات Node الحالية وتحديد فجوة واحدة عالية الأثر | Done | تقرير فجوة قابلة لإعادة الإنتاج أو توثيق عدم وجود فجوة؛ اكتملت بدمج PR #483 ونجاح فحص Node regression tests |
 | P1.2 | مراجعة تكامل PostgreSQL وmigrations واختبارات RLS | Done | التحقق من تغطية المسارات الحساسة وعدم وجود انحراف مثبت؛ لم يظهر انحراف قابل لإعادة الإنتاج، واكتمل التدقيق بدمج PR #486 |
 | P1.3 | مراجعة صلاحيات المدير والمالك وحدود المبنى في المسارات الحالية | Done | اكتملت بدمج PR #487؛ Local Supabase وNode/PostgreSQL وQuality Checks ناجحة؛ Supabase Preview متخطٍ لأن فروع Preview معطلة؛ لا تعديل لصلاحيات الإنتاج |
-| P1.4 | مراجعة سلامة الأسرار والاعتمادات وسطح الهجوم | In Progress | تمت مراجعة ملفات الأسرار والاعتمادات ووظائف Edge ومسارات النسخ الاحتياطي وActions؛ لا تسريب مؤكد في البحث المحدد؛ رُصد غياب فحص آلي ظاهر للأسرار والاعتمادات، ولم يُجرَ npm audit محليًا |
+| P1.4 | مراجعة سلامة الأسرار والاعتمادات وسطح الهجوم | Done | اكتملت بدمج PR #488 عند `80882bccc6d7e4a17812b8fc31128838e81584c9`؛ Quality Checks ناجحة؛ Supabase Preview متخطٍ لتعطيل فروع Preview؛ فجوة فحص آلي للأسرار والاعتمادات موثقة؛ لم يُشغّل npm audit |
 | P1.5 | مراجعة Browser E2E وإمكانية الوصول والأداء بحثًا عن فشل فعلي | Pending | نتائج تشغيل موثقة، مع عدم تكرار اختبارات تغطي السلوك بالفعل |
 
 ### P2 — إدارة العقارات والشقق والسكان والاشتراكات والتحصيلات
@@ -224,7 +223,8 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 - P1.4 — نتيجة البحث المحدد عن أسرار شائعة: ظهرت مراجع `SUPABASE_SERVICE_ROLE_KEY` في وظائف الخادم المتوقعة فقط؛ لم يُرجع البحث عن نمط مفتاح AWS `AKIA` نتائج. البحث النصي ليس فحصًا تاريخيًا كاملًا ولا بديلًا عن secret scanning؛ لا يُستنتج منه خلو تاريخ Git بالكامل من الأسرار.
 - P1.4 — الضوابط التي ظهرت: استثناء ملفات `.env` وبيانات Supabase المحلية في `.gitignore`؛ قراءة مفاتيح الخدمة من `Deno.env` داخل Edge Functions؛ تثبيت الاعتمادات عبر lockfiles؛ صلاحية `contents: read` في workflows الأساسية؛ إخفاء كلمات مرور قاعدة البيانات في GitHub Actions؛ التحقق من SHA-256 وبصمة كتالوج قاعدة البيانات قبل استعادة النسخة، مع `pg_restore --single-transaction --exit-on-error`.
 - P1.4 — فجوة القياس: لم يظهر في شجرة المستودع إعداد Dependabot أو workflow لفحص الأسرار/الاعتمادات. Workflow الجودة يستخدم `npm ci` لكنه لا يشغّل `npm audit` أو `npm audit signatures`. لم يُشغّل npm audit محليًا في هذه العملية، لذلك لا تُسجل نتيجة خلو الاعتمادات من الثغرات. لم يُجرَ أي تدوير لمفاتيح أو تغيير إعدادات إنتاج.
-- P1.4 — PR #480 ما زال مفتوحًا وغير قابل للدمج حسب بيانات GitHub، وهو طلب قديم خارج نطاق P1.4؛ لا يُدمج تلقائيًا ولا يُغلق دون مراجعة مستقلة لتاريخ استبداله.
+- P1.4 — PR #488 دُمج عند `80882bccc6d7e4a17812b8fc31128838e81584c9`. Quality Checks (`45068943324`) نجح: تثبيت الاعتمادات، TypeScript، فحص index، assistant evaluation، وNode regression tests. Supabase Preview متخطٍ لأن إنشاء فروع Preview معطل؛ لم يُشغّل npm audit أو secret scanning. P1.4 مكتملة كتدقيق موثق، وتبقى فجوة الفحص الآلي ظاهرة للمهمة المناسبة لاحقًا.
+- PR #480 ما زال مفتوحًا وغير قابل للدمج؛ المقارنة مع `main` أظهرت أن فرعه متباعد (3 commits ahead و12 behind) ويضيف migration واختبار period-report-rpc. لا يُدمج أو يُغلق تلقائيًا؛ يلزم تدقيق مستقل لسبب بقائه مفتوحًا وما إذا كانت تغييرات الاختبار قد استُبدلت.
 - P1.3: أثبتت مراجعة الاختبارات نقصًا في اختبار عزل مبنى ثانٍ ومصفوفة صلاحيات المدير/المالك. أضيفت تغطية اختبارية في PR #487 ودُمجت؛ لا توجد حاجة مثبتة لتعديل سياسات RLS نفسها.
 - Supabase Preview على main بعد PR #482 فشل برسالة `Remote migration versions not found in local migrations directory`؛ الرسالة نفسها موثقة قبل PR #470، ولا توجد تغييرات قاعدة بيانات في PR #482. لا يُنسب هذا الفشل إلى إعادة تنظيم التخطيط.
 - لا يُعاد فتح أعمال S20/S21 أو S24 المنجزة دون اختبار يثبت فجوة مختلفة.
@@ -280,7 +280,8 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | 2026-11-22 | استكمال بيانات مرجع الدمج | [PR #485](https://github.com/manzilsystem/Manzil/pull/485) — `79145d1f0bd3bc4e0941c5b0df98c818e5e7793c` | استكمال بيانات PR/SHA وفحوص CI في الخطة؛ Quality Checks ناجحة |
 | 2026-11-22 | تدقيق تكامل PostgreSQL وmigrations وRLS (P1.2) | [PR #486](https://github.com/manzilsystem/Manzil/pull/486) — `ec9dd4f9ae72fc997897a05514995bdfbc18d32e` | لا انحراف مثبت؛ PostgreSQL وLocal Supabase الأدلة السابقة ناجحة؛ Quality Checks على PR ناجحة؛ Supabase Preview متخطٍ بسبب تعطيل فروع Preview |
 | 2026-11-22 | اختبار حدود وصول المدير والمالك بين المباني (P1.3) | [PR #487](https://github.com/manzilsystem/Manzil/pull/487) — merge commit `e7b056815873b415757b09b9f7742a74eaa382a6` (head `4df942ee6bf46e7d51e1104dff2a96f7d4f9f397`) | Node regression وPostgreSQL integration وEdge Function checks وLocal Supabase migrations/seed/RLS وQuality Checks جميعها ناجحة؛ Supabase Preview متخطٍ لأن إنشاء فروع Preview معطل؛ لا تغييرات على RLS أو التطبيق |
+| 2026-11-22 | تدقيق سلامة الأسرار والاعتمادات وسطح الهجوم (P1.4) | [PR #488](https://github.com/manzilsystem/Manzil/pull/488) — merge commit `80882bccc6d7e4a17812b8fc31128838e81584c9` (head `96357459d91c7b937d4860b49e058dab14fe8ef7`) | Quality Checks run `45068943324` ناجح: npm ci وtypecheck وcheck:index وassistant evaluation وNode regression tests؛ Supabase Preview متخطٍ بسبب تعطيل فروع Preview؛ لا تغييرات تطبيقية أو إنتاجية؛ فجوة secret/dependency scanning موثقة؛ لم يُشغّل npm audit |
 
 - تفاصيل CI لـPR #487: [Quality Checks](https://github.com/manzilsystem/Manzil/actions/runs/45067781214) ناجح؛ [Node and PostgreSQL tests](https://github.com/manzilsystem/Manzil/actions/runs/45067781185) ناجح (state-tests وpostgres-integration وedge-function-check)؛ [Local Supabase seed validation](https://github.com/manzilsystem/Manzil/actions/runs/45067781165) ناجح، بما في ذلك بدء البيئة المحلية وتطبيق migrations وseed والتحقق من fixtures وcashboxes وmonthly close وRLS. Supabase Preview متخطٍ، وليس فحصًا ناجحًا.
 
-**استئناف العمل من هذه النقطة:** P1.1 وP1.2 وP1.3 مكتملة بعد الدمج وتوثيق نتائج CI. يجري إكمال PR تدقيق P1.4 وتسجيل نتائج الفحوص قبل الدمج. بعد اكتماله، المهمة التالية P1.5 فقط.
+**استئناف العمل من هذه النقطة:** P1.1 وP1.2 وP1.3 وP1.4 مكتملة بعد الدمج وتوثيق نتائج CI. المهمة التالية P1.5 فقط — مراجعة Browser E2E وإمكانية الوصول والأداء. PR #480 القديم ما زال مفتوحًا ومتباعدًا عن main ولا يدخل ضمن هذه المهمة.
