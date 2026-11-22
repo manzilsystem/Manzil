@@ -26,9 +26,9 @@ Manzil تطبيق ويب عربي RTL لإدارة العقارات/المبان
 |---|---|
 | المستودع | [manzilsystem/Manzil](https://github.com/manzilsystem/Manzil) |
 | الفرع الأساسي | `main` |
-| آخر Pull Request مدمج | [PR #485](https://github.com/manzilsystem/Manzil/pull/485) — استكمال بيانات دمج P1.1 في الخطة |
-| Commit الدمج | `79145d1f0bd3bc4e0941c5b0df98c818e5e7793c` |
-| آخر Commit على `main` بعد PR #485 | `79145d1f0bd3bc4e0941c5b0df98c818e5e7793c` |
+| آخر Pull Request مدمج | [PR #486](https://github.com/manzilsystem/Manzil/pull/486) — تدقيق تكامل PostgreSQL وmigrations وRLS |
+| Commit الدمج | `ec9dd4f9ae72fc997897a05514995bdfbc18d32e` |
+| آخر Commit مدمج عبر PR #486 | `ec9dd4f9ae72fc997897a05514995bdfbc18d32e` |
 | آخر تغيير تطبيقي سابق | [PR #479](https://github.com/manzilsystem/Manzil/pull/479) — ربط تقرير الفترة بـRPC مدير-فقط |
 | Commit التطبيق | `8857fa657c5573fdce389eb374be12d55058ce50` |
 | الإصدار المسجل في آخر خط أساس | `manzil-030bafcd68` |
@@ -38,7 +38,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 ### 2.2 آخر مهمة مكتملة
 
-**تدقيق تغطية اختبارات Node (P1.1)** — اكتمل بدمج PR #483 عند `f4065c98ddfbc669bbe6c07f5e2dd5deecaf762a`. أثبت التدقيق وجود 128 ملف اختبار Node وعدم وجود إعداد لتقرير line/branch coverage أو threshold أو artifact. هذه فجوة قياس، وليست إثباتًا لانخفاض التغطية أو لسلوك غير مختبر. لم تتغير ملفات التطبيق أو الاختبارات أو قاعدة البيانات.
+**مراجعة تكامل PostgreSQL وmigrations واختبارات RLS (P1.2)** — اكتملت بدمج PR #486 عند `ec9dd4f9ae72fc997897a05514995bdfbc18d32e`. راجعت مشغلات PostgreSQL وLocal Supabase وسلسلة الاختبارات المرتبطة؛ لم يظهر انحراف قابل لإعادة الإنتاج يستدعي تعديل migration أو policy. لا تغييرات وظيفية أو DB.
 
 ### 2.3 نتائج الاختبارات والفحوص الفعلية
 
@@ -60,6 +60,8 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | PR #483 — Supabase Preview | متخطٍ؛ لا تغييرات DB ولا فرع Supabase Preview مرتبط | [PR #483](https://github.com/manzilsystem/Manzil/pull/483) |
 | PR #484 — Quality Checks | ناجح؛ TypeScript و`check:index` وتقييم المساعد وNode regression tests كلها ناجحة | [CI run](https://github.com/manzilsystem/Manzil/actions/runs/45066978690) |
 | PR #484 — Supabase Preview | متخطٍ؛ تغيير توثيقي فقط ولا فرع Preview مرتبط | [PR #484](https://github.com/manzilsystem/Manzil/pull/484) |
+| PR #486 — Quality Checks | ناجح؛ TypeScript و`check:index` وتقييم المساعد وNode regression tests كلها ناجحة | [CI run](https://github.com/manzilsystem/Manzil/actions/runs/45067373885) |
+| PR #486 — Supabase Preview | متخطٍ؛ لا تغييرات DB، كما أن إنشاء فروع Preview معطّل في إعدادات تكامل Supabase | [PR #486 checks](https://github.com/manzilsystem/Manzil/pull/486) |
 | PR #485 — Quality Checks | ناجح؛ TypeScript و`check:index` وتقييم المساعد وNode regression tests كلها ناجحة | [CI run](https://github.com/manzilsystem/Manzil/actions/runs/45067118446) |
 | PR #485 — Supabase Preview | متخطٍ؛ تغيير توثيقي فقط ولا فرع Preview مرتبط | [PR #485](https://github.com/manzilsystem/Manzil/pull/485) |
 | PR #483 — Supabase Preview | متخطٍ؛ لم تتغير قاعدة البيانات أو migrations | [PR #483](https://github.com/manzilsystem/Manzil/pull/483) |
@@ -73,11 +75,9 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 ### 2.4 المهمة الحالية والخطوة التالية
 
-**المهمة الحالية:** P1.2 — مراجعة تكامل PostgreSQL وmigrations واختبارات RLS، الحالة **In Progress**. راجعت مسار CI ومشغلات PostgreSQL وLocal Supabase ومجموعة اختبارات RLS المرتبطة.
+**المهمة الحالية:** لا توجد مهمة P1.2 مفتوحة؛ اكتملت بعد دمج PR #486 ونجاح فحوص Quality Checks.
 
-**النتيجة الأولية:** لم يظهر انحراف قابل لإعادة الإنتاج في النطاق الذي تمت مراجعته. تغطي الفحوص الحالية إعادة تشغيل migrations المختارة واختبارات atomic snapshot والتسويات وتقرير الفترة وعزل إشعارات المباني، كما تطبق Local Supabase جميع migrations وتتحقق من نطاق المالك. لا تغيير وظيفي مقترح.
-
-**الخطوة التالية بعد دمج PR التدقيق:** P1.3 — مراجعة صلاحيات المدير والمالك وحدود المبنى.
+**الخطوة التالية بالتحديد:** ابدأ P1.3 فقط — مراجعة صلاحيات المدير والمالك وحدود المبنى في المسارات الحالية. لا تغيّر الصلاحيات قبل إثبات فجوة.
 
 ## 3. قواعد الحالة ومعايير الإكمال
 
@@ -117,7 +117,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | ID | المهمة الصغيرة | الحالة | معيار الاكتمال |
 |---|---|---|---|
 | P1.1 | مراجعة تغطية اختبارات Node الحالية وتحديد فجوة واحدة عالية الأثر | Done | تقرير فجوة قابلة لإعادة الإنتاج أو توثيق عدم وجود فجوة؛ اكتملت بدمج PR #483 ونجاح فحص Node regression tests |
-| P1.2 | مراجعة تكامل PostgreSQL وmigrations واختبارات RLS | In Progress | التحقق من تغطية المسارات الحساسة وعدم وجود انحراف مثبت؛ لا تُغلق قبل دمج تقرير التدقيق |
+| P1.2 | مراجعة تكامل PostgreSQL وmigrations واختبارات RLS | Done | التحقق من تغطية المسارات الحساسة وعدم وجود انحراف مثبت؛ لم يظهر انحراف قابل لإعادة الإنتاج، واكتمل التدقيق بدمج PR #486 |
 | P1.3 | مراجعة صلاحيات المدير والمالك وحدود المبنى في المسارات الحالية | Pending | اختبارات سلبية وإيجابية تثبت العزل؛ لا تغيير صلاحيات بلا فجوة |
 | P1.4 | مراجعة سلامة الأسرار والاعتمادات وسطح الهجوم | Pending | نتيجة تدقيق قابلة للتحقق، وإصلاح مستقل فقط عند إثبات مشكلة |
 | P1.5 | مراجعة Browser E2E وإمكانية الوصول والأداء بحثًا عن فشل فعلي | Pending | نتائج تشغيل موثقة، مع عدم تكرار اختبارات تغطي السلوك بالفعل |
@@ -229,6 +229,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 - PR #484 حدّث حالة P1.1 ونقطة الاستئناف، ودُمج عند `bb5fe11cef6515faa2d4fbe14b833917c01d73a4`. Quality Checks ناجحة بالكامل؛ Supabase Preview متخطٍ لأن التغيير توثيقي.
 - PR #485 استكمل بيانات مرجع الدمج وسجل الاختبارات، ودُمج عند `79145d1f0bd3bc4e0941c5b0df98c818e5e7793c`. Quality Checks ناجحة بالكامل؛ Supabase Preview متخطٍ لأن التغيير توثيقي.
 - تدقيق P1.2 راجع `.github/workflows/node-tests.yml` و`.github/workflows/supabase-local-seed.yml` وسلسلة `tests/table-grants.integration.sql` ← `notification-building-isolation.integration.sql` ← `atomic-persistence.integration.sql`، إضافة إلى اختبارات partial settlement وperiod report وschema-migrations وRLS. لم يظهر انحراف مثبت يستدعي تعديل migrations أو policies. آخر PostgreSQL integration run (`45063471807`) نجح في state-tests وpostgres-integration وedge-function-check؛ وآخر Local Supabase seed run (`45063471896`) نجح في `supabase db reset --local` والتحقق من fixtures وowner RLS. لا تُنسب هذه النتائج إلى تشغيل جديد؛ هي أحدث أدلة CI المتاحة، ولم تتغير ملفات DB منذها.
+- PR #486 دُمج عند `ec9dd4f9ae72fc997897a05514995bdfbc18d32e`. Quality Checks نجحت بالكامل. Supabase Preview متخطٍ؛ إنشاء فروع Preview معطّل في إعدادات التكامل، ولم تتغير DB أو migrations.
 - تدقيق P1.1 لم يُجرِ تغييرات على التطبيق أو الاختبارات أو قاعدة البيانات؛ ملف الخطة هو الملف الوحيد المتغير.
 - لا يُفترض أن Supabase Preview ناجح إذا كان متخطّيًا؛ اعرض حالة كل فحص كما هي.
 
@@ -271,5 +272,6 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | 2026-11-22 | تدقيق تغطية اختبارات Node (P1.1) | [PR #483](https://github.com/manzilsystem/Manzil/pull/483) — merge commit `f4065c98ddfbc669bbe6c07f5e2dd5deecaf762a` (head `229b6e078c6b047ace7dd1eaa11f5a7cb5cdf984`) | 128 ملف اختبار؛ فجوة قياس line/branch coverage مثبتة؛ Node regression tests ناجحة؛ Supabase Preview متخطٍ؛ P1.1 Done |
 | 2026-11-22 | تسجيل نتيجة الدمج وتحديث نقطة الاستئناف | [PR #484](https://github.com/manzilsystem/Manzil/pull/484) — `bb5fe11cef6515faa2d4fbe14b833917c01d73a4` | تحديث حالة P1.1 إلى Done وتحديد P1.2؛ Quality Checks ناجحة |
 | 2026-11-22 | استكمال بيانات مرجع الدمج | [PR #485](https://github.com/manzilsystem/Manzil/pull/485) — `79145d1f0bd3bc4e0941c5b0df98c818e5e7793c` | استكمال بيانات PR/SHA وفحوص CI في الخطة؛ Quality Checks ناجحة |
+| 2026-11-22 | تدقيق تكامل PostgreSQL وmigrations وRLS (P1.2) | [PR #486](https://github.com/manzilsystem/Manzil/pull/486) — `ec9dd4f9ae72fc997897a05514995bdfbc18d32e` | لا انحراف مثبت؛ PostgreSQL وLocal Supabase الأدلة السابقة ناجحة؛ Quality Checks على PR ناجحة؛ Supabase Preview متخطٍ بسبب تعطيل فروع Preview |
 
-**استئناف العمل من هذه النقطة:** P1.1 مكتملة بدمج PR #483. تدقيق P1.2 موثق في PR المخصص وما زال In Progress حتى الدمج. بعد الدمج وتسجيل النتيجة النهائية، تكون المهمة التالية P1.3 — مراجعة صلاحيات المدير والمالك وحدود المبنى. لا تعِد تحليل المستودع كاملًا.
+**استئناف العمل من هذه النقطة:** P1.1 وP1.2 مكتملتان بعد الدمج وتوثيق نتائج CI. المهمة التالية P1.3 فقط — مراجعة صلاحيات المدير والمالك وحدود المبنى. افحص المسارات والاختبارات المرتبطة دون إعادة تحليل المستودع كاملًا.
