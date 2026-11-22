@@ -54,10 +54,11 @@ test('database verification checks monthly reconciliation and manager/owner buil
         'manager_rls_cross_building_update_allowed',
         'owner_rls_building_scope_failed',
         'owner_rls_resident_scope_failed',
+        'owner_rls_income_scope_failed',
         'owner_rls_membership_scope_failed',
         'owner_rls_expense_leak',
         'owner_rls_audit_leak',
-        'owner_rls_resident_write_allowed',
+        'owner_rls_direct_resident_write_granted',
         'owner_rls_building_write_allowed',
         'owner_rls_notification_scope_failed',
         'owner_rls_internal_notes_leak'
