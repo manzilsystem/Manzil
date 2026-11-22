@@ -50,17 +50,61 @@ END;
 $$;
 
 BEGIN;
+
+-- A second, unjoined building proves that membership scope is enforced across buildings.
+INSERT INTO public.buildings (id, name)
+VALUES ('20000000-0000-4000-8000-000000000002', 'مبنى عزل تجريبي');
+
 SET LOCAL ROLE authenticated;
-SELECT set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
-DO $$
+SELECT set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+DO $
+DECLARE
+    v_rows integer;
 BEGIN
+    IF (SELECT count(*) FROM public.buildings) <> 1 THEN RAISE EXCEPTION 'manager_rls_building_scope_failed'; END IF;
+    IF (SELECT count(*) FROM public.residents) <> 4 THEN RAISE EXCEPTION 'manager_rls_resident_scope_failed'; END IF;
+    IF (SELECT count(*) FROM public.building_members) <> 3 THEN RAISE EXCEPTION 'manager_rls_membership_scope_failed'; END IF;
+    IF (SELECT count(*) FROM public.expenses) <> 3 THEN RAISE EXCEPTION 'manager_rls_expense_scope_failed'; END IF;
+    IF (SELECT count(*) FROM public.audit_logs) <> 3 THEN RAISE EXCEPTION 'manager_rls_audit_scope_failed'; END IF;
+
+    UPDATE public.residents SET name = name
+    WHERE id = '30000000-0000-4000-8000-000000000001';
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 1 THEN RAISE EXCEPTION 'manager_rls_own_building_update_failed'; END IF;
+
+    UPDATE public.buildings SET name = name
+    WHERE id = '20000000-0000-4000-8000-000000000002';
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 0 THEN RAISE EXCEPTION 'manager_rls_cross_building_update_allowed'; END IF;
+END;
+$;
+
+SELECT set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
+DO $
+DECLARE
+    v_rows integer;
+BEGIN
+    IF (SELECT count(*) FROM public.buildings) <> 1 THEN RAISE EXCEPTION 'owner_rls_building_scope_failed'; END IF;
     IF (SELECT count(*) FROM public.residents) <> 1 THEN RAISE EXCEPTION 'owner_rls_resident_scope_failed'; END IF;
     IF (SELECT count(*) FROM public.income) <> 1 THEN RAISE EXCEPTION 'owner_rls_income_scope_failed'; END IF;
+    IF (SELECT count(*) FROM public.building_members) <> 1 THEN RAISE EXCEPTION 'owner_rls_membership_scope_failed'; END IF;
+    IF (SELECT count(*) FROM public.expenses) <> 0 THEN RAISE EXCEPTION 'owner_rls_expense_leak'; END IF;
+    IF (SELECT count(*) FROM public.audit_logs) <> 0 THEN RAISE EXCEPTION 'owner_rls_audit_leak'; END IF;
     IF (SELECT count(*) FROM public.notifications) <> 1 THEN RAISE EXCEPTION 'owner_rls_notification_scope_failed'; END IF;
     IF (SELECT count(*) FROM public.resident_internal_notes) <> 0 THEN RAISE EXCEPTION 'owner_rls_internal_notes_leak'; END IF;
     IF (SELECT count(*) FROM public.resident_subscription_rate_changes) <> 0 THEN RAISE EXCEPTION 'owner_rls_rate_history_leak'; END IF;
+
+    UPDATE public.residents SET name = name
+    WHERE id = '30000000-0000-4000-8000-000000000001';
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 0 THEN RAISE EXCEPTION 'owner_rls_resident_write_allowed'; END IF;
+
+    UPDATE public.buildings SET name = name
+    WHERE id = '20000000-0000-4000-8000-000000000001';
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 0 THEN RAISE EXCEPTION 'owner_rls_building_write_allowed'; END IF;
 END;
-$$;
+$;
 ROLLBACK;
 
 DO $$

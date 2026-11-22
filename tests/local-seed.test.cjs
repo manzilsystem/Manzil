@@ -45,10 +45,22 @@ test('local seed has no schema reset, destructive DDL or backup-control fixtures
     assert.match(seed, /LOCAL-ONLY/);
 });
 
-test('database verification checks monthly reconciliation and owner row-level isolation', () => {
+test('database verification checks monthly reconciliation and manager/owner building boundaries', () => {
     assert.match(verify, /local_monthly_close_unexpected/);
-    assert.match(verify, /owner_rls_resident_scope_failed/);
-    assert.match(verify, /owner_rls_notification_scope_failed/);
-    assert.match(verify, /owner_rls_internal_notes_leak/);
+    for (const assertion of [
+        'manager_rls_building_scope_failed',
+        'manager_rls_resident_scope_failed',
+        'manager_rls_membership_scope_failed',
+        'manager_rls_cross_building_update_allowed',
+        'owner_rls_building_scope_failed',
+        'owner_rls_resident_scope_failed',
+        'owner_rls_membership_scope_failed',
+        'owner_rls_expense_leak',
+        'owner_rls_audit_leak',
+        'owner_rls_resident_write_allowed',
+        'owner_rls_building_write_allowed',
+        'owner_rls_notification_scope_failed',
+        'owner_rls_internal_notes_leak'
+    ]) assert.ok(verify.includes(assertion), `missing database assertion: ${assertion}`);
     assert.match(verify, /ROLLBACK;/);
 });
