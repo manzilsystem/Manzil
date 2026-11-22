@@ -26,9 +26,9 @@ Manzil تطبيق ويب عربي RTL لإدارة العقارات/المبان
 |---|---|
 | المستودع | [manzilsystem/Manzil](https://github.com/manzilsystem/Manzil) |
 | الفرع الأساسي | `main` |
-| آخر Pull Request مدمج | [PR #488](https://github.com/manzilsystem/Manzil/pull/488) — تدقيق الأسرار والاعتمادات وسطح الهجوم (P1.4) |
-| Commit الدمج | `80882bccc6d7e4a17812b8fc31128838e81584c9` |
-| آخر Commit مدمج عبر PR #488 | `80882bccc6d7e4a17812b8fc31128838e81584c9` |
+| آخر Pull Request مدمج | [PR #489](https://github.com/manzilsystem/Manzil/pull/489) — مراجعة Browser E2E وإمكانية الوصول والأداء (P1.5) |
+| Commit الدمج | `309a7fc85854a8c33c47a88f6695bd0596d85e91` |
+| آخر Commit مدمج عبر PR #489 | `309a7fc85854a8c33c47a88f6695bd0596d85e91` |
 | آخر تغيير تطبيقي سابق | [PR #479](https://github.com/manzilsystem/Manzil/pull/479) — ربط تقرير الفترة بـRPC مدير-فقط |
 | Commit التطبيق | `8857fa657c5573fdce389eb374be12d55058ce50` |
 | الإصدار المسجل في آخر خط أساس | `manzil-030bafcd68` |
@@ -38,7 +38,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 ### 2.2 آخر مهمة مكتملة
 
-**مراجعة سلامة الأسرار والاعتمادات وسطح الهجوم (P1.4)** — اكتملت بتوثيق نتائج التدقيق في [PR #488](https://github.com/manzilsystem/Manzil/pull/488)، المدمج عند `80882bccc6d7e4a17812b8fc31128838e81584c9`. راجعت إعدادات الأسرار والاعتمادات ووظائف Edge ومسارات النسخ الاحتياطي والاستعادة وGitHub Actions. لم يظهر مفتاح فعلي في البحث النصي المحدد؛ ورُصد غياب فحص آلي ظاهر للأسرار والاعتمادات. لم يُشغّل `npm audit`، لذلك لا تُسجل نتيجة خلو الاعتمادات من الثغرات. التغيير توثيقي فقط دون تعديل التطبيق أو الإنتاج.
+**مراجعة Browser E2E وإمكانية الوصول والأداء (P1.5)** — اكتملت بتوثيق نتائج المراجعة في [PR #489](https://github.com/manzilsystem/Manzil/pull/489)، المدمج عند `309a7fc85854a8c33c47a88f6695bd0596d85e91`. Browser E2E السابق: 209 ناجحة وواحد متخطٍ. Lighthouse اكتمل بنجاح لكنه سجل وزن موارد 5,316,827 بايت مقابل ميزانية 2,000,000 بايت؛ لم يفشل CI لأن assertion تحذيري. لم تُسجل درجات رقمية لإمكانية الوصول أو فحص axe مستقل، لذلك لا ندعي اجتياز WCAG. التغيير توثيقي فقط دون تعديل التطبيق أو الواجهة.
 
 ### 2.3 نتائج الاختبارات والفحوص الفعلية
 
@@ -75,9 +75,9 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 ### 2.4 المهمة الحالية والخطوة التالية
 
-**المهمة الحالية:** P1.5 قيد التوثيق بعد مراجعة نتائج Browser E2E وLighthouse المتاحة؛ لم تُجرَ تغييرات على التطبيق أو الواجهة.
+**المهمة الحالية:** لا توجد مهمة P1.5 مفتوحة؛ اكتملت بعد دمج PR #489 ونجاح فحوص Quality Checks المطلوبة.
 
-**الخطوة التالية بالتحديد:** إكمال PR تدقيق P1.5، والتحقق من فحوص CI، ثم الدمج وتسجيل SHA والنتائج. بعد ذلك انتقل إلى P2.1 فقط.
+**الخطوة التالية بالتحديد:** ابدأ P2.1 فقط — تدقيق دورة حياة المبنى والشقق وربط العضويات. لا تغيّر السلوك قبل إثبات فجوة بيانات أو تدفق قابلة لإعادة الإنتاج.
 
 ## 3. قواعد الحالة ومعايير الإكمال
 
@@ -120,7 +120,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | P1.2 | مراجعة تكامل PostgreSQL وmigrations واختبارات RLS | Done | التحقق من تغطية المسارات الحساسة وعدم وجود انحراف مثبت؛ لم يظهر انحراف قابل لإعادة الإنتاج، واكتمل التدقيق بدمج PR #486 |
 | P1.3 | مراجعة صلاحيات المدير والمالك وحدود المبنى في المسارات الحالية | Done | اكتملت بدمج PR #487؛ Local Supabase وNode/PostgreSQL وQuality Checks ناجحة؛ Supabase Preview متخطٍ لأن فروع Preview معطلة؛ لا تعديل لصلاحيات الإنتاج |
 | P1.4 | مراجعة سلامة الأسرار والاعتمادات وسطح الهجوم | Done | اكتملت بدمج PR #488 عند `80882bccc6d7e4a17812b8fc31128838e81584c9`؛ Quality Checks ناجحة؛ Supabase Preview متخطٍ لتعطيل فروع Preview؛ فجوة فحص آلي للأسرار والاعتمادات موثقة؛ لم يُشغّل npm audit |
-| P1.5 | مراجعة Browser E2E وإمكانية الوصول والأداء بحثًا عن فشل فعلي | In Progress | مراجعة CI الحالية: Browser E2E = 209 passed و1 skipped؛ Lighthouse نجح لكنه سجل total-byte-weight = 5,316,827 مقابل حد 2,000,000 كتحذير فقط؛ نتائج المراجعة موثقة في PR التدقيق |
+| P1.5 | مراجعة Browser E2E وإمكانية الوصول والأداء بحثًا عن فشل فعلي | Done | اكتملت بدمج PR #489 عند `309a7fc85854a8c33c47a88f6695bd0596d85e91`؛ Browser E2E = 209 passed و1 skipped؛ Lighthouse run ناجح مع تجاوز وزن الموارد للميزانية (5,316,827 مقابل 2,000,000) كتحذير؛ درجات Accessibility الرقمية وaxe غير متاحة، ولا يُدعى اجتياز WCAG |
 
 ### P2 — إدارة العقارات والشقق والسكان والاشتراكات والتحصيلات
 
@@ -223,7 +223,8 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 - P1.5 — Browser E2E run `44639929860` (job `135968064292`) اكتمل بنجاح: 209 اختبارات ناجحة واختبار واحد متخطٍ عبر desktop/mobile؛ لا تُعاد هذه المجموعة في مراجعة التوثيق الحالية.
 - P1.5 — Lighthouse run `44639930213` (job `135968066496`) اكتمل بنجاح، لكنه سجل تجاوز `total-byte-weight`: القيمة `5,316,827` بايت مقابل حد `2,000,000` بايت. إعداد `lighthouserc.json` يستخدم `warn` لهذا الحد، لذلك لم يمنع التجاوز نجاح CI. هذا انحراف أداء قابل للقياس يحتاج مهمة تحسين منفصلة؛ لم تُخفّض الميزانية ولم تُغيّر الواجهة ضمن مهمة التدقيق.
 - P1.5 — إعداد Lighthouse يضع أيضًا عتبات الأداء وإمكانية الوصول وأفضل الممارسات وSEO على `warn`، لا `error`. لم تظهر في السجلات المسترجعة درجات الفئات الرقمية، لذلك لا نسجل نجاحًا رقميًا لإمكانية الوصول أو الأداء. لم يُشغّل فحص axe مستقل في هذه الدورة، ولا نستنتج اجتياز WCAG من نجاح Lighthouse وحده.
-- P1.5 — سجل التدقيق لا يثبت وجود فشل وظيفي في Browser E2E؛ النتيجة 209/1 موثقة من run سابق على تغيير الواجهة في PR #479. توصية الاستئناف: معالجة وزن الموارد كتغيير أداء مستقل بعد تحديد أكبر الأصول في تقرير Lighthouse، مع إبقاء مراجعة إمكانية الوصول قائمة على فحص مخصص ودرجات موثقة.
+- P1.5 — سجل التدقيق لا يثبت وجود فشل وظيفي في Browser E2E؛ النتيجة 209/1 موثقة من run سابق على تغيير الواجهة في PR #479. توصية لاحقة خارج مهمة التدقيق: معالجة وزن الموارد كتغيير أداء مستقل بعد تحديد أكبر الأصول في تقرير Lighthouse، مع إبقاء مراجعة إمكانية الوصول قائمة على فحص مخصص ودرجات موثقة.
+- P1.5 — PR #489 دُمج عند `309a7fc85854a8c33c47a88f6695bd0596d85e91`. Quality Checks run `45070081466` نجح: تثبيت الاعتمادات وTypeScript وcheck:index وassistant evaluation وNode regression tests؛ Supabase Preview متخطٍ لأن إنشاء فروع Preview معطل. Browser E2E وLighthouse لم يُعاد تشغيلهما على PR التوثيقي لأن ملفات التطبيق والاختبار لم تتغير؛ استخدمت نتائج التشغيل الفعلية من PR #479 المذكورة أعلاه.
 - P1.4 — نطاق التدقيق المثبت على `main` عند `852724542a42f8376d314b06c6197d9cc61dc007`: `.gitignore`، `package.json`، `package-lock.json`، `deno.lock`، `_headers`، `supabase/config.toml`، ملفات Quality Checks وNode tests وSupabase backup/restore، ووظائف `owner-login` و`monitor-client-errors` و`backup-console` و`manage-owner-access` و`complete-owner-pin-change` مع اختبارات الحماية المرتبطة.
 - P1.4 — نتيجة البحث المحدد عن أسرار شائعة: ظهرت مراجع `SUPABASE_SERVICE_ROLE_KEY` في وظائف الخادم المتوقعة فقط؛ لم يُرجع البحث عن نمط مفتاح AWS `AKIA` نتائج. البحث النصي ليس فحصًا تاريخيًا كاملًا ولا بديلًا عن secret scanning؛ لا يُستنتج منه خلو تاريخ Git بالكامل من الأسرار.
 - P1.4 — الضوابط التي ظهرت: استثناء ملفات `.env` وبيانات Supabase المحلية في `.gitignore`؛ قراءة مفاتيح الخدمة من `Deno.env` داخل Edge Functions؛ تثبيت الاعتمادات عبر lockfiles؛ صلاحية `contents: read` في workflows الأساسية؛ إخفاء كلمات مرور قاعدة البيانات في GitHub Actions؛ التحقق من SHA-256 وبصمة كتالوج قاعدة البيانات قبل استعادة النسخة، مع `pg_restore --single-transaction --exit-on-error`.
@@ -286,7 +287,8 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | 2026-11-22 | تدقيق تكامل PostgreSQL وmigrations وRLS (P1.2) | [PR #486](https://github.com/manzilsystem/Manzil/pull/486) — `ec9dd4f9ae72fc997897a05514995bdfbc18d32e` | لا انحراف مثبت؛ PostgreSQL وLocal Supabase الأدلة السابقة ناجحة؛ Quality Checks على PR ناجحة؛ Supabase Preview متخطٍ بسبب تعطيل فروع Preview |
 | 2026-11-22 | اختبار حدود وصول المدير والمالك بين المباني (P1.3) | [PR #487](https://github.com/manzilsystem/Manzil/pull/487) — merge commit `e7b056815873b415757b09b9f7742a74eaa382a6` (head `4df942ee6bf46e7d51e1104dff2a96f7d4f9f397`) | Node regression وPostgreSQL integration وEdge Function checks وLocal Supabase migrations/seed/RLS وQuality Checks جميعها ناجحة؛ Supabase Preview متخطٍ لأن إنشاء فروع Preview معطل؛ لا تغييرات على RLS أو التطبيق |
 | 2026-11-22 | تدقيق سلامة الأسرار والاعتمادات وسطح الهجوم (P1.4) | [PR #488](https://github.com/manzilsystem/Manzil/pull/488) — merge commit `80882bccc6d7e4a17812b8fc31128838e81584c9` (head `96357459d91c7b937d4860b49e058dab14fe8ef7`) | Quality Checks run `45068943324` ناجح: npm ci وtypecheck وcheck:index وassistant evaluation وNode regression tests؛ Supabase Preview متخطٍ بسبب تعطيل فروع Preview؛ لا تغييرات تطبيقية أو إنتاجية؛ فجوة secret/dependency scanning موثقة؛ لم يُشغّل npm audit |
+| 2026-11-22 | مراجعة Browser E2E وإمكانية الوصول والأداء (P1.5) | [PR #489](https://github.com/manzilsystem/Manzil/pull/489) — merge commit `309a7fc85854a8c33c47a88f6695bd0596d85e91` (head `08f83661f256a0d0ee2b1e2dd115f2d115f036c2`) | Quality Checks run `45070081466` ناجح: npm ci وtypecheck وcheck:index وassistant evaluation وNode regression tests؛ Supabase Preview متخطٍ؛ Browser E2E السابق 209 passed و1 skipped؛ Lighthouse ناجح لكنه سجل وزن 5,316,827 بايت مقابل 2,000,000 كتحذير فقط؛ لا درجات axe/Accessibility رقمية موثقة |
 
 - تفاصيل CI لـPR #487: [Quality Checks](https://github.com/manzilsystem/Manzil/actions/runs/45067781214) ناجح؛ [Node and PostgreSQL tests](https://github.com/manzilsystem/Manzil/actions/runs/45067781185) ناجح (state-tests وpostgres-integration وedge-function-check)؛ [Local Supabase seed validation](https://github.com/manzilsystem/Manzil/actions/runs/45067781165) ناجح، بما في ذلك بدء البيئة المحلية وتطبيق migrations وseed والتحقق من fixtures وcashboxes وmonthly close وRLS. Supabase Preview متخطٍ، وليس فحصًا ناجحًا.
 
-**استئناف العمل من هذه النقطة:** P1.1 وP1.2 وP1.3 وP1.4 مكتملة بعد الدمج وتوثيق نتائج CI. يجري إكمال PR تدقيق P1.5؛ بعد الدمج انتقل إلى P2.1 فقط. تجاوز وزن الموارد موثق كفجوة أداء لم تُعالج في مهمة التدقيق. PR #480 القديم ما زال مفتوحًا ومتباعدًا عن main ولا يدخل ضمن هذه المهمة.
+**استئناف العمل من هذه النقطة:** P1.1 وP1.2 وP1.3 وP1.4 وP1.5 مكتملة بعد الدمج وتوثيق نتائج CI. المهمة التالية P2.1 فقط — تدقيق دورة حياة المبنى والشقق وربط العضويات. تجاوز وزن الموارد وغياب قياس axe موثقان كملاحظتين منفصلتين لمهمات لاحقة. PR #480 القديم ما زال مفتوحًا ومتباعدًا عن main ولا يدخل ضمن هذه المهمة.
