@@ -4,6 +4,7 @@
 \ir ../supabase/migrations/20261103165000_revoke_unused_table_grants.sql
 \ir ../supabase/migrations/20261103172000_revoke_direct_financial_table_writes.sql
 \ir ../supabase/migrations/20261119230000_period_report_rpc.sql
+\ir ../supabase/migrations/20261120090000_period_report_method_share_fix.sql
 
 DO $grant_checks$
 DECLARE
@@ -229,3 +230,4 @@ $adjustment_snapshot$;
 SELECT 'resident adjustment snapshot and entitlement tests passed' AS result;
 
 \ir partial-settlement.integration.sql
+\ir period-report-rpc.integration.sql
