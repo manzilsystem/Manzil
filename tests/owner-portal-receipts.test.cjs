@@ -28,7 +28,8 @@ function createOwnerAccess(role = 'owner', phone = '01012345678') {
             { id: 'payment-1', residentId: 'unit-1', amount: 100, month: 'أكتوبر 2026', paymentMethod: 'instapay', date: '2026-11-04T10:00:00.000Z', notes: 'دفعة موزعة ABC123 (1/2)' },
             { id: 'payment-2', residentId: 'unit-1', amount: 50, month: 'نوفمبر 2026', paymentMethod: 'instapay', date: '2026-11-04T10:00:00.000Z', notes: 'دفعة موزعة ABC123 (2/2)' },
             { id: 'payment-3', residentId: 'unit-1', amount: 25, month: 'سبتمبر 2026', paymentMethod: 'cash', date: '2026-10-01T10:00:00.000Z', notes: 'سداد منفصل' },
-            { id: 'foreign-payment', residentId: 'unit-2', amount: 999, month: 'أكتوبر 2026', paymentMethod: 'cash', date: '2026-11-04T10:00:00.000Z', notes: 'دفعة موزعة ABC123 (1/2)' }
+            { id: 'foreign-payment', residentId: 'unit-2', amount: 999, month: 'أكتوبر 2026', paymentMethod: 'cash', date: '2026-11-04T10:00:00.000Z', notes: 'دفعة موزعة ABC123 (1/2)' },
+            { id: 'other-note-payment', residentId: 'unit-1', amount: 999, month: 'ديسمبر 2026', paymentMethod: 'cash', date: '2026-11-04T10:00:00.000Z', notes: 'ملاحظة دفعة موزعة ABC123 (1/2) - ليست علامة دفعة مجمعة' }
         ]
     };
     const sandbox = {
@@ -62,7 +63,7 @@ function createOwnerAccess(role = 'owner', phone = '01012345678') {
 test('owner receipts combine distributed collections into one receipt and remain scoped to the current unit', () => {
     const { api } = createOwnerAccess();
     const receipts = api.groupOwnerPaymentsIntoReceipts('unit-1');
-    assert.equal(receipts.length, 2);
+    assert.equal(receipts.length, 3);
 
     const distributed = receipts.find(receipt => receipt.reference === 'ABC123');
     assert.ok(distributed);
@@ -74,6 +75,10 @@ test('owner receipts combine distributed collections into one receipt and remain
     assert.ok(separate);
     assert.equal(separate.totalAmount, 25);
     assert.ok(receipts.every(receipt => receipt.payments.every(payment => payment.residentId === 'unit-1')));
+    const unrelated = receipts.find(receipt => receipt.payments.some(payment => payment.id === 'other-note-payment'));
+    assert.ok(unrelated);
+    assert.equal(unrelated.payments.length, 1);
+    assert.equal(unrelated.totalAmount, 999);
 });
 
 test('owner portal includes receipts, monthly arrears detail and direct manager contact', () => {
