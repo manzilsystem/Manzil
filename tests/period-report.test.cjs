@@ -187,6 +187,28 @@ test('period preview adopts an authorized database report and preserves its guar
     assert.equal(sandbox.window.__manzilPeriodReportRequestToken > 0, true);
 });
 
+test('period preview re-enables local actions when the database returns an unusable report', async () => {
+    const { app, elements } = loadReport({
+        rpcResult: {
+            data: {
+                months: [{ key: '2024-02-01' }],
+                methods: [],
+                purposes: [],
+                generatedAt: '2024-04-01T00:00:00.000Z'
+            },
+            error: null
+        }
+    });
+    app.generatePeriodReport();
+    await new Promise(resolve => setImmediate(resolve));
+    await new Promise(resolve => setImmediate(resolve));
+
+    assert.equal(elements.periodReportPreview.innerHTML.includes('مصدر الحساب: قاعدة البيانات'), false);
+    assert.match(elements.periodReportPreview.innerHTML, /تقرير الفترة يناير 2024 – مارس 2024/);
+    assert.equal(elements.periodReportPrintBtn.disabled, false);
+    assert.equal(elements.periodReportExportBtn.disabled, false);
+});
+
 test('period preview keeps the local report when the database RPC fails', async () => {
     const { app, elements } = loadReport({ rpcResult: { data: null, error: new Error('offline') } });
     app.generatePeriodReport();
