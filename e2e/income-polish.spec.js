@@ -326,3 +326,56 @@ test('payment notes can be picked quickly and appear in the manager receipt', as
     expect(buffer.readUInt32BE(20)).toBeGreaterThan(400);
     expect(buffer.length).toBeGreaterThan(8000);
 });
+
+test('income collection stays inside the 393px mobile viewport and can be completed', async ({ page }) => {
+    // Pixel 5 is the configured mobile reference viewport.
+    await page.setViewportSize({ width: 393, height: 851 });
+    await seedManager(page);
+    await page.evaluate(() => openNewIncomeModal());
+
+    const metrics = () => page.evaluate(() => {
+        const card = document.querySelector('#incomeModal > .app-card');
+        const rect = card.getBoundingClientRect();
+        return {
+            viewport: window.innerWidth,
+            viewportHeight: window.innerHeight,
+            documentWidth: document.documentElement.scrollWidth,
+            left: rect.left,
+            right: rect.right,
+            top: rect.top,
+            bottom: rect.bottom
+        };
+    });
+    const expectInsideViewport = async () => {
+        const box = await metrics();
+        expect(box.documentWidth).toBeLessThanOrEqual(box.viewport + 1);
+        expect(box.left).toBeGreaterThanOrEqual(-1);
+        expect(box.right).toBeLessThanOrEqual(box.viewport + 1);
+        expect(box.top).toBeGreaterThanOrEqual(-1);
+        expect(box.bottom).toBeLessThanOrEqual(box.viewportHeight + 1);
+    };
+
+    await expect(page.locator('#incomeModal')).toBeVisible();
+    await expect(page.locator('#incomeWizardNext')).toBeVisible();
+    await expectInsideViewport();
+
+    await page.locator('#incomeResident').selectOption('r2');
+    await advanceIncomeStep(page, 2);
+    await expect(page.locator('#incomeWizardBack')).toBeVisible();
+    await expect(page.locator('#incomeWizardNext')).toBeVisible();
+    await expectInsideViewport();
+
+    await page.locator('#incomeMonthsGrid input[data-income-month]').first().check();
+    await page.locator('#incomeAmount').fill('100');
+    await advanceIncomeStep(page, 3);
+    await expect(page.locator('#incomeSubmitButton')).toBeVisible();
+    await expectInsideViewport();
+
+    await page.locator('#incomePaymentMethod').selectOption('cash');
+    await page.locator('#incomeSubmitButton').scrollIntoViewIfNeeded();
+    await page.locator('#incomeSubmitButton').click();
+    await expect(page.locator('#incomeModal')).toBeHidden();
+
+    const finalBox = await metrics();
+    expect(finalBox.documentWidth).toBeLessThanOrEqual(finalBox.viewport + 1);
+});
