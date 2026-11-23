@@ -1096,13 +1096,17 @@ function isValidEffectiveMonth(value) {
 }
 
 function getSubscriptionAmountForMonthKey(resident, monthKey) {
-    const rates = (Array.isArray(resident?.subscriptionRates) ? resident.subscriptionRates : [])
+    const history = Array.isArray(resident?.subscriptionRates) ? resident.subscriptionRates : [];
+    if (!isValidEffectiveMonth(monthKey)) {
+        return Number(resident?.monthlyAmount ?? state.defaultSubscription) || 0;
+    }
+    const rates = history
         .filter(rate => /^\d{4}-(0[1-9]|1[0-2])-01$/.test(String(rate.effectiveMonth || ''))
             && String(rate.effectiveMonth).slice(0, 7) <= monthKey)
         .sort((a, b) => a.effectiveMonth.localeCompare(b.effectiveMonth));
-    return Number(rates[rates.length - 1]?.monthlyAmount ?? resident?.monthlyAmount ?? state.defaultSubscription) || 0;
+    if (rates.length) return Number(rates[rates.length - 1].monthlyAmount) || 0;
+    return history.length ? 0 : Number(resident?.monthlyAmount ?? state.defaultSubscription) || 0;
 }
-
 function getLocalMonthKey(date = new Date()) {
     const value = date && typeof date.getTime === 'function' ? date : new Date(date);
     if (!Number.isFinite(value.getTime())) return '';

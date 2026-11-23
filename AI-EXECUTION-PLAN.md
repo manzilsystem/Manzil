@@ -79,9 +79,15 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 ### 2.4 المهمة الحالية والخطوة التالية
 
-**المهمة الحالية:** لا توجد مهمة P2.2 مفتوحة؛ اكتملت بعد دمج PR #491 ونجاح فحوص Quality Checks المطلوبة.
+**المهمة الحالية:** P2.3 — تدقيق قواعد الاشتراك والأسعار الشهرية وتاريخ السريان — Blocked ضمن PR #492. ظهر اختلاف بين دالة عرض السعر ودالة حساب المستحق قبل أول تاريخ سريان؛ أُصلح helper وأضيف اختبار، لكن CI كشف أن `index.html` وملفات الأصول المولدة لم تُحدّث بعد تغيير `js/crud.js`.
 
-**الخطوة التالية بالتحديد:** ابدأ P2.3 فقط — تدقيق قواعد الاشتراك والأسعار الشهرية وتاريخ السريان.
+**تحديث حالة الاستئناف (2026-11-23):** على الفرع المحلي `fix/p2-3-subscription-rate-boundary-consistency` نُفّذ `npm run build:index` فأعاد توليد `index.html` و`sw.js` و`js/telemetry.js` للإصدار `manzil-a1a9510074`، وأُضيفت الأصول إلى الفرع كالتزام `4d1d2a6`. `npm run check:index` يمر، وكل اختبارات Node (972/972) ناجحة. النطاق السابق لـ PR #492 (الإصلاح + الاختبار + توثيق الخطة) يبقى كما هو على الـ remote، والأصول المولدة أُعدّت محليًا.
+
+**العائق الحالي للحل:** فشل `git push` إلى `https://github.com` بطلب مصادقة غير متوفرة ("could not read Username for 'https://github.com'") في بيئة التنفيذ المحلية. الـ fetch/clone العام يعمل (repo عام)، لكن الـ push يتطلب توكن GitHub/صلاحية كتابة غير مزودة للبيئة المحلية. لا SSH keys متاحة.
+
+**خطوة الحل والاستئناف المطلوبة:** (1) دفع الأصول المولدة على الفرع `fix/p2-3-subscription-rate-boundary-consistency` إلى الـ remote بحيث تُحدّث PR #492 — إما بتوفير توكن GitHub (PAT) في البيئة أو بالدفع اليدوي من النسخة المحلية الجاهزة (الفرع محلي عند `4d1d2a6` على قمة `0e8865a`). (2) بعد الدفع، أعد CI. (3) عند نجاح `check:index` وNode regression tests وبقية الفحوص، ادمج PR #492. (4) بعد الدمج، حدّث هذه الخطة إلى Done وحدد P2.4.
+
+**اختبارات محلية مؤكدة في هذه الدورة:** `npm run build:index` ناجح؛ `npm run check:index` ناجح (الأصول تطابق الإصدار `manzil-a1a9510074`)؛ `npm test` ناجح 972/972 (بما فيها الاختبار المضاف في `tests/subscription-rates.test.cjs`)؛ `node --test tests/subscription-rates.test.cjs` ناجح 12/12. أخطاء `npm run typecheck` في `js/app.js` و`js/state.js` موجودة على `main` النظيف قبل تغيير PR #492 ولا تُنسب إلى هذا التغيير. لم يُشغّل/يكتمل CI على الـ remote بعد إضافة الأصول لأن الدفع غير ممكن.
 
 ## 3. قواعد الحالة ومعايير الإكمال
 
@@ -132,7 +138,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 |---|---|---|---|
 | P2.1 | تدقيق دورة حياة المبنى والشقق وربط العضويات | Done | اكتمل التدقيق دون فجوة مثبتة؛ PR #490 مدمج بعد نجاح Quality Checks؛ لا تغيير وظيفي أو DB |
 | P2.2 | تدقيق ملف المالك والمستأجر وحقول الإيجار | Done | اكتمل التدقيق دون فجوة مثبتة؛ PR #491 مدمج بعد نجاح Quality Checks؛ لا تغيير وظيفي أو DB |
-| P2.3 | تدقيق قواعد الاشتراك والأسعار الشهرية وتاريخ السريان | Pending | اختبارات حدود زمنية وتوافق تاريخي تغطي الفجوة المثبتة |
+| P2.3 | تدقيق قواعد الاشتراك والأسعار الشهرية وتاريخ السريان | Blocked | إصلاح اختلاف حد تاريخ السريان واختباره؛ متوقف حتى تحديث الأصول المولدة ونجاح CI في PR #492 |
 | P2.4 | تدقيق التحصيل والدفعات المختلطة والتوزيع ومنع التكرار | Pending | ثوابت مالية واختبارات ذرية ناجحة |
 | P2.5 | تدقيق دورة الطلبات والتأكيد والتدقيق الإداري | Pending | لا تغيير حالة قبل التأكيد، وسجل تدقيق صحيح عند الحاجة |
 
@@ -223,6 +229,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 ## 7. العوائق والملاحظات الحالية
 
+- P2.3 — PR #492 مفتوح على الفرع `fix/p2-3-subscription-rate-boundary-consistency`، وhead `b8795d48c30e9e3d89b133814506265ea9536f76`. الفجوة: `getSubscriptionAmountForMonthKey` في `js/crud.js` كان يرجع `resident.monthlyAmount` لشهر صحيح قبل أول سعر مسجل، خلافًا لدالة المستحقات في `js/state.js` التي ترجع صفرًا عند وجود سجل أسعار بلا سعر نافذ بعد. أضيف إصلاح محدود واختبار في `tests/subscription-rates.test.cjs`. CI run `45074396782` فشل في خطوة `Verify generated index.html is current`؛ لذلك تم تخطي assistant evaluation وNode regression tests في ذلك الـjob. فحوص `state-tests` و`postgres-integration` و`edge-function-check` وChromium وLighthouse كانت قيد التشغيل عند آخر تحقق، ولا تُسجل ناجحة. Supabase Preview متخطٍ لعدم ارتباط الفرع بفرع Preview. لم تُشغّل اختبارات محلية. الحل: شغّل `npm run build:index` على الفرع وأضف الأصول المولدة ثم أعد CI؛ لا تدمج قبل نجاح الفحوص.
 - P1.5 — تمت مراجعة إعدادات `.github/workflows/e2e.yml` و`.github/workflows/lighthouse.yml` و`playwright.config.js` و`lighthouserc.json` و`e2e/smoke.spec.js`، إضافة إلى سجلات CI الفعلية لـPR #479.
 - P1.5 — Browser E2E run `44639929860` (job `135968064292`) اكتمل بنجاح: 209 اختبارات ناجحة واختبار واحد متخطٍ عبر desktop/mobile؛ لا تُعاد هذه المجموعة في مراجعة التوثيق الحالية.
 - P1.5 — Lighthouse run `44639930213` (job `135968066496`) اكتمل بنجاح، لكنه سجل تجاوز `total-byte-weight`: القيمة `5,316,827` بايت مقابل حد `2,000,000` بايت. إعداد `lighthouserc.json` يستخدم `warn` لهذا الحد، لذلك لم يمنع التجاوز نجاح CI. هذا انحراف أداء قابل للقياس يحتاج مهمة تحسين منفصلة؛ لم تُخفّض الميزانية ولم تُغيّر الواجهة ضمن مهمة التدقيق.
@@ -307,7 +314,8 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | 2026-11-22 | مراجعة Browser E2E وإمكانية الوصول والأداء (P1.5) | [PR #489](https://github.com/manzilsystem/Manzil/pull/489) — merge commit `309a7fc85854a8c33c47a88f6695bd0596d85e91` (head `08f83661f256a0d0ee2b1e2dd115f2d115f036c2`) | Quality Checks run `45070081466` ناجح: npm ci وtypecheck وcheck:index وassistant evaluation وNode regression tests؛ Supabase Preview متخطٍ؛ Browser E2E السابق 209 passed و1 skipped؛ Lighthouse ناجح لكنه سجل وزن 5,316,827 بايت مقابل 2,000,000 كتحذير فقط؛ لا درجات axe/Accessibility رقمية موثقة |
 | 2026-11-22 | تدقيق دورة حياة المبنى والشقق وربط العضويات (P2.1) | [PR #490](https://github.com/manzilsystem/Manzil/pull/490) — merge commit `e7a39b1ca65d82dde244ea5fdf35ec71afd32919` (head `54dc260c840f475916e071d4afddf04641ba02b9`) | لا فجوة مثبتة؛ التوثيق فقط. Quality Checks run `45071058176` ناجح: npm ci وtypecheck وcheck:index وassistant evaluation وNode regression tests؛ Supabase Preview متخطٍ؛ لم تُشغّل اختبارات محلية جديدة |
 | 2026-11-22 | تدقيق ملف المالك والمستأجر وحقول الإيجار (P2.2) | [PR #491](https://github.com/manzilsystem/Manzil/pull/491) — merge commit `af3abe1dcfbdeaf0347ac482ed1b3d876761963d` (head `7fa15451fc1e054044945c1b3ce0ef70e8728caa`) | لا فجوة مثبتة؛ التوثيق فقط. Quality Checks run `45073871402` ناجح: npm ci وtypecheck وcheck:index وassistant evaluation وNode regression tests؛ Supabase Preview متخطٍ؛ لم تُشغّل اختبارات محلية جديدة |
+| 2026-11-22 | تدقيق قواعد الاشتراك والأسعار الشهرية وتاريخ السريان (P2.3) | [PR #492](https://github.com/manzilsystem/Manzil/pull/492) — head `b8795d48c30e9e3d89b133814506265ea9536f76` | فجوة اتساق زمنية مثبتة، وإصلاح واختبار مضافان؛ CI run `45074396782` فشل في check:index بسبب عدم تحديث الأصول المولدة؛ بقية الفحوص لم تكتمل/لم تثبت ناجحة؛ Supabase Preview متخطٍ؛ P2.3 Blocked وغير مدمجة |
 
 - تفاصيل CI لـPR #487: [Quality Checks](https://github.com/manzilsystem/Manzil/actions/runs/45067781214) ناجح؛ [Node and PostgreSQL tests](https://github.com/manzilsystem/Manzil/actions/runs/45067781185) ناجح (state-tests وpostgres-integration وedge-function-check)؛ [Local Supabase seed validation](https://github.com/manzilsystem/Manzil/actions/runs/45067781165) ناجح، بما في ذلك بدء البيئة المحلية وتطبيق migrations وseed والتحقق من fixtures وcashboxes وmonthly close وRLS. Supabase Preview متخطٍ، وليس فحصًا ناجحًا.
 
-**استئناف العمل من هذه النقطة:** P1.1 وP1.2 وP1.3 وP1.4 وP1.5 وP2.1 وP2.2 مكتملة بعد الدمج وتوثيق نتائج CI. المهمة التالية P2.3 فقط — تدقيق قواعد الاشتراك والأسعار الشهرية وتاريخ السريان. تجاوز وزن الموارد وغياب قياس axe موثقان كملاحظتين منفصلتين لمهمات لاحقة. PR #480 القديم ما زال مفتوحًا ومتباعدًا عن main ولا يدخل ضمن P2.2.
+**استئناف العمل من هذه النقطة:** P1.1 وP1.2 وP1.3 وP1.4 وP1.5 وP2.1 وP2.2 مكتملة بعد الدمج وتوثيق نتائج CI. المهمة الحالية P2.3 Blocked في PR #492؛ نقطة الاستئناف الدقيقة هي تشغيل `npm run build:index` على فرع PR وإضافة مخرجاته ثم إعادة CI. لا تبدأ P2.4 قبل إكمال P2.3 ودمجها. تجاوز وزن الموارد وغياب قياس axe موثقان كملاحظتين منفصلتين لمهمات لاحقة. PR #480 القديم ما زال مفتوحًا ومتباعدًا عن main ولا يدخل ضمن P2.3.
