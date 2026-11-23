@@ -2328,7 +2328,7 @@ function validateIncomeWizardStep(step) {
     return true;
 }
 
-function setIncomeWizardStep(step) {
+function setIncomeWizardStep(step, moveFocus = false) {
     incomeWizardStep = Math.max(1, Math.min(3, Number(step) || 1));
     for (let index = 1; index <= 3; index++) {
         const panel = document.getElementById('incomeWizardStep' + index);
@@ -2345,11 +2345,18 @@ function setIncomeWizardStep(step) {
     if (next?.classList && typeof next.classList.toggle === 'function') next.classList.toggle('hidden', incomeWizardStep === 3);
     if (submit?.classList && typeof submit.classList.toggle === 'function') submit.classList.toggle('hidden', incomeWizardStep !== 3);
     if (incomeWizardStep === 3) previewIncomeAllocation();
+    // The navigation control that triggered the change may have just been hidden;
+    // move focus into the newly visible step so it never falls outside the dialog.
+    if (moveFocus) {
+        const panel = document.getElementById('incomeWizardStep' + incomeWizardStep);
+        const firstControl = /** @type {HTMLElement | null} */ (panel?.querySelector('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])'));
+        if (firstControl && firstControl.offsetParent !== null && typeof firstControl.focus === 'function') firstControl.focus();
+    }
 }
 
 function changeIncomeWizardStep(direction) {
     if (direction > 0 && !validateIncomeWizardStep(incomeWizardStep)) return;
-    setIncomeWizardStep(incomeWizardStep + direction);
+    setIncomeWizardStep(incomeWizardStep + direction, true);
 }
 
 function openNewIncomeModal(options = {}) {

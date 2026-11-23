@@ -379,3 +379,39 @@ test('income collection stays inside the 393px mobile viewport and can be comple
     const finalBox = await metrics();
     expect(finalBox.documentWidth).toBeLessThanOrEqual(finalBox.viewport + 1);
 });
+
+test('income wizard keeps keyboard focus inside the dialog and announces each step', async ({ page }) => {
+    await seedManager(page);
+    await page.locator('#btn-income').focus();
+    await page.evaluate(() => openNewIncomeModal());
+
+    const modal = page.locator('#incomeModal');
+    const focusInside = () => page.evaluate(() => document.getElementById('incomeModal').contains(document.activeElement));
+    await expect(modal).toBeVisible();
+    await expect(modal).toHaveAttribute('role', 'dialog');
+    await expect(modal).toHaveAttribute('aria-modal', 'true');
+    await expect(modal).toHaveAttribute('aria-labelledby', 'incomeModalTitle');
+    await expect(page.locator('#incomeWizardProgress')).toHaveAttribute('aria-live', 'polite');
+    await expect.poll(focusInside).toBe(true);
+
+    await page.locator('#incomeResident').selectOption('r2');
+    await page.locator('#incomeWizardNext').click();
+    await expect(page.locator('#incomeWizardStep2')).toBeVisible();
+    await expect.poll(focusInside).toBe(true);
+
+    await page.locator('#incomeMonthsGrid input[data-income-month]').first().check();
+    await page.locator('#incomeAmount').fill('100');
+    await page.locator('#incomeWizardNext').click();
+    await expect(page.locator('#incomeWizardStep3')).toBeVisible();
+    await expect(page.locator('#incomeSubmitButton')).toBeVisible();
+    await expect.poll(focusInside).toBe(true);
+
+    for (let index = 0; index < 8; index++) {
+        await page.keyboard.press('Tab');
+        await expect.poll(focusInside).toBe(true);
+    }
+
+    await page.keyboard.press('Escape');
+    await expect(modal).toBeHidden();
+    await expect(page.locator('#btn-income')).toBeFocused();
+});
