@@ -38,7 +38,9 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 ### 2.2 آخر مهمة مكتملة
 
-**تدقيق ملف المالك والمستأجر وحقول الإيجار (P2.2)** — اكتمل دون فجوة قابلة لإعادة الإنتاج تستدعي تغييرًا وظيفيًا، ووُثقت النتيجة في [PR #491](https://github.com/manzilsystem/Manzil/pull/491)، المدمج عند `af3abe1dcfbdeaf0347ac482ed1b3d876761963d`. راجع التدقيق فصل بيانات المستأجر في جدول manager-only، واستعلام المدير دون المالك، وحماية عرض الحقول والتقارير، والتحقق من الحقول وتوافق النسخ الاحتياطية القديمة. التغيير توثيقي فقط دون تعديل التطبيق أو قاعدة البيانات أو الاختبارات.
+**تدقيق التحصيل والدفعات المختلطة والتوزيع ومنع التكرار (P2.4)** — اكتمل دون فجوة قابلة لإعادة الإنتاج تستدعي تغييرًا وظيفيًا، ووُثقت النتيجة في [PR #494](https://github.com/manzilsystem/Manzil/pull/494). راجع التدقيق: (1) الدفعات المختلطة في `js/crud.js` مع بناء البنود بمرجع مشترك وحفظها ذريًا، وقفل الغرض/الصندوق ومنع العبث (`mixed-payment.test.cjs`، 9 اختبارات)؛ (2) التوزيع عبر `calculateIncomeAllocationPreview` و`calculateSelectedMonthsAllocation` في `js/state.js` (دفعات مقدمة، أشهر مختارة، سقف، تجاوز أفق، منع السداد قبل بداية الشقة) مع `advance-payment-allocation.test.cjs` و`income-month-selection.test.cjs`؛ (3) منع التكرار على الواجهة عبر حارس `incomeSaving` في `handleIncomeSubmit` (`payment-validation.test.cjs`)، وعلى قاعدة البيانات عبر `building_mutations_request_unique UNIQUE(building_id, request_id)` و`state_version` في migration `20261102233018_atomic_building_snapshot.sql`؛ (4) الحفظ الذري عبر `persist_building_snapshot` (`atomic-persistence.test.cjs` و`atomic-persistence.integration.sql`)؛ (5) التسوية الجزئية عبر `getSettlementRemainingAmount` مع `excludeIncomeId` وسقف تراكمي (`partial-settlement.test.cjs` وmigration `20261106203433_partial_settlement_income.sql`). تأكدت الثوابت المالية #1 و#6 و#7 و#8 و#9 دون انحراف. تشغيل اختبارات النطاق (72 اختبارًا) ناجح، والمجموعة الكاملة 972/972 ناجحة. التغيير توثيقي فقط دون تعديل التطبيق أو قاعدة البيانات أو الاختبارات.
+
+**مهمة سابقة مكتملة:** تدقيق قواعد الاشتراك والأسعار الشهرية وتاريخ السريان (P2.3) — اكتمل بإصلاح فجوة حد تاريخ السريان واختباره في [PR #492](https://github.com/manzilsystem/Manzil/pull/492) (المدمج عند `569c7db`).
 
 ### 2.3 نتائج الاختبارات والفحوص الفعلية
 
@@ -79,9 +81,9 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 ### 2.4 المهمة الحالية والخطوة التالية
 
-**المهمة الحالية:** لا توجد مهمة P2.3 مفتوحة؛ اكتملت بعد دمج [PR #492](https://github.com/manzilsystem/Manzil/pull/492) عند `569c7db` ونجاح كل الفحوص المطلوبة.
+**المهمة الحالية:** لا توجد مهمة P2.4 مفتوحة؛ اكتمل التدقيق دون فجوة مثبتة، ودُمج [PR #494](https://github.com/manzilsystem/Manzil/pull/494) (توثيقي).
 
-**الخطوة التالية بالتحديد:** ابدأ P2.4 فقط — تدقيق التحصيل والدفعات المختلطة والتوزيع ومنع التكرار.
+**الخطوة التالية بالتحديد:** ابدأ P2.5 فقط — تدقيق دورة الطلبات والتأكيد والتدقيق الإداري.
 
 ## 3. قواعد الحالة ومعايير الإكمال
 
@@ -133,7 +135,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | P2.1 | تدقيق دورة حياة المبنى والشقق وربط العضويات | Done | اكتمل التدقيق دون فجوة مثبتة؛ PR #490 مدمج بعد نجاح Quality Checks؛ لا تغيير وظيفي أو DB |
 | P2.2 | تدقيق ملف المالك والمستأجر وحقول الإيجار | Done | اكتمل التدقيق دون فجوة مثبتة؛ PR #491 مدمج بعد نجاح Quality Checks؛ لا تغيير وظيفي أو DB |
 | P2.3 | تدقيق قواعد الاشتراك والأسعار الشهرية وتاريخ السريان | Done | اكتمل التدقيق بإصلاح فجوة حد تاريخ السريان واختباره؛ PR #492 مدمج عند `569c7db` بعد نجاح كل الفحوص |
-| P2.4 | تدقيق التحصيل والدفعات المختلطة والتوزيع ومنع التكرار | Pending | ثوابت مالية واختبارات ذرية ناجحة |
+| P2.4 | تدقيق التحصيل والدفعات المختلطة والتوزيع ومنع التكرار | Done | اكتمل التدقيق دون فجوة مثبتة؛ الثوابت المالية والاختبارات الذرية ناجحة؛ PR #494 توثيقي مدمج |
 | P2.5 | تدقيق دورة الطلبات والتأكيد والتدقيق الإداري | Pending | لا تغيير حالة قبل التأكيد، وسجل تدقيق صحيح عند الحاجة |
 
 ### P3 — الحسابات المالية والتقارير وكشوف الحسابات
@@ -309,7 +311,8 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | 2026-11-22 | تدقيق دورة حياة المبنى والشقق وربط العضويات (P2.1) | [PR #490](https://github.com/manzilsystem/Manzil/pull/490) — merge commit `e7a39b1ca65d82dde244ea5fdf35ec71afd32919` (head `54dc260c840f475916e071d4afddf04641ba02b9`) | لا فجوة مثبتة؛ التوثيق فقط. Quality Checks run `45071058176` ناجح: npm ci وtypecheck وcheck:index وassistant evaluation وNode regression tests؛ Supabase Preview متخطٍ؛ لم تُشغّل اختبارات محلية جديدة |
 | 2026-11-22 | تدقيق ملف المالك والمستأجر وحقول الإيجار (P2.2) | [PR #491](https://github.com/manzilsystem/Manzil/pull/491) — merge commit `af3abe1dcfbdeaf0347ac482ed1b3d876761963d` (head `7fa15451fc1e054044945c1b3ce0ef70e8728caa`) | لا فجوة مثبتة؛ التوثيق فقط. Quality Checks run `45073871402` ناجح: npm ci وtypecheck وcheck:index وassistant evaluation وNode regression tests؛ Supabase Preview متخطٍ؛ لم تُشغّل اختبارات محلية جديدة |
 | 2026-11-22 | تدقيق قواعد الاشتراك والأسعار الشهرية وتاريخ السريان (P2.3) | [PR #492](https://github.com/manzilsystem/Manzil/pull/492) — merge commit `569c7db` (head `d323c1011ed26605d5ab1537b1217a06cc378b07`) | فجوة اتساق زمنية مثبتة وإصلاحها واختبارها؛ الأصول المولدة أُعيد توليدها (manzil-a1a9510074) بعد `npm run build:index`؛ كل الفحوص ناجحة (Node regression وstate-tests وpostgres-integration وedge-function-check وChromium وLighthouse)؛ Supabase Preview متخطٍ (لا تغييرات DB)؛ P2.3 Done بعد الدمج |
+| 2026-11-23 | تدقيق التحصيل والدفعات المختلطة والتوزيع ومنع التكرار (P2.4) | [PR #494](https://github.com/manzilsystem/Manzil/pull/494) — توثيقي فقط | لا فجوة مثبتة؛ الدفعات المختلطة والتوزيع ومنع التكرار (incomeSaving guard + building_mutations_request_unique + state_version) والحفظ الذري والتسوية الجزئية موثقة ومغطاة باختبارات؛ اختبارات النطاق 72/72 والمجموعة 972/972 ناجحة؛ Supabase Preview متخطٍ؛ P2.4 Done بعد الدمج |
 
 - تفاصيل CI لـPR #487: [Quality Checks](https://github.com/manzilsystem/Manzil/actions/runs/45067781214) ناجح؛ [Node and PostgreSQL tests](https://github.com/manzilsystem/Manzil/actions/runs/45067781185) ناجح (state-tests وpostgres-integration وedge-function-check)؛ [Local Supabase seed validation](https://github.com/manzilsystem/Manzil/actions/runs/45067781165) ناجح، بما في ذلك بدء البيئة المحلية وتطبيق migrations وseed والتحقق من fixtures وcashboxes وmonthly close وRLS. Supabase Preview متخطٍ، وليس فحصًا ناجحًا.
 
-**استئناف العمل من هذه النقطة:** P1.1 وP1.2 وP1.3 وP1.4 وP1.5 وP2.1 وP2.2 وP2.3 مكتملة بعد الدمج وتوثيق نتائج CI. المهمة التالية P2.4 فقط — تدقيق التحصيل والدفعات المختلطة والتوزيع ومنع التكرار. تجاوز وزن الموارد وغياب قياس axe موثقان كملاحظتين منفصلتين لمهمات لاحقة. PR #480 القديم ما زال مفتوحًا ومتباعدًا عن main ولا يدخل ضمن P2.3.
+**استئناف العمل من هذه النقطة:** P1.1 وP1.2 وP1.3 وP1.4 وP1.5 وP2.1 وP2.2 وP2.3 وP2.4 مكتملة بعد الدمج وتوثيق نتائج CI. المهمة التالية P2.5 فقط — تدقيق دورة الطلبات والتأكيد والتدقيق الإداري. تجاوز وزن الموارد وغياب قياس axe موثقان كملاحظتين منفصلتين لمهمات لاحقة. PR #480 القديم ما زال مفتوحًا ومتباعدًا عن main ولا يدخل ضمن P2.3 أو P2.4.
