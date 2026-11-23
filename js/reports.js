@@ -1434,7 +1434,11 @@ function generatePeriodReport() {
                 || getReportCashAccountFilter('periodReportCashAccount') !== cashAccountFilter
                 || getReportResidentFilter('periodReportResident') !== residentFilter) return;
             const normalized = normalizeServerPeriodReport(serverReport, report);
-            if (!normalized) return;
+            if (!normalized) {
+                // Keep the already-rendered local report usable when the RPC payload is incomplete or mismatched.
+                setPeriodReportActionsEnabled(true);
+                return;
+            }
             preview.innerHTML = renderPeriodReportHtml(normalized);
             periodReportSnapshot = normalized;
             setPeriodReportActionsEnabled(true);
