@@ -26,9 +26,9 @@ Manzil تطبيق ويب عربي RTL لإدارة العقارات/المبان
 |---|---|
 | المستودع | [manzilsystem/Manzil](https://github.com/manzilsystem/Manzil) |
 | الفرع الأساسي | `main` |
-| آخر Pull Request مدمج | [PR #495](https://github.com/manzilsystem/Manzil/pull/495) — تدقيق دورة الطلبات والتأكيد والتدقيق الإداري (P2.5) |
-| Commit الدمج | `a6ee977` |
-| آخر Commit مدمج عبر PR #495 | `a6ee977` |
+| آخر Pull Request مدمج | [PR #497](https://github.com/manzilsystem/Manzil/pull/497) — تدقيق الأرصدة والتحويلات وحساب الصناديق (P3.2) |
+| Commit الدمج | `a952f20` |
+| آخر Commit مدمج عبر PR #497 | `a952f20` |
 | آخر تغيير تطبيقي سابق | [PR #479](https://github.com/manzilsystem/Manzil/pull/479) — ربط تقرير الفترة بـRPC مدير-فقط |
 | Commit التطبيق | `8857fa657c5573fdce389eb374be12d55058ce50` |
 | الإصدار المسجل في آخر خط أساس | `manzil-030bafcd68` |
@@ -319,7 +319,8 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | 2026-11-23 | تدقيق التحصيل والدفعات المختلطة والتوزيع ومنع التكرار (P2.4) | [PR #494](https://github.com/manzilsystem/Manzil/pull/494) — توثيقي فقط | لا فجوة مثبتة؛ الدفعات المختلطة والتوزيع ومنع التكرار (incomeSaving guard + building_mutations_request_unique + state_version) والحفظ الذري والتسوية الجزئية موثقة ومغطاة باختبارات؛ اختبارات النطاق 72/72 والمجموعة 972/972 ناجحة؛ Supabase Preview متخطٍ؛ P2.4 Done بعد الدمج |
 | 2026-11-23 | تدقيق دورة الطلبات والتأكيد والتدقيق الإداري (P2.5) | [PR #495](https://github.com/manzilsystem/Manzil/pull/495) — توثيقي فقط | لا فجوة مثبتة؛ المسار الرسمي (draft → preview → confirm) ومسار المساعد (requestId, audit logs) موثقان؛ مسار المساعد يمر بمعاينة → تأكيد صريح → استدعاء معالج الحفظ الرسمي مع requestId للأتمتة؛ عزل المالك، سجل تدقيق لا يمسح (احتفاظ 200)، RPC ذري مع request_id؛ اختبارات النطاق assistant.test.cjs وaudit-log-persistence.test.cjs وaudit-log-ui.test.cjs والمجموعة 972/972 ناجحة؛ Supabase Preview متخطٍ؛ P2.5 Done بعد الدمج |
 | 2026-11-23 | تدقيق تطابق كشف الحساب مع صفوفه وإجمالياته (P3.1) | [PR #496](https://github.com/manzilsystem/Manzil/pull/496) — توثيقي فقط | لا فجوة مثبتة؛ إجماليات كشف الحساب في `buildResidentStatement` و`getResidentStatementSummaryItems` تجمَع بجمع صفوف الشهور مباشرة بالقرش دون انحراف فاصلة عائمة، وتقرير الفترة `buildPeriodReport` يبني الإجماليات بجمع صفوف الأشهر ويطابق RPC `get_period_report`؛ الثوابت #7 و#8 سليمة؛ اختبارات النطاق (resident-statement وperiod-report) والمجموعة 972/972 ناجحة؛ Supabase Preview متخطٍ؛ P3.1 Done بعد الدمج |
+| 2026-11-23 | تدقيق الأصول والتحويلات وحساب الصناديق (P3.2) | [PR #497](https://github.com/manzilsystem/Manzil/pull/497) — توصيقي فقط | لا فجوة مثبتة؛ المتبقي في `getSettlementRemainingAmount` يطرح مدفوعات التسوية المرتبطة ويحتفظ بقيمة تراكمية عبر `excludeIncomeId`، وال-slide `insufficient_fund_balance` موجود في migrations الصناديق لمنع رaldo سالب، و`hasValidCashboxBalances` و`normalizeCashboxSummary` يVerify من كامل الحسابات قبل التحددد، وتحويلات الصناديق تمر RPC manager-only مع idempotency المفاتيح وتحديث الرaldo بعد الفشل وحمية الـ building id؛ الثوابت #6 و#8 و#9 سليمة؛ اختبارات النطاق (cashbox وpartial-settlement) 70/70 والمجموعة 972/972 ناجحة؛ Supabase Preview متخطٍ؛ P3.2 Done بعد الدمج |
 
 - تفاصيل CI لـPR #487: [Quality Checks](https://github.com/manzilsystem/Manzil/actions/runs/45067781214) ناجح؛ [Node and PostgreSQL tests](https://github.com/manzilsystem/Manzil/actions/runs/45067781185) ناجح (state-tests وpostgres-integration وedge-function-check)؛ [Local Supabase seed validation](https://github.com/manzilsystem/Manzil/actions/runs/45067781165) ناجح، بما في ذلك بدء البيئة المحلية وتطبيق migrations وseed والتحقق من fixtures وcashboxes وmonthly close وRLS. Supabase Preview متخطٍ، وليس فحصًا ناجحًا.
 
-**استئناف العمل من هذه النقطة:** P1.1 وP1.2 وP1.3 وP1.4 وP1.5 وP2.1 وP2.2 وP2.3 وP2.4 وP2.5 وP3.1 مكتملة بعد الدمج وتوثيق نتائج CI. المهمة التالية P3.2 فقط — تدقيق الأرصدة والتحويلات وحساب الصناديق. تجاوز وزن الموارد وغياب قياس axe موثقان كملاحظتين منفصلتين لمهمات لاحقة. PR #480 القديم ما زال مفتوحًا ومتباعدًا عن main ولا يدخل ضمن P2.3-P3.5.
+**استئناف العمل من هذه النقطة:**** P1.1 وP1.2 وP1.3 وP1.4 وP1.5 وP2.1 وP2.2 وP2.3 وP2.4 وP2.5 وP3.1 وP3.2 مكتملة بعد الدمج وتوثيق نتائج CI. المهمة التالية P3.3 فقط — تدقيق التقارير والفلاتر وتجميع البيانات ومصدر الحقيقة. تجاوز وزن الموارد و قياس axe موثقان كملاحظتين منفصلتين لمهمات لاحقة. PR #480 القديم ما زال مفتوحًا ومتباعدًا عن main ولا يدخل ضمن P2.3-P3.5.
