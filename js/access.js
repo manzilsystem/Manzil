@@ -19,7 +19,7 @@ function groupOwnerPaymentsIntoReceipts(residentId) {
     (Array.isArray(state.income) ? state.income : [])
         .filter(payment => payment.residentId === residentId)
         .forEach(payment => {
-            const match = String(payment.notes || '').match(/دفعة موزعة\s+([A-Z0-9]+)/i);
+            const match = String(payment.notes || '').match(/^دفعة موزعة\s+([A-Z0-9]+)\s+\(\d+\/\d+\)(?:\s*·[\s\S]*)?$/i);
             const reference = match?.[1]
                 || String(payment.id || '').replace(/[^a-z0-9]/gi, '').slice(0, 12).toUpperCase();
             const key = match
