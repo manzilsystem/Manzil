@@ -1375,6 +1375,20 @@ test('assistant understands terse subjects and controls report detail level', ()
     assert.match(commonTypo.title, /تفاصيل/);
 });
 
+test('compound detailed report requests preserve detail in income and expense sections', () => {
+    const { api } = createHarness();
+    const answer = api.answerAssistantQuery('تقرير مفصل عن التحصيلات والمصروفات في نوفمبر 2026', NOW);
+
+    assert.equal(answer.id, 'compound');
+    assert.match(answer.html, /تحصيل نوفمبر 2026 · تفاصيل/);
+    assert.match(answer.html, /مصروفات نوفمبر 2026 · تفاصيل/);
+    assert.match(answer.html, /أحمد علي/);
+    assert.match(answer.html, /سارة حسن/);
+    assert.match(answer.html, /نظافة/);
+    assert.match(answer.html, /كهرباء/);
+    assert.doesNotMatch(answer.html, /صيانة أسانسير/);
+});
+
 test('assistant fixed evaluation set keeps intent, period, apartment and role scope accurate', () => {
     const results = [];
     for (const example of assistantEvaluation.cases) {
