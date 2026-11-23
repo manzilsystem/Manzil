@@ -142,6 +142,13 @@ test('the income form exposes sorted apartment choices, a resident summary and a
     assert.match(renderSource, /openIncomeReceiptModal\('\$\{i\.id\}'\)/);
 });
 
+test('the income wizard announces step changes and moves focus into the visible step', () => {
+    assert.match(html, /id="incomeWizardProgress"[^>]*aria-live="polite"/);
+    assert.match(crudSource, /function setIncomeWizardStep\(step, moveFocus = false\)/);
+    assert.match(crudSource, /if \(moveFocus\) \{[\s\S]*?firstControl\.focus\(\)/);
+    assert.match(crudSource, /setIncomeWizardStep\(incomeWizardStep \+ direction, true\)/);
+});
+
 test('income preview, list and receipts surface payment notes', () => {
     assert.match(crudSource, /ملاحظات الدفع/);
     assert.match(renderSource, /stripIncomeBatchNote\(i\.notes\)/);
