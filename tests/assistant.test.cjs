@@ -1643,6 +1643,29 @@ test('the chat and its context survive a reopen and reset wipes both', () => {
     assert.equal(api.chatSnapshot().length, 1, 'reset leaves only the fresh greeting');
 });
 
+test('a resumed remote chat restores its period context without leaking it to a new identity', async () => {
+    const { context, api } = createHarness(true, {}, {
+        instrument: sandbox => {
+            sandbox.window = sandbox;
+            sandbox.manzilAssistantChatStore = {
+                load: async () => ({
+                    messages: [{ sender_type: 'assistant', body: '<p>ملخص أكتوبر 2026</p>' }],
+                    context: { period: { type: 'month', label: 'أكتوبر 2026', months: ['أكتوبر 2026'] }, residentId: 'r1' }
+                })
+            };
+        }
+    });
+    await api.hydrateAssistantChatFromRemote();
+
+    assert.equal(api.contextSnapshot().period.label, 'أكتوبر 2026');
+    assert.match(api.answerAssistantQuery('ومصروفات؟', NOW).title, /أكتوبر 2026/, 'the follow-up stays in the resumed period');
+    assert.equal(api.remoteStateSnapshot().hydrated, true);
+
+    api.resetAssistantSessionForAuthChange();
+    assert.equal(api.contextSnapshot().period, null, 'a different authenticated identity starts without the previous period');
+    assert.equal(api.chatSnapshot().length, 0, 'and without the previous transcript');
+});
+
 test('starting a new chat clears remote history before later messages are appended', async () => {
     const events = [];
     let releaseClear;
