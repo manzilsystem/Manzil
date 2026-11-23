@@ -47,6 +47,15 @@ test('CSP allows only the CDNs and Supabase origins the app actually uses', () =
     assert.ok(!tokens('connect-src').includes('https://huggingface.co'));
 });
 
+test('connect-src is restricted to same-origin and the configured Supabase project', () => {
+    const supabaseSource = fs.readFileSync(path.join(root, 'js', 'supabase.js'), 'utf8');
+    const configured = /const SUPABASE_URL = '([^']+)'/.exec(supabaseSource);
+    assert.ok(configured, 'the Supabase project URL must be declared in js/supabase.js');
+    const httpsOrigin = new URL(configured[1]).origin;
+    const wssOrigin = httpsOrigin.replace(/^https:/, 'wss:');
+    assert.deepEqual([...tokens('connect-src')].sort(), ["'self'", httpsOrigin, wssOrigin].sort());
+});
+
 test('CSP never falls back to a wildcard for scripts, styles or connections', () => {
     for (const name of ['script-src', 'style-src', 'default-src']) {
         assert.ok(!tokens(name).some(token => token.includes('*')), `${name} must not use a wildcard`);
