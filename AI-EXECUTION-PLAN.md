@@ -26,9 +26,9 @@ Manzil تطبيق ويب عربي RTL لإدارة العقارات/المبان
 |---|---|
 | المستودع | [manzilsystem/Manzil](https://github.com/manzilsystem/Manzil) |
 | الفرع الأساسي | `main` |
-| آخر Pull Request مدمج | [PR #491](https://github.com/manzilsystem/Manzil/pull/491) — تدقيق ملف المالك والمستأجر وحقول الإيجار (P2.2) |
-| Commit الدمج | `af3abe1dcfbdeaf0347ac482ed1b3d876761963d` |
-| آخر Commit مدمج عبر PR #491 | `af3abe1dcfbdeaf0347ac482ed1b3d876761963d` |
+| آخر Pull Request مدمج | [PR #495](https://github.com/manzilsystem/Manzil/pull/495) — تدقيق دورة الطلبات والتأكيد والتدقيق الإداري (P2.5) |
+| Commit الدمج | `a6ee977` |
+| آخر Commit مدمج عبر PR #495 | `a6ee977` |
 | آخر تغيير تطبيقي سابق | [PR #479](https://github.com/manzilsystem/Manzil/pull/479) — ربط تقرير الفترة بـRPC مدير-فقط |
 | Commit التطبيق | `8857fa657c5573fdce389eb374be12d55058ce50` |
 | الإصدار المسجل في آخر خط أساس | `manzil-030bafcd68` |
@@ -38,9 +38,9 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 ### 2.2 آخر مهمة مكتملة
 
-**تدقيق التحصيل والدفعات المختلطة والتوزيع ومنع التكرار (P2.4)** — اكتمل دون فجوة قابلة لإعادة الإنتاج تستدعي تغييرًا وظيفيًا، ووُثقت النتيجة في [PR #494](https://github.com/manzilsystem/Manzil/pull/494). راجع التدقيق: (1) الدفعات المختلطة في `js/crud.js` مع بناء البنود بمرجع مشترك وحفظها ذريًا، وقفل الغرض/الصندوق ومنع العبث (`mixed-payment.test.cjs`، 9 اختبارات)؛ (2) التوزيع عبر `calculateIncomeAllocationPreview` و`calculateSelectedMonthsAllocation` في `js/state.js` (دفعات مقدمة، أشهر مختارة، سقف، تجاوز أفق، منع السداد قبل بداية الشقة) مع `advance-payment-allocation.test.cjs` و`income-month-selection.test.cjs`؛ (3) منع التكرار على الواجهة عبر حارس `incomeSaving` في `handleIncomeSubmit` (`payment-validation.test.cjs`)، وعلى قاعدة البيانات عبر `building_mutations_request_unique UNIQUE(building_id, request_id)` و`state_version` في migration `20261102233018_atomic_building_snapshot.sql`؛ (4) الحفظ الذري عبر `persist_building_snapshot` (`atomic-persistence.test.cjs` و`atomic-persistence.integration.sql`)؛ (5) التسوية الجزئية عبر `getSettlementRemainingAmount` مع `excludeIncomeId` وسقف تراكمي (`partial-settlement.test.cjs` وmigration `20261106203433_partial_settlement_income.sql`). تأكدت الثوابت المالية #1 و#6 و#7 و#8 و#9 دون انحراف. تشغيل اختبارات النطاق (72 اختبارًا) ناجح، والمجموعة الكاملة 972/972 ناجحة. التغيير توثيقي فقط دون تعديل التطبيق أو قاعدة البيانات أو الاختبارات.
+**تدقيق تطابق كشف الحساب مع صفوفه وإجمالياته (P3.1)** — اكتمل دون فجوة قابلة لإعادة الإنتاج تستدعي تغييرًا وظيفيًا، ووُثقت النتيجة في [PR #496](https://github.com/manzilsystem/Manzil/pull/496). راجع التدقيق: (1) بناء كشف الحساب في `buildResidentStatement` في `js/reports.js` مع تجميع الإجماليات (`dueCents` و`adjustmentCents` و`paidCents` و`remainingCents`) بجمع صفوف الشهور مباشرة، فلا يظهر انحراف بين مجموع الصفوف والإجمالي المعروض؛ (2) إجماليات كشف الحساب في الملخص (`getResidentStatementSummaryItems`) تعرض الإجمالي نفسه المحسوب من الصفوف، ويُتحقق منها بـ`resident-statement.test.cjs`؛ (3) الكشف يعمل بالقرش (`cents`) دون انحراف الفاصلة العائمة (`resident-statement.test.cjs` اختبار "statement totals use cents without floating point drift")؛ (4) إجماليات تسوية الاشتراكات والتسويات (`paidCents` مقابل `filteredPaidCents`) مميزة ويغطيها `resident-statement.test.cjs`؛ (5) تقرير الفترة `buildPeriodReport` في `js/reports.js` يبني الإجماليات بجمع صفوف الأشهر ويطابق RPC `get_period_report` المغطى بـ`period-report-rpc.integration.sql`. تأكدت الثوابت المالية #7 و#8 دون انحراف. تشغيل اختبارات النطاق (resident-statement وperiod-report) ناجح، والمجموعة الكاملة 972/972 ناجحة. التغيير توثيقي فقط دون تعديل التطبيق أو قاعدة البيانات أو الاختبارات.
 
-**مهمة سابقة مكتملة:** تدقيق قواعد الاشتراك والأسعار الشهرية وتاريخ السريان (P2.3) — اكتمل بإصلاح فجوة حد تاريخ السريان واختباره في [PR #492](https://github.com/manzilsystem/Manzil/pull/492) (المدمج عند `569c7db`).
+**مهمة سابقة مكتملة:** تدقيق دورة الطلبات والتأكيد والتدقيق الإداري (P2.5) — اكتمل التدقيق دون فجوة مثبتة؛ PR #495 توثيقي مدمج.
 
 **مهمة سابقة مكتملة:** تدقيق التحصيل والدفعات المختلطة والتوزيع ومنع التكرار (P2.4) — اكتمل التدقيق دون فجوة مثبتة؛ PR #494 توثيقي مدمج.
 
@@ -83,9 +83,9 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 ### 2.4 المهمة الحالية والخطوة التالية
 
-**المهمة الحالية:** لا توجد مهمة P2.5 مفتوحة؛ اكتمل التدقيق دون فجوة مثبتة، ودُمج [PR #495](https://github.com/manzilsystem/Manzil/pull/495) (توثيقي).
+**المهمة الحالية:** لا توجد مهمة P3.1 مفتوحة؛ اكتمل التدقيق دون فجوة مثبتة، ودُمج [PR #496](https://github.com/manzilsystem/Manzil/pull/496) (توثيقي).
 
-**الخطوة التالية بالتحديد:** ابدأ P3.1 فقط — تدقيق تطابق كشف الحساب مع صفوفه وإجمالياته.
+**الخطوة التالية بالتحديد:** ابدأ P3.2 فقط — تدقيق الأرصدة والتحويلات وحساب الصناديق.
 
 ## 3. قواعد الحالة ومعايير الإكمال
 
@@ -144,7 +144,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 | ID | المهمة الصغيرة | الحالة | معيار الاكتمال |
 |---|---|---|---|
-| P3.1 | تدقيق تطابق كشف الحساب مع صفوفه وإجمالياته | Pending | مجموع الصفوف يساوي الإجمالي في الحالات المغطاة |
+| P3.1 | تدقيق تطابق كشف الحساب مع صفوفه وإجمالياته | Done | مجموع الصفوف يساوي الإجمالي في الحالات المغطاة |
 | P3.2 | تدقيق الأرصدة والتحويلات وحساب الصناديق | Pending | تطابق معادلة الرصيد مع قيود الحركة واختبارات RPC |
 | P3.3 | تدقيق التقارير والفلاتر وتجميع البيانات ومصدر الحقيقة | Pending | النتائج متسقة بين DB/RPC والواجهة مع fallback آمن |
 | P3.4 | تدقيق التصدير والطباعة والإيصالات | Pending | ملفات صالحة ومطابقة للبيانات والفلاتر دون إسقاط مدفوعات |
@@ -265,7 +265,8 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 - P2.2 — توافق النسخ الاحتياطي يحافظ على استيراد النسخ القديمة التي لا تحتوي حقول الإيجار، ويطبع الحقول الاختيارية إلى قيم آمنة مع التحقق من التواريخ والمبالغ واشتراط اسم المستأجر عند `isRented=true`. التحقق بعد الاستعادة يشمل الجدول وسياسة المدير.
 - P2.2 — الاختبار القائم `tests/resident-lease-details-security.test.cjs` يغطي فصل الجدول وRLS والمنع المباشر للكتابة وعدم استعلام المالك وحصر العرض في الواجهة الإدارية وعدم إدخال الحقول في التقارير وتوافق النسخ القديمة. لم تُثبت فجوة قابلة لإعادة الإنتاج؛ لا تغييرات على التطبيق أو migration أو RLS أو الاختبارات.
 - P2.2 — PR #491 توثيقي فقط، والملف الوحيد المتغير هو `AI-EXECUTION-PLAN.md`. Quality Checks run `45073871402` نجح: تثبيت الاعتمادات، TypeScript، check:index، assistant evaluation، وNode regression tests؛ Supabase Preview متخطٍ لأن إنشاء فروع Preview معطل. لم تُشغّل اختبارات محلية أو PostgreSQL محلية ضمن التدقيق، ولا تُنسب نتائج CI السابقة إلى تشغيل جديد. P2.2 Done بعد الدمج.
-
+- P3.1 — تمت مراجعة إجماليات كشف الحساب في `js/reports.js`: `buildResidentStatement` يجمع `dueCents` و`adjustmentCents` و`paidCents` و`remainingCents` من صفوف الشهور مباشرة بالقرش، و`getResidentStatementSummaryItems` يعرض الإجمالي نفسه المحسوب من الصفوف، فلا يظهر انحراف بين مجموع الصفوف والإجمالي. `filteredPaidCents` و`unassignedPaidCents` تُحسب من حركات الدفع وتُعرض بحسب الفلتر. اختبار `tests/resident-statement.test.cjs` يغطي تطابق الإجماليات واستخدام القرش دون انحراف فاصلة عائمة. تقرير الفترة `buildPeriodReport` يبني الإجماليات بجمع صفوف الأشهر، وتقرير الفترة المقروء من قاعدة البيانات عبر RPC `get_period_report` يُطبع من صفوف الأشهر في `normalizeServerPeriodReport` وكلاهما مغطى بـ`tests/period-report-rpc.integration.sql`. لم تُثبت فجوة قابلة لإعادة الإنتاج؛ لا تغييرات على التطبيق أو migrations أو RLS أو الاختبارات.
+- P3.1 — PR #496 توثيقي فقط، والملف الوحيد المتغير هو `AI-EXECUTION-PLAN.md`. التغيير لم يلمس ملفات التطبيق أو قاعدة البيانات أو الاختبارات، لذا تُستخدم نتائج CI السابقة غير المعاد تشغيلها، مع تأكيد الاختبارات محليًا: `npm test` 972/972 واختبارات النطاق (resident-statement وperiod-report) ناجحة. Supabase Preview متخطٍ لأن إنشاء فروع Preview معطل. P3.1 Done بعد الدمج.
 
 ## 8. القواعد المالية والأمنية الثابتة
 
@@ -315,7 +316,8 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 | 2026-11-22 | تدقيق قواعد الاشتراك والأسعار الشهرية وتاريخ السريان (P2.3) | [PR #492](https://github.com/manzilsystem/Manzil/pull/492) — merge commit `569c7db` (head `d323c1011ed26605d5ab1537b1217a06cc378b07`) | فجوة اتساق زمنية مثبتة وإصلاحها واختبارها؛ الأصول المولدة أُعيد توليدها (manzil-a1a9510074) بعد `npm run build:index`؛ كل الفحوص ناجحة (Node regression وstate-tests وpostgres-integration وedge-function-check وChromium وLighthouse)؛ Supabase Preview متخطٍ (لا تغييرات DB)؛ P2.3 Done بعد الدمج |
 | 2026-11-23 | تدقيق التحصيل والدفعات المختلطة والتوزيع ومنع التكرار (P2.4) | [PR #494](https://github.com/manzilsystem/Manzil/pull/494) — توثيقي فقط | لا فجوة مثبتة؛ الدفعات المختلطة والتوزيع ومنع التكرار (incomeSaving guard + building_mutations_request_unique + state_version) والحفظ الذري والتسوية الجزئية موثقة ومغطاة باختبارات؛ اختبارات النطاق 72/72 والمجموعة 972/972 ناجحة؛ Supabase Preview متخطٍ؛ P2.4 Done بعد الدمج |
 | 2026-11-23 | تدقيق دورة الطلبات والتأكيد والتدقيق الإداري (P2.5) | [PR #495](https://github.com/manzilsystem/Manzil/pull/495) — توثيقي فقط | لا فجوة مثبتة؛ المسار الرسمي (draft → preview → confirm) ومسار المساعد (requestId, audit logs) موثقان؛ مسار المساعد يمر بمعاينة → تأكيد صريح → استدعاء معالج الحفظ الرسمي مع requestId للأتمتة؛ عزل المالك، سجل تدقيق لا يمسح (احتفاظ 200)، RPC ذري مع request_id؛ اختبارات النطاق assistant.test.cjs وaudit-log-persistence.test.cjs وaudit-log-ui.test.cjs والمجموعة 972/972 ناجحة؛ Supabase Preview متخطٍ؛ P2.5 Done بعد الدمج |
+| 2026-11-23 | تدقيق تطابق كشف الحساب مع صفوفه وإجمالياته (P3.1) | [PR #496](https://github.com/manzilsystem/Manzil/pull/496) — توثيقي فقط | لا فجوة مثبتة؛ إجماليات كشف الحساب في `buildResidentStatement` و`getResidentStatementSummaryItems` تجمَع بجمع صفوف الشهور مباشرة بالقرش دون انحراف فاصلة عائمة، وتقرير الفترة `buildPeriodReport` يبني الإجماليات بجمع صفوف الأشهر ويطابق RPC `get_period_report`؛ الثوابت #7 و#8 سليمة؛ اختبارات النطاق (resident-statement وperiod-report) والمجموعة 972/972 ناجحة؛ Supabase Preview متخطٍ؛ P3.1 Done بعد الدمج |
 
 - تفاصيل CI لـPR #487: [Quality Checks](https://github.com/manzilsystem/Manzil/actions/runs/45067781214) ناجح؛ [Node and PostgreSQL tests](https://github.com/manzilsystem/Manzil/actions/runs/45067781185) ناجح (state-tests وpostgres-integration وedge-function-check)؛ [Local Supabase seed validation](https://github.com/manzilsystem/Manzil/actions/runs/45067781165) ناجح، بما في ذلك بدء البيئة المحلية وتطبيق migrations وseed والتحقق من fixtures وcashboxes وmonthly close وRLS. Supabase Preview متخطٍ، وليس فحصًا ناجحًا.
 
-**استئناف العمل من هذه النقطة:** P1.1 وP1.2 وP1.3 وP1.4 وP1.5 وP2.1 وP2.2 وP2.3 وP2.4 وP2.5 مكتملة بعد الدمج وتوثيق نتائج CI. المهمة التالية P3.1 فقط — تدقيق تطابق كشف الحساب مع صفوفه وإجمالياته. تجاوز وزن الموارد وغياب قياس axe موثقان كملاحظتين منفصلتين لمهمات لاحقة. PR #480 القديم ما زال مفتوحًا ومتباعدًا عن main ولا يدخل ضمن P2.3-P2.5.
+**استئناف العمل من هذه النقطة:** P1.1 وP1.2 وP1.3 وP1.4 وP1.5 وP2.1 وP2.2 وP2.3 وP2.4 وP2.5 وP3.1 مكتملة بعد الدمج وتوثيق نتائج CI. المهمة التالية P3.2 فقط — تدقيق الأرصدة والتحويلات وحساب الصناديق. تجاوز وزن الموارد وغياب قياس axe موثقان كملاحظتين منفصلتين لمهمات لاحقة. PR #480 القديم ما زال مفتوحًا ومتباعدًا عن main ولا يدخل ضمن P2.3-P3.5.
