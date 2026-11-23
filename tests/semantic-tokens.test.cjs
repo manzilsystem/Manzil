@@ -1972,3 +1972,17 @@ test('the settings danger hover ink resolves from its canonical token', () => {
     assert.equal((css.match(/#fda4af/g) || []).length, 1,
         '#fda4af must only appear in the canonical token definition');
 });
+
+test('the pin-lock shell has one canonical component rule without stale raw colors', () => {
+    const css = read('css/style.css');
+    const exactRules = selector => [...css.matchAll(new RegExp(`\\n${selector} \\{([^}]*)\\}`, 'g'))];
+
+    const shells = exactRules('#pinLockModal > \\.auth-shell');
+    assert.equal(shells.length, 1, 'the pin-lock shell must be declared once; duplicate rules drift from the canonical one');
+    assert.match(shells[0][1], /display:\s*grid/, 'the canonical shell must keep the two-column layout that legacy rules provided');
+    assert.match(shells[0][1], /overscroll-behavior:\s*contain/, 'the canonical shell must keep the legacy scroll containment');
+    assert.doesNotMatch(shells[0][1], /rgba\(2, 6, 23, \.42\)/, 'the canonical shell must not keep a stale raw shadow');
+    assert.equal((css.match(/rgba\(2, 6, 23, \.42\)/g) || []).length, 0, 'the overridden shell shadow must be removed');
+    assert.equal((css.match(/rgba\(148, 163, 184, \.14\)/g) || []).length, 0, 'the overridden panel divider must be removed');
+    assert.equal((css.match(/#111827/g) || []).length, 1, '#111827 may only survive in the canonical print ink token');
+});

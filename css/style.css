@@ -709,20 +709,11 @@ body.owner-mode header .container > div:last-child > button:not(#accessSwitchBtn
 body.owner-mode #accessSwitchBtn { display: block !important; }
 body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !important; }
 
-#pinLockModal > .auth-shell {
-    width: 100%;
-    max-width: 50rem;
-    max-height: calc(100dvh - 2rem);
-    display: grid;
-    grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    box-shadow: 0 24px 70px rgba(2, 6, 23, .42);
-}
 .auth-brand-panel {
     min-height: 0;
-    background: #111827;
-    border-inline-end: 1px solid rgba(148, 163, 184, .14);
+    padding: clamp(var(--space-135), 3vw, var(--space-225));
+    background: var(--print-ink);
+    border-inline-end: 1px solid var(--border-color);
 }
 .auth-brand-panel h1 { font-size: var(--font-175); }
 .auth-brand-panel h2 { font-size: var(--font-100); }
@@ -959,8 +950,6 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 .header-brand-mark { width:2.9rem; height:2.9rem; flex:0 0 auto; display:flex; align-items:center; justify-content:center; padding:var(--space-15); overflow:hidden; border:1px solid var(--header-brand-line); border-radius:var(--radius-lg); background:var(--header-brand-surface); box-shadow:0 5px 16px var(--header-brand-shadow); }
 .header-brand-mark img { width:100%; height:100%; object-fit:contain; display:block; }
 #pinLockModal { background:radial-gradient(ellipse at 14% 18%,color-mix(in srgb,var(--accent-color) 15%,transparent),transparent 42%),color-mix(in srgb,var(--bg-main) 94%,#020617); }
-#pinLockModal > .auth-shell { width:100%; max-width:56rem; max-height:calc(100dvh - 2rem); display:grid; grid-template-columns:minmax(0,.88fr) minmax(0,1.12fr); overflow:auto; overscroll-behavior:contain; background:var(--bg-card); border-color:var(--border-color); box-shadow:0 28px 90px rgba(0,0,0,.35); }
-.auth-brand-panel { min-width:0; min-height:100%; padding:clamp(var(--space-135),3vw,var(--space-225)); display:flex; flex-direction:column; justify-content:space-between; gap:var(--space-200); color:var(--text-main); background:radial-gradient(circle at 12% 10%,color-mix(in srgb,var(--accent-color) 25%,transparent),transparent 40%),linear-gradient(145deg,color-mix(in srgb,var(--accent-color) 13%,var(--bg-card)),var(--bg-main)); border-inline-end:1px solid var(--border-color); }
 .auth-brand-head { display:flex; flex-direction:column; align-items:flex-start; gap:var(--space-125); }
 .auth-logo-frame { width:9rem; height:9rem; display:flex; align-items:center; justify-content:center; padding:var(--space-45); overflow:hidden; border:1px solid #dce7ed; border-radius:var(--radius-165); background:#fbfdff; box-shadow:0 12px 32px rgba(2,20,35,.18); }
 .auth-logo-frame img { display:block; width:100%; height:100%; object-fit:contain; }
@@ -1069,10 +1058,12 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   backdrop-filter:blur(var(--blur-160));
 }
 #pinLockModal > .auth-shell {
+  display:grid;
   width:min(100%,72rem);
   max-width:72rem;
   max-height:min(92dvh,58rem);
   grid-template-columns:minmax(16rem,.72fr) minmax(0,1.28fr);
+  overscroll-behavior:contain;
   border:1px solid rgba(211,165,76,.35);
   border-radius:var(--radius-180);
   overflow:hidden;
@@ -1082,6 +1073,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 #pinLockModal .auth-brand-panel {
   position:relative;
   isolation:isolate;
+  min-width:0;
+  min-height:100%;
   display:flex;
   flex-direction:column;
   justify-content:space-between;
