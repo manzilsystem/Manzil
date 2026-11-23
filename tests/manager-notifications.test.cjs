@@ -58,3 +58,12 @@ test('the header exposes an accessible manager notifications bell', () => {
     assert.ok(html.includes('aria-label="إشعارات المدير"'));
     assert.match(css, /\.manager-notifications-badge/);
 });
+
+test('the manager bell announces its unread count in its accessible name', () => {
+    assert.ok(access.includes('badge.textContent = unreadLabel;'),
+        'the visual badge and the accessible name must share one unread count');
+    assert.ok(access.includes('إشعارات المدير، ${unreadLabel} غير مقروءة'),
+        'the bell must name the unread count when there are unread notifications');
+    assert.ok(access.includes("unread ? `إشعارات المدير، ${unreadLabel} غير مقروءة` : 'إشعارات المدير'"),
+        'the bell must fall back to its plain name when everything is read');
+});

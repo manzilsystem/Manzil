@@ -920,10 +920,15 @@ function renderManagerNotifications() {
     const menu = document.getElementById('managerNotificationsMenu');
     const list = Array.isArray(state.managerNotifications) ? state.managerNotifications : [];
     const unread = list.filter(notification => !notification.readAt).length;
+    const unreadLabel = unread > 99 ? '99+' : String(unread);
     if (badge) {
-        badge.textContent = unread > 99 ? '99+' : String(unread);
+        badge.textContent = unreadLabel;
         badge.classList.toggle('hidden', unread === 0);
     }
+    document.getElementById('managerNotificationsBtn')?.setAttribute(
+        'aria-label',
+        unread ? `إشعارات المدير، ${unreadLabel} غير مقروءة` : 'إشعارات المدير'
+    );
     if (!menu) return;
     if (!list.length) {
         menu.innerHTML = '<p class="text-xs text-slate-500 text-center py-3">لا توجد إشعارات حتى الآن.</p>';
