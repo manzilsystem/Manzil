@@ -922,6 +922,12 @@ function clearAuthenticatedState() {
         buildingModal.setAttribute('aria-hidden', 'true');
     }
     activeSession = null;
+    // Discard any uncertain cash-transfer draft bound to the outgoing building.
+    // A pending request from a previous manager/session must never be restored
+    // for a different identity or building.
+    if (typeof clearCashTransferPending === 'function' && activeBuildingId) {
+        clearCashTransferPending(activeBuildingId);
+    }
     activeBuildingId = null;
     activeBuildingVersion = 1;
     supabaseStateLoaded = false;
