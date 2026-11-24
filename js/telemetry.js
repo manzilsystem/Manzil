@@ -1,5 +1,5 @@
 (() => {
-    const RELEASE = 'manzil-ef5e69814a';
+    const RELEASE = 'manzil-533f7d3f1c';
     // Modules that are loaded on demand read the release from here so their URL
     // matches the pre-cached entry instead of missing the cache and re-downloading.
     window.MANZIL_RELEASE = RELEASE;
