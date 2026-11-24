@@ -1,5 +1,3 @@
-import { createClient } from 'npm:@supabase/supabase-js@2'
-
 const appOrigin = Deno.env.get('APP_ORIGIN') || 'https://manzilsystem.github.io'
 const corsHeaders = {
   'Access-Control-Allow-Origin': appOrigin,
@@ -14,6 +12,13 @@ function json(status: number, body: Record<string, unknown>) {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
+}
+
+function restConfig() {
+  const url = (Deno.env.get('SUPABASE_URL') || '').replace(/\/+$/, '')
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+  if (!url || !key) throw new Error('missing_supabase_config')
+  return { url, headers: { apikey: key, Authorization: `Bearer ${key}` } }
 }
 
 export async function handleRequest(request: Request): Promise<Response> {
@@ -38,31 +43,29 @@ export async function handleRequest(request: Request): Promise<Response> {
       return json(400, { error: 'unknown_cron_job' })
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-
+    const { url, headers } = restConfig()
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    const { count, error } = await supabase
-      .from('client_errors')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', oneDayAgo)
-
-    if (error) throw error
-
-    const errorCount = count || 0
+    const countResponse = await fetch(
+      `${url}/rest/v1/client_errors?select=id&created_at=gte.${encodeURIComponent(oneDayAgo)}`,
+      { headers: { ...headers, Prefer: 'count=exact', Range: '0-0' } },
+    )
+    if (!countResponse.ok) throw new Error(`client_errors query failed: ${countResponse.status}`)
+    const contentRange = countResponse.headers.get('content-range') || ''
+    const reportedCount = Number(contentRange.split('/')[1])
+    await countResponse.text()
+    const errorCount = Number.isFinite(reportedCount) ? reportedCount : 0
     const threshold = 100
 
     if (errorCount > threshold) {
       console.error(`High error rate detected: ${errorCount} errors in last 24h (threshold: ${threshold})`)
 
-      const { data: buildings, error: buildingsError } = await supabase
-        .from('buildings')
-        .select('id, manager_name, manager_phone')
-
-      if (buildingsError) throw buildingsError
-
-      console.log(`Would notify ${buildings?.length || 0} building managers about high error rate`)
+      const buildingsResponse = await fetch(
+        `${url}/rest/v1/buildings?select=id,manager_name,manager_phone`,
+        { headers },
+      )
+      if (!buildingsResponse.ok) throw new Error(`buildings query failed: ${buildingsResponse.status}`)
+      const buildings = await buildingsResponse.json()
+      console.log(`Would notify ${Array.isArray(buildings) ? buildings.length : 0} building managers about high error rate`)
     } else {
       console.log(`Error rate normal: ${errorCount} errors in last 24h (threshold: ${threshold})`)
     }
