@@ -434,9 +434,9 @@ test('period report splits collections by channel and the split equals collected
 test('the period preview lists each channel with its movement count and share', () => {
     const { app } = loadReport({ state: mixedChannels });
     const html = app.renderPeriodReportHtml(app.buildPeriodReport('يناير 2024', 'مارس 2024'));
-    assert.match(html, /التحصيل حسب الطريقة<\/span><span class="report-block-count">3<\/span>/);
-    assert.match(html, /InstaPay <span class="report-list-meta">· 1 حركة · 29%<\/span>/);
-    assert.match(html, /<span class="report-list-value text-emerald-400 report-amount">140 ج\.م<\/span>/);
+    assert.match(html, /التحصيل حسب الطريقة <span class="report-block-count">3<\/span>/);
+    assert.match(html, /<td>InstaPay<\/td><td class="sheet-num">1<\/td><td class="sheet-num">29%<\/td>/);
+    assert.match(html, /<span class="sheet-positive">140 ج\.م<\/span>/);
     assert.match(html, /توزيع الطرق يغطي كل تحصيلات أشهر الفترة، ومجموعه يساوي إجمالي التحصيل/);
 });
 

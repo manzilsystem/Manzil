@@ -221,23 +221,25 @@ function cashFlowStatItems(report) {
 }
 
 function renderCashFlowHtml(report) {
+    const money = cents => fmtMoney(cents / 100);
     const stats = renderReportStatTiles(cashFlowStatItems(report), true);
     const monthRows = report.months.map(row => [
-        '<tr>',
-        '<td>' + esc(row.month) + '</td>',
-        '<td class="text-emerald-400">' + fmtMoney(row.incomeCents / 100) + '</td>',
-        '<td class="text-rose-400">' + fmtMoney(row.expenseCents / 100) + '</td>',
-        '<td class="' + (row.netCents >= 0 ? 'text-emerald-400' : 'text-rose-400') + '">' + fmtMoney(row.netCents / 100) + '</td>',
-        '<td>' + fmtNum(row.count) + '</td>',
-        '</tr>'
-    ].join('')).join('');
+        esc(row.month),
+        '<span class="sheet-positive">' + money(row.incomeCents) + '</span>',
+        '<span class="sheet-negative">' + money(row.expenseCents) + '</span>',
+        '<span class="' + (row.netCents >= 0 ? 'sheet-positive' : 'sheet-negative') + '">' + money(row.netCents) + '</span>',
+        fmtNum(row.count)
+    ]);
     const fundRows = report.funds.map(fund => [
-        '<div class="report-list-row"><span>' + esc(fund.label) + '</span>',
-        '<span><b class="report-amount text-emerald-400">' + fmtMoney(fund.incomeCents / 100) + '</b>',
-        ' <span class="text-slate-400">دخل</span> · ',
-        '<b class="report-amount text-rose-400">' + fmtMoney(fund.expenseCents / 100) + '</b>',
-        ' <span class="text-slate-400">مصروف</span></span></div>'
-    ].join('')).join('');
+        esc(fund.label),
+        '<span class="sheet-positive">' + money(fund.incomeCents) + '</span>',
+        '<span class="sheet-negative">' + money(fund.expenseCents) + '</span>',
+        '<span class="' + (fund.incomeCents - fund.expenseCents >= 0 ? 'sheet-positive' : 'sheet-negative') + '">' + money(fund.incomeCents - fund.expenseCents) + '</span>'
+    ]);
+    const distributionRows = [
+        ...report.purposes.map(item => [esc(item.label), 'تحصيل', '<span class="sheet-positive">' + money(item.cents) + '</span>']),
+        ...report.categories.map(item => [esc(item.label), 'مصروف', '<span class="sheet-negative">' + money(item.cents) + '</span>'])
+    ];
     const best = report.totals.bestMonth;
     const worst = report.totals.worstMonth;
     return [
@@ -248,24 +250,24 @@ function renderCashFlowHtml(report) {
             ' · ' + fmtNum(report.totals.monthCount) + ' شهرًا · ' + fmtNum(report.totals.count) + ' حركة</p>',
         '</div>',
         stats,
-        '<div class="report-block">',
-        '<h3 class="report-block-title">الحركة شهرًا بشهر <span class="report-block-count">' + fmtNum(report.months.length) + '</span></h3>',
-        '<div class="report-table-wrap"><table class="statement-table"><thead><tr>',
-        ['الشهر', 'التحصيل', 'المصروفات', 'الصافي', 'الحركات'].map(label => '<th>' + esc(label) + '</th>').join(''),
-        '</tr></thead><tbody>', monthRows || '<tr><td colspan="5" class="report-preview-empty">لا توجد حركات في الفترة المحددة.</td></tr>', '</tbody></table></div>',
-        '</div>',
-        '<div class="report-block">',
-        '<h3 class="report-block-title">حركة الصناديق <span class="report-block-count">' + fmtNum(report.funds.length) + '</span></h3>',
-        '<div class="report-list">' + (fundRows || '<p class="report-preview-empty">لا توجد حركات في الصناديق.</p>') + '</div>',
-        '</div>',
-        best && worst ? '<p class="report-hint">أعلى صافي في ' + esc(best.month) + ': ' + fmtMoney(best.netCents / 100) +
-            ' · أدنى صافي في ' + esc(worst.month) + ': ' + fmtMoney(worst.netCents / 100) + '.</p>' : '',
-        report.purposes.length || report.categories.length
-            ? '<div class="report-block"><h3 class="report-block-title">التوزيع حسب الغرض والتصنيف</h3><div class="report-list">' +
-                report.purposes.map(item => '<div class="report-list-row"><span>' + esc(item.label) + '</span><b class="report-amount">' + fmtMoney(item.cents / 100) + '</b></div>').join('') +
-                report.categories.map(item => '<div class="report-list-row"><span>' + esc(item.label) + '</span><b class="report-amount text-rose-400">' + fmtMoney(item.cents / 100) + '</b></div>').join('') +
-                '</div></div>'
-            : '',
+        renderSheetBlock('الحركة شهرًا بشهر', ['الشهر', 'التحصيل', 'المصروفات', 'الصافي', 'الحركات'], monthRows, {
+            empty: 'لا توجد حركات في الفترة المحددة.',
+            numeric: [1, 2, 3, 4], tableClass: 'statement-table',
+            foot: ['الإجمالي', '<span class="sheet-positive">' + money(report.totals.incomeCents) + '</span>',
+                '<span class="sheet-negative">' + money(report.totals.expenseCents) + '</span>',
+                '<span class="' + (report.totals.netCents >= 0 ? 'sheet-positive' : 'sheet-negative') + '">' + money(report.totals.netCents) + '</span>',
+                fmtNum(report.totals.count)]
+        }),
+        renderSheetBlock('حركة الصناديق', ['الصندوق', 'التحصيل', 'المصروفات', 'الصافي'], fundRows, {
+            empty: 'لا توجد حركات في الصناديق.',
+            numeric: [1, 2, 3]
+        }),
+        best && worst ? '<p class="report-hint">أعلى صافي في ' + esc(best.month) + ': ' + money(best.netCents) +
+            ' · أدنى صافي في ' + esc(worst.month) + ': ' + money(worst.netCents) + '.</p>' : '',
+        distributionRows.length ? renderSheetTable(['البند', 'النوع', 'القيمة'], distributionRows, {
+            caption: 'التوزيع حسب الغرض والتصنيف',
+            numeric: [2]
+        }) : '',
         '</div>'
     ].join('');
 }
@@ -563,17 +565,16 @@ function apartmentsStatItems(report) {
 }
 
 function renderApartmentsHtml(report) {
+    const money = cents => fmtMoney(cents / 100);
     const stats = renderReportStatTiles(apartmentsStatItems(report), true);
     const rows = report.rows.map(row => [
-        '<tr>',
-        '<td>' + esc(row.label) + '</td>',
-        '<td>' + fmtMoney(row.dueCents / 100) + '</td>',
-        '<td class="text-emerald-400">' + fmtMoney(row.paidCents / 100) + '</td>',
-        '<td class="' + (row.remainingCents ? 'text-rose-400' : '') + '">' + fmtMoney(row.remainingCents / 100) + '</td>',
-        '<td>' + (row.rate === null ? '—' : fmtNum(row.rate) + '%') + '</td>',
-        '<td>' + esc(row.lastPaymentDate ? formatDate(row.lastPaymentDate) : '—') + '</td>',
-        '</tr>'
-    ].join('')).join('');
+        esc(row.label),
+        money(row.dueCents),
+        '<span class="sheet-positive">' + money(row.paidCents) + '</span>',
+        row.remainingCents ? '<span class="sheet-negative">' + money(row.remainingCents) + '</span>' : money(0),
+        row.rate === null ? '—' : fmtNum(row.rate) + '%',
+        esc(row.lastPaymentDate ? formatDate(row.lastPaymentDate) : '—')
+    ]);
     return [
         '<div class="report-preview-flow">',
         '<div class="report-preview-header">',
@@ -583,13 +584,15 @@ function renderApartmentsHtml(report) {
             (report.totals.rate === null ? '—' : fmtNum(report.totals.rate) + '%') + '</p>',
         '</div>',
         stats,
-        '<div class="report-block">',
-        '<h3 class="report-block-title">تفاصيل كل شقة <span class="report-block-count">' + fmtNum(report.rows.length) + '</span></h3>',
-        '<div class="report-table-wrap"><table class="statement-table"><thead><tr>',
-        ['الشقة', 'المستحق', 'المحصّل', 'المتبقٍ', 'النسبة', 'آخر تحصيل'].map(label => '<th>' + esc(label) + '</th>').join(''),
-        '</tr></thead><tbody>', rows || '<tr><td colspan="6" class="report-preview-empty">لا توجد شقق مطابقة للفلاتر.</td></tr>', '</tbody></table></div>',
-        '</div>',
-        report.totals.otherIncomeCents ? '<p class="report-hint">تحصيلات أخرى غير الاشتراك في الفترة: ' + fmtMoney(report.totals.otherIncomeCents / 100) + ' (لا تُخصم من المستحق).</p>' : '',
+        renderSheetBlock('تفاصيل كل شقة', ['الشقة', 'المستحق', 'المحصّل', 'المتبقٍ', 'النسبة', 'آخر تحصيل'], rows, {
+            empty: 'لا توجد شقق مطابقة للفلاتر.',
+            numeric: [1, 2, 3, 4], tableClass: 'statement-table',
+            foot: ['الإجمالي', money(report.totals.dueCents),
+                '<span class="sheet-positive">' + money(report.totals.paidCents) + '</span>',
+                '<span class="sheet-negative">' + money(report.totals.remainingCents) + '</span>',
+                report.totals.rate === null ? '—' : fmtNum(report.totals.rate) + '%', '—']
+        }),
+        report.totals.otherIncomeCents ? '<p class="report-hint">تحصيلات أخرى غير الاشتراك في الفترة: ' + money(report.totals.otherIncomeCents) + ' (لا تُخصم من المستحق).</p>' : '',
         '</div>'
     ].join('');
 }

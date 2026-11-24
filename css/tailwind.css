@@ -736,13 +736,6 @@
     margin-block-start: calc(calc(var(--spacing) * 5) * var(--tw-space-y-reverse));
     margin-block-end: calc(calc(var(--spacing) * 5) * calc(1 - var(--tw-space-y-reverse)));
   }
-  .gap-x-3 {
-    -moz-column-gap: calc(var(--spacing) * 3);
-         column-gap: calc(var(--spacing) * 3);
-  }
-  .gap-y-2 {
-    row-gap: calc(var(--spacing) * 2);
-  }
   .truncate {
     overflow: hidden;
     text-overflow: ellipsis;

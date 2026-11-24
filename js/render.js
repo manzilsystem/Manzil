@@ -26,17 +26,24 @@ function renderAuditLog(options) {
             String(value || '').toLocaleLowerCase('ar').includes(query)
         )
     );
+    const headers = ['التاريخ', 'المستخدم', 'الإجراء', 'التفاصيل'];
     if (!filtered.length) {
-        container.innerHTML = `<p class="report-preview-empty">${query ? 'لا توجد نتائج مطابقة.' : 'لا يوجد سجل بعد.'}</p>`;
+        container.innerHTML = renderSheetTable(headers, [], {
+            empty: query ? 'لا توجد نتائج مطابقة.' : 'لا يوجد سجل بعد.'
+        });
         return;
     }
     const visible = filtered.slice(0, auditLogVisibleCount);
     const remaining = filtered.length - visible.length;
-    container.innerHTML = visible.map(entry => `
-        <article class="audit-log-row">
-            <p class="text-xs"><strong class="audit-log-action">${esc(entry.action)}</strong>${entry.details ? ': ' + esc(entry.details) : ''}</p>
-            <p class="audit-log-meta">بواسطة: ${esc(entry.actorName || 'المدير')} · ${formatDate(entry.date)}</p>
-        </article>`).join('') + `
+    const rows = visible.map(entry => [
+        esc(formatDate(entry.date)), esc(entry.actorName || 'المدير'),
+        '<strong class="sheet-label">' + esc(entry.action) + '</strong>',
+        esc(entry.details || '—')
+    ]);
+    container.innerHTML = renderSheetTable(headers, rows, {
+        caption: 'سجل العمليات', empty: 'لا يوجد سجل بعد.',
+        foot: ['الإجمالي', '', fmtNum(visible.length) + ' عملية', fmtNum(filtered.length) + ' عملية متاحة']
+    }) + `
         <div class="audit-log-footer">
             عرض ${fmtNum(visible.length)} من ${fmtNum(filtered.length)}
             ${remaining > 0 ? `<button type="button" onclick="renderAuditLog({ more: true })" class="audit-log-more">عرض المزيد (${fmtNum(remaining)})</button>` : ''}
@@ -109,32 +116,34 @@ function renderArrearsReport() {
         c.innerHTML = `<p class="report-preview-empty">${message}</p>`;
         return;
     }
-    const cards = report.residents.map(item => `
-        <details class="arrears-card" open>
-            <summary class="arrears-summary">
-                <span class="arrears-identity">
-                    <span class="arrears-badge" aria-hidden="true">${esc(item.resident.apartmentNumber)}</span>
-                    <span class="min-w-0">
-                        <span class="arrears-name">${esc(item.resident.name)}</span>
-                        <span class="arrears-sub">${esc(item.bucket)} · ${fmtNum(item.count)} شهر غير مسدد${item.daysOverdue ? ` · متأخر ${esc(formatOverdueDuration(item.daysOverdue))}` : ''}</span>
-                    </span>
-                </span>
-                <span class="arrears-amount report-amount">${fmtNum(item.totalDebt)} ج.م</span>
-            </summary>
-            <div class="arrears-body">
-                <div class="report-list">
-                    ${item.unpaidMonths.map(month => `<div class="report-list-row"><span class="report-list-title">${esc(month.month)}${month.daysOverdue ? ` <span class="text-xs text-slate-500">(متأخر ${esc(formatOverdueDuration(month.daysOverdue))})</span>` : ''}</span><span class="report-list-value text-rose-400 report-amount">${fmtNum(month.amount)} ج.م</span></div>`).join('')}
-                </div>
-            </div>
-        </details>`).join('');
-    c.innerHTML = `
-        <div class="report-stats report-stats-4">
-            <div class="report-stat"><p class="report-stat-label">إجمالي المديونية</p><p class="report-stat-value text-rose-400">${fmtNum(report.totalDebt)} ج.م</p></div>
-            <div class="report-stat"><p class="report-stat-label">الشقق المتأخرة</p><p class="report-stat-value">${fmtNum(report.overdueResidents)}</p></div>
-            <div class="report-stat"><p class="report-stat-label">الأشهر</p><p class="report-stat-value">${fmtNum(report.overdueMonths)}</p></div>
-            <div class="report-stat"><p class="report-stat-label">4+ أشهر</p><p class="report-stat-value text-amber-400">${fmtNum(report.buckets['4 أشهر فأكثر'])}</p></div>
-        </div>
-        <div class="space-y-2">${cards}</div>`;
+    const money = value => '<span class="sheet-negative">' + fmtNum(value) + ' ج.م</span>';
+    const duration = days => days ? esc(formatOverdueDuration(days)) : '—';
+    const summaryRows = report.residents.map(item => [
+        'شقة ' + esc(item.resident.apartmentNumber || '—') + ' · ' + esc(item.resident.name),
+        esc(item.bucket), fmtNum(item.count), duration(item.daysOverdue), money(item.totalDebt)
+    ]);
+    const detailRows = report.residents.flatMap(item => item.unpaidMonths.map(month => [
+        'شقة ' + esc(item.resident.apartmentNumber || '—') + ' · ' + esc(item.resident.name),
+        esc(month.month), duration(month.daysOverdue), money(month.amount)
+    ]));
+    c.innerHTML = [
+        '<div class="report-preview-flow">',
+        renderReportStatTiles([
+            { label: 'إجمالي المديونية', text: fmtNum(report.totalDebt) + ' ج.م', tone: 'rose' },
+            { label: 'الشقق المتأخرة', text: fmtNum(report.overdueResidents) },
+            { label: 'الأشهر غير المسددة', text: fmtNum(report.overdueMonths) },
+            { label: '4+ أشهر', text: fmtNum(report.buckets['4 أشهر فأكثر']), tone: 'amber' }
+        ], true),
+        renderSheetBlock('ملخص المتأخرات', ['الشقة والمالك', 'التصنيف', 'الأشهر', 'أقدم تأخير', 'المديونية'], summaryRows, {
+            empty: 'لا توجد متأخرات مطابقة للفلاتر.', numeric: [2, 4],
+            foot: ['الإجمالي', fmtNum(report.overdueResidents) + ' شقة', fmtNum(report.overdueMonths), '—', money(report.totalDebt)]
+        }),
+        renderSheetBlock('تفاصيل الأشهر غير المسددة', ['الشقة والمالك', 'الشهر', 'مدة التأخير', 'المبلغ'], detailRows, {
+            empty: 'لا توجد أشهر غير مسددة.', numeric: [3],
+            foot: ['الإجمالي', fmtNum(report.overdueMonths) + ' شهر', '—', money(report.totalDebt)]
+        }),
+        '</div>'
+    ].join('');
 }
 
 function populateSelects() {

@@ -24,7 +24,7 @@ test('monthly close and arrears are panels with their controls preserved', () =>
         assert.ok(reportTab.includes('id="' + id + '"'), 'missing ' + id);
     }
     assert.match(reportTab, /exportArrearsCSV\(\)/);
-    assert.doesNotMatch(reportTab, /<details\b/, 'the reports tab no longer mixes disclosure panels');
+    assert.doesNotMatch(reportTab, /<details\b(?!\s*class="[^"]*report-chart-fold)/, 'only chart folds may be disclosure panels');
 });
 
 test('the reports nav offers one entry per panel and marks the active one', () => {
@@ -77,10 +77,10 @@ test('reports surface shares card headers, stat tiles, and tabular numerals', ()
     assert.match(css, /#printableArea \.app-card, #printableArea \.app-input, #printableArea \.report-stat \{/);
     assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 10);
     assert.equal((reportTab.match(/class="report-card-badge /g) || []).length, 10);
-    assert.equal((reports.match(/class="report-stat"/g) || []).length, 21, 'landlord, expenses, adjustments, statement and conditional adjustment tiles come from the shared helpers');
-    assert.equal((render.match(/class="report-stat"/g) || []).length, 4);
-    assert.match(reports, /text-emerald-400 report-amount/);
-    assert.match(render, /text-rose-400 report-amount/);
+    assert.equal((reports.match(/class="report-stat"/g) || []).length, 2, 'every preview now builds its KPI cells through renderReportStatTiles');
+    assert.equal((render.match(/class="report-stat"/g) || []).length, 0, 'arrears and audit KPIs come from the shared helper');
+    assert.match(reports, /sheet-positive/);
+    assert.match(render, /sheet-negative/);
 });
 
 test('landlord and statement previews share one summary model with their PDFs', () => {
@@ -167,9 +167,9 @@ test('generated previews use the shared report blocks and theme-safe styles', ()
     assert.match(reports, /class="report-preview-header"/);
     assert.match(reports, /'report-stats report-stats-4'/);
     assert.match(reports, /class="report-block-title"/);
-    assert.match(render, /class="arrears-card" open/);
-    assert.match(render, /class="arrears-badge"/);
-    assert.match(render, /class="audit-log-meta"/);
+    assert.match(render, /renderSheetBlock\('ملخص المتأخرات'/);
+    assert.match(render, /renderSheetBlock\('تفاصيل الأشهر غير المسددة'/);
+    assert.match(render, /renderSheetTable\(headers, rows/);
 });
 
 test('landlord report compares expected dues with collections', () => {

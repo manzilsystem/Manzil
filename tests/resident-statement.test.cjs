@@ -419,7 +419,7 @@ test('statement preview and PDF list the registered adjustments', () => {
     const pdf = app.renderResidentStatementPdfHtml(statement);
     assert.match(html, /الإعفاءات والتخفيضات/);
     assert.match(html, /ظرف صحي/);
-    assert.match(html, /إعفاء · فبراير 2024|فبراير 2024 · إعفاء/);
+    assert.match(html, /<td>فبراير 2024<\/td><td>إعفاء<\/td>/);
     assert.match(html, /إعفاء\/تخفيض/);
     assert.match(pdf, /الإعفاءات والتخفيضات/);
     assert.match(pdf, /ظرف صحي/);

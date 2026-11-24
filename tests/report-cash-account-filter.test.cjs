@@ -315,7 +315,7 @@ test('period preview and CSV switch to fund columns and note the fund', () => {
     const preview = elements.periodReportPreview.innerHTML;
     assert.match(preview, /الصندوق: صندوق التطوير/);
     assert.match(preview, /تحصيل الصندوق/);
-    assert.match(preview, /<th>تحصيل الصندوق<\/th>/);
+    assert.match(preview, /<th[^>]*>تحصيل الصندوق<\/th>/);
     assert.match(preview, /حركة/);
     assert.doesNotMatch(preview, /<th>المستحق<\/th>/);
     assert.doesNotMatch(preview, /<th>نسبة التحصيل<\/th>/);

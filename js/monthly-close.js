@@ -26,40 +26,41 @@ function monthlyCloseMoney(value) {
 
 function renderMonthlyClosePreview(report) {
     const totals = report.totals;
-    const accounts = monthlyCloseAccounts.map(function (account) {
-        const row = report.accounts[account.code];
+    const money = value => monthlyCloseMoney(value) + ' ج.م';
+    const accountRows = monthlyCloseAccounts.map(function (account) {
+        const row = report.accounts[account.code] || {};
         return [
-            '<article class="report-surface p-3 space-y-2">',
-            '<h4 class="font-black text-xs">', esc(account.label), '</h4>',
-            '<div class="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">',
-            '<div><span class="block report-list-meta">رصيد أول الشهر</span><strong class="report-amount">', monthlyCloseMoney(row.opening_balance), ' ج.م</strong></div>',
-            '<div><span class="block report-list-meta">تحصيلات</span><strong class="text-emerald-400 report-amount">', monthlyCloseMoney(row.income), ' ج.م</strong></div>',
-            '<div><span class="block report-list-meta">مصروفات</span><strong class="text-rose-400 report-amount">', monthlyCloseMoney(row.expenses), ' ج.م</strong></div>',
-            '<div><span class="block report-list-meta">تحويلات واردة</span><strong class="report-amount">', monthlyCloseMoney(row.transfers_in), ' ج.م</strong></div>',
-            '<div><span class="block report-list-meta">تحويلات صادرة</span><strong class="report-amount">', monthlyCloseMoney(row.transfers_out), ' ج.م</strong></div>',
-            '<div><span class="block report-list-meta">صافي الحركة</span><strong class="report-amount">', monthlyCloseMoney(row.net_movement), ' ج.م</strong></div>',
-            '</div><div class="report-divider flex justify-between items-center gap-2">',
-            '<span class="text-xs font-bold">رصيد آخر الشهر</span><strong class="text-sm report-amount">',
-            monthlyCloseMoney(row.closing_balance), ' ج.م</strong></div></article>'
-        ].join('');
-    }).join('');
+            esc(account.label), money(row.opening_balance),
+            '<span class="sheet-positive">' + money(row.income) + '</span>',
+            '<span class="sheet-negative">' + money(row.expenses) + '</span>',
+            money(row.transfers_in), money(row.transfers_out),
+            money(row.net_movement), '<strong>' + money(row.closing_balance) + '</strong>'
+        ];
+    });
 
     return [
-        '<div class="space-y-3" dir="rtl"><header class="report-preview-header">',
+        '<div class="report-preview-flow" dir="rtl"><header class="report-preview-header">',
         '<h3 class="report-preview-title">', esc(state.buildingName || 'Manzil'), '</h3>',
         '<p class="report-preview-meta">مراجعة الإقفال النقدي لشهر ', esc(report.month), '</p>',
         '<p class="report-preview-meta">الفترة محسوبة بالتوقيت المحلي: ', esc(report.time_zone), '</p></header>',
-        '<div class="report-stats report-stats-4">',
-        '<div class="report-stat"><p class="report-stat-label">رصيد أول الشهر</p><p class="report-stat-value">', monthlyCloseMoney(totals.opening_balance), ' ج.م</p></div>',
-        '<div class="report-stat"><p class="report-stat-label">التحصيلات</p><p class="report-stat-value text-emerald-400">', monthlyCloseMoney(totals.income), ' ج.م</p></div>',
-        '<div class="report-stat"><p class="report-stat-label">المصروفات</p><p class="report-stat-value text-rose-400">', monthlyCloseMoney(totals.expenses), ' ج.م</p></div>',
-        '<div class="report-stat"><p class="report-stat-label">صافي الحركة</p><p class="report-stat-value">', monthlyCloseMoney(totals.net_movement), ' ج.م</p></div></div>',
-        '<div class="report-block"><p class="report-block-title"><span>أرصدة الصناديق وحركتها</span><span class="report-block-count">', fmtNum(monthlyCloseAccounts.length), '</span></p>',
-        '<div class="grid grid-cols-1 sm:grid-cols-3 gap-2">', accounts, '</div></div>',
-        '<div class="report-surface p-3 flex justify-between items-center gap-3"><div>',
-        '<p class="font-bold text-xs">إجمالي رصيد الصناديق في نهاية الشهر</p>',
-        '<p class="report-list-meta mt-1">التحويلات الداخلية لا تزيد أو تنقص إجمالي النقد.</p></div><strong class="text-base report-amount">',
-        monthlyCloseMoney(totals.closing_balance), ' ج.م</strong></div>',
+        renderReportStatTiles([
+            { label: 'رصيد أول الشهر', text: money(totals.opening_balance) },
+            { label: 'التحصيلات', text: money(totals.income), tone: 'emerald' },
+            { label: 'المصروفات', text: money(totals.expenses), tone: 'rose' },
+            { label: 'صافي الحركة', text: money(totals.net_movement) }
+        ], true),
+        renderSheetBlock('أرصدة الصناديق وحركتها',
+            ['الصندوق', 'رصيد أول الشهر', 'التحصيلات', 'المصروفات', 'تحويلات واردة', 'تحويلات صادرة', 'صافي الحركة', 'رصيد آخر الشهر'],
+            accountRows, {
+                empty: 'لا توجد صناديق لعرضها.', numeric: [1, 2, 3, 4, 5, 6, 7],
+                foot: ['الإجمالي', money(totals.opening_balance),
+                    '<span class="sheet-positive">' + money(totals.income) + '</span>',
+                    '<span class="sheet-negative">' + money(totals.expenses) + '</span>',
+                    money(totals.transfers_in || 0), money(totals.transfers_out || 0),
+                    money(totals.net_movement), money(totals.closing_balance)]
+            }),
+        '<p class="report-hint">إجمالي رصيد الصناديق في نهاية الشهر: <strong class="report-amount">',
+        money(totals.closing_balance), '</strong>. التحويلات الداخلية لا تزيد أو تنقص إجمالي النقد.</p>',
         '<p class="text-xs font-bold ', report.reconciled ? 'text-emerald-400' : 'text-rose-400', '" role="status">',
         report.reconciled ? '✓ إجمالي الصناديق مطابق للحركة النقدية.' : '⚠ يوجد فرق في المطابقة. راجع حركة الصناديق قبل اعتماد التقرير.',
         '</p><p class="report-note report-divider">',

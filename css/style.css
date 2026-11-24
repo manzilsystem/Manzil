@@ -631,6 +631,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-amount { font-variant-numeric: tabular-nums; font-weight: var(--weight-800); }
 .report-block { display: flex; flex-direction: column; gap: var(--space-55); }
 .report-chart-block { gap: var(--space-50); }
+/* الجداول هي العرض الافتراضي؛ الرسم مخفي خلف ملخّص واضح حتى لا تتراكم العناصر. */
+.report-chart-fold { border: 1px solid var(--border-color); border-radius: var(--radius-95); background: color-mix(in srgb, var(--bg-card) 42%, transparent); }
+.report-chart-summary { display: flex; align-items: center; gap: var(--space-55); padding: var(--space-70); color: var(--text-main); font-size: var(--font-76); font-weight: var(--weight-800); cursor: pointer; list-style: none; }
+.report-chart-summary::-webkit-details-marker { display: none; }
+.report-chart-summary::before { content: '+'; display: inline-grid; place-items: center; width: 1.25rem; height: 1.25rem; border-radius: var(--radius-pill); background: color-mix(in srgb, var(--accent-color) 18%, var(--bg-card)); color: var(--accent-color); font-weight: var(--weight-900); }
+.report-chart-fold[open] > .report-chart-summary { border-bottom: 1px solid var(--border-color); }
+.report-chart-fold[open] > .report-chart-summary::before { content: '−'; }
+.report-chart-fold > .report-chart-container { padding: var(--space-70); }
 .report-chart-container { position: relative; width: 100%; min-height: 180px; }
 .report-comparison-table th, .report-comparison-table td { text-align: center; }
 .report-comparison-table td:first-child, .report-comparison-table th:first-child { text-align: right; }
@@ -661,6 +669,42 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .statement-table td:first-child, .statement-table th:first-child { font-weight: var(--weight-700); }
 .statement-table tbody tr:last-child td { border-bottom: 0; }
 .statement-table tfoot td { border-top: 1px solid var(--border-color); border-bottom: 0; background: color-mix(in srgb, var(--bg-card) 55%, transparent); font-weight: var(--weight-800); }
+
+/* نظام جداول موحّد بأسلوب الجداول المحاسبية:
+   رؤوس ملوّنة بخط فاصل، شبكة خطوط رقيقة، صفوف متناوبة، وإجماليات بارزة في التذييل. */
+.sheet-wrap { overflow-x: auto; border: 1px solid var(--border-color); border-radius: var(--radius-95); background: color-mix(in srgb, var(--bg-input) 45%, transparent); }
+.sheet-wrap + .sheet-wrap { margin-top: var(--space-85); }
+.sheet-caption { display: flex; align-items: center; gap: var(--space-45); padding: var(--space-60) var(--space-70); border-bottom: 1px solid var(--border-color); color: var(--text-main); font-size: var(--font-80); font-weight: var(--weight-800); }
+.sheet-caption::before { content: ''; align-self: stretch; width: 3px; border-radius: var(--radius-pill); background: var(--accent-color); }
+.sheet-table { width: 100%; border-collapse: collapse; font-size: var(--font-78); }
+.sheet-table th, .sheet-table td { padding: var(--space-65) var(--space-70); border-inline-start: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); text-align: right; vertical-align: middle; line-height: var(--leading-155); }
+.sheet-table th:first-child, .sheet-table td:first-child { border-inline-start: 0; }
+.sheet-table thead th { position: sticky; top: 0; z-index: var(--z-raised); border-bottom: 2px solid var(--accent-color); background: color-mix(in srgb, var(--accent-color) 18%, var(--bg-card)); color: var(--text-main); font-size: var(--font-74); font-weight: var(--weight-800); white-space: nowrap; }
+.sheet-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--bg-card) 45%, transparent); }
+.sheet-table tbody tr:hover { background: color-mix(in srgb, var(--accent-color) 10%, transparent); }
+.sheet-table tbody tr:last-child td { border-bottom: 0; }
+.sheet-table .sheet-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sheet-table .sheet-label { font-weight: var(--weight-700); }
+.sheet-table tfoot td { border-top: 2px solid var(--accent-color); border-bottom: 0; background: color-mix(in srgb, var(--accent-color) 14%, var(--bg-card)); color: var(--text-main); font-weight: var(--weight-900); font-variant-numeric: tabular-nums; }
+.sheet-table tfoot td:first-child { color: var(--accent-color); }
+.sheet-empty { padding: var(--space-95) !important; color: var(--text-muted) !important; text-align: center !important; font-weight: var(--weight-400) !important; }
+.sheet-positive, .sheet-emerald { color: var(--state-success); font-weight: var(--weight-800); }
+.sheet-negative, .sheet-rose { color: var(--state-danger); font-weight: var(--weight-800); }
+.sheet-amber { color: var(--state-warning); font-weight: var(--weight-800); }
+.sheet-sky { color: var(--state-info); font-weight: var(--weight-800); }
+.sheet-muted { color: var(--text-muted); }
+/* شريط الإجماليات: جدول من صفين (عناوين + قيم) بدل بطاقات متلاصقة. */
+.sheet-kpi thead th { text-align: center; font-size: var(--font-70); }
+.sheet-kpi .report-stat { display: table-cell; padding: var(--space-85) var(--space-70); border: 0; border-inline-start: 1px solid var(--border-color); background: transparent; text-align: center; }
+.sheet-kpi .report-stat:first-child { border-inline-start: 0; }
+.sheet-kpi .report-stat-label, .sheet-kpi .report-stat-value { display: block; }
+.sheet-kpi tbody td { padding: var(--space-85) var(--space-70); text-align: center; font-size: var(--font-100); font-weight: var(--weight-900); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sheet-kpi tbody tr:hover { background: transparent; }
+@media (max-width: 639.98px) {
+    .sheet-table th, .sheet-table td { padding: var(--space-55) var(--space-50); font-size: var(--font-74); }
+    .sheet-kpi thead th { font-size: var(--font-68); }
+    .sheet-kpi tbody td { padding: var(--space-65) var(--space-50); font-size: var(--font-90); }
+}
 .report-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-50); }
 @media (min-width: 640px) { .report-actions-2, .report-actions-3, .report-actions-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 1024px) { .report-actions-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .report-actions-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

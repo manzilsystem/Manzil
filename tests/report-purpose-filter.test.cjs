@@ -284,7 +284,7 @@ test('period subscription filtering keeps the monthly dues ledger', () => {
     assert.equal(report.totals.rate, 47);
     assert.equal(report.purposes.map(item => item.label).join('|'), 'اشتراك شهري');
     const preview = api.renderPeriodReportHtml(report);
-    assert.match(preview, /<th>المستحق<\/th>/);
+    assert.match(preview, /<th[^>]*>المستحق<\/th>/);
     assert.match(preview, /الاشتراكات فقط/);
 });
 

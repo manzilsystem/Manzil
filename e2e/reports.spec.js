@@ -45,6 +45,29 @@ async function reportViewCounts(page) {
     }));
 }
 
+// الجداول هي العرض الافتراضي؛ نفتح طيّة الرسم فقط عندما نختبر الرسم نفسه.
+async function showReportChart(page, chartId) {
+    const canvas = page.locator(`#${chartId}`);
+    await expect(canvas).toHaveCount(1);
+    await canvas.evaluate(element => {
+        const fold = element.closest('.report-chart-fold');
+        if (fold && !fold.open) fold.open = true;
+    });
+    await expect(canvas).toBeVisible();
+}
+
+// مؤشرات KPI أصبحت جدولًا: العنوان في thead والقيمة في الخلية المقابلة.
+async function expectKpi(preview, label, value) {
+    await expect.poll(() => preview.evaluate((root, expectedLabel) => {
+        const table = root.querySelector('.sheet-kpi');
+        if (!table) return null;
+        const labels = [...table.querySelectorAll('thead th')];
+        const cells = [...table.querySelectorAll('tbody td')];
+        const index = labels.findIndex(node => node.textContent.trim() === expectedLabel);
+        return index >= 0 && cells[index] ? cells[index].textContent.trim() : null;
+    }, label), `المؤشر ${label}`).toContain(value);
+}
+
 async function previewMonth(page, month) {
     await openReportPanel(page, 'landlord');
     await page.locator('#reportMonthSelect').selectOption(month);
@@ -52,7 +75,8 @@ async function previewMonth(page, month) {
     await page.locator('#landlordReportPrint').getByRole('button', { name: 'معاينة', exact: true }).click();
     // Wait for the report preview to be populated (includes chart canvas)
     await expect(page.locator('#landlordReportPreview')).not.toContainText('اضغط «معاينة» لعرض تقرير', { timeout: 15000 });
-    await expect(page.locator('#landlordReportChart')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('#landlordReportPreview .sheet-table').first()).toBeVisible({ timeout: 15000 });
+    await showReportChart(page, 'landlordReportChart');
 }
 
 async function previewPeriod(page, from, to) {
@@ -97,21 +121,21 @@ test('report visualizations render charts for landlord, period, expenses and adj
     expect(hasChart).toBe(true);
 
     await previewMonth(page, 'يناير 2024');
-    await expect(page.locator('#landlordReportChart')).toBeVisible();
+    await showReportChart(page, 'landlordReportChart');
 
     await backToGrid(page);
     await previewPeriod(page, 'يناير 2024', 'فبراير 2024');
-    await expect(page.locator('#periodReportChart')).toBeVisible();
+    await showReportChart(page, 'periodReportChart');
 
     await backToGrid(page);
     await openReportPanel(page, 'expenses');
     await page.locator('#expensesReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
-    await expect(page.locator('#expensesReportChart')).toBeVisible();
+    await showReportChart(page, 'expensesReportChart');
 
     await backToGrid(page);
     await openReportPanel(page, 'adjustments');
     await page.locator('#adjustmentsReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
-    await expect(page.locator('#adjustmentsReportChart')).toBeVisible();
+    await showReportChart(page, 'adjustmentsReportChart');
 });
 
 test('period comparison renders a comparison table when a mode is selected', async ({ page }) => {
@@ -183,11 +207,11 @@ test('typography weights remain stable across themes and print', async ({ page }
     await openReports(page);
     await previewMonth(page, 'يناير 2024');
     const samples = [
-        ['.report-list-meta', '400'],
+        ['.report-preview-meta', '400'],
         ['#settingsModal .settings-field-hint', '500'],
         ['.report-control', '600'],
-        ['.report-list-title', '700'],
-        ['.report-amount', '800'],
+        ['.report-stat-label', '700'],
+        ['.sheet-positive', '800'],
         ['.report-preview-title', '900']
     ];
     for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise']) {
@@ -511,9 +535,10 @@ test('period report gates print and csv on the previewed range', async ({ page }
     await expect(preview.locator('.statement-table tbody tr')).toHaveCount(2);
     const methodBlock = preview.locator('.report-block', { hasText: 'التحصيل حسب الطريقة' });
     await expect(methodBlock.locator('.report-block-title')).toContainText('التحصيل حسب الطريقة');
-    await expect(methodBlock.locator('.report-list-row')).toHaveCount(1);
-    await expect(methodBlock.locator('.report-list-row').first()).toContainText('نقدًا');
-    await expect(methodBlock.locator('.report-list-row').first()).toContainText('· 2 حركة · 100%');
+    await expect(methodBlock.locator('.sheet-table tbody tr')).toHaveCount(1);
+    await expect(methodBlock.locator('.sheet-table tbody tr').first()).toContainText('نقدًا');
+    await expect(methodBlock.locator('.sheet-table tbody tr').first()).toContainText('2');
+    await expect(methodBlock.locator('.sheet-table tbody tr').first()).toContainText('100%');
     await expect(printButton).toBeEnabled();
     await expect(exportButton).toBeEnabled();
 
@@ -592,12 +617,12 @@ test('period channel split matches between preview and csv', async ({ page }) =>
     await previewPeriod(page, 'يناير 2024', 'فبراير 2024');
 
     const block = page.locator('#periodReportPreview .report-block', { hasText: 'التحصيل حسب الطريقة' });
-    const rows = block.locator('.report-list-row');
+    const rows = block.locator('.sheet-table tbody tr');
     await expect(rows).toHaveCount(2);
     await expect(rows.nth(0)).toContainText('نقدًا');
-    await expect(rows.nth(0)).toContainText('· 2 حركة · 91%');
+    await expect(rows.nth(0)).toContainText('91%');
     await expect(rows.nth(1)).toContainText('InstaPay');
-    await expect(rows.nth(1)).toContainText('· 1 حركة · 9%');
+    await expect(rows.nth(1)).toContainText('9%');
 
     const downloadPromise = page.waitForEvent('download');
     await page.locator('#periodReportExportBtn').click();
@@ -822,8 +847,8 @@ test('landlord purpose filter scopes collections and replaces dues with purpose 
 
     const preview = page.locator('#landlordReportPreview');
     await expect(preview).toContainText('الغرض: تطوير');
-    await expect(preview.locator('.report-stat', { hasText: 'تحصيل الغرض' })).toContainText('50 ج.م');
-    await expect(preview.locator('.report-stat', { hasText: 'عدد الحركات' })).toContainText('1');
+    await expectKpi(preview, 'تحصيل الغرض', '50 ج.م');
+    await expectKpi(preview, 'عدد الحركات', '1');
     await expect(preview.locator('.report-stat-label', { hasText: 'المستحق' })).toHaveCount(0);
     await expect(preview.locator('.report-stat-label', { hasText: 'نسبة التحصيل' })).toHaveCount(0);
     await expect(page.locator('#reportExportBtn')).toBeEnabled();
@@ -864,8 +889,8 @@ test('landlord fund filter scopes movements and expenses and hides building-wide
     const preview = page.locator('#landlordReportPreview');
     await expect(preview).toContainText('الصندوق: صندوق التطوير');
     await expect(preview).toContainText('الحركات معروضة لصندوق «صندوق التطوير» فقط');
-    await expect(preview.locator('.report-stat', { hasText: 'تحصيل الغرض' })).toContainText('50 ج.م');
-    await expect(preview.locator('.report-stat', { hasText: 'مصروف الشهر' })).toContainText('5 ج.م');
+    await expectKpi(preview, 'تحصيل الغرض', '50 ج.م');
+    await expectKpi(preview, 'مصروف الشهر', '5 ج.م');
     await expect(preview.locator('.report-stat-label', { hasText: 'المستحق' })).toHaveCount(0);
     await expect(preview.locator('.report-stat-label', { hasText: 'نسبة التحصيل' })).toHaveCount(0);
     await expect(preview).toContainText('دهانات');
@@ -907,7 +932,7 @@ test('landlord payment method filter scopes collections and hides building-wide 
     const preview = page.locator('#landlordReportPreview');
     await expect(preview).toContainText('طريقة الدفع: محفظة إلكترونية');
     await expect(preview).toContainText('التحصيلات معروضة لطريقة «محفظة إلكترونية» فقط');
-    await expect(preview.locator('.report-stat', { hasText: 'تحصيل الطريقة' })).toContainText('50 ج.م');
+    await expectKpi(preview, 'تحصيل الطريقة', '50 ج.م');
     await expect(preview.locator('.report-stat-label', { hasText: 'المستحق' })).toHaveCount(0);
     await expect(preview.locator('.report-stat-label', { hasText: 'نسبة التحصيل' })).toHaveCount(0);
     await expect(preview).not.toContainText('نقدًا');
@@ -949,8 +974,8 @@ test('period purpose filter switches to purpose columns and scopes its csv', asy
     const preview = page.locator('#periodReportPreview');
     await expect(preview).toContainText('الغرض: تطوير');
     await expect(preview.locator('.report-stat-label', { hasText: 'تحصيل الغرض' })).toBeVisible();
-    await expect(preview.locator('table thead')).toContainText('تحصيل الغرض');
-    await expect(preview.locator('table thead')).not.toContainText('غير المحصّل');
+    await expect(preview.locator('table.statement-table thead').first()).toContainText('تحصيل الغرض');
+    await expect(preview.locator('table.statement-table thead').first()).not.toContainText('غير المحصّل');
     await expect(preview).toContainText('لا يظهران عند تصفية غرض آخر');
     await expect(page.locator('#periodReportExportBtn')).toBeEnabled();
 
@@ -991,8 +1016,8 @@ test('period fund filter scopes income and expenses and exports fund columns', a
     const preview = page.locator('#periodReportPreview');
     await expect(preview).toContainText('الصندوق: صندوق التطوير');
     await expect(preview.locator('.report-stat-label', { hasText: 'تحصيل الصندوق' })).toBeVisible();
-    await expect(preview.locator('table thead')).toContainText('تحصيل الصندوق');
-    await expect(preview.locator('table thead')).not.toContainText('غير المحصّل');
+    await expect(preview.locator('table.statement-table thead').first()).toContainText('تحصيل الصندوق');
+    await expect(preview.locator('table.statement-table thead').first()).not.toContainText('غير المحصّل');
     await expect(preview).toContainText('الحركات معروضة لصندوق «صندوق التطوير» فقط');
     await expect(page.locator('#periodReportExportBtn')).toBeEnabled();
 
@@ -1035,7 +1060,7 @@ test('expenses report scopes by period, fund and category and exports csv', asyn
     await expect(preview).toContainText('تقرير المصروفات يناير 2024 – فبراير 2024');
     await expect(preview).toContainText('الصندوق: صندوق التطوير');
     await expect(preview).toContainText('التصنيف: تطوير');
-    await expect(preview.locator('.report-stat', { hasText: 'إجمالي المصروف' })).toContainText('30 ج.م');
+    await expectKpi(preview, 'إجمالي المصروف', '30 ج.م');
     await expect(preview).toContainText('المصروفات معروضة لصندوق «صندوق التطوير» فقط');
     await expect(preview).toContainText('المصروفات معروضة لتصنيف «تطوير» فقط');
     await expect(preview).not.toContainText('كهرباء');
@@ -1080,7 +1105,7 @@ test('adjustments report scopes the period to one apartment and exports csv', as
     const preview = page.locator('#adjustmentsReportPreview');
     await expect(preview).toContainText('تقرير الإعفاءات والتخفيضات يناير 2024 – فبراير 2024');
     await expect(preview).toContainText('الشقة: شقة 10 · سعيد');
-    await expect(preview.locator('.report-stat', { hasText: 'إجمالي الإعفاءات والتخفيضات' })).toContainText('200 ج.م');
+    await expectKpi(preview, 'إجمالي الإعفاءات والتخفيضات', '200 ج.م');
     await expect(preview).toContainText('المعروض لشقة «شقة 10 · سعيد» فقط');
     await expect(preview).toContainText('إعفاء كامل');
     await expect(preview).not.toContainText('حالة وفاة');
@@ -1093,7 +1118,7 @@ test('adjustments report scopes the period to one apartment and exports csv', as
     await page.locator('#adjustmentsReportKind').selectOption('');
     await page.locator('#adjustmentsReportResident').selectOption('r1');
     await page.locator('#adjustmentsReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
-    await expect(preview.locator('.report-stat', { hasText: 'إجمالي الإعفاءات والتخفيضات' })).toContainText('40 ج.م');
+    await expectKpi(preview, 'إجمالي الإعفاءات والتخفيضات', '40 ج.م');
 
     const downloadPromise = page.waitForEvent('download');
     await page.locator('#adjustmentsReportExportBtn').click();
@@ -1127,7 +1152,7 @@ test('statement purpose filter scopes movements and hides the dues ledger', asyn
 
     const preview = page.locator('#residentStatementPreview');
     await expect(preview).toContainText('الغرض: تطوير');
-    await expect(preview.locator('.report-stat', { hasText: 'مدفوع الغرض' })).toContainText('50 ج.م');
+    await expectKpi(preview, 'مدفوع الغرض', '50 ج.م');
     await expect(preview.locator('.report-stat-label', { hasText: 'إجمالي المستحق' })).toHaveCount(0);
     await expect(preview.locator('.statement-table')).toHaveCount(0);
     await expect(preview).toContainText('حركات غرض «تطوير» دون جدول المستحقات');
@@ -1192,8 +1217,8 @@ test('landlord apartment filter scopes the month to one flat and exports it', as
     await expect(preview).toContainText('الشقة: شقة 10 · سعيد');
     await expect(preview).toContainText('التحصيلات معروضة لشقة «شقة 10 · سعيد» فقط');
     await expect(preview).toContainText('80 ج.م');
-    await expect(preview.locator('.report-stat', { hasText: 'المستحق' })).toContainText('200 ج.م');
-    await expect(preview.locator('.report-stat', { hasText: 'نسبة التحصيل' })).toContainText('25%');
+    await expectKpi(preview, 'المستحق', '200 ج.م');
+    await expectKpi(preview, 'نسبة التحصيل', '25%');
     await expect(preview).not.toContainText('أحمد');
     await expect(preview).toContainText('كهرباء');
     await expect(page.locator('#reportExportBtn')).toBeEnabled();
@@ -1236,7 +1261,7 @@ test('period apartment filter scopes months, dues and csv to one flat', async ({
     const preview = page.locator('#periodReportPreview');
     await expect(preview).toContainText('الشقة: شقة 10 · سعيد');
     await expect(preview).toContainText('المستحق ونسبة التحصيل يخصان الشقة المحددة');
-    await expect(preview.locator('.report-stat', { hasText: 'المستحق' })).toContainText('400 ج.م');
+    await expectKpi(preview, 'المستحق', '400 ج.م');
     await expect(preview).toContainText('250 ج.م');
     await expect(preview).toContainText('150 ج.م');
     await expect(preview).not.toContainText('أحمد');
@@ -1303,10 +1328,10 @@ test('cash flow report previews months and exports csv', async ({ page }) => {
     const preview = page.locator('#cashFlowPreview');
     await expect(preview).toContainText('تقرير التدفق النقدي');
     await expect(preview).toContainText('يناير 2024 – فبراير 2024');
-    await expect(preview.locator('.report-stat', { hasText: 'إجمالي التحصيل' })).toContainText('1,000 ج.م');
+    await expectKpi(preview, 'إجمالي التحصيل', '1,000 ج.م');
     await expect(preview).toContainText('900 ج.م');
     await expect(preview.locator('table.statement-table tbody tr')).toHaveCount(2);
-    await expect(page.locator('#cashFlowChart')).toBeVisible();
+    await showReportChart(page, 'cashFlowChart');
     await expect(page.locator('#cashFlowExportBtn')).toBeEnabled();
     await expect(page.locator('#cashFlowPrintBtn')).toBeEnabled();
 
@@ -1337,10 +1362,10 @@ test('apartment performance previews dues, applies the apartment filter and expo
     const preview = page.locator('#apartmentsReportPreview');
     await expect(preview).toContainText('تقرير أداء الشقق');
     await expect(preview).toContainText('شقة 3 · أحمد');
-    await expect(preview.locator('.report-stat', { hasText: 'المستحق' })).toContainText('200 ج.م');
-    await expect(preview.locator('.report-stat', { hasText: 'المحصّل' })).toContainText('1,000 ج.م');
-    await expect(preview.locator('.report-stat', { hasText: 'المتبقٍ' })).toContainText('0 ج.م');
-    await expect(page.locator('#apartmentsChart')).toBeVisible();
+    await expectKpi(preview, 'المستحق', '200 ج.م');
+    await expectKpi(preview, 'المحصّل', '1,000 ج.م');
+    await expectKpi(preview, 'المتبقٍ', '0 ج.م');
+    await showReportChart(page, 'apartmentsChart');
     await expect(page.locator('#apartmentsExportBtn')).toBeEnabled();
 
     await page.locator('#apartmentsReportResident').selectOption('r1');
@@ -1388,7 +1413,7 @@ test('report tables are ruled, striped and readable', async ({ page }) => {
     const styles = await page.evaluate(() => {
         const preview = document.getElementById('cashFlowPreview');
         const flow = preview.querySelector('.report-preview-flow');
-        const table = preview.querySelector('table');
+        const table = preview.querySelector('table.statement-table');
         const rows = [...table.querySelectorAll('tbody tr')];
         const cs = el => getComputedStyle(el);
         return {

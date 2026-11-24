@@ -151,7 +151,7 @@ test('monthly report groups expenses by category', () => {
     });
 
     assert.match(html, /تصنيفات المصروفات/);
-    assert.match(html, /صيانة <span[^>]*>\(2\)/);
+    assert.match(html, /<td>صيانة<\/td><td class="sheet-num">2<\/td>/);
     assert.match(html, /0\.3 ج\.م/);
     assert.match(html, /5 ج\.م/);
 });

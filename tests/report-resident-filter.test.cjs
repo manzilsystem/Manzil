@@ -241,8 +241,10 @@ test('landlord preview scopes dues and collections to the apartment', () => {
     assert.match(preview, /الشقة: شقة 10 · سعيد/);
     assert.match(preview, /التحصيلات معروضة لشقة «شقة 10 · سعيد» فقط/);
     assert.match(preview, /المستحق ونسبة التحصيل يخصان هذه الشقة/);
-    assert.match(preview, /<p class="report-stat-label">المستحق<\/p><p class="report-stat-value">200 ج\.م/);
-    assert.match(preview, /<p class="report-stat-label">نسبة التحصيل<\/p><p class="report-stat-value">25%/);
+    assert.match(preview, /report-stat-label">المستحق<\/span>/);
+    assert.match(preview, /<span class="report-stat-value">200 ج\.م<\/span>/);
+    assert.match(preview, /report-stat-label">نسبة التحصيل<\/span>/);
+    assert.match(preview, /<span class="report-stat-value">25%<\/span>/);
     assert.match(preview, /كهرباء/);
     assert.doesNotMatch(preview, /أحمد/);
     assert.equal(elements.reportExportBtn.disabled, false);

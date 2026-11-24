@@ -34,12 +34,15 @@ test('app shell loads without runtime or CSP errors', async ({ page }) => {
     await expect(page.locator('#authIdentifier')).toBeVisible();
     await expect(page.locator('#loginModeManager')).toBeVisible();
 
+    // The shell reloads when the service worker takes control; wait for the final
+    // stylesheet state before sampling computed layout.
+    await expect.poll(() => page.evaluate(() =>
+        getComputedStyle(document.querySelector('#pinLockModal > .auth-shell')).display)).toBe('grid');
     const shell = await page.evaluate(() => {
         const element = document.querySelector('#pinLockModal > .auth-shell');
         const style = getComputedStyle(element);
         return { display: style.display, columns: style.gridTemplateColumns.split(/\s+/).filter(Boolean).length };
     });
-    expect(shell.display).toBe('grid');
     expect(shell.columns).toBe(page.viewportSize().width < 700 ? 1 : 2);
 
     expect(errors).toEqual([]);

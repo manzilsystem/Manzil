@@ -152,18 +152,37 @@ test('a confirmed manager collection saves in chat without opening a CRUD form o
     const preview = page.locator('#assistantLog .assistant-action-preview');
     await expect(preview).toContainText('سارة حسن');
     // Keep this acceptance check on seeded in-memory data; never write to the shared backend.
+    // The busy state only lasts for the save, so capture it when it appears instead of
+    // racing a short-lived status text with a polling assertion.
     await page.evaluate(() => {
         window.saveWithRollback = () => new Promise(resolve => window.setTimeout(() => resolve(true), 250));
+        window.__assistantBusySnapshot = null;
+        const status = document.getElementById('assistantStatusText');
+        const capture = () => {
+            if (!status.textContent.includes('جارٍ التحقق والحفظ')) return;
+            window.__assistantBusySnapshot = {
+                status: status.textContent,
+                readOnly: document.getElementById('assistantInput').readOnly,
+                sendDisabled: document.getElementById('assistantSendButton').disabled,
+                modalVisible: !document.getElementById('assistantModal').classList.contains('hidden'),
+                incomeHidden: document.getElementById('incomeModal').classList.contains('hidden'),
+                receiptHidden: document.getElementById('incomeReceiptModal').classList.contains('hidden')
+            };
+        };
+        new MutationObserver(capture).observe(status, { childList: true, characterData: true, subtree: true });
+        capture();
     });
     await page.locator('#assistantInput').fill('أكد التسجيل');
     await page.locator('#assistantInput').press('Enter');
 
-    await expect(page.locator('#assistantStatusText')).toContainText('جارٍ التحقق والحفظ');
-    await expect(page.locator('#assistantInput')).toHaveJSProperty('readOnly', true);
-    await expect(page.locator('#assistantSendButton')).toBeDisabled();
-    await expect(page.locator('#assistantModal')).toBeVisible();
-    await expect(page.locator('#incomeModal')).toBeHidden();
-    await expect(page.locator('#incomeReceiptModal')).toBeHidden();
+    await expect.poll(() => page.evaluate(() => window.__assistantBusySnapshot)).not.toBeNull();
+    const busy = await page.evaluate(() => window.__assistantBusySnapshot);
+    expect(busy.status).toContain('جارٍ التحقق والحفظ');
+    expect(busy.readOnly).toBe(true);
+    expect(busy.sendDisabled).toBe(true);
+    expect(busy.modalVisible).toBe(true);
+    expect(busy.incomeHidden).toBe(true);
+    expect(busy.receiptHidden).toBe(true);
     await expect(page.locator('#assistantLog')).toContainText('تم حفظ التحصيل بنجاح');
     await expect(page.locator('#assistantStatusText')).toContainText('جاهز');
     await expect.poll(() => page.evaluate(() => state.income.length)).toBeGreaterThan(before);
