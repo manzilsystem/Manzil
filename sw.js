@@ -63,7 +63,8 @@ self.addEventListener('fetch', event => {
 
     const url = new URL(request.url);
     if (url.origin !== self.location.origin) {
-        event.respondWith(fetch(request).catch(() => caches.match(request)));
+        // Pass through cross-origin requests directly without Service Worker interference
+        event.respondWith(fetch(request));
         return;
     }
 
