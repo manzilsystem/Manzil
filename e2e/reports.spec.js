@@ -1376,6 +1376,11 @@ test('report shortcuts, guided steps and live status follow the output gate', as
     });
     expect(tone.panel).toBeTruthy();
     expect(tone.panel).toBe(tone.nav);
+    const glyph = await page.evaluate(() =>
+        getComputedStyle(document.getElementById('reportViewBar'), '::after').content);
+    expect(glyph).toContain('01');
+    await expect(page.locator('#scheduledReportsSection')).toBeHidden();
+    await expect(page.locator('#landlordReportPrint > .report-card-head')).toBeHidden();
 
     await previewMonth(page, 'يناير 2024');
     await expect(page.locator('#reportViewStatus')).toContainText('المعاينة جاهزة');

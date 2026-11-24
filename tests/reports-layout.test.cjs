@@ -317,8 +317,12 @@ test('the report workspace adds shortcuts, guided steps and a live output status
     assert.match(reports, /function focusReportStep\(step\)/);
     assert.match(reports, /function copyReportTone\(target, item\)/);
     assert.match(reports, /copyReportTone\(panel, item\)/, 'the open panel carries its own report identity inside the preview');
+    assert.match(reports, /'--report-glyph'/, 'the open report also carries its sequence watermark');
     assert.match(reports, /window\.focusReportStep = focusReportStep/);
     assert.match(reports, /REPORT_OUTPUT_BUTTON_IDS\[tab\]/, 'the status reads the same output gate as the print and export buttons');
+    assert.match(css, /\.report-view-bar::after \{[\s\S]*?content: var\(--report-glyph/);
+    assert.match(css, /@media screen \{[\s\S]*?#tab-reports\[data-report-view="panel"\] #scheduledReportsSection/, 'report tools must not linger above an open report');
+    assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-panel > \.report-card-head \{ display: none; \}/, 'a panel must not repeat its title under the view bar');
     assert.match(css, /\.report-view-status\.is-ready::before \{ background: var\(--state-success\)/);
     assert.match(css, /\.report-view-status\.is-stale::before \{ background: var\(--state-warning\)/);
 

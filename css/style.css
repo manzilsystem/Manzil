@@ -554,10 +554,27 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
         linear-gradient(135deg, color-mix(in srgb, var(--report-tone, var(--accent-color)) 12%, transparent), transparent 60%),
         color-mix(in srgb, var(--bg-input) 70%, transparent);
     scroll-margin-top: 6.5rem;
+    position: relative; isolation: isolate; overflow: hidden;
 }
+.report-view-bar::before {
+    content: ''; position: absolute; inset-block: var(--space-55); inset-inline-start: 0;
+    width: var(--space-25); border-radius: var(--radius-pill);
+    background: var(--report-tone, var(--accent-color));
+}
+.report-view-bar::after {
+    content: var(--report-glyph, ''); position: absolute; top: 50%; inset-inline-end: var(--space-80);
+    transform: translateY(-50%); color: var(--report-tone, var(--accent-color));
+    font-size: var(--font-175); font-weight: var(--weight-900); line-height: var(--leading-120);
+    opacity: var(--opacity-40); pointer-events: none; z-index: var(--z-below);
+}
+.report-view-bar > * { position: relative; z-index: var(--z-raised); }
 #tab-reports[data-report-view="panel"] .report-view-bar { display: flex; }
 #tab-reports[data-report-view="panel"] .report-section-head { display: none; }
 #tab-reports[data-report-view="panel"] .report-hub { display: none; }
+@media screen {
+    #tab-reports[data-report-view="panel"] #scheduledReportsSection,
+    #tab-reports[data-report-view="panel"] .report-panel > .report-card-head { display: none; }
+}
 .report-view-back {
     display: grid; place-items: center; flex: 0 0 auto; width: 2.15rem; height: 2.15rem;
     border: 1px solid var(--report-tone-line, var(--border-color)); border-radius: var(--radius-75);

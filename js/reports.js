@@ -265,7 +265,7 @@ function copyReportTone(target, item) {
     const computed = typeof window !== 'undefined' && typeof window.getComputedStyle === 'function'
         ? window.getComputedStyle(item)
         : null;
-    ['--report-tone', '--report-tone-soft', '--report-tone-line'].forEach(name => {
+    ['--report-tone', '--report-tone-soft', '--report-tone-line', '--report-glyph'].forEach(name => {
         const value = computed?.getPropertyValue?.(name)?.trim();
         if (value) target.style.setProperty(name, value);
         else target.style.removeProperty(name);
