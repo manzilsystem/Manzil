@@ -1378,3 +1378,33 @@ test('a fresh extended preview survives an unrelated full render', async ({ page
     await expect(page.locator('#cashFlowExportBtn')).toBeDisabled();
     await expect(page.locator('[data-report-nav="cashflow"]')).toHaveClass(/is-stale/);
 });
+
+test('report tables are ruled, striped and readable', async ({ page }) => {
+    await openReports(page);
+    await openReportPanel(page, 'cashflow');
+    await page.locator('#cashFlowPanel').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await expect(page.locator('#cashFlowExportBtn')).toBeEnabled();
+
+    const styles = await page.evaluate(() => {
+        const preview = document.getElementById('cashFlowPreview');
+        const flow = preview.querySelector('.report-preview-flow');
+        const table = preview.querySelector('table');
+        const rows = [...table.querySelectorAll('tbody tr')];
+        const cs = el => getComputedStyle(el);
+        return {
+            flowGap: parseFloat(cs(flow).rowGap),
+            borderBottom: parseFloat(cs(table.querySelector('td')).borderBottomWidth),
+            tabular: cs(table.querySelector('td')).fontVariantNumeric,
+            striped: rows.length > 1 && cs(rows[0]).backgroundColor !== cs(rows[1]).backgroundColor,
+            fontSize: parseFloat(cs(table).fontSize),
+            overflow: preview.scrollWidth > preview.clientWidth
+        };
+    });
+
+    expect(styles.flowGap).toBeGreaterThanOrEqual(12);
+    expect(styles.borderBottom).toBeGreaterThan(0);
+    expect(styles.tabular).toContain('tabular-nums');
+    expect(styles.striped).toBe(true);
+    expect(styles.fontSize).toBeGreaterThanOrEqual(12);
+    expect(styles.overflow).toBe(false);
+});

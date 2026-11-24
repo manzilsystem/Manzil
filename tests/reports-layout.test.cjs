@@ -311,3 +311,25 @@ test('resident statement entry is reachable from the resident profile', () => {
     assert.doesNotMatch(crud, /card\.scrollIntoView/, 'opening the report already scrolls to the back bar, so the profile entry must not scroll twice');
     assert.match(app, /function ensurePdfLibrary\(\)/);
 });
+
+test('report previews use a calm rhythm and lined-up, readable tables', () => {
+    const extended = fs.readFileSync(path.join(__dirname, '..', 'js', 'reports', 'extended', 'reports-extended.js'), 'utf8');
+
+    // One shared flow wrapper gives every extended preview the same spacing
+    // rhythm instead of gluing the header, tiles and blocks together.
+    assert.equal((extended.match(/class="report-preview-flow"/g) || []).length, 2, 'both extended reports wrap their preview sections in the shared flow');
+    assert.match(css, /\.report-preview-flow \{ display: flex; flex-direction: column; gap: var\(--space-105\); \}/);
+    assert.match(css, /\.report-preview-flow > \.report-block \{[\s\S]*?padding: var\(--space-90\); border: 1px solid var\(--border-color\)/);
+
+    // Tables have borders, even/odd rows and tabular numerals so columns line up.
+    assert.match(css, /\.report-table-wrap \{ overflow-x: auto; border: 1px solid var\(--border-color\)/);
+    assert.match(css, /\.statement-table \{ width: 100%; border-collapse: collapse; font-size: var\(--font-76\); \}/);
+    assert.match(css, /\.statement-table th, \.statement-table td \{[^}]*border-bottom: 1px solid var\(--border-color\)/);
+    assert.match(css, /\.statement-table tbody tr:nth-child\(even\) \{ background:/);
+    assert.match(css, /\.statement-table td \{ font-variant-numeric: tabular-nums; \}/);
+
+    // Printed/PDF reports get the same structural help through the shared shell.
+    assert.match(reports, /const REPORT_PDF_DOCUMENT_STYLE = '<style>' \+/);
+    assert.match(reports, /\.manzil-pdf tbody tr:nth-child\(even\)\{background:' \+ REPORT_PDF_PALETTE\.hairline \+ '\}/);
+    assert.match(reports, /function reportPdfDocumentOpen\(\) \{[\s\S]*?class="manzil-pdf"[\s\S]*?REPORT_PDF_DOCUMENT_STYLE/);
+});

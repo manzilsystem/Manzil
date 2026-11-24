@@ -2866,8 +2866,17 @@ const REPORT_PDF_META_STYLE = 'font-size:11px;color:' + REPORT_PDF_PALETTE.muted
 const REPORT_PDF_FOOTER_STYLE = 'font-size:9px;color:' + REPORT_PDF_PALETTE.faint + ';margin-top:18px;text-align:center';
 
 // Shared PDF shell so every report renders an identical RTL header and footer.
+// أنماط مضمّنة تجعل جداول التقرير المطبوعة مسطّرة وذات صفوف متناوبة واضحة.
+const REPORT_PDF_DOCUMENT_STYLE = '<style>' +
+    '.manzil-pdf table{border-collapse:collapse;width:100%}' +
+    '.manzil-pdf tbody tr:nth-child(even){background:' + REPORT_PDF_PALETTE.hairline + '}' +
+    '.manzil-pdf th,.manzil-pdf td{font-variant-numeric:tabular-nums;vertical-align:middle}' +
+    '.manzil-pdf section{break-inside:avoid}' +
+    '</style>';
+
 function reportPdfDocumentOpen() {
-    return '<div dir="rtl" lang="ar" style="font-family:Cairo,Arial,sans-serif;color:' + REPORT_PDF_PALETTE.ink + ';background:' + REPORT_PDF_PALETTE.surface + ';line-height:1.8">';
+    return '<div dir="rtl" lang="ar" class="manzil-pdf" style="font-family:Cairo,Arial,sans-serif;color:' + REPORT_PDF_PALETTE.ink + ';background:' + REPORT_PDF_PALETTE.surface + ';line-height:1.8">' +
+        REPORT_PDF_DOCUMENT_STYLE;
 }
 
 function reportPdfHeader(titleLines, metaLines) {

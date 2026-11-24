@@ -241,6 +241,7 @@ function renderCashFlowHtml(report) {
     const best = report.totals.bestMonth;
     const worst = report.totals.worstMonth;
     return [
+        '<div class="report-preview-flow">',
         '<div class="report-preview-header">',
         '<p class="report-preview-title">تقرير التدفق النقدي</p>',
         '<p class="report-preview-meta">' + esc(report.rangeLabel) + ' · ' + esc(report.cashAccountLabel) +
@@ -264,7 +265,8 @@ function renderCashFlowHtml(report) {
                 report.purposes.map(item => '<div class="report-list-row"><span>' + esc(item.label) + '</span><b class="report-amount">' + fmtMoney(item.cents / 100) + '</b></div>').join('') +
                 report.categories.map(item => '<div class="report-list-row"><span>' + esc(item.label) + '</span><b class="report-amount text-rose-400">' + fmtMoney(item.cents / 100) + '</b></div>').join('') +
                 '</div></div>'
-            : ''
+            : '',
+        '</div>'
     ].join('');
 }
 
@@ -573,6 +575,7 @@ function renderApartmentsHtml(report) {
         '</tr>'
     ].join('')).join('');
     return [
+        '<div class="report-preview-flow">',
         '<div class="report-preview-header">',
         '<p class="report-preview-title">تقرير أداء الشقق</p>',
         '<p class="report-preview-meta">' + esc(report.rangeLabel) + ' · ' + fmtNum(report.totals.unitCount) + ' شقة · ' +
@@ -586,7 +589,8 @@ function renderApartmentsHtml(report) {
         ['الشقة', 'المستحق', 'المحصّل', 'المتبقٍ', 'النسبة', 'آخر تحصيل'].map(label => '<th>' + esc(label) + '</th>').join(''),
         '</tr></thead><tbody>', rows || '<tr><td colspan="6" class="report-preview-empty">لا توجد شقق مطابقة للفلاتر.</td></tr>', '</tbody></table></div>',
         '</div>',
-        report.totals.otherIncomeCents ? '<p class="report-hint">تحصيلات أخرى غير الاشتراك في الفترة: ' + fmtMoney(report.totals.otherIncomeCents / 100) + ' (لا تُخصم من المستحق).</p>' : ''
+        report.totals.otherIncomeCents ? '<p class="report-hint">تحصيلات أخرى غير الاشتراك في الفترة: ' + fmtMoney(report.totals.otherIncomeCents / 100) + ' (لا تُخصم من المستحق).</p>' : '',
+        '</div>'
     ].join('');
 }
 
