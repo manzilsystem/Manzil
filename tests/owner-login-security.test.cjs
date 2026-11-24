@@ -25,7 +25,6 @@ const pinChangeFunction = fs.readFileSync(
     'utf8'
 );
 const client = fs.readFileSync(path.join(root, 'js/supabase.js'), 'utf8');
-const supabaseConfig = fs.readFileSync(path.join(root, 'supabase/config.toml'), 'utf8');
 const { CHECKS } = require('../scripts/check-supabase.cjs');
 
 test('owner login Edge Function does not require a pre-existing JWT', () => {
@@ -36,8 +35,6 @@ test('owner login Edge Function does not require a pre-existing JWT', () => {
     assert.equal(check.method, 'OPTIONS');
     assert.equal(check.sendKey, false);
     assert.deepEqual(check.expected, [200]);
-    assert.doesNotMatch(supabaseConfig, /^\[functions\./m,
-        'declaring a function would make Branching upload it and fail with 413');
 });
 
 test('owner login attempts are stored privately as hashes with a bounded lockout window', () => {

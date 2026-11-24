@@ -6,6 +6,9 @@
 # owner-login and health must stay callable without a JWT; monitor-client-errors
 # checks CRON_SECRET in the request body instead of a JWT.
 
+[functions.health]
+verify_jwt = false
+
 [db.seed]
 enabled = true
 sql_paths = ["./seed.sql"]
