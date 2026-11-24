@@ -10,7 +10,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#071f27">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; connect-src 'self' https://musvcrkljccubwbcrtjs.supabase.co wss://musvcrkljccubwbcrtjs.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self'; manifest-src 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; connect-src 'self' https://musvcrkljccubwbcrtjs.supabase.co wss://musvcrkljccubwbcrtjs.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self'; manifest-src 'self'">
     <script src="js/sw-register.js"></script>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -41,10 +41,10 @@
     <script src="js/render.js"></script>
     <script src="js/crud.js"></script>
     <script src="js/notices.js"></script>
-    <!-- Chart.js for report visualizations -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <!-- SheetJS for advanced Excel export -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Chart.js for report visualizations (bundled locally) -->
+    <script src="vendor/chart.umd.js"></script>
+    <!-- SheetJS for advanced Excel export (bundled locally) -->
+    <script src="vendor/xlsx.full.min.js"></script>
     <!-- Reports Core Modules -->
     <script src="js/reports/core/types.js"></script>
     <script src="js/reports/core/filters.js"></script>
@@ -59,7 +59,7 @@
     <!-- Reports Main -->
     <script src="js/reports.js"></script>
     <script src="js/settings.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="vendor/supabase.js"></script>
     <script src="js/supabase.js"></script>
     <script src="js/cashbox.js"></script>
     <script src="js/monthly-close.js"></script>

@@ -370,6 +370,9 @@
       max-width: 96rem;
     }
   }
+  .m-1 {
+    margin: var(--spacing);
+  }
   .mx-1 {
     margin-inline: var(--spacing);
   }
@@ -430,6 +433,9 @@
   .hidden {
     display: none;
   }
+  .hidden\! {
+    display: none !important;
+  }
   .inline {
     display: inline;
   }
@@ -441,6 +447,24 @@
   }
   .table {
     display: table;
+  }
+  .table\! {
+    display: table !important;
+  }
+  .table-cell {
+    display: table-cell;
+  }
+  .table-column {
+    display: table-column;
+  }
+  .table-column-group {
+    display: table-column-group;
+  }
+  .table-row {
+    display: table-row;
+  }
+  .table-row-group {
+    display: table-row-group;
   }
   .h-2 {
     height: calc(var(--spacing) * 2);
@@ -598,6 +622,12 @@
   .-translate-x-1\/2 {
     --tw-translate-x: calc(calc(1 / 2 * 100%) * -1);
     translate: var(--tw-translate-x) var(--tw-translate-y);
+  }
+  .transform {
+    transform: var(--tw-rotate-x, ) var(--tw-rotate-y, ) var(--tw-rotate-z, ) var(--tw-skew-x, ) var(--tw-skew-y, );
+  }
+  .transform\! {
+    transform: var(--tw-rotate-x, ) var(--tw-rotate-y, ) var(--tw-rotate-z, ) var(--tw-skew-x, ) var(--tw-skew-y, ) !important;
   }
   .animate-pulse {
     animation: var(--animate-pulse);
@@ -1458,6 +1488,9 @@
       color: color-mix(in oklab, var(--color-white) 80%, transparent);
     }
   }
+  .italic {
+    font-style: italic;
+  }
   .overline {
     text-decoration-line: overline;
   }
@@ -1516,6 +1549,14 @@
     @supports (color: color-mix(in lab, red, red)) {
       --tw-shadow-color: color-mix(in oklab, color-mix(in oklab, var(--color-rose-600) 20%, transparent) var(--tw-shadow-alpha), transparent);
     }
+  }
+  .\!outline {
+    outline-style: var(--tw-outline-style) !important;
+    outline-width: 1px !important;
+  }
+  .outline {
+    outline-style: var(--tw-outline-style);
+    outline-width: 1px;
   }
   .blur {
     --tw-blur: blur(8px);
@@ -1769,6 +1810,26 @@
   inherits: false;
   initial-value: 0;
 }
+@property --tw-rotate-x {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-rotate-y {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-rotate-z {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-skew-x {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-skew-y {
+  syntax: "*";
+  inherits: false;
+}
 @property --tw-space-y-reverse {
   syntax: "*";
   inherits: false;
@@ -1898,6 +1959,11 @@
   inherits: false;
   initial-value: 0 0 #0000;
 }
+@property --tw-outline-style {
+  syntax: "*";
+  inherits: false;
+  initial-value: solid;
+}
 @property --tw-blur {
   syntax: "*";
   inherits: false;
@@ -1998,6 +2064,11 @@
       --tw-translate-x: 0;
       --tw-translate-y: 0;
       --tw-translate-z: 0;
+      --tw-rotate-x: initial;
+      --tw-rotate-y: initial;
+      --tw-rotate-z: initial;
+      --tw-skew-x: initial;
+      --tw-skew-y: initial;
       --tw-space-y-reverse: 0;
       --tw-border-style: solid;
       --tw-gradient-position: initial;
@@ -2026,6 +2097,7 @@
       --tw-ring-offset-width: 0px;
       --tw-ring-offset-color: #fff;
       --tw-ring-offset-shadow: 0 0 #0000;
+      --tw-outline-style: solid;
       --tw-blur: initial;
       --tw-brightness: initial;
       --tw-contrast: initial;

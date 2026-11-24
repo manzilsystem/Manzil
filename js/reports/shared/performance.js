@@ -107,7 +107,7 @@ async function ensureChartJs() {
     }
 
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+    script.src = 'vendor/chart.umd.js';
     script.onload = () => {
       chartJsLoaded = true;
       resolve(true);

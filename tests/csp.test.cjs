@@ -35,9 +35,9 @@ test('CSP blocks plugins, framing, base hijacking and cross-origin forms', () =>
 });
 
 test('CSP allows only the CDNs and Supabase origins the app actually uses', () => {
-    // Tailwind is built locally via PostCSS - no browser CDN script allowed.
+    // Tailwind is built locally via PostCSS and JS libraries are self-hosted.
     assert.ok(!tokens('script-src').includes('https://cdn.tailwindcss.com'));
-    assert.ok(tokens('script-src').includes('https://cdn.jsdelivr.net'));
+    assert.ok(!tokens('script-src').includes('https://cdn.jsdelivr.net'));
     assert.ok(tokens('style-src').includes('https://cdnjs.cloudflare.com'));
     assert.ok(tokens('font-src').includes('https://cdnjs.cloudflare.com'));
     assert.ok(tokens('connect-src').includes('https://musvcrkljccubwbcrtjs.supabase.co'));

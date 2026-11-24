@@ -255,8 +255,8 @@ test('all enhancement modules are wired into the generated shell', () => {
   for (const module of ['charts.js', 'comparison.js', 'excel-exporter.js', 'scheduled-reports.js', 'templates.js']) {
     assert.match(shell, new RegExp(`js/reports/shared/${module}`), `${module} must load in index.html`);
   }
-  assert.match(shell, /chart\.umd\.min\.js/);
-  assert.match(shell, /xlsx\.full\.min\.js/);
+  assert.match(shell, /vendor\/chart\.umd\.js/);
+  assert.match(shell, /vendor\/xlsx\.full\.min\.js/);
 });
 
 test('report UI exposes comparison, Excel, schedule and template controls', () => {
