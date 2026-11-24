@@ -397,3 +397,36 @@ test('report previews use a calm rhythm and lined-up, readable tables', () => {
     assert.match(reports, /\.manzil-pdf tbody tr:nth-child\(even\)\{background:' \+ REPORT_PDF_PALETTE\.hairline \+ '\}/);
     assert.match(reports, /function reportPdfDocumentOpen\(\) \{[\s\S]*?class="manzil-pdf"[\s\S]*?REPORT_PDF_DOCUMENT_STYLE/);
 });
+
+test('four report lenses sit above the card grid without changing print isolation', () => {
+    assert.match(reportTab, /id="tab-reports" class="[^"]*" data-report-view="grid" data-report-lens="grid"/);
+    assert.match(reportTab, /class="report-lens-rail no-print"[^>]*onkeydown="handleReportLensKeydown\(event\)"/);
+    assert.equal((reportTab.match(/class="report-lens-chip [^"]*" data-report-lens="/g) || []).length, 4);
+    assert.equal((reportTab.match(/<button[^>]*data-report-lens="(grid|map|chat|ledger)"/g) || []).length, 8, 'rail and floating menu offer the same four lenses');
+    ['reportLensMap', 'reportLensChat', 'reportLensLedger', 'reportLensFab'].forEach(id =>
+        assert.ok(reportTab.includes('id="' + id + '"'), 'missing lens surface ' + id));
+    assert.match(reportTab, /onclick="askReportQuestion\(/);
+    assert.match(reportTab, /onkeydown="handleReportChatKey\(event\)"/);
+    assert.match(reportTab, /onclick="openAssistantModal\(\)"/, 'the chat lens reaches the real assistant');
+
+    assert.match(reports, /const REPORT_LENSES = \['grid', 'map', 'chat', 'ledger'\]/);
+    ['getReportLens', 'setReportLens', 'toggleReportLensFab', 'renderReportLensMap',
+        'openUnitArrears', 'askReportQuestion', 'handleReportChatKey', 'renderReportLensLedger', 'applyLedgerMonth'].forEach(name =>
+        assert.match(reports, new RegExp('function ' + name + '\\('), 'missing ' + name));
+    assert.match(reports, /function handleReportLensKeydown\(event\)/);
+    assert.match(reports, /function initReportLenses\(\)/);
+    assert.match(reports, /initReportLenses\(\);/);
+    assert.match(reports, /if \(getReportView\(\) === 'panel'\) closeReportPanel\(\{ focusCard: false \}\);/, 'a lens closes an open panel first');
+    assert.match(reports, /function resetReportView\(\) \{\s*closeReportPanel\(\{ focusCard: false \}\);\s*const tab = document\.getElementById\('tab-reports'\);\s*if \(tab\) tab\.dataset\.reportLens = 'grid';/, 're-entering the tab lands on the card grid');
+    assert.match(reports, /select\.dispatchEvent\(new Event\('change', \{ bubbles: true \}\)\);/, 'lens filters use the existing invalidation handlers');
+    ['setReportLens', 'toggleReportLensFab', 'openUnitArrears', 'askReportQuestion', 'handleReportChatKey', 'applyLedgerMonth'].forEach(name =>
+        assert.match(reports, new RegExp('window\\.' + name + ' = ' + name), name + ' must be reachable from inline handlers'));
+
+    assert.match(css, /\.report-lens \{ display: none;/);
+    assert.match(css, /#tab-reports\[data-report-view="grid"\]\[data-report-lens="map"\] #reportLensMap/);
+    assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-lens,/);
+    assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-lens-fab \{ display: none; \}/);
+    assert.match(css, /#tab-reports\[data-report-view="grid"\]:not\(\[data-report-lens="grid"\]\) \.report-nav \{ display: none; \}/);
+    assert.match(css, /\.report-lens-fab \{[^}]*z-index: var\(--z-floating\)/, 'the floating shortcut stays above content but inside the print isolation');
+    assert.match(css, /body\.print-landlord #tab-reports > :not\(#landlordReportPrint\) \{ display: none !important; \}/, 'print still hides every lens surface');
+});

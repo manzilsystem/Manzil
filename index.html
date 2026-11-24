@@ -19,7 +19,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/tailwind.css?v=04a0e41485">
-    <link rel="stylesheet" href="css/style.css?v=f9afbe318d">
+    <link rel="stylesheet" href="css/style.css?v=04e982d103">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -487,12 +487,19 @@
         </section>
 
         <!-- REPORTS -->
-        <section id="tab-reports" class="hidden space-y-4" data-report-view="grid">
+        <section id="tab-reports" class="hidden space-y-4" data-report-view="grid" data-report-lens="grid">
             <div class="report-section-head no-print">
                 <div>
                     <p class="report-section-eyebrow"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> مركز التقارير</p>
                     <h2 class="report-section-title">التقارير والكشوفات</h2>
                     <p class="report-section-subtitle">تقرير شهري للملاك، تقرير فترة للمصاريف والإعفاءات، كشف حساب لكل مالك، تقرير وحدة، إقفال شهري، ومتأخرات — وكل الأرقام تُحسب من نفس بيانات التطبيق.</p>
+                </div>
+                <div class="report-lens-rail no-print" role="group" aria-label="عدسات عرض التقارير" onkeydown="handleReportLensKeydown(event)">
+                    <span class="report-lens-rail-label">عدسات العرض</span>
+                    <button type="button" class="report-lens-chip is-active report-tone-indigo" data-report-lens="grid" aria-pressed="true" onclick="setReportLens('grid')"><span class="report-lens-thumb t-grid" aria-hidden="true"></span><b>شبكة الكروت</b></button>
+                    <button type="button" class="report-lens-chip report-tone-sky" data-report-lens="map" aria-pressed="false" onclick="setReportLens('map')"><span class="report-lens-thumb t-map" aria-hidden="true"></span><b>خريطة العمارة</b></button>
+                    <button type="button" class="report-lens-chip report-tone-emerald" data-report-lens="chat" aria-pressed="false" onclick="setReportLens('chat')"><span class="report-lens-thumb t-chat" aria-hidden="true"></span><b>محادثة التحليلات</b></button>
+                    <button type="button" class="report-lens-chip report-tone-amber" data-report-lens="ledger" aria-pressed="false" onclick="setReportLens('ledger')"><span class="report-lens-thumb t-ledger" aria-hidden="true"></span><b>دفتر الأستاذ</b></button>
                 </div>
                 <div class="report-command-strip no-print" aria-label="اختصارات التقارير">
                     <span class="report-command-mark" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span>
@@ -611,6 +618,38 @@
                 </div>
                 <span id="reportViewStatus" class="report-view-status no-print" aria-live="polite"></span>
                 <span class="report-view-hint" aria-hidden="true">Esc للرجوع</span>
+            </div>
+            <section id="reportLensMap" class="report-lens no-print" aria-label="خريطة العمارة"></section>
+            <section id="reportLensChat" class="report-lens no-print" aria-label="محادثة التقارير">
+                <div class="report-lens-heading">
+                    <h3>محادثة التحليلات</h3>
+                    <p>اسأل بصيغة بسيطة؛ سيُفتح التقرير المناسب، وتبقى الطباعة والتصدير تحت نفس بوابة المعاينة.</p>
+                </div>
+                <div class="report-chat-thread" aria-live="polite">
+                    <p class="report-chat-bubble is-user">كاشهر يناير؟</p>
+                    <p class="report-chat-bubble is-app">تقرير الملاك هو الأقرب لسؤالك. افتحه من البطاقة أو من السؤال التالي.</p>
+                </div>
+                <div class="report-chat-suggestions" role="group" aria-label="عبارات جاهزة">
+                    <button type="button" onclick="askReportQuestion('كاشهر يناير؟')">كاشهر يناير؟</button>
+                    <button type="button" onclick="askReportQuestion('مين المتأخر؟')">مين المتأخر؟</button>
+                    <button type="button" onclick="askReportQuestion('ملخص المصروفات')">ملخص المصروفات</button>
+                    <button type="button" onclick="askReportQuestion('قارن شهرين')">قارن شهرين</button>
+                </div>
+                <div class="report-chat-compose">
+                    <input id="reportChatInput" type="search" placeholder="اكتب سؤالك عن التقارير..." aria-label="سؤال عن التقارير" autocomplete="off" onkeydown="handleReportChatKey(event)">
+                    <button type="button" onclick="askReportQuestion(document.getElementById('reportChatInput').value)">إرسال</button>
+                    <button type="button" class="report-chat-assistant" onclick="openAssistantModal()"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> اسأل المساعد</button>
+                </div>
+            </section>
+            <section id="reportLensLedger" class="report-lens no-print" aria-label="دفتر الأستاذ"></section>
+            <div id="reportLensFab" class="report-lens-fab no-print" onkeydown="handleReportLensKeydown(event)">
+                <button type="button" class="report-lens-fab-toggle" onclick="toggleReportLensFab()" aria-expanded="false" aria-label="فتح عدسات العرض"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></button>
+                <div class="report-lens-fab-menu" role="group" aria-label="اختر عدسة">
+                    <button type="button" class="report-tone-indigo" data-report-lens="grid" aria-label="شبكة الكروت" onclick="setReportLens('grid')"><i class="fa-solid fa-grip" aria-hidden="true"></i></button>
+                    <button type="button" class="report-tone-sky" data-report-lens="map" aria-label="خريطة العمارة" onclick="setReportLens('map')"><i class="fa-solid fa-map" aria-hidden="true"></i></button>
+                    <button type="button" class="report-tone-emerald" data-report-lens="chat" aria-label="محادثة التحليلات" onclick="setReportLens('chat')"><i class="fa-solid fa-comment-dots" aria-hidden="true"></i></button>
+                    <button type="button" class="report-tone-amber" data-report-lens="ledger" aria-label="دفتر الأستاذ" onclick="setReportLens('ledger')"><i class="fa-solid fa-book" aria-hidden="true"></i></button>
+                </div>
             </div>
             <div id="landlordReportPrint" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
                 <div class="no-print report-card-head">
@@ -2361,7 +2400,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-8660e3e46a"></script>
+    <script src="js/telemetry.js?v=manzil-1d0229720d"></script>
     <script src="js/state.js?v=44b4960b92"></script>
     <script src="js/access.js?v=1ca370a57a"></script>
     <script src="js/render.js?v=ae4a07d30a"></script>
@@ -2383,7 +2422,7 @@
     <script src="js/reports/shared/scheduled-reports.js?v=6a1da07942"></script>
     <script src="js/reports/shared/performance.js?v=0f741ab63c"></script>
     <!-- Reports Main -->
-    <script src="js/reports.js?v=d146cbc026"></script>
+    <script src="js/reports.js?v=10d79bee03"></script>
     <!-- Extended reports (hub, cash flow, apartment performance) -->
     <script src="js/reports/extended/reports-extended.js?v=b322b2edb8"></script>
     <script src="js/settings.js?v=c274fd024a"></script>

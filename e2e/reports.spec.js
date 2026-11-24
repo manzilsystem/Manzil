@@ -487,6 +487,67 @@ test('typographic scale resolves consistently across themes and print', async ({
     expect(await readSizes()).toEqual(baseline);
 });
 
+test('report lenses keep the card grid as the default and open the same reports', async ({ page }) => {
+    await openReports(page);
+    await expect(page.locator('#tab-reports')).toHaveAttribute('data-report-lens', 'grid');
+    await expect(page.locator('.report-lens-chip')).toHaveCount(4);
+    await expect(page.locator('.report-nav')).toBeVisible();
+    await expect(page.locator('#reportLensFab .report-lens-fab-toggle')).toHaveAttribute('aria-expanded', 'false');
+
+    await page.locator('.report-lens-chip[data-report-lens="map"]').click();
+    await expect(page.locator('#tab-reports')).toHaveAttribute('data-report-lens', 'map');
+    await expect(page.locator('#reportLensMap')).toBeVisible();
+    await expect(page.locator('.report-nav')).toBeHidden();
+    await expect(page.locator('#reportLensMap .report-map-unit')).toHaveCount(12);
+    const rentedUnit = page.locator('#reportLensMap .report-map-unit', { hasText: 'شقة 3' });
+    await expect(rentedUnit).toHaveClass(/is-(warn|bad)/);
+    await rentedUnit.click();
+    await expect(page.locator('#arrearsPanel')).toBeVisible();
+    await expect(page.locator('#arrearsApartmentFilter')).toHaveValue('r1');
+    await expect(page.locator('#arrearsReportContainer')).toContainText('شقة 3');
+    await backToGrid(page);
+    await expect(page.locator('#tab-reports')).toHaveAttribute('data-report-lens', 'map');
+    await expect(page.locator('#reportLensMap')).toBeVisible();
+    await page.locator('.report-lens-chip[data-report-lens="grid"]').click();
+    await expect(page.locator('.report-nav')).toBeVisible();
+
+    await page.locator('#reportLensFab .report-lens-fab-toggle').click();
+    await expect(page.locator('#reportLensFab .report-lens-fab-toggle')).toHaveAttribute('aria-expanded', 'true');
+    await page.locator('#reportLensFab button[data-report-lens="chat"]').click();
+    await expect(page.locator('#reportLensChat')).toBeVisible();
+    await expect(page.locator('#reportLensFab .report-lens-fab-toggle')).toHaveAttribute('aria-expanded', 'false');
+    await page.locator('#reportChatInput').fill('مين المتأخر؟');
+    await page.locator('#reportChatInput').press('Enter');
+    await expect(page.locator('#arrearsPanel')).toBeVisible();
+    await backToGrid(page);
+    await expect(page.locator('#reportLensChat')).toBeVisible();
+    await page.locator('.report-lens-chip[data-report-lens="ledger"]').click();
+    await expect(page.locator('#reportLensLedger')).toBeVisible();
+    await expect(page.locator('#reportLensLedger .report-ledger-book')).toHaveCount(10);
+    const ledgerMonth = page.locator('#reportLensLedger .report-ledger-months button').first();
+    const monthLabel = (await ledgerMonth.textContent()).trim();
+    await ledgerMonth.click();
+    await expect(page.locator('#reportMonthSelect')).toHaveValue(monthLabel);
+    await expect(page.locator('#reportPrintBtn')).toBeDisabled();
+    await page.locator('#reportLensLedger .report-ledger-book').first().click();
+    await expect(page.locator('#landlordReportPrint')).toBeVisible();
+});
+
+test('lens surfaces stay out of printed output', async ({ page }) => {
+    await openReports(page);
+    await page.locator('.report-lens-chip[data-report-lens="map"]').click();
+    await expect(page.locator('#reportLensMap')).toBeVisible();
+    await page.locator('.report-lens-chip[data-report-lens="ledger"]').click();
+    await expect(page.locator('#reportLensLedger')).toBeVisible();
+    await page.emulateMedia({ media: 'print' });
+    await expect(page.locator('.report-lens-rail')).toBeHidden();
+    await expect(page.locator('#reportLensMap')).toBeHidden();
+    await expect(page.locator('#reportLensLedger')).toBeHidden();
+    await expect(page.locator('#reportLensFab')).toBeHidden();
+    await page.emulateMedia({ media: 'screen' });
+    await expect(page.locator('#reportLensLedger')).toBeVisible();
+});
+
 test('the tab opens on the icon grid and a card opens its report full page', async ({ page }) => {
     await openReports(page);
     await expect(page.locator('.report-section-head')).toBeVisible();

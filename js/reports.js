@@ -319,6 +319,9 @@ function showReportGrid() {
 
 function resetReportView() {
     closeReportPanel({ focusCard: false });
+    const tab = document.getElementById('tab-reports');
+    if (tab) tab.dataset.reportLens = 'grid';
+    syncReportLensButtons();
 }
 
 function switchReportTab(tab) {
@@ -402,6 +405,8 @@ function syncReportNavStatus() {
         item.classList.toggle('is-ready', ready);
         item.classList.toggle('is-stale', !ready && /** @type {HTMLElement} */ (preview)?.dataset.stale === 'true');
     });
+    if (getReportLens() === 'map') renderReportLensMap();
+    if (getReportLens() === 'ledger') renderReportLensLedger();
     renderReportViewStatus();
 }
 
@@ -466,6 +471,179 @@ function focusReportStep(step) {
     void targetSection.offsetWidth;
     targetSection.classList.add('report-focus-flash');
     return true;
+}
+
+/* أربع عدسات للمساحة نفسها: الشبكة هي الافتراض، والمعاينات المصغّرة هي التنقل الأساسي. */
+const REPORT_LENSES = ['grid', 'map', 'chat', 'ledger'];
+const REPORT_QUESTION_ROUTES = [
+    { keys: ['كشف', 'حساب', 'وحدة', 'شقة'], tab: 'statement' },
+    { keys: ['متأخر', 'تأخر', 'مدين', 'دين'], tab: 'arrears' },
+    { keys: ['مصروف', 'مصاريف', 'صندوق'], tab: 'expenses' },
+    { keys: ['إعفاء', 'تخفيض', 'تسوية'], tab: 'adjustments' },
+    { keys: ['تدفق', 'سيولة', 'نقدي'], tab: 'cashflow' },
+    { keys: ['إقفال', 'مطابقة', 'مراجعة'], tab: 'monthlyClose' },
+    { keys: ['سجل', 'عمليات', 'تدقيق'], tab: 'audit' },
+    { keys: ['أداء', 'شقق'], tab: 'apartments' },
+    { keys: ['فترة', 'شهرين', 'مقارنة'], tab: 'period' },
+    { keys: ['مالك', 'تحصيل', 'شهر', 'إيراد', 'صافي'], tab: 'landlord' }
+];
+
+function getReportLens() {
+    const value = document.getElementById('tab-reports')?.dataset.reportLens;
+    return REPORT_LENSES.includes(value) ? value : 'grid';
+}
+
+function syncReportLensButtons() {
+    const lens = getReportLens();
+    document.querySelectorAll('button[data-report-lens]').forEach(button => {
+        const element = /** @type {HTMLElement} */ (button);
+        const active = element.dataset.reportLens === lens;
+        element.classList.toggle('is-active', active);
+        if (element.hasAttribute('aria-pressed')) element.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+}
+
+function setReportLens(lens) {
+    if (!REPORT_LENSES.includes(lens)) return false;
+    const tab = document.getElementById('tab-reports');
+    if (!tab) return false;
+    if (getReportView() === 'panel') closeReportPanel({ focusCard: false });
+    tab.dataset.reportLens = lens;
+    toggleReportLensFab(false);
+    syncReportLensButtons();
+    if (lens === 'map') renderReportLensMap();
+    if (lens === 'ledger') renderReportLensLedger();
+    return true;
+}
+
+function toggleReportLensFab(force) {
+    const fab = document.getElementById('reportLensFab');
+    if (!fab) return false;
+    const open = typeof force === 'boolean' ? force : !fab.classList.contains('is-open');
+    fab.classList.toggle('is-open', open);
+    const toggle = fab.querySelector('.report-lens-fab-toggle');
+    if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    return open;
+}
+
+function handleReportLensKeydown(event) {
+    if (!['ArrowRight', 'ArrowLeft'].includes(event.key)) return;
+    if (!event.target?.closest?.('button[data-report-lens]')) return;
+    event.preventDefault();
+    const index = REPORT_LENSES.indexOf(getReportLens());
+    const step = event.key === 'ArrowLeft' ? 1 : -1;
+    const next = REPORT_LENSES[(index + step + REPORT_LENSES.length) % REPORT_LENSES.length];
+    setReportLens(next);
+    /** @type {HTMLElement | null} */ (document.querySelector(`button[data-report-lens="${next}"]`))?.focus();
+}
+
+function renderReportLensMap() {
+    const root = document.getElementById('reportLensMap');
+    if (!root) return false;
+    const debtByResident = new Map();
+    if (typeof buildArrearsReport === 'function') {
+        (buildArrearsReport({}).residents || []).forEach(item => debtByResident.set(item.resident.id, item));
+    }
+    const residents = Array.isArray(state?.residents) ? state.residents : [];
+    const floors = [1, 2].map(floor => {
+        const units = Array.from({ length: 6 }, (_, index) => {
+            const apartment = String((floor - 1) * 6 + index + 1);
+            const resident = residents.find(item => String(item.apartmentNumber) === apartment);
+            const debt = resident ? debtByResident.get(resident.id) : null;
+            const status = !resident ? 'empty' : !debt ? 'ok' : debt.bucket === '4 أشهر فأكثر' ? 'bad' : 'warn';
+            const note = !resident ? 'شاغرة' : !debt ? 'مسدّدة' : fmtNum(debt.totalDebt) + ' ج.م متأخر';
+            const onclick = resident ? ` onclick="openUnitArrears('${esc(resident.id)}')"` : '';
+            return `<button type="button" class="report-map-unit is-${status}"${onclick}>`
+                + `<b>شقة ${esc(apartment)}</b><small>${esc(resident?.name || '—')}</small><em>${esc(note)}</em></button>`;
+        }).join('');
+        return `<div class="report-map-floor"><span>الدور ${floor === 1 ? 'الأول' : 'الثاني'}</span>`
+            + `<div class="report-map-units">${units}</div></div>`;
+    }).join('');
+    root.innerHTML = `<div class="report-lens-heading"><h3>خريطة العمارة</h3>`
+        + `<p>لون كل وحدة يعكس حالتها من بيانات المتأخرات نفسها. اضغط وحدة عليها متأخر لفتح كشفها مباشرة.</p></div>`
+        + `<div class="report-map-grid">${floors}</div>`
+        + `<div class="report-map-legend"><span><i style="--legend-tone:var(--state-success)"></i>مسدّدة</span>`
+        + `<span><i style="--legend-tone:var(--state-warning)"></i>متأخر حديث</span>`
+        + `<span><i style="--legend-tone:var(--state-danger)"></i>متأخر قديم</span>`
+        + `<span><i style="--legend-tone:var(--text-muted)"></i>شاغرة</span></div>`;
+    return true;
+}
+
+function openUnitArrears(residentId) {
+    if (!residentId) return false;
+    const select = /** @type {HTMLSelectElement | null} */ (document.getElementById('arrearsApartmentFilter'));
+    if (select) {
+        select.value = residentId;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    if (typeof renderArrearsReport === 'function') renderArrearsReport();
+    return switchReportTab('arrears');
+}
+
+function askReportQuestion(question) {
+    const text = String(question || '').trim();
+    if (!text) return false;
+    const thread = document.querySelector('#reportLensChat .report-chat-thread');
+    const answer = document.createElement('p');
+    answer.className = 'report-chat-bubble is-app';
+    if (thread) {
+        const asked = document.createElement('p');
+        asked.className = 'report-chat-bubble is-user';
+        asked.textContent = text;
+        thread.append(asked, answer);
+    }
+    const route = REPORT_QUESTION_ROUTES.find(item => item.keys.some(key => text.includes(key)));
+    const tab = route?.tab || 'landlord';
+    const card = document.querySelector(`[data-report-nav="${tab}"]`);
+    const title = card?.querySelector('.report-nav-copy b')?.textContent || 'التقرير';
+    answer.textContent = `فتحت لك «${title}». أي تعديل في الفلاتر يوقف الطباعة والتصدير حتى تُحدَّث المعاينة.`;
+    const input = /** @type {HTMLInputElement | null} */ (document.getElementById('reportChatInput'));
+    if (input) input.value = '';
+    return switchReportTab(tab);
+}
+
+function handleReportChatKey(event) {
+    if (event.key !== 'Enter') return false;
+    const input = /** @type {HTMLInputElement | null} */ (document.getElementById('reportChatInput'));
+    return askReportQuestion(input?.value || '');
+}
+
+function renderReportLensLedger() {
+    const root = document.getElementById('reportLensLedger');
+    if (!root) return false;
+    const books = REPORT_TABS.map((tab, index) => {
+        const card = document.querySelector(`[data-report-nav="${tab}"]`);
+        const title = card?.querySelector('.report-nav-copy b')?.textContent || tab;
+        const tone = REPORT_TONE_CLASSES.find(name => card?.classList.contains(name)) || 'report-tone-indigo';
+        return `<button type="button" class="report-ledger-book ${tone}" onclick="switchReportTab('${tab}')">`
+            + `<b>${esc(title)}</b><small>${String(index + 1).padStart(2, '0')}</small></button>`;
+    }).join('');
+    const select = /** @type {HTMLSelectElement | null} */ (document.getElementById('reportMonthSelect'));
+    const months = select ? Array.from(select.options).map(option => option.value).filter(Boolean).slice(-6) : [];
+    const monthButtons = (months.length ? months : [getCurrentMonth()])
+        .map(month => `<button type="button" onclick="applyLedgerMonth('${esc(month)}')">${esc(month)}</button>`).join('');
+    root.innerHTML = `<div class="report-lens-heading"><h3>دفتر الأستاذ</h3>`
+        + `<p>كل تقرير دفتر وكل شهر صفحة. اختر دفترًا لفتحه، أو شهرًا لتهيئة تقرير الملاك ثم اضغط معاينة.</p></div>`
+        + `<div class="report-ledger-shelf">${books}</div>`
+        + `<div class="report-lens-heading"><h3>صفحات الشهر</h3></div>`
+        + `<div class="report-ledger-months">${monthButtons}</div>`;
+    return true;
+}
+
+function applyLedgerMonth(month) {
+    const select = /** @type {HTMLSelectElement | null} */ (document.getElementById('reportMonthSelect'));
+    if (!select || !month) return false;
+    select.value = month;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    if (typeof toast === 'function') toast(`تم اختيار ${month} — افتح تقرير الملاك ثم اضغط معاينة`, 'success');
+    return true;
+}
+
+function initReportLenses() {
+    const tab = document.getElementById('tab-reports');
+    if (!tab) return;
+    if (!REPORT_LENSES.includes(tab.dataset.reportLens)) tab.dataset.reportLens = 'grid';
+    syncReportLensButtons();
 }
 
 function getLandlordReportData(month, purposeFilter = '', cashAccountFilter = '', paymentMethodFilter = '', residentFilter = '') {
@@ -747,6 +925,7 @@ function enhanceReportPreviews(root = document) {
 
 function initReportPreviewInteractions() {
     if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
+    initReportLenses();
     enhanceReportPreviews(document);
     if (typeof document.addEventListener === 'function') {
         document.addEventListener('click', event => {
@@ -3727,6 +3906,13 @@ if (typeof window !== 'undefined') {
     window.showReportGrid = showReportGrid;
     window.closeReportPanel = closeReportPanel;
     window.focusReportStep = focusReportStep;
+    window.setReportLens = setReportLens;
+    window.toggleReportLensFab = toggleReportLensFab;
+    window.handleReportLensKeydown = handleReportLensKeydown;
+    window.openUnitArrears = openUnitArrears;
+    window.askReportQuestion = askReportQuestion;
+    window.handleReportChatKey = handleReportChatKey;
+    window.applyLedgerMonth = applyLedgerMonth;
     window.invalidateLandlordReportPreview = invalidateLandlordReportPreview;
     window.invalidatePeriodReportPreview = invalidatePeriodReportPreview;
     window.invalidateExpensesReportPreview = invalidateExpensesReportPreview;
