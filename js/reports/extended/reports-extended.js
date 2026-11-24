@@ -845,8 +845,8 @@ function initExtendedReportsUI() {
     if (document.addEventListener) {
         document.addEventListener('click', event => {
             const target = /** @type {Element | null} */ (event.target);
-            const nav = /** @type {HTMLElement | null} */ (target?.closest?.('[data-report-nav], [data-report-recent]'));
-            if (nav) recordRecentReport(nav.dataset.reportNav || nav.dataset.reportRecent);
+            const nav = /** @type {HTMLElement | null} */ (target?.closest?.('[data-report-nav], [data-report-recent], [data-report-shortcut]'));
+            if (nav) recordRecentReport(nav.dataset.reportNav || nav.dataset.reportRecent || nav.dataset.reportShortcut);
         });
     }
 }

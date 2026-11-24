@@ -300,6 +300,46 @@ test('report hub offers live highlights, search, groups and recently used report
     });
 });
 
+test('the report workspace adds shortcuts, guided steps and a live output status', () => {
+    const extended = fs.readFileSync(path.join(__dirname, '..', 'js', 'reports', 'extended', 'reports-extended.js'), 'utf8');
+
+    assert.match(reportTab, /class="report-command-strip no-print"/);
+    ['landlord', 'statement', 'arrears'].forEach(key =>
+        assert.match(reportTab, new RegExp('data-report-shortcut="' + key + '"[^>]*onclick="switchReportTab\\(\'' + key + '\'\\)"'), key + ' shortcut must open its report'));
+    assert.match(extended, /\[data-report-shortcut\]/);
+    assert.match(extended, /nav\.dataset\.reportShortcut/);
+
+    ['filters', 'preview', 'export'].forEach(step =>
+        assert.match(reportTab, new RegExp('data-report-step="' + step + '"[^>]*onclick="focusReportStep\\(\'' + step + '\'\\)"'), step + ' step is wired'));
+    assert.match(reportTab, /id="reportViewStatus"[^>]*aria-live="polite"/);
+    assert.match(reports, /function renderReportViewStatus\(\)/);
+    assert.match(reports, /renderReportViewStatus\(\);/);
+    assert.match(reports, /function focusReportStep\(step\)/);
+    assert.match(reports, /function copyReportTone\(target, item\)/);
+    assert.match(reports, /copyReportTone\(panel, item\)/, 'the open panel carries its own report identity inside the preview');
+    assert.match(reports, /window\.focusReportStep = focusReportStep/);
+    assert.match(reports, /REPORT_OUTPUT_BUTTON_IDS\[tab\]/, 'the status reads the same output gate as the print and export buttons');
+    assert.match(css, /\.report-view-status\.is-ready::before \{ background: var\(--state-success\)/);
+    assert.match(css, /\.report-view-status\.is-stale::before \{ background: var\(--state-warning\)/);
+
+    const toneKeys = [...css.matchAll(/\[data-report-nav="([a-zA-Z]+)"\] \{[^}]*--report-tone:/g)].map(match => match[1]);
+    assert.deepEqual(toneKeys, ['landlord', 'period', 'cashflow', 'expenses', 'adjustments', 'statement', 'apartments', 'monthlyClose', 'arrears', 'audit']);
+});
+
+test('generated previews are navigable and collapsible without weakening print', () => {
+    assert.match(reports, /function renderSheetBlock\(title, headers, rows, options = \{\}\)/);
+    assert.match(reports, /class="report-block-toggle no-print" data-report-block-toggle/);
+    assert.match(reports, /<div class="report-block-body">/);
+    assert.match(reports, /function enhanceReportPreviews\(root = document\)/);
+    assert.match(reports, /function initReportPreviewInteractions\(\)/);
+    assert.match(reports, /new MutationObserver\(\(\) => enhanceReportPreviews\(document\)\)/);
+    assert.match(reports, /data-report-section-jump/);
+    assert.match(css, /\.report-block\.is-collapsed \.report-block-body \{ display: none; \}/);
+    assert.match(css, /\.report-section-rail \{[\s\S]*?display: flex;/);
+    assert.match(css, /#printableArea \.report-block-body \{ display: block !important; \}/, 'collapsed on-screen sections must still print in full');
+    assert.doesNotMatch(css, /@media print \{[\s\S]*?\.report-block\.is-collapsed \.report-block-body/);
+});
+
 test('cash flow and apartment performance are first-class report tabs', () => {
     const extended = fs.readFileSync(path.join(__dirname, '..', 'js', 'reports', 'extended', 'reports-extended.js'), 'utf8');
     ['cashFlowPanel', 'apartmentsPanel'].forEach(id => {

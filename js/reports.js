@@ -259,6 +259,19 @@ function getReportView() {
     return document.getElementById('tab-reports')?.dataset.reportView === 'panel' ? 'panel' : 'grid';
 }
 
+/** ينسخ هوية التقرير من بطاقته إلى أي سطح يعرض تفاصيله. */
+function copyReportTone(target, item) {
+    if (!target || !item) return;
+    const computed = typeof window !== 'undefined' && typeof window.getComputedStyle === 'function'
+        ? window.getComputedStyle(item)
+        : null;
+    ['--report-tone', '--report-tone-soft', '--report-tone-line'].forEach(name => {
+        const value = computed?.getPropertyValue?.(name)?.trim();
+        if (value) target.style.setProperty(name, value);
+        else target.style.removeProperty(name);
+    });
+}
+
 function renderReportViewBar(tab) {
     const bar = document.getElementById('reportViewBar');
     const item = document.querySelector(`[data-report-nav="${tab}"]`);
@@ -266,9 +279,15 @@ function renderReportViewBar(tab) {
     REPORT_TONE_CLASSES.forEach(tone => bar.classList.remove(tone));
     const tone = REPORT_TONE_CLASSES.find(name => item.classList.contains(name));
     if (tone) bar.classList.add(tone);
+    // The per-report identity lives on the nav card as custom properties, so the
+    // full-page bar and the open panel copy that palette instead of drifting to a shared tone.
+    copyReportTone(bar, item);
+    const panel = document.getElementById(REPORT_PANEL_IDS[tab]);
+    if (panel) copyReportTone(panel, item);
     document.getElementById('reportViewIcon').innerHTML = item.querySelector('.report-nav-icon')?.innerHTML || '';
     document.getElementById('reportViewTitle').textContent = item.querySelector('.report-nav-copy b')?.textContent || '';
     document.getElementById('reportViewMeta').textContent = item.querySelector('.report-nav-copy small')?.textContent || '';
+    renderReportViewStatus();
 }
 
 function closeReportPanel({ focusCard = true } = {}) {
@@ -284,6 +303,11 @@ function closeReportPanel({ focusCard = true } = {}) {
         item.removeAttribute('aria-current');
     });
     document.getElementById('tab-reports')?.setAttribute('data-report-view', 'grid');
+    document.querySelectorAll('[data-report-step]').forEach(button => {
+        const active = button.getAttribute('data-report-step') === 'filters';
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
     if (focusCard && opened) opened.focus();
 }
 
@@ -378,6 +402,70 @@ function syncReportNavStatus() {
         item.classList.toggle('is-ready', ready);
         item.classList.toggle('is-stale', !ready && /** @type {HTMLElement} */ (preview)?.dataset.stale === 'true');
     });
+    renderReportViewStatus();
+}
+
+/**
+ * الحالة الظاهرة في شريط التقرير المفتوح: نفس بوابة المعاينة التي تتحكم في
+ * أزرار الطباعة والتصدير، حتى لا يظن المدير أن التصدير متاح قبل تحديث المعاينة.
+ */
+function renderReportViewStatus() {
+    const status = document.getElementById('reportViewStatus');
+    if (!status) return;
+    const active = /** @type {HTMLElement | null} */ (document.querySelector('[data-report-nav].is-active'));
+    const tab = active?.dataset?.reportNav || '';
+    if (!tab || !REPORT_PANEL_IDS[tab]) {
+        status.textContent = '';
+        status.className = 'report-view-status no-print';
+        return;
+    }
+    const buttonId = REPORT_OUTPUT_BUTTON_IDS[tab];
+    const button = buttonId ? /** @type {HTMLButtonElement | null} */ (document.getElementById(buttonId)) : null;
+    const preview = document.querySelector(`#${REPORT_PANEL_IDS[tab]} [id$="Preview"]`);
+    let message = 'عرض مباشر — لا يحتاج معاينة';
+    let state = 'live';
+    if (button) {
+        if (!button.disabled) {
+            message = 'المعاينة جاهزة — الطباعة والتصدير مفعّلان';
+            state = 'ready';
+        } else if (/** @type {HTMLElement | null} */ (preview)?.dataset.stale === 'true') {
+            message = 'تغيّرت البيانات — أعد المعاينة قبل التصدير';
+            state = 'stale';
+        } else {
+            message = 'اضغط «معاينة» لتفعيل الطباعة والتصدير';
+            state = 'idle';
+        }
+    }
+    status.textContent = message;
+    status.className = 'report-view-status no-print is-' + state;
+}
+
+/** التنقل السريع بين أقسام التقرير المفتوح دون تغيير بيانات المعاينة. */
+function focusReportStep(step) {
+    const allowed = ['filters', 'preview', 'export'];
+    const target = allowed.includes(step) ? step : 'preview';
+    document.querySelectorAll('[data-report-step]').forEach(button => {
+        const active = button.getAttribute('data-report-step') === target;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    const active = /** @type {HTMLElement | null} */ (document.querySelector('[data-report-nav].is-active'));
+    const tab = active?.dataset?.reportNav || '';
+    const panelId = REPORT_PANEL_IDS[tab];
+    const panel = panelId ? document.getElementById(panelId) : null;
+    if (!panel) return false;
+    let section = null;
+    if (target === 'filters') section = panel.querySelector('.report-toolbar');
+    else if (target === 'export') section = panel.querySelector('.report-actions');
+    else section = panel.querySelector('[id$="Preview"]') || panel.querySelector('.report-preview');
+    if (!section) return true;
+    const targetSection = /** @type {HTMLElement} */ (section);
+    targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    targetSection.classList.remove('report-focus-flash');
+    // Reflow once so the highlight animation restarts on repeated clicks.
+    void targetSection.offsetWidth;
+    targetSection.classList.add('report-focus-flash');
+    return true;
 }
 
 function getLandlordReportData(month, purposeFilter = '', cashAccountFilter = '', paymentMethodFilter = '', residentFilter = '') {
@@ -547,9 +635,15 @@ function renderSheetTable(headers, rows, options = {}) {
 }
 
 function renderSheetBlock(title, headers, rows, options = {}) {
-    const heading = '<h3 class="report-block-title">' + esc(title) + ' <span class="report-block-count">' +
-        fmtNum(rows.length) + '</span></h3>';
-    return '<div class="report-block">' + heading + renderSheetTable(headers, rows, options) + '</div>';
+    const label = esc(title);
+    const heading = '<div class="report-block-head">' +
+        '<h3 class="report-block-title">' + label + ' <span class="report-block-count">' +
+        fmtNum(rows.length) + '</span></h3>' +
+        '<button type="button" class="report-block-toggle no-print" data-report-block-toggle ' +
+        'aria-expanded="true" aria-label="طي قسم ' + label + '" title="طي القسم">' +
+        '<i class="fa-solid fa-chevron-up" aria-hidden="true"></i></button></div>';
+    return '<div class="report-block">' + heading +
+        '<div class="report-block-body">' + renderSheetTable(headers, rows, options) + '</div></div>';
 }
 
 // كل معاينات التقارير تبدأ بنفس الترويسة: عنوان واحد وسطر وصف واحد فقط.
@@ -609,6 +703,74 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
             if (chart && typeof chart.resize === 'function') chart.resize();
         });
     }, true);
+}
+
+// داخل المعاينة نفسها: فهرس سريع يقفز إلى كل جدول، وزر طيّ لكل قسم حتى يبقى
+// التقرير الطويل قابلًا للمسح دون فقدان الترويسة أو أزرار الإخراج. الطيّ عرضي
+// فقط؛ قواعد الطباعة تُظهر كل الأقسام مهما كانت حالة الزر على الشاشة.
+function enhanceReportPreviews(root = document) {
+    if (!root || typeof root.querySelectorAll !== 'function') return;
+    const flows = /** @type {HTMLElement[]} */ ([...root.querySelectorAll('.report-preview-flow')]);
+    flows.forEach(flow => {
+        if (flow.querySelector(':scope > .report-section-rail')) return;
+        const blocks = /** @type {HTMLElement[]} */ ([...flow.querySelectorAll(':scope > .report-block')]);
+        if (!blocks.length) return;
+        const rail = document.createElement('div');
+        rail.className = 'report-section-rail no-print';
+        rail.setAttribute('role', 'group');
+        rail.setAttribute('aria-label', 'الانتقال بين أقسام المعاينة');
+        rail.innerHTML = '<span class="report-section-rail-label">أقسام المعاينة</span>' + blocks.map((block, index) => {
+            const title = (block.querySelector('.report-block-title')?.textContent || '').replace(/\s+/g, ' ').trim() || 'قسم';
+            return '<button type="button" class="report-section-jump" data-report-section-jump="' + index + '" ' +
+                'aria-label="الانتقال إلى ' + esc(title) + '">' + esc(title) + '</button>';
+        }).join('');
+        const kpi = flow.querySelector(':scope > .report-stats');
+        if (kpi) kpi.after(rail);
+        else flow.prepend(rail);
+
+        rail.querySelectorAll('[data-report-section-jump]').forEach(button => {
+            button.addEventListener('click', () => {
+                const index = Number(/** @type {HTMLElement} */ (button).dataset.reportSectionJump);
+                const targetBlocks = /** @type {HTMLElement[]} */ ([...flow.querySelectorAll(':scope > .report-block')]);
+                const target = targetBlocks[index];
+                rail.querySelectorAll('[data-report-section-jump]').forEach(item =>
+                    item.classList.toggle('is-active', item === button));
+                if (!target) return;
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                target.classList.remove('report-focus-flash');
+                void target.offsetWidth;
+                target.classList.add('report-focus-flash');
+            });
+        });
+    });
+}
+
+function initReportPreviewInteractions() {
+    if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
+    enhanceReportPreviews(document);
+    if (typeof document.addEventListener === 'function') {
+        document.addEventListener('click', event => {
+            const target = /** @type {Element | null} */ (event && event.target);
+            const toggle = /** @type {HTMLElement | null} */ (target?.closest?.('[data-report-block-toggle]'));
+            if (!toggle) return;
+            const block = /** @type {HTMLElement | null} */ (toggle.closest('.report-block'));
+            if (!block) return;
+            const collapsed = block.classList.toggle('is-collapsed');
+            const title = (block.querySelector('.report-block-title')?.textContent || '').replace(/\s+/g, ' ').trim() || 'القسم';
+            toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            toggle.setAttribute('aria-label', (collapsed ? 'إظهار' : 'طي') + ' قسم ' + title);
+            toggle.title = collapsed ? 'إظهار القسم' : 'طي القسم';
+        });
+    }
+    if (typeof MutationObserver !== 'undefined' && typeof document.body !== 'undefined') {
+        const observer = new MutationObserver(() => enhanceReportPreviews(document));
+        observer.observe(document.getElementById('tab-reports') || document.body, { childList: true, subtree: true });
+    }
+}
+
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initReportPreviewInteractions);
+    else initReportPreviewInteractions();
 }
 
 const PDF_SUMMARY_TONE_STYLES = {
@@ -3564,6 +3726,7 @@ if (typeof window !== 'undefined') {
     window.switchReportTab = switchReportTab;
     window.showReportGrid = showReportGrid;
     window.closeReportPanel = closeReportPanel;
+    window.focusReportStep = focusReportStep;
     window.invalidateLandlordReportPreview = invalidateLandlordReportPreview;
     window.invalidatePeriodReportPreview = invalidatePeriodReportPreview;
     window.invalidateExpensesReportPreview = invalidateExpensesReportPreview;

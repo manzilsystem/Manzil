@@ -19,7 +19,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/tailwind.css?v=04a0e41485">
-    <link rel="stylesheet" href="css/style.css?v=599689bdaa">
+    <link rel="stylesheet" href="css/style.css?v=c6bc69beee">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -494,6 +494,18 @@
                     <h2 class="report-section-title">التقارير والكشوفات</h2>
                     <p class="report-section-subtitle">تقرير شهري للملاك، تقرير فترة للمصاريف والإعفاءات، كشف حساب لكل مالك، تقرير وحدة، إقفال شهري، ومتأخرات — وكل الأرقام تُحسب من نفس بيانات التطبيق.</p>
                 </div>
+                <div class="report-command-strip no-print" aria-label="اختصارات التقارير">
+                    <span class="report-command-mark" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span>
+                    <div class="report-command-copy">
+                        <b>لوحة عمل أسرع</b>
+                        <small>ابدأ بالتقرير الأكثر استخدامًا، ثم انتقل بين الفلاتر والمعاينة والإخراج من شريط واحد.</small>
+                    </div>
+                    <div class="report-command-actions" role="group" aria-label="فتح تقرير مباشرة">
+                        <button type="button" class="report-command-chip" data-report-shortcut="landlord" onclick="switchReportTab('landlord')"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i> تقرير الملاك</button>
+                        <button type="button" class="report-command-chip" data-report-shortcut="statement" onclick="switchReportTab('statement')"><i class="fa-solid fa-user-check" aria-hidden="true"></i> كشف حساب</button>
+                        <button type="button" class="report-command-chip" data-report-shortcut="arrears" onclick="switchReportTab('arrears')"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> المتأخرات</button>
+                    </div>
+                </div>
                 <div id="reportHub" class="report-hub" role="region" aria-label="لوحة التقارير">
                     <div class="report-hub-top">
                         <label class="report-hub-search" for="reportHubSearch">
@@ -592,6 +604,12 @@
                     <b id="reportViewTitle">تقرير</b>
                     <small id="reportViewMeta"></small>
                 </span>
+                <div class="report-view-steps" role="group" aria-label="الانتقال داخل التقرير">
+                    <button type="button" class="report-view-step is-active" data-report-step="filters" aria-pressed="true" onclick="focusReportStep('filters')">الفلاتر</button>
+                    <button type="button" class="report-view-step" data-report-step="preview" aria-pressed="false" onclick="focusReportStep('preview')">المعاينة</button>
+                    <button type="button" class="report-view-step" data-report-step="export" aria-pressed="false" onclick="focusReportStep('export')">الإخراج</button>
+                </div>
+                <span id="reportViewStatus" class="report-view-status no-print" aria-live="polite"></span>
                 <span class="report-view-hint" aria-hidden="true">Esc للرجوع</span>
             </div>
             <div id="landlordReportPrint" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
@@ -2343,7 +2361,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-e5163ba77e"></script>
+    <script src="js/telemetry.js?v=manzil-f7488e4fd0"></script>
     <script src="js/state.js?v=44b4960b92"></script>
     <script src="js/access.js?v=1ca370a57a"></script>
     <script src="js/render.js?v=ae4a07d30a"></script>
@@ -2365,9 +2383,9 @@
     <script src="js/reports/shared/scheduled-reports.js?v=6a1da07942"></script>
     <script src="js/reports/shared/performance.js?v=0f741ab63c"></script>
     <!-- Reports Main -->
-    <script src="js/reports.js?v=cba207df0a"></script>
+    <script src="js/reports.js?v=95c5ca171d"></script>
     <!-- Extended reports (hub, cash flow, apartment performance) -->
-    <script src="js/reports/extended/reports-extended.js?v=899d5d3ad5"></script>
+    <script src="js/reports/extended/reports-extended.js?v=b322b2edb8"></script>
     <script src="js/settings.js?v=c274fd024a"></script>
     <script src="vendor/supabase.js"></script>
     <script src="js/supabase.js?v=beb65138ea"></script>

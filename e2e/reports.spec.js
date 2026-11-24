@@ -1357,6 +1357,72 @@ test('report hub highlights the month, filters the nav and remembers recent repo
     await expect(page.locator('#reportHubRecent button')).toHaveCount(1);
 });
 
+test('report shortcuts, guided steps and live status follow the output gate', async ({ page }) => {
+    await openReports(page);
+    await page.evaluate(() => localStorage.removeItem('manzil_recent_reports'));
+    await page.evaluate(() => renderReportHub());
+
+    await page.locator('[data-report-shortcut="arrears"]').click();
+    await expect(page.locator('[data-report-nav="arrears"]')).toHaveClass(/is-active/);
+    await expect(page.locator('#reportViewStatus')).toContainText('عرض مباشر');
+
+    await backToGrid(page);
+    await page.locator('[data-report-shortcut="landlord"]').click();
+    await expect(page.locator('#reportViewStatus')).toContainText('اضغط «معاينة» لتفعيل الطباعة والتصدير');
+    await expect(page.locator('[data-report-step="filters"]')).toHaveAttribute('aria-pressed', 'true');
+    const tone = await page.evaluate(() => {
+        const read = selector => getComputedStyle(document.querySelector(selector)).getPropertyValue('--report-tone').trim();
+        return { nav: read('[data-report-nav="landlord"]'), panel: read('#landlordReportPrint') };
+    });
+    expect(tone.panel).toBeTruthy();
+    expect(tone.panel).toBe(tone.nav);
+
+    await previewMonth(page, 'يناير 2024');
+    await expect(page.locator('#reportViewStatus')).toContainText('المعاينة جاهزة');
+    await expect(page.locator('[data-report-step="export"]')).toHaveAttribute('aria-pressed', 'false');
+    await page.locator('[data-report-step="export"]').click();
+    await expect(page.locator('[data-report-step="export"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#landlordReportPrint .report-actions')).toHaveClass(/report-focus-flash/);
+
+    await page.locator('#reportMonthSelect').selectOption('فبراير 2024');
+    await expect(page.locator('#reportViewStatus')).toContainText('تغيّرت البيانات');
+    await expect(page.locator('#reportPrintBtn')).toBeDisabled();
+    await expect(page.locator('#reportExportBtn')).toBeDisabled();
+});
+
+test('preview sections can be navigated and collapsed without hiding them from print or CSV', async ({ page }) => {
+    await openReports(page);
+    await previewMonth(page, 'يناير 2024');
+
+    const preview = page.locator('#landlordReportPreview');
+    const rail = preview.locator('.report-section-rail');
+    const blocks = preview.locator('.report-block');
+    await expect(rail).toBeVisible();
+    await expect(rail.locator('[data-report-section-jump]')).toHaveCount(await blocks.count());
+
+    await rail.locator('[data-report-section-jump]').nth(1).click();
+    await expect(rail.locator('[data-report-section-jump]').nth(1)).toHaveClass(/is-active/);
+    await expect(blocks.nth(1)).toHaveClass(/report-focus-flash/);
+
+    const toggle = blocks.nth(1).locator('[data-report-block-toggle]');
+    await toggle.click();
+    await expect(blocks.nth(1)).toHaveClass(/is-collapsed/);
+    await expect(blocks.nth(1).locator('.report-block-body')).toBeHidden();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('#reportExportBtn')).toBeEnabled();
+
+    await page.emulateMedia({ media: 'print' });
+    await expect(blocks.nth(1).locator('.report-block-body')).toBeVisible();
+    await expect(rail).toBeHidden();
+    await expect(toggle).toBeHidden();
+    await page.emulateMedia({ media: 'screen' });
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#reportExportBtn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('manzil_report_2024-01.csv');
+});
+
 test('cash flow report previews months and exports csv', async ({ page }) => {
     await openReports(page);
     await openReportPanel(page, 'cashflow');

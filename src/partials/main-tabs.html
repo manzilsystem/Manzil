@@ -316,6 +316,18 @@
                     <h2 class="report-section-title">التقارير والكشوفات</h2>
                     <p class="report-section-subtitle">تقرير شهري للملاك، تقرير فترة للمصاريف والإعفاءات، كشف حساب لكل مالك، تقرير وحدة، إقفال شهري، ومتأخرات — وكل الأرقام تُحسب من نفس بيانات التطبيق.</p>
                 </div>
+                <div class="report-command-strip no-print" aria-label="اختصارات التقارير">
+                    <span class="report-command-mark" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span>
+                    <div class="report-command-copy">
+                        <b>لوحة عمل أسرع</b>
+                        <small>ابدأ بالتقرير الأكثر استخدامًا، ثم انتقل بين الفلاتر والمعاينة والإخراج من شريط واحد.</small>
+                    </div>
+                    <div class="report-command-actions" role="group" aria-label="فتح تقرير مباشرة">
+                        <button type="button" class="report-command-chip" data-report-shortcut="landlord" onclick="switchReportTab('landlord')"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i> تقرير الملاك</button>
+                        <button type="button" class="report-command-chip" data-report-shortcut="statement" onclick="switchReportTab('statement')"><i class="fa-solid fa-user-check" aria-hidden="true"></i> كشف حساب</button>
+                        <button type="button" class="report-command-chip" data-report-shortcut="arrears" onclick="switchReportTab('arrears')"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> المتأخرات</button>
+                    </div>
+                </div>
                 <div id="reportHub" class="report-hub" role="region" aria-label="لوحة التقارير">
                     <div class="report-hub-top">
                         <label class="report-hub-search" for="reportHubSearch">
@@ -414,6 +426,12 @@
                     <b id="reportViewTitle">تقرير</b>
                     <small id="reportViewMeta"></small>
                 </span>
+                <div class="report-view-steps" role="group" aria-label="الانتقال داخل التقرير">
+                    <button type="button" class="report-view-step is-active" data-report-step="filters" aria-pressed="true" onclick="focusReportStep('filters')">الفلاتر</button>
+                    <button type="button" class="report-view-step" data-report-step="preview" aria-pressed="false" onclick="focusReportStep('preview')">المعاينة</button>
+                    <button type="button" class="report-view-step" data-report-step="export" aria-pressed="false" onclick="focusReportStep('export')">الإخراج</button>
+                </div>
+                <span id="reportViewStatus" class="report-view-status no-print" aria-live="polite"></span>
                 <span class="report-view-hint" aria-hidden="true">Esc للرجوع</span>
             </div>
             <div id="landlordReportPrint" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
