@@ -2559,8 +2559,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--settings-accent) 35%, transparent);
 }
 #settingsModal .theme-option.active::after {
-    content: "\f00c";
-    font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro";
+    content: "✔";
     font-weight: var(--weight-900);
     position: absolute;
     top: .35rem;

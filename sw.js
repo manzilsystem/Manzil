@@ -1,11 +1,11 @@
-const CACHE_NAME = 'manzil-3710b1a1bb';
+const CACHE_NAME = 'manzil-3b154b6323';
 const APP_CACHE_PREFIX = 'manzil-';
 const APP_SHELL = [
     './',
     './index.html',
-    './css/style.css?v=d93c43ac95',
-    './js/sw-register.js?v=c574706fe9',
-    './js/telemetry.js?v=manzil-3710b1a1bb',
+    './css/style.css?v=d751b4c575',
+    './js/sw-register.js?v=27964153c8',
+    './js/telemetry.js?v=manzil-3b154b6323',
     './js/state.js?v=44b4960b92',
     './js/access.js?v=1ca370a57a',
     './js/render.js?v=38a35471ba',
@@ -15,7 +15,7 @@ const APP_SHELL = [
     './js/settings.js?v=c274fd024a',
     './js/supabase.js?v=beb65138ea',
     './js/cashbox.js?v=3ca9f6a1d8',
-    './js/subscription-rates.js?v=manzil-3710b1a1bb',
+    './js/subscription-rates.js?v=manzil-3b154b6323',
     './js/app.js?v=452cd0fdfc',
     './js/monthly-close.js?v=3931791f32',
     './js/backup.js?v=65b179f1d7',
@@ -53,7 +53,7 @@ self.addEventListener('activate', event => {
             .then(keys => Promise.all(keys
                 .filter(key => key.startsWith(APP_CACHE_PREFIX) && key !== CACHE_NAME)
                 .map(key => caches.delete(key))))
-            .then(() => self.clients.claim())
+        .then(() => self.clients.claim())
     );
 });
 
@@ -62,8 +62,13 @@ self.addEventListener('fetch', event => {
     if (request.method !== 'GET') return;
 
     const url = new URL(request.url);
+
+    // CRITICAL FIX: Pass through ALL cross-origin requests directly.
+    // This prevents Service Worker from interfering with CDN font loads
+    // (e.g., cdnjs.cloudflare.com/ajax/libs/font-awesome/...).
+    // Without this, the fetch handler would intercept and potentially fail
+    // on cross-origin requests due to CORS issues.
     if (url.origin !== self.location.origin) {
-        // Pass through cross-origin requests directly without Service Worker interference
         event.respondWith(fetch(request));
         return;
     }

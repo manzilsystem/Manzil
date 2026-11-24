@@ -83,7 +83,7 @@
     window.addEventListener('pageshow', () => { refreshWorker(); applyPendingUpdate(); });
     window.addEventListener('focus', () => { refreshWorker(); applyPendingUpdate(); });
     document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') { refreshWorker(); applyPendingUpdate(); }
+        if (document.visibilityState === 'visible') refreshWorker();
     });
     // Installed PWAs can stay open for days without a navigation, which is
     // the only other moment the browser checks for a new worker.
