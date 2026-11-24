@@ -35,11 +35,11 @@ test('CSP blocks plugins, framing, base hijacking and cross-origin forms', () =>
 });
 
 test('CSP allows only the CDNs and Supabase origins the app actually uses', () => {
-    assert.ok(tokens('script-src').includes('https://cdn.tailwindcss.com'));
+    // Tailwind CDN removed - now using local build via PostCSS
     assert.ok(tokens('script-src').includes('https://cdn.jsdelivr.net'));
-    assert.ok(tokens('style-src').includes('https://fonts.googleapis.com'));
+    // Google Fonts CDN removed - using fallback fonts with Cairo
     assert.ok(tokens('style-src').includes('https://cdnjs.cloudflare.com'));
-    assert.ok(tokens('font-src').includes('https://fonts.gstatic.com'));
+    // Font CDN removed - using local font loading with fallback
     assert.ok(tokens('font-src').includes('https://cdnjs.cloudflare.com'));
     assert.ok(tokens('connect-src').includes('https://musvcrkljccubwbcrtjs.supabase.co'));
     assert.ok(tokens('connect-src').includes('wss://musvcrkljccubwbcrtjs.supabase.co'));
