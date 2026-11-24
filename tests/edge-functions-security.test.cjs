@@ -12,14 +12,14 @@ const manageAccess = read('supabase/functions/manage-owner-access/index.ts');
 test('owner-login stays public but rate-limits every syntactically valid probe', () => {
     assert.doesNotMatch(ownerLogin, /request\.headers\.get\('Authorization'\)/);
     assert.doesNotMatch(ownerLogin, /auth\.getUser/);
-    assert.match(ownerLogin, /admin\.rpc\('owner_login_rate_limit',[\s\S]*?p_phone_hash: phoneHash,[\s\S]*?p_action: 'attempt'/);
+    assert.match(ownerLogin, /callRateLimit\(supabaseUrl, serviceRoleKey,[\s\S]*?p_phone_hash: phoneHash,[\s\S]*?p_action: 'attempt'/);
     assert.match(ownerLogin, /hashPhone\(phone, serviceRoleKey\)/);
     assert.match(ownerLogin, /crypto\.subtle\.importKey[\s\S]*?'HMAC', hash: 'SHA-256'/);
     assert.match(ownerLogin, /rateLimit\?\.allowed !== true[\s\S]*?429, \{ error: 'rate_limited'/);
     assert.match(ownerLogin, /'Retry-After': String\(retryAfter\)/);
     // Attempts are counted before the profile lookup so unknown numbers cannot bypass lockout.
     const attemptIndex = ownerLogin.indexOf("p_action: 'attempt'");
-    const profileIndex = ownerLogin.indexOf(".from('profiles')");
+    const profileIndex = ownerLogin.indexOf('profiles?select=id');
     assert.ok(attemptIndex > 0 && profileIndex > attemptIndex, 'rate limit must run before the profile lookup');
 });
 

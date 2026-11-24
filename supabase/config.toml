@@ -1,10 +1,10 @@
 # Supabase Branching deploys only the functions declared under [functions.<slug>].
-# Its eszip upload currently fails for this project with HTTP 413, so no function
-# is declared here: the deploy step finishes with a warning and preview branches
-# keep the functions cloned from the hosted project. JWT verification settings
-# remain on the hosted project and are verified live by scripts/check-supabase.cjs.
-# owner-login and health must stay callable without a JWT; monitor-client-errors
-# checks CRON_SECRET in the request body instead of a JWT.
+# All three are declared so preview branches receive fresh function uploads
+# automatically. Their source uses only Deno built-ins (no npm imports), which
+# keeps each eszip bundle small and avoids the platform's HTTP 413 rejection.
+# owner-login and health stay callable without a JWT; monitor-client-errors
+# checks CRON_SECRET in the request body instead of a JWT. The JWT behaviour is
+# also verified live by scripts/check-supabase.cjs.
 
 [functions.health]
 verify_jwt = false

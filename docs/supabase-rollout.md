@@ -215,20 +215,22 @@ limit 50;
 
 ## فحص انحراف الترحيل المملوك للمستودع
 
-بعد إزالة خطأ أرقام الترحيل ظل فحص `Supabase Preview` يفشل في مرحلة نشر Edge Functions بالرسالة `unexpected update function status 413: {"message":"request entity too large"}`. هذه مرحلة خاصة بتكامل Supabase ولا يمكن التحكم فيها من ملفات المستودع، لذلك أضيف فحص مستقل في `.github/workflows/supabase-migration-drift.yml`:
+بعد إزالة خطأ أرقام الترحيل ظل فحص `Supabase Preview` يفشل في مرحلة نشر Edge Functions بالرسالة `unexpected update function status 413: {"message":"request entity too large"}`. أضيف فحص مستقل في `.github/workflows/supabase-migration-drift.yml` ليبقى اكتشاف الانحراف مملوكًا للمستودع:
 
 - يقرأ أرقام `supabase_migrations.schema_migrations` من المشروع المستضاف عبر `SUPABASE_DB_URL` باستخدام `psql` للقراءة فقط، ثم يقارنها بملفات `supabase/migrations/` عبر `scripts/check-migration-drift.cjs`.
 - يفشل إذا وُجد رقم بعيد بلا ملف محلي، أو تكرّر رقم محلي، أو كان اسم ملف بلا بادئة رقمية. هذا هو نفس الانحراف الذي كان يكشفه فحص Supabase.
 - لا يفشل بسبب ترحيل محلي لم يُطبَّق بعد؛ يُسجَّل كرسالة `INFO pending migration` لأنه ترحيل أمامي متوقع حتى يُطبَّق.
 - لا يكتب في قاعدة البيانات ولا يعدّل `schema_migrations`، ويتخطّى العمل بأمان إذا كان السر غير متاح (مثل PR من fork).
 
-بهذا تبقى حماية مطابقة الترحيل قائمة حتى لو ظل فحص Preview معطّلًا بخطأ المنصة.
+بهذا تبقى حماية مطابقة الترحيل قائمة، ومع إزالة سبب خطأ `413` عاد فحص `Supabase Preview` نفسه ناجحًا.
 
-## الإبقاء على تكامل GitHub مع تخطي رفع الدوال فقط
+## إصلاح خطأ 413 وإعادة رفع الدوال تلقائيًا
 
-خطوة `deploy` في Supabase Branching ترفع فقط الدوال المعلَنة في `supabase/config.toml` تحت `[functions.<slug>]`. بما أن رفع حزمة `eszip` يفشل حاليًا بالرسالة `413`، أُزيلت كل أقسام `[functions.*]` من الملف. النتيجة:
+خطوة `deploy` في Supabase Branching ترفع فقط الدوال المعلَنة في `supabase/config.toml` تحت `[functions.<slug>]`. تتبّع الخطأ `unexpected update function status 413` إلى استيراد `npm:@supabase/supabase-js@2` داخل `owner-login` و`monitor-client-errors`: استيراد واحد كان يضيف عدة ميغابايتات إلى حزمة `eszip` فترفضها بوابة Supabase. أُصلح ذلك بالكامل من المستودع بلا أي إجراء يدوي:
 
-- التكامل يبقى مفعّلًا: إنشاء فروع المعاينة، تطبيق الترحيلات، تطبيق الإعدادات، الـ seed، وتعليقات الحالة على PRs تعمل تلقائيًا كما كانت.
-- خطوة رفع الدوال تنتهي بتحذير (`PAUSED`) بدل الفشل، فيكتمل الفحص بالنجاح. فروع المعاينة ترث الدوال المنشورة على المشروع الأساسي، لذلك تبقى صالحة للاستخدام.
-- إعدادات `verify_jwt` تُدار على المشروع المستضاف ولا تُرسل من الملف. أُضيف فحص حي إلزامي في `scripts/check-supabase.cjs` يرسل `OPTIONS` إلى `owner-login` بدون مفتاح، ويُختبر في `tests/owner-login-security.test.cjs`، حتى لا نفقد الضمان الأمني الذي كان يوفره الـ config.
-- أي تحديث مستقبلي لكود Edge Functions يحتاج نشرًا يدويًا (`supabase functions deploy`) إلى أن تُصلح Supabase مشكلة الرفع. لا تُعاد أقسام `[functions.*]` قبل التأكد من زوال خطأ `413`.
+- استُبدل `supabase-js` باستدعاءات `fetch` مباشرة إلى PostgREST و`/auth/v1/token` في `owner-login`، وبالنمط نفسه في `monitor-client-errors`. حزمة كل دالة الآن كيلوبايتات قليلة بدل ميغابايتات.
+- أُعيدت أقسام `[functions.health]` و`[functions.monitor-client-errors]` و`[functions.owner-login]` إلى `config.toml`، فصار رفع الدوال إلى فروع المعاينة تلقائيًا كما باقي خطوات التكامل.
+- الضمان الأمني لم يُزل: `verify_jwt = false` ما زال مُعلَنًا للدوال الثلاث، ويُفحص حيًا أيضًا عبر `OPTIONS /functions/v1/owner-login` بدون مفتاح في `scripts/check-supabase.cjs`.
+- اختبار في `tests/owner-login-security.test.cjs` يمنع عودة استيراد `npm:` في الدوال المعلَنة، حتى لا يعود خطأ `413`.
+
+النتيجة: التكامل تلقائي بالكامل — إنشاء فروع المعاينة، الترحيلات، الإعدادات، الـ seed، تعليقات PRs، ورفع Edge Functions — دون خطوات يدوية منك.

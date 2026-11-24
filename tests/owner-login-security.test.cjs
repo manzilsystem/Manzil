@@ -28,13 +28,24 @@ const client = fs.readFileSync(path.join(root, 'js/supabase.js'), 'utf8');
 const { CHECKS } = require('../scripts/check-supabase.cjs');
 
 test('owner login Edge Function does not require a pre-existing JWT', () => {
-    // Branching no longer declares functions in config.toml (its eszip upload
-    // fails with 413), so the guarantee is verified live instead of by config.
+    // The guarantee is verified live because Branching no longer sends
+    // verify_jwt settings from config.toml when it deploys functions.
     const check = CHECKS.find(item => item.id === 'owner-login');
     assert.ok(check, 'check:supabase must probe owner-login without a JWT');
     assert.equal(check.method, 'OPTIONS');
     assert.equal(check.sendKey, false);
     assert.deepEqual(check.expected, [200]);
+});
+
+test('functions declared for Branching stay free of heavy npm bundles', () => {
+    const config = fs.readFileSync(path.join(root, 'supabase/config.toml'), 'utf8');
+    const declared = Array.from(config.matchAll(/^\[functions\.([^\]]+)\]/gm), match => match[1]).sort();
+    assert.deepEqual(declared, ['health', 'monitor-client-errors', 'owner-login']);
+
+    for (const slug of declared) {
+        const source = fs.readFileSync(path.join(root, 'supabase/functions', slug, 'index.ts'), 'utf8');
+        assert.doesNotMatch(source, /\bfrom\s*['"]npm:/, `${slug} must not import npm packages`);
+    }
 });
 
 test('owner login attempts are stored privately as hashes with a bounded lockout window', () => {
@@ -56,12 +67,12 @@ test('owner login hashes the phone, rate-limits before Auth, and never returns a
     assert.match(loginFunction, /crypto\.subtle\.importKey\([\s\S]*?name: 'HMAC'[\s\S]*?hash: 'SHA-256'/i);
     assert.match(loginFunction, /crypto\.subtle\.sign\('HMAC', key/);
     assert.match(loginFunction, /hashPhone\(phone, serviceRoleKey\)/);
-    assert.match(loginFunction, /from\('profiles'\)[\s\S]*?eq\('phone', phone\)/);
-    assert.match(loginFunction, /from\('building_members'\)[\s\S]*?eq\('role', 'owner'\)/);
+    assert.match(loginFunction, /profiles\?select=id&phone=eq\./);
+    assert.match(loginFunction, /building_members\?select=user_id[\s\S]*?role=eq\.owner/);
     assert.match(loginFunction, /p_action: 'attempt'/);
-    assert.match(loginFunction, /status: 429|json\(429,/);
-    assert.ok(loginFunction.indexOf("p_action: 'attempt'") < loginFunction.indexOf('signInWithPassword'));
-    assert.ok(loginFunction.indexOf("p_action: 'attempt'") < loginFunction.indexOf(".from('profiles')"), 'unknown phone probes must be rate-limited before profile lookup');
+    assert.match(loginFunction, /json\(429,/);
+    assert.ok(loginFunction.indexOf("p_action: 'attempt'") < loginFunction.indexOf('/auth/v1/token?grant_type=password'));
+    assert.ok(loginFunction.indexOf("p_action: 'attempt'") < loginFunction.indexOf('profiles?select=id'), 'unknown phone probes must be rate-limited before profile lookup');
     assert.match(loginFunction, /p_action: 'release'/);
     assert.match(loginFunction, /error: 'invalid_credentials'/);
     assert.match(loginFunction, /session:\s*\{[\s\S]*access_token:[\s\S]*refresh_token:/);
@@ -83,9 +94,10 @@ test('first PIN change shares the same account lockout policy', () => {
 
 
 test('temporary Auth outages do not consume or clear owner PIN failure counters', () => {
-    const loginErrorBranch = loginFunction.slice(loginFunction.indexOf('if (error) {'), loginFunction.indexOf('if (!data.session'));
-    assert.match(loginErrorBranch, /error\.status !== 400 && error\.status !== 401/);
-    assert.match(loginErrorBranch, /p_action: 'release'/);
+    const loginErrorBranch = loginFunction.slice(loginFunction.indexOf('if (!tokenResponse.ok) {'), loginFunction.indexOf('if (typeof accessToken'));
+    assert.match(loginErrorBranch, /status !== 400 && status !== 401/);
+    assert.match(loginErrorBranch, /releaseAttempt\(supabaseUrl, serviceRoleKey, phoneHash, ' after Auth outage'\)/);
+    assert.match(loginFunction, /p_action: 'release'/);
     assert.doesNotMatch(loginErrorBranch, /p_action: 'success'/);
     assert.match(loginErrorBranch, /Owner Auth provider unavailable/);
 

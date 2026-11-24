@@ -14,9 +14,9 @@ test('monitor-client-errors validates cron secret', () => {
 });
 
 test('monitor-client-errors checks client_errors table in last 24h', () => {
-  assert.match(source, /from\(['"]client_errors['"]\)/);
-  assert.match(source, /gte\(['"]created_at['"]/);
+  assert.match(source, /\/rest\/v1\/client_errors\?select=id&created_at=gte\./);
   assert.match(source, /24 \* 60 \* 60 \* 1000/);
+  assert.doesNotMatch(source, /\bfrom\s*['"]npm:/);
 });
 
 test('monitor-client-errors logs error when count exceeds threshold', () => {
