@@ -52,11 +52,13 @@ from new_building;
 
 1. اختر المشروع `musvcrkljccubwbcrtjs` ← **Edge Functions** ← الدالة المطلوبة.
 2. تبويب **Code** ← استبدل `index.ts` بنسخة المستودع، ثم **Deploy updates** وأكّد.
-3. تأكد أن **Settings → Verify JWT with legacy secret** مفعّل (ما عدا `owner-login`)، وأن **Overview** يعرض «Last deployed a few seconds ago».
+3. تأكد أن **Settings → Verify JWT with legacy secret** مفعّل ما عدا `owner-login` و`health` و`monitor-client-errors`. الإعدادات الثلاثة المعفاة موثقة في `supabase/config.toml` (`verify_jwt = false`)، وأن **Overview** يعرض «Last deployed a few seconds ago».
 4. للتحقق من التطابق: احسب `sha256sum supabase/functions/<name>/index.ts` وقارنه ببصمة محتوى المحرر.
 5. اختبار سريع: طلب `POST` بدون توثيق يجب أن يعيد `401` بصيغة الدالة `{"error":"unauthorized"}`.
 
-بديل عند توفر `SUPABASE_ACCESS_TOKEN`: `npx supabase functions deploy <name> --project-ref musvcrkljccubwbcrtjs`. لا ترفع ملفات تجريبية مع الدالة، ولا تضع `BACKUP_REPO_TOKEN` أو `service_role` في المتصفح أو الريبو.
+بديل عند توفر `SUPABASE_ACCESS_TOKEN`: `npx supabase functions deploy <name> --project-ref musvcrkljccubwbcrtjs`. ضع المتغير في `.env` داخل **جذر المشروع** (نفس مستوى `supabase/`) لا في المجلد الأعلى، لأن CLI يقرأ `.env` من `supabase/` ثم من جذر المشروع فقط. نموذج الأسماء موجود في `.env.example`، و`.env` مستبعد في `.gitignore`. **رمز الدخول الصحيح يبدأ بـ `sbp_`** ويُنشأ من https://supabase.com/dashboard/account/tokens؛ أما `sb_secret_...` أو `service_role` فهي مفاتيح API للمشروع وليست رموز CLI، وسي رفضها CLI برسالة `Invalid access token format`. لا ترفع ملفات تجريبية مع الدالة، ولا تضع `BACKUP_REPO_TOKEN` أو `service_role` في المتصفح أو الريبو.
+
+> تنبيه للإصدارات الأحدث من CLI: أوامر تعديل المشروع المستضاف تطلب تأكيدًا تفاعليًا؛ أضف `--yes` عند التشغيل من سكربت أو agent (مثال: `npx supabase functions deploy health --project-ref musvcrkljccubwbcrtjs --yes`)، أو عيّن `SUPABASE_YES` في القشرة نفسها. المتغير `SUPABASE_YES` لا يُقرأ من ملفات `.env` لهذا الغرض.
 
 ### فحص صحي خفيف للتطبيق
 
@@ -76,7 +78,34 @@ curl -sS -o /dev/null -w '%{http_code}\n' -X POST "$SB_URL/functions/v1/health" 
 curl -sS -o /dev/null -w '%{http_code}\n' -H "apikey: $SB_KEY" "$SB_URL/rest/v1/buildings" # 401 متوقّع
 ```
 
-> الحالة في هذا المستودع: الكود والاختبارات جاهزة، لكن النشر لم يُنفَّذ من بيئة التطوير لعدم توفر `SUPABASE_ACCESS_TOKEN`؛ يلزم نشرها يدويًا من لوحة Supabase حتى يصبح الرابط حيًا.
+> **الحالة (2026-11-24): دالة `health` منشورة ومفعّلة في المشروع المستضاف.** نُشرت بـ CLI بعد توفير `SUPABASE_ACCESS_TOKEN` في `.env` بجذر المشروع:
+>
+> ```sh
+> npx --yes supabase@2.122.1 functions deploy health --project-ref musvcrkljccubwbcrtjs --no-verify-jwt
+> npm run check:supabase -- --strict
+> ```
+>
+> النتيجة: `GET /functions/v1/health` أعاد `200`، و`supabase functions list` يعرض `verify_jwt: false` للدالة، والفحص الصارم انتهى بـ`0 failed, 0 warning(s)`. قبل النشر كان الرابط يعيد `404 NOT_FOUND`.
+>
+> عند تحديث الدالة لاحقًا، تنبيه: في بعض إصدارات CLI لا يُطبَّق `verify_jwt = false` من `config.toml` تلقائيًا؛ تحقق من إعداد الدالة في اللوحة أو أعد `--no-verify-jwt`، ثم اعتمد على `npm run check:supabase -- --strict` كدليل نهائي. `401` تعني أن Verify JWT ما زال مفعّلًا.
+
+### فحص آلي لحالة الربط
+
+أُضيف `npm run check:supabase` (`scripts/check-supabase.cjs`) لفحص الربط من أي بيئة دون طباعة المفتاح العام أو قراءة أي سر. يقرأ URL والمفتاح من `js/supabase.js`، ثم يفحص أربع نقاط:
+
+| الفحص | الحالة المتوقعة | المعنى |
+|---|---|---|
+| `GET /auth/v1/health` | `200` | GoTrue متاح (فحص حرج) |
+| `GET /rest/v1/` | `200` أو `401` | PostgREST يستجيب (فحص حرج؛ `401 secret API key required` طبيعي للمفتاح العام) |
+| `GET /rest/v1/buildings?select=id&limit=1` | `401` أو `403` | رفض القراءة العامة بواسطة RLS/المنح؛ `200` يُعد فشلًا أمنيًا |
+| `GET /functions/v1/health` | `200` (منشورة الآن) | `404` تعني دالة غير منشورة؛ `401` تعني Verify JWT مفعّل |
+
+```sh
+npm run check:supabase                 # تحذيرات الدالة غير المنشورة لا تُفشل الأمر
+npm run check:supabase -- --strict     # يُفشل أي تحذير أيضًا؛ مناسب بعد نشر health
+```
+
+المفتاح لا يظهر في الإخراج؛ تُطبع فقط معلومة موجوديته وطوله. لا يستخدم الفحص `service_role` ولا أي بيانات جلسة، وهو آمن للتشغيل من CI أو جهاز مطور.
 
 ### اختبارات الدوال
 

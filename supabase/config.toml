@@ -1,6 +1,14 @@
 [functions.owner-login]
 verify_jwt = false
 
+# مسبار حياة عام: لا يحمل بيانات، ويُفحص عبر GET من أي عميل.
+[functions.health]
+verify_jwt = false
+
+# يتحقق من CRON_SECRET في جسم الطلب بدل JWT (جدولة pg_cron).
+[functions.monitor-client-errors]
+verify_jwt = false
+
 [db.seed]
 enabled = true
 sql_paths = ["./seed.sql"]

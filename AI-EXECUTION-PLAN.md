@@ -32,6 +32,8 @@ Manzil تطبيق ويب عربي RTL لإدارة العقارات/المبان
 | آخر تغيير تطبيقي سابق | [PR #499](https://github.com/manzilsystem/Manzil/pull/499) — إصلاح fallback تقرير الفترة (P3.3) |
 | Commit التطبيق | `98aafbf420a0c96e2ec856d63be5718a2fda1033` |
 | الإصدار المسجل في آخر خط أساس | `manzil-1edf481fe4` |
+| commit لاحق على `main` | `19e2133ba399d2a899d5597e5191195ce0659ec1` — إضافة دالة `health` وتوثيق حالة Supabase وتحديث البناء `manzil-ee116890b1`؛ لم يُسجَّل بعد في سجل القسم 10 |
+| الإصدار الحالي المُتحقق منه محليًا | `manzil-ee116890b1` (`npm run check:index` ناجح في 2026-11-24) |
 | فرع إعادة تنظيم الخطة | (مُحذوف؛ main فقط) |
 
 PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل PostgreSQL، ليختبر تعريف RPC المصحح قبل assertions التقرير. لم يضف ميزة مستخدم جديدة.
@@ -92,6 +94,21 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 **نتائج CI على head أعلاه:** typecheck ناجح؛ اختبار الإيصالات المستهدف (#579) ناجح، ومجموعة state-tests سجلت 972 نجاحًا وفشلًا واحدًا فقط في اختبار `index.html` المولّد؛ PostgreSQL integration وEdge Function وLighthouse ناجحة؛ Chromium smoke/settings كان قيد التشغيل عند آخر تحقق؛ Supabase Preview متخطٍ لأن إنشاء فروع Preview معطل. Node regression workflow فشل في `check:index` قبل assistant evaluation وNode regression tests؛ السبب أن `index.html` و`sw.js` و`js/telemetry.js` لا تطابق مخرجات `npm run build:index`. لم تُشغّل اختبارات محلية.
 
 **العائق وخطوة الحل والاستئناف:** لا يمكن اعتبار فحص الأصول المولّدة تجميليًا هنا؛ سكربت البناء يحدّث إصدارات الأصول في `index.html` وService Worker واسم cache، وتجاوز ذلك قد يبقي نسخة `js/access.js` القديمة في cache. تعذر تشغيل البناء من بيئة التنفيذ، لذلك لا تدمج PR #500 الآن ولا تحرر hashes يدويًا. نقطة الاستئناف الدقيقة: شغّل `npm run build:index` من جذر المستودع على فرع PR #500، أضف المخرجات الثلاثة التي ينتجها السكربت، ثم أعد CI؛ بعد نجاح التحقق راجع diff وادمج، ثم حدّث حالة P3.4 وCommit الدمج ونتائج الفحوص والمهمة التالية في هذه الوثيقة.
+
+### 2.5 الحالة التشغيلية لربط Supabase (2026-11-24)
+
+فحص حي من بيئة التطوير على المشروع المستضاف `musvcrkljccubwbcrtjs` باستخدام المفتاح العام من `js/supabase.js` فقط؛ دون أي سر أو استخدام لـ `service_role`:
+
+| الفحص | النتيجة | التفسير |
+|---|---|---|
+| `GET /auth/v1/health` | `200` (GoTrue v2.198.0) | المصادقة متاحة |
+| `GET /rest/v1/` | `401 Secret API key required` | PostgREST متاح؛ الرسالة طبيعية للمفتاح العام |
+| `GET /rest/v1/buildings?select=id&limit=1` | `401 permission denied for table buildings` | RLS/المنح يمنع القراءة العامة، وهو سلوك مقصود |
+| `GET /functions/v1/health` | `200` بعد النشر (كان `404`) | دالة `health` منشورة و`verify_jwt: false` وفق `functions list` |
+
+الاستنتاج: الربط بالخادم سليم من ناحية الشبكة والمصادقة وعزل البيانات، وقد أُغلقت فجوة نشر `health` في 2026-11-24. أُضيف `npm run check:supabase` (`scripts/check-supabase.cjs`) لتكرار هذا الفحص، مع `--strict` لاعتبار أي تحذير فشلًا. صُحِّح `supabase/config.toml` ليعلن `verify_jwt = false` لكل من `health` و`monitor-client-errors` تماشيًا مع التوثيق وسلوك النشر الموصوف في `docs/supabase-rollout.md`. النشر تم بأمر `npx --yes supabase@2.122.1 functions deploy health --project-ref musvcrkljccubwbcrtjs --no-verify-jwt` بعد توفير رمز CLI صالح (`sbp_…`) في `.env` بجذر المشروع.
+
+**الفحوص المحلية بعد هذه التعديلات:** `npm test` 1018/1018 ناجح، `npm run typecheck` ناجح، `npm run check:index` ناجح، `deno test` لدوال Edge 65/65 ناجح، `npm run e2e` 243 ناجحة و1 متخطٍ من 244، `npm audit --omit=dev` بلا ثغرات، `npm run check:secrets` بلا نتائج، و`npm run check:supabase -- --strict` ناجح بـ`0 failed, 0 warning(s)`. أُضيفت ثلاث خطوات إلى Quality Checks: فحص اعتمادات الإنتاج، فحص أسرار الملفات المتتبعة، وفحص ربط Supabase (إعلامي بـ`continue-on-error`). تنبيه `npm audit` الكامل: ثغرة `high` واحدة في Dev dependency `xlsx` بدون إصلاح على npm، لكن الواجهة تستخدم `XLSX.writeFile` فقط ولا تحلل ملفات خارجية؛ فحص الإنتاج نظيف.
 
 ## 3. قواعد الحالة ومعايير الإكمال
 
@@ -236,7 +253,7 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 **ملحوظة:** جميع المهام P0–P3.4 مكتملة، والفرع `main` نظيف. جميع الفروع المفتوحة تم دمجها أو حذفها. الوثيقة الوثيقية المتبقية في `docs/` مهمة وتحتاج الترك، بما فيها `docs/assistant-output-report.md`.
 
 **عائق موثق متبقٍ:**
-- فجوة فحص آلي للأسرام والاعتمادات؛ مطلوب تشغيل `npm audit` أو workflow مراجعة أمنية في نوفمبر 2026.
+- لا يوجد Dependabot ولا ماسح أسرار خارجي. أُضيف في 2026-11-24 فحص محلي خفيف (`npm run check:secrets` + خطوة في Quality Checks) يفحص أنماط مفاتيح Supabase/GitHub/AWS ومفاتيح SSH الخاصة في الملفات المتتبعة فقط؛ نتيجته الحالية بلا اكتشافات. هذا الفحص لا يغطي تاريخ Git ولا يغني عن ماسح كامل، لكنه يغلق فجوة الفحص الآلي الأساسية. أُضيف فحص اعتمادات الإنتاج `npm audit --omit=dev --audit-level=high` ونتيجته `0 vulnerabilities`؛ تنبيهات `xlsx` التطويرية موثقة كاستثناء لأنها تُستخدم للتصدير فقط دون تحليل ملفات خارجية.
 
 **ملاحظات أداء موثقة:**
 - وزن الموارد في Lighthouse (`lighthouserc.json`) غير مُرخص للتعديل حتى يتم تحديد أصغر ملف قابل للتحسين.
@@ -363,4 +380,4 @@ PR #481 أضاف migration تقرير الفترة إلى مشغل تكامل Po
 
 - تفاصيل CI لـPR #487: [Quality Checks](https://github.com/manzilsystem/Manzil/actions/runs/45067781214) ناجح؛ [Node and PostgreSQL tests](https://github.com/manzilsystem/Manzil/actions/runs/45067781185) ناجح (state-tests وpostgres-integration وedge-function-check)؛ [Local Supabase seed validation](https://github.com/manzilsystem/Manzil/actions/runs/45067781165) ناجح، بما في ذلك بدء البيئة المحلية وتطبيق migrations وseed والتحقق من fixtures وcashboxes وmonthly close وRLS. Supabase Preview متخطٍ، وليس فحصًا ناجحًا.
 
-**استئناف العمل من هذه النقطة:** P1.1–P1.5 وP2.1–P2.5 وP3.1–P3.4 مكتملة بعد الدمج. P3.5 هي المهمة التالية. فجوات متبقية: فحص الأصول المولدة في PR #499 (موثق أعلاه ولا يُسجل كفحص ناجح)، ومراجعة فحص الأصدارات المتوافقة مع النسخ الاحتياطية، وملاحظتان منفصلتان لمهمات لاحقة: تجاوز وزن الموارد وغياب قياس axe. PR #480 القديم ما زال مفتوحًا ومتباعدًا عن main ولا يدخل ضمن P2.3–P3.5.
+**استئناف العمل من هذه النقطة:** P1.1–P1.5 وP2.1–P2.5 وP3.1–P3.4 مكتملة بعد الدمج. P3.5 هي المهمة التالية. فجوة PR #499 في الأصول المولّدة لم تعد قائمة في الشجرة الحالية: `npm run check:index` ناجح في 2026-11-24 على commit `19e2133` (راجع القسم 2.5)، لكنها تبقى موثقة تاريخيًا ولا تُحوَّل إلى فحص ناجح بأثر رجعي. نُشرت دالة `health` في 2026-11-24 وتحقق `npm run check:supabase -- --strict` ناجح (راجع القسم 2.5). أُضيف فحص اعتمادات الإنتاج وفحص أسرار الملفات المتتبعة إلى CI، ونُفّذ E2E محليًا (243/244) في 2026-11-24 (راجع القسم 2.5). فجوات متبقية: مراجعة فحص الأصدارات المتوافقة مع النسخ الاحتياطية، وتجاوز وزن الموارد، وغياب قياس axe، وغياب ماسح أسرار خارجي يغطي تاريخ Git. PR #480 القديم ما زال مفتوحًا ومتباعدًا عن main ولا يدخل ضمن P2.3–P3.5.

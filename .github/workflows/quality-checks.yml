@@ -27,10 +27,17 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm ci
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+      - name: Scan tracked files for credentials
+        run: npm run check:secrets
       - name: Type-check opted-in modules
         run: npm run typecheck
       - name: Verify generated index.html is current
         run: npm run check:index
+      - name: Check hosted Supabase connectivity (informational)
+        continue-on-error: true
+        run: npm run check:supabase
       - name: Run assistant evaluation gate
         run: node --test --test-name-pattern='assistant fixed evaluation set' tests/assistant.test.cjs
       - name: Upload assistant evaluation report

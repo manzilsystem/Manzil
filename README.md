@@ -25,11 +25,14 @@ npm run check:index   # يفشل إن كان index.html غير محدَّث
 
 | الأمر | التغطية | الحالة |
 |---|---|---|
-| `npm test` | 966 اختبار Node: الحالة، الصلاحيات، التقارير، الحفظ الذري، التحصيل والصناديق، النسخ الاحتياطي، المساعد المحلي (بما فيها تواريخ الإيجار)، الإشعارات ومدة التأخر، آلية التحديث التلقائي | يمر محليًا في تحقق 2026-11-19 |
+| `npm test` | 1018 اختبار Node: الحالة، الصلاحيات، التقارير، الحفظ الذري، التحصيل والصناديق، النسخ الاحتياطي، المساعد المحلي (بما فيها تواريخ الإيجار)، الإشعارات ومدة التأخر، آلية التحديث التلقائي، فحص ربط Supabase | يمر محليًا في تحقق 2026-11-24 |
 | `npm run typecheck` | `tsc --noEmit` على وحدات JS المعلَّمة بـ`// @ts-check` | يمر |
-| `npm run e2e` | 206 حالة Playwright مُكتشفة (desktop + mobile) | [نجح main بعد PR #462: 205 ناجح، 1 متخطٍ](https://github.com/manzilsystem/Manzil/actions/runs/44541890844)؛ سيناريو تواريخ الإيجار المستهدف نجح محليًا 2/2 |
+| `npm run check:supabase` | فحص حي لـGoTrue وPostgREST ورفض القراءة العامة ودالة `health`؛ لا يطبع المفتاح العام | ناجح بـ`--strict` في 2026-11-24 (0 فشل، 0 تحذير) بعد نشر `health`؛ تفاصيل في `docs/supabase-rollout.md` |
+| `npm run e2e` | 244 حالة Playwright مُكتشفة (desktop + mobile) | نجحت محليًا في 2026-11-24: 243 ناجحة و1 متخطٍ (سلوك viewport على الهاتف) |
 | `deno test supabase/functions` | اختبارات Edge Functions مع خادم Supabase وهمي | فحص Edge في [PR #462](https://github.com/manzilsystem/Manzil/pull/462) ناجح؛ لم يُشغّل محليًا |
 | تكامل PostgreSQL | يعمل في CI عبر `supabase db reset --local` و`tests/post-restore-verify.sql` | فحص PostgreSQL في [PR #462](https://github.com/manzilsystem/Manzil/pull/462) ناجح؛ لم يُشغّل محليًا |
+| `npm audit --omit=dev` | فحص اعتمادات الإنتاج في Quality Checks | 0 ثغرات في 2026-11-24 |
+| `npm run check:secrets` | فحص أسرار خفيف على الملفات المتتبعة في Git (لا يقرأ `.env` ولا يطبع القيم) | لا مفاتيح مكتشفة في 2026-11-24 |
 
 CI يعمل على كل Pull Request وتحديث `main`: `node-tests.yml` و`e2e.yml` و`quality-checks.yml` و`lighthouse.yml` و`supabase-local-seed.yml`.
 
@@ -76,6 +79,7 @@ CI يعمل على كل Pull Request وتحديث `main`: `node-tests.yml` و`e2
 - Leaked Password Protection غير متاحة في الخطة الحالية؛ لا تُغيَّر سياسة PIN أو المصادقة لتجاوز التحذير.
 - لا API واتساب: الرسائل تُفتح عبر روابط `wa.me` بيد المستخدم.
 - لا تستخدم `service_role` في المتصفح ولا تضع أي سر في الواجهة أو المستودع أو السجلات.
+- حزمة `xlsx` في `vendor/` تُستخدم لتصدير التقارير فقط (`XLSX.writeFile`) دون تحليل ملفات خارجية؛ تنبيهات `npm audit` الخاصة بها لا مسار قابل للوصول في التطبيق الحالي، وفحص الإنتاج `npm audit --omit=dev` نظيف.
 
 ## التوثيق
 
