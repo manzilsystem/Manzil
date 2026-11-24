@@ -632,6 +632,12 @@ function generateLandlordReport() {
                 <p class="report-preview-meta">تقرير ${esc(m)}${purposeFilter ? ' • الغرض: ' + esc(filterLabel) : ''}${cashAccountFilter ? ' • الصندوق: ' + esc(cashAccountLabel) : ''}${paymentMethodFilter ? ' • طريقة الدفع: ' + esc(paymentMethodLabel) : ''}${residentFilter ? ' • الشقة: ' + esc(residentLabel) : ''} • تم الإنشاء ${formatDate(new Date().toISOString())}</p>
             </header>
             ${statsHtml}
+            <div class="report-block report-chart-block no-print">
+                <p class="report-block-title"><span>تصور بياني</span><span class="report-block-count">مخطط</span></p>
+                <div class="report-chart-container" style="position:relative;height:220px;margin:8px 0;">
+                    <canvas id="landlordReportChart"></canvas>
+                </div>
+            </div>
             <div class="report-block">
                 <p class="report-block-title"><span>التحصيل حسب الغرض</span><span class="report-block-count">${fmtNum(purposeTotals.size)}</span></p>
                 ${purposeSummary ? '<div class="report-list">' + purposeSummary + '</div>' : '<p class="report-note">لا يوجد</p>'}
@@ -677,6 +683,17 @@ function generateLandlordReport() {
     landlordReportResidentFilter = residentFilter;
     landlordReportSignature = getLandlordReportSignature(m, purposeFilter, cashAccountFilter, paymentMethodFilter, residentFilter);
     setLandlordReportActionsEnabled(true);
+
+    // Render chart for landlord report
+    if (typeof renderDoughnutValues === 'function' && paymentMethodTotals.size > 0) {
+        renderDoughnutValues(
+            'landlordReportChart',
+            Array.from(paymentMethodTotals.keys()),
+            Array.from(paymentMethodTotals.values()).map(t => t.cents / 100),
+            [REPORT_CHART_COLORS.emerald, REPORT_CHART_COLORS.sky, REPORT_CHART_COLORS.amber, REPORT_CHART_COLORS.rose, REPORT_CHART_COLORS.indigo],
+            { cutout: '55%' }
+        );
+    }
 }
 
 function printLandlordReport() {
@@ -1209,7 +1226,7 @@ function getPeriodReportSignature(fromMonth, toMonth, purposeFilter = '', cashAc
 }
 
 function setPeriodReportActionsEnabled(enabled) {
-    ['periodReportPrintBtn', 'periodReportPdfBtn', 'periodReportExportBtn'].forEach(id => {
+    ['periodReportPrintBtn', 'periodReportPdfBtn', 'periodReportExportBtn', 'periodReportExcelBtn'].forEach(id => {
         const button = /** @type {HTMLButtonElement} */ (document.getElementById(id));
         if (button) button.disabled = !enabled;
     });
@@ -1386,8 +1403,14 @@ function renderPeriodReportHtml(report) {
                 ${residentFilterNote}
                 ${unpaidNote}
                 ${adjustmentNote}
-            </div>
-        </div>`;
+             </div>
+             <div class="report-chart-block no-print">
+                 <p class="report-block-title"><span>تصور بياني - التحصيل عبر الأشهر</span><span class="report-block-count">مخطط</span></p>
+                 <div class="report-chart-container" style="position:relative;height:220px;margin:8px 0;">
+                     <canvas id="periodReportChart"></canvas>
+                 </div>
+             </div>
+         </div>`;
 }
 
 function getPeriodRangeError(fromMonth, toMonth) {
@@ -1399,6 +1422,44 @@ function getPeriodRangeError(fromMonth, toMonth) {
         return `أقصى مدة لتقرير الفترة ${PERIOD_REPORT_MAX_MONTHS} شهرًا. اختر فترة أقصر.`;
     }
     return '';
+}
+
+/**
+ * الحصول على وضع مقارنة الفترة
+ * @returns {string}
+ */
+function getPeriodComparisonMode() {
+    const select = /** @type {HTMLSelectElement | null} */ (document.getElementById('periodReportComparison'));
+    return String(select?.value || 'none');
+}
+
+/**
+ * معالجة تغيير وضع المقارنة
+ */
+function onPeriodComparisonChange() {
+    invalidatePeriodReportPreview();
+}
+
+/**
+ * بناء وعرض مقارنة الفترة
+ * @param {Object} currentReport - التقرير الحالي
+ * @param {string} purposeFilter
+ * @param {string} cashAccountFilter
+ * @param {string} residentFilter
+ * @returns {string} - HTML المقارنة
+ */
+function buildPeriodComparisonHtml(currentReport, purposeFilter, cashAccountFilter, residentFilter) {
+    const mode = getPeriodComparisonMode();
+    if (!mode || mode === 'none' || typeof getComparisonRange !== 'function') return '';
+
+    const range = getComparisonRange(currentReport.fromMonth, currentReport.toMonth, mode);
+    if (!range || !range.fromMonth || !range.toMonth) return '';
+
+    const previousReport = buildPeriodReport(range.fromMonth, range.toMonth, purposeFilter, cashAccountFilter, residentFilter);
+    if (!previousReport) return '';
+
+    const comparison = buildComparisonModel(currentReport, previousReport);
+    return comparison ? renderComparisonHtml(comparison) : '';
 }
 
 function generatePeriodReport() {
@@ -1417,10 +1478,30 @@ function generatePeriodReport() {
     }
     const preview = document.getElementById('periodReportPreview');
     if (!preview) return;
-    preview.innerHTML = renderPeriodReportHtml(report);
+    const comparisonHtml = buildPeriodComparisonHtml(report, purposeFilter, cashAccountFilter, residentFilter);
+    preview.innerHTML = renderPeriodReportHtml(report) + comparisonHtml;
     periodReportSnapshot = report;
     periodReportSignature = getPeriodReportSignature(from, to, purposeFilter, cashAccountFilter, residentFilter);
     setPeriodReportActionsEnabled(true);
+
+    // Render chart for period report
+    const periodShowDues = report.showDues !== false;
+    if (typeof renderLineSeries === 'function' && report.months.length > 0) {
+        renderLineSeries('periodReportChart', report.months.map(m => m.month), [
+            {
+                label: periodShowDues ? 'المستحق' : 'التحصيل',
+                values: report.months.map(m => periodShowDues ? m.expectedCents / 100 : m.totalIncomeCents / 100),
+                color: REPORT_CHART_COLORS.indigo,
+                fill: 'rgba(99, 102, 241, 0.1)'
+            },
+            {
+                label: periodShowDues ? 'المحصّل' : 'المصروف',
+                values: report.months.map(m => periodShowDues ? m.collectedCents / 100 : m.expenseCents / 100),
+                color: periodShowDues ? REPORT_CHART_COLORS.emerald : REPORT_CHART_COLORS.rose,
+                fill: periodShowDues ? 'rgba(16, 185, 129, 0.1)' : 'rgba(244, 63, 94, 0.1)'
+            }
+        ], { tension: 0.3 });
+    }
 
     if (!canUsePeriodReportRpc()) return;
     const requestToken = (window.__manzilPeriodReportRequestToken = (window.__manzilPeriodReportRequestToken || 0) + 1);
@@ -1439,7 +1520,8 @@ function generatePeriodReport() {
                 setPeriodReportActionsEnabled(true);
                 return;
             }
-            preview.innerHTML = renderPeriodReportHtml(normalized);
+            const comparisonHtml = buildPeriodComparisonHtml(normalized, purposeFilter, cashAccountFilter, residentFilter);
+            preview.innerHTML = renderPeriodReportHtml(normalized) + comparisonHtml;
             periodReportSnapshot = normalized;
             setPeriodReportActionsEnabled(true);
         })
@@ -1518,6 +1600,30 @@ function exportPeriodReportCsv() {
     const residentSuffix = residentSlug ? `_apt_${residentSlug}` : '';
     downloadCsv(`manzil_period_${getPeriodReportFileSlug(report)}${purposeSuffix}${cashSuffix}${residentSuffix}.csv`, rows);
     toast('تم تصدير تقرير الفترة','success');
+}
+
+/**
+ * تصدير تقرير الفترة إلى Excel مع أوراق متعددة
+ */
+function exportPeriodReportExcel() {
+    if (!requireManager()) return;
+    const report = getSelectedPeriodReportSnapshot();
+    if (!report || typeof exportReportWithDetailExcel !== 'function') return;
+
+    const purposeSuffix = report.purposeFilter ? `_${report.purposeFilter}` : '';
+    const cashSuffix = report.cashAccountFilter ? `_${report.cashAccountFilter}` : '';
+    const residentSlug = reportResidentFileSlug(report.residentFilter);
+    const residentSuffix = residentSlug ? `_apt_${residentSlug}` : '';
+    const filename = `manzil_period_${getPeriodReportFileSlug(report)}${purposeSuffix}${cashSuffix}${residentSuffix}`;
+
+    const { summary, details } = periodReportToExcelRows(report);
+    exportReportWithDetailExcel(filename, `تقرير الفترة - ${state.buildingName || 'Manzil'}`, summary, details, {
+        'الفترة': report.rangeLabel,
+        'الغرض': report.purposeLabel,
+        'الصندوق': report.cashAccountLabel,
+        'الشقة': report.residentLabel,
+        'تاريخ الإنشاء': formatDate(report.generatedAt)
+    });
 }
 
 async function exportPeriodReportPdf() {
@@ -1670,7 +1776,7 @@ function getExpensesReportSignature(fromMonth, toMonth, cashAccountFilter = '', 
 }
 
 function setExpensesReportActionsEnabled(enabled) {
-    ['expensesReportPrintBtn', 'expensesReportPdfBtn', 'expensesReportExportBtn'].forEach(id => {
+    ['expensesReportPrintBtn', 'expensesReportPdfBtn', 'expensesReportExportBtn', 'expensesReportExcelBtn'].forEach(id => {
         const button = /** @type {HTMLButtonElement} */ (document.getElementById(id));
         if (button) button.disabled = !enabled;
     });
@@ -1770,6 +1876,12 @@ function renderExpensesReportHtml(report) {
                 <div class="report-stat"><p class="report-stat-label">متوسط الشهر</p><p class="report-stat-value">${fmtMoney(totals.averageCents / 100)}</p></div>
                 <div class="report-stat"><p class="report-stat-label">أشهر فيها مصروف</p><p class="report-stat-value">${fmtNum(totals.monthCount)}</p></div>
             </div>
+            <div class="report-block report-chart-block no-print">
+                <p class="report-block-title"><span>تصور بياني - المصروف حسب التصنيف</span><span class="report-block-count">مخطط</span></p>
+                <div class="report-chart-container" style="position:relative;height:220px;margin:8px 0;">
+                    <canvas id="expensesReportChart"></canvas>
+                </div>
+            </div>
             <div class="report-block">
                 <p class="report-block-title"><span>المصروف حسب التصنيف</span><span class="report-block-count">${fmtNum(report.categories.length)}</span></p>
                 ${categorySummary ? '<div class="report-list">' + categorySummary + '</div>' : '<p class="report-note">لا يوجد</p>'}
@@ -1816,6 +1928,17 @@ function generateExpensesReport() {
     expensesReportSnapshot = report;
     expensesReportSignature = getExpensesReportSignature(from, to, cashAccountFilter, categoryFilter);
     setExpensesReportActionsEnabled(true);
+
+    // Render chart for expenses report
+    if (typeof renderDoughnutValues === 'function' && report.categories.length > 0) {
+        renderDoughnutValues(
+            'expensesReportChart',
+            report.categories.map(c => c.label),
+            report.categories.map(c => c.cents / 100),
+            [REPORT_CHART_COLORS.rose, REPORT_CHART_COLORS.amber, REPORT_CHART_COLORS.sky, REPORT_CHART_COLORS.emerald, REPORT_CHART_COLORS.indigo, REPORT_CHART_COLORS.slate],
+            { cutout: '55%' }
+        );
+    }
 }
 
 function printExpensesReport() {
@@ -1860,6 +1983,27 @@ function exportExpensesReportCsv() {
     const categorySuffix = report.categoryFilter ? `_${report.categoryFilter.replace(/\s+/g, '-')}` : '';
     downloadCsv(`manzil_expenses_${getPeriodReportFileSlug(report)}${cashSuffix}${categorySuffix}.csv`, rows);
     toast('تم تصدير تقرير المصروفات','success');
+}
+
+/**
+ * تصدير تقرير المصروفات إلى Excel مع أوراق متعددة
+ */
+function exportExpensesReportExcel() {
+    if (!requireManager()) return;
+    const report = getSelectedExpensesReportSnapshot();
+    if (!report || typeof exportReportWithDetailExcel !== 'function') return;
+
+    const cashSuffix = report.cashAccountFilter ? `_${report.cashAccountFilter}` : '';
+    const categorySuffix = report.categoryFilter ? `_${report.categoryFilter.replace(/\s+/g, '-')}` : '';
+    const filename = `manzil_expenses_${getPeriodReportFileSlug(report)}${cashSuffix}${categorySuffix}`;
+
+    const { summary, details } = expensesReportToExcelRows(report);
+    exportReportWithDetailExcel(filename, `تقرير المصروفات - ${state.buildingName || 'Manzil'}`, summary, details, {
+        'الفترة': report.rangeLabel,
+        'الصندوق': report.cashAccountLabel,
+        'التصنيف': report.categoryLabel,
+        'تاريخ الإنشاء': formatDate(report.generatedAt)
+    });
 }
 
 async function exportExpensesReportPdf() {
@@ -2068,6 +2212,12 @@ function renderAdjustmentsReportHtml(report) {
                 <div class="report-stat"><p class="report-stat-label">الشقق المستفيدة</p><p class="report-stat-value">${fmtNum(totals.residentCount)}</p></div>
                 <div class="report-stat"><p class="report-stat-label">أشهر مشمولة</p><p class="report-stat-value">${fmtNum(totals.monthCount)}</p></div>
             </div>
+            <div class="report-block report-chart-block no-print">
+                <p class="report-block-title"><span>تصور بياني - الإعفاءات عبر الأشهر</span><span class="report-block-count">مخطط</span></p>
+                <div class="report-chart-container" style="position:relative;height:220px;margin:8px 0;">
+                    <canvas id="adjustmentsReportChart"></canvas>
+                </div>
+            </div>
             <div class="report-block">
                 <p class="report-block-title"><span>التوزيع حسب النوع</span><span class="report-block-count">${fmtNum(report.kinds.length)}</span></p>
                 ${kindSummary ? '<div class="report-list">' + kindSummary + '</div>' : '<p class="report-note">لا يوجد</p>'}
@@ -2111,6 +2261,17 @@ function generateAdjustmentsReport() {
     adjustmentsReportSnapshot = report;
     adjustmentsReportSignature = getAdjustmentsReportSignature(from, to, residentFilter, kindFilter);
     setAdjustmentsReportActionsEnabled(true);
+
+    // Render chart for adjustments report
+    if (typeof renderBarValues === 'function' && report.months.length > 0) {
+        renderBarValues(
+            'adjustmentsReportChart',
+            report.months.map(m => m.month),
+            report.months.map(m => m.amountCents / 100),
+            REPORT_CHART_COLORS.amber,
+            'الإعفاءات والتخفيضات'
+        );
+    }
 }
 
 function invalidateAdjustmentsReportPreview() {
@@ -3162,4 +3323,97 @@ function exportResidentStatementCsv() {
     });
     downloadCsv(`manzil_statement_${getStatementFileSlug(statement)}.csv`, rows);
     toast('تم تصدير كشف الحساب','success');
+}
+
+// ============================================
+// معالجات واجهة التقارير المجدولة
+// ============================================
+
+/** فتح/إغلاق نموذج جدول جديد */
+function openScheduleForm() {
+    const form = document.getElementById('scheduleFormContainer');
+    if (form) form.classList.toggle('hidden');
+}
+
+/** حفظ جدول جديد من الواجهة */
+function saveNewSchedule() {
+    const name = String(/** @type {HTMLInputElement} */ (document.getElementById('scheduleName'))?.value || '');
+    const reportType = String(/** @type {HTMLSelectElement} */ (document.getElementById('scheduleReportType'))?.value || '');
+    const frequency = String(/** @type {HTMLSelectElement} */ (document.getElementById('scheduleFrequency'))?.value || '');
+    const delivery = String(/** @type {HTMLSelectElement} */ (document.getElementById('scheduleDelivery'))?.value || '');
+    if (!name.trim()) { toast('أدخل اسم الجدول', 'error'); return; }
+    const schedule = typeof addScheduledReport === 'function'
+        ? addScheduledReport({ name, reportType, frequency, delivery }) : null;
+    if (schedule) {
+        toast('تم إنشاء الجدول', 'success');
+        openScheduleForm();
+        if (typeof renderScheduledReportsList === 'function') renderScheduledReportsList('scheduledReportsList');
+    }
+}
+
+/** تبديل عرض سجل التشغيل */
+function toggleScheduleLog() {
+    const wrap = document.getElementById('scheduleLogWrap');
+    if (!wrap) return;
+    const willShow = wrap.classList.contains('hidden');
+    wrap.classList.toggle('hidden');
+    if (willShow && typeof renderScheduleLog === 'function') renderScheduleLog('scheduleLogWrap');
+}
+
+/** تبديل عرض قسم التقارير المجدولة */
+function toggleScheduledReportsSection() {
+    const body = document.getElementById('scheduledReportsBody');
+    if (body) body.classList.toggle('hidden');
+}
+
+/** تهيئة قسم التقارير المجدولة */
+function initScheduledReportsUI() {
+    if (typeof renderScheduledReportsList === 'function') renderScheduledReportsList('scheduledReportsList');
+    if (typeof renderTemplateList === 'function') renderTemplateList('period', 'savedTemplatesList');
+}
+
+/** حفظ فلاتر تقرير الفترة الحالية كقالب */
+function saveCurrentPeriodTemplate() {
+    const name = String(/** @type {HTMLInputElement} */ (document.getElementById('templateNameInput'))?.value || '').trim();
+    if (!name) { toast('أدخل اسم القالب', 'error'); return; }
+    const filters = {
+        fromMonth: String(/** @type {HTMLSelectElement} */ (document.getElementById('periodReportFrom'))?.value || ''),
+        toMonth: String(/** @type {HTMLSelectElement} */ (document.getElementById('periodReportTo'))?.value || ''),
+        purposeFilter: String(/** @type {HTMLSelectElement} */ (document.getElementById('periodReportPurpose'))?.value || ''),
+        cashAccountFilter: String(/** @type {HTMLSelectElement} */ (document.getElementById('periodReportCashAccount'))?.value || ''),
+        residentFilter: String(/** @type {HTMLSelectElement} */ (document.getElementById('periodReportResident'))?.value || '')
+    };
+    if (typeof addReportTemplate === 'function') {
+        addReportTemplate(name, 'period', filters);
+        toast('تم حفظ القالب', 'success');
+        const input = /** @type {HTMLInputElement} */ (document.getElementById('templateNameInput'));
+        if (input) input.value = '';
+        if (typeof renderTemplateList === 'function') renderTemplateList('period', 'savedTemplatesList');
+    }
+}
+
+/** تطبيق قالب محفوظ على فلاتر تقرير الفترة */
+function applyTemplate(templateId) {
+    const filters = typeof applyReportTemplate === 'function' ? applyReportTemplate(templateId) : null;
+    if (!filters) { toast('تعذر العثور على القالب', 'error'); return; }
+    const mapping = {
+        periodReportFrom: filters.fromMonth,
+        periodReportTo: filters.toMonth,
+        periodReportPurpose: filters.purposeFilter,
+        periodReportCashAccount: filters.cashAccountFilter,
+        periodReportResident: filters.residentFilter
+    };
+    Object.entries(mapping).forEach(([id, value]) => {
+        const select = /** @type {HTMLSelectElement | null} */ (document.getElementById(id));
+        if (select && value) select.value = String(value);
+    });
+    toast('تم تطبيق القالب — اضغط معاينة', 'success');
+}
+
+/** حذف قالب محفوظ */
+function deleteTemplate(templateId) {
+    if (typeof deleteReportTemplate === 'function' && deleteReportTemplate(templateId)) {
+        toast('تم حذف القالب', 'success');
+        if (typeof renderTemplateList === 'function') renderTemplateList('period', 'savedTemplatesList');
+    }
 }

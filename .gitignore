@@ -13,8 +13,11 @@ test-results/
 playwright-report/
 
 # Local verification artifacts
-reports/
+/reports/
 .screenshots/
+
+# Reports source modules (negate any broad reports/ match)
+!js/reports/
 
 # Large local model experiments stay outside the application bundle.
 js/vendor/*

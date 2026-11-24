@@ -15,6 +15,7 @@ function switchTab(tab) {
         }
     });
     if (tab === 'reports' && !reportsOpen && typeof resetReportView === 'function') resetReportView();
+    if (tab === 'reports' && typeof initScheduledReportsUI === 'function') initScheduledReportsUI();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
