@@ -38,6 +38,26 @@ test('local migration history matches the applied Supabase order', () => {
     assert.ok(position('income_cash_account_allocation') < position('income_purpose_cashbox_mapping'));
 });
 
+test('local versions mirror the migration versions applied to the hosted project', () => {
+    assert.ok(files.includes('20261116133052_assistant_request_id_idempotency.sql'));
+    assert.ok(files.includes('20261119232103_period_report_rpc.sql'));
+    assert.ok(!files.some(file => /^202611(16153000|19230000)_/.test(file)),
+        'renamed versions must not reappear and split the hosted migration history');
+});
+
+test('integration harnesses reference migration files that still exist', () => {
+    const harnesses = fs.readdirSync(__dirname).filter(file => file.endsWith('.integration.sql'));
+    assert.ok(harnesses.length > 0);
+
+    for (const harness of harnesses) {
+        const source = fs.readFileSync(path.join(__dirname, harness), 'utf8');
+        for (const match of source.matchAll(/\\ir \.\.\/(supabase\/migrations\/[^\s]+\.sql)/g)) {
+            assert.ok(fs.existsSync(path.join(__dirname, '..', match[1])),
+                `${harness} references the missing migration ${match[1]}`);
+        }
+    }
+});
+
 test('the integration harness replays the newest body of every snapshot RPC', () => {
     const harness = fs.readFileSync(path.join(__dirname, 'atomic-persistence.integration.sql'), 'utf8');
     const replayed = new Set(
