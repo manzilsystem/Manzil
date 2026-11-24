@@ -1360,3 +1360,21 @@ test('apartment performance previews dues, applies the apartment filter and expo
     expect(csv).toContain('"شقة 3 · أحمد"');
     expect(csv).not.toContain('سارة');
 });
+
+test('a fresh extended preview survives an unrelated full render', async ({ page }) => {
+    await openReports(page);
+    await openReportPanel(page, 'cashflow');
+    await page.locator('#cashFlowPanel').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await expect(page.locator('#cashFlowExportBtn')).toBeEnabled();
+
+    await page.evaluate(() => renderAll());
+    await expect(page.locator('#cashFlowExportBtn')).toBeEnabled();
+    await expect(page.locator('#cashFlowPreview')).not.toContainText('غيّرت الفلاتر');
+
+    await page.evaluate(() => {
+        state.income.push({ id: 'new', residentId: 'r1', month: 'يناير 2024', amount: 25, paymentMethod: 'cash' });
+        renderAll();
+    });
+    await expect(page.locator('#cashFlowExportBtn')).toBeDisabled();
+    await expect(page.locator('[data-report-nav="cashflow"]')).toHaveClass(/is-stale/);
+});

@@ -310,6 +310,7 @@ function switchReportTab(tab) {
         else item.removeAttribute('aria-current');
     });
     syncReportNavStatus();
+    syncReportNavTabIndex();
     renderReportViewBar(tab);
     document.getElementById('tab-reports')?.setAttribute('data-report-view', 'panel');
     const bar = document.getElementById('reportViewBar');
@@ -321,6 +322,20 @@ function jumpToReportPanel(panelId) {
     const tab = REPORT_TABS.find(name => REPORT_PANEL_IDS[name] === panelId);
     if (!tab) return;
     switchReportTab(tab);
+}
+
+function syncReportNavTabIndex() {
+    const items = [...document.querySelectorAll('[data-report-nav]')]
+        .filter(item => !item.classList.contains('hidden') && !item.classList.contains('is-filtered-out'));
+    if (!items.length) return;
+    const active = items.find(item => item.classList.contains('is-active'))
+        || (document.activeElement?.closest?.('[data-report-nav]'));
+    const target = items.includes(active) ? active : items[0];
+    items.forEach(item => {
+        if (typeof item.setAttribute === 'function') {
+            item.setAttribute('tabindex', item === target ? '0' : '-1');
+        }
+    });
 }
 
 function handleReportTabKeydown(event) {
@@ -335,7 +350,9 @@ function handleReportTabKeydown(event) {
         : event.key === 'End'
             ? items.length - 1
             : (currentIndex + (event.key === 'ArrowLeft' ? 1 : -1) + items.length) % items.length;
-    /** @type {HTMLElement} */ (items[nextIndex]).focus();
+    const next = /** @type {HTMLElement} */ (items[nextIndex]);
+    next.focus();
+    syncReportNavTabIndex();
 }
 
 function handleReportViewKeydown(event) {

@@ -819,6 +819,7 @@ function filterReportNav() {
     });
     const empty = document.getElementById('reportHubEmpty');
     if (empty) empty.classList.toggle('hidden', visible > 0);
+    if (typeof syncReportNavTabIndex === 'function') syncReportNavTabIndex();
 }
 
 function invalidateExtendedReportsIfStale() {
