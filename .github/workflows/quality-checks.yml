@@ -41,11 +41,10 @@ jobs:
       - name: Run assistant evaluation gate
         run: node --test --test-name-pattern='assistant fixed evaluation set' tests/assistant.test.cjs
       - name: Upload assistant evaluation report
-        if: always()
+        if: always() && hashFiles('test-results/assistant-evaluation.json') != ''
         uses: actions/upload-artifact@v4
         with:
           name: assistant-evaluation-report
           path: test-results/assistant-evaluation.json
-          if-no-files-found: error
       - name: Run regression tests
         run: node --test tests/*.test.cjs

@@ -18,6 +18,23 @@ test('CI audits production dependencies after install', () => {
     assert.ok(audit > install, 'production dependency audit must run after install');
 });
 
+test('CI skips the evaluation artifact upload when an earlier gate stops the run', () => {
+    const workflow = read('.github/workflows/quality-checks.yml');
+    assert.match(workflow, /if: always\(\) && hashFiles\('test-results\/assistant-evaluation\.json'\) != ''/);
+    assert.doesNotMatch(workflow, /if-no-files-found: error/);
+});
+
+test('npm ci installs the Chart.js version used by the vendored bundle', () => {
+    const manifest = JSON.parse(read('package.json'));
+    const lock = JSON.parse(read('package-lock.json'));
+    const pinned = lock.packages['node_modules/chart.js'].version;
+    const escaped = pinned.replace(/\./g, '\\.');
+
+    assert.equal(manifest.devDependencies['chart.js'], `^${pinned}`);
+    assert.equal(lock.packages[''].devDependencies['chart.js'], `^${pinned}`);
+    assert.match(read('vendor/chart.umd.js'), new RegExp(`Chart\\.js v${escaped}`));
+});
+
 test('CI runs the live Supabase connectivity check as an informational step', () => {
     const workflow = read('.github/workflows/quality-checks.yml');
     assert.match(workflow, /run: npm run check:supabase/);
