@@ -405,7 +405,7 @@ html { min-width: 320px; scroll-behavior: smooth; }
 body {
     min-height: 100vh;
     overflow-x: hidden;
-    font-family: 'Cairo', sans-serif;
+    font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     -webkit-tap-highlight-color: transparent;
     background-color: var(--bg-main);
     color: var(--text-main);
