@@ -99,6 +99,9 @@ async function withSupabaseStub(
         }
         return Response.json({ id: ownerId, aud: 'authenticated' })
       }
+      if (url.pathname.startsWith('/auth/v1/admin/users/') && request.method === 'GET') {
+        return Response.json({ id: url.pathname.split('/').pop() })
+      }
       if (url.pathname.startsWith('/auth/v1/admin/users/') && request.method === 'DELETE') {
         log.deletedUsers.push(url.pathname.split('/').pop() ?? '')
         return Response.json({})

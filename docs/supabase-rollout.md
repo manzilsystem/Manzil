@@ -48,7 +48,7 @@ from new_building;
 
 ## نشر دوال Edge
 
-الدوال الخمس في `supabase/functions/` تُنشر يدويًا من لوحة Supabase لأن موصل MCP الرسمي قد لا يملك نطاق `projects:read`/`database:read` المطلوب لأدوات الإدارة:
+الدوال الست في `supabase/functions/` تُنشر يدويًا من لوحة Supabase لأن موصل MCP الرسمي قد لا يملك نطاق `projects:read`/`database:read` المطلوب لأدوات الإدارة:
 
 1. اختر المشروع `musvcrkljccubwbcrtjs` ← **Edge Functions** ← الدالة المطلوبة.
 2. تبويب **Code** ← استبدل `index.ts` بنسخة المستودع، ثم **Deploy updates** وأكّد.
@@ -57,6 +57,26 @@ from new_building;
 5. اختبار سريع: طلب `POST` بدون توثيق يجب أن يعيد `401` بصيغة الدالة `{"error":"unauthorized"}`.
 
 بديل عند توفر `SUPABASE_ACCESS_TOKEN`: `npx supabase functions deploy <name> --project-ref musvcrkljccubwbcrtjs`. لا ترفع ملفات تجريبية مع الدالة، ولا تضع `BACKUP_REPO_TOKEN` أو `service_role` في المتصفح أو الريبو.
+
+### فحص صحي خفيف للتطبيق
+
+الدالة `health` (`supabase/functions/health/index.ts`) مسبار حياة عام بدون مصادقة: تستجيب لـ`GET` بـ`200 {"status":"ok","service":"manzil","release":"...","time":"..."}`، وترفض بقية الطرق بـ`405`، ولا تُعيد أي بيانات أو أسرار. تتيح التأكد من أن Edge Runtime يعمل، دون فتح جداول التطبيق للقراءة العامة.
+
+- النشر: انشر `health` كبقية الدوال من لوحة Supabase (أو بـ`npx supabase functions deploy health --project-ref musvcrkljccubwbcrtjs` عند توفر Token).
+- جاهزية المصادقة تُفحص على حدة عبر `GET https://musvcrkljccubwbcrtjs.supabase.co/auth/v1/health` (يُتوقع `200` من GoTrue).
+- رفض `401` على `/rest/v1/buildings` باستخدام مفتاح `anon`/`sb_publishable_*` سلوك مقصود: لا يوجد وصول عام لجداول التطبيق، والقراءة تتطلب جلسة مدير عبر RLS. لا تمنح `anon` صلاحية `SELECT` لتجاوز هذا الفحص.
+- تحقق يدوي بعد النشر:
+
+```bash
+export SB_URL=https://musvcrkljccubwbcrtjs.supabase.co
+export SB_KEY=sb_publishable_<المفتاح_من_js/supabase.js>
+curl -sS -o /dev/null -w '%{http_code}\n' "$SB_URL/functions/v1/health"                    # 200 بعد النشر
+curl -sS -H "apikey: $SB_KEY" "$SB_URL/auth/v1/health"                                  # 200 GoTrue
+curl -sS -o /dev/null -w '%{http_code}\n' -X POST "$SB_URL/functions/v1/health"           # 405
+curl -sS -o /dev/null -w '%{http_code}\n' -H "apikey: $SB_KEY" "$SB_URL/rest/v1/buildings" # 401 متوقّع
+```
+
+> الحالة في هذا المستودع: الكود والاختبارات جاهزة، لكن النشر لم يُنفَّذ من بيئة التطوير لعدم توفر `SUPABASE_ACCESS_TOKEN`؛ يلزم نشرها يدويًا من لوحة Supabase حتى يصبح الرابط حيًا.
 
 ### اختبارات الدوال
 
