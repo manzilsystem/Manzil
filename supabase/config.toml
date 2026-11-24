@@ -12,6 +12,9 @@ verify_jwt = false
 [functions.monitor-client-errors]
 verify_jwt = false
 
+[functions.owner-login]
+verify_jwt = false
+
 [db.seed]
 enabled = true
 sql_paths = ["./seed.sql"]
