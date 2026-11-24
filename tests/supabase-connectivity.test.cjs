@@ -38,6 +38,10 @@ test('expected statuses distinguish healthy, optional and unsafe responses', () 
     assert.equal(evaluate(byId.health, 200).state, 'OK');
     assert.equal(evaluate(byId.health, 404).state, 'WARN');
     assert.equal(evaluate(byId.health, 401).state, 'WARN');
+    assert.equal(byId['owner-login'].method, 'OPTIONS');
+    assert.equal(byId['owner-login'].sendKey, false);
+    assert.equal(evaluate(byId['owner-login'], 200).state, 'OK');
+    assert.equal(evaluate(byId['owner-login'], 401).state, 'FAIL');
 });
 
 test('runChecks keeps probing after a failure and never sends the key to optional checks', async () => {
@@ -59,9 +63,11 @@ test('runChecks keeps probing after a failure and never sends the key to optiona
     assert.equal(results.length, CHECKS.length);
     assert.deepEqual(
         results.map(({ result }) => result.state),
-        ['FAIL', 'OK', 'OK', 'WARN']
+        ['FAIL', 'OK', 'OK', 'WARN', 'FAIL']
     );
     assert.equal(calls.length, CHECKS.length);
     assert.deepEqual(calls[0].options.headers, { apikey: 'sb_publishable_test' });
     assert.deepEqual(calls[3].options.headers, {});
+    assert.deepEqual(calls[4].options.headers, {});
+    assert.equal(calls[4].options.method, 'OPTIONS');
 });

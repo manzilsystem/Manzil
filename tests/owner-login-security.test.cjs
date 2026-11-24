@@ -26,10 +26,18 @@ const pinChangeFunction = fs.readFileSync(
 );
 const client = fs.readFileSync(path.join(root, 'js/supabase.js'), 'utf8');
 const supabaseConfig = fs.readFileSync(path.join(root, 'supabase/config.toml'), 'utf8');
+const { CHECKS } = require('../scripts/check-supabase.cjs');
 
 test('owner login Edge Function does not require a pre-existing JWT', () => {
-    assert.ok(supabaseConfig.includes('[functions.owner-login]'));
-    assert.ok(supabaseConfig.includes('verify_jwt = false'));
+    // Branching no longer declares functions in config.toml (its eszip upload
+    // fails with 413), so the guarantee is verified live instead of by config.
+    const check = CHECKS.find(item => item.id === 'owner-login');
+    assert.ok(check, 'check:supabase must probe owner-login without a JWT');
+    assert.equal(check.method, 'OPTIONS');
+    assert.equal(check.sendKey, false);
+    assert.deepEqual(check.expected, [200]);
+    assert.doesNotMatch(supabaseConfig, /^\[functions\./m,
+        'declaring a function would make Branching upload it and fail with 413');
 });
 
 test('owner login attempts are stored privately as hashes with a bounded lockout window', () => {

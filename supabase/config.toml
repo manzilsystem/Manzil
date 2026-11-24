@@ -1,13 +1,10 @@
-[functions.owner-login]
-verify_jwt = false
-
-# مسبار حياة عام: لا يحمل بيانات، ويُفحص عبر GET من أي عميل.
-[functions.health]
-verify_jwt = false
-
-# يتحقق من CRON_SECRET في جسم الطلب بدل JWT (جدولة pg_cron).
-[functions.monitor-client-errors]
-verify_jwt = false
+# Supabase Branching deploys only the functions declared under [functions.<slug>].
+# Its eszip upload currently fails for this project with HTTP 413, so no function
+# is declared here: the deploy step finishes with a warning and preview branches
+# keep the functions cloned from the hosted project. JWT verification settings
+# remain on the hosted project and are verified live by scripts/check-supabase.cjs.
+# owner-login and health must stay callable without a JWT; monitor-client-errors
+# checks CRON_SECRET in the request body instead of a JWT.
 
 [db.seed]
 enabled = true

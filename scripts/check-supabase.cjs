@@ -4,6 +4,7 @@
 // يقرأ URL والمفتاح العام من js/supabase.js فقط؛ لا يقرأ أي ملف أسرار ولا يطبع المفتاح.
 // الاستعمال: npm run check:supabase [-- --strict]
 //   --strict يجعل تحذيرات الدوال غير المنشورة فاشلة (مناسب بعد نشر health).
+// فحص owner-login إلزامي: يرسل OPTIONS بدون مفتاح للتأكد أن verify_jwt = false.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -41,10 +42,20 @@ const CHECKS = [
         id: 'health',
         label: 'Edge Function /functions/v1/health',
         path: '/functions/v1/health',
+        method: 'GET',
         sendKey: false,
         expected: [200],
         optional: true,
         hint: 'الدالة غير منشورة أو تتطلب JWT؛ انشر health بـverify_jwt = false.',
+    },
+    {
+        id: 'owner-login',
+        label: 'Edge Function /functions/v1/owner-login preflight without JWT',
+        path: '/functions/v1/owner-login',
+        method: 'OPTIONS',
+        sendKey: false,
+        expected: [200],
+        hint: 'طلب OPTIONS بدون JWT مرفوض؛ تحقق من verify_jwt = false على المشروع المستضاف.',
     },
 ];
 
@@ -90,6 +101,7 @@ async function runChecks(config, fetchImpl = fetch, checks = CHECKS) {
         let result;
         try {
             const response = await fetchImpl(config.url + check.path, {
+                method: check.method || 'GET',
                 headers: check.sendKey ? { apikey: config.key } : {},
                 signal: AbortSignal.timeout(TIMEOUT_MS),
             });
