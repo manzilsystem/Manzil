@@ -337,5 +337,3 @@ if (typeof window !== 'undefined') {
   window.renderScheduledReportsList = renderScheduledReportsList;
   window.renderScheduleLog = renderScheduleLog;
 }
-
-console.log('[Reports Shared] Scheduled Reports loaded');

@@ -67,5 +67,3 @@ if (typeof window !== 'undefined') {
   window.downloadCsv = downloadCsv;
   window.exportReportCsv = exportReportCsv;
 }
-
-console.log('[Reports Core] CSV Exporter loaded');

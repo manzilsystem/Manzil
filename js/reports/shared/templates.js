@@ -185,5 +185,3 @@ if (typeof window !== 'undefined') {
   window.renderTemplateList = renderTemplateList;
   window.saveTemplateFromUI = saveTemplateFromUI;
 }
-
-console.log('[Reports Shared] Templates loaded');

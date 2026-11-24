@@ -384,5 +384,3 @@ if (typeof window !== 'undefined') {
   window.createChartContainer = createChartContainer;
   window.destroyChartsInContainer = destroyChartsInContainer;
 }
-
-console.log('[Reports Shared] Charts loaded');

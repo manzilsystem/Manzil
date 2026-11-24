@@ -188,5 +188,3 @@ if (typeof window !== 'undefined') {
   window.getCachedReportModel = getCachedReportModel;
   window.REPORT_CALCULATION_CACHE = REPORT_CALCULATION_CACHE;
 }
-
-console.log('[Reports Shared] Performance loaded');

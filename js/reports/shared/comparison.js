@@ -311,5 +311,3 @@ if (typeof window !== 'undefined') {
   window.buildComparisonModel = buildComparisonModel;
   window.renderComparisonHtml = renderComparisonHtml;
 }
-
-console.log('[Reports Shared] Comparison loaded');

@@ -249,5 +249,3 @@ if (typeof window !== 'undefined') {
   window.calculatePercentage = calculatePercentage;
   window.calculateNet = calculateNet;
 }
-
-console.log('[Reports Core] Calculations loaded');

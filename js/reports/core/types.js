@@ -219,5 +219,3 @@ if (typeof window !== 'undefined') {
   window.getReportCashAccountLabel = getReportCashAccountLabel;
   window.getReportAdjustmentKindLabel = getReportAdjustmentKindLabel;
 }
-
-console.log('[Reports Core] Types loaded');

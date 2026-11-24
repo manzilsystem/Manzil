@@ -222,5 +222,3 @@ if (typeof window !== 'undefined') {
   window.periodReportToExcelRows = periodReportToExcelRows;
   window.expensesReportToExcelRows = expensesReportToExcelRows;
 }
-
-console.log('[Reports Shared] Excel Exporter loaded');

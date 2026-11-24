@@ -376,5 +376,3 @@ if (typeof window !== 'undefined') {
   // Utility
   window.escapeHtml = escapeHtml;
 }
-
-console.log('[Reports Core] Filters loaded');
