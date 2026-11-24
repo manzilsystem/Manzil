@@ -35,11 +35,10 @@ test('CSP blocks plugins, framing, base hijacking and cross-origin forms', () =>
 });
 
 test('CSP allows only the CDNs and Supabase origins the app actually uses', () => {
-    // Tailwind CDN removed - now using local build via PostCSS
+    // Tailwind is built locally via PostCSS - no browser CDN script allowed.
+    assert.ok(!tokens('script-src').includes('https://cdn.tailwindcss.com'));
     assert.ok(tokens('script-src').includes('https://cdn.jsdelivr.net'));
-    // Google Fonts CDN removed - using fallback fonts with Cairo
     assert.ok(tokens('style-src').includes('https://cdnjs.cloudflare.com'));
-    // Font CDN removed - using local font loading with fallback
     assert.ok(tokens('font-src').includes('https://cdnjs.cloudflare.com'));
     assert.ok(tokens('connect-src').includes('https://musvcrkljccubwbcrtjs.supabase.co'));
     assert.ok(tokens('connect-src').includes('wss://musvcrkljccubwbcrtjs.supabase.co'));
@@ -71,9 +70,17 @@ test('every external stylesheet and script host is permitted by the CSP', () => 
         .map(tag => tag.match(/(?:src|href)="(https:\/\/[^"]+)"/)?.[1])
         .filter(Boolean)
         .map(url => new URL(url).origin);
-    assert.ok(hosts.length >= 3);
+    assert.ok(hosts.length >= 2);
     for (const origin of hosts) {
         const allowed = [...tokens('style-src'), ...tokens('font-src'), ...tokens('script-src')];
         assert.ok(allowed.includes(origin), `${origin} must be allowlisted`);
     }
+});
+
+test('Tailwind is served from a local built stylesheet, not the browser CDN', () => {
+    assert.ok(!html.includes('cdn.tailwindcss.com'), 'the browser Tailwind CDN must not be loaded');
+    assert.match(html, /<link rel="stylesheet" href="css\/tailwind\.css\?v=[0-9a-f]+">/);
+    const css = fs.readFileSync(path.join(root, 'css', 'tailwind.css'), 'utf8');
+    assert.ok(css.includes('.flex'), 'the built stylesheet must contain Tailwind utilities');
+    assert.ok(css.includes('.min-h-screen'));
 });
