@@ -51,3 +51,29 @@ test('choosing "تحديث الآن" reloads the app onto the new release', asyn
     await page.waitForFunction(() => window.__manzilBeforeUpdate === undefined);
     await expect(page.locator('#pinLockModal')).toBeVisible();
 });
+
+test('an unsaved inline field blocks the automatic update reload', async ({ page }) => {
+    await loadShell(page);
+    await page.waitForFunction(() => typeof switchTab === 'function');
+    await page.evaluate(() => {
+        window.currentUserRole = 'manager';
+        document.body.classList.remove('session-locked', 'modal-open', 'owner-mode');
+        document.getElementById('pinLockModal').classList.add('hidden');
+        switchTab('cashbox');
+        window.__manzilUnsavedMarker = true;
+    });
+
+    // The amount is filled but focus moved to the still-empty notes field.
+    await page.locator('#cashTransferAmount').fill('123');
+    await page.locator('#cashTransferNotes').focus();
+    await expect(page.locator('#cashTransferAmount')).toHaveValue('123');
+
+    await page.evaluate(() => navigator.serviceWorker.dispatchEvent(new Event('controllerchange')));
+    const card = page.getByRole('status').filter({ hasText: CARD_TEXT });
+    await expect(card).toBeVisible();
+
+    // The 5-second retry in sw-register.js must not discard the unsaved amount.
+    await page.waitForTimeout(6000);
+    expect(await page.evaluate(() => window.__manzilUnsavedMarker)).toBe(true);
+    await expect(page.locator('#cashTransferAmount')).toHaveValue('123');
+});
