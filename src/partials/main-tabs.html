@@ -316,43 +316,68 @@
                     <h2 class="report-section-title">التقارير والكشوفات</h2>
                     <p class="report-section-subtitle">تقرير شهري للملاك، تقرير فترة للمصاريف والإعفاءات، كشف حساب لكل مالك، تقرير وحدة، إقفال شهري، ومتأخرات — وكل الأرقام تُحسب من نفس بيانات التطبيق.</p>
                 </div>
+                <div id="reportHub" class="report-hub" role="region" aria-label="لوحة التقارير">
+                    <div class="report-hub-top">
+                        <label class="report-hub-search" for="reportHubSearch">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                            <input id="reportHubSearch" type="search" placeholder="ابحث عن تقرير..." aria-label="البحث في التقارير" autocomplete="off" oninput="filterReportNav()">
+                        </label>
+                        <div class="report-hub-groups" role="group" aria-label="تصنيف التقارير">
+                            <button type="button" class="report-group-chip is-active" aria-pressed="true" data-report-group="all" onclick="setReportGroup('all')">الكل</button>
+                            <button type="button" class="report-group-chip" aria-pressed="false" data-report-group="financial" onclick="setReportGroup('financial')">مالي</button>
+                            <button type="button" class="report-group-chip" aria-pressed="false" data-report-group="units" onclick="setReportGroup('units')">الشقق والملاك</button>
+                            <button type="button" class="report-group-chip" aria-pressed="false" data-report-group="review" onclick="setReportGroup('review')">مراجعة</button>
+                        </div>
+                    </div>
+                    <div id="reportHubStats" class="report-hub-stats" aria-live="polite"></div>
+                    <div id="reportHubRecent" class="report-hub-recent" role="group" aria-label="آخر التقارير المستخدمة"></div>
+                    <p id="reportHubEmpty" class="report-hub-empty hidden">لا توجد تقارير مطابقة للبحث أو التصنيف المختار.</p>
+                </div>
                 <nav class="report-nav no-print" aria-label="أنواع التقارير" onkeydown="handleReportTabKeydown(event)">
-                    <button type="button" class="report-nav-item report-tone-indigo" data-report-nav="landlord" aria-controls="landlordReportPrint" onclick="switchReportTab('landlord')">
+                    <button type="button" class="report-nav-item report-tone-indigo" data-report-nav="landlord" aria-controls="landlordReportPrint" data-report-group="financial" data-report-keywords="مالك اشتراك تحصيل شهري" onclick="switchReportTab('landlord')">
                         <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-file-invoice-dollar"></i></span>
                         <span class="report-nav-copy"><b>تقرير الملاك</b><small>شهري · PDF وCSV</small></span>
                     </button>
-                    <button type="button" class="report-nav-item report-tone-sky" data-report-nav="period" aria-controls="periodReportCard" onclick="switchReportTab('period')">
+                    <button type="button" class="report-nav-item report-tone-sky" data-report-nav="period" aria-controls="periodReportCard" data-report-group="financial" data-report-keywords="فترة مقارنة أشهر" onclick="switchReportTab('period')">
                         <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-chart-column"></i></span>
                         <span class="report-nav-copy"><b>تقرير الفترة</b><small>عدة أشهر · PDF وCSV</small></span>
                     </button>
-                    <button type="button" class="report-nav-item report-tone-rose" data-report-nav="expenses" aria-controls="expensesReportCard" onclick="switchReportTab('expenses')">
+                    <button type="button" class="report-nav-item report-tone-emerald" data-report-nav="cashflow" aria-controls="cashFlowPanel" data-report-group="financial" data-report-keywords="تدفق نقدي سيولة صافي إيراد مصروف" onclick="switchReportTab('cashflow')">
+                        <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-chart-line"></i></span>
+                        <span class="report-nav-copy"><b>التدفق النقدي</b><small>شهري · دخل ومصروف وصافي</small></span>
+                    </button>
+                    <button type="button" class="report-nav-item report-tone-rose" data-report-nav="expenses" aria-controls="expensesReportCard" data-report-group="financial" data-report-keywords="مصروفات صندوق تصنيف" onclick="switchReportTab('expenses')">
                         <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-receipt"></i></span>
                         <span class="report-nav-copy"><b>تقرير المصروفات</b><small>فترة · طباعة وCSV</small></span>
                     </button>
-                    <button type="button" class="report-nav-item report-tone-amber" data-report-nav="adjustments" aria-controls="adjustmentsReportCard" onclick="switchReportTab('adjustments')">
+                    <button type="button" class="report-nav-item report-tone-amber" data-report-nav="adjustments" aria-controls="adjustmentsReportCard" data-report-group="units" data-report-keywords="إعفاء تخفيض تسوية" onclick="switchReportTab('adjustments')">
                         <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-hand-holding-dollar"></i></span>
                         <span class="report-nav-copy"><b>الإعفاءات والتخفيضات</b><small>فترة · طباعة وCSV</small></span>
                     </button>
-                    <button type="button" class="report-nav-item report-tone-emerald" data-report-nav="statement" aria-controls="residentStatementCard" onclick="switchReportTab('statement')">
+                    <button type="button" class="report-nav-item report-tone-emerald" data-report-nav="statement" aria-controls="residentStatementCard" data-report-group="units" data-report-keywords="كشف حساب مالك وحدة" onclick="switchReportTab('statement')">
                         <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-user-check"></i></span>
                         <span class="report-nav-copy"><b>كشف حساب مالك</b><small>لكل مالك · كشف ووحدة</small></span>
                     </button>
-                    <button type="button" class="report-nav-item report-tone-emerald" data-report-nav="monthlyClose" aria-controls="monthlyClosePanel" onclick="switchReportTab('monthlyClose')">
+                    <button type="button" class="report-nav-item report-tone-sky" data-report-nav="apartments" aria-controls="apartmentsPanel" data-report-group="units" data-report-keywords="أداء الشقق تحصيل متأخرات مالك" onclick="switchReportTab('apartments')">
+                        <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-building-user"></i></span>
+                        <span class="report-nav-copy"><b>أداء الشقق</b><small>تحصيل ومتبقٍ لكل وحدة</small></span>
+                    </button>
+                    <button type="button" class="report-nav-item report-tone-emerald" data-report-nav="monthlyClose" aria-controls="monthlyClosePanel" data-report-group="review" data-report-keywords="إقفال شهري مطابقة صناديق" onclick="switchReportTab('monthlyClose')">
                         <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-scale-balanced"></i></span>
                         <span class="report-nav-copy"><b>الإقفال الشهري</b><small>مراجعة ومطابقة نقدية</small></span>
                     </button>
-                    <button type="button" class="report-nav-item report-tone-amber" data-report-nav="arrears" aria-controls="arrearsPanel" onclick="switchReportTab('arrears')">
+                    <button type="button" class="report-nav-item report-tone-amber" data-report-nav="arrears" aria-controls="arrearsPanel" data-report-group="units" data-report-keywords="متأخرات تأخر تذكير" onclick="switchReportTab('arrears')">
                         <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span>
                         <span class="report-nav-copy"><b>المتأخرات</b><small>تصفية وتصدير CSV</small></span>
                     </button>
-                    <button type="button" class="report-nav-item report-tone-sky" data-report-nav="audit" aria-controls="auditLogPanel" onclick="switchReportTab('audit')">
+                    <button type="button" class="report-nav-item report-tone-sky" data-report-nav="audit" aria-controls="auditLogPanel" data-report-group="review" data-report-keywords="سجل عمليات تدقيق تغييرات" onclick="switchReportTab('audit')">
                         <span class="report-nav-icon" aria-hidden="true"><i class="fa-solid fa-clock-rotate-left"></i></span>
                         <span class="report-nav-copy"><b>سجل العمليات</b><small>مراجعة ما تغيّر</small></span>
                     </button>
                 </nav>
             </div>
             <section class="app-card rounded-3xl border overflow-hidden no-print" id="scheduledReportsSection">
-                <button type="button" onclick="toggleScheduledReportsSection()" class="w-full p-4 cursor-pointer flex items-center justify-between gap-3 text-sm font-bold">
+                <button type="button" onclick="toggleScheduledReportsSection()" aria-expanded="false" aria-controls="scheduledReportsBody" class="w-full p-4 cursor-pointer flex items-center justify-between gap-3 text-sm font-bold">
                     <span class="flex items-center gap-2"><span class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center"><i class="fa-solid fa-clock" aria-hidden="true"></i></span> التقارير المجدولة</span>
                     <i class="fa-solid fa-chevron-down text-xs text-slate-400" aria-hidden="true"></i>
                 </button>
@@ -363,14 +388,14 @@
                     <div id="scheduleFormContainer" class="hidden app-input border rounded-2xl p-3 space-y-2">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <label class="block text-xs space-y-1"><span class="text-slate-400">اسم الجدول</span><input id="scheduleName" type="text" placeholder="مثال: تقرير شهري" class="w-full app-input border rounded-xl px-3 py-2"></label>
-                            <label class="block text-xs space-y-1"><span class="text-slate-400">نوع التقرير</span><select id="scheduleReportType" class="w-full app-input border rounded-xl px-3 py-2"><option value="landlord">تقرير الملاك</option><option value="period">تقرير الفترة</option><option value="expenses">تقرير المصروفات</option><option value="adjustments">الإعفاءات والتخفيضات</option><option value="statement">كشف حساب مالك</option></select></label>
+                            <label class="block text-xs space-y-1"><span class="text-slate-400">نوع التقرير</span><select id="scheduleReportType" class="w-full app-input border rounded-xl px-3 py-2"><option value="landlord">تقرير الملاك</option><option value="period">تقرير الفترة</option><option value="cashflow">التدفق النقدي</option><option value="expenses">تقرير المصروفات</option><option value="adjustments">الإعفاءات والتخفيضات</option><option value="statement">كشف حساب مالك</option></select></label>
                             <label class="block text-xs space-y-1"><span class="text-slate-400">التكرار</span><select id="scheduleFrequency" class="w-full app-input border rounded-xl px-3 py-2"><option value="daily">يومي</option><option value="weekly">أسبوعي</option><option value="monthly">شهري</option></select></label>
                             <label class="block text-xs space-y-1"><span class="text-slate-400">طريقة التسليم</span><select id="scheduleDelivery" class="w-full app-input border rounded-xl px-3 py-2"><option value="download">تحميل محلي</option><option value="whatsapp">واتساب</option><option value="email">بريد إلكتروني</option></select></label>
                         </div>
                         <button type="button" onclick="saveNewSchedule()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-xl text-xs font-bold transition">حفظ الجدول</button>
                     </div>
                     <div id="scheduleLogContainer" class="hidden"></div>
-                    <button type="button" onclick="toggleScheduleLog()" class="text-xs text-indigo-400 font-bold hover:underline">سجل التشغيل</button>
+                    <button type="button" onclick="toggleScheduleLog()" aria-expanded="false" aria-controls="scheduleLogWrap" class="text-xs text-indigo-400 font-bold hover:underline">سجل التشغيل</button>
                     <div id="scheduleLogWrap" class="hidden"></div>
                     <div class="border-t border-slate-700/50 pt-3 mt-3 space-y-2">
                         <p class="text-xs font-bold text-slate-400"><i class="fa-solid fa-bookmark text-amber-400"></i> قوالبي المحفوظة (تقرير الفترة)</p>
@@ -498,6 +523,48 @@
                 </div>
                 <p class="report-hint no-print">تغيير الفترة أو البيانات يعطّل الطباعة والتصدير حتى معاينة جديدة، والأرقام تطابق تقرير الملاك لكل شهر. أقصى مدة 60 شهرًا.</p>
             </div>
+            <div id="cashFlowPanel" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
+                <div class="report-card-head no-print">
+                    <div class="report-card-heading">
+                        <span class="report-card-icon report-tone-emerald" aria-hidden="true"><i class="fa-solid fa-chart-line"></i></span>
+                        <div class="min-w-0">
+                            <h2 class="report-card-title">تقرير التدفق النقدي</h2>
+                            <p class="report-card-subtitle">الدخل والمصروفات والصافي شهرًا بشهر، مع توزيع الصناديق وأعلى وأدنى شهر.</p>
+                        </div>
+                    </div>
+                    <span class="report-card-badge report-tone-emerald">فترة</span>
+                </div>
+                <div class="report-toolbar no-print">
+                    <label class="report-field" for="cashFlowPreset">
+                        <span class="report-field-label">الفترة السريعة</span>
+                        <select id="cashFlowPreset" aria-label="الفترة السريعة" onchange="applyCashFlowPreset()" class="report-control app-input border focus:outline-none"><option value="3">آخر 3 أشهر</option><option value="6" selected>آخر 6 أشهر</option><option value="12">آخر 12 شهرًا</option><option value="ytd">من بداية السنة</option><option value="custom">تخصيص</option></select>
+                    </label>
+                    <label class="report-field" for="cashFlowFrom">
+                        <span class="report-field-label">من شهر</span>
+                        <select id="cashFlowFrom" aria-label="من شهر" onchange="onCashFlowRangeChange()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field" for="cashFlowTo">
+                        <span class="report-field-label">إلى شهر</span>
+                        <select id="cashFlowTo" aria-label="إلى شهر" onchange="onCashFlowRangeChange()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field report-field-narrow" for="cashFlowCashAccount">
+                        <span class="report-field-label">الصندوق</span>
+                        <select id="cashFlowCashAccount" aria-label="فلتر الصندوق" onchange="invalidateCashFlowPreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <button type="button" onclick="generateCashFlowReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
+                </div>
+                <div id="cashFlowPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
+                    <p class="report-preview-empty">اضغط «معاينة» لعرض التدفق النقدي للفترة المحددة.</p>
+                </div>
+                <div id="extendedCashFlowChartContainer" class="report-chart-container no-print" style="height:220px;margin:8px 0;"></div>
+                <div class="report-actions report-actions-4 no-print">
+                    <button type="button" id="cashFlowPrintBtn" onclick="printCashFlowReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+                    <button type="button" id="cashFlowPdfBtn" onclick="exportCashFlowPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
+                    <button type="button" id="cashFlowExportBtn" onclick="exportCashFlowCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
+                    <button type="button" id="cashFlowExcelBtn" onclick="exportCashFlowExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
+                </div>
+                <p class="report-hint no-print">كل الأرقام من نفس بيانات التحصيل والمصروفات، محسوبة بالقرش. تغيير أي فلتر يعطّل التصدير حتى معاينة جديدة.</p>
+            </div>
             <div id="expensesReportCard" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
                 <div class="report-card-head no-print">
                     <div class="report-card-heading">
@@ -617,6 +684,48 @@
                     <button type="button" id="statementCsvBtn" onclick="exportResidentStatementCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                 </div>
                 <p class="report-hint no-print">الكشف يغطي كل شهر من إضافة المالك حتى الشهر الحالي، والمخرجات تعرض نفس الأرقام المعروضة هنا.</p>
+            </div>
+            <div id="apartmentsPanel" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
+                <div class="report-card-head no-print">
+                    <div class="report-card-heading">
+                        <span class="report-card-icon report-tone-sky" aria-hidden="true"><i class="fa-solid fa-building-user"></i></span>
+                        <div class="min-w-0">
+                            <h2 class="report-card-title">تقرير أداء الشقق</h2>
+                            <p class="report-card-subtitle">مستحق ومحصّل ومتبقٍ لكل وحدة، مع نسبة التحصيل وآخر تحصيل ونوع السداد.</p>
+                        </div>
+                    </div>
+                    <span class="report-card-badge report-tone-sky">فترة</span>
+                </div>
+                <div class="report-toolbar no-print">
+                    <label class="report-field" for="apartmentsReportPreset">
+                        <span class="report-field-label">الفترة السريعة</span>
+                        <select id="apartmentsReportPreset" aria-label="الفترة السريعة" onchange="applyApartmentsPreset()" class="report-control app-input border focus:outline-none"><option value="3">آخر 3 أشهر</option><option value="6" selected>آخر 6 أشهر</option><option value="12">آخر 12 شهرًا</option><option value="ytd">من بداية السنة</option><option value="custom">تخصيص</option></select>
+                    </label>
+                    <label class="report-field" for="apartmentsReportFrom">
+                        <span class="report-field-label">من شهر</span>
+                        <select id="apartmentsReportFrom" aria-label="من شهر" onchange="onApartmentsRangeChange()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field" for="apartmentsReportTo">
+                        <span class="report-field-label">إلى شهر</span>
+                        <select id="apartmentsReportTo" aria-label="إلى شهر" onchange="onApartmentsRangeChange()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field report-field-narrow" for="apartmentsReportResident">
+                        <span class="report-field-label">الشقة</span>
+                        <select id="apartmentsReportResident" aria-label="فلتر الشقة" onchange="invalidateApartmentsPreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <button type="button" onclick="generateApartmentsReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
+                </div>
+                <div id="apartmentsReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
+                    <p class="report-preview-empty">اضغط «معاينة» لعرض أداء الشقق في الفترة المحددة.</p>
+                </div>
+                <div id="extendedApartmentsChartContainer" class="report-chart-container no-print" style="height:220px;margin:8px 0;"></div>
+                <div class="report-actions report-actions-4 no-print">
+                    <button type="button" id="apartmentsPrintBtn" onclick="printApartmentsReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+                    <button type="button" id="apartmentsPdfBtn" onclick="exportApartmentsPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
+                    <button type="button" id="apartmentsExportBtn" onclick="exportApartmentsCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
+                    <button type="button" id="apartmentsExcelBtn" onclick="exportApartmentsExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
+                </div>
+                <p class="report-hint no-print">المستحق يحترم تاريخ إضافة الشقة وسعر الاشتراك الساري في كل شهر، والمتبقٍ لا يقل عن صفر. أقصى مدة 60 شهرًا.</p>
             </div>
             <div id="monthlyClosePanel" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
                 <div class="report-card-head no-print">

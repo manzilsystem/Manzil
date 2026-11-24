@@ -470,6 +470,29 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-section-eyebrow { display: inline-flex; align-items: center; gap: var(--space-40); color: var(--accent-color); font-size: var(--font-62); font-weight: var(--weight-800); letter-spacing: var(--tracking-2); }
 .report-section-title { font-size: var(--font-112); font-weight: var(--weight-900); line-height: var(--leading-135); }
 .report-section-subtitle { max-width: 56ch; margin-top: var(--space-25); color: var(--text-muted); font-size: var(--font-72); line-height: var(--leading-175); }
+.report-hub { display: flex; flex-direction: column; gap: var(--space-65); padding: var(--space-70); border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--bg-card) 62%, var(--bg-input)); }
+.report-hub-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-55); }
+.report-hub-search { display: flex; align-items: center; gap: var(--space-45); min-width: 0; flex: 1 1 16rem; padding-inline: var(--space-65); border: 1px solid var(--border-color); border-radius: var(--radius-pill); background: color-mix(in srgb, var(--bg-input) 70%, transparent); color: var(--text-muted); }
+.report-hub-search input { width: 100%; min-width: 0; border: 0; background: transparent; color: var(--text-main); font-size: var(--font-70); padding-block: var(--space-60); outline: none; }
+.report-hub-search:focus-within { border-color: var(--accent-color); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-color) 22%, transparent); }
+.report-hub-groups { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-40); }
+.report-group-chip { padding: var(--space-45) var(--space-70); border: 1px solid var(--border-color); border-radius: var(--radius-pill); background: transparent; color: var(--text-muted); font-size: var(--font-65); font-weight: var(--weight-700); transition: background-color var(--motion-160) var(--ease-standard), color var(--motion-160) var(--ease-standard), border-color var(--motion-160) var(--ease-standard); }
+.report-group-chip:hover { color: var(--text-main); border-color: var(--accent-color); }
+.report-group-chip.is-active { color: var(--report-primary-ink); background: var(--report-primary-solid); border-color: var(--report-primary-solid); }
+.report-hub-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-50); }
+@media (min-width: 768px) { .report-hub-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.hub-stat { display: flex; flex-direction: column; gap: var(--space-20); min-width: 0; padding: var(--space-60); border: 1px solid var(--border-color); border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-input) 55%, transparent); }
+.hub-stat-label { color: var(--text-muted); font-size: var(--font-62); font-weight: var(--weight-700); }
+.hub-stat-value { color: var(--text-main); font-size: var(--font-90); font-weight: var(--weight-900); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.hub-stat-value.is-positive { color: var(--state-success); }
+.hub-stat-value.is-negative { color: var(--state-danger); }
+.hub-stat-note { color: var(--text-muted); font-size: var(--font-58); }
+.report-hub-recent { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-40); }
+.report-hub-recent-label { color: var(--text-muted); font-size: var(--font-62); font-weight: var(--weight-700); }
+.report-recent-chip { display: inline-flex; align-items: center; gap: var(--space-30); padding: var(--space-35) var(--space-65); border: 1px solid var(--border-color); border-radius: var(--radius-pill); color: var(--text-main); font-size: var(--font-62); font-weight: var(--weight-700); }
+.report-recent-chip:hover { border-color: var(--accent-color); color: var(--accent-color); }
+.report-hub-empty { color: var(--text-muted); font-size: var(--font-70); }
+.report-nav-item.is-filtered-out { display: none; }
 .report-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-70); }
 @media (min-width: 640px) { .report-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-80); } }
 .report-nav-item {
@@ -532,6 +555,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 #tab-reports[data-report-view="panel"] .report-view-bar { display: flex; }
 #tab-reports[data-report-view="panel"] .report-section-head { display: none; }
+#tab-reports[data-report-view="panel"] .report-hub { display: none; }
 .report-view-back {
     display: grid; place-items: center; flex: 0 0 auto; width: 2.15rem; height: 2.15rem;
     border: 1px solid var(--report-tone-line, var(--border-color)); border-radius: var(--radius-75);
@@ -849,6 +873,18 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     body.print-adjustments #adjustmentsReportCard .statement-table th,
     body.print-adjustments #adjustmentsReportCard .statement-table td { border-color: var(--print-line) !important; }
     body.print-adjustments #adjustmentsReportCard .report-table-wrap { overflow: visible !important; }
+    body.print-cashflow #printableArea > section:not(#tab-reports) { display: none !important; }
+    body.print-cashflow #tab-reports > :not(#cashFlowPanel) { display: none !important; }
+    body.print-cashflow #cashFlowPanel { padding: var(--space-none) !important; border: 0 !important; background: var(--print-bg) !important; box-shadow: none !important; }
+    body.print-apartments #printableArea > section:not(#tab-reports) { display: none !important; }
+    body.print-apartments #tab-reports > :not(#apartmentsPanel) { display: none !important; }
+    body.print-apartments #apartmentsPanel { padding: var(--space-none) !important; border: 0 !important; background: var(--print-bg) !important; box-shadow: none !important; }
+    body.print-cashflow #cashFlowPanel .statement-table th,
+    body.print-cashflow #cashFlowPanel .statement-table td,
+    body.print-apartments #apartmentsPanel .statement-table th,
+    body.print-apartments #apartmentsPanel .statement-table td { border-color: var(--print-line) !important; }
+    body.print-cashflow #cashFlowPanel .report-table-wrap,
+    body.print-apartments #apartmentsPanel .report-table-wrap { overflow: visible !important; }
     #expensesReportPreview { break-inside: avoid; }
     #adjustmentsReportPreview { break-inside: avoid; }
     #periodReportPreview { break-inside: avoid; }

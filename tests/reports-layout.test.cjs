@@ -10,6 +10,7 @@ const render = fs.readFileSync(path.join(__dirname, '..', 'js', 'render.js'), 'u
 const stateSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'state.js'), 'utf8');
 const app = fs.readFileSync(path.join(__dirname, '..', 'js', 'app.js'), 'utf8');
 const reportTab = html.slice(html.indexOf('id="tab-reports"'), html.indexOf('id="appCopyright"'));
+const reportConstants = reports.slice(0, reports.indexOf('const REPORT_TONE_CLASSES'));
 
 test('the reports tab opens on the icon grid with every panel closed', () => {
     const panels = [...reportTab.matchAll(/<(?:div) id="(landlordReportPrint|periodReportCard|residentStatementCard|monthlyClosePanel|arrearsPanel|auditLogPanel)"([^>]*)>/g)];
@@ -28,8 +29,8 @@ test('monthly close and arrears are panels with their controls preserved', () =>
 
 test('the reports nav offers one entry per panel and marks the active one', () => {
     const entries = [...reportTab.matchAll(/data-report-nav="([a-zA-Z]+)" aria-controls="([a-zA-Z]+)"/g)];
-    assert.deepEqual(entries.map(match => match[1]), ['landlord', 'period', 'expenses', 'adjustments', 'statement', 'monthlyClose', 'arrears', 'audit']);
-    assert.deepEqual(entries.map(match => match[2]), ['landlordReportPrint', 'periodReportCard', 'expensesReportCard', 'adjustmentsReportCard', 'residentStatementCard', 'monthlyClosePanel', 'arrearsPanel', 'auditLogPanel']);
+    assert.deepEqual(entries.map(match => match[1]), ['landlord', 'period', 'cashflow', 'expenses', 'adjustments', 'statement', 'apartments', 'monthlyClose', 'arrears', 'audit']);
+    assert.deepEqual(entries.map(match => match[2]), ['landlordReportPrint', 'periodReportCard', 'cashFlowPanel', 'expensesReportCard', 'adjustmentsReportCard', 'residentStatementCard', 'apartmentsPanel', 'monthlyClosePanel', 'arrearsPanel', 'auditLogPanel']);
     entries.forEach(match => assert.ok(reportTab.includes('id="' + match[2] + '"'), match[2] + ' has no panel'));
     assert.equal((reportTab.match(/class="report-nav-item is-active[^"]*"/g) || []).length, 0, 'no card is open until the user taps one');
     assert.equal((reportTab.match(/aria-current="page"/g) || []).length, 0, 'the active marker is set only while a report is open');
@@ -74,8 +75,8 @@ test('reports surface shares card headers, stat tiles, and tabular numerals', ()
     assert.match(css, /\.report-stat-value \{[^}]*font-variant-numeric: tabular-nums/);
     assert.match(css, /\.report-amount \{ font-variant-numeric: tabular-nums/);
     assert.match(css, /#printableArea \.app-card, #printableArea \.app-input, #printableArea \.report-stat \{/);
-    assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 8);
-    assert.equal((reportTab.match(/class="report-card-badge /g) || []).length, 8);
+    assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 10);
+    assert.equal((reportTab.match(/class="report-card-badge /g) || []).length, 10);
     assert.equal((reports.match(/class="report-stat"/g) || []).length, 21, 'landlord, expenses, adjustments, statement and conditional adjustment tiles come from the shared helpers');
     assert.equal((render.match(/class="report-stat"/g) || []).length, 4);
     assert.match(reports, /text-emerald-400 report-amount/);
@@ -97,9 +98,9 @@ test('reports section has a header, an icon nav, and unified actions', () => {
     assert.match(reports, /function switchReportTab\(tab\)/);
     assert.match(reports, /function handleReportTabKeydown\(event\)/);
     assert.match(reports, /function jumpToReportPanel\(panelId\)/);
-    assert.equal((reportTab.match(/class="report-card-icon /g) || []).length, 8);
-    assert.equal((reportTab.match(/class="report-nav-icon" aria-hidden="true"/g) || []).length, 8);
-    assert.equal((reportTab.match(/class="report-nav-item[^"]*report-tone-[a-z]+"/g) || []).length, 8, 'each nav card carries its report tone so the accent, border and ring follow the tone system');
+    assert.equal((reportTab.match(/class="report-card-icon /g) || []).length, 10);
+    assert.equal((reportTab.match(/class="report-nav-icon" aria-hidden="true"/g) || []).length, 10);
+    assert.equal((reportTab.match(/class="report-nav-item[^"]*report-tone-[a-z]+"/g) || []).length, 10, 'each nav card carries its report tone so the accent, border and ring follow the tone system');
     assert.match(reportTab, /class="report-actions report-actions-4/);
     assert.match(reportTab, /class="report-toolbar no-print"/);
     assert.match(reportTab, /class="report-preview text-xs/);
@@ -253,6 +254,51 @@ test('period report rolls the monthly landlord figures across a range with gated
     assert.match(css, /\.report-toolbar > \.report-field-narrow \{/);
     assert.match(css, /\.no-print, nav, #toastContainer \{ display: none !important; \}/);
     assert.doesNotMatch(css, /\.no-print, nav, header,/);
+});
+
+test('report hub offers live highlights, search, groups and recently used reports', () => {
+    const template = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.template.html'), 'utf8');
+    const extended = fs.readFileSync(path.join(__dirname, '..', 'js', 'reports', 'extended', 'reports-extended.js'), 'utf8');
+    ['reportHub', 'reportHubSearch', 'reportHubStats', 'reportHubRecent', 'reportHubEmpty'].forEach(id =>
+        assert.ok(reportTab.includes('id="' + id + '"'), 'missing hub element ' + id));
+    ['all', 'financial', 'units', 'review'].forEach(group =>
+        assert.ok(reportTab.includes('data-report-group="' + group + '"'), 'missing group chip ' + group));
+    assert.match(reportTab, /oninput="filterReportNav\(\)"/);
+    assert.match(reportTab, /onclick="setReportGroup\('financial'\)"/);
+    assert.match(css, /\.report-hub \{ display: flex;/);
+    assert.match(css, /\.report-nav-item\.is-filtered-out \{ display: none; \}/);
+    assert.match(extended, /function renderReportHub\(\)/);
+    assert.match(extended, /function filterReportNav\(\)/);
+    assert.match(extended, /function setReportGroup\(group\)/);
+    assert.match(extended, /const EXTENDED_RECENT_STORAGE_KEY = 'manzil_recent_reports'/);
+    assert.match(render, /if \(typeof renderReportHub === 'function'\) renderReportHub\(\);/);
+    assert.match(template, /<script src="js\/reports\/extended\/reports-extended\.js"><\/script>/);
+    reportTab.match(/data-report-nav="[a-zA-Z]+"/g).forEach(attr => {
+        const key = attr.replace('data-report-nav="', '').replace('"', '');
+        const card = reportTab.slice(reportTab.indexOf(attr));
+        assert.match(card.slice(0, 400), /data-report-group="(financial|units|review)"/, key + ' must belong to a group');
+    });
+});
+
+test('cash flow and apartment performance are first-class report tabs', () => {
+    const extended = fs.readFileSync(path.join(__dirname, '..', 'js', 'reports', 'extended', 'reports-extended.js'), 'utf8');
+    ['cashFlowPanel', 'apartmentsPanel'].forEach(id => {
+        assert.ok(reportTab.includes('id="' + id + '"'), 'missing panel ' + id);
+        assert.ok(reportConstants.includes(id), 'panel ' + id + ' must be registered in reports.js');
+    });
+    ['cashFlowFrom', 'cashFlowTo', 'cashFlowPreset', 'cashFlowCashAccount', 'cashFlowPreview',
+        'cashFlowPrintBtn', 'cashFlowPdfBtn', 'cashFlowExportBtn', 'cashFlowExcelBtn',
+        'apartmentsReportFrom', 'apartmentsReportTo', 'apartmentsReportPreset', 'apartmentsReportResident',
+        'apartmentsReportPreview', 'apartmentsPrintBtn', 'apartmentsPdfBtn', 'apartmentsExportBtn', 'apartmentsExcelBtn'
+    ].forEach(id => assert.ok(reportTab.includes('id="' + id + '"'), 'missing control ' + id));
+    assert.match(css, /body\.print-cashflow #tab-reports > :not\(#cashFlowPanel\)/);
+    assert.match(css, /body\.print-apartments #tab-reports > :not\(#apartmentsPanel\)/);
+    assert.match(extended, /function buildCashFlowReport\(fromMonth, toMonth, cashAccountFilter = ''\)/);
+    assert.match(extended, /function buildApartmentPerformanceReport\(fromMonth, toMonth, residentFilter = ''\)/);
+    assert.match(extended, /function generateCashFlowReport\(\)/);
+    assert.match(extended, /function generateApartmentsReport\(\)/);
+    assert.match(render, /populateExtendedReportFilters\(months, current\)/);
+    assert.match(render, /invalidateExtendedReportsIfStale\(\)/);
 });
 
 test('resident statement entry is reachable from the resident profile', () => {

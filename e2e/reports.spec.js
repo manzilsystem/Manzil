@@ -1257,3 +1257,106 @@ test('period apartment filter scopes months, dues and csv to one flat', async ({
     await expect(preview).toContainText('تغيّرت الفترة أو الفلتر أو البيانات');
     await expect(page.locator('#periodReportExportBtn')).toBeDisabled();
 });
+
+test('report hub highlights the month, filters the nav and remembers recent reports', async ({ page }) => {
+    await openReports(page);
+    await page.evaluate(() => localStorage.removeItem('manzil_recent_reports'));
+    await page.evaluate(() => renderReportHub());
+
+    const hub = page.locator('#reportHub');
+    await expect(hub).toBeVisible();
+    await expect(page.locator('#reportHubStats')).toContainText('تحصيل الشهر');
+    await expect(page.locator('#reportHubStats')).toContainText('مصروف الشهر');
+    await expect(page.locator('#reportHubStats')).toContainText('متأخرات الشهر');
+    await expect(page.locator('#reportHubRecent')).toContainText('ابدأ بفتح أي تقرير');
+
+    const cashNav = page.locator('[data-report-nav="cashflow"]');
+    const landlordNav = page.locator('[data-report-nav="landlord"]');
+    await page.locator('#reportHubSearch').fill('تدفق');
+    await expect(cashNav).toBeVisible();
+    await expect(landlordNav).toBeHidden();
+    await expect(page.locator('#reportHubEmpty')).toBeHidden();
+
+    await page.locator('#reportHubSearch').fill('');
+    await page.locator('.report-group-chip[data-report-group="review"]').click();
+    await expect(cashNav).toBeHidden();
+    await expect(page.locator('[data-report-nav="audit"]')).toBeVisible();
+    await page.locator('.report-group-chip[data-report-group="all"]').click();
+    await expect(cashNav).toBeVisible();
+
+    await cashNav.click();
+    await expect(page.locator('#tab-reports')).toHaveAttribute('data-report-view', 'panel');
+    await expect(hub).toBeHidden();
+    await backToGrid(page);
+    await expect(page.locator('#reportHubRecent')).toContainText('التدفق النقدي');
+    await expect(page.locator('#reportHubRecent button')).toHaveCount(1);
+});
+
+test('cash flow report previews months and exports csv', async ({ page }) => {
+    await openReports(page);
+    await openReportPanel(page, 'cashflow');
+
+    await page.locator('#cashFlowFrom').selectOption({ label: 'يناير 2024' });
+    await page.locator('#cashFlowTo').selectOption({ label: 'فبراير 2024' });
+    await page.locator('#cashFlowPanel').getByRole('button', { name: 'معاينة', exact: true }).click();
+
+    const preview = page.locator('#cashFlowPreview');
+    await expect(preview).toContainText('تقرير التدفق النقدي');
+    await expect(preview).toContainText('يناير 2024 – فبراير 2024');
+    await expect(preview.locator('.report-stat', { hasText: 'إجمالي التحصيل' })).toContainText('1,000 ج.م');
+    await expect(preview).toContainText('900 ج.م');
+    await expect(preview.locator('table.statement-table tbody tr')).toHaveCount(2);
+    await expect(page.locator('#cashFlowChart')).toBeVisible();
+    await expect(page.locator('#cashFlowExportBtn')).toBeEnabled();
+    await expect(page.locator('#cashFlowPrintBtn')).toBeEnabled();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#cashFlowExportBtn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('manzil_cashflow_2024-01_2024-02.csv');
+    const stream = await download.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const csv = Buffer.concat(chunks).toString('utf8');
+    expect(csv).toContain('"الإجمالي","1000.00","0.00","1000.00"');
+    expect(csv).toContain('"فبراير 2024","900.00"');
+
+    await page.locator('#cashFlowCashAccount').selectOption('development');
+    await expect(preview).toContainText('غيّرت الفلاتر');
+    await expect(page.locator('#cashFlowExportBtn')).toBeDisabled();
+});
+
+test('apartment performance previews dues, applies the apartment filter and exports csv', async ({ page }) => {
+    await openReports(page);
+    await openReportPanel(page, 'apartments');
+
+    await page.locator('#apartmentsReportFrom').selectOption({ label: 'يناير 2024' });
+    await page.locator('#apartmentsReportTo').selectOption({ label: 'فبراير 2024' });
+    await page.locator('#apartmentsPanel').getByRole('button', { name: 'معاينة', exact: true }).click();
+
+    const preview = page.locator('#apartmentsReportPreview');
+    await expect(preview).toContainText('تقرير أداء الشقق');
+    await expect(preview).toContainText('شقة 3 · أحمد');
+    await expect(preview.locator('.report-stat', { hasText: 'المستحق' })).toContainText('200 ج.م');
+    await expect(preview.locator('.report-stat', { hasText: 'المحصّل' })).toContainText('1,000 ج.م');
+    await expect(preview.locator('.report-stat', { hasText: 'المتبقٍ' })).toContainText('0 ج.م');
+    await expect(page.locator('#apartmentsChart')).toBeVisible();
+    await expect(page.locator('#apartmentsExportBtn')).toBeEnabled();
+
+    await page.locator('#apartmentsReportResident').selectOption('r1');
+    await expect(preview).toContainText('غيّرت الفلاتر');
+    await expect(page.locator('#apartmentsExportBtn')).toBeDisabled();
+    await page.locator('#apartmentsPanel').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await expect(preview.locator('table.statement-table tbody tr')).toHaveCount(1);
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#apartmentsExportBtn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('manzil_apartments_2024-01_2024-02_r1.csv');
+    const stream = await download.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const csv = Buffer.concat(chunks).toString('utf8');
+    expect(csv).toContain('"شقة 3 · أحمد"');
+    expect(csv).not.toContain('سارة');
+});

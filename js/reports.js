@@ -6,13 +6,15 @@ let landlordReportCashAccountFilter = '';
 let landlordReportPaymentMethodFilter = '';
 let landlordReportResidentFilter = '';
 
-const REPORT_TABS = ['landlord', 'period', 'expenses', 'adjustments', 'statement', 'monthlyClose', 'arrears', 'audit'];
+const REPORT_TABS = ['landlord', 'period', 'cashflow', 'expenses', 'adjustments', 'statement', 'apartments', 'monthlyClose', 'arrears', 'audit'];
 const REPORT_PANEL_IDS = {
     landlord: 'landlordReportPrint',
     period: 'periodReportCard',
+    cashflow: 'cashFlowPanel',
     expenses: 'expensesReportCard',
     adjustments: 'adjustmentsReportCard',
     statement: 'residentStatementCard',
+    apartments: 'apartmentsPanel',
     monthlyClose: 'monthlyClosePanel',
     arrears: 'arrearsPanel',
     audit: 'auditLogPanel'
@@ -20,9 +22,11 @@ const REPORT_PANEL_IDS = {
 const REPORT_OUTPUT_BUTTON_IDS = {
     landlord: 'reportPrintBtn',
     period: 'periodReportPrintBtn',
+    cashflow: 'cashFlowPrintBtn',
     expenses: 'expensesReportPrintBtn',
     adjustments: 'adjustmentsReportPrintBtn',
     statement: 'statementPrintBtn',
+    apartments: 'apartmentsPrintBtn',
     monthlyClose: 'monthlyClosePdfButton'
 };
 
@@ -321,7 +325,7 @@ function jumpToReportPanel(panelId) {
 
 function handleReportTabKeydown(event) {
     if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
-    const items = [...document.querySelectorAll('[data-report-nav]')];
+    const items = [...document.querySelectorAll('[data-report-nav]')].filter(item => !item.classList.contains('hidden') && !item.classList.contains('is-filtered-out'));
     const current = document.activeElement?.closest?.('[data-report-nav]');
     const currentIndex = items.indexOf(current);
     if (currentIndex < 0) return;
@@ -3408,13 +3412,19 @@ function toggleScheduleLog() {
     if (!wrap) return;
     const willShow = wrap.classList.contains('hidden');
     wrap.classList.toggle('hidden');
+    const trigger = document.querySelector('[aria-controls="scheduleLogWrap"]');
+    if (trigger) trigger.setAttribute('aria-expanded', willShow ? 'true' : 'false');
     if (willShow && typeof renderScheduleLog === 'function') renderScheduleLog('scheduleLogWrap');
 }
 
 /** تبديل عرض قسم التقارير المجدولة */
 function toggleScheduledReportsSection() {
     const body = document.getElementById('scheduledReportsBody');
-    if (body) body.classList.toggle('hidden');
+    if (!body) return;
+    const willShow = body.classList.contains('hidden');
+    body.classList.toggle('hidden');
+    const trigger = document.querySelector('[aria-controls="scheduledReportsBody"]');
+    if (trigger) trigger.setAttribute('aria-expanded', willShow ? 'true' : 'false');
 }
 
 /** تهيئة قسم التقارير المجدولة */

@@ -25,8 +25,8 @@ function listFiles(dir) {
 // function/arrow, and explicit `window.x =` exports across every runtime module.
 function declaredNames() {
     const declared = new Set();
-    for (const file of fs.readdirSync(jsDir).filter(name => name.endsWith('.js'))) {
-        const source = fs.readFileSync(path.join(jsDir, file), 'utf8');
+    for (const file of listFiles(jsDir).filter(name => name.endsWith('.js'))) {
+        const source = fs.readFileSync(file, 'utf8');
         for (const match of source.matchAll(/^(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/gm)) declared.add(match[1]);
         for (const match of source.matchAll(/^(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>|[A-Za-z_$][\w$]*\s*=>)/gm)) declared.add(match[1]);
         for (const match of source.matchAll(/window\.([A-Za-z_$][\w$]*)\s*=/g)) declared.add(match[1]);

@@ -23,6 +23,7 @@ interface Window {
     manzilErrorLog?: () => unknown[];
     __manzilPeriodReportRequestToken?: number;
     MANZIL_RELEASE?: string;
+    MANZIL_EXTENDED_REPORTS?: Record<string, unknown>;
     html2pdf?: () => { set: (options: Record<string, unknown>) => { from: (element: HTMLElement) => { outputPdf: (type: string) => Promise<Blob> } } };
 }
 
@@ -38,6 +39,8 @@ declare const REPORT_CHART_COLORS: { emerald: string; rose: string; amber: strin
 declare function renderDoughnutValues(canvasId: string, labels: string[], values: number[], palette: string[], options?: Record<string, unknown>): any;
 declare function renderBarValues(canvasId: string, labels: string[], values: number[], color: string, label?: string, options?: Record<string, unknown>): any;
 declare function renderLineSeries(canvasId: string, labels: string[], series: Array<{ label: string; values: number[]; color: string; fill?: string }>, options?: Record<string, unknown>): any;
+declare function createChartContainer(containerId: string, canvasId: string, height?: number): HTMLElement | null;
+declare function destroyChartsInContainer(containerId: string): void;
 
 // Reports - period comparison (js/reports/shared/comparison.js)
 declare function getComparisonRange(fromMonth: string, toMonth: string, mode: string, customFrom?: string, customTo?: string): { fromMonth: string; toMonth: string; label: string } | null;
@@ -45,6 +48,7 @@ declare function buildComparisonModel(currentReport: any, previousReport: any): 
 declare function renderComparisonHtml(comparison: any): string;
 
 // Reports - Excel export (js/reports/shared/excel-exporter.js)
+declare function exportReportExcel(filename: string, sheets: Array<{ name: string; rows: any[][]; options?: Record<string, unknown> }>): boolean;
 declare function exportReportWithDetailExcel(filename: string, title: string, summaryRows: any[][], detailRows: any[][], meta?: Record<string, unknown>): boolean;
 declare function periodReportToExcelRows(report: any): { summary: any[][]; details: any[][] };
 declare function expensesReportToExcelRows(report: any): { summary: any[][]; details: any[][] };

@@ -54,6 +54,8 @@ function renderAll() {
     invalidatePeriodReportIfStale();
     if (typeof invalidateExpensesReportIfStale === 'function') invalidateExpensesReportIfStale();
     if (typeof invalidateAdjustmentsReportIfStale === 'function') invalidateAdjustmentsReportIfStale();
+    if (typeof invalidateExtendedReportsIfStale === 'function') invalidateExtendedReportsIfStale();
+    if (typeof renderReportHub === 'function') renderReportHub();
     syncReportNavStatus();
     renderCashbox();
     if (typeof renderManagerNotifications === 'function') renderManagerNotifications();
@@ -164,6 +166,7 @@ function populateSelects() {
     populatePeriodReportSelects(months, current);
     if (typeof populateExpensesReportFilters === 'function') populateExpensesReportFilters(months, current);
     if (typeof populateAdjustmentsReportFilters === 'function') populateAdjustmentsReportFilters(months, current);
+    if (typeof populateExtendedReportFilters === 'function') populateExtendedReportFilters(months, current);
     if (typeof populateReportPurposeFilters === 'function') populateReportPurposeFilters();
     if (typeof populateReportCashAccountFilters === 'function') populateReportCashAccountFilters();
     if (typeof populateReportPaymentMethodFilters === 'function') populateReportPaymentMethodFilters();
