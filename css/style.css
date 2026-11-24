@@ -638,7 +638,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-chart-summary::before { content: '+'; display: inline-grid; place-items: center; width: 1.25rem; height: 1.25rem; border-radius: var(--radius-pill); background: color-mix(in srgb, var(--accent-color) 18%, var(--bg-card)); color: var(--accent-color); font-weight: var(--weight-900); }
 .report-chart-fold[open] > .report-chart-summary { border-bottom: 1px solid var(--border-color); }
 .report-chart-fold[open] > .report-chart-summary::before { content: '−'; }
-.report-chart-fold > .report-chart-container { padding: var(--space-70); }
+.report-chart-fold > .report-chart-container { height: 220px; margin: var(--space-none); padding: var(--space-70); }
 .report-chart-container { position: relative; width: 100%; min-height: 180px; }
 .report-comparison-table th, .report-comparison-table td { text-align: center; }
 .report-comparison-table td:first-child, .report-comparison-table th:first-child { text-align: right; }
@@ -657,18 +657,30 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-list-meta { color: var(--text-muted); font-size: var(--font-70); font-weight: var(--weight-400); }
 .report-list-value { flex: 0 0 auto; }
 .report-divider { padding-top: var(--space-70); border-top: 1px solid var(--border-color); }
+/* الملاحظات طيّة أخيرة بنفس إيقاع طيّة الرسم، فلا تزاحم الجداول ولا تظهر قبلها. */
+.report-note-fold { border: 1px solid var(--border-color); border-radius: var(--radius-95); background: color-mix(in srgb, var(--bg-card) 42%, transparent); }
+.report-note-summary { display: flex; align-items: center; gap: var(--space-55); padding: var(--space-70); color: var(--text-muted); font-size: var(--font-74); font-weight: var(--weight-800); cursor: pointer; list-style: none; }
+.report-note-summary::-webkit-details-marker { display: none; }
+.report-note-summary::before { content: '+'; display: inline-grid; place-items: center; width: 1.25rem; height: 1.25rem; border-radius: var(--radius-pill); background: color-mix(in srgb, var(--bg-input) 60%, transparent); color: var(--text-muted); font-weight: var(--weight-900); }
+.report-note-fold[open] > .report-note-summary { border-bottom: 1px solid var(--border-color); }
+.report-note-fold[open] > .report-note-summary::before { content: '−'; }
+.report-note-fold > .report-note { padding: var(--space-70); }
 .report-note { color: var(--text-muted); font-size: var(--font-72); line-height: var(--leading-180); }
 .report-note p + p { margin-top: var(--space-20); }
 .report-table-wrap { overflow-x: auto; border: 1px solid var(--border-color); border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-input) 40%, transparent); }
-.statement-table { width: 100%; border-collapse: collapse; font-size: var(--font-76); }
-.statement-table th, .statement-table td { padding: var(--space-65) var(--space-55); border-bottom: 1px solid var(--border-color); text-align: right; white-space: nowrap; line-height: var(--leading-155); }
-.statement-table thead th { background: color-mix(in srgb, var(--bg-card) 70%, var(--bg-input)); color: var(--text-muted); font-size: var(--font-72); font-weight: var(--weight-700); letter-spacing: var(--tracking-1); }
-.statement-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--bg-card) 42%, transparent); }
-.statement-table tbody tr:hover { background: color-mix(in srgb, var(--accent-color) 9%, transparent); }
+/* صنف قديم محتفظ به للاختبارات والطباعة، لكنه الآن يطابق شبكة .sheet-table بالضبط. */
+.statement-table { width: 100%; border-collapse: collapse; font-size: var(--font-78); }
+.statement-table th, .statement-table td { padding: var(--space-65) var(--space-70); border-inline-start: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); text-align: right; vertical-align: middle; line-height: var(--leading-155); }
+.statement-table th:first-child, .statement-table td:first-child { border-inline-start: 0; }
+.statement-table thead th { position: sticky; top: 0; z-index: var(--z-raised); border-bottom: 2px solid var(--accent-color); background: color-mix(in srgb, var(--accent-color) 18%, var(--bg-card)); color: var(--text-main); font-size: var(--font-74); font-weight: var(--weight-800); white-space: nowrap; }
+.statement-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--bg-card) 45%, transparent); }
+.statement-table tbody tr:hover { background: color-mix(in srgb, var(--accent-color) 10%, transparent); }
+.statement-table tbody tr:last-child td { border-bottom: 0; }
+.statement-table .sheet-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .statement-table td { font-variant-numeric: tabular-nums; }
 .statement-table td:first-child, .statement-table th:first-child { font-weight: var(--weight-700); }
-.statement-table tbody tr:last-child td { border-bottom: 0; }
-.statement-table tfoot td { border-top: 1px solid var(--border-color); border-bottom: 0; background: color-mix(in srgb, var(--bg-card) 55%, transparent); font-weight: var(--weight-800); }
+.statement-table tfoot td { border-top: 2px solid var(--accent-color); border-bottom: 0; background: color-mix(in srgb, var(--accent-color) 14%, var(--bg-card)); color: var(--text-main); font-weight: var(--weight-900); font-variant-numeric: tabular-nums; }
+.statement-table tfoot td:first-child { color: var(--accent-color); }
 
 /* نظام جداول موحّد بأسلوب الجداول المحاسبية:
    رؤوس ملوّنة بخط فاصل، شبكة خطوط رقيقة، صفوف متناوبة، وإجماليات بارزة في التذييل. */
@@ -896,6 +908,9 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     #printableArea .report-note, #printableArea .report-note p, #printableArea .report-list-meta,
     #printableArea .report-block-title, #printableArea .report-preview-meta { color: var(--print-muted) !important; }
     #printableArea .report-preview-header, #printableArea .report-list-row, #printableArea .report-divider { border-color: var(--print-line) !important; }
+    #printableArea .report-note-fold { border: 0; background: transparent !important; }
+    #printableArea .report-note-fold > .report-note-summary { display: none !important; }
+    #printableArea .report-note-fold > .report-note { display: block !important; padding: var(--space-none); }
     #printBuildingTitle { overflow-wrap: anywhere; font-size: var(--font-print-title) !important; }
     #printableArea .text-slate-400, #printableArea .text-slate-500, #printableArea .text-slate-600 { color: var(--print-muted) !important; }
     #printableArea .report-stat-label { color: var(--print-muted) !important; }

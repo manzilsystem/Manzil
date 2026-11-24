@@ -91,19 +91,12 @@ async function previewPeriod(page, from, to) {
 
 async function previewExpenses(page) {
     await openReportPanel(page, 'expenses');
-    await page.locator('#expensesReportFrom').selectOption({ label: '2024' });
-    await page.locator('#expensesReportTo').selectOption({ label: '2024' });
     await page.locator('#expensesReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
     await expect(page.locator('#expensesReportPreview')).toBeVisible({ timeout: 10000 });
 }
 
 async function previewAdjustments(page) {
     await openReportPanel(page, 'adjustments');
-    // Select year 2024 from both date selectors using visible labels
-    const selects = await page.locator('#adjustmentsReportFrom, #adjustmentsReportTo').all();
-    for (const select of selects) {
-        await select.selectOption({ label: '2024' });
-    }
     await page.locator('#adjustmentsReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
     await expect(page.locator('#adjustmentsReportPreview')).toBeVisible({ timeout: 10000 });
 }
@@ -113,6 +106,53 @@ async function previewStatement(page) {
     await page.locator('#statementResidentSelect').selectOption('r1');
     await page.locator('#residentStatementCard').getByRole('button', { name: 'معاينة', exact: true }).click();
 }
+
+test('generated report previews share one section order', async ({ page }) => {
+    await openReports(page);
+    const cases = [
+        ['landlord', 'landlordReportPreview', async () => previewMonth(page, 'يناير 2024'), true],
+        ['period', 'periodReportPreview', async () => previewPeriod(page, 'يناير 2024', 'فبراير 2024'), true],
+        ['expenses', 'expensesReportPreview', async () => previewExpenses(page), true],
+        ['adjustments', 'adjustmentsReportPreview', async () => previewAdjustments(page), true],
+        ['statement', 'residentStatementPreview', async () => previewStatement(page), false],
+        ['cashflow', 'cashFlowPreview', async () => {
+            await openReportPanel(page, 'cashflow');
+            await page.locator('#cashFlowPanel').getByRole('button', { name: 'معاينة', exact: true }).click();
+        }, true],
+        ['apartments', 'apartmentsReportPreview', async () => {
+            await openReportPanel(page, 'apartments');
+            await page.locator('#apartmentsPanel').getByRole('button', { name: 'معاينة', exact: true }).click();
+        }, true]
+    ];
+
+    for (const [name, previewId, prepare, hasChart] of cases) {
+        await prepare();
+        const preview = page.locator('#' + previewId);
+        await expect(preview.locator('.report-preview-header')).toHaveCount(1);
+        await expect(preview.locator('.sheet-kpi')).toHaveCount(1);
+        const order = await preview.evaluate(root => {
+            const flow = root.querySelector('.report-preview-flow');
+            return [...flow.children].map(element => {
+                if (element.classList.contains('report-preview-header')) return 'header';
+                if (element.classList.contains('report-stats')) return 'kpi';
+                if (element.classList.contains('report-block')) return 'block';
+                if (element.classList.contains('report-chart-fold')) return 'chart';
+                if (element.classList.contains('report-note-fold')) return 'notes';
+                return String(element.className || element.tagName).toLowerCase();
+            });
+        });
+        expect(order[0], name).toBe('header');
+        expect(order[1], name).toBe('kpi');
+        expect(order.filter(item => item === 'header'), name).toHaveLength(1);
+        expect(order.filter(item => item === 'kpi'), name).toHaveLength(1);
+        expect(order.indexOf('block'), name).toBeGreaterThan(1);
+        expect(order[order.length - 1], name).toBe('notes');
+        if (hasChart) {
+            expect(order, name).toContain('chart');
+            expect(order.indexOf('chart'), name).toBeLessThan(order.indexOf('notes'));
+        }
+    }
+});
 
 test('report visualizations render charts for landlord, period, expenses and adjustments', async ({ page }) => {
     await openReports(page);

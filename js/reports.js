@@ -552,6 +552,36 @@ function renderSheetBlock(title, headers, rows, options = {}) {
     return '<div class="report-block">' + heading + renderSheetTable(headers, rows, options) + '</div>';
 }
 
+// كل معاينات التقارير تبدأ بنفس الترويسة: عنوان واحد وسطر وصف واحد فقط.
+function renderReportHeader(title, metaLines = []) {
+    const meta = (Array.isArray(metaLines) ? metaLines : [metaLines]).filter(Boolean).join(' • ');
+    return '<header class="report-preview-header"><h3 class="report-preview-title">' + esc(title) + '</h3>' +
+        (meta ? '<p class="report-preview-meta">' + meta + '</p>' : '') + '</header>';
+}
+
+// الملاحظات تطوى في آخر المعاينة حتى لا تزاحم الجداول، وتُعرض كاملة عند الطباعة.
+function renderReportNotes(paragraphs) {
+    const list = (Array.isArray(paragraphs) ? paragraphs : [paragraphs]).filter(Boolean);
+    if (!list.length) return '';
+    return '<details class="report-note-fold"><summary class="report-note-summary">' +
+        'ملاحظات الحساب <span class="report-block-count">' + fmtNum(list.length) + '</span></summary>' +
+        '<div class="report-note">' + list.join('') + '</div></details>';
+}
+
+// الرسم دائمًا طيّة واحدة في آخر الجداول؛ canvas يُنشأ هنا في التقارير الأساسية.
+function renderChartFold(canvasId, label) {
+    return '<details class="report-chart-fold report-chart-block no-print">' +
+        '<summary class="report-chart-summary">' + esc(label) + '</summary>' +
+        '<div class="report-chart-container"><canvas id="' + esc(canvasId) + '"></canvas></div></details>';
+}
+
+// التقارير الموسّعة تُنشئ canvas داخل حاوية موجودة، فتُطوى الحاوية نفسها.
+function renderChartFoldContainer(containerId, label) {
+    return '<details class="report-chart-fold report-chart-block no-print">' +
+        '<summary class="report-chart-summary">' + esc(label) + '</summary>' +
+        '<div id="' + esc(containerId) + '" class="report-chart-container"></div></details>';
+}
+
 function renderReportStatTiles(items, compact = false) {
     const head = items.map(item => '<th class="report-stat"><span class="report-stat-label">' +
         esc(item.label) + '</span></th>').join('');
@@ -560,7 +590,8 @@ function renderReportStatTiles(items, compact = false) {
         const tone = item.tone ? ' sheet-' + item.tone : '';
         return '<td class="report-stat"><span class="report-stat-value' + tone + '">' + value + '</span></td>';
     }).join('');
-    return '<div class="' + (compact ? 'report-stats report-stats-4' : 'report-stats') + '">' +
+    // عدد الأعمدة موحّد في كل المعاينات؛ الجدول نفسه يتوسّط داخل غلاف واحد.
+    return '<div class="report-stats report-stats-4">' +
         '<div class="sheet-wrap"><table class="sheet-table sheet-kpi"><thead><tr>' + head +
         '</tr></thead><tbody><tr>' + body + '</tr></tbody></table></div></div>';
 }
@@ -726,19 +757,34 @@ async function generateLandlordReport() {
     });
     const expenseRows = exp.map(e => [esc(e.title), '<span class="sheet-negative">' + money(toCents(e.amount)) + '</span>']);
     const statsHtml = renderReportStatTiles(getLandlordSummaryItems(model), !showDues);
+    const note = residentFilter
+        ? 'التحصيلات معروضة لشقة «' + esc(residentLabel) + '» فقط' +
+            (cashAccountFilter ? ' ضمن صندوق «' + esc(cashAccountLabel) + '»' : '') +
+            (paymentMethodFilter ? ' وطريقة «' + esc(paymentMethodLabel) + '»' : '') + '. ' +
+            (showDues
+                ? 'المستحق ونسبة التحصيل يخصان هذه الشقة.'
+                : 'المستحق ونسبة التحصيل يُخفيان عند تصفية الصندوق أو طريقة الدفع.') +
+            ' المصروفات معروضة كاملة لأنها غير مرتبطة بشقة محددة.'
+        : cashAccountFilter
+        ? 'الحركات معروضة لصندوق «' + esc(cashAccountLabel) + '» فقط، والمستحق ونسبة التحصيل يخصان العمارة كلها لذلك يُخفيان عند تصفية الصندوق.'
+        : paymentMethodFilter
+            ? 'التحصيلات معروضة لطريقة «' + esc(paymentMethodLabel) + '» فقط. المستحق ونسبة التحصيل مرتبطان بكل اشتراكات الشهر لذلك يُخفيان عند تصفية طريقة الدفع، والمصروفات معروضة كاملة لأنها غير مرتبطة بطريقة التحصيل.'
+            : purposeFilter
+                ? (showDues
+                    ? 'المستحق ونسبة التحصيل يعتمدان على اشتراكات الشهر، والحركات معروضة للاشتراكات فقط.'
+                    : 'المعروض يشمل تحصيلات غرض «' + esc(filterLabel) + '» فقط. المستحق ونسبة التحصيل مرتبطان باشتراكات الشهر لذلك يُخفيان عند تصفية غرض آخر، والمصروفات معروضة كاملة لأنها غير مرتبطة بأغراض التحصيل.')
+                : 'المستحق محسوب بقيمة الاشتراك السارية في شهر التقرير، ونسبة التحصيل تعتمد على تحصيلات الاشتراك فقط.';
     document.getElementById('landlordReportPreview').innerHTML = `
         <div class="report-preview-flow">
-            <header class="report-preview-header">
-                <h3 class="report-preview-title">${esc(state.buildingName||'العمارة')}</h3>
-                <p class="report-preview-meta">تقرير ${esc(m)}${purposeFilter ? ' • الغرض: ' + esc(filterLabel) : ''}${cashAccountFilter ? ' • الصندوق: ' + esc(cashAccountLabel) : ''}${paymentMethodFilter ? ' • طريقة الدفع: ' + esc(paymentMethodLabel) : ''}${residentFilter ? ' • الشقة: ' + esc(residentLabel) : ''} • تم الإنشاء ${formatDate(new Date().toISOString())}</p>
-            </header>
+            ${renderReportHeader('تقرير الملاك · ' + (state.buildingName || 'العمارة'), [
+                'تقرير ' + esc(m) +
+                    (purposeFilter ? ' • الغرض: ' + esc(filterLabel) : '') +
+                    (cashAccountFilter ? ' • الصندوق: ' + esc(cashAccountLabel) : '') +
+                    (paymentMethodFilter ? ' • طريقة الدفع: ' + esc(paymentMethodLabel) : '') +
+                    (residentFilter ? ' • الشقة: ' + esc(residentLabel) : ''),
+                'تم الإنشاء ' + esc(formatDate(new Date().toISOString()))
+            ])}
             ${statsHtml}
-            <details class="report-chart-fold report-chart-block no-print">
-                <summary class="report-chart-summary">إظهار التصور البياني</summary>
-                <div class="report-chart-container" style="position:relative;height:220px;margin:8px 0;">
-                    <canvas id="landlordReportChart"></canvas>
-                </div>
-            </details>
             ${renderSheetBlock('التحصيل حسب الغرض', ['الغرض', 'الحركات', 'التحصيل'], purposeRows, {
                 empty: 'لا يوجد تحصيل في هذا التقرير.', numeric: [1, 2],
                 foot: ['الإجمالي', fmtNum(inc.length), '<span class="sheet-positive">' + money(model.totalIncCents) + '</span>']
@@ -751,31 +797,16 @@ async function generateLandlordReport() {
                 empty: 'لا توجد مصروفات في هذا التقرير.', numeric: [1, 2],
                 foot: ['الإجمالي', fmtNum(exp.length), '<span class="sheet-negative">' + money(model.totalExpCents) + '</span>']
             })}
-            ${renderSheetTable(['المالك', 'الغرض وطريقة الدفع', 'المبلغ'], incomeRows, {
-                caption: 'تفاصيل التحصيلات', empty: 'لا يوجد تحصيل في هذا التقرير.', numeric: [2],
+            ${renderSheetBlock('تفاصيل التحصيلات', ['المالك', 'الغرض وطريقة الدفع', 'المبلغ'], incomeRows, {
+                empty: 'لا يوجد تحصيل في هذا التقرير.', numeric: [2],
                 foot: ['الإجمالي', fmtNum(inc.length) + ' حركة', '<span class="sheet-positive">' + money(model.totalIncCents) + '</span>']
             })}
-            ${renderSheetTable(['المصروف', 'المبلغ'], expenseRows, {
-                caption: 'تفاصيل المصروفات', empty: 'لا توجد مصروفات في هذا التقرير.', numeric: [1],
+            ${renderSheetBlock('تفاصيل المصروفات', ['المصروف', 'المبلغ'], expenseRows, {
+                empty: 'لا توجد مصروفات في هذا التقرير.', numeric: [1],
                 foot: ['الإجمالي', '<span class="sheet-negative">' + money(model.totalExpCents) + '</span>']
             })}
-            <div class="report-note report-divider text-center"><p>${residentFilter
-                ? 'التحصيلات معروضة لشقة «' + esc(residentLabel) + '» فقط' +
-                    (cashAccountFilter ? ' ضمن صندوق «' + esc(cashAccountLabel) + '»' : '') +
-                    (paymentMethodFilter ? ' وطريقة «' + esc(paymentMethodLabel) + '»' : '') + '. ' +
-                    (showDues
-                        ? 'المستحق ونسبة التحصيل يخصان هذه الشقة.'
-                        : 'المستحق ونسبة التحصيل يُخفيان عند تصفية الصندوق أو طريقة الدفع.') +
-                    ' المصروفات معروضة كاملة لأنها غير مرتبطة بشقة محددة.'
-                : cashAccountFilter
-                ? 'الحركات معروضة لصندوق «' + esc(cashAccountLabel) + '» فقط، والمستحق ونسبة التحصيل يخصان العمارة كلها لذلك يُخفيان عند تصفية الصندوق.'
-                : paymentMethodFilter
-                    ? 'التحصيلات معروضة لطريقة «' + esc(paymentMethodLabel) + '» فقط. المستحق ونسبة التحصيل مرتبطان بكل اشتراكات الشهر لذلك يُخفيان عند تصفية طريقة الدفع، والمصروفات معروضة كاملة لأنها غير مرتبطة بطريقة التحصيل.'
-                    : purposeFilter
-                        ? (showDues
-                            ? 'المستحق ونسبة التحصيل يعتمدان على اشتراكات الشهر، والحركات معروضة للاشتراكات فقط.'
-                            : 'المعروض يشمل تحصيلات غرض «' + esc(filterLabel) + '» فقط. المستحق ونسبة التحصيل مرتبطان باشتراكات الشهر لذلك يُخفيان عند تصفية غرض آخر، والمصروفات معروضة كاملة لأنها غير مرتبطة بأغراض التحصيل.')
-                        : 'المستحق محسوب بقيمة الاشتراك السارية في شهر التقرير، ونسبة التحصيل تعتمد على تحصيلات الاشتراك فقط.'}</p></div>
+            ${renderChartFold('landlordReportChart', 'إظهار التصور البياني')}
+            ${renderReportNotes(['<p>' + note + '</p>'])}
         </div>`;
     landlordReportMonth = m;
     landlordReportPurposeFilter = purposeFilter;
@@ -1468,11 +1499,14 @@ function renderPeriodReportHtml(report) {
         });
     return `
         <div class="report-preview-flow">
-            <header class="report-preview-header">
-                <h3 class="report-preview-title">${esc(state.buildingName || 'العمارة')}</h3>
-                <p class="report-preview-meta">تقرير الفترة ${esc(report.rangeLabel)}${report.purposeFilter ? ' • الغرض: ' + esc(report.purposeLabel) : ''}${report.cashAccountFilter ? ' • الصندوق: ' + esc(report.cashAccountLabel) : ''}${report.residentFilter ? ' • الشقة: ' + esc(report.residentLabel) : ''} • تم الإنشاء ${esc(formatDate(report.generatedAt))}</p>
-                ${report.dataSource === 'database' ? '<p class="report-preview-meta">مصدر الحساب: قاعدة البيانات بعد التحقق من صلاحية مدير المبنى</p>' : ''}
-            </header>
+            ${renderReportHeader('تقرير الفترة · ' + (state.buildingName || 'العمارة'), [
+                'تقرير الفترة ' + esc(report.rangeLabel) +
+                    (report.purposeFilter ? ' • الغرض: ' + esc(report.purposeLabel) : '') +
+                    (report.cashAccountFilter ? ' • الصندوق: ' + esc(report.cashAccountLabel) : '') +
+                    (report.residentFilter ? ' • الشقة: ' + esc(report.residentLabel) : ''),
+                'تم الإنشاء ' + esc(formatDate(report.generatedAt)),
+                report.dataSource === 'database' ? 'مصدر الحساب: قاعدة البيانات بعد التحقق من صلاحية مدير المبنى' : ''
+            ])}
             ${statsHtml}
             ${tableHtml}
             ${renderSheetBlock('التحصيل حسب الغرض', ['الغرض', 'الحركات', 'المبلغ'], purposeRows, {
@@ -1483,29 +1517,20 @@ function renderPeriodReportHtml(report) {
                 empty: 'لا تحصيلات في هذه الفترة.', numeric: [1, 2, 3],
                 foot: ['الإجمالي', fmtNum(totals.movementCount), '100%', tone(totals.totalIncomeCents, true)]
             })}
-            <div class="report-note report-divider text-center">
-                ${report.residentFilter
+            ${renderChartFold('periodReportChart', 'إظهار التصور البياني - التحصيل عبر الأشهر')}
+            ${renderReportNotes([
+                report.residentFilter
                     ? `<p>${showDues ? 'المستحق ونسبة التحصيل يخصان الشقة المحددة.' : 'المستحق ونسبة التحصيل لا يظهران عند تصفية الصندوق مع الشقة.'} المصروفات معروضة كاملة لأنها غير مرتبطة بشقة محددة.</p>`
                     : report.cashAccountFilter
                     ? '<p>المستحق ونسبة التحصيل يخصان العمارة كلها لذلك لا يظهران عند تصفية الصندوق، والمصروفات معروضة لهذا الصندوق فقط.</p>'
                     : showDues
                         ? '<p>عمود «المحصّل» يحتسب الاشتراكات فقط؛ أما الإيرادات الأخرى فتُعرض في بند مستقل وتُضاف إلى الصافي.</p>'
-                        : '<p>المستحق ونسبة التحصيل يخصان الاشتراكات الشهرية لذلك لا يظهران عند تصفية غرض آخر. المصروفات معروضة كاملة لأنها غير مرتبطة بأغراض التحصيل.</p>'}
-                <p>كل شهر محسوب بسعر الاشتراك السارية فيه وحصيلته من حركات الشهر نفسه، مثل تقرير الملاك الشهري.</p>
-                <p>نسبة تزيد على 100% تعني تحصيلًا أعلى من مستحق الشهر (مقدمة أو متأخرات مسددة).</p>
-                <p>توزيع الطرق يغطي كل تحصيلات أشهر الفترة، ومجموعه يساوي إجمالي التحصيل.</p>
-                ${filterNote}
-                ${cashFilterNote}
-                ${residentFilterNote}
-                ${unpaidNote}
-                ${adjustmentNote}
-             </div>
-             <details class="report-chart-fold report-chart-block no-print">
-                 <summary class="report-chart-summary">إظهار التصور البياني - التحصيل عبر الأشهر</summary>
-                 <div class="report-chart-container" style="position:relative;height:220px;margin:8px 0;">
-                     <canvas id="periodReportChart"></canvas>
-                 </div>
-             </details>
+                        : '<p>المستحق ونسبة التحصيل يخصان الاشتراكات الشهرية لذلك لا يظهران عند تصفية غرض آخر. المصروفات معروضة كاملة لأنها غير مرتبطة بأغراض التحصيل.</p>',
+                '<p>كل شهر محسوب بسعر الاشتراك السارية فيه وحصيلته من حركات الشهر نفسه، مثل تقرير الملاك الشهري.</p>',
+                '<p>نسبة تزيد على 100% تعني تحصيلًا أعلى من مستحق الشهر (مقدمة أو متأخرات مسددة).</p>',
+                '<p>توزيع الطرق يغطي كل تحصيلات أشهر الفترة، ومجموعه يساوي إجمالي التحصيل.</p>',
+                filterNote, cashFilterNote, residentFilterNote, unpaidNote, adjustmentNote
+            ])}
          </div>`;
 }
 
@@ -1959,10 +1984,12 @@ function renderExpensesReportHtml(report) {
         : '';
     return `
         <div class="report-preview-flow">
-            <header class="report-preview-header">
-                <h3 class="report-preview-title">${esc(state.buildingName || 'العمارة')}</h3>
-                <p class="report-preview-meta">تقرير المصروفات ${esc(report.rangeLabel)}${report.cashAccountFilter ? ' • الصندوق: ' + esc(report.cashAccountLabel) : ''}${report.categoryFilter ? ' • التصنيف: ' + esc(report.categoryLabel) : ''} • تم الإنشاء ${esc(formatDate(report.generatedAt))}</p>
-            </header>
+            ${renderReportHeader('تقرير المصروفات · ' + (state.buildingName || 'العمارة'), [
+                'تقرير المصروفات ' + esc(report.rangeLabel) +
+                    (report.cashAccountFilter ? ' • الصندوق: ' + esc(report.cashAccountLabel) : '') +
+                    (report.categoryFilter ? ' • التصنيف: ' + esc(report.categoryLabel) : ''),
+                'تم الإنشاء ' + esc(formatDate(report.generatedAt))
+            ])}
             ${renderReportStatTiles([
                 { label: 'إجمالي المصروف', cents: totals.expenseCents, tone: 'rose' },
                 { label: 'عدد الحركات', text: fmtNum(totals.count) },
@@ -1970,32 +1997,27 @@ function renderExpensesReportHtml(report) {
                 { label: 'أشهر فيها مصروف', text: fmtNum(totals.monthCount) }
             ], true)}
             ${renderSheetBlock('المصروف حسب التصنيف', ['التصنيف', 'الحركات', 'النسبة', 'المبلغ'], shareRows(report.categories), {
-                empty: 'لا يوجد', numeric: [1, 2, 3],
+                empty: 'لا توجد مصروفات مطابقة.', numeric: [1, 2, 3],
                 foot: ['الإجمالي', fmtNum(totals.count), '100%', money(totals.expenseCents)]
             })}
             ${renderSheetBlock('المصروف حسب الصندوق', ['الصندوق', 'الحركات', 'النسبة', 'المبلغ'], shareRows(report.funds), {
-                empty: 'لا يوجد', numeric: [1, 2, 3],
+                empty: 'لا توجد مصروفات مطابقة.', numeric: [1, 2, 3],
                 foot: ['الإجمالي', fmtNum(totals.count), '100%', money(totals.expenseCents)]
             })}
             ${renderSheetBlock('المصروف شهرًا بشهر', ['الشهر', 'الحركات', 'المصروف', 'نسبته من الفترة'], monthRows, {
-                empty: 'لا يوجد', numeric: [1, 2, 3], tableClass: 'statement-table',
+                empty: 'لا توجد مصروفات مطابقة.', numeric: [1, 2, 3], tableClass: 'statement-table',
                 foot: ['الإجمالي', fmtNum(totals.count), money(totals.expenseCents), '100%']
             })}
             ${renderSheetBlock('تفاصيل المصروفات', ['المصروف', 'الشهر', 'التصنيف', 'الصندوق', 'المبلغ'], detailRows, {
-                empty: 'لا يوجد', numeric: [4],
+                empty: 'لا توجد مصروفات مطابقة.', numeric: [4],
                 foot: ['الإجمالي', '', '', fmtNum(totals.count) + ' حركة', money(totals.expenseCents)]
             })}
-            <details class="report-chart-fold report-chart-block no-print">
-                <summary class="report-chart-summary">إظهار التصور البياني - المصروف حسب التصنيف</summary>
-                <div class="report-chart-container" style="position:relative;height:220px;margin:8px 0;">
-                    <canvas id="expensesReportChart"></canvas>
-                </div>
-            </details>
-            <div class="report-note report-divider text-center">
-                <p>تقرير للقراءة فقط ولا يعدل أي بيانات. المصروفات محسوبة على شهر استحقاقها المسجل.</p>
-                ${fundNote}
-                ${categoryNote}
-            </div>
+            ${renderChartFold('expensesReportChart', 'إظهار التصور البياني - المصروف حسب التصنيف')}
+            ${renderReportNotes([
+                '<p>تقرير للقراءة فقط ولا يعدل أي بيانات. المصروفات محسوبة على شهر استحقاقها المسجل.</p>',
+                fundNote,
+                categoryNote
+            ])}
         </div>`;
 }
 
@@ -2293,10 +2315,12 @@ function renderAdjustmentsReportHtml(report) {
         : '';
     return `
         <div class="report-preview-flow">
-            <header class="report-preview-header">
-                <h3 class="report-preview-title">${esc(state.buildingName || 'العمارة')}</h3>
-                <p class="report-preview-meta">تقرير الإعفاءات والتخفيضات ${esc(report.rangeLabel)}${report.residentFilter ? ' • الشقة: ' + esc(report.residentLabel) : ''}${report.kindFilter ? ' • النوع: ' + esc(report.kindLabel) : ''} • تم الإنشاء ${esc(formatDate(report.generatedAt))}</p>
-            </header>
+            ${renderReportHeader('تقرير الإعفاءات والتخفيضات · ' + (state.buildingName || 'العمارة'), [
+                'تقرير الإعفاءات والتخفيضات ' + esc(report.rangeLabel) +
+                    (report.residentFilter ? ' • الشقة: ' + esc(report.residentLabel) : '') +
+                    (report.kindFilter ? ' • النوع: ' + esc(report.kindLabel) : ''),
+                'تم الإنشاء ' + esc(formatDate(report.generatedAt))
+            ])}
             ${renderReportStatTiles([
                 { label: 'إجمالي الإعفاءات والتخفيضات', cents: totals.amountCents, tone: 'amber' },
                 { label: 'عدد التسجيلات', text: fmtNum(totals.count) },
@@ -2304,28 +2328,23 @@ function renderAdjustmentsReportHtml(report) {
                 { label: 'أشهر مشمولة', text: fmtNum(totals.monthCount) }
             ], true)}
             ${renderSheetBlock('التوزيع حسب النوع', ['النوع', 'التسجيلات', 'النسبة', 'المبلغ'], kindRows, {
-                empty: 'لا يوجد', numeric: [1, 2, 3],
+                empty: 'لا توجد مصروفات مطابقة.', numeric: [1, 2, 3],
                 foot: ['الإجمالي', fmtNum(totals.count), '100%', money(totals.amountCents)]
             })}
             ${renderSheetBlock('الإعفاءات شهرًا بشهر', ['الشهر', 'التسجيلات', 'المبلغ', 'نسبته من الفترة'], monthRows, {
-                empty: 'لا يوجد', numeric: [1, 2, 3], tableClass: 'statement-table',
+                empty: 'لا توجد مصروفات مطابقة.', numeric: [1, 2, 3], tableClass: 'statement-table',
                 foot: ['الإجمالي', fmtNum(totals.count), money(totals.amountCents), '100%']
             })}
             ${renderSheetBlock('تفاصيل الإعفاءات والتخفيضات', ['الشقة والمالك', 'النوع', 'الشهر', 'السبب', 'المبلغ'], detailRows, {
-                empty: 'لا يوجد', numeric: [4],
+                empty: 'لا توجد إعفاءات مطابقة.', numeric: [4],
                 foot: ['الإجمالي', '', '', fmtNum(totals.count) + ' تسجيل', money(totals.amountCents)]
             })}
-            <details class="report-chart-fold report-chart-block no-print">
-                <summary class="report-chart-summary">إظهار التصور البياني - الإعفاءات عبر الأشهر</summary>
-                <div class="report-chart-container" style="position:relative;height:220px;margin:8px 0;">
-                    <canvas id="adjustmentsReportChart"></canvas>
-                </div>
-            </details>
-            <div class="report-note report-divider text-center">
-                <p>تقرير للقراءة فقط ولا يعدل أي بيانات. تُخصم الإعفاءات والتخفيضات من مستحق الشهر المسجل فيه الاستحقاق.</p>
-                ${residentNote}
-                ${kindNote}
-            </div>
+            ${renderChartFold('adjustmentsReportChart', 'إظهار التصور البياني - الإعفاءات عبر الأشهر')}
+            ${renderReportNotes([
+                '<p>تقرير للقراءة فقط ولا يعدل أي بيانات. تُخصم الإعفاءات والتخفيضات من مستحق الشهر المسجل فيه الاستحقاق.</p>',
+                residentNote,
+                kindNote
+            ])}
         </div>`;
 }
 
@@ -2788,18 +2807,20 @@ function renderResidentStatementHtml(statement) {
     ]);
     const adjustmentsBlock = showDues && statement.adjustments.length
         ? renderSheetBlock(adjustmentsTitle, ['الشهر', 'النوع', 'السبب', 'المبلغ'], adjustmentRows, {
-            empty: 'لا يوجد', numeric: [3],
+            empty: 'لا توجد إعفاءات مسجلة.', numeric: [3],
             foot: ['الإجمالي', '', fmtNum(statement.adjustments.length) + ' تسجيل',
                 '<span class="sheet-amber">' + money(totals.adjustmentCents) + '</span>']
         })
         : '';
     return `
         <div class="report-preview-flow">
-            <header class="report-preview-header">
-                <h3 class="report-preview-title">${esc(state.buildingName || 'العمارة')}</h3>
-                <p class="report-preview-meta">كشف حساب مالك · ${esc(resident.name)} · شقة ${esc(resident.apartmentNumber || '—')}${resident.floor ? ' · الدور ' + esc(resident.floor) : ''}</p>
-                <p class="report-preview-meta">الفترة: ${esc(statement.rangeLabel)}${statement.purposeFilter ? ' · الغرض: ' + esc(statement.purposeLabel) : ''}</p>
-            </header>
+            ${renderReportHeader('كشف حساب مالك · ' + (state.buildingName || 'العمارة'), [
+                esc(resident.name) + ' · شقة ' + esc(resident.apartmentNumber || '—') +
+                    (resident.floor ? ' · الدور ' + esc(resident.floor) : ''),
+                'الفترة: ' + esc(statement.rangeLabel) +
+                    (statement.purposeFilter ? ' · الغرض: ' + esc(statement.purposeLabel) : ''),
+                'تم الإنشاء ' + esc(formatDate(statement.generatedAt))
+            ])}
             ${statsHtml}
             ${monthsBlock}
             ${adjustmentsBlock}
@@ -2807,14 +2828,13 @@ function renderResidentStatementHtml(statement) {
                 empty: 'لا توجد حركات مسجلة.', numeric: [6],
                 foot: ['الإجمالي', '', '', '', '', fmtNum(statement.payments.length) + ' حركة', paid(totals.filteredPaidCents)]
             })}
-            <div class="report-note report-divider text-center">
-                ${showDues
+            ${renderReportNotes([
+                showDues
                     ? '<p>كل شهر محسوب بقيمة الاشتراك السارية فيه. يُخصم الإعفاء أو التخفيض، وتُحتسب دفعات التسوية على اتفاق التسوية المرتبط بها، دون تكرارها ضمن مدفوع الاشتراك.</p>'
-                    : '<p>المستحق الشهري يخص الاشتراكات فقط، لذلك تُعرض هنا حركات غرض «' + esc(statement.purposeLabel) + '» دون جدول المستحقات.</p>'}
-                ${showDues && statement.purposeFilter ? '<p>الحركات معروضة للاشتراكات فقط.</p>' : ''}
-                ${showDues ? unassignedNote : ''}
-                <p>تم الإنشاء: ${esc(formatDate(statement.generatedAt))}</p>
-            </div>
+                    : '<p>المستحق الشهري يخص الاشتراكات فقط، لذلك تُعرض هنا حركات غرض «' + esc(statement.purposeLabel) + '» دون جدول المستحقات.</p>',
+                showDues && statement.purposeFilter ? '<p>الحركات معروضة للاشتراكات فقط.</p>' : '',
+                showDues ? unassignedNote : ''
+            ])}
         </div>`;
 }
 

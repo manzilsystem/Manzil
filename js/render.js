@@ -41,7 +41,7 @@ function renderAuditLog(options) {
         esc(entry.details || '—')
     ]);
     container.innerHTML = renderSheetTable(headers, rows, {
-        caption: 'سجل العمليات', empty: 'لا يوجد سجل بعد.',
+        empty: 'لا يوجد سجل بعد.',
         foot: ['الإجمالي', '', fmtNum(visible.length) + ' عملية', fmtNum(filtered.length) + ' عملية متاحة']
     }) + `
         <div class="audit-log-footer">
@@ -127,7 +127,13 @@ function renderArrearsReport() {
         esc(month.month), duration(month.daysOverdue), money(month.amount)
     ]));
     c.innerHTML = [
-        '<div class="report-preview-flow">',
+        '<div class="report-preview-flow" dir="rtl">',
+        renderReportHeader('تقرير المتأخرات · ' + (state.buildingName || 'العمارة'), [
+            (filters.fromMonth || filters.toMonth)
+                ? 'الفترة: ' + (filters.fromMonth || 'البداية') + ' – ' + (filters.toMonth || 'النهاية')
+                : 'كل الأشهر غير المسددة',
+            filters.status !== 'all' ? 'التصنيف: ' + esc(filters.status) : ''
+        ]),
         renderReportStatTiles([
             { label: 'إجمالي المديونية', text: fmtNum(report.totalDebt) + ' ج.م', tone: 'rose' },
             { label: 'الشقق المتأخرة', text: fmtNum(report.overdueResidents) },

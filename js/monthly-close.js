@@ -14,7 +14,7 @@ function invalidateMonthlyClosePreview() {
     const status = document.getElementById('monthlyCloseReportStatus');
     if (status) status.textContent = 'تغيّر الشهر المحدد. أنشئ معاينة جديدة قبل التصدير.';
     const preview = document.getElementById('monthlyClosePreview');
-    if (preview) preview.innerHTML = '<p class="text-slate-500 text-center py-4">اختر الشهر ثم اضغط «مراجعة الإقفال».</p>';
+    if (preview) preview.innerHTML = '<p class="report-preview-empty">اختر الشهر ثم اضغط «مراجعة الإقفال».</p>';
     markReportPreviewStale('monthlyClosePreview', true);
     syncReportNavStatus();
 }
@@ -39,10 +39,11 @@ function renderMonthlyClosePreview(report) {
     });
 
     return [
-        '<div class="report-preview-flow" dir="rtl"><header class="report-preview-header">',
-        '<h3 class="report-preview-title">', esc(state.buildingName || 'Manzil'), '</h3>',
-        '<p class="report-preview-meta">مراجعة الإقفال النقدي لشهر ', esc(report.month), '</p>',
-        '<p class="report-preview-meta">الفترة محسوبة بالتوقيت المحلي: ', esc(report.time_zone), '</p></header>',
+        '<div class="report-preview-flow" dir="rtl">',
+        renderReportHeader('مراجعة الإقفال النقدي · ' + (state.buildingName || 'Manzil'), [
+            'شهر ' + esc(report.month),
+            'الفترة محسوبة بالتوقيت المحلي: ' + esc(report.time_zone)
+        ]),
         renderReportStatTiles([
             { label: 'رصيد أول الشهر', text: money(totals.opening_balance) },
             { label: 'التحصيلات', text: money(totals.income), tone: 'emerald' },
@@ -59,13 +60,16 @@ function renderMonthlyClosePreview(report) {
                     money(totals.transfers_in || 0), money(totals.transfers_out || 0),
                     money(totals.net_movement), money(totals.closing_balance)]
             }),
-        '<p class="report-hint">إجمالي رصيد الصناديق في نهاية الشهر: <strong class="report-amount">',
-        money(totals.closing_balance), '</strong>. التحويلات الداخلية لا تزيد أو تنقص إجمالي النقد.</p>',
         '<p class="text-xs font-bold ', report.reconciled ? 'text-emerald-400' : 'text-rose-400', '" role="status">',
         report.reconciled ? '✓ إجمالي الصناديق مطابق للحركة النقدية.' : '⚠ يوجد فرق في المطابقة. راجع حركة الصناديق قبل اعتماد التقرير.',
-        '</p><p class="report-note report-divider">',
-        'تعتمد المراجعة على تاريخ التحصيل الفعلي وتاريخ الصرف وتاريخ التحويل، لا على شهر استحقاق الاشتراك. ',
-        'هذه مراجعة للقراءة فقط؛ لا تقفل الشهر ولا تمنع التصحيح أو تسجيل الحركات اللاحقة.</p></div>'
+        '</p>',
+        renderReportNotes([
+            '<p>إجمالي رصيد الصناديق في نهاية الشهر: <strong class="report-amount">' +
+                money(totals.closing_balance) + '</strong>. التحويلات الداخلية لا تزيد أو تنقص إجمالي النقد.</p>',
+            '<p>تعتمد المراجعة على تاريخ التحصيل الفعلي وتاريخ الصرف وتاريخ التحويل، لا على شهر استحقاق الاشتراك. ' +
+                'هذه مراجعة للقراءة فقط؛ لا تقفل الشهر ولا تمنع التصحيح أو تسجيل الحركات اللاحقة.</p>'
+        ]),
+        '</div>'
     ].join('');
 }
 
@@ -92,7 +96,7 @@ async function loadMonthlyCloseReport() {
     if (exportButton) exportButton.disabled = true;
     if (reviewButton) reviewButton.disabled = true;
     status.textContent = 'جارٍ حساب الأرصدة والحركات من قاعدة البيانات...';
-    preview.innerHTML = '<p class="text-slate-400 text-center py-4">جارٍ إعداد المراجعة الشهرية...</p>';
+    preview.innerHTML = '<p class="report-preview-empty">جارٍ إعداد المراجعة الشهرية...</p>';
     markReportPreviewStale('monthlyClosePreview', false);
     syncReportNavStatus();
 

@@ -243,12 +243,11 @@ function renderCashFlowHtml(report) {
     const best = report.totals.bestMonth;
     const worst = report.totals.worstMonth;
     return [
-        '<div class="report-preview-flow">',
-        '<div class="report-preview-header">',
-        '<p class="report-preview-title">تقرير التدفق النقدي</p>',
-        '<p class="report-preview-meta">' + esc(report.rangeLabel) + ' · ' + esc(report.cashAccountLabel) +
-            ' · ' + fmtNum(report.totals.monthCount) + ' شهرًا · ' + fmtNum(report.totals.count) + ' حركة</p>',
-        '</div>',
+        '<div class="report-preview-flow" dir="rtl">',
+        renderReportHeader('تقرير التدفق النقدي · ' + (state.buildingName || 'العمارة'), [
+            esc(report.rangeLabel) + ' • ' + esc(report.cashAccountLabel) +
+                ' • ' + fmtNum(report.totals.monthCount) + ' شهرًا • ' + fmtNum(report.totals.count) + ' حركة'
+        ]),
         stats,
         renderSheetBlock('الحركة شهرًا بشهر', ['الشهر', 'التحصيل', 'المصروفات', 'الصافي', 'الحركات'], monthRows, {
             empty: 'لا توجد حركات في الفترة المحددة.',
@@ -262,12 +261,15 @@ function renderCashFlowHtml(report) {
             empty: 'لا توجد حركات في الصناديق.',
             numeric: [1, 2, 3]
         }),
-        best && worst ? '<p class="report-hint">أعلى صافي في ' + esc(best.month) + ': ' + money(best.netCents) +
-            ' · أدنى صافي في ' + esc(worst.month) + ': ' + money(worst.netCents) + '.</p>' : '',
-        distributionRows.length ? renderSheetTable(['البند', 'النوع', 'القيمة'], distributionRows, {
-            caption: 'التوزيع حسب الغرض والتصنيف',
-            numeric: [2]
+        distributionRows.length ? renderSheetBlock('التوزيع حسب الغرض والتصنيف', ['البند', 'النوع', 'القيمة'], distributionRows, {
+            empty: 'لا توجد بيانات مطابقة.', numeric: [2]
         }) : '',
+        renderChartFoldContainer('extendedCashFlowChartContainer', 'إظهار التصور البياني'),
+        renderReportNotes([
+            best && worst ? '<p>أعلى صافي في ' + esc(best.month) + ': ' + money(best.netCents) +
+                ' · أدنى صافي في ' + esc(worst.month) + ': ' + money(worst.netCents) + '.</p>' : '',
+            '<p>كل الأرقام من نفس بيانات التحصيل والمصروفات، محسوبة بالقرش. تغيير أي فلتر يعطّل التصدير حتى معاينة جديدة.</p>'
+        ]),
         '</div>'
     ].join('');
 }
@@ -576,13 +578,12 @@ function renderApartmentsHtml(report) {
         esc(row.lastPaymentDate ? formatDate(row.lastPaymentDate) : '—')
     ]);
     return [
-        '<div class="report-preview-flow">',
-        '<div class="report-preview-header">',
-        '<p class="report-preview-title">تقرير أداء الشقق</p>',
-        '<p class="report-preview-meta">' + esc(report.rangeLabel) + ' · ' + fmtNum(report.totals.unitCount) + ' شقة · ' +
-            fmtNum(report.totals.monthCount) + ' شهرًا · نسبة التحصيل ' +
-            (report.totals.rate === null ? '—' : fmtNum(report.totals.rate) + '%') + '</p>',
-        '</div>',
+        '<div class="report-preview-flow" dir="rtl">',
+        renderReportHeader('تقرير أداء الشقق · ' + (state.buildingName || 'العمارة'), [
+            esc(report.rangeLabel) + ' • ' + fmtNum(report.totals.unitCount) + ' شقة • ' +
+                fmtNum(report.totals.monthCount) + ' شهرًا • نسبة التحصيل ' +
+                (report.totals.rate === null ? '—' : fmtNum(report.totals.rate) + '%')
+        ]),
         stats,
         renderSheetBlock('تفاصيل كل شقة', ['الشقة', 'المستحق', 'المحصّل', 'المتبقٍ', 'النسبة', 'آخر تحصيل'], rows, {
             empty: 'لا توجد شقق مطابقة للفلاتر.',
@@ -592,7 +593,11 @@ function renderApartmentsHtml(report) {
                 '<span class="sheet-negative">' + money(report.totals.remainingCents) + '</span>',
                 report.totals.rate === null ? '—' : fmtNum(report.totals.rate) + '%', '—']
         }),
-        report.totals.otherIncomeCents ? '<p class="report-hint">تحصيلات أخرى غير الاشتراك في الفترة: ' + money(report.totals.otherIncomeCents) + ' (لا تُخصم من المستحق).</p>' : '',
+        renderChartFoldContainer('extendedApartmentsChartContainer', 'إظهار التصور البياني'),
+        renderReportNotes([
+            report.totals.otherIncomeCents ? '<p>تحصيلات أخرى غير الاشتراك في الفترة: ' + money(report.totals.otherIncomeCents) + ' (لا تُخصم من المستحق).</p>' : '',
+            '<p>المستحق يحترم تاريخ إضافة الشقة وسعر الاشتراك الساري في كل شهر، والمتبقٍ لا يقل عن صفر. تغيير أي فلتر يعطّل التصدير حتى معاينة جديدة.</p>'
+        ]),
         '</div>'
     ].join('');
 }

@@ -163,13 +163,33 @@ test('the nav marker follows the same freshness gate as the output buttons', () 
 });
 
 test('generated previews use the shared report blocks and theme-safe styles', () => {
+    const extended = fs.readFileSync(path.join(__dirname, '..', 'js', 'reports', 'extended', 'reports-extended.js'), 'utf8');
+    const monthlyClose = fs.readFileSync(path.join(__dirname, '..', 'js', 'monthly-close.js'), 'utf8');
     assert.doesNotMatch(reports, /border-slate-800 py-1/);
     assert.match(reports, /class="report-preview-header"/);
-    assert.match(reports, /'report-stats report-stats-4'/);
+    assert.match(reports, /class="report-stats report-stats-4"/);
     assert.match(reports, /class="report-block-title"/);
     assert.match(render, /renderSheetBlock\('ملخص المتأخرات'/);
     assert.match(render, /renderSheetBlock\('تفاصيل الأشهر غير المسددة'/);
     assert.match(render, /renderSheetTable\(headers, rows/);
+
+    // One contract for every preview: header, KPI table, blocks, chart fold, notes.
+    assert.match(reports, /function renderReportHeader\(title, metaLines = \[\]\)/);
+    assert.match(reports, /function renderReportNotes\(paragraphs\)/);
+    assert.match(reports, /function renderChartFold\(canvasId, label\)/);
+    assert.match(reports, /function renderChartFoldContainer\(containerId, label\)/);
+    ['landlordReportChart', 'periodReportChart', 'expensesReportChart', 'adjustmentsReportChart'].forEach(id =>
+        assert.match(reports, new RegExp("renderChartFold\\('" + id + "'")));
+    ['extendedCashFlowChartContainer', 'extendedApartmentsChartContainer'].forEach(id =>
+        assert.match(extended, new RegExp("renderChartFoldContainer\\('" + id + "'")));
+    assert.match(reports, /renderReportNotes\(\[/);
+    assert.match(extended, /renderReportNotes\(\[/);
+    assert.match(monthlyClose, /renderReportHeader\(/);
+    assert.match(render, /renderReportHeader\(/);
+    assert.match(css, /\.report-note-fold \{ border:/);
+    assert.match(css, /#printableArea \.report-note-fold > \.report-note \{ display: block !important;/);
+    assert.doesNotMatch(html, /id="extendedCashFlowChartContainer"/, 'chart containers now live inside their own preview');
+    assert.doesNotMatch(html, /id="extendedApartmentsChartContainer"/);
 });
 
 test('landlord report compares expected dues with collections', () => {
@@ -323,7 +343,7 @@ test('report previews use a calm rhythm and lined-up, readable tables', () => {
 
     // Tables have borders, even/odd rows and tabular numerals so columns line up.
     assert.match(css, /\.report-table-wrap \{ overflow-x: auto; border: 1px solid var\(--border-color\)/);
-    assert.match(css, /\.statement-table \{ width: 100%; border-collapse: collapse; font-size: var\(--font-76\); \}/);
+    assert.match(css, /\.statement-table \{ width: 100%; border-collapse: collapse; font-size: var\(--font-78\); \}/);
     assert.match(css, /\.statement-table th, \.statement-table td \{[^}]*border-bottom: 1px solid var\(--border-color\)/);
     assert.match(css, /\.statement-table tbody tr:nth-child\(even\) \{ background:/);
     assert.match(css, /\.statement-table td \{ font-variant-numeric: tabular-nums; \}/);
