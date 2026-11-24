@@ -1,3 +1,7 @@
+/* Tailwind is now a static stylesheet loaded before this file. Component rules
+   below set `display` on hidden-capable elements, so keep the utility winning. */
+.hidden { display: none !important; }
+
 :root {
     --weight-400: 400;
     --weight-500: 500;
