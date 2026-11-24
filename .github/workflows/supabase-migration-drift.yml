@@ -1,0 +1,56 @@
+name: Supabase migration drift
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-migration-drift-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compare:
+    name: Migration drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check for a hosted database connection
+        id: hosted
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::SUPABASE_DB_URL is unavailable; hosted migration drift check is skipped."
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install PostgreSQL client
+        if: steps.hosted.outputs.available == 'true'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+
+      - name: Read applied migration versions (read-only)
+        if: steps.hosted.outputs.available == 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -At \
+            -c "select version from supabase_migrations.schema_migrations order by version;" \
+            > "$RUNNER_TEMP/remote-versions.txt"
+          echo "Applied versions in the hosted project: $(wc -l < "$RUNNER_TEMP/remote-versions.txt")"
+
+      - name: Compare hosted history with committed migrations
+        if: steps.hosted.outputs.available == 'true'
+        run: node scripts/check-migration-drift.cjs "$RUNNER_TEMP/remote-versions.txt"

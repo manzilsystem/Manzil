@@ -212,3 +212,14 @@ limit 50;
 - `20261119230000_period_report_rpc.sql` ← `20261119232103_period_report_rpc.sql`
 
 المحتوى لم يتغيّر؛ وهذا يزيل الازدواج في سجل الترحيل ويسمح للفحص بتطبيق الترحيل المحلي الوحيد المتبقي (`20261120090000_period_report_method_share_fix.sql`) على فرع المعاينة. لا تُحذف ولا تُعدَّل صفوف `schema_migrations` في الإنتاج؛ الاسم المحلي هو الذي يتبع السجل المطبَّق، لا العكس.
+
+## فحص انحراف الترحيل المملوك للمستودع
+
+بعد إزالة خطأ أرقام الترحيل ظل فحص `Supabase Preview` يفشل في مرحلة نشر Edge Functions بالرسالة `unexpected update function status 413: {"message":"request entity too large"}`. هذه مرحلة خاصة بتكامل Supabase ولا يمكن التحكم فيها من ملفات المستودع، لذلك أضيف فحص مستقل في `.github/workflows/supabase-migration-drift.yml`:
+
+- يقرأ أرقام `supabase_migrations.schema_migrations` من المشروع المستضاف عبر `SUPABASE_DB_URL` باستخدام `psql` للقراءة فقط، ثم يقارنها بملفات `supabase/migrations/` عبر `scripts/check-migration-drift.cjs`.
+- يفشل إذا وُجد رقم بعيد بلا ملف محلي، أو تكرّر رقم محلي، أو كان اسم ملف بلا بادئة رقمية. هذا هو نفس الانحراف الذي كان يكشفه فحص Supabase.
+- لا يفشل بسبب ترحيل محلي لم يُطبَّق بعد؛ يُسجَّل كرسالة `INFO pending migration` لأنه ترحيل أمامي متوقع حتى يُطبَّق.
+- لا يكتب في قاعدة البيانات ولا يعدّل `schema_migrations`، ويتخطّى العمل بأمان إذا كان السر غير متاح (مثل PR من fork).
+
+بهذا تبقى حماية مطابقة الترحيل قائمة حتى لو عُطّل تكامل Supabase مع GitHub أو ظل فحصه معطّلًا بخطأ المنصة.
