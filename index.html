@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#071f27">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; connect-src 'self' https://musvcrkljccubwbcrtjs.supabase.co wss://musvcrkljccubwbcrtjs.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self'; manifest-src 'self'">
-    <script src="js/sw-register.js?v=f253bbf29b"></script>
+    <script src="js/sw-register.js?v=c574706fe9"></script>
     <link rel="manifest" href="manifest.json?v=816dba03f5">
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=6ec97fda11">
     <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png?v=e3a343d38f">
@@ -18,7 +18,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css?v=423d76cd14">
+    <link rel="stylesheet" href="css/style.css?v=d07d8dce68">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -528,6 +528,37 @@
                     </button>
                 </nav>
             </div>
+            <section class="app-card rounded-3xl border overflow-hidden no-print" id="scheduledReportsSection">
+                <button type="button" onclick="toggleScheduledReportsSection()" class="w-full p-4 cursor-pointer flex items-center justify-between gap-3 text-sm font-bold">
+                    <span class="flex items-center gap-2"><span class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center"><i class="fa-solid fa-clock" aria-hidden="true"></i></span> التقارير المجدولة</span>
+                    <i class="fa-solid fa-chevron-down text-xs text-slate-400" aria-hidden="true"></i>
+                </button>
+                <div id="scheduledReportsBody" class="hidden p-4 pt-0 space-y-3 bg-gradient-to-r from-indigo-950/20 via-slate-900/20 to-indigo-950/20">
+                    <p class="text-xs text-slate-400">أنشئ جداول لتوليد التقارير تلقائياً (يومي/أسبوعي/شهري). الإعدادات محفوظة محلياً وقابلة للربط بخادم لاحقاً.</p>
+                    <button type="button" onclick="openScheduleForm()" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-xl text-xs font-bold transition"><i class="fa-solid fa-plus"></i> جدول جديد</button>
+                    <div id="scheduledReportsList"></div>
+                    <div id="scheduleFormContainer" class="hidden app-input border rounded-2xl p-3 space-y-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <label class="block text-xs space-y-1"><span class="text-slate-400">اسم الجدول</span><input id="scheduleName" type="text" placeholder="مثال: تقرير شهري" class="w-full app-input border rounded-xl px-3 py-2"></label>
+                            <label class="block text-xs space-y-1"><span class="text-slate-400">نوع التقرير</span><select id="scheduleReportType" class="w-full app-input border rounded-xl px-3 py-2"><option value="landlord">تقرير الملاك</option><option value="period">تقرير الفترة</option><option value="expenses">تقرير المصروفات</option><option value="adjustments">الإعفاءات والتخفيضات</option><option value="statement">كشف حساب مالك</option></select></label>
+                            <label class="block text-xs space-y-1"><span class="text-slate-400">التكرار</span><select id="scheduleFrequency" class="w-full app-input border rounded-xl px-3 py-2"><option value="daily">يومي</option><option value="weekly">أسبوعي</option><option value="monthly">شهري</option></select></label>
+                            <label class="block text-xs space-y-1"><span class="text-slate-400">طريقة التسليم</span><select id="scheduleDelivery" class="w-full app-input border rounded-xl px-3 py-2"><option value="download">تحميل محلي</option><option value="whatsapp">واتساب</option><option value="email">بريد إلكتروني</option></select></label>
+                        </div>
+                        <button type="button" onclick="saveNewSchedule()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-xl text-xs font-bold transition">حفظ الجدول</button>
+                    </div>
+                    <div id="scheduleLogContainer" class="hidden"></div>
+                    <button type="button" onclick="toggleScheduleLog()" class="text-xs text-indigo-400 font-bold hover:underline">سجل التشغيل</button>
+                    <div id="scheduleLogWrap" class="hidden"></div>
+                    <div class="border-t border-slate-700/50 pt-3 mt-3 space-y-2">
+                        <p class="text-xs font-bold text-slate-400"><i class="fa-solid fa-bookmark text-amber-400"></i> قوالبي المحفوظة (تقرير الفترة)</p>
+                        <div class="flex gap-2">
+                            <input id="templateNameInput" type="text" placeholder="اسم القالب" class="flex-grow app-input border rounded-xl px-3 py-2 text-xs">
+                            <button type="button" onclick="saveCurrentPeriodTemplate()" class="bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-xl text-xs font-bold transition"><i class="fa-solid fa-save"></i> حفظ</button>
+                        </div>
+                        <div id="savedTemplatesList"></div>
+                    </div>
+                </div>
+            </section>
             <div id="reportViewBar" class="report-view-bar no-print" role="group" aria-labelledby="reportViewTitle">
                 <button type="button" class="report-view-back" onclick="showReportGrid()" aria-label="رجوع إلى شبكة التقارير"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
                 <span class="report-view-icon" id="reportViewIcon" aria-hidden="true"></span>
@@ -623,15 +654,24 @@
                         <span class="report-field-label">الشقة</span>
                         <select id="periodReportResident" aria-label="فلتر الشقة" onchange="invalidatePeriodReportPreview()" class="report-control app-input border focus:outline-none"></select>
                     </label>
+                    <label class="report-field report-field-narrow" for="periodReportComparison">
+                        <span class="report-field-label">المقارنة</span>
+                        <select id="periodReportComparison" aria-label="وضع مقارنة الفترة" onchange="onPeriodComparisonChange()" class="report-control app-input border focus:outline-none">
+                            <option value="none">بدون مقارنة</option>
+                            <option value="previous">الفترة السابقة</option>
+                            <option value="previous_year">نفس الفترة من العام الماضي</option>
+                        </select>
+                    </label>
                     <button type="button" onclick="generatePeriodReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
                 </div>
                 <div id="periodReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
                     <p class="report-preview-empty">اضغط «معاينة» لعرض تقرير الفترة المحددة.</p>
                 </div>
-                <div class="report-actions report-actions-3 no-print">
+                <div class="report-actions report-actions-4 no-print">
                     <button type="button" id="periodReportPrintBtn" onclick="printPeriodReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
                     <button type="button" id="periodReportPdfBtn" onclick="exportPeriodReportPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
                     <button type="button" id="periodReportExportBtn" onclick="exportPeriodReportCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
+                    <button type="button" id="periodReportExcelBtn" onclick="exportPeriodReportExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
                 </div>
                 <p class="report-hint no-print">تغيير الفترة أو البيانات يعطّل الطباعة والتصدير حتى معاينة جديدة، والأرقام تطابق تقرير الملاك لكل شهر. أقصى مدة 60 شهرًا.</p>
             </div>
@@ -668,10 +708,11 @@
                 <div id="expensesReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
                     <p class="report-preview-empty">اضغط «معاينة» لعرض مصروفات الفترة المحددة.</p>
                 </div>
-                <div class="report-actions report-actions-3 no-print">
+                <div class="report-actions report-actions-4 no-print">
                     <button type="button" id="expensesReportPrintBtn" onclick="printExpensesReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
                     <button type="button" id="expensesReportPdfBtn" onclick="exportExpensesReportPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
                     <button type="button" id="expensesReportExportBtn" onclick="exportExpensesReportCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
+                    <button type="button" id="expensesReportExcelBtn" onclick="exportExpensesReportExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
                 </div>
                 <p class="report-hint no-print">تغيير الفترة أو الصندوق أو التصنيف يعطّل الطباعة والتصدير حتى معاينة جديدة. أقصى مدة 60 شهرًا.</p>
             </div>
@@ -2194,13 +2235,28 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-edac28cb07"></script>
+    <script src="js/telemetry.js?v=manzil-ef5e69814a"></script>
     <script src="js/state.js?v=33e9d6518b"></script>
     <script src="js/access.js?v=1ca370a57a"></script>
     <script src="js/render.js?v=38a35471ba"></script>
     <script src="js/crud.js?v=74a52991d9"></script>
     <script src="js/notices.js?v=708550996a"></script>
-    <script src="js/reports.js?v=fde7419155"></script>
+    <!-- Chart.js for report visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- SheetJS for advanced Excel export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Reports Core Modules -->
+    <script src="js/reports/core/types.js?v=28d03a461a"></script>
+    <script src="js/reports/core/filters.js?v=ec0f9b40d5"></script>
+    <script src="js/reports/core/calculations.js?v=3ec5ba6c5b"></script>
+    <script src="js/reports/core/csv-exporter.js?v=5e1e5509b6"></script>
+    <script src="js/reports/shared/charts.js?v=99afa7cf4d"></script>
+    <script src="js/reports/shared/templates.js?v=30f50cd7ff"></script>
+    <script src="js/reports/shared/comparison.js?v=025fd833de"></script>
+    <script src="js/reports/shared/excel-exporter.js?v=3bd5a2517f"></script>
+    <script src="js/reports/shared/scheduled-reports.js?v=1b63be1c4e"></script>
+    <!-- Reports Main -->
+    <script src="js/reports.js?v=4b4c69434a"></script>
     <script src="js/settings.js?v=c274fd024a"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase.js?v=72f0a2a426"></script>
@@ -2208,6 +2264,6 @@
     <script src="js/monthly-close.js?v=3931791f32"></script>
     <script src="js/backup.js?v=65b179f1d7"></script>
     <script src="js/assistant.js?v=4114f21c75"></script>
-    <script src="js/app.js?v=1faf844f92"></script>
+    <script src="js/app.js?v=452cd0fdfc"></script>
 </body>
 </html>

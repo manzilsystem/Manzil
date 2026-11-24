@@ -7,11 +7,20 @@
     let updateCard = null;
     const hadController = Boolean(navigator.serviceWorker.controller);
 
+    // Only text-like fields can hold unsaved typing. Checkboxes, radios and
+    // buttons always carry a value and must not block an idle update forever.
+    const TEXT_INPUT_TYPES = ['text', 'search', 'email', 'url', 'tel', 'password', 'number', 'date', 'month', 'week', 'time', 'datetime-local'];
+    const hasUnsavedFieldValue = () =>
+        [...document.querySelectorAll('input, textarea')].some(field => {
+            if (field.disabled || field.readOnly || field.closest('.hidden, [hidden]')) return false;
+            const element = /** @type {HTMLInputElement} */ (field);
+            if (element.tagName === 'INPUT' && !TEXT_INPUT_TYPES.includes(element.type)) return false;
+            return String(element.value || '').trim() !== '';
+        });
+
     const appIsBusy = () => {
         if (document.querySelector('[role="dialog"]:not(.hidden)')) return true;
-        const active = document.activeElement;
-        if (!active || !['INPUT', 'TEXTAREA'].includes(active.tagName)) return false;
-        return String(/** @type {HTMLInputElement} */ (active).value || '').trim() !== '';
+        return hasUnsavedFieldValue();
     };
 
     const closeUpdateCard = () => {

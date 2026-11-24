@@ -65,6 +65,67 @@ async function previewStatement(page) {
     await page.locator('#residentStatementCard').getByRole('button', { name: 'معاينة', exact: true }).click();
 }
 
+test('report visualizations render charts for landlord, period, expenses and adjustments', async ({ page }) => {
+    await openReports(page);
+
+    const hasChart = await page.evaluate(() => typeof window.Chart !== 'undefined');
+    expect(hasChart).toBe(true);
+
+    await previewMonth(page, 'يناير 2024');
+    await expect(page.locator('#landlordReportChart')).toBeVisible();
+
+    await backToGrid(page);
+    await previewPeriod(page, 'يناير 2024', 'فبراير 2024');
+    await expect(page.locator('#periodReportChart')).toBeVisible();
+
+    await backToGrid(page);
+    await openReportPanel(page, 'expenses');
+    await page.locator('#expensesReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await expect(page.locator('#expensesReportChart')).toBeVisible();
+
+    await backToGrid(page);
+    await openReportPanel(page, 'adjustments');
+    await page.locator('#adjustmentsReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await expect(page.locator('#adjustmentsReportChart')).toBeVisible();
+});
+
+test('period comparison renders a comparison table when a mode is selected', async ({ page }) => {
+    await openReports(page);
+    await openReportPanel(page, 'period');
+    await page.locator('#periodReportComparison').selectOption('previous_year');
+    await previewPeriod(page, 'يناير 2024', 'فبراير 2024');
+    await expect(page.locator('.report-comparison-table')).toBeVisible();
+    await expect(page.locator('.report-comparison-block')).toContainText('مقارنة الفترات');
+});
+
+test('saved report templates can be created, listed and applied', async ({ page }) => {
+    await openReports(page);
+    await page.locator('#scheduledReportsSection > button').first().click();
+    await expect(page.locator('#templateNameInput')).toBeVisible();
+    await page.locator('#templateNameInput').fill('قالب اختبار');
+    await page.locator('button[onclick="saveCurrentPeriodTemplate()"]').click();
+    await expect(page.locator('#savedTemplatesList')).toContainText('قالب اختبار');
+
+    const count = await page.evaluate(() => window.loadReportTemplates().length);
+    expect(count).toBeGreaterThan(0);
+});
+
+test('scheduled reports section can create and toggle a schedule', async ({ page }) => {
+    await openReports(page);
+    await page.locator('#scheduledReportsSection > button').first().click();
+    await expect(page.locator('#scheduledReportsBody')).toBeVisible();
+    await page.locator('button[onclick="openScheduleForm()"]').click();
+    await expect(page.locator('#scheduleFormContainer')).toBeVisible();
+    await page.locator('#scheduleName').fill('جدول اختبار');
+    await page.locator('button[onclick="saveNewSchedule()"]').click();
+    await expect(page.locator('#scheduledReportsList')).toContainText('جدول اختبار');
+
+    const before = await page.evaluate(() => window.loadScheduledReports()[0].enabled);
+    await page.locator('#scheduledReportsList').getByRole('button').first().click();
+    const after = await page.evaluate(() => window.loadScheduledReports()[0].enabled);
+    expect(after).toBe(!before);
+});
+
 test('report output stays disabled until a fresh preview exists', async ({ page }) => {
     await openReports(page);
     const printButton = page.locator('#reportPrintBtn');

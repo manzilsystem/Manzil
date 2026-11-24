@@ -592,6 +592,15 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-stat-value { font-size: var(--font-90); font-weight: var(--weight-900); line-height: var(--leading-135); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .report-amount { font-variant-numeric: tabular-nums; font-weight: var(--weight-800); }
 .report-block { display: flex; flex-direction: column; gap: var(--space-30); }
+.report-chart-block { gap: var(--space-40); }
+.report-chart-container { position: relative; width: 100%; min-height: 180px; }
+.report-comparison-table th, .report-comparison-table td { text-align: center; }
+.report-comparison-table td:first-child, .report-comparison-table th:first-child { text-align: right; }
+.report-change-positive { color: var(--state-success); font-weight: var(--weight-700); }
+.report-change-negative { color: var(--state-danger); font-weight: var(--weight-700); }
+.report-change-neutral { color: var(--text-muted); font-weight: var(--weight-700); }
+.report-compare-prev { color: var(--text-muted); }
+.report-compare-current { font-weight: var(--weight-700); }
 .report-block-title { display: flex; align-items: center; justify-content: space-between; gap: var(--space-50); margin-bottom: var(--space-10); color: var(--text-muted); font-size: var(--font-64); font-weight: var(--weight-800); }
 .report-block-count { padding: var(--space-8) var(--space-42); border: 1px solid var(--border-color); border-radius: var(--radius-pill); background: color-mix(in srgb, var(--bg-input) 60%, transparent); color: var(--text-main); font-size: var(--font-58); font-weight: var(--weight-800); }
 .report-list { display: flex; flex-direction: column; }

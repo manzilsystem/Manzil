@@ -94,3 +94,10 @@ test('a new deployment offers an in-app refresh instead of a manual cache clear'
     assert.match(swRegister, /laterButton\.addEventListener\('click', \(\) => \{ updateDeferred = true; closeUpdateCard\(\); \}\)/);
     assert.match(swRegister, /setInterval\(\(\) => \{ if \(updatePending\) applyPendingUpdate\(\); \}, 5000\)/);
 });
+
+test('an unsaved visible field blocks auto-reload even after focus moves away', () => {
+    assert.match(swRegister, /document\.querySelectorAll\('input, textarea'\)/);
+    assert.match(swRegister, /field\.disabled \|\| field\.readOnly \|\| field\.closest\('\.hidden, \[hidden\]'\)/);
+    assert.match(swRegister, /element\.tagName === 'INPUT' && !TEXT_INPUT_TYPES\.includes\(element\.type\)/);
+    assert.match(swRegister, /return hasUnsavedFieldValue\(\);/);
+});
