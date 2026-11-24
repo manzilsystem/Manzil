@@ -73,26 +73,56 @@ const REPORT_CHART_DEFAULTS = Object.freeze({
 // ============================================
 
 /**
- * إنشاء مخطط أعمدة (Bar Chart)
+ * التأكد من تحميل Chart.js قبل إنشاء الرسم (Lazy Loading)
+ * @returns {Promise<boolean>}
+ */
+async function ensureChartLoaded() {
+  if (typeof Chart !== 'undefined') return true;
+  if (typeof window !== 'undefined' && typeof window.ensureChartJs === 'function') {
+    return window.ensureChartJs();
+  }
+  return false;
+}
+
+/**
+ * تدمير الرسم السابق وإنشاء context جديد
+ * @param {HTMLCanvasElement} canvas
+ * @returns {CanvasRenderingContext2D|null}
+ */
+function prepareChartCanvas(canvas) {
+  if (!canvas) return null;
+  const existingChart = Chart.getChart(canvas);
+  if (existingChart) existingChart.destroy();
+  return canvas.getContext('2d');
+}
+
+/**
+ * تسجيل استدعاء مخطط للرسم في المكالمات العالمية (لاختبارات الوحدة)
+ * @param {Object} config
+ */
+function recordChartCall(config) {
+  if (typeof window !== 'undefined' && window.__chartCalls) {
+    window.__chartCalls.push(config);
+  }
+}
+
+/**
+ * إنشاء مخطط أعمدة (Bar Chart) مع Lazy Loading لـ Chart.js
  * @param {string} canvasId
  * @param {Object} data
  * @param {Object} [options]
- * @returns {Object|null}
+ * @returns {Promise<Object|null>}
  */
-function createBarChart(canvasId, data, options = {}) {
-  if (typeof Chart === 'undefined') {
+async function createBarChart(canvasId, data, options = {}) {
+  if (!(await ensureChartLoaded())) {
     console.warn('[Charts] Chart.js not loaded');
     return null;
   }
   const canvas = document.getElementById(canvasId);
-  if (!canvas) return null;
+  const ctx = prepareChartCanvas(canvas);
+  if (!ctx) return null;
 
-  // تدمير الرسم السابق إن وجد
-  const existingChart = Chart.getChart(canvas);
-  if (existingChart) existingChart.destroy();
-
-  const ctx = canvas.getContext('2d');
-  return new Chart(ctx, {
+  const chart = new Chart(ctx, {
     type: 'bar',
     data: data,
     options: {
@@ -101,28 +131,27 @@ function createBarChart(canvasId, data, options = {}) {
       indexAxis: options.horizontal ? 'y' : 'x'
     }
   });
+  recordChartCall({ type: 'bar', data });
+  return chart;
 }
 
 /**
- * إنشاء مخطط خطي (Line Chart)
+ * إنشاء مخطط خطي (Line Chart) مع Lazy Loading لـ Chart.js
  * @param {string} canvasId
  * @param {Object} data
  * @param {Object} [options]
- * @returns {Object|null}
+ * @returns {Promise<Object|null>}
  */
-function createLineChart(canvasId, data, options = {}) {
-  if (typeof Chart === 'undefined') {
+async function createLineChart(canvasId, data, options = {}) {
+  if (!(await ensureChartLoaded())) {
     console.warn('[Charts] Chart.js not loaded');
     return null;
   }
   const canvas = document.getElementById(canvasId);
-  if (!canvas) return null;
+  const ctx = prepareChartCanvas(canvas);
+  if (!ctx) return null;
 
-  const existingChart = Chart.getChart(canvas);
-  if (existingChart) existingChart.destroy();
-
-  const ctx = canvas.getContext('2d');
-  return new Chart(ctx, {
+  const chart = new Chart(ctx, {
     type: 'line',
     data: data,
     options: {
@@ -134,28 +163,27 @@ function createLineChart(canvasId, data, options = {}) {
       }
     }
   });
+  recordChartCall({ type: 'line', data });
+  return chart;
 }
 
 /**
- * إنشاء مخطط دائري (Doughnut/Pie Chart)
+ * إنشاء مخطط دائري (Doughnut/Pie Chart) مع Lazy Loading لـ Chart.js
  * @param {string} canvasId
  * @param {Object} data
  * @param {Object} [options]
- * @returns {Object|null}
+ * @returns {Promise<Object|null>}
  */
-function createDoughnutChart(canvasId, data, options = {}) {
-  if (typeof Chart === 'undefined') {
+async function createDoughnutChart(canvasId, data, options = {}) {
+  if (!(await ensureChartLoaded())) {
     console.warn('[Charts] Chart.js not loaded');
     return null;
   }
   const canvas = document.getElementById(canvasId);
-  if (!canvas) return null;
+  const ctx = prepareChartCanvas(canvas);
+  if (!ctx) return null;
 
-  const existingChart = Chart.getChart(canvas);
-  if (existingChart) existingChart.destroy();
-
-  const ctx = canvas.getContext('2d');
-  return new Chart(ctx, {
+  const chart = new Chart(ctx, {
     type: 'doughnut',
     data: data,
     options: {
@@ -164,28 +192,27 @@ function createDoughnutChart(canvasId, data, options = {}) {
       cutout: options.cutout || '60%'
     }
   });
+  recordChartCall({ type: 'doughnut', data });
+  return chart;
 }
 
 /**
- * إنشاء مخطط مساحة (Area Chart)
+ * إنشاء مخطط مساحة (Area Chart) مع Lazy Loading لـ Chart.js
  * @param {string} canvasId
  * @param {Object} data
  * @param {Object} [options]
- * @returns {Object|null}
+ * @returns {Promise<Object|null>}
  */
-function createAreaChart(canvasId, data, options = {}) {
-  if (typeof Chart === 'undefined') {
+async function createAreaChart(canvasId, data, options = {}) {
+  if (!(await ensureChartLoaded())) {
     console.warn('[Charts] Chart.js not loaded');
     return null;
   }
   const canvas = document.getElementById(canvasId);
-  if (!canvas) return null;
+  const ctx = prepareChartCanvas(canvas);
+  if (!ctx) return null;
 
-  const existingChart = Chart.getChart(canvas);
-  if (existingChart) existingChart.destroy();
-
-  const ctx = canvas.getContext('2d');
-  return new Chart(ctx, {
+  const chart = new Chart(ctx, {
     type: 'line',
     data: data,
     options: {
@@ -198,6 +225,8 @@ function createAreaChart(canvasId, data, options = {}) {
       }
     }
   });
+  recordChartCall({ type: 'line', data, area: true });
+  return chart;
 }
 
 // ============================================
@@ -208,12 +237,13 @@ function createAreaChart(canvasId, data, options = {}) {
 
 /**
  * رسم مخطط دائري من قيم بسيطة
+ * إذا كان Chart.js محملاً يتم الإنشاء بشكل متزامن، وإلا يتم التحميل أولاً (Lazy Loading)
  * @param {string} canvasId
  * @param {string[]} labels
  * @param {number[]} values
  * @param {string[]} palette - ألوان من REPORT_CHART_COLORS
  * @param {Object} [options]
- * @returns {Object|null}
+ * @returns {Object|null|Promise<Object|null>}
  */
 function renderDoughnutValues(canvasId, labels, values, palette, options = {}) {
   const data = {
@@ -224,34 +254,44 @@ function renderDoughnutValues(canvasId, labels, values, palette, options = {}) {
       borderWidth: 0
     }]
   };
-  return createDoughnutChart(canvasId, data, options);
+  if (typeof Chart !== 'undefined') return createDoughnutChart(canvasId, data, options);
+  return (async () => {
+    await ensureChartLoaded();
+    return createDoughnutChart(canvasId, data, options);
+  })();
 }
 
 /**
  * رسم مخطط أعمدة من قيم بسيطة
+ * إذا كان Chart.js محملاً يتم الإنشاء بشكل متزامن، وإلا يتم التحميل أولاً (Lazy Loading)
  * @param {string} canvasId
  * @param {string[]} labels
  * @param {number[]} values
  * @param {string} color
  * @param {string} [label]
  * @param {Object} [options]
- * @returns {Object|null}
+ * @returns {Object|null|Promise<Object|null>}
  */
 function renderBarValues(canvasId, labels, values, color, label = '', options = {}) {
   const data = {
     labels,
     datasets: [{ label, data: values, backgroundColor: color, borderWidth: 0 }]
   };
-  return createBarChart(canvasId, data, options);
+  if (typeof Chart !== 'undefined') return createBarChart(canvasId, data, options);
+  return (async () => {
+    await ensureChartLoaded();
+    return createBarChart(canvasId, data, options);
+  })();
 }
 
 /**
  * رسم مخطط خطي من عدة سلاسل
+ * إذا كان Chart.js محملاً يتم الإنشاء بشكل متزامن، وإلا يتم التحميل أولاً (Lazy Loading)
  * @param {string} canvasId
  * @param {string[]} labels
  * @param {Array<{label: string, values: number[], color: string, fill?: string}>} series
  * @param {Object} [options]
- * @returns {Object|null}
+ * @returns {Object|null|Promise<Object|null>}
  */
 function renderLineSeries(canvasId, labels, series, options = {}) {
   const datasets = series.map(s => ({
@@ -262,7 +302,11 @@ function renderLineSeries(canvasId, labels, series, options = {}) {
     fill: Boolean(s.fill),
     tension: 0.3
   }));
-  return createLineChart(canvasId, { labels, datasets }, options);
+  if (typeof Chart !== 'undefined') return createLineChart(canvasId, { labels, datasets }, options);
+  return (async () => {
+    await ensureChartLoaded();
+    return createLineChart(canvasId, { labels, datasets }, options);
+  })();
 }
 
 // ============================================

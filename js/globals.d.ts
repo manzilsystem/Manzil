@@ -55,6 +55,14 @@ declare function addScheduledReport(config: Record<string, unknown>): any;
 declare function renderScheduledReportsList(containerId: string): void;
 declare function renderScheduleLog(containerId: string): void;
 
+// Reports - performance (js/reports/shared/performance.js)
+declare function memoize(fn: Function, maxSize?: number): any;
+declare function ensureChartJs(): Promise<boolean>;
+declare function isChartJsReady(): boolean;
+declare function clearAllReportCaches(): void;
+declare function clearReportModelCache(): void;
+declare function getCachedReportModel(cacheKey: string, builder: Function, invalidateChecker?: Function): any;
+
 // Reports - saved templates (js/reports/shared/templates.js)
 declare function renderTemplateList(reportType: string, containerId: string): void;
 declare function addReportTemplate(name: string, reportType: string, filters: Record<string, unknown>): any;

@@ -367,6 +367,9 @@ async function saveWithRollback(previousState, requestId = null) {
 
     if (saved) {
         saveRollbackBaseline = attemptedState;
+        // مسح تخزين نماذج التقارير المؤقت عند تغيير البيانات لضمان عدم عرض بيانات قديمة
+        if (typeof clearReportModelCache === 'function') clearReportModelCache();
+        else if (typeof window !== 'undefined' && typeof window.clearReportModelCache === 'function') window.clearReportModelCache();
     }
     saveRollbackPendingCount -= 1;
 

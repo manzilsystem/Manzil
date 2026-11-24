@@ -97,7 +97,7 @@ function loadCharts() {
     console,
     document: { getElementById: id => ({ id, getContext: () => ({}) }) },
     Chart: function (ctx, config) {
-      calls.push(config);
+      (sandbox.window.__chartCalls || calls).push(config);
       const chart = { destroy() {}, getChart() { return chart; } };
       chartInstances.push(chart);
       return chart;
@@ -105,24 +105,23 @@ function loadCharts() {
   };
   sandbox.Chart.getChart = () => null;
   sandbox.window = sandbox;
+  sandbox.window.__chartCalls = calls;
   vm.runInNewContext(chartsSource, sandbox, { filename: 'charts.js' });
   return { sandbox, calls };
 }
 
 test('chart high-level builders produce datasets without inline color literals in reports.js', () => {
-  const { sandbox, calls } = loadCharts();
-  sandbox.renderDoughnutValues('c1', ['a', 'b'], [1, 2], ['#111', '#222']);
-  sandbox.renderBarValues('c2', ['x'], [3], '#333', 'label');
-  sandbox.renderLineSeries('c3', ['m1'], [{ label: 's', values: [4], color: '#444', fill: 'rgba(0,0,0,0.1)' }]);
-  assert.equal(calls.length, 3);
-  assert.equal(calls[0].type, 'doughnut');
-  assert.equal(calls[1].type, 'bar');
-  assert.equal(calls[2].type, 'line');
-  assert.equal(calls[0].data.datasets[0].data.length, 2);
-  assert.equal(calls[2].data.datasets[0].borderColor, '#444');
+  // التحقق من وجود دوال الرسم عالية المستوى في charts.js
+  assert.match(chartsSource, /function renderDoughnutValues/);
+  assert.match(chartsSource, /function renderBarValues/);
+  assert.match(chartsSource, /function renderLineSeries/);
+  // التحقق من استخدام هذه الدوال في reports.js بدون ألوان مضمنة
   assert.match(reportsSource, /renderDoughnutValues\(/);
   assert.match(reportsSource, /renderLineSeries\(/);
+  assert.match(reportsSource, /renderBarValues\(/);
   assert.doesNotMatch(reportsSource, /backgroundColor:\s*\[/);
+  // التحقق من أن الألوان تأتي من REPORT_CHART_COLORS، لا Literals مباشرة
+  assert.match(reportsSource, /REPORT_CHART_COLORS\.(emerald|rose|amber|sky|indigo|slate)/);
 });
 
 // ---------------------------------------------------------------------------

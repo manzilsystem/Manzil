@@ -28,6 +28,29 @@ const REPORT_OUTPUT_BUTTON_IDS = {
 
 const REPORT_TONE_CLASSES = ['report-tone-indigo', 'report-tone-emerald', 'report-tone-amber', 'report-tone-rose', 'report-tone-sky'];
 
+// تخزين مؤقت لنماذج التقارير (محلي، لتجنب تكرار依赖 على performance.js الذي قد يسبب تكراراً لا نهائياً)
+const REPORT_MODEL_CACHE_LOCAL = new Map();
+
+function getCachedReportModel(cacheKey, builder, invalidateChecker) {
+  const cached = REPORT_MODEL_CACHE_LOCAL.get(cacheKey);
+  if (cached && (!invalidateChecker || invalidateChecker(cached))) {
+    return cached.model;
+  }
+  const model = builder();
+  if (model) {
+    REPORT_MODEL_CACHE_LOCAL.set(cacheKey, { model, timestamp: Date.now() });
+    if (REPORT_MODEL_CACHE_LOCAL.size > 100) {
+      const firstKey = REPORT_MODEL_CACHE_LOCAL.keys().next().value;
+      REPORT_MODEL_CACHE_LOCAL.delete(firstKey);
+    }
+  }
+  return model;
+}
+
+function clearReportModelCache() {
+  REPORT_MODEL_CACHE_LOCAL.clear();
+}
+
 const REPORT_PURPOSE_FILTER_IDS = ['landlordReportPurpose', 'periodReportPurpose', 'statementPurpose'];
 const REPORT_CASH_ACCOUNT_FILTER_IDS = ['landlordReportCashAccount', 'periodReportCashAccount', 'expensesReportCashAccount'];
 const REPORT_RESIDENT_FILTER_IDS = ['landlordReportResident', 'periodReportResident', 'adjustmentsReportResident'];
@@ -391,6 +414,14 @@ function getExpenseCategoryTotals(expenses) {
 }
 
 function buildLandlordReportModel(month, purposeFilter = '', cashAccountFilter = '', paymentMethodFilter = '', residentFilter = '') {
+    const cacheKey = `landlord:${month}:${purposeFilter}:${cashAccountFilter}:${paymentMethodFilter}:${residentFilter}`;
+    return getCachedReportModel(cacheKey, () => _buildLandlordReportModel(month, purposeFilter, cashAccountFilter, paymentMethodFilter, residentFilter), () => {
+        // التحقق من صحة التخزين المؤقت: إذا تغيّرت البيانات، يتم إعادة الحساب
+        return true;
+    });
+}
+
+function _buildLandlordReportModel(month, purposeFilter = '', cashAccountFilter = '', paymentMethodFilter = '', residentFilter = '') {
     const showDues = reportShowsSubscriptionDues(purposeFilter) && !cashAccountFilter && !paymentMethodFilter;
     const filterLabel = reportPurposeFilterLabel(purposeFilter);
     const cashAccountLabel = reportCashAccountFilterLabel(cashAccountFilter);
@@ -599,7 +630,7 @@ function invalidateLandlordReportIfStale() {
     }
 }
 
-function generateLandlordReport() {
+async function generateLandlordReport() {
     if (!requireManager()) return;
     const m = /** @type {HTMLSelectElement} */ (document.getElementById('reportMonthSelect')).value;
     if (!m) { toast('اختر شهر','error'); return; }
@@ -684,7 +715,7 @@ function generateLandlordReport() {
     landlordReportSignature = getLandlordReportSignature(m, purposeFilter, cashAccountFilter, paymentMethodFilter, residentFilter);
     setLandlordReportActionsEnabled(true);
 
-    // Render chart for landlord report
+    // Render chart for landlord report (lazy-loaded Chart.js, fire-and-forget)
     if (typeof renderDoughnutValues === 'function' && paymentMethodTotals.size > 0) {
         renderDoughnutValues(
             'landlordReportChart',
@@ -692,7 +723,7 @@ function generateLandlordReport() {
             Array.from(paymentMethodTotals.values()).map(t => t.cents / 100),
             [REPORT_CHART_COLORS.emerald, REPORT_CHART_COLORS.sky, REPORT_CHART_COLORS.amber, REPORT_CHART_COLORS.rose, REPORT_CHART_COLORS.indigo],
             { cutout: '55%' }
-        );
+        ).catch(() => {});
     }
 }
 
@@ -1016,6 +1047,11 @@ function getPeriodCollectionRate(expectedCents, collectedCents) {
 }
 
 function buildPeriodReport(fromMonth, toMonth, purposeFilter = '', cashAccountFilter = '', residentFilter = '') {
+    const cacheKey = `period:${fromMonth}:${toMonth}:${purposeFilter}:${cashAccountFilter}:${residentFilter}`;
+    return getCachedReportModel(cacheKey, () => _buildPeriodReport(fromMonth, toMonth, purposeFilter, cashAccountFilter, residentFilter), () => true);
+}
+
+function _buildPeriodReport(fromMonth, toMonth, purposeFilter = '', cashAccountFilter = '', residentFilter = '') {
     const keys = buildPeriodMonthKeys(fromMonth, toMonth);
     if (!keys) return null;
     const normalizedPurpose = normalizeReportPurposeFilter(purposeFilter);
@@ -1462,7 +1498,7 @@ function buildPeriodComparisonHtml(currentReport, purposeFilter, cashAccountFilt
     return comparison ? renderComparisonHtml(comparison) : '';
 }
 
-function generatePeriodReport() {
+async function generatePeriodReport() {
     if (!requireManager()) return;
     const { from, to } = getPeriodReportSelection();
     if (!from || !to) { toast('اختر شهر البداية والنهاية','error'); return; }
@@ -1487,7 +1523,7 @@ function generatePeriodReport() {
     // Render chart for period report
     const periodShowDues = report.showDues !== false;
     if (typeof renderLineSeries === 'function' && report.months.length > 0) {
-        renderLineSeries('periodReportChart', report.months.map(m => m.month), [
+        await renderLineSeries('periodReportChart', report.months.map(m => m.month), [
             {
                 label: periodShowDues ? 'المستحق' : 'التحصيل',
                 values: report.months.map(m => periodShowDues ? m.expectedCents / 100 : m.totalIncomeCents / 100),
@@ -1696,6 +1732,11 @@ function populateExpensesReportFilters(months, current = getCurrentMonth()) {
 }
 
 function buildExpensesReport(fromMonth, toMonth, cashAccountFilter = '', categoryFilter = '') {
+    const cacheKey = `expenses:${fromMonth}:${toMonth}:${cashAccountFilter}:${categoryFilter}`;
+    return getCachedReportModel(cacheKey, () => _buildExpensesReport(fromMonth, toMonth, cashAccountFilter, categoryFilter), () => true);
+}
+
+function _buildExpensesReport(fromMonth, toMonth, cashAccountFilter = '', categoryFilter = '') {
     const keys = buildPeriodMonthKeys(fromMonth, toMonth);
     if (!keys) return null;
     const normalizedCashAccount = normalizeReportCashAccountFilter(cashAccountFilter);
@@ -1909,7 +1950,7 @@ function renderExpensesReportHtml(report) {
         </div>`;
 }
 
-function generateExpensesReport() {
+async function generateExpensesReport() {
     if (!requireManager()) return;
     const { from, to } = getExpensesReportSelection();
     if (!from || !to) { toast('اختر شهر البداية والنهاية','error'); return; }
@@ -1929,9 +1970,9 @@ function generateExpensesReport() {
     expensesReportSignature = getExpensesReportSignature(from, to, cashAccountFilter, categoryFilter);
     setExpensesReportActionsEnabled(true);
 
-    // Render chart for expenses report
+    // Render chart for expenses report (lazy-loaded Chart.js)
     if (typeof renderDoughnutValues === 'function' && report.categories.length > 0) {
-        renderDoughnutValues(
+        await renderDoughnutValues(
             'expensesReportChart',
             report.categories.map(c => c.label),
             report.categories.map(c => c.cents / 100),
@@ -2073,6 +2114,11 @@ function populateAdjustmentsReportFilters(months, current = getCurrentMonth()) {
 }
 
 function buildAdjustmentsReport(fromMonth, toMonth, residentFilter = '', kindFilter = '') {
+    const cacheKey = `adjustments:${fromMonth}:${toMonth}:${residentFilter}:${kindFilter}`;
+    return getCachedReportModel(cacheKey, () => _buildAdjustmentsReport(fromMonth, toMonth, residentFilter, kindFilter), () => true);
+}
+
+function _buildAdjustmentsReport(fromMonth, toMonth, residentFilter = '', kindFilter = '') {
     const keys = buildPeriodMonthKeys(fromMonth, toMonth);
     if (!keys) return null;
     const keySet = new Set(keys);
@@ -2241,7 +2287,7 @@ function renderAdjustmentsReportHtml(report) {
         </div>`;
 }
 
-function generateAdjustmentsReport() {
+async function generateAdjustmentsReport() {
     if (!requireManager()) return;
     const { from, to } = getAdjustmentsReportSelection();
     if (!from || !to) { toast('اختر شهر البداية والنهاية','error'); return; }
@@ -2262,9 +2308,9 @@ function generateAdjustmentsReport() {
     adjustmentsReportSignature = getAdjustmentsReportSignature(from, to, residentFilter, kindFilter);
     setAdjustmentsReportActionsEnabled(true);
 
-    // Render chart for adjustments report
+    // Render chart for adjustments report (lazy-loaded Chart.js)
     if (typeof renderBarValues === 'function' && report.months.length > 0) {
-        renderBarValues(
+        await renderBarValues(
             'adjustmentsReportChart',
             report.months.map(m => m.month),
             report.months.map(m => m.amountCents / 100),
@@ -2441,6 +2487,11 @@ function getResidentStatementStatus(dueCents, paidCents, monthKey, currentKey, a
 }
 
 function buildResidentStatement(residentId, purposeFilter = '') {
+    const cacheKey = `statement:${residentId}:${purposeFilter}`;
+    return getCachedReportModel(cacheKey, () => _buildResidentStatement(residentId, purposeFilter), () => true);
+}
+
+function _buildResidentStatement(residentId, purposeFilter = '') {
     const resident = buildResidentIndex().get(String(residentId || ''));
     if (!resident) return null;
 
@@ -3416,4 +3467,44 @@ function deleteTemplate(templateId) {
         toast('تم حذف القالب', 'success');
         if (typeof renderTemplateList === 'function') renderTemplateList('period', 'savedTemplatesList');
     }
+}
+
+// Export report functions to window for inline event handlers
+if (typeof window !== 'undefined') {
+    window.generateLandlordReport = generateLandlordReport;
+    window.printLandlordReport = printLandlordReport;
+    window.exportLandlordReportPdf = exportLandlordReportPdf;
+    window.exportToCSV = exportToCSV;
+    window.generatePeriodReport = generatePeriodReport;
+    window.printPeriodReport = printPeriodReport;
+    window.exportPeriodReportCsv = exportPeriodReportCsv;
+    window.exportPeriodReportExcel = exportPeriodReportExcel;
+    window.exportPeriodReportPdf = exportPeriodReportPdf;
+    window.generateExpensesReport = generateExpensesReport;
+    window.printExpensesReport = printExpensesReport;
+    window.exportExpensesReportCsv = exportExpensesReportCsv;
+    window.exportExpensesReportExcel = exportExpensesReportExcel;
+    window.exportExpensesReportPdf = exportExpensesReportPdf;
+    window.generateAdjustmentsReport = generateAdjustmentsReport;
+    window.printAdjustmentsReport = printAdjustmentsReport;
+    window.exportAdjustmentsReportCsv = exportAdjustmentsReportCsv;
+    window.exportAdjustmentsReportPdf = exportAdjustmentsReportPdf;
+    window.generateResidentStatement = generateResidentStatement;
+    window.printResidentStatement = printResidentStatement;
+    window.exportResidentStatementCsv = exportResidentStatementCsv;
+    window.exportResidentStatementPdf = exportResidentStatementPdf;
+    window.switchReportTab = switchReportTab;
+    window.showReportGrid = showReportGrid;
+    window.closeReportPanel = closeReportPanel;
+    window.invalidateLandlordReportPreview = invalidateLandlordReportPreview;
+    window.invalidatePeriodReportPreview = invalidatePeriodReportPreview;
+    window.invalidateExpensesReportPreview = invalidateExpensesReportPreview;
+    window.invalidateAdjustmentsReportPreview = invalidateAdjustmentsReportPreview;
+    window.saveCurrentPeriodTemplate = saveCurrentPeriodTemplate;
+    window.applyTemplate = applyTemplate;
+    window.deleteTemplate = deleteTemplate;
+    window.openScheduleForm = openScheduleForm;
+    window.saveNewSchedule = saveNewSchedule;
+    window.toggleScheduleLog = toggleScheduleLog;
+    window.toggleScheduledReportsSection = toggleScheduledReportsSection;
 }

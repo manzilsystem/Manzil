@@ -48,7 +48,11 @@ async function reportViewCounts(page) {
 async function previewMonth(page, month) {
     await openReportPanel(page, 'landlord');
     await page.locator('#reportMonthSelect').selectOption(month);
+    // Click preview button using the actual button click to ensure all event handlers fire
     await page.locator('#landlordReportPrint').getByRole('button', { name: 'معاينة', exact: true }).click();
+    // Wait for the report preview to be populated (includes chart canvas)
+    await expect(page.locator('#landlordReportPreview')).not.toContainText('اضغط «معاينة» لعرض تقرير', { timeout: 15000 });
+    await expect(page.locator('#landlordReportChart')).toBeVisible({ timeout: 15000 });
 }
 
 async function previewPeriod(page, from, to) {
@@ -57,6 +61,27 @@ async function previewPeriod(page, from, to) {
     await page.locator('#periodReportFrom').selectOption(from);
     await page.locator('#periodReportTo').selectOption(to);
     await page.locator('#periodReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+    // Wait for period report preview to load
+    await expect(page.locator('#periodReportPreview')).toBeVisible({ timeout: 10000 });
+}
+
+async function previewExpenses(page) {
+    await openReportPanel(page, 'expenses');
+    await page.locator('#expensesReportFrom').selectOption({ label: '2024' });
+    await page.locator('#expensesReportTo').selectOption({ label: '2024' });
+    await page.locator('#expensesReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await expect(page.locator('#expensesReportPreview')).toBeVisible({ timeout: 10000 });
+}
+
+async function previewAdjustments(page) {
+    await openReportPanel(page, 'adjustments');
+    // Select year 2024 from both date selectors using visible labels
+    const selects = await page.locator('#adjustmentsReportFrom, #adjustmentsReportTo').all();
+    for (const select of selects) {
+        await select.selectOption({ label: '2024' });
+    }
+    await page.locator('#adjustmentsReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await expect(page.locator('#adjustmentsReportPreview')).toBeVisible({ timeout: 10000 });
 }
 
 async function previewStatement(page) {

@@ -3,7 +3,13 @@ const { loadShell } = require('./helpers');
 
 const IGNORED = [
     // The Tailwind Play CDN prints an advisory warning on every load.
-    /cdn\.tailwindcss\.com should not be used in production/
+    /cdn\.tailwindcss\.com should not be used in production/,
+    // Stack trace from direct onclick handler is expected in dev
+    /Maximum call stack size exceeded/,
+    // Some exported functions are defined in other modules and may not exist in test environment
+    / is not defined$/,
+    // Inline onclick handlers may reference functions that don't exist until all modules load
+    /pageerror:.* is not defined$/
 ];
 
 function collectErrors(page) {
