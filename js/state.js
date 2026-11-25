@@ -367,15 +367,16 @@ async function saveWithRollback(previousState, requestId = null) {
 
     if (saved) {
         saveRollbackBaseline = attemptedState;
-        // مسح تخزين نماذج التقارير المؤقت عند تغيير البيانات لضمان عدم عرض بيانات قديمة
-        if (typeof clearReportModelCache === 'function') clearReportModelCache();
-        else if (typeof window !== 'undefined' && typeof window.clearReportModelCache === 'function') window.clearReportModelCache();
     }
     saveRollbackPendingCount -= 1;
 
     if (!saved && saveRollbackPendingCount === 0) {
         state = saveRollbackBaseline || previousState;
     }
+    // مسح تخزين نماذج التقارير المؤقت في الحالتين: عند نجاح الحفظ، وعند التراجع بعد فشله،
+    // لأن تقريرًا فُتح أثناء الحفظ قد يكون محسوبًا من بيانات لم تُعتمد.
+    if (typeof clearReportModelCache === 'function') clearReportModelCache();
+    else if (typeof window !== 'undefined' && typeof window.clearReportModelCache === 'function') window.clearReportModelCache();
     if (saveRollbackPendingCount === 0) {
         saveRollbackBaseline = null;
     }
