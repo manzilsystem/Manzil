@@ -49,9 +49,16 @@ test('WhatsApp opens to the registered number with the temporary PIN and apartme
     assert.equal(url.pathname, '/201068004792');
     const message = url.searchParams.get('text');
     assert.match(message, /رمز الدخول المؤقت/);
-    assert.match(message, /للشقة 12/);
+    assert.match(message, /لشقة 12/);
     assert.match(message, /25637901/);
-    assert.match(message, /تغييره عند أول دخول/);
+    assert.match(message, /لا تشاركه مع أي شخص/);
+    assert.match(message, /https:\/\/manzilsystem\.github\.io\/Manzil\//);
+    assert.match(message, /مالك الشقة/);
+    assert.match(message, /رقم الجوال المسجل/);
+    assert.match(message, /رقم سري جديد من 6 أرقام/);
+    assert.match(message, /إيصالات السداد/);
+    assert.match(message, /إعلانات العمارة/);
+    assert.equal(message.split('\n').filter(line => line.trim() === '25637901').length, 1);
     assert.equal(toasts[0].type, 'success');
 });
 
