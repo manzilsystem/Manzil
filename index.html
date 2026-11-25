@@ -18,7 +18,7 @@
     <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png?v=6ec97fda11">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/tailwind.css?v=35d7ad7979">
+    <link rel="stylesheet" href="css/tailwind.css?v=ed653d8eef">
     <link rel="stylesheet" href="css/style.css?v=dbae945866">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
@@ -2509,13 +2509,30 @@
         </div>
     </div>
 
+    <!-- Arrears reminders: one-tap WhatsApp per late apartment -->
+    <div id="arrearsRemindersModal" role="dialog" aria-modal="true" aria-labelledby="arrearsRemindersTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="app-card border w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden animate-fadeIn flex flex-col max-h-[85vh]">
+            <div class="bg-emerald-800 text-white px-5 py-4 flex justify-between items-center">
+                <div class="min-w-0">
+                    <h3 id="arrearsRemindersTitle" class="font-bold text-sm"><i class="fa-brands fa-whatsapp ml-2" aria-hidden="true"></i> تذكيرات المتأخرات</h3>
+                    <p id="arrearsRemindersSummary" class="text-xs text-white/75 mt-1"></p>
+                </div>
+                <button type="button" onclick="closeModal('arrearsRemindersModal')" aria-label="إغلاق تذكيرات المتأخرات" class="text-white/80 hover:text-white min-w-11 min-h-11 rounded-xl"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            </div>
+            <div class="p-4 space-y-2 overflow-y-auto">
+                <p class="text-xs text-slate-500">الضغط على «إرسال» يفتح واتساب بالرسالة جاهزة، ولا يُرسل شيء قبل أن تضغط إرسال داخل واتساب. نص الرسالة من الإعدادات.</p>
+                <div id="arrearsRemindersList" class="space-y-2"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-f2ff98cf6a"></script>
+    <script src="js/telemetry.js?v=manzil-4eaa95da97"></script>
     <script src="js/state.js?v=f367c7dc5c"></script>
     <script src="js/access.js?v=1ca370a57a"></script>
     <script src="js/render.js?v=057537880a"></script>
     <script src="js/crud.js?v=74a52991d9"></script>
-    <script src="js/notices.js?v=708550996a"></script>
+    <script src="js/notices.js?v=5923550388"></script>
     <!-- Chart.js for report visualizations (bundled locally) -->
     <script src="vendor/chart.umd.js"></script>
     <!-- SheetJS for advanced Excel export (bundled locally) -->
@@ -2540,7 +2557,7 @@
     <script src="js/cashbox.js?v=630080f12a"></script>
     <script src="js/monthly-close.js?v=f589d46a58"></script>
     <script src="js/backup.js?v=65b179f1d7"></script>
-    <script src="js/assistant.js?v=272accd4e1"></script>
+    <script src="js/assistant.js?v=80b4a0e559"></script>
     <script src="js/assistant-voice.js?v=8983a0aa4e"></script>
     <script src="js/assistant-fab.js?v=9ef655d618"></script>
     <script src="js/assistant-groq.js?v=a5ac117af0"></script>

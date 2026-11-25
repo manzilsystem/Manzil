@@ -11,6 +11,7 @@ const html = read('index.html');
 
 function loadNotices(extra = {}) {
     const opened = [];
+    const modals = [];
     let confirmed = 0;
     const sandbox = {
         state: { buildingName: 'عمارة النور', reminderMessageTemplate: undefined },
@@ -22,6 +23,10 @@ function loadNotices(extra = {}) {
         formatOverdueDuration: days => (Number(days) > 0 ? `${Number(days)} يومًا` : ''),
         requireManager: () => true,
         toast: () => {},
+        esc: v => String(v ?? ''),
+        document: { getElementById: () => null },
+        localStorage: { getItem: () => null, setItem: () => {} },
+        openModal: id => { modals.push(id); },
         window: {
             confirm: () => { confirmed += 1; return true; },
             open: url => { opened.push(url); }
@@ -29,11 +34,11 @@ function loadNotices(extra = {}) {
         ...extra
     };
     const api = vm.runInNewContext(
-        `${notices}\n({ buildArrearsReminderMessage, buildArrearsReminderMessages, sendBulkArrearsReminders, cleanPhone })`,
+        `${notices}\n({ buildArrearsReminderMessage, buildArrearsReminderMessages, sendBulkArrearsReminders, sendArrearsReminderFor, openArrearsRemindersList, cleanPhone })`,
         sandbox,
         { filename: 'arrears-reminder-test.js' }
     );
-    return { api, opened, confirmCalls: () => confirmed };
+    return { api, opened, modals, confirmCalls: () => confirmed };
 }
 
 function report(residents) {
@@ -68,47 +73,54 @@ test('buildArrearsReminderMessages builds encoded wa.me links and skips resident
     assert.doesNotMatch(message.url, /\s/, 'the message must be URL-encoded');
 });
 
-test('sendBulkArrearsReminders confirms once then opens one WhatsApp tab per late resident', () => {
+test('the bulk button opens the reminders list instead of opening every WhatsApp tab at once', () => {
     const lateReport = report([
-        { resident: { id: 'r1', name: 'أحمد', apartmentNumber: '١', phone: '01027767039' }, count: 1, totalDebt: 100, daysOverdue: 5, unpaidMonths: [{ month: 'نوفمبر ٢٠٢٦' }] },
-        { resident: { id: 'r2', name: 'منى', apartmentNumber: '٣', phone: '01111111111' }, count: 2, totalDebt: 300, daysOverdue: 40, unpaidMonths: [{ month: 'نوفمبر ٢٠٢٦' }, { month: 'ديسمبر ٢٠٢٦' }] },
-        { resident: { id: 'r3', name: 'بلا هاتف', apartmentNumber: '٤', phone: '' }, count: 1, totalDebt: 90, daysOverdue: 2, unpaidMonths: [{ month: 'نوفمبر ٢٠٢٦' }] }
+        { resident: { id: 'r1', name: 'أحمد', apartmentNumber: '١', phone: '01027767039' }, count: 1, totalDebt: 100, daysOverdue: 5, unpaidMonths: [{ month: 'نوفمبر ٢٠٢٦' }] }
     ]);
-    const { api, opened, confirmCalls } = loadNotices({
-        buildArrearsReport: () => lateReport,
-        getArrearsReportFilters: () => ({})
-    });
-
+    const { api, opened, modals } = loadNotices({ buildArrearsReport: () => lateReport, getArrearsReportFilters: () => ({}) });
     api.sendBulkArrearsReminders();
-
-    assert.equal(confirmCalls(), 1, 'the bulk send must ask for confirmation exactly once');
-    assert.equal(opened.length, 2, 'only residents with a phone get a WhatsApp tab');
-    assert.ok(opened.every(url => url.startsWith('https://wa.me/')), 'every opened tab is a wa.me link');
+    assert.deepEqual(modals, ['arrearsRemindersModal']);
+    assert.equal(opened.length, 0, 'nothing is opened until the manager taps send on a row');
 });
 
-test('sendBulkArrearsReminders opens nothing when there are no late residents or no phones', () => {
-    const empty = loadNotices({ buildArrearsReport: () => report([]), getArrearsReportFilters: () => ({}) });
-    empty.api.sendBulkArrearsReminders();
-    assert.equal(empty.opened.length, 0);
-    assert.equal(empty.confirmCalls(), 0, 'no confirmation is asked when there is nothing to send');
+test('sendArrearsReminderFor opens one WhatsApp chat for the chosen apartment only', () => {
+    const lateReport = report([
+        { resident: { id: 'r1', name: 'أحمد', apartmentNumber: '١', phone: '01027767039' }, count: 1, totalDebt: 100, daysOverdue: 5, unpaidMonths: [{ month: 'نوفمبر ٢٠٢٦' }] },
+        { resident: { id: 'r2', name: 'منى', apartmentNumber: '٣', phone: '01111111111' }, count: 2, totalDebt: 300, daysOverdue: 40, unpaidMonths: [{ month: 'نوفمبر ٢٠٢٦' }] }
+    ]);
+    const { api, opened } = loadNotices({ buildArrearsReport: () => lateReport, getArrearsReportFilters: () => ({}) });
+    api.sendArrearsReminderFor('r2');
+    assert.equal(opened.length, 1);
+    assert.ok(opened[0].startsWith('https://wa.me/201111111111?text='));
+});
 
-    const noPhones = loadNotices({
+test('sendArrearsReminderFor opens nothing for an apartment without a phone or arrears', () => {
+    const noPhone = loadNotices({
         buildArrearsReport: () => report([
             { resident: { id: 'r1', name: 'أحمد', apartmentNumber: '١', phone: '' }, count: 1, totalDebt: 100, daysOverdue: 5, unpaidMonths: [{ month: 'نوفمبر ٢٠٢٦' }] }
         ]),
         getArrearsReportFilters: () => ({})
     });
-    noPhones.api.sendBulkArrearsReminders();
-    assert.equal(noPhones.opened.length, 0);
-    assert.equal(noPhones.confirmCalls(), 0);
+    noPhone.api.sendArrearsReminderFor('r1');
+    noPhone.api.sendArrearsReminderFor('missing');
+    assert.equal(noPhone.opened.length, 0);
 });
 
-test('the bulk reminder reuses the editable reminder template', () => {
-    assert.match(notices, /function sendBulkArrearsReminders\(\)/);
+test('the reminders list reuses the editable template, marks sent rows and caps the list', () => {
+    assert.match(notices, /function openArrearsRemindersList\(/);
     assert.match(notices, /getReminderMessageTemplate\(\)/);
     assert.match(notices, /renderReminderTemplate\(/);
-    assert.match(notices, /window\.confirm\(/);
     assert.match(notices, /requireManager\(\)/);
+    assert.match(notices, /markArrearsReminderSent/);
+    assert.match(notices, /ARREARS_REMINDER_PAGE_SIZE/);
+    assert.doesNotMatch(notices, /items?\.forEach\(item => window\.open/, 'never open many tabs at once');
+});
+
+test('Amm Abdo understands a reminder command and opens the list without sending anything', () => {
+    const assistant = read('js/assistant.js');
+    assert.match(assistant, /function parseAssistantReminderCommand\(/);
+    assert.match(assistant, /reminder-open-request/);
+    assert.match(assistant, /openArrearsRemindersList\(/);
 });
 
 test('the arrears panel exposes a bulk WhatsApp reminder button next to the CSV export', () => {

@@ -129,25 +129,125 @@ function buildArrearsReminderMessages(report) {
     return (report?.residents || []).map(buildArrearsReminderMessage).filter(Boolean);
 }
 
-function sendBulkArrearsReminders() {
+const ARREARS_REMINDER_PAGE_SIZE = 8;
+let arrearsReminderLimit = ARREARS_REMINDER_PAGE_SIZE;
+/** @type {string} */
+let arrearsReminderOnly = '';
+
+function getArrearsReminderSentKey() {
+    const buildingId = typeof activeBuildingId === 'undefined' ? 'default' : (activeBuildingId || 'default');
+    return 'manzil:' + buildingId + ':arrears-reminders-sent';
+}
+
+/** @returns {Record<string, string>} resident id -> date (YYYY-MM-DD) the manager last opened WhatsApp for them */
+function readArrearsReminderSent() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(getArrearsReminderSentKey()) || '{}');
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch { return {}; }
+}
+
+function markArrearsReminderSent(residentId) {
+    const sent = readArrearsReminderSent();
+    sent[residentId] = new Date().toISOString().slice(0, 10);
+    try { localStorage.setItem(getArrearsReminderSentKey(), JSON.stringify(sent)); } catch { /* storage full or blocked: the mark is only a convenience */ }
+}
+
+function arrearsReminderTodayKey() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+function renderArrearsReminderRows() {
+    const host = document.getElementById('arrearsRemindersList');
+    const summary = document.getElementById('arrearsRemindersSummary');
+    if (!host) return;
+    const report = typeof buildArrearsReport === 'function'
+        ? buildArrearsReport(typeof getArrearsReportFilters === 'function' ? getArrearsReportFilters() : {})
+        : { residents: [] };
+    const items = (report.residents || []).filter(item => !arrearsReminderOnly || item.resident?.id === arrearsReminderOnly);
+    const sent = readArrearsReminderSent();
+    const today = arrearsReminderTodayKey();
+    if (summary) {
+        const withPhone = items.filter(item => cleanPhone(item.resident?.phone)).length;
+        summary.textContent = items.length
+            ? fmtNum(items.length) + ' شقة متأخرة · ' + fmtNum(withPhone) + ' برقم هاتف'
+            : '';
+    }
+    if (!items.length) {
+        host.innerHTML = '<p class="text-xs text-slate-500 text-center py-6">لا توجد متأخرات لإرسال تذكير بها.</p>';
+        return;
+    }
+    const shown = items.slice(0, arrearsReminderLimit);
+    host.innerHTML = shown.map(item => {
+        const built = buildArrearsReminderMessage(item);
+        const resident = item.resident || {};
+        const id = esc(String(resident.id || ''));
+        const title = esc(resident.name || 'مالك') + ' · شقة ' + esc(String(resident.apartmentNumber || '—'));
+        const meta = fmtNum(item.totalDebt) + ' ج.م · ' + fmtNum(item.count) + ' شهر';
+        const doneToday = sent[resident.id] === today;
+        const status = doneToday ? '<span class="text-emerald-400 text-xs font-bold">أُرسل اليوم</span>'
+            : sent[resident.id] ? '<span class="text-slate-500 text-xs">آخر مرة ' + esc(sent[resident.id]) + '</span>' : '';
+        const action = built
+            ? '<button type="button" data-reminder-send="' + id + '" onclick="sendArrearsReminderFor(\'' + id + '\')" class="min-h-11 px-3 rounded-xl bg-emerald-600 text-white text-xs font-bold"><i class="fa-brands fa-whatsapp ml-1" aria-hidden="true"></i>' + (doneToday ? 'إعادة' : 'إرسال') + '</button>'
+            : '<span class="text-xs text-amber-400">بلا رقم هاتف</span>';
+        const preview = built
+            ? '<button type="button" onclick="toggleArrearsReminderPreview(this)" aria-expanded="false" class="min-h-11 min-w-11 rounded-xl app-input border text-xs" aria-label="عرض نص الرسالة"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>'
+            : '';
+        return '<div class="arrears-reminder-row app-input border rounded-2xl p-3" data-reminder-row="' + id + '">'
+            + '<div class="flex items-center gap-2 justify-between">'
+            + '<div class="min-w-0"><p class="text-sm font-bold truncate">' + title + '</p><p class="text-xs text-slate-400">' + meta + ' ' + status + '</p></div>'
+            + '<div class="flex items-center gap-2 shrink-0">' + preview + action + '</div></div>'
+            + (built ? '<pre class="arrears-reminder-text hidden mt-2 text-xs whitespace-pre-wrap leading-relaxed text-slate-300 font-sans">' + esc(built.message) + '</pre>' : '')
+            + '</div>';
+    }).join('');
+    const rest = items.length - shown.length;
+    if (rest > 0) {
+        host.insertAdjacentHTML('beforeend', '<button type="button" onclick="showMoreArrearsReminders()" class="min-h-11 w-full rounded-xl app-input border text-xs font-bold">عرض ' + fmtNum(rest) + ' أخرى</button>');
+    }
+}
+
+function toggleArrearsReminderPreview(button) {
+    const row = button.closest('[data-reminder-row]');
+    const text = row?.querySelector('.arrears-reminder-text');
+    if (!text) return;
+    const open = text.classList.toggle('hidden') === false;
+    button.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function showMoreArrearsReminders() {
+    arrearsReminderLimit += ARREARS_REMINDER_PAGE_SIZE;
+    renderArrearsReminderRows();
+}
+
+/** One-tap send: opens WhatsApp with the filled message for one apartment. Nothing is sent until the manager presses send inside WhatsApp. */
+function sendArrearsReminderFor(residentId) {
     if (!requireManager()) return;
     const report = typeof buildArrearsReport === 'function'
         ? buildArrearsReport(typeof getArrearsReportFilters === 'function' ? getArrearsReportFilters() : {})
         : { residents: [] };
-    if (!report.residents.length) {
-        toast('لا توجد متأخرات لإرسال تذكير بها.', 'info');
+    const item = (report.residents || []).find(entry => entry.resident?.id === residentId);
+    const built = item ? buildArrearsReminderMessage(item) : null;
+    if (!built) {
+        toast('تعذر تجهيز الرسالة: لا توجد متأخرات أو رقم هاتف لهذه الشقة.', 'error');
         return;
     }
-    const messages = buildArrearsReminderMessages(report);
-    if (!messages.length) {
-        toast('لا يوجد رقم هاتف مسجّل لأي من المتأخرين المعروضين.', 'error');
-        return;
-    }
-    const skipped = report.residents.length - messages.length;
-    const note = skipped > 0 ? `\nسيتم تخطي ${fmtNum(skipped)} شقة بلا رقم هاتف.` : '';
-    if (!window.confirm(`سيتم فتح ${fmtNum(messages.length)} محادثة واتساب لإرسال التذكير يدويًا.${note}\nهل تريد المتابعة؟`)) return;
-    messages.forEach(item => window.open(item.url, '_blank', 'noopener,noreferrer'));
-    toast(`تم فتح ${fmtNum(messages.length)} محادثة واتساب للإرسال اليدوي.`, 'success');
+    window.open(built.url, '_blank', 'noopener,noreferrer');
+    markArrearsReminderSent(residentId);
+    renderArrearsReminderRows();
+}
+
+/** Opens the reminders list for every late apartment, or only for one when residentId is given. */
+function openArrearsRemindersList(residentId = '') {
+    if (!requireManager()) return false;
+    arrearsReminderOnly = String(residentId || '');
+    arrearsReminderLimit = ARREARS_REMINDER_PAGE_SIZE;
+    renderArrearsReminderRows();
+    openModal('arrearsRemindersModal');
+    return true;
+}
+
+function sendBulkArrearsReminders() {
+    openArrearsRemindersList('');
 }
 
 

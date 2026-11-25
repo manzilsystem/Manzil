@@ -18,6 +18,7 @@
     --color-emerald-500: oklch(69.6% 0.17 162.48);
     --color-emerald-600: oklch(59.6% 0.145 163.225);
     --color-emerald-700: oklch(50.8% 0.118 165.612);
+    --color-emerald-800: oklch(43.2% 0.095 166.913);
     --color-sky-300: oklch(82.8% 0.111 230.318);
     --color-sky-400: oklch(74.6% 0.16 232.661);
     --color-sky-500: oklch(68.5% 0.169 237.323);
@@ -51,6 +52,7 @@
     --container-sm: 24rem;
     --container-md: 28rem;
     --container-lg: 32rem;
+    --container-xl: 36rem;
     --container-3xl: 48rem;
     --container-4xl: 56rem;
     --container-6xl: 72rem;
@@ -544,6 +546,9 @@
   .max-h-\[80vh\] {
     max-height: 80vh;
   }
+  .max-h-\[85vh\] {
+    max-height: 85vh;
+  }
   .max-h-\[90vh\] {
     max-height: 90vh;
   }
@@ -612,6 +617,9 @@
   }
   .max-w-sm {
     max-width: var(--container-sm);
+  }
+  .max-w-xl {
+    max-width: var(--container-xl);
   }
   .min-w-0 {
     min-width: 0px;
@@ -1012,6 +1020,9 @@
   .bg-emerald-700 {
     background-color: var(--color-emerald-700);
   }
+  .bg-emerald-800 {
+    background-color: var(--color-emerald-800);
+  }
   .bg-indigo-500\/5 {
     background-color: color-mix(in srgb, oklch(58.5% 0.233 277.117) 5%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
@@ -1335,6 +1346,9 @@
   .font-mono {
     font-family: var(--font-mono);
   }
+  .font-sans {
+    font-family: var(--font-sans);
+  }
   .text-2xl {
     font-size: var(--text-2xl);
     line-height: var(--tw-leading, var(--text-2xl--line-height));
@@ -1429,6 +1443,9 @@
   }
   .whitespace-pre-line {
     white-space: pre-line;
+  }
+  .whitespace-pre-wrap {
+    white-space: pre-wrap;
   }
   .text-amber-300 {
     color: var(--color-amber-300);
