@@ -1552,12 +1552,9 @@ test('the header brand mark frame resolves from canonical tokens', () => {
 
     const mark = blocks(css, '\\.header-brand-mark')[0];
     assert.ok(mark, 'expected a rule for the header brand mark');
-    assert.ok(/border:\s*1px solid var\(--header-brand-line\)/.test(mark[1]),
-        'the header brand mark must draw its hairline via var(--header-brand-line)');
-    assert.ok(/background:\s*var\(--header-brand-surface\)/.test(mark[1]),
-        'the header brand mark must fill its surface via var(--header-brand-surface)');
-    assert.ok(/box-shadow:\s*0 5px 16px var\(--header-brand-shadow\)/.test(mark[1]),
-        'the header brand mark must cast its drop shadow via var(--header-brand-shadow)');
+    // The transparent logo sits on any surface: the mark has no frame, fill or shadow of its own.
+    assert.ok(/background:\s*transparent/.test(mark[1]), 'the header brand mark must have a transparent background');
+    assert.ok(/border:\s*0/.test(mark[1]) && /box-shadow:\s*none/.test(mark[1]), 'the header brand mark must have no border or shadow');
     assert.ok(!/#f8fbfd|rgba\(15,\s*23,\s*42|rgba\(2,\s*20,\s*35/.test(mark[1]),
         'the header brand mark must not keep a raw frame color literal');
 

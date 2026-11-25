@@ -126,3 +126,29 @@ test('auth-rights link style is separated from appCopyright link and both resolv
         '#pinLockModal .auth-rights a must use the gold literal #e9c16d'
     );
 });
+
+test('brand icons are transparent PNGs and the manifest has real maskable icons', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const root = path.join(__dirname, '..');
+    const pngInfo = file => {
+        const b = fs.readFileSync(path.join(root, file));
+        return { w: b.readUInt32BE(16), h: b.readUInt32BE(20), colorType: b[25] };
+    };
+    for (const file of ['icons/manzil-brand.png', 'icons/manzil-logo.png', 'icons/icon-192.png', 'icons/icon-512.png']) {
+        const info = pngInfo(file);
+        assert.equal(info.colorType, 6, `${file} must be RGBA`);
+        assert.equal(info.w, info.h);
+    }
+    assert.equal(pngInfo('icons/icon-maskable-512.png').w, 512);
+    assert.equal(pngInfo('icons/apple-touch-icon.png').w, 180);
+    assert.ok(fs.existsSync(path.join(root, 'favicon.ico')));
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
+    assert.equal(manifest.orientation, 'any');
+    const maskable = manifest.icons.filter(icon => icon.purpose === 'maskable').map(icon => icon.src);
+    assert.deepEqual(maskable.sort(), ['icons/icon-maskable-192.png', 'icons/icon-maskable-512.png']);
+    for (const icon of manifest.icons) assert.ok(fs.existsSync(path.join(root, icon.src)), icon.src);
+    const css = fs.readFileSync(path.join(root, 'css', 'style.css'), 'utf8');
+    assert.match(css, /\.header-brand-mark \{[^}]*background:transparent/);
+    assert.match(css, /\.auth-logo-frame \{[^}]*background:transparent/);
+});
