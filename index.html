@@ -906,10 +906,11 @@
                 <div id="adjustmentsReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
                     <p class="report-preview-empty">اضغط «معاينة» لعرض إعفاءات وتخفيضات الفترة المحددة.</p>
                 </div>
-                <div class="report-actions report-actions-3 no-print">
+                <div class="report-actions report-actions-4 no-print">
                     <button type="button" id="adjustmentsReportPrintBtn" onclick="printAdjustmentsReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
                     <button type="button" id="adjustmentsReportPdfBtn" onclick="exportAdjustmentsReportPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
                     <button type="button" id="adjustmentsReportExportBtn" onclick="exportAdjustmentsReportCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
+                    <button type="button" id="adjustmentsReportExcelBtn" onclick="exportAdjustmentsReportExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
                 </div>
                 <p class="report-hint no-print">تغيير الفترة أو الشقة أو النوع يعطّل الطباعة والتصدير حتى معاينة جديدة. أقصى مدة 60 شهرًا.</p>
             </div>
@@ -1082,6 +1083,7 @@
                         <div class="flex items-center gap-2">
                             <button type="button" onclick="sendBulkArrearsReminders()" class="report-action report-action-compact report-tone-emerald"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> مراسلة المتأخرين</button>
                             <button type="button" onclick="exportArrearsCSV()" class="report-action report-action-compact report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
+                            <button type="button" onclick="exportArrearsExcel()" class="report-action report-action-compact report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
                         </div>
                     </div>
                     <p class="report-note">تُحسب كل فترة بسعر الاشتراك المسجل بتاريخ سريانه، وليس بالسعر الحالي فقط.</p>
@@ -2464,7 +2466,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-2229cfdc3b"></script>
+    <script src="js/telemetry.js?v=manzil-b642734170"></script>
     <script src="js/state.js?v=f367c7dc5c"></script>
     <script src="js/access.js?v=1ca370a57a"></script>
     <script src="js/render.js?v=90dee59c8b"></script>
@@ -2482,10 +2484,10 @@
     <script src="js/reports/shared/charts.js?v=474cb03158"></script>
     <script src="js/reports/shared/templates.js?v=60cf8dccbe"></script>
     <script src="js/reports/shared/comparison.js?v=4fc912e729"></script>
-    <script src="js/reports/shared/excel-exporter.js?v=78c09c1ad7"></script>
+    <script src="js/reports/shared/excel-exporter.js?v=17d4560858"></script>
     <script src="js/reports/shared/performance.js?v=561a84e58b"></script>
     <!-- Reports Main -->
-    <script src="js/reports.js?v=e3488f10a5"></script>
+    <script src="js/reports.js?v=ca6c37e448"></script>
     <!-- Extended reports (cash flow and apartment performance) -->
     <script src="js/reports/extended/reports-extended.js?v=5580bb2057"></script>
     <script src="js/settings.js?v=c274fd024a"></script>

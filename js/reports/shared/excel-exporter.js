@@ -210,6 +210,56 @@ function expensesReportToExcelRows(report) {
   return { summary, details };
 }
 
+/**
+ * تحويل نموذج تقرير الإعفاءات والتخفيضات إلى صفوف Excel
+ * @param {Object} report
+ * @returns {{summary: Array, details: Array}}
+ */
+function adjustmentsReportToExcelRows(report) {
+  const totals = report.totals || {};
+  const summary = [
+    ['البند', 'القيمة'],
+    ['الفترة', report.rangeLabel],
+    ['الشقة', report.residentLabel],
+    ['النوع', report.kindLabel],
+    ['إجمالي المبلغ', (totals.amountCents || 0) / 100],
+    ['عدد البنود', totals.count || 0],
+    ['عدد الشقق', totals.residentCount || 0]
+  ];
+
+  const details = [
+    ['الشقة', 'اسم المالك', 'الشهر', 'النوع', 'المبلغ', 'السبب'],
+    ...(report.list || []).map(item => [item.apartmentNumber, item.residentName, item.month,
+      item.kindLabel, (item.amountCents || 0) / 100, item.reason || ''])
+  ];
+
+  return { summary, details };
+}
+
+/**
+ * تحويل نموذج تقرير المتأخرات إلى صفوف Excel
+ * @param {Object} report نتيجة buildArrearsReport
+ * @returns {{summary: Array, details: Array}}
+ */
+function arrearsReportToExcelRows(report) {
+  const buckets = report.buckets || {};
+  const summary = [
+    ['البند', 'القيمة'],
+    ['إجمالي المتأخرات', report.totalDebt || 0],
+    ['عدد الشقق المتأخرة', report.overdueResidents || 0],
+    ['عدد الأشهر المتأخرة', report.overdueMonths || 0],
+    ...Object.keys(buckets).map(label => [label, buckets[label]])
+  ];
+
+  const details = [['الشقة', 'اسم المالك', 'التصنيف', 'الشهر غير المسدد', 'المبلغ المستحق', 'أيام التأخر']];
+  (report.residents || []).forEach(item => (item.unpaidMonths || []).forEach(month => {
+    details.push([item.resident.apartmentNumber, item.resident.name, item.bucket,
+      month.month, month.amount, month.daysOverdue || 0]);
+  }));
+
+  return { summary, details };
+}
+
 // ============================================
 // تصدير عالمي (Global Export)
 // ============================================
@@ -221,4 +271,6 @@ if (typeof window !== 'undefined') {
   window.exportReportWithDetailExcel = exportReportWithDetailExcel;
   window.periodReportToExcelRows = periodReportToExcelRows;
   window.expensesReportToExcelRows = expensesReportToExcelRows;
+  window.adjustmentsReportToExcelRows = adjustmentsReportToExcelRows;
+  window.arrearsReportToExcelRows = arrearsReportToExcelRows;
 }
