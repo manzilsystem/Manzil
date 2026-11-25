@@ -46,11 +46,13 @@ function freePort() {
     });
 }
 
-test('the Groq bridge is local-only and keeps the deterministic engine intact', () => {
+test('the Groq bridge keeps the deterministic engine intact and hides the key', () => {
     assert.doesNotMatch(clientSource, /api\.groq\.com|gsk_[A-Za-z0-9]{20,}/,
         'the browser never sees the Groq host or key');
     assert.match(clientSource, /assistantGroqIsLocalHost/);
-    assert.match(clientSource, /\/api\/groq\/chat/, 'the browser calls a same-origin route');
+    assert.match(clientSource, /\/api\/groq\/chat/, 'localhost uses a same-origin dev route');
+    assert.match(clientSource, /\/functions\/v1\/assistant-groq/, 'production uses the Supabase function');
+    assert.match(clientSource, /assistantGroqTranscribe/);
     assert.match(assistantSource, /assistantGlobalFunction\('assistantGroqAnswer'\)/,
         'assistant.js uses a small optional hook');
     assert.doesNotMatch(assistantSource, /\bfetch\s*\(/, 'assistant.js still has no network code');
@@ -60,12 +62,15 @@ test('the Groq bridge is local-only and keeps the deterministic engine intact', 
 });
 
 test('the bridge only runs on localhost and only rewrites read-only data answers', () => {
-    const { api } = bareModule(clientSource);
+    const { api } = bareModule(clientSource, { location: { hostname: '127.0.0.1' } });
     assert.equal(api.assistantGroqIsLocalHost('localhost'), true);
     assert.equal(api.assistantGroqIsLocalHost('127.0.0.1'), true);
     assert.equal(api.assistantGroqIsLocalHost('[::1]'), true);
     assert.equal(api.assistantGroqIsLocalHost('manzil.example'), false);
     assert.equal(api.assistantGroqIsLocalHost(''), false);
+    const endpoint = api.assistantGroqEndpoint();
+    assert.equal(endpoint.local, true);
+    assert.equal(endpoint.url, '');
 
     assert.equal(api.assistantGroqCanRewrite({ id: 'cashbox', html: '<p>رصيد</p>' }), true);
     assert.equal(api.assistantGroqCanRewrite({ id: 'compound', html: '<p>ملخص</p>' }), true);
@@ -109,12 +114,16 @@ test('the browser hook sends only approved facts through the same-origin proxy',
     assert.equal(answer.id, 'cashbox');
     assert.deepEqual(answer.followUps, ['ملخص الشهر']);
     assert.match(answer.html, /الخزنة فيها 100 جنيه/);
-    assert.match(answer.html, /صياغة Groq تجريبية/);
+    assert.match(answer.html, /صياغة ذكية/);
     assert.equal(calls[0].url, '/api/groq/health');
     assert.equal(calls[1].url, '/api/groq/chat');
     const sent = JSON.parse(calls[1].options.body);
-    assert.match(sent.messages[0].content, /الحقائق المقدمة فقط/);
-    assert.match(sent.messages[1].content, /الخزنة الرئيسية: 100 جنيه/);
+    assert.equal(sent.action, 'chat');
+    assert.equal(sent.answerId, 'cashbox');
+    assert.equal(sent.role, 'manager');
+    assert.equal(sent.question, 'رصيد الخزنة كام؟');
+    assert.match(sent.facts, /الخزنة الرئيسية: 100 جنيه/);
+    assert.equal(sent.messages, undefined, 'the server owns the system prompt');
     assert.doesNotMatch(JSON.stringify(sent), /api\.groq\.com|gsk_/);
     assert.equal(await sandbox.assistantGroqAnswer('سجل تحصيل', {
         id: 'operation-confirm-request', html: '<p>جارٍ الحفظ</p>'
@@ -132,19 +141,63 @@ test('the hook is not installed when the local proxy is unavailable', async () =
         'a static build or e2e server keeps the synchronous local path');
 });
 
+test('production uses the authenticated Supabase function instead of a local proxy', async () => {
+    const calls = [];
+    let requestCount = 0;
+    const fetch = async (url, options) => {
+        calls.push({ url, options });
+        requestCount += 1;
+        if (String(url).includes('/functions/v1/assistant-groq')) {
+            return { ok: true, json: async () => requestCount === 2
+                ? { text: 'رصيد الخزنة كام؟' } : { content: 'الخزنة فيها 100 جنيه.' } };
+        }
+        throw new Error(`unexpected fetch: ${url}`);
+    };
+    const { sandbox } = bareModule(clientSource, {
+        fetch,
+        document: fakeDocument(),
+        location: { hostname: 'manzilsystem.github.io' },
+        manzilSupabaseConfig: { url: 'https://proj.supabase.co/' },
+        supabaseClient: { auth: { getSession: async () => ({ data: { session: { access_token: 'fake-jwt' } } }) } },
+        FormData,
+        Blob
+    });
+    await sandbox.assistantGroqHealth;
+    const answer = await sandbox.assistantGroqAnswer('رصيد الخزنة كام؟', {
+        id: 'cashbox', title: 'أرصدة الخزائن', html: '<p>الخزنة الرئيسية: 100 جنيه</p>'
+    });
+    assert.equal(answer.source, 'groq');
+    assert.equal(calls[0].url, 'https://proj.supabase.co/functions/v1/assistant-groq');
+    assert.equal(calls[0].options.headers.Authorization, 'Bearer fake-jwt');
+    assert.equal(JSON.parse(calls[0].options.body).answerId, 'cashbox');
+
+    const transcript = await sandbox.assistantGroqTranscribe(new Blob([new Uint8Array(1024)]));
+    assert.equal(transcript, 'رصيد الخزنة كام؟');
+    assert.equal(calls[1].url, 'https://proj.supabase.co/functions/v1/assistant-groq');
+    assert.equal(calls[1].options.headers.Authorization, 'Bearer fake-jwt');
+    assert.equal(calls[1].options.headers['Content-Type'], undefined, 'FormData sets its own boundary');
+    assert.match(String(calls[1].options.body), /\[object FormData\]|formData|FormData/);
+});
+
 test('the dev proxy forwards the key server-side and never returns it', async () => {
     // Deliberately shorter than a real Groq key so the secret scanner never
     // mistakes this fixture for a credential.
     const fakeKey = 'gsk_localproxytest';
     let upstreamAuth = '';
     let upstreamBody = null;
+    let upstreamPath = '';
     const upstream = http.createServer((request, response) => {
         const chunks = [];
         request.on('data', chunk => chunks.push(chunk));
         request.on('end', () => {
             upstreamAuth = String(request.headers.authorization || '');
-            upstreamBody = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+            upstreamPath = String(request.url || '');
             response.writeHead(200, { 'Content-Type': 'application/json' });
+            if (upstreamPath.includes('/audio/transcriptions')) {
+                response.end(JSON.stringify({ text: 'رصيد الخزنة كام؟' }));
+                return;
+            }
+            upstreamBody = JSON.parse(Buffer.concat(chunks).toString('utf8'));
             response.end(JSON.stringify({ choices: [{ message: { content: 'رد تجريبي من Groq' } }] }));
         });
     });
@@ -181,15 +234,28 @@ test('the dev proxy forwards the key server-side and never returns it', async ()
         const chat = await fetch(`${base}/api/groq/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messages: [{ role: 'user', content: 'رصيد الخزنة كام؟' }] })
+            body: JSON.stringify({
+                action: 'chat', answerId: 'cashbox', question: 'رصيد الخزنة كام؟',
+                facts: 'الخزنة الرئيسية: 100 جنيه', role: 'manager'
+            })
         });
         assert.equal(chat.status, 200);
         const reply = await chat.json();
         assert.equal(reply.content, 'رد تجريبي من Groq');
         assert.doesNotMatch(JSON.stringify(reply), /gsk_/);
         assert.equal(upstreamAuth, `Bearer ${fakeKey}`);
-        assert.equal(upstreamBody.model, 'openai/gpt-oss-20b');
-        assert.equal(upstreamBody.messages[0].content, 'رصيد الخزنة كام؟');
+        assert.equal(upstreamBody.model, 'qwen/qwen3.8-27b');
+        assert.equal(upstreamBody.messages[0].role, 'system');
+        assert.match(upstreamBody.messages[1].content, /الخزنة الرئيسية: 100 جنيه/);
+
+        const form = new FormData();
+        form.append('action', 'transcribe');
+        form.append('audio', new Blob([new Uint8Array(2048)], { type: 'audio/webm' }), 'voice.webm');
+        const transcription = await fetch(`${base}/api/groq/transcribe`, { method: 'POST', body: form });
+        assert.equal(transcription.status, 200);
+        assert.equal((await transcription.json()).text, 'رصيد الخزنة كام؟');
+        assert.equal(upstreamAuth, `Bearer ${fakeKey}`);
+        assert.match(upstreamPath, /\/audio\/transcriptions$/);
 
         const invalid = await fetch(`${base}/api/groq/chat`, {
             method: 'POST',

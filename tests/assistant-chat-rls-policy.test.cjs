@@ -8,10 +8,6 @@ const migration = fs.readFileSync(
     path.join(root, 'supabase', 'migrations', '20261117012340_assistant_chat.sql'),
     'utf8'
 );
-const plan = fs.readFileSync(
-    path.join(root, 'docs', 'assistant-natural-language-and-rls.md'),
-    'utf8'
-);
 const supabaseSource = fs.readFileSync(path.join(root, 'js', 'supabase.js'), 'utf8');
 const assistantSource = fs.readFileSync(path.join(root, 'js', 'assistant.js'), 'utf8');
 
@@ -32,15 +28,17 @@ test('assistant conversation policies bind every read and write to the authentic
     assert.match(migration, /conversation\.user_id = \(select auth\.uid\(\)\)/);
 });
 
-test('RLS plan documents manager-owner isolation and write restrictions', () => {
-    for (const phrase of [
-        'قراءة محادثة مستخدم آخر في نفس المبنى',
-        'إنشاء محادثة مالك لشقة أخرى',
-        'إدخال رسالة مستخدم باسم `sender_id` مختلف',
-        'حذف رسالة أو محادثة مباشرة',
-        'الوصول المجهول `anon`'
-    ]) {
-        assert.ok(plan.includes(phrase), `missing RLS scenario: ${phrase}`);
+test('RLS scenarios stay covered by concrete migration rules', () => {
+    const scenarios = [
+        ['قراءة محادثة مستخدم آخر في نفس المبنى', () => assert.match(migration, /user_id = \(select auth\.uid\(\)\)/)],
+        ['إنشاء محادثة مالك لشقة أخرى', () => assert.match(migration, /private\.owns_resident\(resident_id\)/)],
+        ['إدخال رسالة مستخدم باسم `sender_id` مختلف', () => assert.match(migration, /sender_id = \(select auth\.uid\(\)\)/)],
+        ['حذف رسالة أو محادثة مباشرة', () => assert.doesNotMatch(migration, /create policy[\s\S]{0,120}?for delete/i)],
+        ['الوصول المجهول `anon`', () => assert.match(migration, /revoke all on public\.assistant_conversations, public\.assistant_messages from public, anon/)]
+    ];
+    for (const [label, check] of scenarios) {
+        check();
+        assert.ok(label);
     }
 });
 

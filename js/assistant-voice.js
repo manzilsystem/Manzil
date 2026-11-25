@@ -1,8 +1,10 @@
 // @ts-check
 // عم عبده — voice notes in the style of a WhatsApp chat.
-// Dictation and reading aloud use the browser's own speech engines: no API key,
-// no upload, no audio written to storage. Operation confirmations are never
-// executed from speech alone — those still land in the composer for review.
+// Browser dictation gives instant feedback and stays the fallback. When the
+// Groq bridge is available, the finished recording is optionally transcribed
+// server-side for better Egyptian Arabic; audio is never written to storage.
+// Reading aloud uses the browser's own ar-EG voice. Operation confirmations
+// are never executed from speech alone — they land in the composer for review.
 
 const ASSISTANT_VOICE_LANGS = Object.freeze(['ar-EG', 'ar-SA', 'ar']);
 const ASSISTANT_VOICE_PHRASES = Object.freeze([
@@ -185,7 +187,7 @@ function assistantVoiceFinaliseRecorder() {
             assistantVoiceReleaseStream();
             try {
                 const blob = new Blob(assistantVoiceChunks, { type: recorder.mimeType || 'audio/webm' });
-                resolve(blob.size ? URL.createObjectURL(blob) : null);
+                resolve(blob.size ? { url: URL.createObjectURL(blob), blob } : null);
             } catch (error) {
                 resolve(null);
             }
@@ -376,8 +378,19 @@ async function assistantVoiceFinish(cancelled) {
     assistantVoiceHideLive();
     assistantVoicePointerStartY = null;
     const durationMs = Math.max(300, Date.now() - assistantVoiceStartedAt);
-    const url = await assistantVoiceFinaliseRecorder();
-    const text = String(assistantVoiceInterim || '').trim();
+    const recording = await assistantVoiceFinaliseRecorder();
+    const url = recording?.url || null;
+    let text = String(assistantVoiceInterim || '').trim();
+    // Groq Whisper refines the final transcript; the browser result is kept as
+    // the fallback when the bridge is absent, disabled or temporarily fails.
+    if (!cancelled && recording?.blob && typeof globalThis.assistantGroqTranscribe === 'function') {
+        try {
+            const refined = String(await globalThis.assistantGroqTranscribe(recording.blob) || '').trim();
+            if (refined) text = refined;
+        } catch (error) {
+            // Keep the text already heard by the browser.
+        }
+    }
     if (cancelled || !text) {
         assistantVoiceClearPendingReview();
         if (url) URL.revokeObjectURL(url);
