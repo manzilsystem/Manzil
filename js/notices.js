@@ -206,6 +206,23 @@ function renderArrearsReminderRows() {
     }
 }
 
+/** Dashboard card: shows from the first overdue day (due day + grace) when late apartments exist. */
+function renderDashboardRemindersCard() {
+    const card = document.getElementById('dashboardRemindersCard');
+    if (!card) return;
+    const text = document.getElementById('dashboardRemindersText');
+    const report = currentUserRole === 'manager' && typeof buildArrearsReport === 'function' ? buildArrearsReport({}) : { residents: [] };
+    const late = (report.residents || []).filter(item => cleanPhone(item.resident?.phone));
+    if (!late.length) { card.classList.add('hidden'); return; }
+    const sent = readArrearsReminderSent();
+    const today = arrearsReminderTodayKey();
+    const pending = late.filter(item => sent[item.resident?.id] !== today).length;
+    if (text) {
+        text.textContent = fmtNum(late.length) + ' شقة متأخرة · ' + (pending ? fmtNum(pending) + ' لم يُرسل لها تذكير اليوم' : 'تم إرسال تذكير للجميع اليوم');
+    }
+    card.classList.remove('hidden');
+}
+
 function toggleArrearsReminderPreview(button) {
     const row = button.closest('[data-reminder-row]');
     const text = row?.querySelector('.arrears-reminder-text');
@@ -234,6 +251,7 @@ function sendArrearsReminderFor(residentId) {
     window.open(built.url, '_blank', 'noopener,noreferrer');
     markArrearsReminderSent(residentId);
     renderArrearsReminderRows();
+    renderDashboardRemindersCard();
 }
 
 /** Opens the reminders list for every late apartment, or only for one when residentId is given. */

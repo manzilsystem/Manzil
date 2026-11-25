@@ -53,6 +53,16 @@
                 </div>
             </section>
 
+            <section id="dashboardRemindersCard" class="app-card dashboard-reminders hidden p-3 rounded-3xl border" aria-labelledby="dashboardRemindersTitle">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                        <h2 id="dashboardRemindersTitle" class="font-bold text-sm flex items-center gap-2"><i class="fa-brands fa-whatsapp text-emerald-400" aria-hidden="true"></i> تذكيرات اليوم</h2>
+                        <p id="dashboardRemindersText" class="text-xs text-slate-400 mt-1"></p>
+                    </div>
+                    <button type="button" onclick="openArrearsRemindersList('')" class="min-h-11 px-4 rounded-xl bg-emerald-600 text-white text-xs font-bold shrink-0">افتح القائمة</button>
+                </div>
+            </section>
+
             <section class="app-card p-4 sm:p-5 rounded-3xl border space-y-3" aria-labelledby="monthSummaryTitle">
                 <div class="flex items-center justify-between gap-2">
                     <h2 id="monthSummaryTitle" class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-calendar-check text-emerald-400"></i> ملخص الشهر الحالي</h2>
