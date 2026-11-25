@@ -98,5 +98,5 @@ test('settings sub-blocks fold into an accordion on phones', () => {
     const settings = fs.readFileSync('js/settings.js', 'utf8');
     assert.match(settings, /function setupSettingsAccordion\(tab\)/);
     assert.match(settings, /\.settings-subsection, \.settings-payment-card/);
-    assert.match(css, /\.is-folded > :not\(\.settings-subsection-heading\):not\(\.settings-method-head\)/);
+    assert.match(css, /\.is-folded > :not\(\.settings-subsection-heading, \.settings-method-head/);
 });

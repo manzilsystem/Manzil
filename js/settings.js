@@ -122,11 +122,11 @@ function showSettingsOverview() {
 function setupSettingsAccordion(tab) {
     const panel = document.getElementById('settings-panel-' + tab);
     if (!panel || typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-    const blocks = /** @type {HTMLElement[]} */ ([...panel.querySelectorAll('.settings-subsection, .settings-payment-card')]);
+    const blocks = /** @type {HTMLElement[]} */ ([...panel.querySelectorAll('.settings-subsection, .settings-payment-card, .settings-info-card, .settings-preview-card, .settings-subscription-summary, .settings-brand-preview')]);
     if (blocks.length < 2 || panel.dataset.accordionReady === 'true') return;
     panel.dataset.accordionReady = 'true';
     blocks.forEach((block, index) => {
-        const head = /** @type {HTMLElement | null} */ (block.querySelector(':scope > .settings-subsection-heading, :scope > .settings-method-head'));
+        const head = /** @type {HTMLElement | null} */ (block.querySelector(':scope > .settings-subsection-heading, :scope > .settings-method-head, :scope > .settings-info-card-title, :scope > .settings-preview-head, :scope > .settings-subscription-summary-title, :scope > .settings-brand-preview-heading'));
         if (!head) return;
         head.setAttribute('role', 'button');
         head.setAttribute('tabindex', '0');
@@ -135,7 +135,7 @@ function setupSettingsAccordion(tab) {
             head.setAttribute('aria-expanded', open ? 'true' : 'false');
         };
         const phone = () => window.matchMedia('(max-width: 639.98px)').matches;
-        set(index === 0 || !phone());
+        set(block === blocks.find(item => item.matches('.settings-subsection, .settings-payment-card')) || !phone());
         const toggle = () => { if (phone()) set(block.classList.contains('is-folded')); };
         head.addEventListener('click', toggle);
         head.addEventListener('keydown', event => {
