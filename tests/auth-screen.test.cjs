@@ -152,3 +152,10 @@ test('brand icons are transparent PNGs and the manifest has real maskable icons'
     assert.match(css, /\.header-brand-mark \{[^}]*background:transparent/);
     assert.match(css, /\.auth-logo-frame \{[^}]*background:transparent/);
 });
+
+test('light theme gives the transparent logo a contrast filter on header, login and settings', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const css = fs.readFileSync(path.join(__dirname, '..', 'css', 'style.css'), 'utf8');
+    assert.match(css, /\[data-theme="light"\] \.header-brand-mark img,\s*\[data-theme="light"\] \.auth-logo-frame img,\s*\[data-theme="light"\] \.settings-brand-mark \{ filter: saturate\(1\.25\)/);
+});
