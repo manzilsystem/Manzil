@@ -19,7 +19,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/tailwind.css?v=3be52e2cd3">
-    <link rel="stylesheet" href="css/style.css?v=8b76c26378">
+    <link rel="stylesheet" href="css/style.css?v=4059a89a24">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -489,69 +489,143 @@
         <!-- REPORTS -->
         <section id="tab-reports" class="hidden" data-report-view="index">
             <div class="report-section-head no-print">
-                <div>
-                    <p class="report-section-eyebrow">قائمة التقارير</p>
-                    <h2 class="report-section-title">التقارير والكشوفات</h2>
-                    <p class="report-section-subtitle">افتح تقريرًا من القائمة، راجع المعاينة، ثم اطبع أو صدّر.</p>
+                <div class="report-heading">
+                    <p class="report-section-eyebrow">مركز التقارير</p>
+                    <h2 class="report-section-title">مركز التقارير والكشوف المالية</h2>
+                    <p class="report-section-subtitle">ابحث عن التقرير المطلوب، راجع معاينته، ثم اطبع أو صدّر نفس البيانات.</p>
                 </div>
-                <div class="report-quality-bar no-print" role="group" aria-label="فحص دقة التقارير">
-                    <span id="reportQualityNote">فحص سريع لاتساق السجلات قبل الطباعة.</span>
-                    <button type="button" class="report-quality-check" onclick="runReportQualityCheck()">فحص الدقة</button>
-                    <span id="reportQualityMeter" class="report-quality-meter" role="img" aria-label="نسبة سلامة السجلات" aria-live="polite">—</span>
+                <div class="report-head-aside">
+                    <div class="report-index-tools" role="search">
+                        <label class="report-index-search" for="reportIndexSearch">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                            <input id="reportIndexSearch" type="search" aria-label="ابحث في التقارير" placeholder="ابحث باسم التقرير أو وظيفته" autocomplete="off" oninput="filterReportIndex()">
+                        </label>
+                        <button type="button" id="reportIndexClear" class="report-index-clear" onclick="clearReportIndexSearch()" hidden>مسح</button>
+                    </div>
+                    <div class="report-quality-bar no-print" role="group" aria-label="فحص دقة التقارير">
+                        <span id="reportQualityNote">فحص سريع لاتساق السجلات قبل الطباعة.</span>
+                        <button type="button" class="report-quality-check" onclick="runReportQualityCheck()">فحص الدقة</button>
+                        <span id="reportQualityMeter" class="report-quality-meter" role="img" aria-label="نسبة سلامة السجلات" aria-live="polite">—</span>
+                    </div>
                 </div>
             </div>
             <nav class="report-index no-print" aria-label="فهرس التقارير" onkeydown="handleReportTabKeydown(event)">
-                <p class="report-index-title">الفهرس</p>
-                <button type="button" class="report-index-item report-tone-indigo" data-report-nav="landlord" data-report-glyph="01" aria-controls="landlordReportPrint" onclick="switchReportTab('landlord')">
-                    <span class="report-index-number" aria-hidden="true">01</span>
-                    <span class="report-index-copy"><b>تقرير الملاك</b><small>التحصيل والمصروف لشهر واحد</small></span>
-                    <span class="report-index-state" data-report-freshness="landlord">لم تُعرض</span>
-                </button>
-                <button type="button" class="report-index-item report-tone-sky" data-report-nav="period" data-report-glyph="02" aria-controls="periodReportCard" onclick="switchReportTab('period')">
-                    <span class="report-index-number" aria-hidden="true">02</span>
-                    <span class="report-index-copy"><b>تقرير الفترة</b><small>مقارنة أشهر في تقرير واحد</small></span>
-                    <span class="report-index-state" data-report-freshness="period">لم تُعرض</span>
-                </button>
-                <button type="button" class="report-index-item report-tone-emerald" data-report-nav="cashflow" data-report-glyph="03" aria-controls="cashFlowPanel" onclick="switchReportTab('cashflow')">
-                    <span class="report-index-number" aria-hidden="true">03</span>
-                    <span class="report-index-copy"><b>التدفق النقدي</b><small>الدخل والصافي شهرًا بشهر</small></span>
-                    <span class="report-index-state" data-report-freshness="cashflow">لم تُعرض</span>
-                </button>
-                <button type="button" class="report-index-item report-tone-rose" data-report-nav="expenses" data-report-glyph="04" aria-controls="expensesReportCard" onclick="switchReportTab('expenses')">
-                    <span class="report-index-number" aria-hidden="true">04</span>
-                    <span class="report-index-copy"><b>تقرير المصروفات</b><small>المصروفات وتوزيعها حسب الصندوق</small></span>
-                    <span class="report-index-state" data-report-freshness="expenses">لم تُعرض</span>
-                </button>
-                <button type="button" class="report-index-item report-tone-amber" data-report-nav="adjustments" data-report-glyph="05" aria-controls="adjustmentsReportCard" onclick="switchReportTab('adjustments')">
-                    <span class="report-index-number" aria-hidden="true">05</span>
-                    <span class="report-index-copy"><b>الإعفاءات والتخفيضات</b><small>الإعفاءات والتخفيضات في فترة</small></span>
-                    <span class="report-index-state" data-report-freshness="adjustments">لم تُعرض</span>
-                </button>
-                <button type="button" class="report-index-item report-tone-emerald" data-report-nav="statement" data-report-glyph="06" aria-controls="residentStatementCard" onclick="switchReportTab('statement')">
-                    <span class="report-index-number" aria-hidden="true">06</span>
-                    <span class="report-index-copy"><b>كشف حساب مالك</b><small>كشف حساب مالك ووحدة</small></span>
-                    <span class="report-index-state" data-report-freshness="statement">لم تُعرض</span>
-                </button>
-                <button type="button" class="report-index-item report-tone-sky" data-report-nav="apartments" data-report-glyph="07" aria-controls="apartmentsPanel" onclick="switchReportTab('apartments')">
-                    <span class="report-index-number" aria-hidden="true">07</span>
-                    <span class="report-index-copy"><b>أداء الشقق</b><small>التحصيل والمتبقي لكل شقة</small></span>
-                    <span class="report-index-state" data-report-freshness="apartments">لم تُعرض</span>
-                </button>
-                <button type="button" class="report-index-item report-tone-emerald" data-report-nav="monthlyClose" data-report-glyph="08" aria-controls="monthlyClosePanel" onclick="switchReportTab('monthlyClose')">
-                    <span class="report-index-number" aria-hidden="true">08</span>
-                    <span class="report-index-copy"><b>الإقفال الشهري</b><small>مطابقة نقدية ومراجعة الشهر</small></span>
-                    <span class="report-index-state" data-report-freshness="monthlyClose">لم تُعرض</span>
-                </button>
-                <button type="button" class="report-index-item report-tone-amber" data-report-nav="arrears" data-report-glyph="09" aria-controls="arrearsPanel" onclick="switchReportTab('arrears')">
-                    <span class="report-index-number" aria-hidden="true">09</span>
-                    <span class="report-index-copy"><b>المتأخرات</b><small>المتأخرات وتصدير CSV</small></span>
-                    <span class="report-index-state" data-report-freshness="arrears">مباشر</span>
-                </button>
-                <button type="button" class="report-index-item report-tone-sky" data-report-nav="audit" data-report-glyph="10" aria-controls="auditLogPanel" onclick="switchReportTab('audit')">
-                    <span class="report-index-number" aria-hidden="true">10</span>
-                    <span class="report-index-copy"><b>سجل العمليات</b><small>سجل التغييرات والتدقيق</small></span>
-                    <span class="report-index-state" data-report-freshness="audit">مباشر</span>
-                </button>
+                <p class="report-index-title" hidden>الفهرس</p>
+                <p id="reportIndexEmpty" class="report-index-empty" hidden>لا توجد تقارير مطابقة للبحث. <button type="button" class="report-index-empty-clear" onclick="clearReportIndexSearch()">مسح البحث</button></p>
+                <section class="report-index-group" data-report-group="financial">
+                    <div class="report-index-group-head">
+                        <h3>الملخص المالي</h3>
+                        <p>التحصيل والمصروف والتدفق في فترة محددة.</p>
+                    </div>
+                    <div class="report-index-grid">
+                        <button type="button" class="report-index-item report-tone-indigo" data-report-nav="landlord" data-report-glyph="01" aria-controls="landlordReportPrint" onclick="switchReportTab('landlord')">
+                            <span class="report-index-icon" aria-hidden="true"><i class="fa-solid fa-file-invoice-dollar"></i></span>
+                            <span class="report-index-copy">
+                                <span class="report-card-line"><b>الملخص المالي الشهري</b><span class="report-index-badge">شهري</span></span>
+                                <small>المستحق والتحصيل والمصروف لشهر واحد.</small>
+                                <span class="report-index-open">افتح التقرير <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></span>
+                            </span>
+                            <span class="report-index-state" data-report-freshness="landlord">لم تُعرض</span>
+                        </button>
+                        <button type="button" class="report-index-item report-tone-sky" data-report-nav="period" data-report-glyph="02" aria-controls="periodReportCard" onclick="switchReportTab('period')">
+                            <span class="report-index-icon" aria-hidden="true"><i class="fa-solid fa-calendar-days"></i></span>
+                            <span class="report-index-copy">
+                                <span class="report-card-line"><b>تقرير الفترة</b><span class="report-index-badge">فترة</span></span>
+                                <small>مقارنة أشهر الدخل والمصروف في تقرير واحد.</small>
+                                <span class="report-index-open">افتح التقرير <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></span>
+                            </span>
+                            <span class="report-index-state" data-report-freshness="period">لم تُعرض</span>
+                        </button>
+                        <button type="button" class="report-index-item report-tone-emerald" data-report-nav="cashflow" data-report-glyph="03" aria-controls="cashFlowPanel" onclick="switchReportTab('cashflow')">
+                            <span class="report-index-icon" aria-hidden="true"><i class="fa-solid fa-chart-line"></i></span>
+                            <span class="report-index-copy">
+                                <span class="report-card-line"><b>تحليل التدفق النقدي</b><span class="report-index-badge">تحليل</span></span>
+                                <small>الدخل والصافي شهرًا بشهر حسب الصندوق.</small>
+                                <span class="report-index-open">افتح التقرير <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></span>
+                            </span>
+                            <span class="report-index-state" data-report-freshness="cashflow">لم تُعرض</span>
+                        </button>
+                        <button type="button" class="report-index-item report-tone-rose" data-report-nav="expenses" data-report-glyph="04" aria-controls="expensesReportCard" onclick="switchReportTab('expenses')">
+                            <span class="report-index-icon" aria-hidden="true"><i class="fa-solid fa-chart-pie"></i></span>
+                            <span class="report-index-copy">
+                                <span class="report-card-line"><b>تحليل المصروفات</b><span class="report-index-badge">تحليل</span></span>
+                                <small>توزيع المصروفات على الأشهر والصناديق.</small>
+                                <span class="report-index-open">افتح التقرير <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></span>
+                            </span>
+                            <span class="report-index-state" data-report-freshness="expenses">لم تُعرض</span>
+                        </button>
+                    </div>
+                </section>
+                <section class="report-index-group" data-report-group="owners">
+                    <div class="report-index-group-head">
+                        <h3>الملاك والوحدات</h3>
+                        <p>كشوف وحسابات تخص مالكًا أو شقة أو المتأخرات.</p>
+                    </div>
+                    <div class="report-index-grid">
+                        <button type="button" class="report-index-item report-tone-emerald" data-report-nav="statement" data-report-glyph="06" aria-controls="residentStatementCard" onclick="switchReportTab('statement')">
+                            <span class="report-index-icon" aria-hidden="true"><i class="fa-solid fa-file-invoice"></i></span>
+                            <span class="report-index-copy">
+                                <span class="report-card-line"><b>كشف حساب المالك</b><span class="report-index-badge">كشف</span></span>
+                                <small>حركة مالك واحد وشقته شهرًا بشهر.</small>
+                                <span class="report-index-open">افتح التقرير <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></span>
+                            </span>
+                            <span class="report-index-state" data-report-freshness="statement">لم تُعرض</span>
+                        </button>
+                        <button type="button" class="report-index-item report-tone-sky" data-report-nav="apartments" data-report-glyph="07" aria-controls="apartmentsPanel" onclick="switchReportTab('apartments')">
+                            <span class="report-index-icon" aria-hidden="true"><i class="fa-solid fa-building"></i></span>
+                            <span class="report-index-copy">
+                                <span class="report-card-line"><b>تقرير أداء الشقق</b><span class="report-index-badge">أداء</span></span>
+                                <small>التحصيل والمتبقي لكل شقة في الفترة.</small>
+                                <span class="report-index-open">افتح التقرير <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></span>
+                            </span>
+                            <span class="report-index-state" data-report-freshness="apartments">لم تُعرض</span>
+                        </button>
+                        <button type="button" class="report-index-item report-tone-amber" data-report-nav="arrears" data-report-glyph="09" aria-controls="arrearsPanel" onclick="switchReportTab('arrears')">
+                            <span class="report-index-icon" aria-hidden="true"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                            <span class="report-index-copy">
+                                <span class="report-card-line"><b>تقرير المتأخرات</b><span class="report-index-badge">متابعة</span></span>
+                                <small>الشقق المتأخرة والأشهر غير المسددة.</small>
+                                <span class="report-index-open">افتح التقرير <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></span>
+                            </span>
+                            <span class="report-index-state" data-report-freshness="arrears">مباشر</span>
+                        </button>
+                    </div>
+                </section>
+                <section class="report-index-group" data-report-group="review">
+                    <div class="report-index-group-head">
+                        <h3>المراجعة والرقابة</h3>
+                        <p>سجلات وإجراءات لمراجعة القيود والإقفال الشهري.</p>
+                    </div>
+                    <div class="report-index-grid">
+                        <button type="button" class="report-index-item report-tone-amber" data-report-nav="adjustments" data-report-glyph="05" aria-controls="adjustmentsReportCard" onclick="switchReportTab('adjustments')">
+                            <span class="report-index-icon" aria-hidden="true"><i class="fa-solid fa-tags"></i></span>
+                            <span class="report-index-copy">
+                                <span class="report-card-line"><b>تقرير الإعفاءات والتخفيضات</b><span class="report-index-badge">قيود</span></span>
+                                <small>كل الإعفاءات والتخفيضات في فترة محددة.</small>
+                                <span class="report-index-open">افتح التقرير <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></span>
+                            </span>
+                            <span class="report-index-state" data-report-freshness="adjustments">لم تُعرض</span>
+                        </button>
+                        <button type="button" class="report-index-item report-tone-emerald" data-report-nav="monthlyClose" data-report-glyph="08" aria-controls="monthlyClosePanel" onclick="switchReportTab('monthlyClose')">
+                            <span class="report-index-icon" aria-hidden="true"><i class="fa-solid fa-clipboard-check"></i></span>
+                            <span class="report-index-copy">
+                                <span class="report-card-line"><b>مراجعة الإقفال الشهري</b><span class="report-index-badge">مراجعة</span></span>
+                                <small>مطابقة أرصدة الصناديق عند إقفال الشهر.</small>
+                                <span class="report-index-open">افتح التقرير <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></span>
+                            </span>
+                            <span class="report-index-state" data-report-freshness="monthlyClose">لم تُعرض</span>
+                        </button>
+                        <button type="button" class="report-index-item report-tone-sky" data-report-nav="audit" data-report-glyph="10" aria-controls="auditLogPanel" onclick="switchReportTab('audit')">
+                            <span class="report-index-icon" aria-hidden="true"><i class="fa-solid fa-list-check"></i></span>
+                            <span class="report-index-copy">
+                                <span class="report-card-line"><b>سجل العمليات والتدقيق</b><span class="report-index-badge">سجل</span></span>
+                                <small>سجل التغييرات والإجراءات الإدارية.</small>
+                                <span class="report-index-open">افتح التقرير <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></span>
+                            </span>
+                            <span class="report-index-state" data-report-freshness="audit">مباشر</span>
+                        </button>
+                    </div>
+                </section>
             </nav>
             <div class="report-stage-home no-print">
                 <b>اختر تقريرًا من القائمة.</b>
@@ -2332,7 +2406,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-2759edff7d"></script>
+    <script src="js/telemetry.js?v=manzil-0d0f48fb2a"></script>
     <script src="js/state.js?v=44b4960b92"></script>
     <script src="js/access.js?v=1ca370a57a"></script>
     <script src="js/render.js?v=cda722734d"></script>
@@ -2353,7 +2427,7 @@
     <script src="js/reports/shared/excel-exporter.js?v=78c09c1ad7"></script>
     <script src="js/reports/shared/performance.js?v=0f741ab63c"></script>
     <!-- Reports Main -->
-    <script src="js/reports.js?v=80c0a41a66"></script>
+    <script src="js/reports.js?v=c3fe8b4599"></script>
     <!-- Extended reports (cash flow and apartment performance) -->
     <script src="js/reports/extended/reports-extended.js?v=312c4f1ea8"></script>
     <script src="js/settings.js?v=c274fd024a"></script>

@@ -480,18 +480,22 @@ test('typographic scale resolves consistently across themes and print', async ({
     expect(await readSizes()).toEqual(baseline);
 });
 
-test('the quiet numbered index is clickable and free of hub layers', async ({ page }) => {
+test('the grouped report cards are clickable and free of hub layers', async ({ page }) => {
     await openReports(page);
     expect(await page.locator('#tab-reports').getAttribute('data-report-lens')).toBeNull();
     await expect(page.locator('#tab-reports')).toHaveAttribute('data-report-view', 'index');
     await expect(page.locator('.report-index')).toBeVisible();
+    await expect(page.locator('.report-index-group')).toHaveCount(3);
     await expect(page.locator('.report-index-item')).toHaveCount(10);
-    await expect(page.locator('.report-index-number')).toHaveCount(10);
+    await expect(page.locator('.report-index-icon')).toHaveCount(10);
+    await expect(page.locator('.report-index-badge')).toHaveCount(10);
+    await expect(page.locator('.report-index-open')).toHaveCount(10);
     await expect(page.locator('.report-index-state')).toHaveCount(10);
+    await expect(page.locator('.report-index-number')).toHaveCount(0);
     await expect(page.locator('[data-report-metric]')).toHaveCount(0);
-    await expect(page.locator('.report-group-heading')).toHaveCount(0);
+    await expect(page.locator('#reportHub')).toHaveCount(0);
     await expect(page.locator('#reportScheduledCount')).toHaveCount(0);
-    await expect(page.locator('.report-stage-home')).toBeVisible();
+    await expect(page.locator('.report-stage-home')).toBeHidden();
     await expect(page.locator('.report-quality-bar')).toBeVisible();
 
     await page.locator('.report-quality-check').click();
@@ -500,8 +504,39 @@ test('the quiet numbered index is clickable and free of hub layers', async ({ pa
 
     await page.locator('[data-report-nav="monthlyClose"]').click();
     await expect(page.locator('#monthlyClosePanel')).toBeVisible();
+    await expect(page.locator('.report-index-item:visible')).toHaveCount(10);
+    await expect(page.locator('.report-index-group-head:visible')).toHaveCount(0);
     await backToIndex(page);
     await expect(page.locator('.report-index')).toBeVisible();
+});
+
+test('report search filters cards by name, function and category', async ({ page }) => {
+    await openReports(page);
+    const search = page.locator('#reportIndexSearch');
+    await expect(search).toBeVisible();
+    await expect(page.locator('#reportIndexClear')).toBeHidden();
+
+    await search.fill('متأخر');
+    await expect(page.locator('.report-index-item:visible')).toHaveCount(1);
+    await expect(page.locator('[data-report-nav="arrears"]')).toBeVisible();
+    await expect(page.locator('.report-index-group:visible')).toHaveCount(1);
+    await expect(page.locator('#reportIndexEmpty')).toBeHidden();
+    await expect(page.locator('#reportIndexClear')).toBeVisible();
+
+    await page.locator('#reportIndexClear').click();
+    await expect(search).toHaveValue('');
+    await expect(page.locator('.report-index-item:visible')).toHaveCount(10);
+    await expect(page.locator('#reportIndexClear')).toBeHidden();
+
+    await search.fill('أرصدة الصناديق');
+    await expect(page.locator('.report-index-item:visible')).toHaveCount(1);
+    await expect(page.locator('[data-report-nav="monthlyClose"]')).toBeVisible();
+
+    await search.fill('لا يوجد تقرير بهذا الاسم');
+    await expect(page.locator('.report-index-item:visible')).toHaveCount(0);
+    await expect(page.locator('#reportIndexEmpty')).toBeVisible();
+    await page.locator('.report-index-empty-clear').click();
+    await expect(page.locator('.report-index-item:visible')).toHaveCount(10);
 });
 
 test('quality surfaces stay out of printed output', async ({ page }) => {
@@ -517,7 +552,7 @@ test('quality surfaces stay out of printed output', async ({ page }) => {
 test('the tab opens on the index and a row opens its report full page', async ({ page }) => {
     await openReports(page);
     await expect(page.locator('.report-section-head')).toBeVisible();
-    await expect(page.locator('.report-stage-home')).toBeVisible();
+    await expect(page.locator('.report-stage-home')).toBeHidden();
     await expect(page.locator('#reportViewBar')).toBeHidden();
     expect(await reportViewCounts(page)).toEqual({ view: 'index', visiblePanels: 0, active: 0, ariaCurrent: 0 });
 
@@ -525,8 +560,8 @@ test('the tab opens on the index and a row opens its report full page', async ({
     await expect(page.locator('#monthlyClosePanel')).toBeVisible();
     await expect(page.locator('.report-section-head')).toBeHidden();
     await expect(page.locator('#reportViewBar')).toBeVisible();
-    await expect(page.locator('#reportViewTitle')).toHaveText('الإقفال الشهري');
-    await expect(page.locator('#reportViewMeta')).toHaveText('مطابقة نقدية ومراجعة الشهر');
+    await expect(page.locator('#reportViewTitle')).toHaveText('مراجعة الإقفال الشهري');
+    await expect(page.locator('#reportViewMeta')).toHaveText('مطابقة أرصدة الصناديق عند إقفال الشهر.');
     expect(await reportViewCounts(page)).toEqual({ view: 'panel', visiblePanels: 1, active: 1, ariaCurrent: 1 });
 
     await backToIndex(page);
@@ -536,7 +571,7 @@ test('the tab opens on the index and a row opens its report full page', async ({
 
     await openReportPanel(page, 'arrears');
     await expect(page.locator('#arrearsPanel')).toBeVisible();
-    await expect(page.locator('#reportViewTitle')).toHaveText('المتأخرات');
+    await expect(page.locator('#reportViewTitle')).toHaveText('تقرير المتأخرات');
     expect(await reportViewCounts(page)).toEqual({ view: 'panel', visiblePanels: 1, active: 1, ariaCurrent: 1 });
 });
 
@@ -584,7 +619,7 @@ test('arrow keys move between index rows and Enter opens the report', async ({ p
     await expect(page.locator('[data-report-nav="audit"]')).toBeFocused();
     await page.keyboard.press('Enter');
     await expect(page.locator('#auditLogPanel')).toBeVisible();
-    await expect(page.locator('#reportViewTitle')).toHaveText('سجل العمليات');
+    await expect(page.locator('#reportViewTitle')).toHaveText('سجل العمليات والتدقيق');
 });
 
 test('period report gates print and csv on the previewed range', async ({ page }) => {
@@ -1350,29 +1385,46 @@ test('period apartment filter scopes months, dues and csv to one flat', async ({
     await expect(page.locator('#periodReportExportBtn')).toBeDisabled();
 });
 
-test('the index keeps one fixed, quiet row per report', async ({ page }) => {
+test('the grouped index keeps every report, description and open action', async ({ page }) => {
     await openReports(page);
-    const rows = await page.locator('.report-index-item').evaluateAll(items => items.map(item => ({
+    const cards = await page.locator('.report-index-item').evaluateAll(items => items.map(item => ({
       tab: item.dataset.reportNav,
-      glyph: item.dataset.reportGlyph,
-      number: item.querySelector('.report-index-number')?.textContent.trim(),
+      group: item.closest('[data-report-group]')?.dataset.reportGroup,
+      icon: item.querySelector('.report-index-icon i')?.className.replace('fa-solid ', '').trim(),
+      badge: item.querySelector('.report-index-badge')?.textContent.trim(),
       title: item.querySelector('.report-index-copy b')?.textContent.trim(),
       description: item.querySelector('.report-index-copy small')?.textContent.trim(),
-      state: item.querySelector('.report-index-state')?.textContent.trim()
+      state: item.querySelector('.report-index-state')?.textContent.trim(),
+      open: item.querySelector('.report-index-open')?.textContent.trim()
     })));
 
-    expect(rows.map(row => row.tab)).toEqual(['landlord', 'period', 'cashflow', 'expenses', 'adjustments', 'statement', 'apartments', 'monthlyClose', 'arrears', 'audit']);
-    expect(rows.map(row => row.number)).toEqual(['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']);
-    for (const row of rows) {
-      expect(row.glyph).toBe(row.number);
-      expect(row.title).toBeTruthy();
-      expect(row.description).toBeTruthy();
-      expect(row.state).toBeTruthy();
+    expect(cards.map(card => card.tab)).toEqual(['landlord', 'period', 'cashflow', 'expenses',
+      'statement', 'apartments', 'arrears', 'adjustments', 'monthlyClose', 'audit']);
+    expect(cards.map(card => card.group)).toEqual(['financial', 'financial', 'financial', 'financial',
+      'owners', 'owners', 'owners', 'review', 'review', 'review']);
+    const expected = {
+      landlord: { title: 'الملخص المالي الشهري', badge: 'شهري', icon: 'fa-file-invoice-dollar' },
+      period: { title: 'تقرير الفترة', badge: 'فترة', icon: 'fa-calendar-days' },
+      cashflow: { title: 'تحليل التدفق النقدي', badge: 'تحليل', icon: 'fa-chart-line' },
+      expenses: { title: 'تحليل المصروفات', badge: 'تحليل', icon: 'fa-chart-pie' },
+      statement: { title: 'كشف حساب المالك', badge: 'كشف', icon: 'fa-file-invoice' },
+      apartments: { title: 'تقرير أداء الشقق', badge: 'أداء', icon: 'fa-building' },
+      arrears: { title: 'تقرير المتأخرات', badge: 'متابعة', icon: 'fa-clock-rotate-left', state: 'مباشر' },
+      adjustments: { title: 'تقرير الإعفاءات والتخفيضات', badge: 'قيود', icon: 'fa-tags' },
+      monthlyClose: { title: 'مراجعة الإقفال الشهري', badge: 'مراجعة', icon: 'fa-clipboard-check' },
+      audit: { title: 'سجل العمليات والتدقيق', badge: 'سجل', icon: 'fa-list-check', state: 'مباشر' }
+    };
+    for (const card of cards) {
+      expect(card.title).toBe(expected[card.tab].title);
+      expect(card.badge).toBe(expected[card.tab].badge);
+      expect(card.icon).toBe(expected[card.tab].icon);
+      expect(card.description).toBeTruthy();
+      expect(card.state).toBe(expected[card.tab].state || 'لم تُعرض');
+      expect(card.open).toContain('افتح التقرير');
     }
     await expect(page.locator('#reportHub')).toHaveCount(0);
     await expect(page.locator('#reportHubSearch')).toHaveCount(0);
-    await expect(page.locator('[data-report-group]')).toHaveCount(0);
-    await expect(page.locator('[data-report-shortcut]')).toHaveCount(0);
+    await expect(page.locator('.report-index-number')).toHaveCount(0);
 });
 
 test('guided steps and live status follow the single stage output gate', async ({ page }) => {
