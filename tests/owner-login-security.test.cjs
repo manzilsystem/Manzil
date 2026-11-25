@@ -40,7 +40,7 @@ test('owner login Edge Function does not require a pre-existing JWT', () => {
 test('functions declared for Branching stay free of heavy npm bundles', () => {
     const config = fs.readFileSync(path.join(root, 'supabase/config.toml'), 'utf8');
     const declared = Array.from(config.matchAll(/^\[functions\.([^\]]+)\]/gm), match => match[1]).sort();
-    assert.deepEqual(declared, ['health', 'monitor-client-errors', 'owner-login']);
+    assert.deepEqual(declared, ['assistant-groq', 'health', 'monitor-client-errors', 'owner-login']);
 
     for (const slug of declared) {
         const source = fs.readFileSync(path.join(root, 'supabase/functions', slug, 'index.ts'), 'utf8');

@@ -3606,8 +3606,8 @@ function sendAssistantMessage(event, options = {}) {
             openAssistantReportsRequest(request.tab || 'landlord', request.month || '', request.residentId || '');
         }
     };
-    // The optional bridge is a local dev-only rephraser. It never computes
-    // numbers or permissions; when absent, delivery stays synchronous.
+    // The optional Groq bridge only rephrases an approved answer. It never
+    // computes numbers or permissions; when absent, delivery stays synchronous.
     const groqAnswer = assistantGlobalFunction('assistantGroqAnswer');
     if (typeof groqAnswer === 'function') {
         setAssistantBusy(true, 'جارٍ تجهيز الرد…');

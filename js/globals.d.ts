@@ -33,6 +33,7 @@ declare function normalizeOwnerPhone(input: unknown): string | null;
 // App state and utilities
 declare var state: any;
 declare var currentUserRole: string;
+declare var assistantGroqTranscribe: ((audio: Blob) => Promise<string>) | undefined;
 
 // Reports - chart colors and high-level renderers (js/reports/shared/charts.js)
 declare const REPORT_CHART_COLORS: { emerald: string; rose: string; amber: string; sky: string; indigo: string; slate: string };
