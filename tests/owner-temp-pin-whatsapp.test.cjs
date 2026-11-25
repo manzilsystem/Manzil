@@ -59,6 +59,13 @@ test('WhatsApp opens to the registered number with the temporary PIN and apartme
     assert.match(message, /إيصالات السداد/);
     assert.match(message, /إعلانات العمارة/);
     assert.equal(message.split('\n').filter(line => line.trim() === '25637901').length, 1);
+    ['🏢', '🔑', '⚠️', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '💰', '🧾', '📜', '🔔', '📢', '📞'].forEach(emoji => {
+        assert.ok(message.includes(emoji), `message must contain ${emoji}`);
+    });
+    assert.doesNotMatch(message, /^\d\) /m);
+    assert.doesNotMatch(message, /^- /m);
+    // Each numbered step sits in its own paragraph.
+    assert.match(message, /1️⃣ [^\n]+\n\n2️⃣ [^\n]+\n\n3️⃣ [^\n]+\n\n4️⃣ [^\n]+\n\n5️⃣ /);
     assert.equal(toasts[0].type, 'success');
 });
 
