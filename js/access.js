@@ -195,6 +195,7 @@ function openReceiptPrintWindow(receipt, resident, source = 'owner') {
 }
 
 function getOwnerManagerWhatsAppPhone() {
+    if (typeof cleanPhone === 'function') return cleanPhone(state.managerPhone);
     let phone = String(state.managerPhone || '').replace(/\D/g, '');
     if (phone.startsWith('00')) phone = phone.slice(2);
     else if (phone.startsWith('0')) phone = '20' + phone.slice(1);

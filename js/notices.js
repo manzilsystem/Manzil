@@ -59,12 +59,20 @@ function copyNoticeToClipboard() {
     navigator.clipboard.writeText(n.text).then(() => toast('تم النسخ','success')).catch(() => toast('فشل النسخ','error'));
 }
 
+// Returns digits-only international number for wa.me (no +), or '' when the input is clearly junk.
+// Accepts Egyptian 01XXXXXXXXX and E.164-style numbers (+ or 00 prefix, 8-15 digits); spaces, dashes and dots are ignored.
 function cleanPhone(p) {
     if (!p) return '';
-    let d = p.replace(/\D/g, '');
-    if (d.startsWith('0')) d = '20' + d.substring(1);
-    else if (d.length === 10) d = '20' + d;
-    return d;
+    let v = String(p).trim()
+        .replace(/[٠-٩]/g, ch => String(ch.charCodeAt(0) - 1632))
+        .replace(/[۰-۹]/g, ch => String(ch.charCodeAt(0) - 1776))
+        .replace(/[\s().-]/g, '');
+    if (/[^\d+]/.test(v) || v.indexOf('+', 1) > 0) return '';
+    if (v.startsWith('+')) v = v.slice(1);
+    else if (v.startsWith('00')) v = v.slice(2);
+    else if (/^01\d{9}$/.test(v)) v = '20' + v.slice(1);
+    else if (/^1\d{9}$/.test(v)) v = '20' + v;
+    return /^[1-9]\d{7,14}$/.test(v) ? v : '';
 }
 
 function sendWhatsAppReminder(residentId) {
