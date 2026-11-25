@@ -806,6 +806,7 @@ function _buildLandlordReportModel(month, purposeFilter = '', cashAccountFilter 
         ? getMonthlyBillingTotals(month, residentFilter)
         : { expectedCents: 0, outstandingCents: 0, adjustmentCents: 0 };
     const collectionRate = showDues && expectedCents > 0 ? Math.round((subscriptionIncCents / expectedCents) * 100) : null;
+    const advanceCents = showDues && expectedCents > 0 ? Math.max(0, subscriptionIncCents - expectedCents) : 0;
     const paymentMethodTotals = new Map();
     inc.forEach(payment => {
         const label = getIncomePaymentMethodLabel(payment.paymentMethod);
@@ -844,6 +845,7 @@ function _buildLandlordReportModel(month, purposeFilter = '', cashAccountFilter 
         outstandingCents,
         adjustmentCents,
         collectionRate,
+        advanceCents,
         expenseCategories: getExpenseCategoryTotals(exp),
         paymentMethodTotals,
         purposeTotals
@@ -861,7 +863,8 @@ function getLandlordSummaryItems(model) {
                 ? [{ label: 'إعفاء/تخفيض/تسوية', cents: model.adjustmentCents, tone: 'amber' }]
                 : []),
             { label: 'غير المحصّل', cents: model.outstandingCents, tone: model.outstandingCents > 0 ? 'amber' : 'emerald' },
-            { label: 'نسبة التحصيل', text: model.collectionRate === null ? '—' : fmtNum(model.collectionRate) + '%' }
+            { label: 'نسبة التحصيل', text: formatPeriodRate(model.collectionRate) },
+            ...(model.advanceCents > 0 ? [{ label: 'مدفوع مقدمًا', cents: model.advanceCents, tone: 'sky' }] : [])
         ];
     }
     return [
@@ -1746,7 +1749,8 @@ function buildPeriodMonthKeys(fromMonth, toMonth) {
 
 function formatPeriodRate(rate) {
     if (rate === null || rate === undefined || rate === '') return '—';
-    return Number(rate) > 200 ? '>200%' : fmtNum(rate) + '%';
+    // Shown rate never passes 100%; the excess is shown separately as an advance amount.
+    return fmtNum(Math.min(100, Number(rate))) + '%';
 }
 
 function getPeriodCollectionRate(expectedCents, collectedCents) {
@@ -1796,6 +1800,7 @@ function _buildPeriodReport(fromMonth, toMonth, purposeFilter = '', cashAccountF
             expenseCents,
             negativePaymentCount,
             emptyExpenseCount,
+            advanceCents: showDues && expectedCents > 0 ? Math.max(0, collectedCents - expectedCents) : 0,
             netCents: totalIncomeCents - expenseCents,
             rate: showDues ? getPeriodCollectionRate(expectedCents, collectedCents) : null
         };
@@ -1807,13 +1812,14 @@ function _buildPeriodReport(fromMonth, toMonth, purposeFilter = '', cashAccountF
         acc.movementCount += row.movementCount;
         acc.collectedCents += row.collectedCents;
         acc.otherIncomeCents += row.otherIncomeCents;
+        acc.advanceCents += row.advanceCents || 0;
         acc.negativePaymentCount += row.negativePaymentCount || 0;
         acc.emptyExpenseCount += row.emptyExpenseCount || 0;
         acc.outstandingCents += row.outstandingCents;
         acc.expenseCents += row.expenseCents;
         if (row.outstandingCents > 0) acc.unpaidMonths += 1;
         return acc;
-    }, { expectedCents: 0, adjustmentCents: 0, totalIncomeCents: 0, movementCount: 0, collectedCents: 0, otherIncomeCents: 0, negativePaymentCount: 0, emptyExpenseCount: 0, outstandingCents: 0, expenseCents: 0, unpaidMonths: 0, netCents: 0, rate: null });
+    }, { expectedCents: 0, adjustmentCents: 0, totalIncomeCents: 0, movementCount: 0, collectedCents: 0, otherIncomeCents: 0, negativePaymentCount: 0, emptyExpenseCount: 0, advanceCents: 0, outstandingCents: 0, expenseCents: 0, unpaidMonths: 0, netCents: 0, rate: null });
     totals.netCents = totals.totalIncomeCents - totals.expenseCents;
     totals.rate = showDues ? getPeriodCollectionRate(totals.expectedCents, totals.collectedCents) : null;
     const rangeLabels = new Set(months.map(row => row.month));
@@ -1911,13 +1917,14 @@ function normalizeServerPeriodReport(serverReport, localReport) {
         acc.movementCount += row.movementCount;
         acc.collectedCents += row.collectedCents;
         acc.otherIncomeCents += row.otherIncomeCents;
+        acc.advanceCents += row.advanceCents || 0;
         acc.negativePaymentCount += row.negativePaymentCount || 0;
         acc.emptyExpenseCount += row.emptyExpenseCount || 0;
         acc.outstandingCents += row.outstandingCents;
         acc.expenseCents += row.expenseCents;
         if (row.outstandingCents > 0) acc.unpaidMonths += 1;
         return acc;
-    }, { expectedCents: 0, adjustmentCents: 0, totalIncomeCents: 0, movementCount: 0, collectedCents: 0, otherIncomeCents: 0, negativePaymentCount: 0, emptyExpenseCount: 0, outstandingCents: 0, expenseCents: 0, unpaidMonths: 0, netCents: 0, rate: null });
+    }, { expectedCents: 0, adjustmentCents: 0, totalIncomeCents: 0, movementCount: 0, collectedCents: 0, otherIncomeCents: 0, negativePaymentCount: 0, emptyExpenseCount: 0, advanceCents: 0, outstandingCents: 0, expenseCents: 0, unpaidMonths: 0, netCents: 0, rate: null });
     totals.netCents = totals.totalIncomeCents - totals.expenseCents;
     totals.rate = localReport.showDues ? getPeriodCollectionRate(totals.expectedCents, totals.collectedCents) : null;
     const methods = (Array.isArray(serverReport.methods) ? serverReport.methods : []).map(item => ({
@@ -2105,6 +2112,7 @@ function renderPeriodReportHtml(report) {
             { label: 'المحصّل', cents: totals.collectedCents, tone: 'emerald' },
             { label: 'غير المحصّل', cents: totals.outstandingCents, tone: totals.outstandingCents > 0 ? 'amber' : 'emerald' },
             { label: 'نسبة التحصيل', text: formatPeriodRate(totals.rate) },
+            ...(totals.advanceCents > 0 ? [{ label: 'مدفوع مقدمًا', cents: totals.advanceCents, tone: 'sky' }] : []),
             { label: 'إيرادات أخرى', cents: totals.otherIncomeCents, tone: 'sky' },
             { label: 'المصروف', cents: totals.expenseCents, tone: 'rose' },
             { label: 'الصافي', cents: totals.netCents, tone: totals.netCents >= 0 ? 'emerald' : 'rose' }
@@ -4035,6 +4043,7 @@ function renderPeriodReportPdfHtml(report) {
             { label: 'المحصّل', cents: totals.collectedCents, tone: 'emerald' },
             { label: 'غير المحصّل', cents: totals.outstandingCents, tone: totals.outstandingCents ? 'rose' : 'emerald' },
             { label: 'نسبة التحصيل', text: formatPeriodRate(totals.rate) },
+            ...(totals.advanceCents > 0 ? [{ label: 'مدفوع مقدمًا', cents: totals.advanceCents, tone: 'sky' }] : []),
             { label: 'إيرادات أخرى', cents: totals.otherIncomeCents },
             { label: 'المصروف', cents: totals.expenseCents, tone: 'rose' },
             { label: 'الصافي', cents: totals.netCents, tone: totals.netCents >= 0 ? 'emerald' : 'rose' }
