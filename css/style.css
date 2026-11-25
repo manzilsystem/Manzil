@@ -1174,6 +1174,13 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     body.print-statement #residentStatementCard .statement-table th,
     body.print-statement #residentStatementCard .statement-table td { border-color: var(--print-line) !important; }
     body.print-statement #residentStatementCard .report-table-wrap { overflow: visible !important; }
+    body.print-monthly-close #printableArea > section:not(#tab-reports) { display: none !important; }
+    body.print-monthly-close #tab-reports > :not(#monthlyClosePanel) { display: none !important; }
+    body.print-monthly-close #monthlyClosePanel { padding: var(--space-none) !important; border: 0 !important; background: var(--print-bg) !important; box-shadow: none !important; }
+    body.print-monthly-close #monthlyClosePanel .report-toolbar, body.print-monthly-close #monthlyCloseReportStatus { display: none !important; }
+    body.print-monthly-close #monthlyClosePanel .statement-table th,
+    body.print-monthly-close #monthlyClosePanel .statement-table td { border-color: var(--print-line) !important; }
+    body.print-monthly-close #monthlyClosePanel .report-table-wrap { overflow: visible !important; }
     body.print-period #printableArea > section:not(#tab-reports) { display: none !important; }
     body.print-period #tab-reports > :not(#periodReportCard) { display: none !important; }
     body.print-period #periodReportCard { padding: var(--space-none) !important; border: 0 !important; background: var(--print-bg) !important; box-shadow: none !important; }
