@@ -5513,6 +5513,7 @@ footer#appCopyright .copyright-divider img { width: 1.125rem; height: 1.125rem; 
 @media print { #appSplash { display: none !important; } }
 @media screen and (max-width: 639.98px) {
     #expenseCardsList .app-card { padding: var(--space-60); }
+}
 /* Apartments: summary row, compact cards on phones */
 #residentsSummary .income-stat { display: flex; flex-direction: column; gap: var(--space-20); padding: var(--space-65); border: 1px solid var(--border-color); border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-input) 55%, transparent); }
 #residentsSummary .income-stat-label { color: var(--text-muted); font-size: var(--font-70); font-weight: var(--weight-700); }
