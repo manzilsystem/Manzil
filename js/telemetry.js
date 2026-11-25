@@ -1,5 +1,9 @@
 (() => {
-    const RELEASE = 'manzil-53b8c8bbe4';
+<<<<<<< HEAD
+    const RELEASE = 'manzil-9067a45111';
+=======
+    const RELEASE = 'manzil-01243d17e8';
+>>>>>>> 74edd40 (Rebuild generated assets after rebase)
     // Modules that are loaded on demand read the release from here so their URL
     // matches the pre-cached entry instead of missing the cache and re-downloading.
     window.MANZIL_RELEASE = RELEASE;
