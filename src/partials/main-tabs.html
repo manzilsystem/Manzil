@@ -582,19 +582,20 @@
                         <span class="report-field-label">إلى شهر</span>
                         <select id="periodReportTo" aria-label="إلى شهر" onchange="onPeriodReportRangeChange()" class="report-control app-input border focus:outline-none"></select>
                     </label>
-                    <label class="report-field report-field-narrow" for="periodReportPurpose">
+                    <button type="button" class="report-filters-toggle no-print" data-report-filters-toggle aria-expanded="false"><i class="fa-solid fa-sliders" aria-hidden="true"></i> <span>الفلاتر</span> <i class="fa-solid fa-chevron-down report-filters-chevron" aria-hidden="true"></i></button>
+                    <label class="report-field report-field-narrow" data-report-fold for="periodReportPurpose">
                         <span class="report-field-label">غرض التحصيل</span>
                         <select id="periodReportPurpose" aria-label="فلتر غرض التحصيل" onchange="invalidatePeriodReportPreview()" class="report-control app-input border focus:outline-none"></select>
                     </label>
-                    <label class="report-field report-field-narrow" for="periodReportCashAccount">
+                    <label class="report-field report-field-narrow" data-report-fold for="periodReportCashAccount">
                         <span class="report-field-label">الصندوق</span>
                         <select id="periodReportCashAccount" aria-label="فلتر الصندوق" onchange="invalidatePeriodReportPreview()" class="report-control app-input border focus:outline-none"></select>
                     </label>
-                    <label class="report-field report-field-narrow" for="periodReportResident">
+                    <label class="report-field report-field-narrow" data-report-fold for="periodReportResident">
                         <span class="report-field-label">الشقة</span>
                         <select id="periodReportResident" aria-label="فلتر الشقة" onchange="invalidatePeriodReportPreview()" class="report-control app-input border focus:outline-none"></select>
                     </label>
-                    <label class="report-field report-field-narrow" for="periodReportComparison">
+                    <label class="report-field report-field-narrow" data-report-fold for="periodReportComparison">
                         <span class="report-field-label">المقارنة</span>
                         <select id="periodReportComparison" aria-label="وضع مقارنة الفترة" onchange="onPeriodComparisonChange()" class="report-control app-input border focus:outline-none">
                             <option value="none">بدون مقارنة</option>

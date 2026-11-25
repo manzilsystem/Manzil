@@ -5426,3 +5426,18 @@ body.owner-mode .owner-theme-control {
     .report-section-rail { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
     .report-section-rail > * { flex: 0 0 auto; }
 }
+
+/* Phones: folded filters, one-row KPI strip and one-row export buttons */
+.report-filters-toggle { display: none; }
+@media screen and (max-width: 639.98px) {
+    .report-filters-toggle { display: flex; grid-column: 1 / -1; align-items: center; justify-content: center; gap: var(--space-45); padding: var(--space-55) var(--space-80); border: 1px solid var(--border-color); border-radius: var(--radius-85); background: transparent; color: var(--text-muted); font-size: var(--font-80); font-weight: var(--weight-700); cursor: pointer; }
+    .report-filters-toggle[aria-expanded="true"] { color: var(--accent-color); border-color: var(--accent-color); }
+    .report-filters-toggle[aria-expanded="true"] .report-filters-chevron { transform: rotate(180deg); }
+    .report-toolbar:not(.is-open) > [data-report-fold] { display: none; }
+    .sheet-kpi tbody tr { grid-template-columns: repeat(auto-fit, minmax(4.6rem, 1fr)); gap: var(--space-40); }
+    .sheet-kpi tbody td.report-stat { padding: var(--space-45) var(--space-30); gap: var(--space-5); }
+    .sheet-kpi tbody td.report-stat::before { font-size: var(--font-60); }
+    .sheet-kpi tbody td.report-stat .report-stat-value { font-size: var(--font-80); }
+    .report-actions-4, .report-actions-3 { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); grid-auto-flow: column; gap: var(--space-40); }
+    .report-actions-4 .report-action, .report-actions-3 .report-action { flex-direction: column; gap: var(--space-20); padding: var(--space-50) var(--space-30); font-size: var(--font-65); line-height: var(--leading-135); min-height: 0; text-align: center; }
+}

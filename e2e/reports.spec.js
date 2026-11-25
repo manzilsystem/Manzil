@@ -212,6 +212,7 @@ test('an empty chart fold shows a clear message instead of an empty canvas', asy
 test('period comparison renders a comparison table when a mode is selected', async ({ page }) => {
     await openReports(page);
     await openReportPanel(page, 'period');
+    await page.evaluate(() => { const t = document.querySelector('#periodReportFrom')?.closest('.report-toolbar'); t?.classList.add('is-open'); });
     await page.locator('#periodReportComparison').selectOption('previous_year');
     await previewPeriod(page, 'يناير 2024', 'فبراير 2024');
     await expect(page.locator('.report-comparison-table')).toBeVisible();
@@ -1135,6 +1136,7 @@ test('period purpose filter switches to purpose columns and scopes its csv', asy
     await page.locator('#periodReportPreset').selectOption('custom');
     await page.locator('#periodReportFrom').selectOption('يناير 2024');
     await page.locator('#periodReportTo').selectOption('فبراير 2024');
+    await page.evaluate(() => { const t = document.querySelector('#periodReportFrom')?.closest('.report-toolbar'); t?.classList.add('is-open'); });
     await page.locator('#periodReportPurpose').selectOption('development');
     await page.locator('#periodReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
 
@@ -1177,6 +1179,7 @@ test('period fund filter scopes income and expenses and exports fund columns', a
     await page.locator('#periodReportPreset').selectOption('custom');
     await page.locator('#periodReportFrom').selectOption('يناير 2024');
     await page.locator('#periodReportTo').selectOption('فبراير 2024');
+    await page.evaluate(() => { const t = document.querySelector('#periodReportFrom')?.closest('.report-toolbar'); t?.classList.add('is-open'); });
     await page.locator('#periodReportCashAccount').selectOption('development');
     await page.locator('#periodReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
 
@@ -1200,6 +1203,7 @@ test('period fund filter scopes income and expenses and exports fund columns', a
     expect(csv).toContain('"الصندوق","صندوق التطوير"');
     expect(csv).not.toContain('"المستحق"');
 
+    await page.evaluate(() => { const t = document.querySelector('#periodReportFrom')?.closest('.report-toolbar'); t?.classList.add('is-open'); });
     await page.locator('#periodReportCashAccount').selectOption('emergency');
     await expect(preview).toContainText('تغيّرت الفترة أو الفلتر أو البيانات');
     await expect(page.locator('#periodReportExportBtn')).toBeDisabled();
@@ -1422,6 +1426,7 @@ test('period apartment filter scopes months, dues and csv to one flat', async ({
     await page.locator('#periodReportPreset').selectOption('custom');
     await page.locator('#periodReportFrom').selectOption('يناير 2024');
     await page.locator('#periodReportTo').selectOption('فبراير 2024');
+    await page.evaluate(() => { const t = document.querySelector('#periodReportFrom')?.closest('.report-toolbar'); t?.classList.add('is-open'); });
     await page.locator('#periodReportResident').selectOption('r2');
     await page.locator('#periodReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
 
@@ -1445,6 +1450,7 @@ test('period apartment filter scopes months, dues and csv to one flat', async ({
     expect(csv).toContain('"الشقة","شقة 10 · سعيد"');
     expect(csv).not.toContain('"أحمد"');
 
+    await page.evaluate(() => { const t = document.querySelector('#periodReportFrom')?.closest('.report-toolbar'); t?.classList.add('is-open'); });
     await page.locator('#periodReportResident').selectOption('r1');
     await expect(preview).toContainText('تغيّرت الفترة أو الفلتر أو البيانات');
     await expect(page.locator('#periodReportExportBtn')).toBeDisabled();
