@@ -35,9 +35,13 @@ test('sign-in screen separates manager and owner credentials and instructions', 
 
 test('company ownership and contact details appear on sign-in and in the app', () => {
     assert.equal((html.match(/id="appCopyright"/g) || []).length, 1);
-    assert.equal((html.match(/حقوق الملكية الفكرية © 2026 شركة سنا للبرمجيات/g) || []).length, 2);
+    assert.equal((html.match(/حقوق الملكية الفكرية © <span data-copyright-year>2026<\/span> شركة سنا للبرمجيات/g) || []).length, 2);
     assert.equal((html.match(/href="tel:\+201027767039"/g) || []).length, 2);
     assert.match(html, /محمد عادل/);
+    assert.match(fs.readFileSync('js/app.js','utf8'), /data-copyright-year/);
+    assert.match(html, /id="appSplash"/);
+    assert.match(css, /@keyframes app-splash-out/);
+    assert.match(css, /prefers-reduced-motion: reduce\) \{\s*#appSplash/);
     assert.match(html, /meta name="author" content="شركة سنا للبرمجيات/);
 });
 

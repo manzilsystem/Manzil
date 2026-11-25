@@ -167,4 +167,17 @@ async function initApp() {
     document.addEventListener('keydown', handleReportViewKeydown);
 }
 
+// The copyright year follows the clock, and the intro screen leaves the DOM once its fade ends.
+function initBrandChrome() {
+    const year = new Date().getFullYear();
+    document.querySelectorAll('[data-copyright-year]').forEach(node => { node.textContent = String(year); });
+    const splash = document.getElementById('appSplash');
+    if (splash) {
+        const remove = () => splash.remove();
+        splash.addEventListener('animationend', event => { if (event.animationName === 'app-splash-out') remove(); });
+        setTimeout(remove, 2500);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initBrandChrome);
 document.addEventListener('DOMContentLoaded', initApp);

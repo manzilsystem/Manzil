@@ -43,6 +43,7 @@
     --z-toolbar: 6;
     --z-dropdown: 40;
     --z-floating: 45;
+    --z-splash: 9999;
     /* Canonical leading (line-height) scale — the single source for the shared
        unitless line-heights. The token suffix is the value in hundredths
        (--leading-180 = 1.8). The one fixed-length leading (1.15rem) borrows the
@@ -5482,6 +5483,34 @@ body.owner-mode .owner-theme-control {
 @media screen and (min-width: 1280px) {
     #expenseCardsList { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+/* Brand chrome: copyright footer and the intro screen shown while the app opens. */
+:root { --brand-gold: #c9a24b; --brand-gold-soft: rgba(201, 162, 75, .85); }
+#appCopyright { margin-top: var(--space-100); padding-bottom: var(--space-50); max-width: 100%; overflow-wrap: anywhere; position: static; }
+[data-theme="light"] #appCopyright a { color: var(--indigo-bright); }
+footer#appCopyright .copyright-divider { display: flex; align-items: center; justify-content: center; gap: var(--space-75); margin-bottom: var(--space-75); }
+footer#appCopyright .copyright-divider::before,
+footer#appCopyright .copyright-divider::after { content: ""; flex: 0 1 5rem; height: 1px; background: linear-gradient(to left, transparent, var(--brand-gold-soft)); }
+footer#appCopyright .copyright-divider::after { background: linear-gradient(to right, transparent, var(--brand-gold-soft)); }
+footer#appCopyright .copyright-divider img { width: 1.125rem; height: 1.125rem; object-fit: contain; opacity: var(--opacity-100); }
+#appCopyright .copyright-line { color: var(--text-muted); letter-spacing: var(--tracking-1); text-wrap: balance; }
+#appCopyright .copyright-credit { color: var(--text-muted); font-weight: var(--weight-600); }
+#appCopyright .copyright-dot { color: var(--brand-gold); margin-inline: var(--space-25); }
+#appCopyright a { text-decoration-color: var(--brand-gold-soft); }
+
+#appSplash { position: fixed; inset: 0; z-index: var(--z-splash); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-100); background: var(--bg-main, #0b1020); color: var(--text-main, #fff); pointer-events: none; animation: app-splash-out .35s ease 1.15s forwards; }
+#appSplash .app-splash-logo { width: min(9rem, 42vw); height: min(9rem, 42vw); object-fit: contain; animation: app-splash-logo .7s cubic-bezier(.2,.8,.2,1) both; }
+#appSplash .app-splash-name { margin: var(--space-none); font-size: var(--font-125); font-weight: var(--weight-700); letter-spacing: var(--tracking-20); color: var(--brand-gold); animation: app-splash-fade .5s ease .25s both; }
+#appSplash .app-splash-bar { width: min(12rem, 50vw); height: 3px; border-radius: var(--radius-pill); overflow: hidden; background: color-mix(in srgb, var(--text-main, #fff) 14%, transparent); animation: app-splash-fade .4s ease .2s both; }
+#appSplash .app-splash-bar span { display: block; height: 100%; width: 100%; border-radius: inherit; background: linear-gradient(to left, var(--brand-gold), var(--accent-color)); transform-origin: right center; animation: app-splash-bar .9s ease-in-out .25s both; }
+@keyframes app-splash-logo { from { opacity: var(--opacity-0); transform: scale(.82); } to { opacity: var(--opacity-100); transform: scale(1); } }
+@keyframes app-splash-fade { from { opacity: var(--opacity-0); } to { opacity: var(--opacity-100); } }
+@keyframes app-splash-bar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes app-splash-out { to { opacity: var(--opacity-0); visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) {
+    #appSplash { animation: app-splash-out .2s ease .3s forwards; }
+    #appSplash .app-splash-logo, #appSplash .app-splash-name, #appSplash .app-splash-bar, #appSplash .app-splash-bar span { animation: none; }
+}
+@media print { #appSplash { display: none !important; } }
 @media screen and (max-width: 639.98px) {
     #expenseCardsList .app-card { padding: var(--space-60); }
 /* Apartments: summary row, compact cards on phones */
@@ -5532,3 +5561,4 @@ body.owner-mode .owner-theme-control {
 @media screen and (max-width: 639.98px) {
     body:has(#tab-reports[data-report-view="panel"]:not(.hidden)) .assistant-fab { display: none; }
 }
+
