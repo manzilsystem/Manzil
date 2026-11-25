@@ -187,6 +187,9 @@ function createHarness(seed = true, identity = {}, options = {}) {
         resetAssistantSessionForAuthChange,
         hydrateAssistantChatFromRemote,
         appendAssistantMessage,
+        sendAssistantMessage,
+        assistantStorableHtml,
+        isSafeAssistantHtml,
         resetAssistantChat,
         chatSnapshot: () => assistantChat,
         contextSnapshot: () => assistantContext,
@@ -315,15 +318,25 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(css, /@media print \{\s*#assistantModal \{ display: none !important; \}/);
 });
 
-test('عم عبده is written-only and exposes no microphone, recording, or speech output path', () => {
-    const activeSource = [assistantSource, html, css, serviceWorker, appSource].join('\n');
-    for (const pattern of [
-        /assistant-voice\.js/i, /assistantVoiceButton/i, /assistantVoiceDownload/i,
-        /navigator\.mediaDevices/i, /getUserMedia/i, /MediaRecorder/i,
-        /speechSynthesis/i, /SpeechSynthesisUtterance/i, /toggleAssistantSound/i
-    ]) assert.doesNotMatch(activeSource, pattern);
-    assert.match(html, /<form class="assistant-form" onsubmit="sendAssistantMessage\(event\)">[\s\S]*id="assistantInput"[\s\S]*assistant-send-button/);
+test('voice notes stay in a separate module and cannot by-pass explicit confirmation', () => {
+    const voiceSource = fs.readFileSync(path.join(root, 'js', 'assistant-voice.js'), 'utf8');
+    assert.match(html, /id="assistantVoiceButton"[^>]*aria-pressed="false"/);
+    assert.match(html, /id="assistantSoundButton"[^>]*onclick="assistantVoiceToggleSound\(\)"/);
+    assert.match(html, /<script src="js\/assistant-voice\.js\?v=[0-9a-f]+">/);
+    assert.ok(html.indexOf('js/assistant.js') < html.indexOf('js/assistant-voice.js'), 'voice module loads after the assistant core');
+    assert.ok(html.indexOf('js/assistant-voice.js') < html.indexOf('js/app.js'), 'voice module binds before app bootstrap');
+    assert.match(serviceWorker, /\.\/js\/assistant-voice\.js\?v=[0-9a-f]+/);
+    assert.match(voiceSource, /assistantIsConfirmation/);
+    assert.match(voiceSource, /assistantIsCancellation/);
+    assert.match(voiceSource, /ASSISTANT_VOICE_REVIEW/);
+    assert.match(assistantSource, /typeof assistantVoiceOnBotReply === 'function'/);
+    assert.match(appSource, /assistantVoiceStop\('cancel'\)/);
+    assert.match(css, /\.assistant-voice-note/);
+    assert.match(css, /\.assistant-voice-button\.is-recording/);
+    assert.doesNotMatch(voiceSource, /\bfetch\s*\(|XMLHttpRequest|https?:\/\//, 'voice notes never call a network service');
+    assert.doesNotMatch(voiceSource, /localStorage/, 'audio and preferences are never persisted in local storage');
     assert.doesNotMatch(appSource, /getUserMedia|MediaRecorder|speechSynthesis|SpeechSynthesisUtterance/i);
+    assert.doesNotMatch(assistantSource, /navigator\.|getUserMedia|MediaRecorder|speechSynthesis/i);
 });
 
 test('free-form typed requests start incomplete manager drafts without quick-action menus', () => {
@@ -1477,7 +1490,7 @@ test('assistant fixed evaluation set keeps intent, period, apartment and role sc
         fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
     }
     assert.equal(assistantEvaluation.version, 2);
-    assert.ok(assistantEvaluation.cases.length >= 50, 'the fixed evaluation set should cover at least 50 scenarios');
+    assert.ok(assistantEvaluation.cases.length >= 65, 'the fixed evaluation set should cover all 65 documented scenarios');
     assert.deepEqual(criticalFailures, [], `critical assistant evaluation cases failed: ${criticalFailures.join(', ')}`);
     assert.ok(passRate >= minimumPassRate, `assistant evaluation pass rate ${(passRate * 100).toFixed(1)}% is below ${(minimumPassRate * 100).toFixed(1)}%:\n${results.filter(result => !result.passed).map(result => `${result.id}: ${result.failures.join('; ')}`).join('\n')}`);
 });
@@ -1691,7 +1704,7 @@ test('starting a new chat clears remote history before later messages are append
     assert.equal(api.chatSnapshot().length, 2, 'the local chat contains only its greeting and the new message');
 });
 
-test('a tampered chat log is dropped instead of rendered', () => {
+test('a tampered chat log is neutralised instead of rendered or silently lost', () => {
     const { api, storage } = createHarness();
     storage.setItem('manzil-assistant-chat:building-1:manager', JSON.stringify([
         { role: 'bot', html: '<img src=x onerror="alert(1)">' },
@@ -1699,8 +1712,36 @@ test('a tampered chat log is dropped instead of rendered', () => {
         { role: 'bot', html: '<p class="assistant-hello">رد سليم</p>' }
     ]));
     api.restoreAssistantSession();
-    assert.equal(api.chatSnapshot().length, 1);
-    assert.match(api.chatSnapshot()[0].html, /رد سليم/);
+    assert.equal(api.chatSnapshot().length, 3, 'the readable history survives a tampered entry');
+    assert.match(api.chatSnapshot()[0].html, /&lt;img src=x onerror=&quot;alert\(1\)&quot;&gt;/);
+    assert.match(api.chatSnapshot()[1].html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+    assert.match(api.chatSnapshot()[2].html, /رد سليم/);
+    api.chatSnapshot().forEach(item => assert.equal(api.isSafeAssistantHtml(item.html), true));
+});
+
+test('live action and voice buttons are kept out of stored history without losing the message', () => {
+    const { context, api } = createHarness();
+    const preview = '<div class="assistant-action-preview"><p class="assistant-notice-preview">مراجعة حذف</p>'
+        + '<button type="button" class="assistant-action-confirm" onclick="confirmAssistantMutationDelete()">تأكيد الحذف</button></div>';
+    const voice = '<div class="assistant-voice-note" data-voice-note="note-1">'
+        + '<button type="button" class="assistant-voice-play" onclick="assistantVoicePlayNote(\'note-1\')">▶</button>'
+        + '<span class="assistant-voice-duration">0:07</span></div><p class="assistant-voice-transcript">سجل تحصيل 100</p>';
+    api.appendAssistantMessage('bot', preview);
+    api.appendAssistantMessage('user', voice, 'سجل تحصيل 100');
+    const stored = api.chatSnapshot();
+    assert.equal(stored.length, 2);
+    stored.forEach(item => {
+        assert.doesNotMatch(item.html, /<button/i);
+        assert.equal(api.isSafeAssistantHtml(item.html), true);
+    });
+    assert.match(stored[0].html, /مراجعة حذف/);
+    assert.match(stored[0].html, /صلاحية أزرار المراجعة انتهت/);
+    assert.match(stored[1].html, /سجل تحصيل 100/);
+
+    vm.runInContext('assistantChat = [];', context);
+    api.restoreAssistantSession();
+    assert.equal(api.chatSnapshot().length, 2);
+    assert.doesNotMatch(JSON.stringify(api.chatSnapshot()), /<button/i);
 });
 
 test('the assistant calls each signed-in user by their own name', () => {
@@ -2218,4 +2259,198 @@ test('follow-up suggestions keep the discussed month without rendering clickable
     const unscoped = api.buildAssistantFollowUps('income', { type: 'year', label: 'سنة 2026', months: [] });
     assert.equal(unscoped[0].query, 'مصروفات الشهر', 'a year period has no single month to name');
     unscoped.forEach(item => assert.ok(item.label && item.query));
+});
+
+test('money parsing applies Arabic thousand and million words and keeps decimal separators straight', () => {
+    const { api } = createHarness();
+    assert.equal(api.assistantParsedAmount('سجّل تحصيل 5 الاف جنيه'), 5000);
+    assert.equal(api.assistantParsedAmount('سجّل تحصيل 2 مليون جنيه'), 2000000);
+    assert.equal(api.assistantParsedAmount('٣ مليون جنيه'), 3000000);
+    assert.equal(api.assistantParsedAmount('أضف مصروف 1.000,50 جنيه'), 1000.5);
+    assert.equal(api.assistantParsedAmount('أضف مصروف 1,000.50 جنيه'), 1000.5);
+    assert.equal(api.assistantParsedAmount('سجّل تحصيل من شقة 2023 بمبلغ 700 جنيه'), 700);
+});
+
+test('time hints ignore apartment numbers and relative markers override named months', () => {
+    const { api } = createHarness();
+    assert.equal(api.hasAssistantTimeHint('شقة 2023'), false);
+    assert.equal(api.resolveAssistantPeriod('شقة 2023', NOW).label, 'نوفمبر 2026');
+    assert.equal(api.resolveAssistantPeriod('عاملين ايه', NOW).label, 'نوفمبر 2026');
+    assert.equal(api.resolveAssistantPeriod('تحصيل نوفمبر السنة اللي فاتت', NOW).label, 'نوفمبر 2025');
+    assert.equal(api.resolveAssistantPeriod('تحصيل نوفمبر الماضي', NOW).label, 'نوفمبر 2025');
+});
+
+test('explicit comparisons outrank compound sections and money phrases do not double as cashbox questions', () => {
+    const { api } = createHarness();
+    const comparison = api.answerAssistantQuery('قارن التحصيل والمصروفات في نوفمبر 2026', NOW);
+    assert.equal(comparison.id, 'comparison');
+    assert.doesNotMatch(comparison.html, /assistant-compound-section/);
+
+    const arrears = api.answerAssistantQuery('مين عليه فلوس؟', NOW);
+    assert.equal(arrears.id, 'arrears');
+    assert.doesNotMatch(arrears.html, /رصيد الخزنة|أرصدة الخزائن/);
+});
+
+test('owners asking for another owner receipts stay inside their role boundary', () => {
+    const owner = createHarness(true, { role: 'owner', residentId: 'r1', ownerScoped: true });
+    assert.equal(owner.api.detectOwnerAssistantIntent('ايصالات سارة'), 'owner_scope');
+    const answer = owner.api.answerAssistantQuery('ايصالات سارة', NOW);
+    assert.equal(answer.id, 'owner_scope');
+});
+
+test('stored assistant html is checked against an allowlist, not a blacklist', () => {
+    const { context } = createHarness();
+    const safe = html => vm.runInContext(`isSafeAssistantHtml(${JSON.stringify(html)})`, context);
+    assert.equal(safe('<svg/onload=alert(1)>'), false);
+    assert.equal(safe('<a href="javascript:alert(1)">x</a>'), false);
+    assert.equal(safe('<div onclick="doBadThing()">x</div>'), false);
+    assert.equal(safe('<img src="./icons/assistant-abbah.png" alt="عم عبده">'), true);
+    assert.equal(safe('<p class="assistant-note">مرحبا</p>'), true);
+});
+
+test('an in-flight save cannot be reported as a successful cancellation', () => {
+    const { context, api } = createHarness(true);
+    api.answerAssistantQuery('قيد مصروف كهرباء 300 جنيه عن نوفمبر 2026', NOW);
+    vm.runInContext(`assistantOperationContext = {
+        requestId: 'saving-1', type: 'expense', status: 'saving',
+        submitButton: null, originalSubmitLabel: null, auditHost: null,
+        originalLogAction: null, wrappedLogAction: null
+    }`, context);
+    const blocked = api.answerAssistantQuery('الغاء', NOW);
+    assert.equal(blocked.id, 'operation-cancel-blocked');
+    assert.match(blocked.html, /ما أقدرش أأكد الإلغاء/);
+    assert.ok(vm.runInContext('Boolean(assistantOperationDraft)', context), 'the draft is kept until the save outcome is known');
+
+    vm.runInContext('assistantOperationContext = null', context);
+    const cancelled = api.answerAssistantQuery('الغاء', NOW);
+    assert.equal(cancelled.id, 'operation-cancelled');
+    assert.equal(vm.runInContext('assistantOperationDraft', context), null);
+});
+
+test('a failed delete keeps the draft and never claims the record was removed', async () => {
+    const { context, api } = createHarness();
+    context.toast = () => {};
+    context.window = context;
+    const mutation = api.parseAssistantMutationCommand('احذف مصروف نوفمبر 2026 بمبلغ 60 جنيه', NOW);
+    api.buildAssistantMutationPreview(mutation);
+    context.deleteExpense = async () => {};
+    const failed = await vm.runInContext('confirmAssistantMutationDelete()', context);
+    assert.equal(failed, false);
+    assert.ok(api.mutationDraftSnapshot());
+    assert.match(api.chatSnapshot()[api.chatSnapshot().length - 1].html, /لم يُحذف السجل|لم يتأكد حذف السجل/);
+    assert.ok(vm.runInContext('state.expenses.some(item => item.id === "e1")', context));
+
+    context.deleteExpense = async id => {
+        vm.runInContext(`state.expenses = state.expenses.filter(item => item.id !== ${JSON.stringify(id)})`, context);
+    };
+    const deleted = await vm.runInContext('confirmAssistantMutationDelete()', context);
+    assert.equal(deleted, true);
+    assert.equal(api.mutationDraftSnapshot(), null);
+    assert.equal(vm.runInContext('state.expenses.some(item => item.id === "e1")', context), false);
+});
+
+test('reset clears every pending draft and the explicit review releases an uncertain save', () => {
+    const { context, api } = createHarness();
+    context.toast = () => {};
+    vm.runInContext(`assistantNoticeDraft = { text: 'إعلان' };
+        assistantOperationDraft = { type: 'expense' };
+        assistantMutationDraft = { type: 'expense', action: 'delete' };
+        assistantResidentEntryDraft = { name: 'عمر' };`, context);
+    api.resetAssistantChat();
+    assert.equal(vm.runInContext('assistantNoticeDraft || assistantOperationDraft || assistantMutationDraft || assistantResidentEntryDraft || assistantOperationContext', context), null);
+
+    vm.runInContext(`assistantOperationContext = {
+        requestId: 'uncertain-1', type: 'expense', status: 'uncertain',
+        submitButton: null, originalSubmitLabel: null, auditHost: null,
+        originalLogAction: null, wrappedLogAction: null
+    }`, context);
+    const reconciled = api.answerAssistantQuery('تحققت من السجل', NOW);
+    assert.equal(reconciled.id, 'operation-reconciled');
+    assert.equal(api.assistantOperationStatus(), null);
+});
+
+test('period summaries and arrears use calendar labels instead of the current month or lexicographic order', () => {
+    const { context, api } = createHarness();
+    const yearPeriod = api.resolveAssistantPeriod('ملخص سنة 2026', NOW);
+    const yearSummary = api.getAssistantMonthSummary(yearPeriod, NOW);
+    assert.equal(yearSummary.month, 'سنة 2026');
+    assert.equal(yearSummary.dueTotal, 3600, 'annual dues are summed across all twelve months, not one month label');
+    context.buildArrearsReport = () => ({
+        totalDebt: 100, overdueResidents: 2, overdueMonths: 2,
+        residents: [{ oldestMonth: 'يناير 2025' }, { oldestMonth: 'ديسمبر 2024' }]
+    });
+    assert.equal(api.getAssistantArrearsSnapshot().oldestMonth, 'ديسمبر 2024');
+});
+
+test('edit commands parse scaled amounts and comparisons can span whole years', () => {
+    const { context, api } = createHarness();
+    vm.runInContext(`state.expenses.push({ id: 'big', title: 'صيانة', amount: 5000, month: 'نوفمبر 2026', category: 'صيانة' })`, context);
+    const mutation = api.parseAssistantMutationCommand('عدل مصروف نوفمبر 2026 بمبلغ 5 الاف إلى 6 الاف جنيه', NOW);
+    assert.equal(mutation.id, 'big');
+    assert.equal(mutation.requestedAmount, 6000);
+
+    const comparison = api.answerAssistantQuery('قارن سنة 2026 بسنة 2025', NOW);
+    assert.equal(comparison.id, 'comparison');
+    assert.match(comparison.title, /سنة 2026.*سنة 2025/);
+    assert.match(comparison.html, /المقارنة بين سنة 2026 وسنة 2025/);
+});
+
+test('report requests carry relative periods into the official report answer', () => {
+    const { api } = createHarness();
+    const answer = api.answerAssistantQuery('تقرير مصروفات الشهر الماضي', NOW);
+    assert.equal(answer.id, 'reports');
+    assert.match(answer.title, /أكتوبر 2026/);
+});
+
+test('composite Arabic million amounts are added rather than truncated', () => {
+    const { api } = createHarness();
+    assert.equal(api.assistantParsedAmount('سجّل تحصيل بمليون و٥٠٠ ألف جنيه'), 1500000);
+    assert.equal(api.assistantParsedAmount('مليون و٣ جنيه'), 1000003);
+    assert.equal(api.assistantParsedAmount('2 مليون و250 الف جنيه'), 2250000);
+});
+
+test('resident statements use the requested month instead of the current month', () => {
+    const { context, api } = createHarness();
+    const resident = vm.runInContext(`state.residents.find(item => item.apartmentNumber === '7')`, context);
+    const period = api.resolveAssistantPeriod('كشف حساب شقة 7 عن أكتوبر 2026', NOW);
+    const answer = api.buildAssistantResidentAnswer(resident, NOW, period);
+    assert.match(answer.title, /أكتوبر 2026/);
+    assert.match(answer.html, /مدفوع هذا الشهر/);
+
+    const report = api.answerAssistantQuery('كشف حساب شقة 7 عن أكتوبر 2026', NOW);
+    assert.equal(report.id, 'reports');
+    assert.match(report.title, /أكتوبر 2026/);
+});
+
+test('a message sent during remote hydration is kept, answered and persisted', async () => {
+    let releaseLoad;
+    let input;
+    const appended = [];
+    const { api } = createHarness(true, {}, {
+        instrument: sandbox => {
+            input = { value: '', style: {}, focus() {} };
+            const original = sandbox.document.getElementById;
+            sandbox.document.getElementById = id => id === 'assistantInput' ? input : original(id);
+            sandbox.window = sandbox;
+            sandbox.manzilAssistantChatStore = {
+                load: () => new Promise(resolve => { releaseLoad = resolve; }),
+                append: async (_sender, body) => { appended.push(body); }
+            };
+        }
+    });
+    const load = api.hydrateAssistantChatFromRemote();
+    input.value = 'رصيد الخزنة كام؟';
+    api.sendAssistantMessage(null);
+
+    assert.equal(api.chatSnapshot().length, 2);
+    assert.match(api.chatSnapshot()[0].html, /رصيد الخزنة كام؟/);
+    assert.match(api.chatSnapshot()[1].html, /أرصدة الخزائن/);
+
+    releaseLoad({ messages: [{ sender_type: 'assistant', body: '<p>سجل قديم</p>' }], context: {} });
+    await load;
+    assert.equal(api.chatSnapshot().length, 2, 'late hydration cannot replace the live conversation');
+    assert.doesNotMatch(JSON.stringify(api.chatSnapshot()), /سجل قديم/);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.ok(appended.some(body => body.includes('رصيد الخزنة كام؟')), 'the user turn reaches remote history');
+    assert.ok(appended.some(body => body.includes('أرصدة الخزائن')), 'the answer reaches remote history');
 });

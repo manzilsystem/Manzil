@@ -114,7 +114,11 @@ test('assistant opens from the launcher and answers local questions', async ({ p
     await seedAndOpenAssistant(page);
     await expect(page.locator('#assistantInput')).toBeVisible();
     await expect(page.locator('#assistantTools, #assistantQuickActions, #assistantSuggestions')).toHaveCount(0);
-    await expect(page.locator('#assistantVoiceButton, #assistantSoundButton, #assistantVoiceDownloadModal')).toHaveCount(0);
+    await expect(page.locator('#assistantVoiceButton')).toBeVisible();
+    await expect(page.locator('#assistantVoiceButton')).toHaveCount(1);
+    await expect(page.locator('#assistantVoiceButton')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('#assistantSoundButton')).toHaveCount(1);
+    await expect(page.locator('#assistantVoiceDownloadModal')).toHaveCount(0);
     const botMessages = page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble');
     await expect(botMessages.first()).toContainText('أهلاً يا أستاذ');
     await expect(page.locator('#assistantInput')).toHaveAttribute('placeholder', /الخزنة/);
@@ -195,7 +199,7 @@ test('a colloquial expense is previewed and saved only after typed confirmation'
     await page.locator('#assistantInput').press('Enter');
     await expect(page.locator('#assistantLog')).toContainText('معاينة مصروف');
     await expect(page.locator('#assistantLog')).toContainText('300');
-    await expect(page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble button')).toHaveCount(0);
+    await expect(page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble button:not(.assistant-voice-replay):not(.assistant-voice-play)')).toHaveCount(0);
     // Keep the regression on seeded in-memory data, never on the shared backend.
     await page.evaluate(() => { window.saveWithRollback = async () => true; });
     await page.locator('#assistantInput').fill('أكد التسجيل');
@@ -390,7 +394,7 @@ test('chat responses stay free of buttons while the composer remains available o
     await seedAndOpenAssistant(page);
     await page.locator('#assistantInput').fill('رصيد الخزنة كام؟');
     await page.locator('#assistantInput').press('Enter');
-    await expect(page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble button')).toHaveCount(0);
+    await expect(page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble button:not(.assistant-voice-replay):not(.assistant-voice-play)')).toHaveCount(0);
     await expect(page.locator('#assistantInput')).toHaveAttribute('maxlength', '1000');
 });
 
@@ -483,7 +487,7 @@ test('assistant notice drafts use typed cancellation and have no in-chat action 
     await page.locator('#assistantInput').fill('اكتب إعلان: سيتم غلق المياه غدًا');
     await page.locator('#assistantInput').press('Enter');
     await expect(page.locator('#assistantLog')).toContainText('اكتب «انشر الإعلان»');
-    await expect(page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble button')).toHaveCount(0);
+    await expect(page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble button:not(.assistant-voice-replay):not(.assistant-voice-play)')).toHaveCount(0);
     await page.locator('#assistantInput').fill('إلغاء الإعلان');
     await page.locator('#assistantInput').press('Enter');
     await expect(page.locator('#assistantLog')).toContainText('لم يتم حفظ أي تغيير');
@@ -511,7 +515,7 @@ test('assistant does not offer a broken adjustment form action without a residen
     const log = page.locator('#assistantLog');
     await expect(log).toContainText('المالك أو رقم الشقة');
     await expect(log).toContainText('اكتب «إلغاء» للتراجع');
-    await expect(log.locator('.assistant-msg.is-bot .assistant-bubble button')).toHaveCount(0);
+    await expect(log.locator('.assistant-msg.is-bot .assistant-bubble button:not(.assistant-voice-replay):not(.assistant-voice-play)')).toHaveCount(0);
 });
 
 test('mobile assistant keeps the composer visible as the keyboard reduces the visual viewport', async ({ page }) => {

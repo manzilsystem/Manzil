@@ -12,8 +12,12 @@ const ASSISTANT_CASH_LABELS = Object.freeze({
 const ASSISTANT_TYPING_DELAY_MS = 0;
 const ASSISTANT_HISTORY_LIMIT = 30;
 const ASSISTANT_MAX_MESSAGE_LENGTH = 1000;
-const ASSISTANT_TIME_HINT = /(يناير|فبراير|مارس|ابريل|مايو|يونيو|يوليو|اغسطس|سبتمبر|اكتوبر|نوفمبر|ديسمبر|20[0-9]{2}|الشهر|شهر|السنه|سنه|عام|النهارده|دلوقتي|حاليا|كل الفتره|كل الفترات|كل الشهور|من البدايه|من البداية|من بداية السنه|من اول السنه|السنه اللي فاتت|العام اللي فات)/;
-const ASSISTANT_RESIDENT_FOLLOWUP = /^(هو|هي|وده|دي|وكمان|ودوره|ومن زمان|ولحد دلوقتي|وعليه)/;
+const ASSISTANT_TIME_HINT = /(يناير|فبراير|مارس|ابريل|مايو|يونيو|يوليو|اغسطس|سبتمبر|اكتوبر|نوفمبر|ديسمبر|20[0-9]{2}|الشهر|شهر|(?:^|\s)(?:السنه|سنه|عام)(?:\s|$)|النهارده|دلوقتي|حاليا|كل الفتره|كل الفترات|كل الشهور|من البدايه|من البداية|من بداية السنه|من اول السنه|السنه اللي فاتت|العام اللي فات)/;
+const ASSISTANT_RESIDENT_FOLLOWUP = /^(هو|هي|وده|دي|وكمان|ودوره|ومن زمان|ولحد دلوقتي|ولحد حاليا|وعليه)/;
+const ASSISTANT_PREVIOUS_MONTH = /(?:الشهر الماضي|الشهر اللي فات|الشهر اللى فات|الشهر الفات|الشهر السابق|شهر ماضي|الشهر اللي قبل|الشهر اللى قبل|(?:يناير|فبراير|مارس|ابريل|مايو|يونيو|يوليو|اغسطس|سبتمبر|اكتوبر|نوفمبر|ديسمبر)\s+(?:الماضي|اللي فات|اللى فات|السابق))/;
+const ASSISTANT_PREVIOUS_YEAR = /(?:السنه اللي فاتت|السنه اللى فاتت|العام اللي فات|العام اللى فات|السنه سابقه|العام سابق)/;
+const ASSISTANT_THOUSAND_WORD = /(?<!\p{L})(?:الاف|آلاف|الف)(?!\p{L})/u;
+const ASSISTANT_MILLION_WORD = /(?<!\p{L})(?:مليون|مليونات)(?!\p{L})/u;
 const ASSISTANT_CHAT_STORAGE_PREFIX = 'manzil-assistant-chat';
 const ASSISTANT_CONTEXT_STORAGE_PREFIX = 'manzil-assistant-context';
 
@@ -83,6 +87,7 @@ const ASSISTANT_OPERATION_PAYMENT_METHODS = Object.freeze({
 
 const ASSISTANT_CONFIRM_WORDS = /^(?:اكد(?: التسجيل| الحفظ| العملية| التحصيل| المصروف)?|اعتمد(?: التسجيل| العملية)?|نفذ(?: التسجيل| العملية)?|سجلها|سجل التحصيل|سجل المصروف|احفظها|موافق(?: على التسجيل)?|موافقه|ايوه|ايوا|نعم|تمام)$/;
 const ASSISTANT_CANCEL_WORDS = /^(?:الغاء|الغاء العملية|الغاء المسودة|الغاء الاعلان|الغ|لا خلاص|مش عايز|مش عاوز|بلاش|وقف)$/;
+const ASSISTANT_RECONCILE_WORDS = /^(?:تحققت من السجل|تحققت من التدقيق|تحققت من العملية|راجعت السجل|راجعت التدقيق|راجعت العملية)$/;
 const ASSISTANT_OPERATION_CATEGORIES = Object.freeze({
     electricity: 'كهرباء',
     elevator: 'صيانة أسانسير',
@@ -238,7 +243,9 @@ function assistantStorageKeys() {
 }
 
 function hasAssistantTimeHint(text) {
-    return ASSISTANT_TIME_HINT.test(normalizeAssistantArabic(text));
+    const normalized = normalizeAssistantArabic(text)
+        .replace(/(?:شقه|وحده|رقم)\s*20[0-9]{2}/g, ' ');
+    return ASSISTANT_TIME_HINT.test(normalized);
 }
 
 function assistantFollowsResident(text) {
@@ -333,7 +340,7 @@ async function hydrateAssistantChatFromRemote() {
             role: message.sender_type === 'user' ? 'user' : 'bot',
             html: message.sender_type === 'user'
                 ? formatAssistantUserText(message.body)
-                : (isSafeAssistantHtml(message.body) ? message.body : assistantEscape(message.body))
+                : assistantStorableHtml(message.body)
         })).filter(message => message.html).slice(-ASSISTANT_HISTORY_LIMIT);
         if (history.context && typeof history.context === 'object') {
             const remoteContext = /** @type {any} */ (history.context);
@@ -343,6 +350,9 @@ async function hydrateAssistantChatFromRemote() {
             };
         }
         assistantRemoteHydrated = true;
+        // Replacing the transcript invalidates any reply still queued from
+        // before the load; otherwise it would be appended twice.
+        assistantChatRevision += 1;
         persistAssistantChat();
         persistAssistantContext();
         return true;
@@ -354,8 +364,61 @@ async function hydrateAssistantChatFromRemote() {
     }
 }
 
+const ASSISTANT_ALLOWED_HTML_TAGS = new Set([
+    'p', 'div', 'span', 'strong', 'em', 'b', 'i', 'u', 'ul', 'ol', 'li', 'br',
+    'a', 'h4', 'section', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img'
+]);
+
+function assistantAllowedHtmlAttribute(name, value) {
+    const key = String(name || '').toLowerCase();
+    const val = String(value || '');
+    if (key === 'class') return /^[\w\s\-:]*$/.test(val);
+    if (key === 'title' || key === 'alt' || key.startsWith('aria-')) return /^[^"<>]*$/.test(val);
+    if (key === 'dir') return ['ltr', 'rtl', 'auto'].includes(val);
+    if (key === 'role') return /^[a-z\- ]+$/i.test(val);
+    if (key === 'width' || key === 'height') return /^\d{1,4}$/.test(val);
+    if (key === 'decoding' || key === 'loading') return /^[a-z]+$/.test(val);
+    if (key === 'href') return /^(?:https?:\/\/|tel:|mailto:|#)/i.test(val);
+    if (key === 'src') return /^(?:\.\/)?icons\/[\w-]+\.png(?:\?v=[0-9a-f]+)?$/i.test(val);
+    if (key === 'style') return /^\s*height:\s*\d{1,3}px;?\s*$/.test(val);
+    if (key === 'onclick') {
+        return /^assistantVoicePlayNote\('note-\d+'\)$/.test(val) || val === 'assistantVoiceSpeakLast()';
+    }
+    if (key.startsWith('data-')) return /^[\w\-]*$/.test(val);
+    return false;
+}
+
 function isSafeAssistantHtml(html) {
-    return !/<\s*(script|iframe|object|embed|button)\b/i.test(html) && !/\son\w+\s*=/i.test(html);
+    const value = String(html || '');
+    if (/\bjavascript:/i.test(value)) return false;
+    const tags = value.match(/<\s*\/?\s*[a-z][^>]*>/gi) || [];
+    for (const tag of tags) {
+        const name = (tag.match(/<\s*\/?\s*([a-z][\w-]*)/i) || [])[1];
+        if (!name || !ASSISTANT_ALLOWED_HTML_TAGS.has(name.toLowerCase())) return false;
+        const attributes = tag.match(/[\w:-]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi) || [];
+        for (const attribute of attributes) {
+            const separator = attribute.indexOf('=');
+            const key = attribute.slice(0, separator).trim();
+            const rawValue = attribute.slice(separator + 1).trim();
+            const val = rawValue.replace(/^["']|["']$/g, '');
+            if (!assistantAllowedHtmlAttribute(key, val)) return false;
+        }
+    }
+    return true;
+}
+
+// Live bubbles may contain review/play buttons. Those handlers are bound to
+// in-memory drafts or blob URLs, so they must not survive into stored history.
+// Keep the readable part of the message instead of dropping it altogether.
+function assistantStorableHtml(html) {
+    const value = String(html || '');
+    if (isSafeAssistantHtml(value)) return value;
+    const hadReviewButtons = /class=["'][^"']*assistant-action-(?:confirm|cancel)/i.test(value);
+    let neutralized = value.replace(/<\s*button\b[^>]*>[\s\S]*?<\s*\/\s*button\s*>/gi, '');
+    if (hadReviewButtons) {
+        neutralized += '<p class="assistant-note">صلاحية أزرار المراجعة انتهت في السجل المحفوظ؛ أعد الطلب لو احتجت إتمامها.</p>';
+    }
+    return isSafeAssistantHtml(neutralized) ? neutralized : assistantEscape(value);
 }
 
 function restoreAssistantSession() {
@@ -363,7 +426,10 @@ function restoreAssistantSession() {
     const stored = readAssistantStorage(keys.chat);
     assistantChat = Array.isArray(stored)
         ? stored.filter(item => item && (item.role === 'user' || item.role === 'bot')
-            && typeof item.html === 'string' && isSafeAssistantHtml(item.html)).slice(-ASSISTANT_HISTORY_LIMIT)
+            && typeof item.html === 'string')
+            .map(item => ({ role: item.role, html: assistantStorableHtml(item.html) }))
+            .filter(item => item.html)
+            .slice(-ASSISTANT_HISTORY_LIMIT)
         : [];
     const context = readAssistantStorage(keys.context);
     assistantContext = {
@@ -483,7 +549,8 @@ function getAssistantNowLabel(now = new Date()) {
 
 function resolveAssistantPeriod(text, now = new Date()) {
     const names = getAssistantMonthNames();
-    const normalized = replaceAssistantNumberWords(normalizeAssistantArabic(text));
+    const normalized = replaceAssistantNumberWords(normalizeAssistantArabic(text))
+        .replace(/(?:شقه|وحده|رقم)\s*20[0-9]{2}/g, ' ');
     const yearMatch = normalized.match(/(?:^|[^0-9])(20[0-9]{2})(?:[^0-9]|$)/);
     const explicitYear = yearMatch ? Number(yearMatch[1]) : null;
     const monthMatches = names.map((name, index) => ({
@@ -492,12 +559,6 @@ function resolveAssistantPeriod(text, now = new Date()) {
     })).filter(item => item.position >= 0).sort((a, b) => a.position - b.position);
     let monthIndex = monthMatches.length ? monthMatches[0].index : -1;
     let year = explicitYear || now.getFullYear();
-
-    if (monthIndex < 0 && /(الشهر الماضي|الشهر اللي فات|الشهر اللى فات|الشهر الفات|الشهر السابق|شهر ماضي|الشهر اللي قبل|الشهر اللى قبل)/.test(normalized)) {
-        const previous = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        monthIndex = previous.getMonth();
-        year = explicitYear || previous.getFullYear();
-    }
 
     if (monthIndex < 0) {
         const numericMonth = normalized.match(/(?:شهر|الشهر)\s*(\d{1,2})/);
@@ -515,15 +576,33 @@ function resolveAssistantPeriod(text, now = new Date()) {
         return { type: 'all', label: 'كل الفترات', months, year: null, month: null };
     }
 
-    const wantsPreviousYear = monthIndex < 0 && /(السنه اللي فاتت|السنه اللى فاتت|العام اللي فات|العام اللى فات|السنة السابقة|العام السابق)/.test(normalized);
-    if (wantsPreviousYear) {
-        const previousYear = (explicitYear || now.getFullYear()) - 1;
-        const months = names.map(name => `${name} ${previousYear}`);
-        return { type: 'year', label: `سنة ${previousYear}`, months, year: previousYear, month: null };
+    // Relative markers apply even when the sentence also names a month. They
+    // used to be skipped entirely as soon as any month name was present.
+    if (ASSISTANT_PREVIOUS_MONTH.test(normalized)) {
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+        if (monthIndex >= 0) {
+            const candidate = new Date(year, monthIndex, 1);
+            if (candidate.getTime() >= currentMonthStart) candidate.setFullYear(candidate.getFullYear() - 1);
+            monthIndex = candidate.getMonth();
+            year = candidate.getFullYear();
+        } else {
+            const previous = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            monthIndex = previous.getMonth();
+            year = explicitYear || previous.getFullYear();
+        }
+    } else if (ASSISTANT_PREVIOUS_YEAR.test(normalized)) {
+        if (monthIndex >= 0) {
+            year = (explicitYear || now.getFullYear()) - 1;
+        } else {
+            const previousYear = (explicitYear || now.getFullYear()) - 1;
+            const months = names.map(name => `${name} ${previousYear}`);
+            return { type: 'year', label: `سنة ${previousYear}`, months, year: previousYear, month: null };
+        }
     }
+
     const wantsYear = monthIndex < 0 && (
         Boolean(explicitYear) ||
-        /(السنه|سنه|عام|خلال سنه|هذه السنه|السنه دي)/.test(normalized)
+        /(?:^|\s)(?:السنه|سنه|عام|خلال سنه|هذه السنه|السنه دي)(?:\s|$)/.test(normalized)
     );
 
     if (wantsYear) {
@@ -614,6 +693,13 @@ function getAssistantExpenseSnapshot(months) {
 
 function getAssistantComparisonPeriods(period, now = new Date()) {
     const names = getAssistantMonthNames();
+    const makeYearPeriod = value => ({
+        type: 'year', label: `سنة ${value}`, months: names.map(name => `${name} ${value}`), year: value
+    });
+    if (period && period.type === 'year' && period.year) {
+        const year = Number(period.year);
+        return { current: makeYearPeriod(year), previous: makeYearPeriod(year - 1) };
+    }
     let year = now.getFullYear();
     let monthIndex = now.getMonth();
     if (period && period.type === 'month' && period.label) {
@@ -656,11 +742,11 @@ function buildAssistantComparisonAnswer(period, now = new Date()) {
 }
 
 function getAssistantMonthSummary(period, now = new Date()) {
-    const month = period && period.type === 'month' && period.label
-        ? period.label
-        : getAssistantNowLabel(now);
-    const income = getAssistantIncomeSnapshot(period.months);
-    const expenses = getAssistantExpenseSnapshot(period.months);
+    const monthLabels = Array.isArray(period?.months) && period.months.length
+        ? period.months : [getAssistantNowLabel(now)];
+    const month = monthLabels.length === 1 ? monthLabels[0] : (period?.label || getAssistantNowLabel(now));
+    const income = getAssistantIncomeSnapshot(monthLabels);
+    const expenses = getAssistantExpenseSnapshot(monthLabels);
     const residents = Array.isArray(state.residents) ? state.residents : [];
     let dueCents = 0;
     let paidCents = 0;
@@ -672,33 +758,47 @@ function getAssistantMonthSummary(period, now = new Date()) {
     let partialUnits = 0;
     const unpaid = [];
     residents.forEach(resident => {
-        const grossDue = typeof getSubscriptionAmountForMonth === 'function'
-            ? Number(getSubscriptionAmountForMonth(resident, month)) || 0
-            : Number(resident.monthlyAmount ?? state.defaultSubscription) || 0;
-        const due = typeof getMonthlyDueAmountForMonth === 'function'
-            ? Number(getMonthlyDueAmountForMonth(resident, month)) || 0 : grossDue;
-        const paid = typeof getMonthlyDuePaidAmount === 'function'
-            ? Number(getMonthlyDuePaidAmount(resident.id, month)) || 0
-            : typeof getPaidAmountForMonth === 'function' ? Number(getPaidAmountForMonth(resident.id, month)) || 0 : 0;
-        const subscriptionPaid = typeof getPaidAmountForMonth === 'function'
-            ? Number(getPaidAmountForMonth(resident.id, month)) || 0 : 0;
-        const settlement = typeof getSettlementAdjustmentForMonth === 'function'
-            ? getSettlementAdjustmentForMonth(resident.id, month) : null;
-        const settlementPaid = settlement && typeof getSettlementPaidAmount === 'function'
-            ? Number(getSettlementPaidAmount(settlement.id)) || 0 : 0;
-        const adjusted = Math.max(0, grossDue - due);
-        const outstanding = typeof getMonthOutstanding === 'function'
-            ? Number(getMonthOutstanding(resident, month)) || 0
-            : Math.max(0, due - paid);
-        dueCents += Math.round(grossDue * 100);
-        paidCents += Math.round(paid * 100);
-        subscriptionPaidCents += Math.round(subscriptionPaid * 100);
-        settlementPaidCents += Math.round(settlementPaid * 100);
-        adjustedCents += Math.round(adjusted * 100);
-        outstandingCents += Math.round(outstanding * 100);
-        if (due > 0 && outstanding <= 0) paidUnits += 1;
-        else if (paid > 0 && outstanding > 0) partialUnits += 1;
-        if (outstanding > 0) unpaid.push({ resident, outstanding });
+        let residentDue = 0;
+        let residentPaid = 0;
+        let residentSubscriptionPaid = 0;
+        let residentSettlementPaid = 0;
+        let residentAdjusted = 0;
+        let residentOutstanding = 0;
+        monthLabels.forEach(label => {
+            const grossDue = typeof getSubscriptionAmountForMonth === 'function'
+                ? Number(getSubscriptionAmountForMonth(resident, label)) || 0
+                : Number(resident.monthlyAmount ?? state.defaultSubscription) || 0;
+            const due = typeof getMonthlyDueAmountForMonth === 'function'
+                ? Number(getMonthlyDueAmountForMonth(resident, label)) || 0 : grossDue;
+            const paid = typeof getMonthlyDuePaidAmount === 'function'
+                ? Number(getMonthlyDuePaidAmount(resident.id, label)) || 0
+                : typeof getPaidAmountForMonth === 'function' ? Number(getPaidAmountForMonth(resident.id, label)) || 0 : 0;
+            const subscriptionPaid = typeof getPaidAmountForMonth === 'function'
+                ? Number(getPaidAmountForMonth(resident.id, label)) || 0 : 0;
+            const settlement = typeof getSettlementAdjustmentForMonth === 'function'
+                ? getSettlementAdjustmentForMonth(resident.id, label) : null;
+            const settlementPaid = settlement && typeof getSettlementPaidAmount === 'function'
+                ? Number(getSettlementPaidAmount(settlement.id)) || 0 : 0;
+            const adjusted = Math.max(0, grossDue - due);
+            const outstanding = typeof getMonthOutstanding === 'function'
+                ? Number(getMonthOutstanding(resident, label)) || 0
+                : Math.max(0, due - paid);
+            residentDue += Math.round(grossDue * 100);
+            residentPaid += Math.round(paid * 100);
+            residentSubscriptionPaid += Math.round(subscriptionPaid * 100);
+            residentSettlementPaid += Math.round(settlementPaid * 100);
+            residentAdjusted += Math.round(adjusted * 100);
+            residentOutstanding += Math.round(outstanding * 100);
+        });
+        dueCents += residentDue;
+        paidCents += residentPaid;
+        subscriptionPaidCents += residentSubscriptionPaid;
+        settlementPaidCents += residentSettlementPaid;
+        adjustedCents += residentAdjusted;
+        outstandingCents += residentOutstanding;
+        if (residentDue > 0 && residentOutstanding <= 0) paidUnits += 1;
+        else if (residentPaid > 0 && residentOutstanding > 0) partialUnits += 1;
+        if (residentOutstanding > 0) unpaid.push({ resident, outstanding: residentOutstanding / 100 });
     });
     unpaid.sort((a, b) => b.outstanding - a.outstanding);
     return {
@@ -720,13 +820,18 @@ function getAssistantMonthSummary(period, now = new Date()) {
 }
 
 function getAssistantArrearsSnapshot() {
+    // Month labels are Arabic words, so a plain lexicographic sort puts
+    // "أكتوبر" before "يناير". Use the application's calendar ordering.
+    const chronological = months => typeof sortMonthLabels === 'function'
+        ? sortMonthLabels(months)
+        : months.slice().sort();
     if (typeof buildArrearsReport === 'function') {
         const report = buildArrearsReport();
         const residents = report.residents || [];
         const oldestFor = item => item.oldestMonth || (Array.isArray(item.unpaidMonths) && item.unpaidMonths[0]
             ? (typeof item.unpaidMonths[0] === 'object' ? item.unpaidMonths[0].month : item.unpaidMonths[0]) : null);
         const details = residents.flatMap(item => Array.isArray(item.unpaidMonths) ? item.unpaidMonths : []);
-        const oldestMonth = residents.map(oldestFor).filter(Boolean).sort()[0] || null;
+        const oldestMonth = chronological(residents.map(oldestFor).filter(Boolean))[0] || null;
         return {
             totalDebt: Number(report.totalDebt) || 0,
             overdueResidents: Number(report.overdueResidents) || 0,
@@ -745,7 +850,7 @@ function getAssistantArrearsSnapshot() {
         totalDebt: residents.reduce((sum, item) => sum + Math.round(item.totalDebt * 100), 0) / 100,
         overdueResidents: residents.length,
         overdueMonths: residents.reduce((sum, item) => sum + item.count, 0),
-        oldestMonth: residents.map(item => item.oldestMonth).filter(Boolean).sort()[0] || null,
+        oldestMonth: chronological(residents.map(item => item.oldestMonth).filter(Boolean))[0] || null,
         maxDaysOverdue: residents.reduce((max, item) => Math.max(max, Number(item.daysOverdue) || 0), 0),
         residents,
         buckets: {}
@@ -895,7 +1000,7 @@ function assistantNote(text) {
 }
 
 function parseAssistantNoticeCommand(text) {
-    if (assistantIsOwner()) return '';
+    if (!assistantCanWrite()) return '';
     const raw = String(text || '').trim();
     const normalized = normalizeAssistantArabic(raw);
     if (!/(?:اعمل|اكتب|انشر|جهز|جهزلي|جهز لي)/.test(normalized) || !/اعلان/.test(normalized)) return '';
@@ -915,6 +1020,10 @@ function buildAssistantNoticePreview(text) {
 }
 
 async function confirmAssistantNotice() {
+    if (!assistantCanWrite()) {
+        if (typeof toast === 'function') toast('البوم مسموحش بنشر إعلانات من حساب المالك.', 'error');
+        return false;
+    }
     if (!assistantNoticeDraft) {
         if (typeof toast === 'function') toast('لا توجد مسودة إعلان معلقة.', 'error');
         return false;
@@ -934,6 +1043,7 @@ async function confirmAssistantNotice() {
 function cancelAssistantNotice(options = {}) {
     assistantNoticeDraft = null;
     if (!options.silent && typeof toast === 'function') toast('تم إلغاء مسودة الإعلان.', 'info');
+    return true;
 }
 
 function parseAssistantNumericToken(token) {
@@ -942,21 +1052,54 @@ function parseAssistantNumericToken(token) {
     const comma = raw.includes(',');
     const dot = raw.includes('.');
     let normalized = raw;
-    if (comma && dot) normalized = raw.replace(/,/g, '');
-    else if (comma) normalized = /,\d{1,2}$/.test(raw) ? raw.replace(',', '.') : raw.replace(/,/g, '');
-    else if (dot && /\.\d{3}$/.test(raw)) normalized = raw.replace('.', '');
+    if (comma && dot) {
+        // The separator nearest the end is the decimal mark: both 1.000,50
+        // and 1,000.50 mean one thousand and a half, never 1.0005.
+        normalized = raw.lastIndexOf(',') > raw.lastIndexOf('.')
+            ? raw.replace(/\./g, '').replace(',', '.')
+            : raw.replace(/,/g, '');
+    } else if (comma) {
+        normalized = /,\d{1,2}$/.test(raw) ? raw.replace(',', '.') : raw.replace(/,/g, '');
+    } else if (dot && /\.\d{3}$/.test(raw)) {
+        normalized = raw.replace('.', '');
+    }
     const amount = Number(normalized);
     return Number.isFinite(amount) && amount > 0 ? amount : null;
 }
 
+/** @param {string} normalized @param {number} position */
+function assistantAmountScale(normalized, position) {
+    const tail = normalized.slice(position, position + 40);
+    if (ASSISTANT_MILLION_WORD.test(tail)) return 1000000;
+    if (ASSISTANT_THOUSAND_WORD.test(tail)) return 1000;
+    return 1;
+}
+
+function assistantCompositeAmount(normalized) {
+    // "بمليون و٥٠٠ ألف جنيه" and "مليون و٣ جنيه" are one amount, not two.
+    const match = normalized.match(/(?:(\d+(?:[,.]\\d{1,3})*)\s*)?مليون(?:ات)?(?:\s*جنيه(?:ات)?)?(?:\s*و\s*(\d+(?:[,.]\\d{1,3})*)\s*(الف|الاف)?)?/);
+    if (!match) return null;
+    const millions = match[1] ? parseAssistantNumericToken(match[1]) : 1;
+    if (millions === null) return null;
+    let total = millions * 1000000;
+    if (match[2]) {
+        const extra = parseAssistantNumericToken(match[2]);
+        if (extra !== null) total += extra * (match[3] ? 1000 : 1);
+    }
+    return total;
+}
+
 function assistantParsedAmount(text) {
     const normalized = normalizeAssistantArabic(text).replace(/[،٬]/g, ',');
+    const composite = assistantCompositeAmount(normalized);
+    if (composite !== null) return composite;
     const numberPattern = '(\\d+(?:[,.]\\d{1,3})*)';
     const currencyMatch = normalized.match(new RegExp(`${numberPattern}\\s*(?:جنيه(?:ات)?|ج\\.?م|جم|ج)(?!\\w)`));
-    if (currencyMatch) return parseAssistantNumericToken(currencyMatch[1]);
+    if (currencyMatch) {
+        const amount = parseAssistantNumericToken(currencyMatch[1]);
+        if (amount !== null) return amount * assistantAmountScale(normalized, currencyMatch.index);
+    }
     if (/(?:نصف|نص)\s*الف/.test(normalized)) return 500;
-    if (/مليون\b/.test(normalized)) return 1000000;
-    if (/الف\b/.test(normalized)) return 1000;
 
     const candidates = [];
     const tokenPattern = new RegExp(numberPattern, 'g');
@@ -965,9 +1108,13 @@ function assistantParsedAmount(text) {
         const token = match[1];
         const before = normalized.slice(Math.max(0, match.index - 14), match.index);
         if (/20\d{2}$/.test(token) || /(?:شقه|وحده|رقم)\s*$/.test(before)) continue;
-        candidates.push(token);
+        const amount = parseAssistantNumericToken(token);
+        if (amount === null) continue;
+        return amount * assistantAmountScale(normalized, match.index);
     }
-    return candidates.length ? parseAssistantNumericToken(candidates[0]) : null;
+    if (ASSISTANT_MILLION_WORD.test(normalized)) return 1000000;
+    if (ASSISTANT_THOUSAND_WORD.test(normalized)) return 1000;
+    return null;
 }
 
 function parseAssistantOperationCommand(text, now = new Date()) {
@@ -1032,14 +1179,13 @@ function parseAssistantMutationCommand(text, now = new Date()) {
         : /(?:عدل|تعديل|تغيير|صحح|غير\s+(?:المبلغ|البيانات|التاريخ|الشهر|الوصف))/.test(normalized) ? 'edit' : null;
     if (!action) return null;
     const period = resolveAssistantPeriodWithContext(raw, now);
-    const amountMatch = raw.match(/(?:مبلغ|بمبلغ|بقيمة|مقداره)\s*(\d+(?:[.,]\d{1,2})?)|(?<!\d)(\d+(?:[.,]\d{1,2})?)\s*(?:جنيه(?:ات)?|ج\.?م)/i);
-    const amountValue = amountMatch ? Number(String(amountMatch[1] || amountMatch[2]).replace(',', '.')) : null;
-    const amount = Number.isFinite(amountValue) && amountValue > 0 ? amountValue : null;
-    const requestedAmountMatch = action === 'edit'
-        ? raw.match(/(?:إلى|الى|ليصبح|خليه|خليها)\s*(\d+(?:[.,]\d{1,2})?)(?:\s*(?:جنيه(?:ات)?|ج\.?م))?/i)
+    // Reuse the shared parser so edit/delete commands understand the same
+    // Arabic words and separators as create commands.
+    const amount = assistantParsedAmount(raw);
+    const hasRequestedMarker = /(?:إلى|الى|ليصبح|خليه|خليها)/i.test(raw);
+    const requestedAmount = action === 'edit' && hasRequestedMarker
+        ? assistantParsedAmount(raw.replace(/^.*?(?:إلى|الى|ليصبح|خليه|خليها)\s*/i, ''))
         : null;
-    const requestedAmountValue = requestedAmountMatch ? Number(requestedAmountMatch[1].replace(',', '.')) : null;
-    const requestedAmount = Number.isFinite(requestedAmountValue) && requestedAmountValue > 0 ? requestedAmountValue : null;
     const residentMatch = resolveAssistantResident(raw);
     const periodKeys = new Set((period.months || []).map(label => typeof monthLabelToKey === 'function'
         ? String(monthLabelToKey(label) || '').slice(0, 7) : String(label).slice(0, 7)));
@@ -1106,9 +1252,9 @@ function parseAssistantResidentEntryCommand(text) {
     const tenantPhone = raw.match(/(?:هاتف|جوال)\s+المستأجر\s*[:：]?\s*([+\d٠-٩۰-۹\s-]{8,20})/)?.[1]?.trim() || '';
     const leaseStart = raw.match(/(?:بداية\s+الإيجار|بداية\s+الايجار)\s*[:：]?\s*(\d{4}-\d{2}-\d{2})/)?.[1] || '';
     const leaseEnd = raw.match(/(?:نهاية\s+الإيجار|نهاية\s+الايجار)\s*[:：]?\s*(\d{4}-\d{2}-\d{2})/)?.[1] || '';
-    const subscriptionAmount = subscriptionMatch ? Number(subscriptionMatch[1].replace(',', '.')) : null;
-    const rentAmount = rentMatch ? Number(rentMatch[1].replace(',', '.')) : null;
-    const depositAmount = depositMatch ? Number(depositMatch[1].replace(',', '.')) : null;
+    const subscriptionAmount = subscriptionMatch ? parseAssistantNumericToken(subscriptionMatch[1]) : null;
+    const rentAmount = rentMatch ? parseAssistantNumericToken(rentMatch[1]) : null;
+    const depositAmount = depositMatch ? parseAssistantNumericToken(depositMatch[1]) : null;
     const missing = [];
     if (!name) missing.push('اسم المالك');
     if (!apartmentNumber) missing.push('رقم الشقة');
@@ -1169,7 +1315,7 @@ function buildAssistantResidentEntryPreview(entry) {
 
 function openAssistantResidentEntry() {
     const draft = assistantResidentEntryDraft;
-    if (!draft || assistantIsOwner() || currentUserRole !== 'manager' || assistantOperationContext) return false;
+    if (!draft || !assistantCanWrite() || assistantOperationContext) return false;
     startAssistantOperationContext({ ...draft, type: 'resident', action: 'create', mode: 'create' });
     if (typeof window.openResidentModal !== 'function') {
         clearAssistantOperationContext();
@@ -1238,7 +1384,7 @@ function buildAssistantMutationPreview(mutation) {
 
 function openAssistantMutationEdit() {
     const draft = assistantMutationDraft;
-    if (!draft || draft.action !== 'edit' || assistantIsOwner()) return false;
+    if (!draft || draft.action !== 'edit' || !assistantCanWrite()) return false;
     const currentRows = draft.type === 'resident' ? state.residents
         : draft.type === 'income' ? state.income
             : draft.type === 'expense' ? state.expenses : state.adjustments;
@@ -1282,7 +1428,7 @@ function openAssistantMutationEdit() {
 
 async function confirmAssistantMutationDelete() {
     const draft = assistantMutationDraft;
-    if (!draft || draft.processing || draft.action !== 'delete' || assistantIsOwner() || currentUserRole !== 'manager') return false;
+    if (!draft || draft.processing || draft.action !== 'delete' || !assistantCanWrite()) return false;
     const currentRows = draft.type === 'resident' ? state.residents
         : draft.type === 'income' ? state.income
             : draft.type === 'expense' ? state.expenses : state.adjustments;
@@ -1303,8 +1449,26 @@ async function confirmAssistantMutationDelete() {
         if (typeof toast === 'function') toast('مسار الحذف غير متاح الآن.', 'error');
         return false;
     }
-    await window[deleter](draft.id, draft.requestId);
-    if (assistantOperationContext?.requestId === draft.requestId && assistantOperationContext.status === 'ready') clearAssistantOperationContext();
+    let deleteError = null;
+    try {
+        await window[deleter](draft.id, draft.requestId);
+    } catch (error) {
+        deleteError = error;
+    }
+    const rowsAfter = draft.type === 'resident' ? state.residents
+        : draft.type === 'income' ? state.income
+            : draft.type === 'expense' ? state.expenses : state.adjustments;
+    const stillPresent = (Array.isArray(rowsAfter) ? rowsAfter : []).some(item => item.id === draft.id);
+    const context = assistantOperationContext?.requestId === draft.requestId ? assistantOperationContext : null;
+    if (deleteError || stillPresent) {
+        draft.processing = false;
+        clearAssistantOperationContext();
+        appendAssistantOperationFailure(context?.status === 'uncertain' || deleteError
+            ? 'لم يتأكد حذف السجل. حدّث البيانات وراجع سجل التدقيق؛ اكتب «تحققت من السجل» لإغلاق العملية قبل أي محاولة جديدة.'
+            : 'لم يُحذف السجل. راجع رسالة التحقق أو أعد المعاينة.');
+        return false;
+    }
+    if (context) completeAssistantOperation(draft.requestId);
     assistantMutationDraft = null;
     return true;
 }
@@ -1648,7 +1812,7 @@ function assistantAuditDetails(details) {
 
 function requireAssistantOperationReadyForCommit(type) {
     if (!assistantOperationContext) return true;
-    if (assistantIsOwner() || currentUserRole !== 'manager' || assistantOperationContext.type !== type) {
+    if (!assistantCanWrite() || assistantOperationContext.type !== type) {
         if (typeof toast === 'function') toast('تعذر مطابقة نموذج العملية مع طلب عم عبده. ألغِ النموذج وأعد فتح الطلب الصحيح.', 'error');
         return false;
     }
@@ -1713,7 +1877,7 @@ function clearAssistantOperationContext() {
 }
 
 async function confirmAssistantOperation() {
-    if (!assistantOperationDraft || assistantIsOwner()) return false;
+    if (!assistantOperationDraft || !assistantCanWrite()) return false;
     const draft = assistantOperationDraft;
     if (!assistantOperationCanExecute(draft)) {
         if (typeof toast === 'function') toast(`لسه ناقص: ${assistantOperationMissing(draft).join(' و')}.`, 'error');
@@ -2149,9 +2313,12 @@ function buildAssistantCashAnswer() {
     return { id: 'cashbox', title, html };
 }
 
-function buildAssistantResidentAnswer(resident, now = new Date()) {
-    const snapshot = getAssistantResidentSnapshot(resident, now);
-    const title = `${assistantApartmentLabel(resident)} · ${assistantResidentName(resident)}`;
+function buildAssistantResidentAnswer(resident, now = new Date(), period = null) {
+    const monthLabel = period && period.type === 'month' && period.label
+        ? period.label
+        : (period && Array.isArray(period.months) && period.months.length === 1 ? period.months[0] : '');
+    const snapshot = getAssistantResidentSnapshot(resident, now, monthLabel);
+    const title = `${assistantApartmentLabel(resident)} · ${assistantResidentName(resident)}${monthLabel ? ` · ${monthLabel}` : ''}`;
     let html = '';
     if (snapshot.settlement) {
         html += assistantRow('الاشتراك قبل التسوية', assistantMoney(snapshot.grossSubscription));
@@ -2219,7 +2386,7 @@ function buildAssistantAdjustmentsAnswer(period) {
     } else {
         html += assistantNote('مفيش إعفاءات أو تخفيضات مسجلة في الفترة دي.');
     }
-    html += assistantNote('الإعفاءات بتخصم من المستحق الشهري ومش بتتحسب كتحصيل نقدي.');
+    html += assistantNote('الإعفاءات والتخفيضات بتخصم من المستحق الشهري ومش بتتحسب كتحصيل نقدي. التسوية اتفاق سداد مش إعفاء؛ دفعاتها بتتسجل كتحصيل.');
     return { id: 'adjustments', title, html };
 }
 
@@ -2367,7 +2534,7 @@ function parseAssistantReportRequest(raw, now = new Date()) {
     const normalized = normalizeAssistantArabic(raw);
     const period = resolveAssistantPeriodWithContext(raw, now);
     const residentMatch = resolveAssistantResident(raw);
-    const hasExplicitPeriod = /(?:يناير|فبراير|مارس|ابريل|أبريل|مايو|يونيو|يوليو|اغسطس|أغسطس|سبتمبر|اكتوبر|أكتوبر|نوفمبر|ديسمبر|20\d{2}|الشهر الحالي|الشهر ده|الشهر الماضي)/.test(normalized);
+    const hasExplicitPeriod = /(?:يناير|فبراير|مارس|ابريل|أبريل|مايو|يونيو|يوليو|اغسطس|أغسطس|سبتمبر|اكتوبر|أكتوبر|نوفمبر|ديسمبر|20\d{2}|الشهر الحالي|الشهر ده|الشهر الماضي|الشهر اللي فات|الشهر اللى فات|السنة اللي فاتت|الماضي)/.test(normalized);
     const requestsIncome = /(?:تحصيل|تحصيلات|ايراد|وارد)/.test(normalized);
     const requestsExpenses = /(?:مصروف|مصاريف|صرف)/.test(normalized);
     const requestsOtherReport = /(?:اعفاء|تخفيض|تسويه|خصم|متاخر|مديون|مستحق|كشف حساب|حساب مالك|كشف مالك)/.test(normalized);
@@ -2445,7 +2612,7 @@ function closeAssistantForNavigation() {
     closeModal('assistantModal');
     return !assistantModalIsOpen();
 }
-function buildAssistantReportsAnswer(request = null) {
+function buildAssistantReportsAnswer(request = null, now = new Date()) {
     const period = request?.period || resolveAssistantPeriod('');
     if (request && request.tab === 'expenses') {
         const answer = buildAssistantExpensesAnswer(period);
@@ -2474,9 +2641,9 @@ function buildAssistantReportsAnswer(request = null) {
     if (request && request.tab === 'statement' && request.residentId) {
         const resident = (Array.isArray(state.residents) ? state.residents : []).find(item => item.id === request.residentId);
         if (resident) {
-            const answer = buildAssistantResidentAnswer(resident);
+            const answer = buildAssistantResidentAnswer(resident, now, period);
             answer.id = 'reports';
-            answer.title = `كشف حساب · ${assistantResidentName(resident)}`;
+            answer.title = `كشف حساب · ${assistantResidentName(resident)}${period?.type === 'month' ? ` · ${period.label}` : ''}`;
             return answer;
         }
     }
@@ -2504,6 +2671,11 @@ const ASSISTANT_HERO_SRC = 'icons/assistant-abbah-full.png';
 
 function assistantIsOwner() {
     return typeof currentUserRole !== 'undefined' && currentUserRole === 'owner';
+}
+
+/** Central write gate: only an authenticated manager may go past a preview. */
+function assistantCanWrite() {
+    return typeof currentUserRole !== 'undefined' && currentUserRole === 'manager' && !assistantIsOwner();
 }
 
 function assistantOwnerResident() {
@@ -2730,12 +2902,17 @@ function buildAssistantOwnerAdjustmentsAnswer(period, now = new Date()) {
         ? getAdjustmentKindLabel(kind)
         : ({ waiver: 'إعفاء', discount: 'تخفيض', settlement: 'تسوية' }[kind] || 'تسوية');
     let cents = 0;
+    let settlementCents = 0;
     rows.forEach(adjustment => {
         const amountCents = assistantCents(adjustment.amount);
-        if (amountCents > 0) cents += amountCents;
+        if (amountCents <= 0) return;
+        cents += amountCents;
+        if (adjustment.kind === 'settlement') settlementCents += amountCents;
     });
+    const waivedCents = cents - settlementCents;
     let html = '';
-    html += assistantRow('إجمالي الإعفاءات والتخفيضات', assistantMoney(cents / 100), cents > 0 ? 'warn' : '');
+    html += assistantRow('إجمالي الإعفاءات والتخفيضات', assistantMoney(waivedCents / 100), waivedCents > 0 ? 'warn' : '');
+    if (settlementCents > 0) html += assistantRow('اتفاقيات التسوية', assistantMoney(settlementCents / 100));
     html += assistantRow('عدد البنود', assistantNumber(rows.length));
     html += rows.length
         ? assistantList(rows.slice().sort((a, b) => String(b.effectiveMonth).localeCompare(String(a.effectiveMonth))).slice(0, 6).map(adjustment => {
@@ -2743,7 +2920,7 @@ function buildAssistantOwnerAdjustmentsAnswer(period, now = new Date()) {
             return `${assistantEscape(kindLabel(adjustment.kind))} ${assistantEscape(assistantMoney(adjustment.amount))} · ${assistantEscape(month)}`;
         }))
         : assistantNote('مفيش إعفاءات أو تخفيضات مسجلة على شقتك في الفترة دي.');
-    html += assistantNote('الإعفاء والتخفيض بيخصموا من المستحق ومش بيتحسبوا دفعات نقدية.');
+    html += assistantNote('الإعفاء والتخفيض بيخصموا من المستحق ومش بيتحسبوا دفعات نقدية. التسوية اتفاق سداد مش إعفاء.');
     return { id: 'my_adjustments', title: `إعفاءات شقتك · ${period ? period.label : ''}`.trim(), html };
 }
 
@@ -2775,7 +2952,7 @@ function detectOwnerAssistantIntent(normalized) {
     if (/(خصوصيه|بياناتي|البيانات بتتخزن|بتتخزن فين|مين يقدر يشوف|امان|امن|صلاحيات|قراءة فقط|ازاي استخدم|ازاي اسجل|ازاي اطبع|ازاي اصدر)/.test(normalized)) return 'knowledge';
     if (/(مساعده|ساعدني|بتعرف تعمل|تقدر تعمل|اوامر|خيارات|استخدمك|بتعرف ايه)/.test(normalized)) return 'help';
     if (/(مين عليه|مين عليها|مين عليهم|على مين|علي مين)/.test(normalized)) return 'owner_scope';
-    if (/(?:حساب|ايصال|دفعات|مدفوعات|متاخرات)\s+[ء-ي]{2,}(?:\s+[ء-ي]{2,})?(?:\s+(?:كام|عليه|عليها|دفع|دفعت|متاخر|مديون))?/.test(normalized)) return 'owner_scope';
+    if (/(?:حساب|ايصالات|ايصال|دفعات|مدفوعات|متاخرات)\s+[ء-ي]{2,}(?:\s+[ء-ي]{2,})?(?:\s+(?:كام|عليه|عليها|دفع|دفعت|متاخر|مديون))?/.test(normalized)) return 'owner_scope';
     if (/^(?:[ء-ي]{2,}\s+){1,2}(?:عليه|عليها|دفع|دفعت|متاخر|مديون)/.test(normalized)) return 'owner_scope';
     if (/(ملخص تنفيذي|ملخص الاداره|ملخص العماره|(?:تغير|اتغير)(?: بشكل)? غير طبيعي|تغيير كبير|فرق كبير|تحصيل|مصروف|مصاريف|صرف|خزنه|صندوق|سيوله|صافي|اجمالي|كل الشقق|السكان|سكان العماره|الشقق التاني|تقرير|تقارير|طابق العماره|طوابق العماره|ادوار العماره|احصائيات|لوحة تحكم|اعدادات|إعدادات|(?:ال)?نسخه (?:ال)?احتياطيه|(?:ال)?نسخه (?:ال)?احتياطية|باك اب|سجل التدقيق|سجل العمليات|المستاجرين|المستأجرين|سعر الاشتراك|ورقة الاسعار)/.test(normalized)) return 'owner_scope';
     if (/(استحقاق|اخر يوم|مهله|موعد الدفع|امتى ادفع|يوم كام ادفع|قبل ما اتاخر|متاخر عن ميعاد)/.test(normalized)) return 'my_due_date';
@@ -2943,6 +3120,13 @@ function assistantRememberedResident() {
         .find(resident => resident.id === assistantContext.residentId) || null;
 }
 
+const ASSISTANT_COMPARISON_REQUEST = /(?:قارن|مقارنه|مقارنة|مقابل|الفرق بين|زاد|زادت|قل|قلت|اكتر من|اقل من|أكثر من|أقل من|الشهر ده باللي قبله|الشهر الحالي بالسابق)/;
+const ASSISTANT_SPECIFIC_MONEY_PHRASE = /(?:علي(?:ه|ها|هم)|عليا)\s+فلوس|الفلوس راحت فين|اتصرف في ايه|اتصرفت في ايه/g;
+
+function assistantBlankMatches(text, pattern) {
+    return String(text).replace(pattern, phrase => ' '.repeat(phrase.length));
+}
+
 function detectAssistantCompoundIntents(normalized) {
     /** @type {Array<[string, RegExp]>} */
     const candidates = [
@@ -2957,9 +3141,11 @@ function detectAssistantCompoundIntents(normalized) {
     const paymentPhrase = /(?:التحصيلات طرق التحصيل|طرق التحصيل|التحصيلات اتدفعت بايه|اتدفعت بايه|دفعوا ازاي|دفعنا ازاي|الناس دفعت ازاي)/g;
     return candidates
         .map(([intent, pattern], order) => {
-            const candidateText = intent === 'payment_breakdown'
-                ? normalized
-                : normalized.replace(paymentPhrase, phrase => ' '.repeat(phrase.length));
+            const candidateText = intent === 'cashbox'
+                ? assistantBlankMatches(normalized, ASSISTANT_SPECIFIC_MONEY_PHRASE)
+                : intent === 'payment_breakdown'
+                    ? normalized
+                    : assistantBlankMatches(normalized, paymentPhrase);
             const match = pattern.exec(candidateText);
             return match ? { intent, position: match.index, order } : null;
         })
@@ -3005,12 +3191,17 @@ function buildAssistantQueryPlan(text, now = new Date()) {
     const period = residentMatch.matches.length > 1
         ? resolveAssistantPeriod(text, now)
         : resolveAssistantPeriodWithContext(text, now);
-    const compoundIntents = resident || residentMatch.matches.length > 1
+    // An explicit comparison outranks a compound list: the user wants one
+    // side-by-side answer, not two unrelated sections.
+    const wantsComparison = ASSISTANT_COMPARISON_REQUEST.test(normalized);
+    const compoundIntents = wantsComparison || resident || residentMatch.matches.length > 1
         ? []
         : detectAssistantCompoundIntents(normalized);
-    const intentIds = compoundIntents.length > 1
-        ? compoundIntents
-        : [detectAssistantIntent(normalized, Boolean(resident))];
+    const intentIds = wantsComparison
+        ? ['comparison']
+        : compoundIntents.length > 1
+            ? compoundIntents
+            : [detectAssistantIntent(normalized, Boolean(resident))];
 
     return {
         role,
@@ -3038,10 +3229,26 @@ function answerAssistantQuery(text, now = new Date()) {
         return answerOwnerAssistantQuery(text, now);
     }
     if (!normalized) return withAssistantAnswerMeta(buildAssistantHelpAnswer(), resolveAssistantPeriod(text, now), null);
+    if (assistantOperationContext?.status === 'uncertain' && ASSISTANT_RECONCILE_WORDS.test(normalized)) {
+        completeAssistantOperation(assistantOperationContext.requestId);
+        assistantOperationDraft = null;
+        return withAssistantAnswerMeta({
+            id: 'operation-reconciled',
+            title: 'تم إغلاق متابعة العملية',
+            html: assistantNote('أغلقت متابعة العملية غير المؤكدة بعد مراجعتك. تأكد من سجل التدقيق قبل أي تعديل أو حذف جديد.')
+        }, resolveAssistantPeriod(text, now), null, text);
+    }
     if ((assistantOperationDraft || assistantNoticeDraft) && assistantIsCancellation(text)) {
-        if (assistantNoticeDraft) cancelAssistantNotice({ silent: true });
-        if (assistantOperationDraft) cancelAssistantOperation({ silent: true });
-        return withAssistantAnswerMeta({ id: 'operation-cancelled', title: 'تم إلغاء المسودة', html: assistantNote('تمام، لم يتم حفظ أي تغيير.') }, resolveAssistantPeriod(text, now), null, text);
+        const noticeCancelled = assistantNoticeDraft ? cancelAssistantNotice({ silent: true }) !== false : true;
+        const operationCancelled = assistantOperationDraft ? cancelAssistantOperation({ silent: true }) !== false : true;
+        const cancelled = noticeCancelled && operationCancelled;
+        return withAssistantAnswerMeta({
+            id: cancelled ? 'operation-cancelled' : 'operation-cancel-blocked',
+            title: cancelled ? 'تم إلغاء المسودة' : 'تعذّر إلغاء العملية',
+            html: assistantNote(cancelled
+                ? 'تمام، لم يتم حفظ أي تغيير.'
+                : 'الحفظ جارٍ أو نتيجته غير مؤكدة، فما أقدرش أأكد الإلغاء. حدّث البيانات وراجع سجل التدقيق قبل المحاولة مرة أخرى.')
+        }, resolveAssistantPeriod(text, now), null, text);
     }
     if (assistantNoticeDraft && assistantIsNoticePublishRequest(text)) {
         return withAssistantAnswerMeta({ id: 'notice-confirm-request', title: 'تأكيد نشر الإعلان', html: assistantNote('سأنشر نص الإعلان الذي راجعته الآن.') }, resolveAssistantPeriod(text, now), null, text);
@@ -3155,13 +3362,13 @@ function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
         case 'recent':
             return buildAssistantRecentAnswer();
         case 'reports':
-            return buildAssistantReportsAnswer(parseAssistantReportRequest(rawText, now));
+            return buildAssistantReportsAnswer(parseAssistantReportRequest(rawText, now), now);
         case 'notices':
             return buildAssistantNoticesAnswer();
         case 'building':
             return buildAssistantBuildingAnswer();
         case 'resident':
-            return buildAssistantResidentAnswer(resident, now);
+            return buildAssistantResidentAnswer(resident, now, period);
         default:
             return {
                 id: 'unknown',
@@ -3247,11 +3454,13 @@ function renderAssistantMessage(role, html) {
 }
 
 function appendAssistantMessage(role, html, plainText = null, metadata = {}) {
-    assistantChat.push({ role, html });
+    const storedHtml = assistantStorableHtml(html);
+    assistantChat.push({ role, html: storedHtml });
     persistAssistantChat();
     if (plainText !== null || role === 'bot') {
-        persistAssistantRemoteMessage(role, plainText === null ? html : plainText, metadata);
+        persistAssistantRemoteMessage(role, plainText === null ? storedHtml : plainText, metadata);
     }
+    // Render the live bubble: its buttons still work until the chat is reloaded.
     return renderAssistantMessage(role, html);
 }
 
@@ -3326,11 +3535,17 @@ function openAssistantModal() {
     const log = document.getElementById('assistantLog');
     if (log && !log.children.length) {
         const identity = assistantCurrentAuthIdentity();
-        const revision = assistantChatRevision;
-        void hydrateAssistantChatFromRemote().finally(() => {
-            if (identity !== assistantCurrentAuthIdentity() || revision !== assistantChatRevision) return;
-            if (!log.children.length) restoreAssistantChat();
-            else assistantChat.forEach(item => renderAssistantMessage(item.role, item.html));
+        void hydrateAssistantChatFromRemote().then(loaded => {
+            if (identity !== assistantCurrentAuthIdentity()) return;
+            if (!loaded) {
+                // A message may have been sent while the load was in flight;
+                // that interaction wins and must not be rendered twice.
+                if (!log.children.length) restoreAssistantChat();
+                return;
+            }
+            log.innerHTML = '';
+            if (assistantChat.length) assistantChat.forEach(item => renderAssistantMessage(item.role, item.html));
+            else appendAssistantMessage('bot', buildAssistantGreetingHtml(), null, { greeting: true });
         });
     }
     requestAnimationFrame(() => {
@@ -3344,17 +3559,26 @@ function openAssistantModal() {
     });
 }
 
-function sendAssistantMessage(event) {
+/** @param {Event | null} [event] @param {{ text?: string, userHtml?: string }} [options] */
+function sendAssistantMessage(event, options = {}) {
     if (event && typeof event.preventDefault === 'function') event.preventDefault();
     const input = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('assistantInput'));
     if (!input) return;
     if (document.getElementById('assistantModal')?.dataset.assistantBusy === 'true') return;
-    const text = String(input.value || '').trim();
+    const text = typeof options.text === 'string' ? String(options.text).trim() : String(input.value || '').trim();
     if (!text) return;
-    const revision = assistantChatRevision;
+    // Any in-flight history load is now stale; the live conversation wins and
+    // must be allowed to persist remotely instead of waiting for that load.
+    const revision = ++assistantChatRevision;
+    assistantRemoteHydrated = true;
     input.value = '';
     updateAssistantComposerState();
-    appendAssistantMessage('user', formatAssistantUserText(text), text);
+    const reviewedVoiceNote = typeof assistantVoiceConsumeReviewNote === 'function'
+        ? assistantVoiceConsumeReviewNote(text) : null;
+    const userHtml = typeof options.userHtml === 'string'
+        ? options.userHtml
+        : reviewedVoiceNote || formatAssistantUserText(text);
+    appendAssistantMessage('user', userHtml, text);
     const answer = answerAssistantQuery(text);
     const typing = showAssistantTyping();
     const deliver = () => {
@@ -3363,7 +3587,8 @@ function sendAssistantMessage(event) {
             return;
         }
         if (typing && typing.parentNode) typing.parentNode.removeChild(typing);
-        appendAssistantMessage('bot', assistantAnswerHtml(answer), null, { answerId: answer.id });
+        const botMessage = appendAssistantMessage('bot', assistantAnswerHtml(answer), null, { answerId: answer.id });
+        if (typeof assistantVoiceOnBotReply === 'function') assistantVoiceOnBotReply(answer, botMessage);
         if (answer.id === 'operation-confirm-request') {
             setAssistantBusy(true);
             void confirmAssistantOperation().finally(() => setAssistantBusy(false));
@@ -3401,6 +3626,8 @@ function askAssistant(query) {
 
 function resetAssistantChat() {
     if (document.getElementById('assistantModal')?.dataset.assistantBusy === 'true') return;
+    if (typeof assistantVoiceStop === 'function') assistantVoiceStop('cancel');
+    if (typeof assistantVoiceStopSpeech === 'function') assistantVoiceStopSpeech();
     assistantChatRevision += 1;
     assistantRemoteHydrated = true;
     const remoteClear = clearAssistantRemoteHistory();
@@ -3410,6 +3637,9 @@ function resetAssistantChat() {
     assistantContext = { period: null, residentId: null };
     assistantNoticeDraft = null;
     assistantOperationDraft = null;
+    assistantMutationDraft = null;
+    assistantResidentEntryDraft = null;
+    clearAssistantOperationContext();
     const input = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('assistantInput'));
     if (input) input.value = '';
     updateAssistantComposerState();

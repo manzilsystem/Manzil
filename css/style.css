@@ -4818,6 +4818,73 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 }
 .assistant-shell[aria-busy="true"] .assistant-send-spinner { display: block; }
 @keyframes assistant-send-spin { to { transform: rotate(360deg); } }
+.assistant-voice-button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, var(--accent-color) 35%, var(--border-color));
+    border-radius: var(--radius-80);
+    background: color-mix(in srgb, var(--bg-card) 70%, var(--accent-color) 8%);
+    color: var(--accent-color);
+    cursor: pointer;
+    touch-action: none;
+    user-select: none;
+    transition: transform var(--motion-150) var(--ease-standard), background var(--motion-180) var(--ease-standard);
+}
+.assistant-voice-button:not(.is-recording):hover { background: color-mix(in srgb, var(--accent-color) 16%, var(--bg-card)); }
+.assistant-voice-button.is-recording { background: var(--state-danger); border-color: var(--state-danger); color: #fff; transform: scale(1.06); }
+.assistant-voice-pulse {
+    display: none;
+    position: absolute;
+    inset: -4px;
+    border: 2px solid currentColor;
+    border-radius: var(--radius-80);
+    opacity: var(--opacity-0);
+}
+.assistant-voice-button.is-recording .assistant-voice-pulse { display: block; animation: assistant-voice-pulse 1.2s ease-out infinite; }
+@keyframes assistant-voice-pulse {
+    from { transform: scale(.9); opacity: var(--opacity-75); }
+    to { transform: scale(1.35); opacity: var(--opacity-0); }
+}
+.assistant-voice-live .assistant-bubble { opacity: var(--opacity-75); font-style: italic; }
+.assistant-voice-live-dot { display: inline-block; width: .45rem; height: .45rem; margin-inline-end: var(--space-40); border-radius: var(--radius-circle); background: var(--state-danger); animation: assistant-typing-bounce 1s ease-in-out infinite; }
+.assistant-voice-note { display: flex; align-items: center; gap: var(--space-55); min-width: 12rem; direction: ltr; }
+.assistant-voice-play {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+    border-radius: var(--radius-circle);
+    background: color-mix(in srgb, currentColor 18%, transparent);
+    color: inherit;
+    cursor: pointer;
+}
+.assistant-voice-note.is-playing .assistant-voice-play { background: color-mix(in srgb, currentColor 35%, transparent); }
+.assistant-voice-wave { display: inline-flex; align-items: center; gap: 2px; height: 1.75rem; flex: 1 1 auto; color: inherit; }
+.assistant-voice-wave i { width: 3px; min-height: 4px; border-radius: var(--radius-30); background: currentColor; opacity: var(--opacity-75); }
+.assistant-voice-duration { font-size: var(--font-55); font-variant-numeric: tabular-nums; opacity: var(--opacity-75); }
+.assistant-voice-transcript { margin-top: var(--space-30); font-size: var(--font-65); font-weight: var(--weight-500); opacity: var(--opacity-75); }
+.assistant-voice-replay {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-inline-end: var(--space-45);
+    padding: var(--space-20) var(--space-40);
+    border: 1px solid color-mix(in srgb, var(--accent-color) 35%, var(--border-color));
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--accent-color) 8%, transparent);
+    color: var(--accent-color);
+    cursor: pointer;
+    font-size: var(--font-60);
+}
+.assistant-icon-button.is-off { color: var(--text-muted); opacity: var(--opacity-55); }
 .assistant-footnote { padding-inline: var(--space-90); padding-bottom: var(--space-65); }
 @keyframes assistant-message-arrive {
     from { opacity: var(--opacity-0); transform: translateY(5px); }
@@ -4850,6 +4917,7 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     .assistant-form { gap: var(--space-40); padding-inline: var(--space-65); }
     .assistant-form .assistant-composer-frame textarea { min-height: 2.75rem; font-size: var(--font-input-mobile); }
     .assistant-send-button { min-width: 44px; min-height: 44px; }
+    .assistant-voice-button { min-width: 44px; min-height: 44px; }
     .assistant-footnote {
         padding-inline: var(--space-70);
         padding-bottom: calc(var(--space-65) + env(safe-area-inset-bottom, 0px));
@@ -4870,6 +4938,8 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
     .assistant-msg,
     .assistant-online-dot.is-working,
     .assistant-send-spinner { animation: none !important; }
+    .assistant-voice-button.is-recording .assistant-voice-pulse,
+    .assistant-voice-live-dot { animation: none !important; }
     .assistant-msg { transform: none; }
 }
 

@@ -381,13 +381,15 @@ async function loadAssistantChatHistory() {
         .from('assistant_messages')
         .select('sender_type,body,created_at')
         .eq('conversation_id', conversation.id)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
         .limit(30);
     const chatEpoch = typeof conversation.context?.chat_epoch === 'string' ? conversation.context.chat_epoch : null;
     if (chatEpoch) messagesQuery = messagesQuery.eq('metadata->>chat_epoch', chatEpoch);
     const { data: messages, error: messagesError } = await messagesQuery;
     if (messagesError) throw messagesError;
-    return { messages: messages || [], context: conversation.context || {} };
+    // Fetch the newest 30 rows, then restore chronological order for the chat.
+    // Ascending + limit used to load the oldest 30 and drop recent messages.
+    return { messages: (messages || []).slice().reverse(), context: conversation.context || {} };
 }
 
 async function appendAssistantChatMessage(senderType, body, metadata = {}) {

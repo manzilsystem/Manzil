@@ -48,6 +48,8 @@ test('clearing assistant chat hides prior append-only messages after reload', ()
     assert.match(supabaseSource, /select\('id,context,updated_at'\)/);
     assert.match(supabaseSource, /conversation\.context\?\.chat_epoch/);
     assert.match(supabaseSource, /messagesQuery\.eq\('metadata->>chat_epoch', chatEpoch\)/);
+    assert.match(supabaseSource, /\.order\('created_at', \{ ascending: false \}\)\s*\.limit\(30\)/, 'load the newest page, not the oldest');
+    assert.match(supabaseSource, /\(messages \|\| \[\]\)\.slice\(\)\.reverse\(\)/, 'restore chronological order before rendering');
     assert.match(supabaseSource, /async function clearAssistantChatHistory\(\)/);
     assert.match(supabaseSource, /update\(\{ context: \{ \.\.\.\(conversation\.context \|\| \{\}\), period: null, residentId: null, chat_epoch: chatEpoch \} \}\)/);
     assert.match(supabaseSource, /clear: clearAssistantChatHistory/);

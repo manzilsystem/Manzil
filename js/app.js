@@ -73,6 +73,7 @@ function openModal(id) {
 }
 
 function closeModal(id) {
+    if (id === 'assistantModal' && typeof assistantVoiceStop === 'function') assistantVoiceStop('cancel');
     if (['incomeModal', 'expenseModal', 'adjustmentModal', 'residentModal'].includes(id)
         && typeof clearAssistantOperationContext === 'function') {
         clearAssistantOperationContext();

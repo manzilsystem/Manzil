@@ -1,0 +1,173 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const test = require('node:test');
+const vm = require('node:vm');
+
+const root = path.resolve(__dirname, '..');
+const voiceSource = fs.readFileSync(path.join(root, 'js', 'assistant-voice.js'), 'utf8');
+const assistantSource = fs.readFileSync(path.join(root, 'js', 'assistant.js'), 'utf8');
+const appSource = fs.readFileSync(path.join(root, 'js', 'app.js'), 'utf8');
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const css = fs.readFileSync(path.join(root, 'css', 'style.css'), 'utf8');
+
+function createHarness() {
+    const appended = [];
+    const sent = [];
+    const revoked = [];
+    let input;
+    const sandbox = {
+        console,
+        Date,
+        Math,
+        Promise,
+        Map,
+        URL: { createObjectURL: () => 'blob:voice', revokeObjectURL: url => revoked.push(url) },
+        Blob: function Blob() { this.size = 1; },
+        window: { addEventListener() {}, speechSynthesis: undefined },
+        document: {
+            addEventListener() {},
+            getElementById: id => id === 'assistantInput' ? input : null,
+            querySelector: () => null,
+            createElement: () => {
+                const element = {
+                    innerHTML: '',
+                    textContent: '',
+                    querySelector(selector) {
+                        if (selector !== 'p') return null;
+                        const match = /<p[^>]*>([\s\S]*?)<\/p>/i.exec(element.innerHTML);
+                        return match ? { textContent: match[1].replace(/<[^>]*>/g, '') } : null;
+                    },
+                    setAttribute() {}
+                };
+                return element;
+            }
+        },
+        navigator: {},
+        sessionStorage: { getItem: () => '1', setItem() {} },
+        toast() {},
+        assistantIsConfirmation: text => /^(?:اكد|أكد)(?: التسجيل| الحفظ| العملية| التحصيل| المصروف)?$|^(?:ايوه|نعم|تمام)$/.test(String(text)),
+        assistantIsCancellation: text => /^(?:الغي|إلغاء)/.test(String(text)),
+        assistantEscape: text => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+        appendAssistantMessage: (role, html, text) => appended.push({ role, html, text }),
+        sendAssistantMessage: (event, options) => sent.push(options || {}),
+        updateAssistantComposerState() {}
+    };
+    input = { value: '', style: {}, focus() {} };
+    const context = vm.createContext(sandbox);
+    vm.runInContext(voiceSource, context, { filename: 'js/assistant-voice.js' });
+    const api = vm.runInContext(`({
+        assistantVoiceNeedsReview,
+        assistantVoiceResponseText,
+        assistantVoiceNoteHtml,
+        assistantVoiceWaveHtml,
+        assistantVoiceReadSoundPreference,
+        assistantVoiceSubmit,
+        assistantVoiceConsumeReviewNote,
+        assistantVoiceClearPendingReview,
+        assistantVoiceStop
+    })`, context);
+    return { api, input, appended, sent, revoked };
+}
+
+test('voice notes use the browser engines only', () => {
+    assert.match(voiceSource, /webkitSpeechRecognition/, 'Safari prefix must be supported alongside the standard API');
+    assert.match(voiceSource, /ASSISTANT_VOICE_LANGS = Object\.freeze\(\['ar-EG', 'ar-SA', 'ar'\]\)/);
+    assert.match(voiceSource, /recognition\.lang = ASSISTANT_VOICE_LANGS\[0\]/);
+    assert.match(voiceSource, /SpeechRecognitionPhrase/, 'domain words boost Egyptian Arabic dictation');
+    assert.match(voiceSource, /\['تحصيل', 8\]/, 'collection vocabulary is boosted');
+    assert.match(voiceSource, /getUserMedia\(\{ audio: true \}\)/);
+    assert.match(voiceSource, /new MediaRecorder\(/);
+    assert.match(voiceSource, /assistantVoiceFinaliseRecorder/, 'the recording is kept in memory as a blob URL');
+    assert.match(voiceSource, /URL\.createObjectURL/);
+    assert.match(voiceSource, /SpeechSynthesisUtterance/, 'replies are read with built-in text to speech');
+    assert.match(voiceSource, /utterance\.lang = ASSISTANT_VOICE_LANGS\[0\]/);
+    assert.doesNotMatch(voiceSource, /\bfetch\s*\(|XMLHttpRequest|WebSocket|https?:\/\//);
+    assert.doesNotMatch(voiceSource, /localStorage/);
+    assert.doesNotMatch(html, /connect-src[^>]*huggingface|connect-src[^>]*groq/i, 'no speech API origin is added to the CSP');
+});
+
+test('spoken confirmations and operation commands always require a typed review', () => {
+    const { api } = createHarness();
+    assert.equal(api.assistantVoiceNeedsReview('أكد التسجيل'), true);
+    assert.equal(api.assistantVoiceNeedsReview('ايوه'), true);
+    assert.equal(api.assistantVoiceNeedsReview('إلغاء'), true);
+    assert.equal(api.assistantVoiceNeedsReview('اعمل اعلان صيانة'), true);
+    assert.equal(api.assistantVoiceNeedsReview('سجل تحصيل 100'), true);
+    assert.equal(api.assistantVoiceNeedsReview('مين عليه متأخرات؟'), false);
+    assert.equal(api.assistantVoiceNeedsReview('رصيد الخزنة كام؟'), false);
+    assert.equal(api.assistantVoiceNeedsReview('مصروفات الشهر'), false);
+    assert.match(voiceSource, /راجع الكلام واضغط إرسال عشان تتأكد/, 'review puts the transcript in the composer with an explicit hint');
+    assert.match(voiceSource, /sendAssistantMessage\(null, \{ userHtml: noteHtml \}\)/, 'questions are sent automatically with their voice bubble');
+});
+
+test('spoken replies are short, plain text, and never read raw HTML', () => {
+    const { api } = createHarness();
+    const text = api.assistantVoiceResponseText({
+        title: 'رصيد الخزنة',
+        html: '<p>الرصيد 1200 ج.م</p><table><tr><td>سرّ المالك</td></tr></table>'
+    });
+    assert.match(text, /رصيد الخزنة/);
+    assert.match(text, /جنيه/);
+    assert.doesNotMatch(text, /<[^>]+>/);
+    assert.doesNotMatch(text, /سرّ المالك/, 'only the title and first line are read aloud');
+    assert.match(voiceSource, /ASSISTANT_VOICE_MAX_SPEAK_CHARS = 420/);
+    assert.match(voiceSource, /assistantVoiceStopSpeech\(\)/, 'a new reply cancels the previous speech');
+});
+
+test('voice bubbles escape the transcript and show duration and playback', () => {
+    const { api } = createHarness();
+    const note = api.assistantVoiceNoteHtml('سجل <تحصيل> الشقة 3', 6500, 'blob:voice');
+    assert.match(note, /data-voice-note="note-1"/);
+    assert.match(note, /assistantVoicePlayNote\('note-1'\)/);
+    assert.match(note, /&lt;تحصيل&gt;/);
+    assert.doesNotMatch(note, /<تحصيل>/);
+    assert.match(note, /assistant-voice-duration" dir="ltr">0:07/);
+    assert.match(note, /assistant-voice-transcript/);
+    assert.equal((api.assistantVoiceWaveHtml('abc').match(/<i /g) || []).length, 16);
+});
+
+test('sound preference is session-only and capturing stops on close, reset and busy', () => {
+    const { api } = createHarness();
+    assert.equal(api.assistantVoiceReadSoundPreference(), true);
+    assert.match(voiceSource, /ASSISTANT_VOICE_SOUND_KEY = 'manzil-assistant-voice-sound'/);
+    assert.match(voiceSource, /sessionStorage\.setItem\(ASSISTANT_VOICE_SOUND_KEY/);
+    assert.match(voiceSource, /assistantVoiceIsBusy\(\)/);
+    assert.match(appSource, /if \(id === 'assistantModal' && typeof assistantVoiceStop === 'function'\)/);
+    assert.match(assistantSource, /assistantVoiceStop\('cancel'\)/);
+    assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.assistant-voice-button\.is-recording/);
+});
+
+test('a reviewed voice note is added once, when the user actually presses Send', () => {
+    const { api, input, appended, sent } = createHarness();
+    const note = '<div class="assistant-voice-note"> reviewed </div>';
+    api.assistantVoiceSubmit('أكد التسجيل', note);
+
+    assert.equal(appended.length, 0, 'review must not append a user turn before confirmation');
+    assert.equal(sent.length, 0, 'review must not auto-send a financial command');
+    assert.equal(input.value, 'أكد التسجيل');
+    assert.equal(api.assistantVoiceConsumeReviewNote('أكد التسجيل'), note, 'unchanged text keeps its voice bubble on Send');
+    assert.equal(api.assistantVoiceConsumeReviewNote('أكد التسجيل'), null, 'the note is consumed exactly once');
+
+    api.assistantVoiceSubmit('سجل تحصيل 100', '<div>voice</div>');
+    assert.equal(api.assistantVoiceConsumeReviewNote('سجل تحصيل 200'), null, 'editing the transcript falls back to a typed bubble');
+
+    api.assistantVoiceSubmit('مين عليه متأخرات؟', '<div>question</div>');
+    assert.equal(sent.length, 1);
+    assert.equal(sent[0].userHtml, '<div>question</div>');
+    assert.match(assistantSource, /assistantVoiceConsumeReviewNote\(text\)/, 'the composer reuses the reviewed voice bubble');
+    assert.doesNotMatch(voiceSource, /assistantVoiceNeedsReview[\s\S]{0,400}appendAssistantMessage\('user'/, 'review never pre-appends the turn');
+});
+
+test('cancelling a reviewed voice note clears the pending bubble and releases its audio', () => {
+    const { api, revoked } = createHarness();
+    const note = api.assistantVoiceNoteHtml('إلغاء', 3000, 'blob:voice');
+    api.assistantVoiceSubmit('إلغاء', note);
+    assert.ok(api.assistantVoiceConsumeReviewNote('إلغاء'));
+
+    const second = api.assistantVoiceNoteHtml('إلغاء', 3000, 'blob:voice');
+    api.assistantVoiceSubmit('إلغاء', second);
+    api.assistantVoiceStop('cancel');
+    assert.equal(api.assistantVoiceConsumeReviewNote('إلغاء'), null);
+    assert.ok(revoked.includes('blob:voice'), 'the unreviewed recording is not kept in memory');
+});
