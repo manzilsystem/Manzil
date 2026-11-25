@@ -97,6 +97,13 @@ for (const paper of ['A4', 'A5']) {
                     return { limit, out: out.slice(0, 6) };
                 }, r.card);
                 expect(clipped.out).toEqual([]);
+                // the title prints once (page header), not again inside the card
+                const titles = await page.evaluate(sel => ({
+                    page: getComputedStyle(document.getElementById('printBuildingTitle')).display,
+                    card: [...document.querySelectorAll(sel + ' .report-preview-title')].filter(el => getComputedStyle(el).display !== 'none').length
+                }), r.card);
+                expect(titles.page).not.toBe('none');
+                expect(titles.card).toBe(0);
                 expect(facts.visibleSections).toEqual(['tab-reports']);
                 expect(facts.siblings).toEqual([]);
                 expect(facts.dir).toBe('rtl');

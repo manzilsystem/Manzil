@@ -1156,6 +1156,8 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     #printableArea .sheet-table .sheet-num, #printableArea .sheet-kpi tbody td { white-space: normal; }
     #printableArea .sheet-kpi tbody td { padding: var(--space-30); font-size: var(--font-78); }
     #printableArea .sheet-kpi .report-stat { padding: var(--space-30); }
+    /* The page header already prints the report title and building; do not repeat it inside the card. */
+    #printableArea .report-preview-header .report-preview-title { display: none !important; }
     #printableArea .text-emerald-400 { color: var(--print-success) !important; }
     #printableArea .text-rose-400 { color: var(--print-danger) !important; }
     #printableArea .text-indigo-400 { color: var(--print-info) !important; }
