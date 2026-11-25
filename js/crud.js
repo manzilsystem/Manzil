@@ -1556,6 +1556,8 @@ async function provisionOwnerAccess(residentId) {
     phoneDisplay.textContent = data.phone;
     phoneDisplay.dataset.phone = data.phone;
     phoneDisplay.dataset.apartmentNumber = resident?.apartmentNumber || '';
+    phoneDisplay.dataset.ownerName = resident?.name || '';
+    phoneDisplay.dataset.buildingName = state.buildingName || '';
     /** @type {any} */ (document.getElementById('ownerTempPinValue')).value = data.temporary_pin;
     const modal = /** @type {any} */ (document.getElementById('ownerTempPinModal'));
     modal.classList.remove('hidden');
@@ -1565,30 +1567,42 @@ async function provisionOwnerAccess(residentId) {
 const MANZIL_APP_URL = 'https://manzilsystem.github.io/Manzil/';
 
 // رسالة واتساب للمالك عند إنشاء رمز دخول مؤقت: خطوات الدخول الأول وما يظهر في البوابة فعلًا.
-function buildOwnerTempPinMessage(pin, apartmentNumber) {
-    const apartmentLabel = apartmentNumber ? ` لشقة ${apartmentNumber}` : '';
+function buildOwnerTempPinMessage(pin, apartmentNumber, ownerName, buildingName) {
+    const name = String(ownerName || '').trim();
+    const building = String(buildingName || '').trim();
+    const apartment = String(apartmentNumber || '').trim();
+    const greeting = name ? `🏢 أهلًا بحضرتك أستاذ/ة ${name} 👋` : '🏢 أهلًا بحضرتك 👋';
+    const placeParts = [building ? `عمارة ${building}` : '', apartment ? `شقة ${apartment}` : ''].filter(Boolean);
+    const apartmentLabel = placeParts.length ? ` في ${placeParts.join('، ')}` : '';
     return [
-        'أهلًا بحضرتك 👋',
+        greeting,
         `تم تجهيز دخولك لتطبيق منزل (Manzil)${apartmentLabel}.`,
         '',
-        'رمز الدخول المؤقت:',
+        '🔑 رمز الدخول المؤقت:',
         pin,
-        '(لا تشاركه مع أي شخص)',
+        '⚠️ (لا تشاركه مع أي شخص)',
         '',
-        'أول مرة هتدخل كده:',
-        `1) افتح الرابط ده: ${MANZIL_APP_URL}`,
-        '2) اختار «مالك الشقة».',
-        '3) اكتب رقم الجوال المسجل للشقة (نفس الرقم اللي جاتلك عليه الرسالة دي).',
-        '4) في خانة الرقم السري اكتب الرمز المؤقت اللي فوق (8 أرقام) واضغط دخول.',
-        '5) هيطلب منك تختار رقم سري جديد من 6 أرقام. اختاره وافتكره، وده اللي هتدخل بيه بعد كده.',
+        '📲 أول مرة هتدخل كده:',
+        '',
+        `1️⃣ افتح الرابط ده: ${MANZIL_APP_URL}`,
+        '',
+        '2️⃣ اختار «مالك الشقة».',
+        '',
+        '3️⃣ اكتب رقم الجوال المسجل للشقة (نفس الرقم اللي جاتلك عليه الرسالة دي).',
+        '',
+        '4️⃣ في خانة الرقم السري اكتب الرمز المؤقت اللي فوق (8 أرقام) واضغط دخول.',
+        '',
+        '5️⃣ هيطلب منك تختار رقم سري جديد من 6 أرقام. اختاره وافتكره، وده اللي هتدخل بيه بعد كده.',
         '',
         'هتلاقي في التطبيق (للعرض فقط):',
-        '- المدفوع والمتبقي من اشتراكك الشهري، وأي متأخرات',
-        '- طرق السداد وموعد الاستحقاق',
-        '- إيصالات السداد وسجل الدفعات',
-        '- إشعارات حسابك وإعلانات العمارة',
         '',
-        'لو الرمز مادخلش أو حصلت أي مشكلة، كلم مدير العمارة.'
+        '💰 المدفوع والمتبقي من اشتراكك الشهري، وأي متأخرات',
+        '🧾 طرق السداد وموعد الاستحقاق',
+        '📜 إيصالات السداد وسجل الدفعات',
+        '🔔 إشعارات حسابك',
+        '📢 إعلانات العمارة',
+        '',
+        '📞 لو الرمز مادخلش أو حصلت أي مشكلة، كلم مدير العمارة.'
     ].join('\n');
 }
 
@@ -1597,6 +1611,8 @@ function sendOwnerTempPinOnWhatsApp() {
     const pin = /** @type {any} */ (document.getElementById('ownerTempPinValue'))?.value.trim() || '';
     const phoneDigits = String(phoneDisplay?.dataset.phone || '').replace(/\D/g, '');
     const apartmentNumber = String(phoneDisplay?.dataset.apartmentNumber || '').trim();
+    const ownerName = String(phoneDisplay?.dataset.ownerName || '').trim();
+    const buildingName = String(phoneDisplay?.dataset.buildingName || '').trim();
     if (!/^[1-9]\d{7,14}$/.test(phoneDigits)) {
         toast('رقم المالك المسجل غير صالح؛ انسخ الرمز وأرسله يدويًا.', 'error');
         return;
@@ -1605,7 +1621,7 @@ function sendOwnerTempPinOnWhatsApp() {
         toast('لا يوجد PIN مؤقت صالح من 8 أرقام لإرساله.', 'error');
         return;
     }
-    const message = buildOwnerTempPinMessage(pin, apartmentNumber);
+    const message = buildOwnerTempPinMessage(pin, apartmentNumber, ownerName, buildingName);
     const url = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
     toast('فتحنا واتساب على رقم المالك المسجل. راجع الرسالة واضغط «إرسال».', 'success');
