@@ -5285,4 +5285,7 @@ body.owner-mode .owner-theme-control {
     .sheet-table th, .sheet-table td { padding: var(--space-50) var(--space-35); }
     .sheet-table thead th { font-size: var(--font-68); }
     .sheet-table { font-size: var(--font-72); }
+    .sheet-table .sheet-num { white-space: normal; }
+    .sheet-kpi tbody td.report-stat { white-space: normal; }
+    .sheet-kpi tbody td.report-stat::before { overflow-wrap: anywhere; line-height: var(--leading-135); }
 }
