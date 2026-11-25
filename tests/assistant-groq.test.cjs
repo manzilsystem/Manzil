@@ -62,7 +62,7 @@ test('the Groq bridge keeps the deterministic engine intact and hides the key', 
 });
 
 test('the bridge only runs on localhost and only rewrites read-only data answers', () => {
-    const { api } = bareModule(clientSource, { location: { hostname: '127.0.0.1' } });
+    const { api } = bareModule(clientSource, { location: { hostname: '127.0.0.1', port: '8787' } });
     assert.equal(api.assistantGroqIsLocalHost('localhost'), true);
     assert.equal(api.assistantGroqIsLocalHost('127.0.0.1'), true);
     assert.equal(api.assistantGroqIsLocalHost('[::1]'), true);
@@ -104,7 +104,7 @@ test('the browser hook sends only approved facts through the same-origin proxy',
         fetch,
         document: fakeDocument(),
         currentUserRole: 'manager',
-        location: { hostname: '127.0.0.1' }
+        location: { hostname: '127.0.0.1', port: '8787' }
     });
     await sandbox.assistantGroqHealth;
     const answer = await sandbox.assistantGroqAnswer('رصيد الخزنة كام؟', {
@@ -134,11 +134,34 @@ test('the hook is not installed when the local proxy is unavailable', async () =
     const { sandbox } = bareModule(clientSource, {
         fetch: async () => ({ ok: false }),
         document: fakeDocument(),
-        location: { hostname: '127.0.0.1' }
+        location: { hostname: '127.0.0.1', port: '8787' }
     });
     assert.equal(await sandbox.assistantGroqHealth, false);
     assert.equal(sandbox.assistantGroqAnswer, undefined,
         'a static build or e2e server keeps the synchronous local path');
+});
+
+test('a static localhost preview never probes the missing dev routes', async () => {
+    const { api, sandbox } = bareModule(clientSource, {
+        fetch: async url => { throw new Error(`unexpected fetch: ${url}`); },
+        document: fakeDocument(),
+        location: { hostname: '127.0.0.1', port: '8123' }
+    });
+    assert.equal(api.assistantGroqUseLocalProxy(), false);
+    assert.equal(api.assistantGroqEndpoint(), null);
+    assert.equal(await sandbox.assistantGroqHealth, false);
+    assert.equal(sandbox.assistantGroqAnswer, undefined);
+    assert.equal(sandbox.assistantGroqTranscribe, undefined);
+});
+
+test('a custom-port dev proxy is detected from the marker injected into its HTML', () => {
+    const { api } = bareModule(clientSource, {
+        location: { hostname: '127.0.0.1', port: '9999' },
+        manzilGroqDevProxy: true
+    });
+    assert.equal(api.assistantGroqUseLocalProxy(), true);
+    const endpoint = api.assistantGroqEndpoint();
+    assert.equal(endpoint.local, true);
 });
 
 test('production uses the authenticated Supabase function instead of a local proxy', async () => {
@@ -230,6 +253,10 @@ test('the dev proxy forwards the key server-side and never returns it', async ()
         assert.ok(health, `dev server did not start: ${stderr}`);
         assert.equal(health.enabled, true);
         assert.doesNotMatch(JSON.stringify(health), /gsk_/);
+
+        const indexResponse = await fetch(`${base}/index.html`);
+        assert.equal(indexResponse.status, 200);
+        assert.match(await indexResponse.text(), /manzilGroqDevProxy\s*=\s*true/);
 
         const chat = await fetch(`${base}/api/groq/chat`, {
             method: 'POST',

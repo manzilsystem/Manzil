@@ -249,6 +249,16 @@ function serveStatic(pathname, response) {
             'Cache-Control': 'no-store',
             'X-Content-Type-Options': 'nosniff'
         });
+        if (path.extname(file) === '.html') {
+            // Tell the browser bridge that this localhost server really owns
+            // /api/groq/*, so a plain static preview never probes those routes.
+            const html = data.toString('utf8').replace(
+                '</head>',
+                '<script>globalThis.manzilGroqDevProxy = true;</script></head>'
+            );
+            response.end(html);
+            return;
+        }
         response.end(data);
     });
 }

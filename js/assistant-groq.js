@@ -19,6 +19,17 @@ function assistantGroqIsLocalHost(hostname) {
     return /^(?:localhost|127\.0\.0\.1|\[::1\])$/i.test(String(hostname || ''));
 }
 
+// A plain static server on localhost (the e2e fixture, for example) has no
+// /api/groq routes. Probing it would only produce a console 404. The dev proxy
+// injects a marker into its HTML, and the default port is accepted as a
+// fallback for older copies of the dev server.
+function assistantGroqUseLocalProxy() {
+    const location = globalThis.location;
+    if (!assistantGroqIsLocalHost(location?.hostname)) return false;
+    if (globalThis.manzilGroqDevProxy === true) return true;
+    return String(location?.port || '') === '8787';
+}
+
 function assistantGroqCanRewrite(answer) {
     return Boolean(answer && typeof answer === 'object'
         && ASSISTANT_GROQ_ALLOWED_IDS.has(answer.id)
@@ -42,7 +53,9 @@ function assistantGroqEscape(value) {
 
 function assistantGroqEndpoint() {
     const hostname = globalThis.location && globalThis.location.hostname;
-    if (assistantGroqIsLocalHost(hostname)) return { local: true, url: '' };
+    if (assistantGroqIsLocalHost(hostname)) {
+        return assistantGroqUseLocalProxy() ? { local: true, url: '' } : null;
+    }
     const config = /** @type {{ url?: string } | undefined} */ (globalThis.manzilSupabaseConfig);
     const base = typeof config?.url === 'string' ? config.url.trim().replace(/\/+$/, '') : '';
     if (!base) return null;
@@ -156,6 +169,9 @@ if (assistantGroqConfiguredEndpoint) {
         installHook();
         globalThis.assistantGroqHealth = Promise.resolve(true);
     }
+} else {
+    // Static localhost preview / e2e: stay fully synchronous and silent.
+    globalThis.assistantGroqHealth = Promise.resolve(false);
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -163,6 +179,7 @@ if (typeof module !== 'undefined' && module.exports) {
         ASSISTANT_GROQ_ALLOWED_IDS,
         ASSISTANT_GROQ_FUNCTION_PATH,
         assistantGroqIsLocalHost,
+        assistantGroqUseLocalProxy,
         assistantGroqCanRewrite,
         assistantGroqPlainText,
         assistantGroqEscape,
