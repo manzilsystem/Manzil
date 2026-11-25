@@ -256,10 +256,10 @@ function populateReportResidentFilters() {
 }
 
 function getReportView() {
-    return document.getElementById('tab-reports')?.dataset.reportView === 'panel' ? 'panel' : 'grid';
+    return document.getElementById('tab-reports')?.dataset.reportView === 'panel' ? 'panel' : 'index';
 }
 
-/** ينسخ هوية التقرير من بطاقته إلى أي سطح يعرض تفاصيله. */
+/** ينسخ هوية التقرير من صفّ الفهرس إلى المساحة التي تعرض تفاصيله. */
 function copyReportTone(target, item) {
     if (!target || !item) return;
     const computed = typeof window !== 'undefined' && typeof window.getComputedStyle === 'function'
@@ -274,19 +274,19 @@ function copyReportTone(target, item) {
 
 function renderReportViewBar(tab) {
     const bar = document.getElementById('reportViewBar');
-    const item = document.querySelector(`[data-report-nav="${tab}"]`);
+    const item = /** @type {HTMLElement | null} */ (document.querySelector(`[data-report-nav="${tab}"]`));
     if (!bar || !item) return;
     REPORT_TONE_CLASSES.forEach(tone => bar.classList.remove(tone));
     const tone = REPORT_TONE_CLASSES.find(name => item.classList.contains(name));
     if (tone) bar.classList.add(tone);
-    // The per-report identity lives on the nav card as custom properties, so the
+    // The per-report identity lives on the index row as custom properties, so the
     // full-page bar and the open panel copy that palette instead of drifting to a shared tone.
     copyReportTone(bar, item);
     const panel = document.getElementById(REPORT_PANEL_IDS[tab]);
     if (panel) copyReportTone(panel, item);
-    document.getElementById('reportViewIcon').innerHTML = item.querySelector('.report-nav-icon')?.innerHTML || '';
-    document.getElementById('reportViewTitle').textContent = item.querySelector('.report-nav-copy b')?.textContent || '';
-    document.getElementById('reportViewMeta').textContent = item.querySelector('.report-nav-copy small')?.textContent || '';
+    document.getElementById('reportViewIcon').innerHTML = '<span aria-hidden="true">' + esc(item.dataset.reportGlyph || '') + '</span>';
+    document.getElementById('reportViewTitle').textContent = item.querySelector('.report-index-copy b')?.textContent || '';
+    document.getElementById('reportViewMeta').textContent = item.querySelector('.report-index-copy small')?.textContent || '';
     renderReportViewStatus();
 }
 
@@ -302,7 +302,7 @@ function closeReportPanel({ focusCard = true } = {}) {
         item.classList.remove('is-active');
         item.removeAttribute('aria-current');
     });
-    document.getElementById('tab-reports')?.setAttribute('data-report-view', 'grid');
+    document.getElementById('tab-reports')?.setAttribute('data-report-view', 'index');
     document.querySelectorAll('[data-report-step]').forEach(button => {
         const active = button.getAttribute('data-report-step') === 'filters';
         button.classList.toggle('is-active', active);
@@ -311,7 +311,7 @@ function closeReportPanel({ focusCard = true } = {}) {
     if (focusCard && opened) opened.focus();
 }
 
-function showReportGrid() {
+function showReportIndex() {
     if (getReportView() !== 'panel') return false;
     closeReportPanel();
     return true;
@@ -350,7 +350,7 @@ function jumpToReportPanel(panelId) {
 
 function syncReportNavTabIndex() {
     const items = [...document.querySelectorAll('[data-report-nav]')]
-        .filter(item => !item.classList.contains('hidden') && !item.classList.contains('is-filtered-out'));
+        .filter(item => !item.classList.contains('hidden'));
     if (!items.length) return;
     const active = items.find(item => item.classList.contains('is-active'))
         || (document.activeElement?.closest?.('[data-report-nav]'));
@@ -364,7 +364,7 @@ function syncReportNavTabIndex() {
 
 function handleReportTabKeydown(event) {
     if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
-    const items = [...document.querySelectorAll('[data-report-nav]')].filter(item => !item.classList.contains('hidden') && !item.classList.contains('is-filtered-out'));
+    const items = [...document.querySelectorAll('[data-report-nav]')].filter(item => !item.classList.contains('hidden'));
     const current = document.activeElement?.closest?.('[data-report-nav]');
     const currentIndex = items.indexOf(current);
     if (currentIndex < 0) return;
@@ -384,7 +384,7 @@ function handleReportViewKeydown(event) {
     if (typeof getTopmostOpenModal === 'function' && getTopmostOpenModal()) return;
     if (document.getElementById('tab-reports')?.classList.contains('hidden')) return;
     event.preventDefault();
-    showReportGrid();
+    showReportIndex();
 }
 
 function markReportPreviewStale(previewId, stale) {
@@ -405,7 +405,6 @@ function syncReportNavStatus() {
         const fresh = item.querySelector('[data-report-freshness]');
         if (fresh) fresh.textContent = ready ? 'معاينة جاهزة' : stale ? 'يحتاج تحديث' : 'جاهز للفتح';
     });
-    renderReportCardMetrics();
     renderReportViewStatus();
 }
 
@@ -472,90 +471,11 @@ function focusReportStep(step) {
     return true;
 }
 
-/* شبكة جداول التقارير: قيم حقيقية من نفس بيانات التقرير، وفحص دقة سريع. */
 function hasReportMetricHelpers() {
     if (typeof globalThis === 'undefined') return false;
     return ['getCurrentMonth', 'monthLabelToKey', 'toCents', 'fmtMoney', 'fmtNum', 'calculateCumulativeDebt',
         'getMonthOutstanding', 'isResidentActiveInMonth', 'formatOverdueDuration']
         .every(name => typeof /** @type {any} */ (globalThis)[name] === 'function');
-}
-
-function getReportCardMetricValues() {
-    const month = getCurrentMonth();
-    const monthKey = monthLabelToKey(month);
-    const residents = Array.isArray(state?.residents) ? state.residents : [];
-    const income = Array.isArray(state?.income) ? state.income : [];
-    const expenses = Array.isArray(state?.expenses) ? state.expenses : [];
-    const adjustments = Array.isArray(state?.adjustments) ? state.adjustments : [];
-    const logs = Array.isArray(state?.auditLogs) ? state.auditLogs : [];
-    const monthIncome = income.filter(item => item.month === month);
-    const monthExpenses = expenses.filter(item => item.month === month);
-    const sumAmounts = items => items.reduce((sum, item) => sum + toCents(item.amount), 0);
-    const incomeCents = sumAmounts(monthIncome);
-    const expenseCents = sumAmounts(monthExpenses);
-    const arrears = typeof buildArrearsReport === 'function' ? buildArrearsReport({}) : { residents: [], totalDebt: 0 };
-    const arrearsItems = Array.isArray(arrears.residents) ? arrears.residents : [];
-    const oldestArrears = arrearsItems.reduce((max, item) => Math.max(max, Number(item.daysOverdue) || 0), 0);
-    const activeResidents = residents.filter(resident => !monthKey || isResidentActiveInMonth(resident, monthKey));
-    const outstandingCents = activeResidents.reduce((sum, resident) => sum + Math.round(getMonthOutstanding(resident, month) * 100), 0);
-    const allMonths = [...new Set([...income, ...expenses].map(item => item.month).filter(Boolean))];
-    const categoryTotals = new Map();
-    expenses.forEach(item => {
-        const key = String(item.category || 'أخرى');
-        categoryTotals.set(key, (categoryTotals.get(key) || 0) + toCents(item.amount));
-    });
-    const topCategory = [...categoryTotals.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
-    const debtors = residents.map(resident => ({ resident, debt: calculateCumulativeDebt(resident.id).totalDebt }));
-    const topDebtor = debtors.slice().sort((a, b) => b.debt - a.debt)[0]?.resident?.name || '—';
-    const today = new Date().toDateString();
-    const lastAction = String(logs[0]?.action || '—');
-
-    return {
-        landlordIncome: fmtMoney(incomeCents / 100),
-        landlordExpenses: fmtMoney(expenseCents / 100),
-        landlordNet: fmtMoney((incomeCents - expenseCents) / 100),
-        periodMonths: fmtNum(allMonths.length),
-        periodIncome: fmtMoney(sumAmounts(income) / 100),
-        periodExpenses: fmtMoney(sumAmounts(expenses) / 100),
-        cashIncome: fmtMoney(incomeCents / 100),
-        cashExpenses: fmtMoney(expenseCents / 100),
-        cashNet: fmtMoney((incomeCents - expenseCents) / 100),
-        expenseCount: fmtNum(expenses.length),
-        expenseTotal: fmtMoney(sumAmounts(expenses) / 100),
-        expenseTop: topCategory,
-        adjustmentCount: fmtNum(adjustments.length),
-        adjustmentTotal: fmtMoney(sumAmounts(adjustments) / 100),
-        adjustmentMonth: String(adjustments[adjustments.length - 1]?.effectiveMonth || '—'),
-        statementOwners: fmtNum(residents.length),
-        statementDue: fmtMoney(debtors.reduce((sum, item) => sum + Math.round(item.debt * 100), 0) / 100),
-        statementTop: topDebtor,
-        apartmentCount: fmtNum(residents.length),
-        apartmentCollected: fmtMoney(incomeCents / 100),
-        apartmentOutstanding: fmtMoney(outstandingCents / 100),
-        arrearsOwners: fmtNum(arrearsItems.length),
-        arrearsTotal: fmtMoney(Number(arrears.totalDebt) || 0),
-        arrearsOldest: oldestArrears ? formatOverdueDuration(oldestArrears) : '—',
-        closeMonth: month,
-        closeEntries: fmtNum(monthIncome.length + monthExpenses.length),
-        closeVariance: fmtMoney((incomeCents - expenseCents) / 100),
-        auditCount: fmtNum(logs.length),
-        auditLast: lastAction.length > 18 ? lastAction.slice(0, 18) + '…' : lastAction,
-        auditToday: fmtNum(logs.filter(item => new Date(item.date).toDateString() === today).length)
-    };
-}
-
-function renderReportCardMetrics() {
-    if (!hasReportMetricHelpers()) return false;
-    const values = getReportCardMetricValues();
-    Object.entries(values).forEach(([key, value]) => {
-        document.querySelectorAll('[data-report-metric="' + key + '"]').forEach(node => {
-            node.textContent = String(value);
-        });
-    });
-    const scheduled = document.getElementById('scheduledReportsList');
-    const count = document.getElementById('reportScheduledCount');
-    if (count) count.textContent = fmtNum(scheduled ? scheduled.querySelectorAll('.report-list-row').length : 0);
-    return true;
 }
 
 function runReportQualityCheck() {
@@ -586,7 +506,6 @@ function runReportQualityCheck() {
         meter.textContent = fmtNum(score) + '%';
         meter.classList.toggle('is-warn', issues.length > 0);
     }
-    renderReportCardMetrics();
     return issues.length === 0;
 }
 
@@ -3723,56 +3642,8 @@ function exportResidentStatementCsv() {
     toast('تم تصدير كشف الحساب','success');
 }
 
-// ============================================
-// معالجات واجهة التقارير المجدولة
-// ============================================
-
-/** فتح/إغلاق نموذج جدول جديد */
-function openScheduleForm() {
-    const form = document.getElementById('scheduleFormContainer');
-    if (form) form.classList.toggle('hidden');
-}
-
-/** حفظ جدول جديد من الواجهة */
-function saveNewSchedule() {
-    const name = String(/** @type {HTMLInputElement} */ (document.getElementById('scheduleName'))?.value || '');
-    const reportType = String(/** @type {HTMLSelectElement} */ (document.getElementById('scheduleReportType'))?.value || '');
-    const frequency = String(/** @type {HTMLSelectElement} */ (document.getElementById('scheduleFrequency'))?.value || '');
-    const delivery = String(/** @type {HTMLSelectElement} */ (document.getElementById('scheduleDelivery'))?.value || '');
-    if (!name.trim()) { toast('أدخل اسم الجدول', 'error'); return; }
-    const schedule = typeof addScheduledReport === 'function'
-        ? addScheduledReport({ name, reportType, frequency, delivery }) : null;
-    if (schedule) {
-        toast('تم إنشاء الجدول', 'success');
-        openScheduleForm();
-        if (typeof renderScheduledReportsList === 'function') renderScheduledReportsList('scheduledReportsList');
-    }
-}
-
-/** تبديل عرض سجل التشغيل */
-function toggleScheduleLog() {
-    const wrap = document.getElementById('scheduleLogWrap');
-    if (!wrap) return;
-    const willShow = wrap.classList.contains('hidden');
-    wrap.classList.toggle('hidden');
-    const trigger = document.querySelector('[aria-controls="scheduleLogWrap"]');
-    if (trigger) trigger.setAttribute('aria-expanded', willShow ? 'true' : 'false');
-    if (willShow && typeof renderScheduleLog === 'function') renderScheduleLog('scheduleLogWrap');
-}
-
-/** تبديل عرض قسم التقارير المجدولة */
-function toggleScheduledReportsSection() {
-    const body = document.getElementById('scheduledReportsBody');
-    if (!body) return;
-    const willShow = body.classList.contains('hidden');
-    body.classList.toggle('hidden');
-    const trigger = document.querySelector('[aria-controls="scheduledReportsBody"]');
-    if (trigger) trigger.setAttribute('aria-expanded', willShow ? 'true' : 'false');
-}
-
-/** تهيئة قسم التقارير المجدولة */
-function initScheduledReportsUI() {
-    if (typeof renderScheduledReportsList === 'function') renderScheduledReportsList('scheduledReportsList');
+/** تهيئة قوالب تقرير الفترة داخل لوحة التقرير نفسها. */
+function initReportTemplatesUI() {
     if (typeof renderTemplateList === 'function') renderTemplateList('period', 'savedTemplatesList');
 }
 
@@ -3847,20 +3718,16 @@ if (typeof window !== 'undefined') {
     window.exportResidentStatementCsv = exportResidentStatementCsv;
     window.exportResidentStatementPdf = exportResidentStatementPdf;
     window.switchReportTab = switchReportTab;
-    window.showReportGrid = showReportGrid;
+    window.showReportIndex = showReportIndex;
     window.closeReportPanel = closeReportPanel;
     window.focusReportStep = focusReportStep;
     window.runReportQualityCheck = runReportQualityCheck;
-    window.renderReportCardMetrics = renderReportCardMetrics;
     window.invalidateLandlordReportPreview = invalidateLandlordReportPreview;
     window.invalidatePeriodReportPreview = invalidatePeriodReportPreview;
     window.invalidateExpensesReportPreview = invalidateExpensesReportPreview;
     window.invalidateAdjustmentsReportPreview = invalidateAdjustmentsReportPreview;
+    window.initReportTemplatesUI = initReportTemplatesUI;
     window.saveCurrentPeriodTemplate = saveCurrentPeriodTemplate;
     window.applyTemplate = applyTemplate;
     window.deleteTemplate = deleteTemplate;
-    window.openScheduleForm = openScheduleForm;
-    window.saveNewSchedule = saveNewSchedule;
-    window.toggleScheduleLog = toggleScheduleLog;
-    window.toggleScheduledReportsSection = toggleScheduledReportsSection;
 }

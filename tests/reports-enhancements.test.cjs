@@ -10,7 +10,6 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const chartsSource = read('js/reports/shared/charts.js');
 const comparisonSource = read('js/reports/shared/comparison.js');
 const excelSource = read('js/reports/shared/excel-exporter.js');
-const scheduledSource = read('js/reports/shared/scheduled-reports.js');
 const templatesSource = read('js/reports/shared/templates.js');
 const reportsSource = read('js/reports.js');
 
@@ -167,52 +166,6 @@ test('excel exporter builds multi-sheet workbooks when SheetJS is available', ()
 });
 
 // ---------------------------------------------------------------------------
-// Scheduled reports module
-// ---------------------------------------------------------------------------
-
-function loadScheduled() {
-  const store = {};
-  const sandbox = {
-    window: {},
-    console,
-    Date,
-    Math,
-    JSON,
-    localStorage: {
-      getItem: key => store[key] || null,
-      setItem: (key, value) => { store[key] = value; }
-    }
-  };
-  sandbox.window = sandbox;
-  vm.runInNewContext(scheduledSource, sandbox, { filename: 'scheduled-reports.js' });
-  return sandbox;
-}
-
-test('scheduled reports validates and persists schedules', () => {
-  const s = loadScheduled();
-  assert.equal(s.createScheduledReport({ reportType: 'landlord', frequency: 'invalid' }), null);
-  const schedule = s.addScheduledReport({ name: 'شهري', reportType: 'period', frequency: 'monthly', delivery: 'download', dayOfMonth: 31 });
-  assert.ok(schedule);
-  assert.equal(schedule.dayOfMonth, 28);
-  assert.equal(schedule.frequency, 'monthly');
-  assert.equal(s.loadScheduledReports().length, 1);
-  assert.equal(s.toggleScheduledReport(schedule.id), true);
-  assert.equal(s.loadScheduledReports()[0].enabled, false);
-  assert.equal(s.deleteScheduledReport(schedule.id), true);
-  assert.equal(s.loadScheduledReports().length, 0);
-});
-
-test('scheduled reports computes next run and records log', () => {
-  const s = loadScheduled();
-  const schedule = s.addScheduledReport({ name: 'يومي', reportType: 'landlord', frequency: 'daily' });
-  assert.match(schedule.nextRunAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
-  assert.ok(new Date(schedule.nextRunAt) > new Date());
-  assert.equal(s.markScheduledReportRun(schedule.id), true);
-  assert.equal(s.loadScheduleLog().length, 1);
-  assert.ok(s.loadScheduledReports()[0].lastRunAt);
-});
-
-// ---------------------------------------------------------------------------
 // Templates module
 // ---------------------------------------------------------------------------
 
@@ -252,20 +205,32 @@ test('templates support create, filter, apply and delete', () => {
 
 test('all enhancement modules are wired into the generated shell', () => {
   const shell = read('index.html');
-  for (const module of ['charts.js', 'comparison.js', 'excel-exporter.js', 'scheduled-reports.js', 'templates.js']) {
+  for (const module of ['charts.js', 'comparison.js', 'excel-exporter.js', 'templates.js']) {
     assert.match(shell, new RegExp(`js/reports/shared/${module}`), `${module} must load in index.html`);
   }
   assert.match(shell, /vendor\/chart\.umd\.js/);
   assert.match(shell, /vendor\/xlsx\.full\.min\.js/);
 });
 
-test('report UI exposes comparison, Excel, schedule and template controls', () => {
+test('report UI exposes comparison, Excel and relocated template controls', () => {
   const partial = read('src/partials/main-tabs.html');
   assert.match(partial, /id="periodReportComparison"/);
   assert.match(partial, /id="periodReportExcelBtn"/);
-  assert.match(partial, /id="scheduledReportsSection"/);
+  assert.doesNotMatch(partial, /scheduledReportsSection|scheduleFormContainer|openScheduleForm/);
+  assert.match(partial, /id="periodReportTemplates"/);
   assert.match(partial, /id="templateNameInput"/);
+  assert.match(partial, /id="savedTemplatesList"/);
+  assert.match(partial, /onclick="saveCurrentPeriodTemplate\(\)"/);
   assert.match(reportsSource, /function exportPeriodReportExcel\(\)/);
   assert.match(reportsSource, /function buildPeriodComparisonHtml\(/);
-  assert.match(reportsSource, /function initScheduledReportsUI\(\)/);
+  assert.match(reportsSource, /function initReportTemplatesUI\(\)/);
+  assert.doesNotMatch(reportsSource, /initScheduledReportsUI|openScheduleForm|saveNewSchedule/);
+});
+
+test('scheduled reports are gone from the shell and reports sources', () => {
+  const shell = read('index.html');
+  const partial = read('src/partials/main-tabs.html');
+  assert.doesNotMatch(shell, /scheduled-reports\.js/);
+  assert.doesNotMatch(shell, /loadScheduledReports|toggleScheduledReportsSection/);
+  assert.doesNotMatch(partial, /reportScheduledCount|scheduledReportsBody|scheduleName/);
 });

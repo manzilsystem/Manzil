@@ -62,8 +62,8 @@ test('shared semantic consumers reference the tokens instead of raw literals', (
         ['.app-input:user-invalid:not(:focus)', 'state-danger'],
         ['.assistant-fab::after', 'state-success'],
         ['.assistant-online-dot', 'state-success'],
-        ['.report-nav-item.is-ready::after', 'state-success'],
-        ['.report-nav-item.is-stale::after', 'state-warning'],
+        ['.report-index-item.is-ready .report-index-state', 'state-success'],
+        ['.report-index-item.is-stale .report-index-state', 'state-warning'],
         ['#settingsModal .settings-owner-stats .is-missing b', 'state-danger'],
         ['#settingsModal .settings-rule-step.is-late .settings-rule-step-icon', 'state-danger'],
         ['#settingsModal .settings-secondary-button.is-danger', 'state-danger']
@@ -1608,12 +1608,12 @@ test('the remaining accent-surface inks and report/owner literals resolve from c
         'the sand-theme override must paint its ink via var(--accent-surface-ink-sand)');
     assert.ok(!/#211b16/.test(sand[1]), 'the sand-theme override must not keep a raw #211b16 ink');
 
-    const nav = css.match(/\n\.report-nav-item:hover \{([^}]*)\}/);
-    assert.ok(nav, 'expected a rule for the reports navigation hover');
+    const nav = css.match(/\n\.report-index-item:hover \{([^}]*)\}/);
+    assert.ok(nav, 'expected a rule for the reports index hover');
     assert.ok(/var\(--report-nav-shadow-tint\)/.test(nav[1]),
-        'the reports navigation hover must mix its shadow tint via var(--report-nav-shadow-tint)');
+        'the reports index hover must mix its shadow tint via var(--report-nav-shadow-tint)');
     assert.ok(!/rgba\(2, 8, 23/.test(nav[1]),
-        'the reports navigation hover must not keep a raw rgba(2, 8, 23, …) tint');
+        'the reports index hover must not keep a raw rgba(2, 8, 23, …) tint');
 
     const swatch = blocks(css, '\\.owner-theme-swatch').map(match => match[1])
         .find(body => /background-image/.test(body));

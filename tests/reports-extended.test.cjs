@@ -43,10 +43,6 @@ function loadExtended() {
         apartmentsPdfBtn: { disabled: true },
         apartmentsExportBtn: { disabled: true },
         apartmentsExcelBtn: { disabled: true },
-        reportHubSearch: { value: '' },
-        reportHubStats: { innerHTML: '' },
-        reportHubRecent: { innerHTML: '' },
-        reportHubEmpty: { classList: makeClassList() },
         printBuildingTitle: { textContent: '' },
         printBuildingMeta: { textContent: '' }
     };
@@ -146,7 +142,6 @@ function loadExtended() {
             buildApartmentPerformanceReport, generateApartmentsReport, getSelectedApartmentsSnapshot,
             invalidateApartmentsPreview, apartmentsCsvRows, renderApartmentsHtml, renderApartmentsPdfHtml,
             printApartmentsReport, exportApartmentsCsv, exportApartmentsExcel, exportApartmentsPdf,
-            renderReportHub, filterReportNav, setReportGroup,
             populateExtendedReportFilters, initExtendedReportsUI
         })`,
         sandbox,
@@ -342,37 +337,3 @@ test('CSV, Excel and PDF outputs use the previewed snapshot', async () => {
     assert.match(api.renderApartmentsPdfHtml(api.getSelectedApartmentsSnapshot()), /تقرير أداء الشقق/);
 });
 
-test('report hub renders monthly highlights, recent shortcuts and group filters', () => {
-    const { api, elements, sandbox } = loadExtended();
-    api.renderReportHub();
-    assert.match(elements.reportHubStats.innerHTML, /تحصيل الشهر/);
-    assert.match(elements.reportHubStats.innerHTML, /متأخرات الشهر/);
-    assert.match(elements.reportHubRecent.innerHTML, /ابدأ بفتح أي تقرير/);
-    sandbox.localStorage.setItem('manzil_recent_reports', JSON.stringify(['cashflow', 'apartments']));
-    api.renderReportHub();
-    assert.match(elements.reportHubRecent.innerHTML, /switchReportTab\('cashflow'\)/);
-    assert.match(elements.reportHubRecent.innerHTML, /التدفق النقدي/);
-
-    const navItems = [
-        { dataset: { reportNav: 'cashflow', reportGroup: 'financial', reportKeywords: 'تدفق' }, textContent: 'التدفق النقدي', classList: makeClassList() },
-        { dataset: { reportNav: 'arrears', reportGroup: 'units', reportKeywords: 'متأخرات' }, textContent: 'المتأخرات', classList: makeClassList() }
-    ];
-    sandbox.document.querySelectorAll = selector => selector === '[data-report-nav]' ? navItems : [];
-    elements.reportHubSearch.value = 'تدفق';
-    api.filterReportNav();
-    assert.equal(navItems[0].classList.contains('is-filtered-out'), false);
-    assert.equal(navItems[1].classList.contains('is-filtered-out'), true);
-    elements.reportHubSearch.value = '';
-    api.setReportGroup('units');
-    assert.equal(navItems[0].classList.contains('is-filtered-out'), true);
-    assert.equal(navItems[1].classList.contains('is-filtered-out'), false);
-});
-
-test('recent shortcuts ignore unknown or unsafe stored keys', () => {
-    const { api, elements, sandbox } = loadExtended();
-    sandbox.localStorage.setItem('manzil_recent_reports', JSON.stringify(['unknown', "');alert(1)//", 'cashflow']));
-    api.renderReportHub();
-    assert.match(elements.reportHubRecent.innerHTML, /switchReportTab\('cashflow'\)/);
-    assert.doesNotMatch(elements.reportHubRecent.innerHTML, /alert\(1\)/);
-    assert.doesNotMatch(elements.reportHubRecent.innerHTML, /switchReportTab\('unknown'\)/);
-});

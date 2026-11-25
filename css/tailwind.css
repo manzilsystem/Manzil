@@ -955,12 +955,6 @@
       background-color: color-mix(in oklab, var(--color-amber-600) 15%, transparent);
     }
   }
-  .bg-amber-600\/20 {
-    background-color: color-mix(in srgb, oklch(66.6% 0.179 58.318) 20%, transparent);
-    @supports (color: color-mix(in lab, red, red)) {
-      background-color: color-mix(in oklab, var(--color-amber-600) 20%, transparent);
-    }
-  }
   .bg-amber-800 {
     background-color: var(--color-amber-800);
   }
@@ -1598,14 +1592,6 @@
   @media (hover: hover) {
     .hover\:bg-amber-500:hover {
       background-color: var(--color-amber-500);
-    }
-    .hover\:bg-amber-600\/30:hover {
-      background-color: color-mix(in srgb, oklch(66.6% 0.179 58.318) 30%, transparent);
-    }
-    @supports (color: color-mix(in lab, red, red)) {
-      .hover\:bg-amber-600\/30:hover {
-        background-color: color-mix(in oklab, var(--color-amber-600) 30%, transparent);
-      }
     }
     .hover\:bg-emerald-500:hover {
       background-color: var(--color-emerald-500);

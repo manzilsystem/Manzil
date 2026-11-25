@@ -12,11 +12,11 @@ const app = fs.readFileSync(path.join(__dirname, '..', 'js', 'app.js'), 'utf8');
 const reportTab = html.slice(html.indexOf('id="tab-reports"'), html.indexOf('id="appCopyright"'));
 const reportConstants = reports.slice(0, reports.indexOf('const REPORT_TONE_CLASSES'));
 
-test('the reports tab opens on the icon grid with every panel closed', () => {
+test('the reports tab opens on the fixed index with every panel closed', () => {
     const panels = [...reportTab.matchAll(/<(?:div) id="(landlordReportPrint|periodReportCard|residentStatementCard|monthlyClosePanel|arrearsPanel|auditLogPanel)"([^>]*)>/g)];
     assert.deepEqual(panels.map(match => match[1]), ['landlordReportPrint', 'periodReportCard', 'residentStatementCard', 'monthlyClosePanel', 'arrearsPanel', 'auditLogPanel']);
     panels.forEach(match => assert.match(match[2], /hidden/, match[1] + ' must start hidden so the grid is the only thing on screen'));
-    assert.match(reportTab, /id="tab-reports" class="[^"]*" data-report-view="grid"/, 'the section remembers which view is open');
+    assert.match(reportTab, /id="tab-reports" class="[^"]*" data-report-view="index"/, 'the section remembers which view is open');
 });
 
 test('monthly close and arrears are panels with their controls preserved', () => {
@@ -24,15 +24,15 @@ test('monthly close and arrears are panels with their controls preserved', () =>
         assert.ok(reportTab.includes('id="' + id + '"'), 'missing ' + id);
     }
     assert.match(reportTab, /exportArrearsCSV\(\)/);
-    assert.doesNotMatch(reportTab, /<details\b(?!\s*class="[^"]*report-chart-fold)/, 'only chart folds may be disclosure panels');
+    assert.doesNotMatch(reportTab, /<details\b(?!\s*class="[^"]*(?:report-chart-fold|report-note-fold))/, 'only chart folds and the relocated template fold may be disclosure panels');
 });
 
-test('the reports nav offers one entry per panel and marks the active one', () => {
-    const entries = [...reportTab.matchAll(/data-report-nav="([a-zA-Z]+)" aria-controls="([a-zA-Z]+)"/g)];
-    assert.deepEqual(entries.map(match => match[1]), ['landlord', 'period', 'cashflow', 'expenses', 'adjustments', 'statement', 'apartments', 'arrears', 'monthlyClose', 'audit']);
-    assert.deepEqual(entries.map(match => match[2]), ['landlordReportPrint', 'periodReportCard', 'cashFlowPanel', 'expensesReportCard', 'adjustmentsReportCard', 'residentStatementCard', 'apartmentsPanel', 'arrearsPanel', 'monthlyClosePanel', 'auditLogPanel']);
+test('the reports index offers one quiet row per panel and marks the active one', () => {
+    const entries = [...reportTab.matchAll(/data-report-nav="([a-zA-Z]+)"[^>]*aria-controls="([a-zA-Z]+)"/g)];
+    assert.deepEqual(entries.map(match => match[1]), ['landlord', 'period', 'cashflow', 'expenses', 'adjustments', 'statement', 'apartments', 'monthlyClose', 'arrears', 'audit']);
+    assert.deepEqual(entries.map(match => match[2]), ['landlordReportPrint', 'periodReportCard', 'cashFlowPanel', 'expensesReportCard', 'adjustmentsReportCard', 'residentStatementCard', 'apartmentsPanel', 'monthlyClosePanel', 'arrearsPanel', 'auditLogPanel']);
     entries.forEach(match => assert.ok(reportTab.includes('id="' + match[2] + '"'), match[2] + ' has no panel'));
-    assert.equal((reportTab.match(/class="report-nav-item is-active[^"]*"/g) || []).length, 0, 'no card is open until the user taps one');
+    assert.equal((reportTab.match(/class="report-index-item is-active[^"]*"/g) || []).length, 0, 'no report is open until the user taps an index row');
     assert.equal((reportTab.match(/aria-current="page"/g) || []).length, 0, 'the active marker is set only while a report is open');
 });
 
@@ -91,30 +91,23 @@ test('landlord and statement previews share one summary model with their PDFs', 
     assert.equal((reports.match(/const summaryRows = renderPdfSummaryRows\(/g) || []).length, 2, 'both PDFs render from the shared summary helper');
 });
 
-test('reports section has a header, an icon nav, and unified actions', () => {
+test('reports section has a quiet header, fixed index, and unified actions', () => {
     assert.match(reportTab, /class="report-section-head no-print"/);
-    assert.match(reportTab, /class="report-nav no-print" aria-label="أنواع التقارير" onkeydown="handleReportTabKeydown\(event\)"/);
-    assert.doesNotMatch(reportTab, /report-jump-chip/, 'the chip row is gone now that the nav switches panels');
+    assert.match(reportTab, /class="report-index no-print" aria-label="فهرس التقارير" onkeydown="handleReportTabKeydown\(event\)"/);
+    assert.doesNotMatch(reportTab, /report-hub|report-command-strip|report-group-heading|report-nav-table|data-report-metric/, 'the crowded card atlas is gone');
     assert.match(reports, /function switchReportTab\(tab\)/);
     assert.match(reports, /function handleReportTabKeydown\(event\)/);
     assert.match(reports, /function jumpToReportPanel\(panelId\)/);
-    assert.equal((reportTab.match(/class="report-card-icon /g) || []).length, 10);
-    assert.equal((reportTab.match(/class="report-nav-icon" aria-hidden="true"/g) || []).length, 10);
-    assert.equal((reportTab.match(/class="report-nav-item[^"]*report-tone-[a-z]+"/g) || []).length, 10, 'each nav card carries its report tone so the accent, border and ring follow the tone system');
+    assert.equal((reportTab.match(/class="report-index-item report-tone-[a-z]+" data-report-nav=/g) || []).length, 10, 'each row carries its report tone');
+    assert.equal((reportTab.match(/class="report-index-number"/g) || []).length, 10, 'ten fixed sequence numbers');
+    assert.equal((reportTab.match(/class="report-index-copy"/g) || []).length, 10, 'one label and one description per row');
+    assert.equal((reportTab.match(/class="report-index-state" data-report-freshness=/g) || []).length, 10, 'one simple status per row');
     assert.match(reportTab, /class="report-actions report-actions-4/);
     assert.match(reportTab, /class="report-toolbar no-print"/);
     assert.match(reportTab, /class="report-preview text-xs/);
-    assert.match(css, /\.report-nav \{ display: grid; grid-template-columns: repeat\(2, minmax\(0, 1fr\)/, 'two columns on mobile');
-    assert.match(css, /@media \(min-width: 640px\) \{ \.report-nav \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)/, 'three columns from 640px');
-    assert.doesNotMatch(css, /\.report-nav \{ grid-template-columns: repeat\(6/, 'the six-across strip is gone so each card has room for its copy');
-    assert.match(css, /@media \(max-width: 639\.98px\) \{[^@]*\.report-nav-item \{ flex-direction: column/, 'phone tiles stack icon over copy so two columns still fit the Arabic labels');
-    assert.match(css, /\.report-nav-item \{[^}]*min-height: 4\.8rem/, 'cards stay compact enough to leave the panel reachable on a phone');
-    assert.match(css, /\.report-nav-item::before \{/, 'the tone glow behind each card');
-    assert.match(css, /\.report-nav-item:hover \{[^}]*transform: translateY\(-2px\)/);
-    assert.match(css, /\.report-nav-item\.is-active \{[^}]*box-shadow: 0 0 0 2px color-mix\(in srgb, var\(--report-tone, var\(--accent-color\)\) 28%, transparent\)/, 'the active card is ringed in its own tone');
-    assert.match(css, /\.report-nav-item\.is-ready::after \{ background: var\(--state-success\)/, 'a ready preview stays green whatever the report tone is');
-    assert.match(css, /\.report-nav-item\.is-stale::after \{ background: var\(--state-warning\)/, 'a stale preview stays amber whatever the report tone is');
-    assert.match(css, /@media \(max-width: 639\.98px\) \{[\s\S]*?\.report-toolbar > \.report-field \{ flex: 0 0 auto; \}/, 'stacked fields must drop the row flex-basis, which made every toolbar 12rem taller on phones');
+    assert.match(css, /\.report-index \{[^}]*position: sticky;/, 'the index stays fixed beside the stage');
+    assert.match(css, /\.report-index-item \{[^}]*grid-template-columns: auto minmax\(0, 1fr\) auto/, 'number, copy and status only');
+    assert.match(css, /@media \(max-width: 900px\) \{[\s\S]*?\.report-index \{[^}]*flex-direction: row/, 'phone rows become a calm horizontal strip');
     assert.match(css, /\.report-action:disabled \{/);
     assert.match(css, /\.report-action-primary \{/);
     assert.match(css, /\.report-preview:has\(> \.report-preview-empty:only-child\) \{/);
@@ -123,11 +116,11 @@ test('reports section has a header, an icon nav, and unified actions', () => {
     assert.match(css, /\.audit-log-row::before/);
 });
 
-test('tapping a card opens that report full page and back returns to the grid', () => {
+test('tapping an index row opens one report stage and back returns to the index', () => {
     assert.match(reportTab, /id="reportViewBar" class="report-view-bar no-print"/);
-    assert.match(reportTab, /class="report-view-back" onclick="showReportGrid\(\)" aria-label="رجوع إلى شبكة التقارير"/);
+    assert.match(reportTab, /class="report-view-back" onclick="showReportIndex\(\)" aria-label="رجوع إلى فهرس التقارير"/);
     ['reportViewIcon', 'reportViewTitle', 'reportViewMeta'].forEach(id => assert.ok(reportTab.includes('id="' + id + '"'), 'missing ' + id));
-    assert.match(reports, /function showReportGrid\(\)/);
+    assert.match(reports, /function showReportIndex\(\)/);
     assert.match(reports, /function resetReportView\(\)/);
     assert.match(reports, /function renderReportViewBar\(tab\)/);
     assert.match(reports, /function handleReportViewKeydown\(event\)/);
@@ -135,15 +128,18 @@ test('tapping a card opens that report full page and back returns to the grid', 
     assert.match(reports, /if \(getReportView\(\) !== 'panel'\) return false;/, 'back only makes sense while a report is open');
     assert.match(reports, /if \(event\.key !== 'Escape' \|\| getReportView\(\) !== 'panel'\) return;/);
     assert.match(reports, /typeof getTopmostOpenModal === 'function' && getTopmostOpenModal\(\)/, 'an open modal keeps its own Escape');
-    assert.match(reports, /item\.querySelector\('\.report-nav-copy b'\)\?\.textContent/, 'the bar title is read from the card so the two never drift apart');
+    assert.match(reports, /item\.querySelector\('\.report-index-copy b'\)\?\.textContent/, 'the bar title is read from the index row so the two never drift apart');
     assert.match(app, /document\.addEventListener\('keydown', handleReportViewKeydown\)/);
     assert.match(app, /const reportsOpen = !document\.getElementById\('tab-reports'\)\?\.classList\.contains\('hidden'\);/, 'read before the loop unhides the tab');
-    assert.match(app, /if \(tab === 'reports' && !reportsOpen && typeof resetReportView === 'function'\) resetReportView\(\)/, 'entering the tab lands on the grid, but re-entering it from a print call keeps the open report');
+    assert.match(app, /if \(tab === 'reports' && !reportsOpen && typeof resetReportView === 'function'\) resetReportView\(\)/, 'entering the tab lands on the index, but re-entering it from a print call keeps the open report');
     assert.match(reports, /function resetReportView\(\) \{\s*closeReportPanel\(\{ focusCard: false \}\);/, 'resetting the view must not steal focus from the caller');
-    assert.doesNotMatch(reports, /switchReportTab\(next\.dataset\.reportNav\)/, 'arrow keys move focus between cards instead of opening reports');
-    assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-section-head \{ display: none; \}/, 'the grid leaves the screen while a report is open');
+    assert.doesNotMatch(reports, /showReportGrid/, 'the old grid label has no callers');
+    assert.doesNotMatch(reports, /switchReportTab\(next\.dataset\.reportNav\)/, 'arrow keys move focus between rows instead of opening reports');
+    assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-stage-home \{ display: none; \}/, 'the empty stage gives way to the single report');
+    assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-section-head \{ display: none; \}/, 'the header leaves the screen while a report is open');
     assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-view-bar \{ display: flex; \}/);
-    assert.match(css, /\.report-view-bar \{[\s\S]*?scroll-margin-top: 6\.5rem;/, 'the sticky header must not swallow the back bar');
+    assert.match(css, /#tab-reports\[data-report-view="panel"\] \{[^}]*grid-template-areas: "head head" "index bar" "index panel"/, 'the back bar and the open panel stack instead of overlapping');
+    assert.match(css, /\.report-view-bar \{[\s\S]*?scroll-margin-top: 8rem;/, 'the sticky header must not swallow the back bar');
 });
 
 test('the nav marker follows the same freshness gate as the output buttons', () => {
@@ -276,41 +272,23 @@ test('period report rolls the monthly landlord figures across a range with gated
     assert.doesNotMatch(css, /\.no-print, nav, header,/);
 });
 
-test('report hub offers live highlights, search, groups and recently used reports', () => {
+test('the reports index is fixed, quiet and free of hub or schedule layers', () => {
     const template = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.template.html'), 'utf8');
     const extended = fs.readFileSync(path.join(__dirname, '..', 'js', 'reports', 'extended', 'reports-extended.js'), 'utf8');
-    ['reportHub', 'reportHubSearch', 'reportHubStats', 'reportHubRecent', 'reportHubEmpty'].forEach(id =>
-        assert.ok(reportTab.includes('id="' + id + '"'), 'missing hub element ' + id));
-    ['all', 'financial', 'units', 'review'].forEach(group =>
-        assert.ok(reportTab.includes('data-report-group="' + group + '"'), 'missing group chip ' + group));
-    assert.match(reportTab, /oninput="filterReportNav\(\)"/);
-    assert.match(reportTab, /onclick="setReportGroup\('financial'\)"/);
-    assert.match(css, /\.report-hub \{ display: flex;/);
-    assert.match(css, /\.report-nav-item\.is-filtered-out \{ display: none; \}/);
-    assert.match(extended, /function renderReportHub\(\)/);
-    assert.match(extended, /function filterReportNav\(\)/);
-    assert.match(extended, /function setReportGroup\(group\)/);
-    assert.match(extended, /const EXTENDED_RECENT_STORAGE_KEY = 'manzil_recent_reports'/);
-    assert.match(render, /if \(typeof renderReportHub === 'function'\) renderReportHub\(\);/);
+    assert.doesNotMatch(reportTab, /reportHub|report-hub|report-command-strip|report-group-chip|data-report-shortcut/);
+    assert.doesNotMatch(reportTab, /scheduledReports|scheduleForm|loadScheduledReports|reportScheduledCount/);
+    assert.match(reportTab, /class="report-index no-print" aria-label="فهرس التقارير"/);
+    assert.equal((reportTab.match(/data-report-glyph="/g) || []).length, 10, 'the fixed sequence is the only watermark');
+    assert.match(css, /#tab-reports \{[^}]*grid-template-areas: "head head" "index stage"/);
+    assert.doesNotMatch(extended, /renderReportHub|filterReportNav|setReportGroup|recordRecentReport/);
+    assert.doesNotMatch(render, /renderReportHub/);
     assert.match(template, /<script src="js\/reports\/extended\/reports-extended\.js"><\/script>/);
-    reportTab.match(/data-report-nav="[a-zA-Z]+"/g).forEach(attr => {
-        const key = attr.replace('data-report-nav="', '').replace('"', '');
-        const card = reportTab.slice(reportTab.indexOf(attr));
-        assert.match(card.slice(0, 400), /data-report-group="(financial|units|review)"/, key + ' must belong to a group');
-    });
+    assert.doesNotMatch(template, /scheduled-reports\.js/);
 });
 
-test('the report workspace adds shortcuts, guided steps and a live output status', () => {
-    const extended = fs.readFileSync(path.join(__dirname, '..', 'js', 'reports', 'extended', 'reports-extended.js'), 'utf8');
-
-    assert.match(reportTab, /class="report-command-strip no-print"/);
-    ['landlord', 'statement', 'arrears'].forEach(key =>
-        assert.match(reportTab, new RegExp('data-report-shortcut="' + key + '"[^>]*onclick="switchReportTab\\(\'' + key + '\'\\)"'), key + ' shortcut must open its report'));
-    assert.match(extended, /\[data-report-shortcut\]/);
-    assert.match(extended, /nav\.dataset\.reportShortcut/);
-
+test('the single report stage keeps guided steps and a live output status', () => {
     ['filters', 'preview', 'export'].forEach(step =>
-        assert.match(reportTab, new RegExp('data-report-step="' + step + '"[^>]*onclick="focusReportStep\\(\'' + step + '\'\\)"'), step + ' step is wired'));
+        assert.match(reportTab, new RegExp(String.raw`data-report-step="${step}"[^>]*onclick="focusReportStep\('${step}'\)"`), step + ' step is wired'));
     assert.match(reportTab, /id="reportViewStatus"[^>]*aria-live="polite"/);
     assert.match(reports, /function renderReportViewStatus\(\)/);
     assert.match(reports, /renderReportViewStatus\(\);/);
@@ -321,7 +299,6 @@ test('the report workspace adds shortcuts, guided steps and a live output status
     assert.match(reports, /window\.focusReportStep = focusReportStep/);
     assert.match(reports, /REPORT_OUTPUT_BUTTON_IDS\[tab\]/, 'the status reads the same output gate as the print and export buttons');
     assert.match(css, /\.report-view-bar::after \{[\s\S]*?content: var\(--report-glyph/);
-    assert.match(css, /@media screen \{[\s\S]*?#tab-reports\[data-report-view="panel"\] #scheduledReportsSection/, 'report tools must not linger above an open report');
     assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-panel > \.report-card-head \{ display: none; \}/, 'a panel must not repeat its title under the view bar');
     assert.match(css, /\.report-view-status\.is-ready::before \{ background: var\(--state-success\)/);
     assert.match(css, /\.report-view-status\.is-stale::before \{ background: var\(--state-warning\)/);
@@ -398,32 +375,25 @@ test('report previews use a calm rhythm and lined-up, readable tables', () => {
     assert.match(reports, /function reportPdfDocumentOpen\(\) \{[\s\S]*?class="manzil-pdf"[\s\S]*?REPORT_PDF_DOCUMENT_STYLE/);
 });
 
-test('the single card grid is a live table atlas with a quality check', () => {
-    const extended = fs.readFileSync(path.join(__dirname, '..', 'js', 'reports', 'extended', 'reports-extended.js'), 'utf8');
-    assert.match(reportTab, /id="tab-reports" class="[^"]*" data-report-view="grid"/);
-    assert.doesNotMatch(reportTab, /data-report-lens|report-lens-fab|reportLens(Map|Chat|Ledger)/);
+test('the single quiet index has no cards, live figures or schedules', () => {
+    assert.match(reportTab, /id="tab-reports" class="[^"]*" data-report-view="index"/);
+    assert.doesNotMatch(reportTab, /data-report-lens|report-lens-fab|reportLens\(Map|Chat|Ledger\)/);
     assert.match(reportTab, /class="report-quality-bar no-print"/);
-    ['reportQualityNote', 'reportQualityMeter', 'reportScheduledCount'].forEach(id =>
+    ['reportQualityNote', 'reportQualityMeter'].forEach(id =>
         assert.ok(reportTab.includes('id="' + id + '"'), 'missing quality surface ' + id));
     assert.match(reportTab, /onclick="runReportQualityCheck\(\)"/);
-    assert.match(reportTab, /onclick="toggleScheduledReportsSection\(\)"/);
-    ['financial', 'units', 'review'].forEach(group =>
-        assert.match(reportTab, new RegExp('data-report-group-heading="' + group + '"')));
-    assert.equal((reportTab.match(/class="report-group-heading"/g) || []).length, 3, 'cards are organised into three groups');
-    assert.equal((reportTab.match(/class="report-nav-table"/g) || []).length, 10, 'every card is a miniature table');
-    assert.equal((reportTab.match(/data-report-metric="[a-zA-Z]+"/g) || []).length, 30, 'three live figures per report');
+    assert.match(reportTab, /class="report-stage-home no-print"/);
+    assert.match(reportTab, /id="periodReportTemplates"/);
+    assert.match(reportTab, /id="templateNameInput"/);
+    assert.doesNotMatch(reportTab, /data-report-metric|report-nav-table|reportScheduledCount|scheduledReportsSection/);
     assert.equal((reportTab.match(/data-report-freshness="[a-zA-Z]+"/g) || []).length, 10);
-
-    ['getReportCardMetricValues', 'renderReportCardMetrics', 'runReportQualityCheck'].forEach(name =>
+    ['hasReportMetricHelpers', 'runReportQualityCheck', 'initReportTemplatesUI'].forEach(name =>
         assert.match(reports, new RegExp('function ' + name + '\\('), 'missing ' + name));
-    assert.match(reports, /renderReportCardMetrics\(\);/);
     assert.match(reports, /runReportQualityCheck\(\);/);
     assert.match(reports, /window\.runReportQualityCheck = runReportQualityCheck/);
-    assert.match(extended, /data-report-group-heading/);
-
+    assert.doesNotMatch(reports, /initScheduledReportsUI|openScheduleForm|saveNewSchedule|toggleScheduleLog/);
     assert.match(css, /\.report-quality-bar \{/);
-    assert.match(css, /\.report-group-heading \{/);
-    assert.match(css, /\.report-nav-table \{/);
-    assert.match(css, /\.report-nav-metric b \{[^}]*font-variant-numeric: tabular-nums/);
+    assert.match(css, /\.report-index \{/);
+    assert.match(css, /\.report-stage-home \{/);
     assert.match(css, /body\.print-landlord #tab-reports > :not\(#landlordReportPrint\) \{ display: none !important; \}/, 'print isolation is unchanged');
 });

@@ -62,7 +62,6 @@ function renderAll() {
     if (typeof invalidateExpensesReportIfStale === 'function') invalidateExpensesReportIfStale();
     if (typeof invalidateAdjustmentsReportIfStale === 'function') invalidateAdjustmentsReportIfStale();
     if (typeof invalidateExtendedReportsIfStale === 'function') invalidateExtendedReportsIfStale();
-    if (typeof renderReportHub === 'function') renderReportHub();
     syncReportNavStatus();
     renderCashbox();
     if (typeof renderManagerNotifications === 'function') renderManagerNotifications();

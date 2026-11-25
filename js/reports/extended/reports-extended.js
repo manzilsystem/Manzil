@@ -1,14 +1,10 @@
 // @ts-check
 /**
  * Extended reports — Manzil
- * يضيف لوحة مركز التقارير وتقريرين جديدين (التدفق النقدي وأداء الشقق)
- * فوق الأساس المشترك في js/reports.js بدون تعديل منطق التقارير القائمة.
+ * يضيف تقريري التدفق النقدي وأداء الشقق فوق الأساس المشترك في js/reports.js.
  * يُحمّل بعد js/reports.js حتى يرث كل الدوال المشتركة.
  */
 
-const EXTENDED_RECENT_STORAGE_KEY = 'manzil_recent_reports';
-const EXTENDED_RECENT_LIMIT = 4;
-let reportGroupFilter = 'all';
 let cashFlowSnapshot = null;
 let cashFlowSignature = '';
 let apartmentsSnapshot = null;
@@ -730,116 +726,8 @@ async function exportApartmentsPdf() {
 }
 
 /* ============================================================
-   مركز التقارير: بطاقات ملخص، بحث، تصنيف، وتقارير recently used
+   إبطال معاينات التقارير المشتقة عند تغيّر البيانات
    ============================================================ */
-
-function getRecentReportKeys() {
-    try {
-        const raw = localStorage.getItem(EXTENDED_RECENT_STORAGE_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
-        // لا نثق بالقيمة المخزّنة؛ قد تكون قديمة أو معدّلة. فقط مفاتيح التقارير
-        // المعروفة تصل إلى معالج onclick، مما يمنع إدخال سكربت أو زرًا ميتًا.
-        const known = typeof REPORT_PANEL_IDS !== 'undefined' ? REPORT_PANEL_IDS : {};
-        return Array.isArray(parsed)
-            ? parsed.filter(key => typeof key === 'string' && Object.prototype.hasOwnProperty.call(known, key))
-                .slice(0, EXTENDED_RECENT_LIMIT)
-            : [];
-    } catch (error) {
-        return [];
-    }
-}
-
-function recordRecentReport(tab) {
-    if (!tab || typeof REPORT_PANEL_IDS === 'undefined' || !REPORT_PANEL_IDS[tab]) return;
-    try {
-        const keys = [tab, ...getRecentReportKeys().filter(key => key !== tab)].slice(0, EXTENDED_RECENT_LIMIT);
-        localStorage.setItem(EXTENDED_RECENT_STORAGE_KEY, JSON.stringify(keys));
-        const container = document.getElementById('reportHubRecent');
-        if (container) renderRecentReports(container);
-    } catch (error) {
-        // التخزين المحلي اختياري؛ لا يوقف فتح التقرير عند تعطله.
-    }
-}
-
-function renderRecentReports(container) {
-    const keys = getRecentReportKeys();
-    if (!keys.length) {
-        container.innerHTML = '<span class="report-hub-recent-label">ابدأ بفتح أي تقرير ليظهر هنا للوصول السريع.</span>';
-        return;
-    }
-    container.innerHTML = '<span class="report-hub-recent-label">آخر التقارير:</span>' + keys.map(key => {
-        const item = document.querySelector('[data-report-nav="' + key + '"]');
-        const label = item?.querySelector('.report-nav-copy b')?.textContent || key;
-        return '<button type="button" class="report-recent-chip" data-report-recent="' + esc(key) + '" ' +
-            'onclick="switchReportTab(\'' + key + '\')">' +
-            '<i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>' + esc(label) + '</button>';
-    }).join('');
-}
-
-function renderReportHub() {
-    const stats = document.getElementById('reportHubStats');
-    if (stats) {
-        const month = getCurrentMonth();
-        const monthKey = monthLabelToKey(month);
-        const income = (Array.isArray(state.income) ? state.income : [])
-            .filter(item => item.month === month)
-            .reduce((sum, item) => sum + toCents(item.amount), 0);
-        const expenses = (Array.isArray(state.expenses) ? state.expenses : [])
-            .filter(item => item.month === month)
-            .reduce((sum, item) => sum + toCents(item.amount), 0);
-        const outstanding = (Array.isArray(state.residents) ? state.residents : [])
-            .filter(resident => !monthKey || isResidentActiveInMonth(resident, monthKey))
-            .reduce((sum, resident) => sum + toCents(getMonthOutstanding(resident, month)), 0);
-        const tile = (label, cents, tone = '') =>
-            '<div class="hub-stat"><span class="hub-stat-label">' + esc(label) + '</span>' +
-            '<b class="hub-stat-value' + (tone ? ' is-' + tone : '') + '">' + fmtMoney(cents / 100) + '</b>' +
-            '<span class="hub-stat-note">' + esc(month) + '</span></div>';
-        stats.innerHTML = tile('تحصيل الشهر', income, 'positive') +
-            tile('مصروف الشهر', expenses, 'negative') +
-            tile('صافي الشهر', income - expenses, income - expenses >= 0 ? 'positive' : 'negative') +
-            tile('متأخرات الشهر', outstanding);
-    }
-    const recent = document.getElementById('reportHubRecent');
-    if (recent) renderRecentReports(recent);
-    filterReportNav();
-}
-
-function setReportGroup(group) {
-    const requested = ['all', 'financial', 'units', 'review'].includes(group) ? group : 'all';
-    reportGroupFilter = requested;
-    if (typeof document === 'undefined' || !document.querySelectorAll) return;
-    document.querySelectorAll('[data-report-group].report-group-chip').forEach(chip => {
-        const active = chip.getAttribute('data-report-group') === requested;
-        chip.classList.toggle('is-active', active);
-        chip.setAttribute('aria-pressed', active ? 'true' : 'false');
-    });
-    filterReportNav();
-}
-
-function filterReportNav() {
-    if (typeof document === 'undefined' || !document.querySelectorAll) return;
-    const query = extendedValue('reportHubSearch').trim().toLocaleLowerCase('ar');
-    let visible = 0;
-    document.querySelectorAll('[data-report-nav]').forEach(rawItem => {
-        const item = /** @type {HTMLElement} */ (rawItem);
-        const haystack = [item.textContent || '', item.dataset.reportKeywords || ''].join(' ').toLocaleLowerCase('ar');
-        const matchesGroup = reportGroupFilter === 'all' || item.dataset.reportGroup === reportGroupFilter;
-        const matchesQuery = !query || haystack.includes(query);
-        const show = matchesGroup && matchesQuery;
-        item.classList.toggle('is-filtered-out', !show);
-        if (show) visible += 1;
-    });
-    document.querySelectorAll('[data-report-group-heading]').forEach(rawHeading => {
-        const heading = /** @type {HTMLElement} */ (rawHeading);
-        const group = heading.dataset.reportGroupHeading;
-        const groupVisible = [...document.querySelectorAll('[data-report-nav][data-report-group="' + group + '"]')]
-            .some(item => !item.classList.contains('is-filtered-out'));
-        heading.classList.toggle('is-filtered-out', !groupVisible);
-    });
-    const empty = document.getElementById('reportHubEmpty');
-    if (empty) empty.classList.toggle('hidden', visible > 0);
-    if (typeof syncReportNavTabIndex === 'function') syncReportNavTabIndex();
-}
 
 function invalidateExtendedReportsIfStale() {
     invalidateCashFlowIfStale();
@@ -848,14 +736,6 @@ function invalidateExtendedReportsIfStale() {
 
 function initExtendedReportsUI() {
     populateExtendedReportFilters();
-    renderReportHub();
-    if (document.addEventListener) {
-        document.addEventListener('click', event => {
-            const target = /** @type {Element | null} */ (event.target);
-            const nav = /** @type {HTMLElement | null} */ (target?.closest?.('[data-report-nav], [data-report-recent], [data-report-shortcut]'));
-            if (nav) recordRecentReport(nav.dataset.reportNav || nav.dataset.reportRecent || nav.dataset.reportShortcut);
-        });
-    }
 }
 
 function populateExtendedReportFilters(months, current = getCurrentMonth()) {
@@ -904,9 +784,6 @@ const EXTENDED_REPORT_API = {
     getApartmentsSignature,
     renderCashFlowHtml,
     renderApartmentsHtml,
-    renderReportHub,
-    filterReportNav,
-    setReportGroup,
     invalidateExtendedReportsIfStale,
     populateExtendedReportFilters
 };
