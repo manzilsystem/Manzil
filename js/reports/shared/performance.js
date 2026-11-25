@@ -131,52 +131,6 @@ function isChartJsReady() {
 }
 
 // ============================================
-// تخزين مؤقت للدوال الحسابية الثقيلة
-// يتم تطبيقه على buildLandlordReportModel و buildPeriodReport إلخ
-// ============================================
-
-const REPORT_MODEL_CACHE = new Map();
-
-/**
- * الحصول على نموذج تقرير من التخزين المؤقت أو حساب وتخزينه
- * @param {string} cacheKey
- * @param {Function} builder - دالة بناء النموذج
- * @param {Function} invalidateChecker - دالة تحقق من صحة التخزين المؤقت
- * @returns {Object|null}
- */
-function getCachedReportModel(cacheKey, builder, invalidateChecker) {
-  if (!REPORT_CALCULATION_CACHE.enabled) return builder();
-
-  const cached = REPORT_MODEL_CACHE.get(cacheKey);
-  if (cached && (!invalidateChecker || invalidateChecker(cached))) {
-    return cached.model;
-  }
-
-  const model = builder();
-  if (model) {
-    REPORT_MODEL_CACHE.set(cacheKey, {
-      model,
-      timestamp: Date.now(),
-      invalidateChecker
-    });
-    // تحديد حجم التخزين المؤقت
-    if (REPORT_MODEL_CACHE.size > REPORT_CALCULATION_CACHE.MAX_SIZE) {
-      const firstKey = REPORT_MODEL_CACHE.keys().next().value;
-      REPORT_MODEL_CACHE.delete(firstKey);
-    }
-  }
-
-  return model;
-}
-
-/**
- * مسح تخزين نماذج التقارير عند تغيير البيانات
- */
-function clearReportModelCache() {
-  REPORT_MODEL_CACHE.clear();
-}
-
-// ============================================
 // تصدير عالمي (Global Export)
 // ============================================
 if (typeof window !== 'undefined') {
@@ -184,7 +138,5 @@ if (typeof window !== 'undefined') {
   window.ensureChartJs = ensureChartJs;
   window.isChartJsReady = isChartJsReady;
   window.clearAllReportCaches = clearAllReportCaches;
-  window.clearReportModelCache = clearReportModelCache;
-  window.getCachedReportModel = getCachedReportModel;
   window.REPORT_CALCULATION_CACHE = REPORT_CALCULATION_CACHE;
 }
