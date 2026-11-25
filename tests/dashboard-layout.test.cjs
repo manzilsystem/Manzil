@@ -25,3 +25,9 @@ test('dashboard announcements and secondary analytics are collapsible', () => {
 test('dashboard layout refreshes the installed app cache', () => {
     assert.match(serviceWorker, /const CACHE_NAME = 'manzil-[0-9a-f]{10}';/);
 });
+
+test('dashboard KPI cards share one responsive row with the treasury balance', () => {
+    const dashboard = html.slice(html.indexOf('id="tab-dashboard"'), html.indexOf('<!-- INCOME -->'));
+    assert.match(dashboard, /class="dashboard-kpis grid grid-cols-2 lg:grid-cols-3[^"]*"[\s\S]*?id="totalIncomeDisplay"[\s\S]*?id="totalExpenseDisplay"[\s\S]*?class="[^"]*dashboard-balance[^"]*"[\s\S]*?id="netBalanceDisplay"/);
+    assert.equal((dashboard.match(/لوحة إعلانات العمارة/g) || []).length, 1);
+});
