@@ -5279,3 +5279,10 @@ body.owner-mode .owner-theme-control {
     .assistant-fab.is-compact:not(.is-dragged) { transform: translateX(55%) scale(.8); opacity: var(--opacity-60); }
 }
 @media (prefers-reduced-motion: reduce) { .assistant-fab.is-compact { transition: none; } }
+
+/* Phones: four-column report tables fit the card without cutting digits */
+@media screen and (max-width: 480px) {
+    .sheet-table th, .sheet-table td { padding: var(--space-50) var(--space-35); }
+    .sheet-table thead th { font-size: var(--font-68); }
+    .sheet-table { font-size: var(--font-72); }
+}

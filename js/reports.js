@@ -3721,7 +3721,7 @@ function reportPdfFooter(generatedLabel) {
     return '<footer style="' + REPORT_PDF_FOOTER_STYLE + '">Manzil — ' + esc(generatedLabel) + '</footer>';
 }
 
-const REPORT_PDF_SECTION_STYLE = 'margin-bottom:18px';
+const REPORT_PDF_SECTION_STYLE = 'margin-bottom:10px';
 const REPORT_PDF_SECTION_TITLE_STYLE = 'font-size:14px;margin:0 0 8px';
 const REPORT_PDF_TABLE_STYLE = 'width:100%;border-collapse:collapse;font-size:10px';
 const REPORT_PDF_TABLE_HEAD_STYLE = 'background:' + REPORT_PDF_PALETTE.hairline;
