@@ -329,6 +329,6 @@ test('period apartment filter hides dues when combined with a fund and scopes it
     api.exportPeriodReportCsv();
     assert.equal(calls.download.filename, 'manzil_period_2024-01_2024-02_apt_10.csv');
     assert.match(calls.download.content, /"الشقة","شقة 10 · سعيد"/);
-    assert.match(calls.download.content, /"يناير 2024","200","50","150","25","15","65"/);
+    assert.match(calls.download.content, /"يناير 2024","200","50","150","25","30","15","65"/);
     assert.doesNotMatch(calls.download.content, /أحمد/);
 });
