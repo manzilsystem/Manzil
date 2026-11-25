@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const test = require('node:test');
 
 const source = fs.readFileSync(path.join(__dirname, '..', 'js', 'render.js'), 'utf8');
-const start = source.indexOf('function renderResidentsGrid()');
+const start = source.indexOf('function renderResidentsGrid(');
 const end = source.indexOf(String.fromCharCode(10) + 'function clearResidentFilters()', start);
 assert.ok(start >= 0 && end > start, 'renderResidentsGrid source must exist');
 const renderResidentsGridSource = source.slice(start, end);
@@ -32,7 +32,7 @@ function renderCard({ paid, hasReceipt = true, priorDebt = !paid }) {
         esc: value => String(value ?? ''),
         fmtNum: value => String(value ?? 0)
     };
-    vm.runInNewContext(renderResidentsGridSource + String.fromCharCode(10) + 'renderResidentsGrid();', sandbox, { filename: 'js/render.js' });
+    vm.runInNewContext('const RESIDENT_LIST_PAGE_SIZE = 6; let residentListVisibleItems = RESIDENT_LIST_PAGE_SIZE;' + String.fromCharCode(10) + renderResidentsGridSource + String.fromCharCode(10) + 'renderResidentsGrid();', sandbox, { filename: 'js/render.js' });
     return elements.residentsGrid.innerHTML;
 }
 

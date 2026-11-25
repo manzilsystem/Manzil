@@ -5463,4 +5463,12 @@ body.owner-mode .owner-theme-control {
 }
 @media screen and (max-width: 639.98px) {
     #expenseCardsList .app-card { padding: var(--space-60); }
+/* Apartments: summary row, compact cards on phones */
+#residentsSummary .income-stat { display: flex; flex-direction: column; gap: var(--space-20); padding: var(--space-65); border: 1px solid var(--border-color); border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-input) 55%, transparent); }
+#residentsSummary .income-stat-label { color: var(--text-muted); font-size: var(--font-70); font-weight: var(--weight-700); }
+#residentsSummary .income-stat-value { color: var(--text-main); font-size: var(--font-105); font-weight: var(--weight-800); overflow-wrap: anywhere; }
+#residentsSummary .resident-arrears-total { color: var(--state-danger); }
+@media screen and (max-width: 639.98px) {
+    #residentsGrid > .app-card { padding: var(--space-65); gap: var(--space-50); }
+    #residentsGrid > .app-card > .grid.grid-cols-2 > .app-input { display: flex; align-items: center; justify-content: space-between; gap: var(--space-40); padding: var(--space-35) var(--space-50); }
 }

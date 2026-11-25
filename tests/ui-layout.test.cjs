@@ -83,4 +83,11 @@ test('expenses list folds its filters and pages the list like collections', () =
     assert.match(partial, /id="expenseResultsSummary"/);
     assert.match(render, /EXPENSE_LIST_PAGE_SIZE = 8/);
     assert.match(render, /renderExpenseTable\(\{ more: true \}\)/);
+test('apartments list folds its filters and pages the list', () => {
+    const partial = fs.readFileSync('src/partials/main-tabs.html', 'utf8');
+    assert.match(partial, /id="residentFiltersToggle"[^>]*aria-expanded="false"[^>]*aria-controls="residentFiltersMore"/);
+    assert.match(partial, /id="residentFiltersMore"[^>]*\bhidden\b/);
+    assert.match(partial, /id="residentsSummary"/);
+    assert.match(render, /RESIDENT_LIST_PAGE_SIZE = 6/);
+    assert.match(render, /renderResidentsGrid\(\{ more: true \}\)/);
 });
