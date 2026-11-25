@@ -659,8 +659,23 @@ function renderExpenseTable(options) {
         </div>`).join('') + moreButton;
 }
 
-function renderResidentsGrid() {
+function toggleResidentFilters() {
+    const panel = document.getElementById('residentFiltersMore');
+    const toggle = document.getElementById('residentFiltersToggle');
+    if (!panel || !toggle) return;
+    const open = panel.classList.toggle('hidden') === false;
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.classList.toggle('is-open', open);
+}
+
+const RESIDENT_LIST_PAGE_SIZE = 6;
+let residentListVisibleItems = RESIDENT_LIST_PAGE_SIZE;
+
+function renderResidentsGrid(options) {
     const c = document.getElementById('residentsGrid');
+    residentListVisibleItems = options && options.more === true
+        ? residentListVisibleItems + RESIDENT_LIST_PAGE_SIZE
+        : RESIDENT_LIST_PAGE_SIZE;
     const s = (/** @type {HTMLInputElement} */ (document.getElementById('searchResidentsInput'))?.value||'').toLowerCase();
     const statusFilter = /** @type {HTMLSelectElement} */ (document.getElementById('residentStatusFilter'))?.value || 'all';
     const sortBy = /** @type {HTMLSelectElement} */ (document.getElementById('residentSort'))?.value || 'apartment';
@@ -697,8 +712,24 @@ function renderResidentsGrid() {
         </div>`;
         return;
     }
+    const filterBadge = document.getElementById('residentFiltersActiveCount');
+    if (filterBadge && filterBadge.classList) {
+        const activeFilters = (statusFilter !== 'all' ? 1 : 0) + (sortBy !== 'apartment' ? 1 : 0);
+        filterBadge.textContent = activeFilters ? `(${fmtNum(activeFilters)})` : '';
+        filterBadge.classList.toggle('hidden', !activeFilters);
+    }
+    const summaryBox = document.getElementById('residentsSummary');
+    if (summaryBox && summaryBox.classList) {
+        const arrearsTotal = list.reduce((sum, item) => sum + (Number(item.debt.totalDebt) || 0), 0);
+        summaryBox.classList.toggle('hidden', false);
+        summaryBox.innerHTML = `
+            <div class="income-stat"><p class="income-stat-label">عدد الشقق</p><p class="income-stat-value">${fmtNum(list.length)}</p></div>
+            <div class="income-stat"><p class="income-stat-label">إجمالي المتأخرات</p><p class="income-stat-value ${arrearsTotal > 0 ? 'resident-arrears-total' : ''}">${fmtNum(arrearsTotal)} ج.م</p></div>`;
+    }
+    const visibleList = list.slice(0, residentListVisibleItems);
+    const remainingList = list.length - visibleList.length;
     const cur = getCurrentMonth();
-    c.innerHTML = list.map(item => {
+    c.innerHTML = visibleList.map(item => {
         const r = item.r;
         const d = item.debt;
         const outstanding = getMonthOutstanding(r, cur);
@@ -736,7 +767,7 @@ function renderResidentsGrid() {
                     : `<button onclick="sendWhatsAppReminder('${r.id}')" aria-label="إرسال تذكير واتساب إلى ${esc(r.name)}" title="إرسال تذكير بالمتأخرات" class="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-xl text-xs font-bold"><i class="fa-brands fa-whatsapp"></i> تذكير</button>`}
             </div>
         </div>`;
-    }).join('');
+    }).join('') + (remainingList > 0 ? `<button type="button" onclick="renderResidentsGrid({ more: true })" class="income-more-btn no-print col-span-full">عرض المزيد (${fmtNum(remainingList)})</button>` : '');
 }
 
 function clearResidentFilters() {

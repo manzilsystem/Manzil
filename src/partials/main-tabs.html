@@ -195,7 +195,8 @@
             </div>
             <div class="app-card p-3 rounded-3xl border space-y-2 no-print">
                 <input type="search" id="searchResidentsInput" aria-label="البحث بالاسم أو رقم الشقة أو الدور" oninput="renderResidentsGrid()" placeholder="ابحث بالاسم أو رقم الشقة أو الدور..." class="w-full app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
-                <div class="resident-filters-grid grid grid-cols-2 gap-2">
+                <button type="button" id="residentFiltersToggle" onclick="toggleResidentFilters()" aria-expanded="false" aria-controls="residentFiltersMore" class="w-full income-filters-toggle app-input border rounded-2xl px-3 py-2 text-xs font-bold focus:outline-none"><i class="fa-solid fa-sliders" aria-hidden="true"></i> الفلاتر والترتيب <span id="residentFiltersActiveCount" class="income-filters-count hidden"></span> <i class="fa-solid fa-chevron-down income-filters-chevron" aria-hidden="true"></i></button>
+                <div id="residentFiltersMore" class="resident-filters-grid grid grid-cols-2 gap-2 hidden">
                     <select id="residentStatusFilter" aria-label="تصفية الشقق حسب حالة السداد" onchange="renderResidentsGrid()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold">
                         <option value="all">كل الحالات</option>
                         <option value="paid">مسدد بالكامل</option>
@@ -210,7 +211,8 @@
                     </select>
                 </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="residentsGrid"></div>
+            <div id="residentsSummary" class="hidden app-card p-3 rounded-2xl border text-xs grid grid-cols-2 gap-2 no-print" aria-live="polite"></div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3" id="residentsGrid"></div>
         </section>
 
         <!-- CASHBOX -->
