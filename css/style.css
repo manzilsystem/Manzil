@@ -5481,3 +5481,14 @@ body.owner-mode .owner-theme-control {
     #settingsModal :is(.settings-subsection, .settings-payment-card).is-folded > :not(.settings-subsection-heading):not(.settings-method-head) { display: none; }
     #settingsModal .settings-subsection.is-folded .settings-subsection-copy p { display: none; }
 }
+
+/* Apartment form on phones: tighter spacing so it fits one screen */
+@media screen and (max-width: 639.98px) {
+    #residentForm { padding: var(--space-80); }
+    #residentForm > :not([hidden]) ~ :not([hidden]) { margin-top: var(--space-50); }
+    #residentForm input, #residentForm select { padding-block: var(--space-55); }
+}
+
+@media screen and (max-width: 639.98px) {
+    [role="dialog"] .grid.grid-cols-2.resident-pair-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
