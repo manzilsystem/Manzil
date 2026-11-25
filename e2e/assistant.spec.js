@@ -571,6 +571,8 @@ test.describe('assistant floating launcher', () => {
             state.adjustments = [];
             renderAll();
             switchTab('residents');
+            // the list pages 6 at a time: reveal enough cards for the page to scroll
+            for (let i = 0; i < 4; i++) renderResidentsGrid({ more: true });
         });
     });
 
