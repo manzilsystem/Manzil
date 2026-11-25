@@ -123,7 +123,7 @@ function loadInsights(overrides = {}) {
     const api = vm.runInNewContext(
         `${reportsSource}\n${insightsSource}\n({
             REPORT_TABS, REPORT_PANEL_IDS, REPORT_OUTPUT_BUTTON_IDS, REPORT_FILTER_DESCRIPTORS,
-            buildPayerBehaviorReport, getPayerBehaviorSignature, generatePayerBehaviorReport,
+            buildPayerBehaviorReport, buildExpenseVarianceReport, getPayerBehaviorSignature, generatePayerBehaviorReport,
             getSelectedPayerBehaviorSnapshot, invalidatePayerBehaviorPreview, invalidatePayerBehaviorIfStale,
             payerBehaviorCsvRows, renderPayerBehaviorHtml, renderPayerBehaviorPdfHtml,
             printPayerBehaviorReport, exportPayerBehaviorCsv, exportPayerBehaviorExcel, exportPayerBehaviorPdf,
@@ -300,3 +300,57 @@ test('payer behavior resident filter narrows the report and the clear restores i
     assert.equal(elements.paymentBehaviorResident.value, '');
     assert.equal(api.getSelectedPayerBehaviorSnapshot(), null);
 });
+
+test('expense variance compares each category with the previous 6-month average', () => {
+    const { api } = loadInsights({
+        expenses: [
+                // 6 baseline months: صيانة 100/شهر، نظافة 50/شهر
+                ...[0, 1, 2, 3, 4, 5].flatMap(offset => {
+                    const key = shiftMonth('2024-07-01', offset);
+                    const label = monthNames[Number(key.slice(5, 7)) - 1] + ' ' + key.slice(0, 4);
+                    return [
+                        { id: `m${offset}`, month: label, category: 'صيانة', amount: 100 },
+                        { id: `c${offset}`, month: label, category: 'نظافة', amount: 50 }
+                    ];
+                }),
+                // الشهر المستهدف يناير 2025: صيانة 300 (+200%)، نظافة 50 (بلا تغيير)، كهرباء 80 (جديد)
+                { id: 't1', month: 'يناير 2025', category: 'صيانة', amount: 300 },
+                { id: 't2', month: 'يناير 2025', category: 'نظافة', amount: 50 },
+                { id: 't3', month: 'يناير 2025', category: 'كهرباء', amount: 80 }
+            ]
+    });
+    const report = api.buildExpenseVarianceReport('يناير 2025');
+    assert.equal(report.monthKey, '2025-01-01');
+    assert.equal(report.rows.length, 3);
+    const maintenance = report.rows.find(row => row.category === 'صيانة');
+    assert.equal(maintenance.currentCents, 30000);
+    assert.equal(maintenance.baselineAvgCents, 10000);
+    assert.equal(maintenance.variancePct, 200);
+    assert.equal(maintenance.flag, 'up');
+    const cleaning = report.rows.find(row => row.category === 'نظافة');
+    assert.equal(cleaning.variancePct, 0);
+    assert.equal(cleaning.flag, 'ok');
+    const electricity = report.rows.find(row => row.category === 'كهرباء');
+    assert.equal(electricity.baselineAvgCents, 0);
+    assert.equal(electricity.variancePct, null);
+    assert.equal(electricity.flag, 'new');
+    assert.equal(report.flaggedCount, 2);
+});
+
+test('expense variance ignores months outside the 6-month baseline and honors the category filter', () => {
+    const { api } = loadInsights({
+        expenses: [
+                { id: 'old', month: 'يناير 2024', category: 'صيانة', amount: 900 },
+                { id: 'in1', month: 'ديسمبر 2024', category: 'صيانة', amount: 60 },
+                { id: 'cur', month: 'يناير 2025', category: 'صيانة', amount: 120 }
+            ]
+    });
+    const report = api.buildExpenseVarianceReport('يناير 2025', 'صيانة');
+    assert.equal(report.rows.length, 1);
+    const row = report.rows[0];
+    // المتوسط من ديسمبر فقط (يناير 2024 خارج النافذة): 60/6 = 10
+    assert.equal(row.baselineAvgCents, 1000);
+    assert.equal(row.varianceCents, 11000);
+    assert.equal(api.buildExpenseVarianceReport('يناير 2025', 'غير موجود').rows.length, 0);
+});
+

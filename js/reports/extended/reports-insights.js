@@ -534,8 +534,84 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     document.addEventListener('DOMContentLoaded', initInsightsReportsUI);
 }
 
+/* ============================================================
+   تقرير انحراف المصروفات: مقارنة الشهر المحدد بمتوسط 6 أشهر سابقة
+   ============================================================ */
+
+const EXPENSE_VARIANCE_BASELINE_MONTHS = 6;
+// حد الانحراف المؤثر: 50% صعودًا أو هبوطًا عن المتوسط.
+const EXPENSE_VARIANCE_FLAG_PCT = 50;
+
+function insightsShiftMonthKey(key, offset) {
+    const match = /^(\d{4})-(\d{2})/.exec(String(key || ''));
+    if (!match) return null;
+    const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1 + offset, 1));
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-01`;
+}
+
+/**
+ * يبني نموذج انحراف المصروفات لكل تصنيف مقابل متوسط الأشهر الستة السابقة.
+ * @param {string} monthLabel شهر الهدف (مثل «نوفمبر 2026»)، فارغًا يعني الشهر الحالي
+ * @param {string} categoryFilter تصنيف محدد أو فارغ للكل
+ * @returns {object|null}
+ */
+function buildExpenseVarianceReport(monthLabel = '', categoryFilter = '') {
+    const targetLabel = String(monthLabel || '').trim() || getCurrentMonth();
+    const targetKey = monthLabelToKey(targetLabel);
+    if (!targetKey) return null;
+    const expenses = Array.isArray(state.expenses) ? state.expenses : [];
+    const current = new Map();
+    const baseline = new Map();
+    expenses.forEach(expense => {
+        const key = monthLabelToKey(expense.month);
+        if (!key) return;
+        const category = String(expense.category || '').trim() || 'غير مصنف';
+        if (categoryFilter && category !== categoryFilter) return;
+        const cents = toCents(expense.amount);
+        if (key === targetKey) {
+            const entry = current.get(category) || { count: 0, cents: 0 };
+            entry.count += 1;
+            entry.cents += cents;
+            current.set(category, entry);
+        } else if (key < targetKey && key >= insightsShiftMonthKey(targetKey, -EXPENSE_VARIANCE_BASELINE_MONTHS)) {
+            const entry = baseline.get(category) || { count: 0, cents: 0 };
+            entry.count += 1;
+            entry.cents += cents;
+            baseline.set(category, entry);
+        }
+    });
+    const categories = new Set([...current.keys(), ...baseline.keys()]);
+    const rows = Array.from(categories).map(category => {
+        const currentCents = current.get(category)?.cents || 0;
+        const currentCount = current.get(category)?.count || 0;
+        const baselineTotalCents = baseline.get(category)?.cents || 0;
+        const baselineAvgCents = Math.round(baselineTotalCents / EXPENSE_VARIANCE_BASELINE_MONTHS);
+        const varianceCents = currentCents - baselineAvgCents;
+        const variancePct = baselineAvgCents > 0 ? Math.round((varianceCents / baselineAvgCents) * 100) : null;
+        let flag = 'ok';
+        if (baselineAvgCents === 0 && currentCents > 0) flag = 'new';
+        else if (variancePct !== null && variancePct >= EXPENSE_VARIANCE_FLAG_PCT) flag = 'up';
+        else if (variancePct !== null && variancePct <= -EXPENSE_VARIANCE_FLAG_PCT) flag = 'down';
+        return { category, currentCents, currentCount, baselineTotalCents, baselineAvgCents, varianceCents, variancePct, flag };
+    });
+    rows.sort((a, b) => Math.abs(b.varianceCents) - Math.abs(a.varianceCents) || a.category.localeCompare(b.category, 'ar'));
+    return {
+        month: targetLabel,
+        monthKey: targetKey,
+        baselineMonths: EXPENSE_VARIANCE_BASELINE_MONTHS,
+        categoryFilter,
+        rows,
+        flaggedCount: rows.filter(row => row.flag !== 'ok').length,
+        totals: {
+            currentCents: rows.reduce((sum, row) => sum + row.currentCents, 0),
+            baselineAvgCents: rows.reduce((sum, row) => sum + row.baselineAvgCents, 0)
+        }
+    };
+}
+
 const INSIGHTS_REPORT_API = {
     buildPayerBehaviorReport,
+    buildExpenseVarianceReport,
     getPayerBehaviorSignature,
     generatePayerBehaviorReport,
     getSelectedPayerBehaviorSnapshot,
