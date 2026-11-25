@@ -55,7 +55,7 @@ GROQ_MODEL=qwen/qwen3.8-27b
 npm run dev:groq        # http://127.0.0.1:8787
 ```
 
-الخادم `scripts/groq-dev-server.mjs` يقدّم الواجهة ويمرّر `/api/groq/chat` و`/api/groq/transcribe` إلى Groq بالمفتاح من `.env`. على أي نطاق غير localhost لا يُفعّل هذا المسار، ويُستخدم Edge Function بدلًا منه.
+الخادم `scripts/groq-dev-server.mjs` يقدّم الواجهة ويمرّر `/api/groq/chat` و`/api/groq/transcribe` إلى Groq بالمفتاح من `.env`، ويضيف علامة في صفحته ليعرف المتصفح أن هذه النسخة تملك تلك المسارات. أي سيرفر ثابت آخر على localhost (مثل سيرفر الاختبارات) لا يُفعّل الجسر، فلا يُصدر طلبات فاشلة ولا 404 في الكونسول. على أي نطاق غير localhost يُستخدم Edge Function بدلًا من ذلك.
 
 ## الاختبارات والمراقبة
 
