@@ -476,14 +476,14 @@ function renderIncomeListRow(i, resident, rowIndexLabel = '') {
                 <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xs font-bold shrink-0">${esc(resident?.apartmentNumber || '?')}</div>
                 <div class="min-w-0">
                     <p class="text-xs font-bold truncate">${esc(resident?.name || 'محذوف')}</p>
-                    <p class="text-xs text-slate-500">${esc(formatApartmentLabel(resident?.apartmentNumber))} • ${esc(i.month || '')} • ${formatDate(i.date)} • ${esc(getIncomePaymentMethodLabel(i.paymentMethod))}</p>
+                    <p class="text-xs text-slate-500 income-entry-meta">${esc(formatApartmentLabel(resident?.apartmentNumber))} • ${esc(i.month || '')} • ${formatDate(i.date)} • ${esc(getIncomePaymentMethodLabel(i.paymentMethod))}</p>
                     <span class="cash-account-tag mt-1">${esc(renderPurposeLabel(i.purposeCode))}</span>
                     <span class="cash-account-tag mt-1"><i class="fa-solid fa-vault" aria-hidden="true"></i>${esc(renderCashAccountLabel(i.cashAccountCode))}</span>
-                    ${displayNotes ? `<p class="mt-1 text-xs text-slate-400 truncate"><i class="fa-solid fa-note-sticky ml-1" aria-hidden="true"></i>${esc(displayNotes)}</p>` : ''}
+                    ${displayNotes ? `<p class="mt-1 text-xs text-slate-400 income-note"><i class="fa-solid fa-note-sticky ml-1" aria-hidden="true"></i>${esc(displayNotes)}</p>` : ''}
                 </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-                <span class="text-sm font-black text-emerald-400">${fmtNum(i.amount)}</span>
+                <span class="text-sm font-black text-emerald-400 whitespace-nowrap">${fmtNum(i.amount)} <span class="text-xs font-bold">ج.م</span></span>
                 <button onclick="openIncomeReceiptModal('${i.id}')" aria-label="عرض إيصال ${esc(resident?.name || '')}" title="عرض الإيصال وطباعته" class="text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-print text-sm"></i></button>
                 <button onclick="sendIncomeReceiptOnWhatsApp('${i.id}')" aria-label="إرسال إيصال واتساب إلى ${esc(resident?.name || '')}" title="إرسال إيصال واتساب" class="text-emerald-400 hover:text-emerald-300 p-1"><i class="fa-brands fa-whatsapp text-sm"></i></button>
                 <button onclick="openIncomeEditModal('${i.id}')" aria-label="تعديل التحصيل ${esc(i.month || '')}" class="icon-action text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-pen text-xs"></i></button>
@@ -521,8 +521,8 @@ function renderIncomeTable() {
         const total = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
         summary.classList.toggle('hidden', false);
         summary.innerHTML = `
-            <div><p class="text-slate-500">عدد الحركات</p><p class="font-bold text-sm">${fmtNum(items.length)}</p></div>
-            <div><p class="text-slate-500">إجمالي النتائج</p><p class="font-black text-sm text-emerald-400">${fmtNum(total)} ج.م</p></div>`;
+            <div class="income-stat"><p class="income-stat-label">عدد الحركات</p><p class="income-stat-value">${fmtNum(items.length)}</p></div>
+            <div class="income-stat income-stat-total"><p class="income-stat-label">إجمالي النتائج</p><p class="income-stat-value">${fmtNum(total)} ج.م</p></div>`;
     }
     if (!items.length) {
         c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center space-y-3"><div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto"><i class="fa-solid fa-hand-holding-dollar"></i></div><div><p class="text-sm font-bold">لا توجد تحصيلات مطابقة</p><p class="text-xs text-slate-500 mt-1">سجّل أول تحصيل أو غيّر الفلاتر الحالية.</p></div><button onclick="openNewIncomeModal()" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition"><i class="fa-solid fa-plus"></i> تسجيل تحصيل</button></div>';

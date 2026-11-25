@@ -66,3 +66,21 @@ test('distributed batch header exposes whole-batch receipt actions', () => {
 test('income entry numbering renders inside the row so it stays RTL-aligned with the apartment badge', () => {
     assert.match(render, /min-w-\[1\.75rem\] text-center shrink-0/);
 });
+
+test('income results summary renders as KPI tiles and row amounts carry the currency unit', () => {
+    const css = fs.readFileSync(path.join(root, 'css', 'style.css'), 'utf8');
+    assert.match(render, /class="income-stat"/);
+    assert.match(render, /class="income-stat income-stat-total"/);
+    assert.match(render, /income-stat-label">عدد الحركات/);
+    assert.match(render, /income-stat-label">إجمالي النتائج/);
+    assert.match(render, /\$\{fmtNum\(i\.amount\)\} <span class="text-xs font-bold">ج\.م<\/span>/);
+    assert.match(css, /#incomeResultsSummary \.income-stat \{/);
+    assert.match(css, /#incomeResultsSummary \.income-stat-total \.income-stat-value\{?\s*\{?\s*color: var\(--state-success\)/);
+});
+
+test('long income notes wrap instead of being truncated', () => {
+    const css = fs.readFileSync(path.join(root, 'css', 'style.css'), 'utf8');
+    assert.match(render, /income-note/);
+    assert.doesNotMatch(render, /income-note[^"]*truncate|truncate[^"]*income-note/);
+    assert.match(css, /#incomeCardsList \.income-note \{ overflow-wrap: anywhere; \}/);
+});
