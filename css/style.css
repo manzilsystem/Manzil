@@ -5190,3 +5190,19 @@ body.owner-mode .owner-theme-control {
     .report-action:not(.report-action-primary):hover:not(:disabled) { border-color: var(--accent-color); }
     .report-actions .report-action { min-height: 2.6rem; }
 }
+
+/* ===== Visual cleanup, part 2 (screen only, no logic changes) ===== */
+@media screen {
+    /* Empty report tables: one quiet line instead of a header, an empty row and a zero total */
+    .sheet-table:has(.sheet-empty) thead, .sheet-table:has(.sheet-empty) tfoot { display: none; }
+    /* Long lists use two columns on wide screens instead of one tall column */
+    @media (min-width: 1024px) {
+        #incomeCardsList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-65); align-items: start; }
+        #incomeCardsList > * { margin: var(--space-none); }
+    }
+    /* Assistant avatar: smaller on phones so it covers less content */
+    @media (max-width: 560px) {
+        .assistant-fab { width: 4.6rem; height: 5.4rem; inset-inline-start: .4rem; }
+        .assistant-fab-avatar img { width: 100%; height: auto; }
+    }
+}
