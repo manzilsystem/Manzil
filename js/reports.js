@@ -889,7 +889,7 @@ function renderSheetTable(headers, rows, options = {}) {
         : '';
     const tableClass = options.tableClass ? ' sheet-table ' + options.tableClass : ' sheet-table';
     return (caption ? '<p class="sheet-caption">' + esc(caption) + '</p>' : '') +
-        '<div class="sheet-wrap"><table class="' + tableClass.trim() + '"><thead><tr>' + head +
+        '<div class="sheet-wrap' + (headers.length >= 5 ? ' sheet-cards' : '') + '"><table class="' + tableClass.trim() + '"><thead><tr>' + head +
         '</tr></thead><tbody>' + body + '</tbody>' + footHtml + '</table></div>';
 }
 
@@ -4303,6 +4303,31 @@ async function saveReportRootAsImages(root, pdfFilename) {
 }
 
 /** Add an image button beside every PDF button and keep its enabled state in sync. */
+/** Phone card view of wide tables: copy each column title onto its cells so CSS can show it above the value. */
+function labelSheetCards(scope) {
+    scope.querySelectorAll('.sheet-cards:not([data-labelled])').forEach(function (wrap) {
+        const titles = Array.from(wrap.querySelectorAll('thead th')).map(function (th) { return (th.textContent || '').trim(); });
+        if (!titles.length) return;
+        wrap.querySelectorAll('tr').forEach(function (row) {
+            Array.from(row.children).forEach(function (cell, index) { if (titles[index]) cell.setAttribute('data-label', titles[index]); });
+        });
+        wrap.setAttribute('data-labelled', '1');
+    });
+}
+(function watchSheetCards() {
+    if (typeof MutationObserver === 'undefined' || typeof document === 'undefined') return;
+    let queued = false;
+    const start = function () {
+        new MutationObserver(function () {
+            if (queued) return;
+            queued = true;
+            window.requestAnimationFrame(function () { queued = false; labelSheetCards(document.body); });
+        }).observe(document.body, { childList: true, subtree: true });
+    };
+    if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
+
+
 function initReportImageButtons() {
     document.querySelectorAll('button[id$="PdfBtn"]').forEach(pdfButton => {
         if (!(pdfButton instanceof HTMLButtonElement) || document.getElementById(pdfButton.id + 'Image')) return;
