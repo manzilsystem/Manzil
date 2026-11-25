@@ -1,0 +1,43 @@
+name: Rebuild generated index
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to rebuild and push
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Rebuild generated assets
+        run: npm run build:index
+      - name: Commit generated assets when changed
+        env:
+          TARGET_BRANCH: ${{ inputs.branch }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- index.html sw.js js/telemetry.js; then
+            echo "Generated assets already current"
+            exit 0
+          fi
+          git add index.html sw.js js/telemetry.js
+          git commit -m "إعادة بناء الأصول المولدة"
+          git push origin HEAD:"$TARGET_BRANCH"
