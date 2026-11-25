@@ -457,7 +457,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .cashbox-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-50); }
 @media (min-width: 900px) { .cashbox-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-65); } }
 .cashbox-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-65); align-items: start; }
-@media (min-width: 900px) { .cashbox-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 640px) { .cashbox-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .cashbox-rows-scroll { max-height: 18rem; overflow-y: auto; overscroll-behavior: contain; }
 @media (max-width: 639px) { .cashbox-metric { padding: var(--space-30); } .cashbox-fund { padding: var(--space-55); gap: var(--space-40); } .cashbox-stat-note, .cashbox-subtitle, .cashbox-card-subtitle, .cashbox-footnote, .cashbox-fund-transfers { display: none; } .cashbox-stat { padding: var(--space-65); gap: var(--space-30); } .cashbox-stat-value { font-size: var(--font-110); } .cashbox-stat-icon { display: none; } .cashbox-card { padding: var(--space-85); } }
 .cashbox-stat {
