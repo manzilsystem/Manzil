@@ -8,6 +8,76 @@
 
         <!-- DASHBOARD -->
         <section id="tab-dashboard" class="space-y-4">
+            <div class="dashboard-kpis grid grid-cols-2 lg:grid-cols-3 gap-3">
+                <div class="app-card p-4 rounded-3xl border flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-slate-400 font-bold">التحصيلات</span>
+                        <div class="w-8 h-8 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center text-xs border border-emerald-500/20"><i class="fa-solid fa-arrow-trend-up"></i></div>
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-black text-emerald-400" id="totalIncomeDisplay">0 ج.م</h3>
+                    <p id="incomePeriodLabel" class="hidden sm:block text-xs text-slate-500 mt-1">إجمالي التحصيلات المسجلة منذ بدء التسجيل</p>
+                </div>
+                <div class="app-card p-4 rounded-3xl border flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-slate-400 font-bold">المصروفات</span>
+                        <div class="w-8 h-8 bg-rose-500/10 text-rose-400 rounded-xl flex items-center justify-center text-xs border border-rose-500/20"><i class="fa-solid fa-arrow-trend-down"></i></div>
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-black text-rose-400" id="totalExpenseDisplay">0 ج.م</h3>
+                    <p id="expensePeriodLabel" class="hidden sm:block text-xs text-slate-500 mt-1">إجمالي المصروفات المسجلة منذ بدء التسجيل</p>
+                </div>
+                <div class="app-card dashboard-balance col-span-2 lg:col-span-1 p-5 rounded-3xl border shadow-xl flex items-center justify-between gap-3 bg-gradient-to-r from-indigo-950/40 via-slate-900/40 to-slate-950/40">
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium">الرصيد الحالي بالخزنة</p>
+                        <h3 class="text-2xl sm:text-3xl font-black mt-0.5" id="netBalanceDisplay">0 ج.م</h3>
+                        <p class="hidden sm:block text-xs text-slate-500 mt-1">الرصيد الافتتاحي + التحصيلات − المصروفات المسجلة منذ بدء التسجيل</p>
+                    </div>
+                    <div class="w-12 h-12 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center text-2xl text-amber-300"><i class="fa-solid fa-wallet"></i></div>
+                </div>
+            </div>
+
+            <section class="app-card dashboard-quick p-3 rounded-3xl border" aria-labelledby="quickActionsTitle">
+                <h2 id="quickActionsTitle" class="sr-only">إجراءات سريعة</h2>
+                <div class="quick-actions-grid grid grid-cols-4 gap-2">
+                    <button onclick="openNewIncomeModal()" class="quick-action quick-action-income" aria-label="تسجيل تحصيل جديد">
+                        <i class="fa-solid fa-hand-holding-dollar"></i><span>تحصيل</span>
+                    </button>
+                    <button onclick="openExpenseModal()" class="quick-action quick-action-expense" aria-label="تسجيل مصروف جديد">
+                        <i class="fa-solid fa-receipt"></i><span>مصروف</span>
+                    </button>
+                    <button onclick="openResidentModal('add')" class="quick-action quick-action-resident" aria-label="إضافة شقة جديدة">
+                        <i class="fa-solid fa-user-plus"></i><span>شقة</span>
+                    </button>
+                    <button onclick="switchTab('reports')" class="quick-action quick-action-report" aria-label="فتح التقارير">
+                        <i class="fa-solid fa-chart-column"></i><span>التقارير</span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="app-card p-4 sm:p-5 rounded-3xl border space-y-3" aria-labelledby="monthSummaryTitle">
+                <div class="flex items-center justify-between gap-2">
+                    <h2 id="monthSummaryTitle" class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-calendar-check text-emerald-400"></i> ملخص الشهر الحالي</h2>
+                    <span id="currentMonthSummaryLabel" class="text-xs text-slate-500"></span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
+                    <div class="app-input border rounded-2xl p-2"><p class="text-xs text-slate-500">نسبة التحصيل</p><p id="collectionRateDisplay" class="text-base font-black text-emerald-400">0%</p></div>
+                    <div class="app-input border rounded-2xl p-2"><p class="text-xs text-slate-500">المدفوع</p><p id="currentMonthPaidDisplay" class="text-xs font-black">0 ج.م</p></div>
+                    <div class="app-input border rounded-2xl p-2 col-span-2 sm:col-span-1"><p class="text-xs text-slate-500">دفع جزئي</p><p id="partialPaymentsDisplay" class="text-xs font-black text-amber-400">0</p></div>
+                </div>
+                <div class="h-2 rounded-full bg-slate-800 overflow-hidden" role="progressbar" aria-label="نسبة تحصيل الشهر الحالي" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <div id="collectionRateBar" class="h-full rounded-full bg-gradient-to-l from-emerald-400 to-indigo-500 transition-all" style="width:0%"></div>
+                </div>
+            </section>
+
+            <details class="app-card rounded-3xl border overflow-hidden dashboard-arrears">
+                <summary class="p-4 cursor-pointer flex items-center justify-between gap-3 text-sm font-bold">
+                    <span><i class="fa-solid fa-triangle-exclamation text-amber-400 ml-2" aria-hidden="true"></i> متأخرات الملاك</span>
+                    <i class="fa-solid fa-chevron-down text-xs text-slate-400" aria-hidden="true"></i>
+                </summary>
+                <div class="p-4 pt-0">
+                <div id="unpaidResidentsContainer" class="space-y-2"></div>
+                </div>
+            </details>
+
             <details class="app-card rounded-3xl border overflow-hidden">
                 <summary class="p-4 cursor-pointer flex items-center justify-between gap-3 text-sm font-bold">
                     <span class="flex items-center gap-2"><span class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">📢</span> إعلانات العمارة</span>
@@ -26,28 +96,13 @@
                 </div>
             </details>
 
-            <section class="app-card p-4 rounded-3xl border space-y-3" aria-labelledby="quickActionsTitle">
-                <div class="flex items-center justify-between">
-                    <h2 id="quickActionsTitle" class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-bolt text-amber-400"></i> إجراءات سريعة</h2>
-                    <span class="text-xs text-slate-500">اختصارات الإدارة اليومية</span>
-                </div>
-                <div class="quick-actions-grid grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <button onclick="openNewIncomeModal()" class="quick-action quick-action-income" aria-label="تسجيل تحصيل جديد">
-                        <i class="fa-solid fa-hand-holding-dollar"></i><span>تحصيل جديد</span>
-                    </button>
-                    <button onclick="openExpenseModal()" class="quick-action quick-action-expense" aria-label="تسجيل مصروف جديد">
-                        <i class="fa-solid fa-receipt"></i><span>مصروف جديد</span>
-                    </button>
-                    <button onclick="openResidentModal('add')" class="quick-action quick-action-resident" aria-label="إضافة شقة جديدة">
-                        <i class="fa-solid fa-user-plus"></i><span>إضافة شقة</span>
-                    </button>
-                    <button onclick="switchTab('reports')" class="quick-action quick-action-report" aria-label="فتح التقارير">
-                        <i class="fa-solid fa-chart-column"></i><span>عرض التقارير</span>
-                    </button>
-                </div>
-            </section>
-
-            <div class="app-card p-3 rounded-2xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <details class="app-card rounded-3xl border overflow-hidden">
+                <summary class="p-4 cursor-pointer flex items-center justify-between gap-3 text-sm font-bold">
+                    <span><i class="fa-solid fa-chart-column text-indigo-400 ml-2" aria-hidden="true"></i> التحليلات والتفاصيل المالية</span>
+                    <i class="fa-solid fa-chevron-down text-xs text-slate-400" aria-hidden="true"></i>
+                </summary>
+                <div class="p-4 pt-0 space-y-4">
+            <div class="dashboard-period p-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <label for="dashboardPeriodFilter" class="text-xs font-bold text-slate-400">نطاق المخطط وتفصيل المصروفات</label>
                 <select id="dashboardPeriodFilter" onchange="renderDashboard()" class="app-input border rounded-xl px-3 py-2 text-xs font-semibold sm:min-w-44" aria-label="تصفية المخطط المالي وتفصيل المصروفات حسب الفترة">
                     <option value="all">كل السجل</option>
@@ -55,55 +110,6 @@
                     <option value="last6">آخر 6 أشهر</option>
                 </select>
             </div>
-
-            <div class="dashboard-kpis grid grid-cols-2 lg:grid-cols-3 gap-3">
-                <div class="app-card p-4 rounded-3xl border flex flex-col justify-between">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs text-slate-400 font-bold">التحصيلات</span>
-                        <div class="w-8 h-8 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center text-xs border border-emerald-500/20"><i class="fa-solid fa-arrow-trend-up"></i></div>
-                    </div>
-                    <h3 class="text-xl sm:text-2xl font-black text-emerald-400" id="totalIncomeDisplay">0 ج.م</h3>
-                    <p id="incomePeriodLabel" class="text-xs text-slate-500 mt-1">إجمالي التحصيلات المسجلة منذ بدء التسجيل</p>
-                </div>
-                <div class="app-card p-4 rounded-3xl border flex flex-col justify-between">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs text-slate-400 font-bold">المصروفات</span>
-                        <div class="w-8 h-8 bg-rose-500/10 text-rose-400 rounded-xl flex items-center justify-center text-xs border border-rose-500/20"><i class="fa-solid fa-arrow-trend-down"></i></div>
-                    </div>
-                    <h3 class="text-xl sm:text-2xl font-black text-rose-400" id="totalExpenseDisplay">0 ج.م</h3>
-                    <p id="expensePeriodLabel" class="text-xs text-slate-500 mt-1">إجمالي المصروفات المسجلة منذ بدء التسجيل</p>
-                </div>
-                <div class="app-card dashboard-balance col-span-2 lg:col-span-1 p-5 rounded-3xl border shadow-xl flex items-center justify-between gap-3 bg-gradient-to-r from-indigo-950/40 via-slate-900/40 to-slate-950/40">
-                    <div>
-                        <p class="text-xs text-slate-400 font-medium">الرصيد الحالي بالخزنة</p>
-                        <h3 class="text-2xl sm:text-3xl font-black mt-0.5" id="netBalanceDisplay">0 ج.م</h3>
-                        <p class="text-xs text-slate-500 mt-1">الرصيد الافتتاحي + التحصيلات − المصروفات المسجلة منذ بدء التسجيل</p>
-                    </div>
-                    <div class="w-12 h-12 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center text-2xl text-amber-300"><i class="fa-solid fa-wallet"></i></div>
-                </div>
-            </div>
-
-            <section class="app-card p-4 sm:p-5 rounded-3xl border space-y-3" aria-labelledby="monthSummaryTitle">
-                <div class="flex items-center justify-between gap-2">
-                    <h2 id="monthSummaryTitle" class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-calendar-check text-emerald-400"></i> ملخص الشهر الحالي</h2>
-                    <span id="currentMonthSummaryLabel" class="text-xs text-slate-500"></span>
-                </div>
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
-                    <div class="app-input border rounded-2xl p-2"><p class="text-xs text-slate-500">نسبة التحصيل</p><p id="collectionRateDisplay" class="text-base font-black text-emerald-400">0%</p></div>
-                    <div class="app-input border rounded-2xl p-2"><p class="text-xs text-slate-500">المدفوع</p><p id="currentMonthPaidDisplay" class="text-xs font-black">0 ج.م</p></div>
-                    <div class="app-input border rounded-2xl p-2 col-span-2 sm:col-span-1"><p class="text-xs text-slate-500">دفع جزئي</p><p id="partialPaymentsDisplay" class="text-xs font-black text-amber-400">0</p></div>
-                </div>
-                <div class="h-2 rounded-full bg-slate-800 overflow-hidden" role="progressbar" aria-label="نسبة تحصيل الشهر الحالي" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                    <div id="collectionRateBar" class="h-full rounded-full bg-gradient-to-l from-emerald-400 to-indigo-500 transition-all" style="width:0%"></div>
-                </div>
-            </section>
-
-            <details class="app-card rounded-3xl border overflow-hidden">
-                <summary class="p-4 cursor-pointer flex items-center justify-between gap-3 text-sm font-bold">
-                    <span><i class="fa-solid fa-chart-column text-indigo-400 ml-2" aria-hidden="true"></i> التحليلات والتفاصيل المالية</span>
-                    <i class="fa-solid fa-chevron-down text-xs text-slate-400" aria-hidden="true"></i>
-                </summary>
-                <div class="p-4 pt-0 space-y-4">
             <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
                 <div class="flex flex-wrap items-baseline justify-between gap-2"><h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-chart-line text-indigo-400"></i> التدفق النقدي البصري</h3><span id="cashFlowPeriodLabel" class="text-xs text-slate-500"></span></div>
                 <div id="cashFlowChartContainer" class="w-full h-32 flex items-end justify-between gap-2 pt-4 px-2 border-b border-slate-700/50 pb-2"></div>
@@ -111,11 +117,6 @@
                     <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> التحصيلات</span>
                     <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> المصروفات</span>
                 </div>
-            </div>
-
-            <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">
-                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-amber-400"></i> متأخرات الملاك</h3>
-                <div id="unpaidResidentsContainer" class="space-y-2"></div>
             </div>
 
             <div class="app-card p-4 sm:p-5 rounded-3xl border space-y-3">

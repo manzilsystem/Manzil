@@ -70,8 +70,8 @@ test('modal, wizard and settings informational text keeps a 12px reading floor',
 
 test('built index.html ships the dashboard reading floor', () => {
     const built = read('index.html');
-    assert.match(built, /id="incomePeriodLabel" class="text-xs text-slate-500 mt-1"/);
-    assert.match(built, /id="expensePeriodLabel" class="text-xs text-slate-500 mt-1"/);
+    assert.match(built, /id="incomePeriodLabel" class="hidden sm:block text-xs text-slate-500 mt-1"/);
+    assert.match(built, /id="expensePeriodLabel" class="hidden sm:block text-xs text-slate-500 mt-1"/);
     assert.match(built, /id="currentMonthSummaryLabel" class="text-xs text-slate-500"/);
     assert.match(built, /class="flex justify-center gap-4 text-xs text-slate-400 pt-1"/);
     assert.match(built, /id="appCopyright" class="text-center text-xs text-slate-500/);

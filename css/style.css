@@ -5300,3 +5300,10 @@ body.owner-mode .owner-theme-control {
     .sheet-kpi tbody td.report-stat { white-space: normal; }
     .sheet-kpi tbody td.report-stat::before { overflow-wrap: anywhere; line-height: var(--leading-135); }
 }
+
+/* Dashboard: compact phone layout, key numbers above the fold */
+@media screen and (max-width: 639.98px) {
+    .dashboard-quick .quick-action { min-height: 52px; padding: var(--space-35); gap: var(--space-15); font-size: var(--font-72); }
+    .dashboard-kpis > .app-card { padding: var(--space-75); }
+    .dashboard-kpis .dashboard-balance { padding: var(--space-75) var(--space-85); }
+}

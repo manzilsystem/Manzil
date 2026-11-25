@@ -31,3 +31,12 @@ test('dashboard KPI cards share one responsive row with the treasury balance', (
     assert.match(dashboard, /class="dashboard-kpis grid grid-cols-2 lg:grid-cols-3[^"]*"[\s\S]*?id="totalIncomeDisplay"[\s\S]*?id="totalExpenseDisplay"[\s\S]*?class="[^"]*dashboard-balance[^"]*"[\s\S]*?id="netBalanceDisplay"/);
     assert.equal((dashboard.match(/لوحة إعلانات العمارة/g) || []).length, 1);
 });
+
+test('dashboard keeps key numbers first and folds long lists', () => {
+    const dashboard = html.slice(html.indexOf('id="tab-dashboard"'), html.indexOf('<!-- INCOME -->'));
+    const pos = id => dashboard.indexOf(id);
+    assert.ok(pos('id="totalIncomeDisplay"') < pos('aria-labelledby="quickActionsTitle"'));
+    assert.ok(pos('aria-labelledby="quickActionsTitle"') < pos('id="monthSummaryTitle"'));
+    assert.match(dashboard, /<details[^>]*dashboard-arrears[^>]*>[\s\S]*?id="unpaidResidentsContainer"[\s\S]*?<\/details>/);
+    assert.match(dashboard, /<details[\s\S]*?id="dashboardPeriodFilter"[\s\S]*?id="cashFlowChartContainer"/);
+});
