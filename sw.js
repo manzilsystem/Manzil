@@ -17,6 +17,7 @@ const APP_SHELL = [
     './js/telemetry.js?v=manzil-7b8dbe6d36',
     './js/state.js?v=f367c7dc5c',
     './js/access.js?v=0d7f855407',
+    './js/push.js?v=93d6b20d62',
     './js/render.js?v=708c3ae2a7',
     './js/crud.js?v=d1e4b518ab',
     './js/notices.js?v=93c0d216cc',
@@ -125,3 +126,6 @@ self.addEventListener('fetch', event => {
         }).catch(() => caches.match(request))
     );
 });
+
+// Web Push handlers (push, notificationclick) live in their own file.
+importScripts('./js/push-sw.js');
