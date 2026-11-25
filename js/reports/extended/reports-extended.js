@@ -829,6 +829,13 @@ function filterReportNav() {
         item.classList.toggle('is-filtered-out', !show);
         if (show) visible += 1;
     });
+    document.querySelectorAll('[data-report-group-heading]').forEach(rawHeading => {
+        const heading = /** @type {HTMLElement} */ (rawHeading);
+        const group = heading.dataset.reportGroupHeading;
+        const groupVisible = [...document.querySelectorAll('[data-report-nav][data-report-group="' + group + '"]')]
+            .some(item => !item.classList.contains('is-filtered-out'));
+        heading.classList.toggle('is-filtered-out', !groupVisible);
+    });
     const empty = document.getElementById('reportHubEmpty');
     if (empty) empty.classList.toggle('hidden', visible > 0);
     if (typeof syncReportNavTabIndex === 'function') syncReportNavTabIndex();

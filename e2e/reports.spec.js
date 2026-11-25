@@ -487,65 +487,50 @@ test('typographic scale resolves consistently across themes and print', async ({
     expect(await readSizes()).toEqual(baseline);
 });
 
-test('report lenses keep the card grid as the default and open the same reports', async ({ page }) => {
+test('the single table grid is live, grouped and clickable', async ({ page }) => {
     await openReports(page);
-    await expect(page.locator('#tab-reports')).toHaveAttribute('data-report-lens', 'grid');
-    await expect(page.locator('.report-lens-chip')).toHaveCount(4);
-    await expect(page.locator('.report-nav')).toBeVisible();
-    await expect(page.locator('#reportLensFab .report-lens-fab-toggle')).toHaveAttribute('aria-expanded', 'false');
+    expect(await page.locator('#tab-reports').getAttribute('data-report-lens')).toBeNull();
+    await expect(page.locator('.report-quality-bar')).toBeVisible();
+    await expect(page.locator('.report-group-heading')).toHaveCount(3);
+    await expect(page.locator('[data-report-nav]')).toHaveCount(10);
+    await expect(page.locator('[data-report-metric]')).toHaveCount(30);
+    await expect(page.locator('[data-report-metric="landlordIncome"]')).not.toHaveText('—');
+    await expect(page.locator('[data-report-metric="arrearsOwners"]')).toHaveText('1');
 
-    await page.locator('.report-lens-chip[data-report-lens="map"]').click();
-    await expect(page.locator('#tab-reports')).toHaveAttribute('data-report-lens', 'map');
-    await expect(page.locator('#reportLensMap')).toBeVisible();
-    await expect(page.locator('.report-nav')).toBeHidden();
-    await expect(page.locator('#reportLensMap .report-map-unit')).toHaveCount(12);
-    const rentedUnit = page.locator('#reportLensMap .report-map-unit', { hasText: 'شقة 3' });
-    await expect(rentedUnit).toHaveClass(/is-(warn|bad)/);
-    await rentedUnit.click();
-    await expect(page.locator('#arrearsPanel')).toBeVisible();
-    await expect(page.locator('#arrearsApartmentFilter')).toHaveValue('r1');
-    await expect(page.locator('#arrearsReportContainer')).toContainText('شقة 3');
-    await backToGrid(page);
-    await expect(page.locator('#tab-reports')).toHaveAttribute('data-report-lens', 'map');
-    await expect(page.locator('#reportLensMap')).toBeVisible();
-    await page.locator('.report-lens-chip[data-report-lens="grid"]').click();
-    await expect(page.locator('.report-nav')).toBeVisible();
+    await page.locator('.report-quality-check').click();
+    await expect(page.locator('#reportQualityMeter')).toHaveText('100%');
+    await expect(page.locator('#reportQualityNote')).toContainText('سجل متسق');
+    await expect(page.locator('#reportScheduledCount')).toHaveText('0');
+    await page.locator('.report-quality-schedule').click();
+    await expect(page.locator('#scheduledReportsBody')).toBeVisible();
 
-    await page.locator('#reportLensFab .report-lens-fab-toggle').click();
-    await expect(page.locator('#reportLensFab .report-lens-fab-toggle')).toHaveAttribute('aria-expanded', 'true');
-    await page.locator('#reportLensFab button[data-report-lens="chat"]').click();
-    await expect(page.locator('#reportLensChat')).toBeVisible();
-    await expect(page.locator('#reportLensFab .report-lens-fab-toggle')).toHaveAttribute('aria-expanded', 'false');
-    await page.locator('#reportChatInput').fill('مين المتأخر؟');
-    await page.locator('#reportChatInput').press('Enter');
+    await page.locator('.report-group-chip[data-report-group="review"]').click();
+    await expect(page.locator('[data-report-nav][data-report-group="review"]:visible')).toHaveCount(2);
+    await expect(page.locator('[data-report-nav][data-report-group="financial"]:visible')).toHaveCount(0);
+    await expect(page.locator('[data-report-group-heading="financial"]')).toBeHidden();
+    await page.locator('.report-group-chip[data-report-group="all"]').click();
+    await expect(page.locator('.report-group-heading')).toHaveCount(3);
+
+    await page.locator('#reportHubSearch').fill('متأخرات');
+    await expect(page.locator('[data-report-nav="arrears"]')).toBeVisible();
+    await expect(page.locator('[data-report-nav="landlord"]')).toBeHidden();
+    await page.locator('#reportHubSearch').fill('');
+    await expect(page.locator('[data-report-nav="landlord"]')).toBeVisible();
+
+    await page.locator('[data-report-nav="arrears"]').click();
     await expect(page.locator('#arrearsPanel')).toBeVisible();
     await backToGrid(page);
-    await expect(page.locator('#reportLensChat')).toBeVisible();
-    await page.locator('.report-lens-chip[data-report-lens="ledger"]').click();
-    await expect(page.locator('#reportLensLedger')).toBeVisible();
-    await expect(page.locator('#reportLensLedger .report-ledger-book')).toHaveCount(10);
-    const ledgerMonth = page.locator('#reportLensLedger .report-ledger-months button').first();
-    const monthLabel = (await ledgerMonth.textContent()).trim();
-    await ledgerMonth.click();
-    await expect(page.locator('#reportMonthSelect')).toHaveValue(monthLabel);
-    await expect(page.locator('#reportPrintBtn')).toBeDisabled();
-    await page.locator('#reportLensLedger .report-ledger-book').first().click();
-    await expect(page.locator('#landlordReportPrint')).toBeVisible();
+    await expect(page.locator('.report-nav')).toBeVisible();
 });
 
-test('lens surfaces stay out of printed output', async ({ page }) => {
+test('quality surfaces stay out of printed output', async ({ page }) => {
     await openReports(page);
-    await page.locator('.report-lens-chip[data-report-lens="map"]').click();
-    await expect(page.locator('#reportLensMap')).toBeVisible();
-    await page.locator('.report-lens-chip[data-report-lens="ledger"]').click();
-    await expect(page.locator('#reportLensLedger')).toBeVisible();
+    await expect(page.locator('.report-quality-bar')).toBeVisible();
     await page.emulateMedia({ media: 'print' });
-    await expect(page.locator('.report-lens-rail')).toBeHidden();
-    await expect(page.locator('#reportLensMap')).toBeHidden();
-    await expect(page.locator('#reportLensLedger')).toBeHidden();
-    await expect(page.locator('#reportLensFab')).toBeHidden();
+    await expect(page.locator('.report-quality-bar')).toBeHidden();
+    await expect(page.locator('.report-group-heading').first()).toBeHidden();
     await page.emulateMedia({ media: 'screen' });
-    await expect(page.locator('#reportLensLedger')).toBeVisible();
+    await expect(page.locator('.report-quality-bar')).toBeVisible();
 });
 
 test('the tab opens on the icon grid and a card opens its report full page', async ({ page }) => {
