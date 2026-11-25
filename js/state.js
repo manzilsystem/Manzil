@@ -30,7 +30,13 @@ function generateId() {
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+const recentToasts = new Map();
 function toast(msg, type = 'success') {
+    const toastKey = type + '|' + msg;
+    const toastNow = Date.now();
+    if (recentToasts.has(toastKey) && toastNow - recentToasts.get(toastKey) < 3000) return;
+    recentToasts.set(toastKey, toastNow);
+    if (recentToasts.size > 50) recentToasts.forEach((time, key) => { if (toastNow - time >= 3000) recentToasts.delete(key); });
     const colors = { success: 'bg-emerald-600 text-white border-emerald-500', error: 'bg-rose-600 text-white border-rose-500', info: 'bg-indigo-600 text-white border-indigo-500' };
     const el = document.createElement('div');
     el.className = `toast ${colors[type]||colors.info} px-5 py-3 rounded-2xl text-xs font-bold shadow-2xl border pointer-events-auto`;

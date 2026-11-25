@@ -35,6 +35,8 @@ function loadHandler(residents, saveWithRollback = async () => true) {
         renderAll() {},
         toast: (...args) => messages.push(args),
         fmtNum: value => String(value),
+        getMonthOutstanding: () => 0,
+        esc: value => String(value),
         INCOME_PAYMENT_METHOD_LABELS: { cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي' },
         getIncomePaymentMethodLabel: method => ({ cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي' })[method] || 'غير محدد',
         getCashAccountLabel: code => ({ main: 'الخزنة الرئيسية', development: 'صندوق التطوير', emergency: 'صندوق الصيانة الطارئة' })[code] || 'الخزنة الرئيسية',
@@ -81,7 +83,7 @@ test('income submission rejects an unsupported payment method', async () => {
         : originalGetElementById(id);
     await app.handleIncomeSubmit({ preventDefault() {} });
     assert.equal(sandbox.state.income.length, 0);
-    assert.match(messages.at(-1)?.[0] || '', /اختر الشقة/);
+    assert.match(messages.at(-1)?.[0] || '', /طريقة الدفع/);
 });
 
 

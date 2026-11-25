@@ -2441,10 +2441,11 @@
                         </div>
                         <span id="incomeMonthsSummary" class="shrink-0 whitespace-nowrap text-xs text-slate-400"></span>
                     </div>
-                    <div class="app-input border rounded-xl p-2.5 space-y-1">
+                    <button type="button" id="incomeOtherMonthLink" aria-expanded="false" aria-controls="incomeOtherMonthBox" onclick="toggleIncomeOtherMonth()" class="min-h-11 text-xs font-bold text-emerald-300 underline underline-offset-4"><i class="fa-regular fa-calendar ml-1"></i> شهر آخر</button>
+                    <div id="incomeOtherMonthBox" class="hidden app-input border rounded-xl p-2.5 space-y-1">
                         <label class="block text-xs space-y-1">
                             <span class="text-slate-400">شهر التحصيل من الكلندر</span>
-                            <input type="month" id="incomeMonthPicker" aria-label="اختيار شهر التحصيل من الكلندر" onchange="handleIncomeMonthPickerChange()" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
+                            <input type="month" id="incomeMonthPicker" lang="ar" aria-label="اختيار شهر التحصيل من الكلندر" onchange="handleIncomeMonthPickerChange()" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
                         </label>
                         <p id="incomeMonthPickerHint" role="status" aria-live="polite" class="text-xs text-slate-500"></p>
                     </div>
@@ -2692,11 +2693,11 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-0a9bfc41fc"></script>
-    <script src="js/state.js?v=f367c7dc5c"></script>
+    <script src="js/telemetry.js?v=manzil-7b0b4946ff"></script>
+    <script src="js/state.js?v=875ef0def3"></script>
     <script src="js/access.js?v=0d7f855407"></script>
     <script src="js/render.js?v=708c3ae2a7"></script>
-    <script src="js/crud.js?v=d1e4b518ab"></script>
+    <script src="js/crud.js?v=80a83ab99f"></script>
     <script src="js/notices.js?v=93c0d216cc"></script>
     <script src="js/push.js?v=93d6b20d62"></script>
     <!-- Chart.js for report visualizations (bundled locally) -->
