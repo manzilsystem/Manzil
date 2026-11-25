@@ -5156,7 +5156,6 @@ body.owner-mode .owner-theme-control {
     .report-index-item { padding: var(--space-85); border-radius: var(--radius-95); box-shadow: none; }
     .report-index-item .report-index-open { display: none; }
     .report-index-copy { gap: var(--space-30); }
-    .report-index-copy b { font-size: var(--font-90); }
     .report-index-badge { display: none; }
     .report-index-item:hover { border-color: var(--report-tone-line, var(--accent-color)); transform: translateY(-1px); }
     .report-index-item:not(.is-ready):not(.is-stale) .report-index-state { visibility: hidden; }
@@ -5183,10 +5182,9 @@ body.owner-mode .owner-theme-control {
     /* Tables: calm header, thin lines, no zebra noise */
     .sheet-table thead th { border-bottom: 1px solid var(--border-color); background: color-mix(in srgb, var(--bg-input) 70%, transparent); color: var(--text-muted); font-size: var(--font-70); font-weight: var(--weight-700); }
     .sheet-table th, .sheet-table td { border-inline-start: 0; padding: var(--space-60) var(--space-75); }
-    .sheet-table tbody tr:nth-child(even) { background: transparent; }
+    .sheet-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--bg-card) 30%, transparent); }
     .sheet-table tfoot td { border-top: 1px solid var(--border-color); background: transparent; }
     .sheet-wrap { border-radius: var(--radius-95); }
-    .sheet-positive, .sheet-emerald, .sheet-negative, .sheet-rose { font-weight: var(--weight-700); }
     /* Actions: one primary, calm secondaries */
     .report-action:not(.report-action-primary) { background: transparent; border-color: var(--border-color); color: var(--text-main); }
     .report-action:not(.report-action-primary):hover:not(:disabled) { border-color: var(--accent-color); }
