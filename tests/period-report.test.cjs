@@ -236,6 +236,46 @@ test('period report bills every month in the range and totals in cents', () => {
     assert.equal(report.rangeLabel, 'يناير 2024 – مارس 2024');
 });
 
+test('period report shows other income so net matches collected, other and expenses', () => {
+    const { app } = loadReport({
+        state: {
+            income: [
+                { id: 'o1', residentId: 'r1', month: 'فبراير 2024', amount: 100, paymentMethod: 'cash', purposeCode: 'subscription' },
+                { id: 'o2', residentId: 'r1', month: 'فبراير 2024', amount: 50, paymentMethod: 'cash', purposeCode: 'donation' }
+            ],
+            expenses: [{ id: 'e1', month: 'فبراير 2024', amount: 20, description: 'نظافة' }]
+        }
+    });
+    const report = app.buildPeriodReport('فبراير 2024', 'فبراير 2024');
+    const row = report.months[0];
+    assert.equal(row.collectedCents, 10000);
+    assert.equal(row.otherIncomeCents, 5000);
+    assert.equal(row.expenseCents, 2000);
+    assert.equal(row.netCents, 13000);
+    const html = app.renderPeriodReportHtml(report);
+    assert.match(html, /إيرادات أخرى/);
+});
+
+test('period report caps the displayed rate and flags negative payments and empty expenses', () => {
+    const { app } = loadReport({
+        state: {
+            income: [
+                { id: 'n1', residentId: 'r1', month: 'فبراير 2024', amount: 900, paymentMethod: 'cash', purposeCode: 'subscription' },
+                { id: 'n2', residentId: 'r1', month: 'فبراير 2024', amount: -40, paymentMethod: 'cash', purposeCode: 'subscription' }
+            ],
+            expenses: [{ id: 'e2', month: 'فبراير 2024', amount: '', description: 'بدون مبلغ' }]
+        }
+    });
+    const report = app.buildPeriodReport('فبراير 2024', 'فبراير 2024');
+    assert.equal(report.months[0].collectedCents, 90000);
+    assert.equal(report.totals.negativePaymentCount, 1);
+    assert.equal(report.totals.emptyExpenseCount, 1);
+    const html = app.renderPeriodReportHtml(report);
+    assert.match(html, />200%/);
+    assert.match(html, /سالبة/);
+    assert.match(html, /بلا مبلغ/);
+});
+
 test('period report nets waivers and discounts out of expected dues', () => {
     const { app, sandbox } = loadReport({
         state: {
@@ -361,9 +401,9 @@ test('period preview gates print and csv until a fresh preview exists', () => {
     app.exportPeriodReportCsv();
     assert.equal(calls.download.filename, 'manzil_period_2024-01_2024-03.csv');
     const lines = calls.download.content.replace(/^\uFEFF/, '').split('\r\n');
-    assert.equal(lines[0], '"الشهر","المستحق","المحصّل","غير المحصّل","نسبة التحصيل %","المصروف","الصافي"');
-    assert.equal(lines[1], '"يناير 2024","100","100","0","100","0","100"');
-    assert.equal(lines[4], '"الإجمالي","300","140","160","47","25","115"');
+    assert.equal(lines[0], '"الشهر","المستحق","المحصّل","غير المحصّل","نسبة التحصيل %","إيرادات أخرى","المصروف","الصافي"');
+    assert.equal(lines[1], '"يناير 2024","100","100","0","100","0","0","100"');
+    assert.equal(lines[4], '"الإجمالي","300","140","160","47","0","25","115"');
     assert.equal(lines[5], '');
     assert.equal(lines[6], '"طريقة التحصيل","عدد الحركات","المبلغ","نسبته من المحصّل %"');
     assert.equal(lines[7], '"نقدًا","2","140","100"');
