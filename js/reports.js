@@ -895,13 +895,14 @@ function renderSheetTable(headers, rows, options = {}) {
 
 function renderSheetBlock(title, headers, rows, options = {}) {
     const label = esc(title);
+    const collapsed = Boolean(options.collapsed);
     const heading = '<div class="report-block-head">' +
         '<h3 class="report-block-title">' + label + ' <span class="report-block-count">' +
         fmtNum(rows.length) + '</span></h3>' +
         '<button type="button" class="report-block-toggle no-print" data-report-block-toggle ' +
-        'aria-expanded="true" aria-label="طي قسم ' + label + '" title="طي القسم">' +
+        'aria-expanded="' + (collapsed ? 'false' : 'true') + '" aria-label="' + (collapsed ? 'إظهار' : 'طي') + ' قسم ' + label + '" title="' + (collapsed ? 'إظهار القسم' : 'طي القسم') + '">' +
         '<i class="fa-solid fa-chevron-up" aria-hidden="true"></i></button></div>';
-    return '<div class="report-block">' + heading +
+    return '<div class="report-block' + (collapsed ? ' is-collapsed' : '') + '">' + heading +
         '<div class="report-block-body">' + renderSheetTable(headers, rows, options) + '</div></div>';
 }
 

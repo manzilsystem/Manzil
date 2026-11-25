@@ -5218,3 +5218,5 @@ body.owner-mode .owner-theme-control {
     .sheet-kpi tbody td.report-stat { display: flex; flex-direction: column; gap: var(--space-20); padding: var(--space-65); border: 1px solid var(--border-color) !important; border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-input) 55%, transparent); text-align: center; }
     .sheet-kpi tbody td.report-stat::before { content: attr(data-label); color: var(--text-muted); font-size: var(--font-70); font-weight: var(--weight-700); }
 }
+/* Toolbars that wrap their fields in one box (arrears) span the whole row of the filter grid */
+@media screen { .report-toolbar > div { grid-column: 1 / -1; } }
