@@ -35,7 +35,8 @@ const Z_LAYERS = {
     topbar: '3',
     toolbar: '6',
     dropdown: '40',
-    floating: '45'
+    floating: '45',
+    splash: '9999'
 };
 const LEADINGS = {
     120: '1.2',
