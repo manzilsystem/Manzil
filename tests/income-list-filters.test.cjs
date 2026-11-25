@@ -86,7 +86,7 @@ test('long income notes wrap instead of being truncated', () => {
 });
 
 test('income list pages long results behind a show-more button to cut scrolling', () => {
-    assert.match(render, /INCOME_LIST_PAGE_SIZE = 8/);
+    assert.match(render, /INCOME_LIST_PAGE_SIZE = 6/);
     assert.match(render, /renderIncomeTable\(\{ more: true \}\)/);
     assert.match(render, /عرض المزيد \(\$\{fmtNum\(remainingGroups\)\}\)/);
     assert.match(render, /allGroups\.slice\(0, incomeListVisibleGroups\)/);

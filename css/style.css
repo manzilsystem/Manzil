@@ -5360,8 +5360,8 @@ body.owner-mode .owner-theme-control {
     /* Tap targets: at least 44px for small icon buttons */
     .icon-action, #incomeCardsList button, #expensesList button { min-width: 2.75rem; min-height: 2.75rem; display: inline-flex; align-items: center; justify-content: center; }
     /* Income rows: details on top, amount and actions on their own line */
-    #incomeCardsList .flex.justify-between.items-center { flex-wrap: wrap; row-gap: var(--space-60); }
-    #incomeCardsList .flex.justify-between.items-center > .shrink-0:last-child { width: 100%; justify-content: space-between; padding-top: var(--space-50); border-top: 1px solid var(--border-color); }
+    #incomeCardsList .flex.justify-between.items-center { flex-wrap: wrap; row-gap: var(--space-25); }
+    #incomeCardsList .flex.justify-between.items-center > .shrink-0:last-child { width: 100%; justify-content: space-between; padding-top: var(--space-25); border-top: 1px solid var(--border-color); }
     /* Breathing room between cards and sections */
     .app-card { border-radius: var(--radius-95); }
     .report-index-grid { gap: var(--space-85); }
