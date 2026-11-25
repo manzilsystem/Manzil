@@ -16,6 +16,7 @@ const PATTERNS = [
     { name: 'supabase_access_token', regex: /\bsbp_[A-Za-z0-9]{20,}/g },
     { name: 'supabase_secret_key', regex: /\bsb_secret_[A-Za-z0-9]{20,}/g },
     { name: 'github_token', regex: /\bgh[pousr]_[A-Za-z0-9]{20,}/g },
+    { name: 'groq_api_key', regex: /\bgsk_[A-Za-z0-9]{20,}/g },
     { name: 'aws_access_key', regex: /\bAKIA[0-9A-Z]{16}\b/g },
     { name: 'private_key', regex: /-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY-----/g },
 ];
