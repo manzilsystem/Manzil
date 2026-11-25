@@ -21,9 +21,15 @@
     <link rel="stylesheet" href="fonts/cairo.css?v=aecf0ab114">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/tailwind.css?v=ed653d8eef">
-    <link rel="stylesheet" href="css/style.css?v=58d1ad5407">
+    <link rel="stylesheet" href="css/style.css?v=aaf1db11b1">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
+
+    <div id="appSplash" aria-hidden="true">
+        <img class="app-splash-logo" src="icons/icon-512.png?v=dfe76ac325" alt="" width="144" height="144" decoding="async" fetchpriority="high">
+        <p class="app-splash-name">Manzil</p>
+        <div class="app-splash-bar"><span></span></div>
+    </div>
 
     <div id="toastContainer" role="status" aria-live="polite" aria-atomic="true" class="fixed top-20 left-1/2 -translate-x-1/2 z-[100] space-y-2 pointer-events-none" style="max-width:90vw;"></div>
 
@@ -48,7 +54,7 @@
                 <div class="auth-brand-footer">
                     <p class="auth-trust-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> دخول آمن وصلاحيات واضحة لكل حساب.</p>
                     <div class="auth-rights">
-                        <p>حقوق الملكية الفكرية © 2026 شركة سنا للبرمجيات. جميع الحقوق محفوظة.</p>
+                        <p>حقوق الملكية الفكرية © <span data-copyright-year>2026</span> شركة سنا للبرمجيات. جميع الحقوق محفوظة.</p>
                         <p>محمد عادل · <a href="tel:+201027767039" dir="ltr">01027767039</a></p>
                     </div>
                 </div>
@@ -1314,8 +1320,9 @@
             </div>
         </section>
         <footer id="appCopyright" class="text-center text-xs text-slate-500 leading-5 pt-2 no-print">
-            <p>حقوق الملكية الفكرية © 2026 شركة سنا للبرمجيات. جميع الحقوق محفوظة.</p>
-            <p>محمد عادل · <a href="tel:+201027767039" dir="ltr" class="text-indigo-300 hover:text-indigo-200">01027767039</a></p>
+            <div class="copyright-divider" aria-hidden="true"><img src="icons/manzil-logo.png?v=21c05e57ac" alt="" width="18" height="18" decoding="async"></div>
+            <p class="copyright-line">حقوق الملكية الفكرية © <span data-copyright-year>2026</span> شركة سنا للبرمجيات. جميع الحقوق محفوظة.</p>
+            <p class="copyright-credit">محمد عادل <span class="copyright-dot" aria-hidden="true">·</span> <a href="tel:+201027767039" dir="ltr" class="text-indigo-300 hover:text-indigo-200">01027767039</a></p>
         </footer>
     </main>
 
@@ -2680,7 +2687,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-4adcea9445"></script>
+    <script src="js/telemetry.js?v=manzil-97d62e568f"></script>
     <script src="js/state.js?v=f367c7dc5c"></script>
     <script src="js/access.js?v=4e42881cb7"></script>
     <script src="js/render.js?v=708c3ae2a7"></script>
@@ -2716,6 +2723,6 @@
     <script src="js/assistant-voice.js?v=8983a0aa4e"></script>
     <script src="js/assistant-fab.js?v=9ef655d618"></script>
     <script src="js/assistant-groq.js?v=a5ac117af0"></script>
-    <script src="js/app.js?v=a3c44d1eab"></script>
+    <script src="js/app.js?v=fa7ab2bdf3"></script>
 </body>
 </html>
