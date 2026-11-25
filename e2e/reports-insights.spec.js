@@ -200,3 +200,37 @@ test('payment methods csv downloads with a period-based filename', async ({ page
     await page.locator('#paymentMethodsCsvBtn').click();
     expect((await csvDownload).suggestedFilename()).toBe('manzil_payment_methods_2026-06_2026-11.csv');
 });
+
+async function expectNoHorizontalOverflow(page) {
+    const overflow = await page.evaluate(() => {
+        const offenders = [];
+        document.querySelectorAll('#tab-reports .sheet-wrap, #tab-reports .report-stats').forEach(el => {
+            if (el.scrollWidth > el.clientWidth + 1) offenders.push(el.className);
+        });
+        return { doc: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, offenders };
+    });
+    expect(overflow).toEqual({ doc: false, offenders: [] });
+}
+
+test('insights reports fit 360px phones without horizontal scroll or clipping', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 800 });
+    await openReports(page);
+    await openReportPanel(page, 'paymentBehavior');
+    await page.locator('#paymentBehaviorPanel').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await expect(page.locator('#paymentBehaviorPreview .sheet-table').first()).toBeVisible({ timeout: 15000 });
+    await expectNoHorizontalOverflow(page);
+
+    await openReportsWithExpenses(page);
+    await page.setViewportSize({ width: 360, height: 800 });
+    await openReportPanel(page, 'expenseVariance');
+    await page.locator('#expenseVariancePanel').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await expect(page.locator('#expenseVariancePreview .sheet-table').first()).toBeVisible({ timeout: 15000 });
+    await expectNoHorizontalOverflow(page);
+
+    await openReportsWithPayments(page);
+    await page.setViewportSize({ width: 360, height: 800 });
+    await openReportPanel(page, 'paymentMethods');
+    await page.locator('#paymentMethodsPanel').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await expect(page.locator('#paymentMethodsPreview .sheet-table').first()).toBeVisible({ timeout: 15000 });
+    await expectNoHorizontalOverflow(page);
+});

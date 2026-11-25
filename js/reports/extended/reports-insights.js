@@ -1052,7 +1052,7 @@ function paymentMethodsStatItems(report) {
     return [
         { label: 'إجمالي التحصيلات', text: money(report.totals.cents) },
         { label: 'عدد التحصيلات', text: fmtNum(report.totals.count) },
-        { label: 'الطريقة الأعلى', text: report.totals.topMethod + ' · ' + fmtNum(report.totals.topPct) + '%', tone: 'indigo' },
+        { label: 'الطريقة الأعلى · ' + report.totals.topMethod, text: fmtNum(report.totals.topPct) + '%', tone: 'indigo' },
         { label: 'طرق مستخدمة', text: fmtNum(report.totals.methodCount) }
     ];
 }
@@ -1089,7 +1089,7 @@ function renderPaymentMethodsHtml(report) {
         stats,
         renderSheetBlock('حصة كل طريقة', ['طريقة الدفع', 'عدد التحصيلات', 'المبلغ', 'الحصة'], rows, {
             empty: 'لا توجد تحصيلات في هذه الفترة.',
-            numeric: [1, 2, 3], tableClass: 'statement-table',
+            numeric: [1, 2, 3], tableClass: 'statement-table', cards: true,
             foot: ['الإجمالي', fmtNum(report.totals.count), money(report.totals.cents), '100%']
         }),
         renderSheetBlock('التوزيع الشهري', monthHeaders, monthRows, {
@@ -1104,7 +1104,7 @@ function renderPaymentMethodsHtml(report) {
             hasData: hasChartData,
             empty: 'لا توجد تحصيلات لعرض الرسم.',
             summary: hasChartData ? [
-                { label: 'الطريقة الأعلى', text: report.totals.topMethod + ' · ' + fmtNum(report.totals.topPct) + '%', tone: 'indigo' },
+                { label: 'الطريقة الأعلى · ' + report.totals.topMethod, text: fmtNum(report.totals.topPct) + '%', tone: 'indigo' },
                 { label: 'إجمالي التحصيلات', cents: report.totals.cents }
             ] : []
         }),

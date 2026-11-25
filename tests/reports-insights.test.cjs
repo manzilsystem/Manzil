@@ -145,7 +145,7 @@ function loadInsights(overrides = {}) {
             generateExpenseVarianceReport, getSelectedExpenseVarianceSnapshot, expenseVarianceCsvRows,
             invalidateExpenseVariancePreview, printExpenseVarianceReport,
             exportExpenseVarianceCsv, exportExpenseVarianceExcel, exportExpenseVariancePdf,
-            generatePaymentMethodsReport, getSelectedPaymentMethodsSnapshot, paymentMethodsCsvRows,
+            generatePaymentMethodsReport, getSelectedPaymentMethodsSnapshot, paymentMethodsCsvRows, renderPaymentMethodsHtml,
             invalidatePaymentMethodsPreview, printPaymentMethodsReport,
             exportPaymentMethodsCsv, exportPaymentMethodsExcel, exportPaymentMethodsPdf,
             getSelectedPayerBehaviorSnapshot, invalidatePayerBehaviorPreview, invalidatePayerBehaviorIfStale,
@@ -549,4 +549,14 @@ test('payment methods reversed period shows an error instead of a snapshot', () 
     api.generatePaymentMethodsReport();
     assert.equal(api.getSelectedPaymentMethodsSnapshot(), null);
     assert.match(elements.paymentMethodsPreview.innerHTML, /تعذر بناء التقرير/);
+});
+
+test('payment methods per-method table stacks into cards on phones', () => {
+    const { api } = loadInsights({ income: PAYMENT_FIXTURE });
+    const report = api.buildPaymentMethodsReport('يناير 2025', 'فبراير 2025');
+    const html = api.renderPaymentMethodsHtml(report);
+    const firstWrap = html.indexOf('حصة كل طريقة');
+    assert.ok(firstWrap > 0);
+    assert.match(html.slice(firstWrap), /sheet-wrap sheet-cards/);
+    assert.match(html, /الطريقة الأعلى · محفظة إلكترونية/);
 });
