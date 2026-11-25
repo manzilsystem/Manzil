@@ -5498,7 +5498,7 @@ footer#appCopyright .copyright-divider img { width: 1.125rem; height: 1.125rem; 
 #appCopyright a { text-decoration-color: var(--brand-gold-soft); }
 
 #appSplash { position: fixed; inset: 0; z-index: var(--z-splash); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-100); background: var(--bg-main, #0b1020); color: var(--text-main, #fff); pointer-events: none; animation: app-splash-out .35s ease 1.15s forwards; }
-#appSplash .app-splash-logo { width: 6rem; height: 6rem; object-fit: contain; animation: app-splash-logo .7s cubic-bezier(.2,.8,.2,1) both; }
+#appSplash .app-splash-logo { width: min(9rem, 42vw); height: min(9rem, 42vw); object-fit: contain; animation: app-splash-logo .7s cubic-bezier(.2,.8,.2,1) both; }
 #appSplash .app-splash-name { margin: var(--space-none); font-size: var(--font-125); font-weight: var(--weight-700); letter-spacing: var(--tracking-20); color: var(--brand-gold); animation: app-splash-fade .5s ease .25s both; }
 #appSplash .app-splash-bar { width: min(12rem, 50vw); height: 3px; border-radius: var(--radius-pill); overflow: hidden; background: color-mix(in srgb, var(--text-main, #fff) 14%, transparent); animation: app-splash-fade .4s ease .2s both; }
 #appSplash .app-splash-bar span { display: block; height: 100%; width: 100%; border-radius: inherit; background: linear-gradient(to left, var(--brand-gold), var(--accent-color)); transform-origin: right center; animation: app-splash-bar .9s ease-in-out .25s both; }
