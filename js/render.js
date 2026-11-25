@@ -595,8 +595,24 @@ function renderIncomeTable(options) {
     }).join('') + moreButton;
 }
 
-function renderExpenseTable() {
+function toggleExpenseFilters() {
+    const panel = document.getElementById('expenseFiltersMore');
+    const toggle = document.getElementById('expenseFiltersToggle');
+    if (!panel || !toggle) return;
+    const open = panel.classList.toggle('hidden') === false;
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.classList.toggle('is-open', open);
+}
+
+const EXPENSE_LIST_PAGE_SIZE = 8;
+let expenseListVisibleItems = EXPENSE_LIST_PAGE_SIZE;
+
+function renderExpenseTable(options) {
     const c = document.getElementById('expenseCardsList');
+    if (!c) return;
+    expenseListVisibleItems = options && options.more === true
+        ? expenseListVisibleItems + EXPENSE_LIST_PAGE_SIZE
+        : EXPENSE_LIST_PAGE_SIZE;
     const s = (/** @type {HTMLInputElement} */ (document.getElementById('searchExpenseInput'))?.value||'').toLowerCase();
     const fc = /** @type {HTMLSelectElement} */ (document.getElementById('filterExpenseCategory'))?.value||'';
     const fm = /** @type {HTMLSelectElement} */ (document.getElementById('filterExpenseMonth'))?.value||'';
@@ -606,11 +622,30 @@ function renderExpenseTable() {
     if (fc) items = items.filter(e => e.category === fc);
     if (fm) items = items.filter(e => e.month === fm);
     if (s) items = items.filter(e => [e.title, e.category, e.month, e.notes, e.amount, renderCashAccountLabel(e.cashAccountCode)].some(value => String(value ?? '').toLocaleLowerCase('ar-EG').includes(s)));
+    const badge = document.getElementById('expenseFiltersActiveCount');
+    if (badge) {
+        const active = [fc, fm].filter(Boolean).length;
+        badge.textContent = active ? `(${fmtNum(active)})` : '';
+        badge.classList.toggle('hidden', !active);
+    }
+    const summary = document.getElementById('expenseResultsSummary');
+    if (summary) {
+        const total = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        summary.classList.toggle('hidden', !state.expenses.length);
+        summary.innerHTML = `
+            <div class="income-stat"><p class="income-stat-label">عدد المصروفات</p><p class="income-stat-value">${fmtNum(items.length)}</p></div>
+            <div class="income-stat income-stat-total expense-stat-total"><p class="income-stat-label">إجمالي النتائج</p><p class="income-stat-value">${fmtNum(total)} ج.م</p></div>`;
+    }
     if (!items.length) {
         c.innerHTML = '<div class="app-card p-8 rounded-3xl border text-center space-y-3"><div class="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center mx-auto"><i class="fa-solid fa-receipt"></i></div><div><p class="text-sm font-bold">لا توجد مصروفات مطابقة</p><p class="text-xs text-slate-500 mt-1">سجّل أول مصروف أو غيّر الفلاتر الحالية.</p></div><button onclick="openModal(\'expenseModal\')" class="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold transition"><i class="fa-solid fa-plus"></i> تسجيل مصروف</button></div>';
         return;
     }
-    c.innerHTML = items.map(e => `
+    const visibleItems = items.slice(0, expenseListVisibleItems);
+    const remainingItems = items.length - visibleItems.length;
+    const moreButton = remainingItems > 0
+        ? `<button type="button" onclick="renderExpenseTable({ more: true })" class="income-more-btn no-print">عرض المزيد (${fmtNum(remainingItems)})</button>`
+        : '';
+    c.innerHTML = visibleItems.map(e => `
         <div class="app-card p-3 rounded-2xl border flex justify-between items-center gap-2">
             <div class="flex items-center gap-2 min-w-0">
                 <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-receipt"></i></div>
@@ -621,7 +656,7 @@ function renderExpenseTable() {
                 <button onclick="openExpenseEditModal('${e.id}')" aria-label="تعديل المصروف ${esc(e.title)}" class="icon-action text-indigo-400 hover:text-indigo-300 p-1"><i class="fa-solid fa-pen text-xs"></i></button>
                 <button onclick="deleteExpense('${e.id}')" aria-label="حذف المصروف ${esc(e.title)}" class="icon-action text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash text-xs"></i></button>
             </div>
-        </div>`).join('');
+        </div>`).join('') + moreButton;
 }
 
 function renderResidentsGrid() {

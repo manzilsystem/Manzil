@@ -75,3 +75,12 @@ test('modal focus management restores focus per modal and targets the topmost op
     assert.match(app, /function getModalFocusableElements\(modal\)/);
     assert.match(app, /!modal\.contains\(document\.activeElement\)/);
 });
+
+test('expenses list folds its filters and pages the list like collections', () => {
+    const partial = fs.readFileSync('src/partials/main-tabs.html', 'utf8');
+    assert.match(partial, /id="expenseFiltersToggle"[^>]*aria-expanded="false"[^>]*aria-controls="expenseFiltersMore"/);
+    assert.match(partial, /id="expenseFiltersMore"[^>]*\bhidden\b/);
+    assert.match(partial, /id="expenseResultsSummary"/);
+    assert.match(render, /EXPENSE_LIST_PAGE_SIZE = 8/);
+    assert.match(render, /renderExpenseTable\(\{ more: true \}\)/);
+});
