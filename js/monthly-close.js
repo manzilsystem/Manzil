@@ -221,7 +221,7 @@ function renderMonthlyClosePdfHtml(report) {
         ].join('');
     }).join('');
 
-    const generatedAtLabel = formatDate(new Date().toISOString());
+    const generatedAtLabel = reportPdfDate(new Date().toISOString());
     return [
         reportPdfDocumentOpen(),
         reportPdfHeader([
@@ -268,7 +268,7 @@ async function exportMonthlyClosePdf() {
 
     try {
         await ensurePdfLibrary();
-        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+        await loadReportPdfFonts();
 
         root = document.createElement('section');
         root.dir = 'rtl';
@@ -277,14 +277,7 @@ async function exportMonthlyClosePdf() {
         root.innerHTML = renderMonthlyClosePdfHtml(report.data);
         document.body.appendChild(root);
 
-        const pdfBlob = await /** @type {any} */ (window.html2pdf)().set({
-            margin: 8,
-            filename: 'manzil_monthly_close_' + report.monthKey.slice(0, 7) + '.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, backgroundColor: REPORT_PDF_PALETTE.surface, logging: false },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-        }).from(root).outputPdf('blob');
+        const pdfBlob = await renderReportRootToPdfBlob(root, 'manzil_monthly_close_' + report.monthKey.slice(0, 7) + '.pdf', { key: 'A4', w: 210, h: 297 });
 
         if (!(pdfBlob instanceof Blob) || pdfBlob.type !== 'application/pdf' || pdfBlob.size < 100) {
             throw new Error('monthly_close_pdf_generation_failed');

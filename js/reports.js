@@ -1572,7 +1572,7 @@ function renderLandlordReportPdfHtml(month, purposeFilter = '', cashAccountFilte
             '</tr>').join('')
         : '<tr><td colspan="3" style="' + REPORT_PDF_EMPTY_CELL_STYLE + '">لا يوجد</td></tr>';
 
-    const generatedAtLabel = formatDate(new Date().toISOString());
+    const generatedAtLabel = reportPdfDate(new Date().toISOString());
     return [
         reportPdfDocumentOpen(),
         reportPdfHeader([
@@ -1651,7 +1651,7 @@ async function exportLandlordReportPdf() {
 
     try {
         await ensurePdfLibrary();
-        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+        await loadReportPdfFonts();
 
         root = document.createElement('section');
         root.dir = 'rtl';
@@ -1666,14 +1666,7 @@ async function exportLandlordReportPdf() {
             return;
         }
 
-        const pdfBlob = await window.html2pdf().set({
-            margin: 8,
-            filename,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, backgroundColor: REPORT_PDF_PALETTE.surface, logging: false },
-            jsPDF: reportExportJsPdfOptions(),
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-        }).from(root).outputPdf('blob');
+        const pdfBlob = await renderReportRootToPdfBlob(root, filename);
 
         if (!(pdfBlob instanceof Blob) || pdfBlob.type !== 'application/pdf' || pdfBlob.size < 100) {
             throw new Error('landlord_report_pdf_generation_failed');
@@ -3721,7 +3714,8 @@ const REPORT_PDF_DOCUMENT_STYLE = '<style>' +
     '.manzil-pdf table{border-collapse:collapse;width:100%}' +
     '.manzil-pdf tbody tr:nth-child(even){background:' + REPORT_PDF_PALETTE.hairline + '}' +
     '.manzil-pdf th,.manzil-pdf td{font-variant-numeric:tabular-nums;vertical-align:middle}' +
-    '.manzil-pdf section{break-inside:avoid}' +
+    '.manzil-pdf tr{break-inside:avoid}' +
+    '.manzil-pdf thead{display:table-header-group}' +
     '.manzil-pdf thead th{background:' + REPORT_PDF_PALETTE.rule + ';color:' + REPORT_PDF_PALETTE.surface + ';border-color:' + REPORT_PDF_PALETTE.rule + '}' +
     '.manzil-pdf tfoot td{font-weight:700;border-top:2px solid ' + REPORT_PDF_PALETTE.rule + '}' +
     '.manzil-pdf table.pdf-summary th{width:45%;font-weight:600}' +
@@ -3741,6 +3735,15 @@ function reportPdfHeader(titleLines, metaLines) {
         '<h2 style="' + REPORT_PDF_SUBTITLE_STYLE + '">', titleLines.join(''), '</h2>',
         '<p style="' + REPORT_PDF_META_STYLE + '">', metaLines.join(''), '</p></header>'
     ].join('');
+}
+
+/** PDF date label: Arabic month names with Latin digits, the same digit style as every amount in the report. */
+function reportPdfDate(iso) {
+    if (!iso) return '';
+    try {
+        const d = new Date(iso);
+        return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'short', day: 'numeric' });
+    } catch (_) { return ''; }
 }
 
 function reportPdfFooter(generatedLabel) {
@@ -3859,7 +3862,7 @@ function renderResidentStatementPdfHtml(statement) {
         ]
         : [];
 
-    const generatedAtLabel = formatDate(statement.generatedAt);
+    const generatedAtLabel = reportPdfDate(statement.generatedAt);
     return [
         reportPdfDocumentOpen(),
         reportPdfHeader([
@@ -3910,7 +3913,7 @@ function renderUnitReportPdfHtml(statement) {
         ? `${currentMonth}: مستحق ${fmtMoney(currentRow.dueCents / 100)}${currentRow.adjustmentCents ? ' • إعفاء/تخفيض ' + fmtMoney(currentRow.adjustmentCents / 100) : ''} • مدفوع ${fmtMoney(currentRow.paidCents / 100)} • متبقٍ ${fmtMoney(currentRow.remainingCents / 100)}`
         : 'لا يوجد استحقاق للشهر الحالي.';
 
-    const generatedAtLabel = formatDate(statement.generatedAt);
+    const generatedAtLabel = reportPdfDate(statement.generatedAt);
     return [
         reportPdfDocumentOpen(),
         reportPdfHeader([
@@ -4027,7 +4030,7 @@ function renderPeriodReportPdfHtml(report) {
     const purposeRows = (report.purposes || []).length
         ? report.purposes.map(item => '<tr>' + statementPdfCell(esc(item.label)) + statementPdfCell(fmtNum(item.count)) + statementPdfCell(fmtMoney(item.cents / 100), 'color:#047857;font-weight:700') + '</tr>').join('')
         : reportPdfEmptyRow(3, 'لا تحصيلات في هذه الفترة.');
-    const generatedAtLabel = formatDate(report.generatedAt);
+    const generatedAtLabel = reportPdfDate(report.generatedAt);
     return [
         reportPdfDocumentOpen(),
         reportPdfHeader([
@@ -4078,7 +4081,7 @@ function renderExpensesReportPdfHtml(report) {
         { label: 'متوسط الشهر', cents: totals.averageCents },
         { label: 'أشهر فيها مصروف', text: fmtNum(totals.monthCount) }
     ];
-    const generatedAtLabel = formatDate(report.generatedAt);
+    const generatedAtLabel = reportPdfDate(report.generatedAt);
     return [
         reportPdfDocumentOpen(),
         reportPdfHeader([
@@ -4126,7 +4129,7 @@ function renderAdjustmentsReportPdfHtml(report) {
         { label: 'الشقق المستفيدة', text: fmtNum(totals.residentCount) },
         { label: 'أشهر مشمولة', text: fmtNum(totals.monthCount) }
     ];
-    const generatedAtLabel = formatDate(report.generatedAt);
+    const generatedAtLabel = reportPdfDate(report.generatedAt);
     return [
         reportPdfDocumentOpen(),
         reportPdfHeader([
@@ -4193,6 +4196,159 @@ function removeReportExportRoot(root) {
     const stage = root.parentElement;
     root.remove();
     if (stage && stage.dataset && stage.dataset.reportExportStage) stage.remove();
+}
+
+
+// ===== PDF pagination, fonts and page footer (shared by every report PDF) =====
+const REPORT_PDF_CANVAS_SCALE = 2;
+const REPORT_PDF_FONT_WEIGHTS = ['400', '600', '700', '900'];
+
+/** Make sure every bundled Cairo weight is decoded before html2canvas paints, or it falls back to Arial. */
+async function loadReportPdfFonts() {
+    if (typeof document === 'undefined' || !document.fonts) return;
+    const sample = 'تقرير المالك 0123456789';
+    try {
+        await Promise.all(REPORT_PDF_FONT_WEIGHTS.map(function (weight) {
+            return document.fonts.load(weight + ' 16px Cairo', sample);
+        }));
+    } catch (_) { /* the system fallback font still renders */ }
+    if (document.fonts.ready) await document.fonts.ready;
+}
+
+/**
+ * Height of one PDF page in CSS pixels, exactly as html2pdf slices it: the capture is
+ * (inner page width in px + 1) wide at scale 2 and each page is floor(width * inner ratio) tall.
+ */
+function reportPdfPagePx(root, paper) {
+    const innerWidthMm = paper.w - 2 * REPORT_EXPORT_MARGIN_MM;
+    const innerHeightMm = paper.h - 2 * REPORT_EXPORT_MARGIN_MM;
+    const captureWidth = (Math.floor(innerWidthMm * 96 / 25.4) + 1) * REPORT_PDF_CANVAS_SCALE;
+    return Math.floor(captureWidth * innerHeightMm / innerWidthMm) / REPORT_PDF_CANVAS_SCALE;
+}
+
+/**
+ * Cut the sheet into pages on row boundaries. A table that crosses a page is split
+ * into a new table that repeats the header row; headings never end a page alone.
+ * Spacers pad each page so html2pdf slices exactly where the cuts are.
+ * @param {HTMLElement} root
+ * @param {number} pagePx
+ * @returns {number} number of pages
+ */
+function paginateReportRoot(root, pagePx) {
+    if (!(pagePx > 50)) return 1;
+    const SAFETY = 3;
+    const rootTop = function () { return root.getBoundingClientRect().top; };
+    const atoms = Array.from(root.querySelectorAll('tbody tr, tfoot tr, header, h3, section > p, .manzil-pdf > p, footer'));
+    let pageEnd = pagePx;
+    const spacerBefore = function (element, gap) {
+        const spacer = document.createElement('div');
+        spacer.setAttribute('data-pdf-spacer', '1');
+        spacer.style.cssText = 'height:' + Math.max(0, gap) + 'px;margin:0;padding:0;border:0';
+        element.parentNode.insertBefore(spacer, element);
+    };
+    atoms.forEach(function (atom) {
+        let guard = 0;
+        while (guard < 4) {
+            guard += 1;
+            const base = rootTop();
+            const rect = atom.getBoundingClientRect();
+            let top = rect.top - base;
+            let bottom = rect.bottom - base;
+            if (atom.tagName === 'H3') {
+                const next = atom.nextElementSibling;
+                const probe = next && (next.tagName === 'TABLE' ? next.querySelector('tbody tr') : next);
+                if (probe) bottom = Math.max(bottom, probe.getBoundingClientRect().bottom - base);
+            }
+            if (bottom <= pageEnd - SAFETY) return;
+            if (rect.height > pagePx - SAFETY * 2) return;
+            if (top >= pageEnd) { pageEnd += pagePx; continue; }
+            if (atom.tagName === 'TR') {
+                const table = atom.closest('table');
+                const body = table && table.tBodies[0];
+                let first = atom;
+                if (atom.parentElement && atom.parentElement.tagName === 'TFOOT' && body && body.lastElementChild) first = body.lastElementChild;
+                if (table && body && first.parentElement === body && first !== body.firstElementChild) {
+                    const next = document.createElement('table');
+                    Array.from(table.attributes).forEach(function (attr) { next.setAttribute(attr.name, attr.value); });
+                    Array.from(table.children).forEach(function (child) {
+                        if (child.tagName === 'COLGROUP' || child.tagName === 'THEAD') next.appendChild(child.cloneNode(true));
+                    });
+                    const nextBody = document.createElement('tbody');
+                    for (let row = first; row;) { const after = row.nextElementSibling; nextBody.appendChild(row); row = after; }
+                    next.appendChild(nextBody);
+                    if (table.tFoot) next.appendChild(table.tFoot);
+                    table.insertAdjacentElement('afterend', next);
+                    const tableBottom = table.getBoundingClientRect().bottom - rootTop();
+                    spacerBefore(next, pageEnd - tableBottom);
+                    pageEnd += pagePx;
+                    return;
+                }
+                // First row of a table: move the heading with it.
+                const heading = table && table.previousElementSibling && table.previousElementSibling.tagName === 'H3' ? table.previousElementSibling : null;
+                const anchor = heading || table || atom;
+                const anchorTop = anchor.getBoundingClientRect().top - rootTop();
+                if (anchorTop <= pageEnd - pagePx + SAFETY) return;
+                spacerBefore(anchor, pageEnd - anchorTop);
+                pageEnd += pagePx;
+                continue;
+            }
+            spacerBefore(atom, pageEnd - top);
+            pageEnd += pagePx;
+            return;
+        }
+    });
+    const total = root.scrollHeight;
+    return Math.max(1, Math.ceil((total - SAFETY) / pagePx));
+}
+
+/** Draw "building · page n of m" into the bottom margin of every page. Canvas text shapes Arabic with the bundled Cairo font. */
+function drawReportPdfPageNumbers(pdf, paper, buildingName) {
+    const total = pdf.internal.getNumberOfPages();
+    const widthMm = paper.w - 2 * REPORT_EXPORT_MARGIN_MM;
+    const heightMm = 6;
+    const pxPerMm = 12;
+    for (let page = 1; page <= total; page += 1) {
+        const canvas = document.createElement('canvas');
+        canvas.width = widthMm * pxPerMm;
+        canvas.height = heightMm * pxPerMm;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = REPORT_PDF_PALETTE.surface;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = REPORT_PDF_PALETTE.faint;
+        ctx.font = '600 ' + Math.round(2.9 * pxPerMm) + 'px Cairo, Arial, sans-serif';
+        ctx.direction = 'rtl';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const name = String(buildingName || 'Manzil');
+        ctx.fillText(name + '  •  صفحة ' + page + ' من ' + total, canvas.width / 2, canvas.height / 2);
+        pdf.setPage(page);
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', REPORT_EXPORT_MARGIN_MM, paper.h - REPORT_EXPORT_MARGIN_MM - 0.5, widthMm, heightMm);
+    }
+}
+
+/**
+ * Render a mounted report sheet to a PDF blob: fonts loaded first, rows never cut,
+ * table headers repeated, page numbers and the building name in every footer.
+ * @param {HTMLElement} root
+ * @param {string} filename
+ * @param {{key: string, w: number, h: number}} [paperOverride]
+ * @returns {Promise<Blob>}
+ */
+async function renderReportRootToPdfBlob(root, filename, paperOverride) {
+    const paper = paperOverride || reportExportPaper();
+    await loadReportPdfFonts();
+    paginateReportRoot(root, reportPdfPagePx(root, paper));
+    const buildingName = typeof state !== 'undefined' && state ? state.buildingName : '';
+    return window.html2pdf().set({
+        margin: REPORT_EXPORT_MARGIN_MM,
+        filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: REPORT_PDF_CANVAS_SCALE, useCORS: true, backgroundColor: REPORT_PDF_PALETTE.surface, logging: false },
+        jsPDF: { unit: 'mm', format: paper.key.toLowerCase(), orientation: 'portrait' },
+        pagebreak: { mode: ['css'] }
+    }).from(root).toPdf().get('pdf').then(function (pdf) {
+        drawReportPdfPageNumbers(pdf, paper, buildingName);
+    }).outputPdf('blob');
 }
 
 function reportExportJsPdfOptions() {
@@ -4359,7 +4515,7 @@ async function downloadStatementPdf(html, filename, buttonId, successMessage, lo
     if (button) button.disabled = true;
     try {
         await ensurePdfLibrary();
-        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+        await loadReportPdfFonts();
 
         root = document.createElement('section');
         root.dir = 'rtl';
@@ -4374,14 +4530,7 @@ async function downloadStatementPdf(html, filename, buttonId, successMessage, lo
             return;
         }
 
-        const pdfBlob = await window.html2pdf().set({
-            margin: 8,
-            filename,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, backgroundColor: REPORT_PDF_PALETTE.surface, logging: false },
-            jsPDF: reportExportJsPdfOptions(),
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-        }).from(root).outputPdf('blob');
+        const pdfBlob = await renderReportRootToPdfBlob(root, filename);
 
         if (!(pdfBlob instanceof Blob) || pdfBlob.type !== 'application/pdf' || pdfBlob.size < 100) {
             throw new Error('statement_pdf_generation_failed');

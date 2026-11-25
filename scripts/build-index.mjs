@@ -27,7 +27,7 @@ const SHELL_BLOCK = /(const APP_SHELL = \[)([\s\S]*?)(\];)/;
 // per-file hash from index.html. They use the shared release id instead.
 const SHARED_RELEASE_ASSETS = new Set(['js/telemetry.js', 'js/subscription-rates.js']);
 
-const ASSET_DIRS = ['css', 'js', 'icons', 'vendor'];
+const ASSET_DIRS = ['css', 'js', 'icons', 'vendor', 'fonts'];
 const ASSET_FILES = ['manifest.json'];
 
 function listFiles(dir, base = dir) {
@@ -80,7 +80,7 @@ function stampIndex() {
         })
         .join('\n');
 
-    return template.replace(/(src|href)="((?:css|js|icons)\/[^"?]+|manifest\.json)"/g, (whole, attribute, url) => {
+    return template.replace(/(src|href)="((?:css|js|icons|fonts)\/[^"?]+|manifest\.json)"/g, (whole, attribute, url) => {
         const version = versionFor(url);
         return version ? `${attribute}="${url}?v=${version}"` : whole;
     });

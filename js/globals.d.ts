@@ -24,7 +24,7 @@ interface Window {
     __manzilPeriodReportRequestToken?: number;
     MANZIL_RELEASE?: string;
     MANZIL_EXTENDED_REPORTS?: Record<string, unknown>;
-    html2pdf?: () => { set: (options: Record<string, unknown>) => { from: (element: HTMLElement) => { outputPdf: (type: string) => Promise<Blob> } } };
+    html2pdf?: () => { set: (options: Record<string, unknown>) => { from: (element: HTMLElement) => any } };
 }
 
 // Global functions defined in other JS modules
