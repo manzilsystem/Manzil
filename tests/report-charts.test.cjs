@@ -28,9 +28,10 @@ function loadChartModule() {
 
 test('chart helpers reuse Chart.js and refuse empty numeric series', () => {
     const charts = loadChartModule();
-    assert.equal(charts.REPORT_CHART_PALETTE.length, 6);
-    assert.deepEqual(charts.reportChartPalette(8).slice(0, 6), [...charts.REPORT_CHART_PALETTE]);
-    assert.equal(charts.reportChartPalette(8)[6], charts.REPORT_CHART_PALETTE[0]);
+    const palette = vm.runInContext('REPORT_CHART_PALETTE', charts);
+    assert.equal(palette.length, 6);
+    assert.deepEqual(Array.from(charts.reportChartPalette(8).slice(0, 6)), Array.from(palette));
+    assert.equal(charts.reportChartPalette(8)[6], palette[0]);
     assert.equal(charts.hasReportChartData([]), false);
     assert.equal(charts.hasReportChartData([0, 0]), false);
     assert.equal(charts.hasReportChartData([0, 125]), true);
@@ -59,7 +60,7 @@ test('chart folds pair every visualization with numeric summaries and a real emp
 
 test('old Chart.js instances are destroyed before preview replacement', () => {
     ['landlordReportChart', 'periodReportChart', 'expensesReportChart', 'adjustmentsReportChart', 'residentStatementChart']
-        .forEach(id => assert.ok(reportsSource.includes(`destroyChartById('${id}')`), id));
+        .forEach(id => assert.ok(reportsSource.includes(`reportPreviewDestroyChart('${id}')`), id));
     assert.match(extendedSource, /destroyChartsInContainer\('extendedCashFlowChartContainer'\)/);
     assert.match(extendedSource, /destroyChartsInContainer\('extendedApartmentsChartContainer'\)/);
     assert.match(monthlyCloseSource, /destroyMonthlyCloseChart\(\)/);

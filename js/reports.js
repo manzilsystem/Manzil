@@ -912,6 +912,41 @@ function renderReportNotes(paragraphs) {
         '<div class="report-note">' + list.join('') + '</div></details>';
 }
 
+
+// Compatibility helpers keep previews safe in unit harnesses that do not load charts.js.
+// In the browser these simply delegate to the shared chart module.
+function reportPreviewChartHasData(values) {
+    return Array.isArray(values) && values.some(value => {
+        const number = Number(value);
+        return Number.isFinite(number) && number !== 0;
+    });
+}
+
+function reportPreviewDestroyChart(canvasId) {
+    if (typeof destroyChartById === 'function') destroyChartById(canvasId);
+}
+
+function reportPreviewChartColor(name) {
+    const defaultColor = typeof REPORT_CHART_COLORS !== 'undefined' && REPORT_CHART_COLORS.emerald
+        ? REPORT_CHART_COLORS.emerald
+        : 'currentColor';
+    if (typeof REPORT_CHART_COLORS !== 'undefined' && REPORT_CHART_COLORS) {
+        return REPORT_CHART_COLORS[name] || defaultColor;
+    }
+    return typeof REPORT_PDF_PALETTE !== 'undefined' && REPORT_PDF_PALETTE && REPORT_PDF_PALETTE[name]
+        ? REPORT_PDF_PALETTE[name]
+        : defaultColor;
+}
+
+function reportPreviewChartPalette(count) {
+    if (typeof reportChartPalette === 'function') return reportChartPalette(count);
+    const tokens = typeof REPORT_PDF_PALETTE !== 'undefined' && REPORT_PDF_PALETTE ? REPORT_PDF_PALETTE : {};
+    const fallback = [tokens.rule, tokens.muted, tokens.faint, tokens.line, tokens.hairline, tokens.ink]
+        .filter(Boolean);
+    const size = Math.max(0, Math.min(60, Number(count) || 0));
+    return Array.from({ length: size }, (_, index) => fallback[index % fallback.length] || 'currentColor');
+}
+
 // الملخص الرقمي المرافق للرسم يستخدم نفس وحدة الجداول؛ لا أرقام تجريبية ولا مصادر أخرى.
 /**
  * @param {Array<{label: string, cents?: number, text?: string, tone?: string, note?: string}>} items
@@ -1174,7 +1209,7 @@ function setLandlordReportActionsEnabled(enabled) {
 }
 
 function clearLandlordReportPreview(message) {
-    destroyChartById('landlordReportChart');
+    reportPreviewDestroyChart('landlordReportChart');
     landlordReportMonth = '';
     landlordReportSignature = '';
     landlordReportPurposeFilter = '';
@@ -1231,7 +1266,7 @@ async function generateLandlordReport() {
         .map(([label, totals]) => ({ label, cents: totals.cents }))
         .filter(item => item.cents > 0)
         .sort((a, b) => b.cents - a.cents);
-    const paymentMethodChartHasData = hasReportChartData(paymentMethodChartRows.map(item => item.cents));
+    const paymentMethodChartHasData = reportPreviewChartHasData(paymentMethodChartRows.map(item => item.cents));
     const topPaymentMethod = paymentMethodChartRows[0] || null;
     const statsHtml = renderReportStatTiles(getLandlordSummaryItems(model), !showDues);
     const note = residentFilter
@@ -1314,7 +1349,7 @@ async function generateLandlordReport() {
             'landlordReportChart',
             paymentMethodChartRows.map(item => item.label),
             paymentMethodChartRows.map(item => item.cents / 100),
-            reportChartPalette(paymentMethodChartRows.length),
+            reportPreviewChartPalette(paymentMethodChartRows.length),
             { cutout: '55%' }
         ).catch(() => {});
     }
@@ -1864,7 +1899,7 @@ function setPeriodReportActionsEnabled(enabled) {
 }
 
 function clearPeriodReportPreview(message) {
-    destroyChartById('periodReportChart');
+    reportPreviewDestroyChart('periodReportChart');
     if (typeof window !== 'undefined') {
         window.__manzilPeriodReportRequestToken = (window.__manzilPeriodReportRequestToken || 0) + 1;
     }
@@ -1940,7 +1975,7 @@ function renderPeriodReportHtml(report) {
     const totals = report.totals;
     const periodPrimaryValue = row => showDues ? row.collectedCents : row.totalIncomeCents;
     const periodSecondaryValue = row => showDues ? row.expectedCents : row.expenseCents;
-    const periodChartHasData = hasReportChartData(report.months.flatMap(row => [
+    const periodChartHasData = reportPreviewChartHasData(report.months.flatMap(row => [
         periodPrimaryValue(row), periodSecondaryValue(row)
     ]));
     const periodPeakMonth = report.months.reduce((best, row) => {
@@ -2134,18 +2169,18 @@ async function generatePeriodReport() {
     const periodPrimaryValues = report.months.map(m => periodShowDues ? m.collectedCents : m.totalIncomeCents);
     const periodSecondaryValues = report.months.map(m => periodShowDues ? m.expectedCents : m.expenseCents);
     if (typeof renderLineSeries === 'function' &&
-        hasReportChartData([...periodPrimaryValues, ...periodSecondaryValues])) {
+        reportPreviewChartHasData([...periodPrimaryValues, ...periodSecondaryValues])) {
         await renderLineSeries('periodReportChart', report.months.map(m => m.month), [
             {
                 label: periodShowDues ? 'المحصّل' : 'التحصيل',
                 values: periodPrimaryValues.map(cents => cents / 100),
-                color: periodShowDues ? REPORT_CHART_COLORS.emerald : REPORT_CHART_COLORS.indigo,
+                color: periodShowDues ? reportPreviewChartColor('emerald') : reportPreviewChartColor('indigo'),
                 fill: periodShowDues ? 'rgba(16, 185, 129, 0.1)' : 'rgba(99, 102, 241, 0.1)'
             },
             {
                 label: periodShowDues ? 'المستحق' : 'المصروف',
                 values: periodSecondaryValues.map(cents => cents / 100),
-                color: periodShowDues ? REPORT_CHART_COLORS.indigo : REPORT_CHART_COLORS.rose,
+                color: periodShowDues ? reportPreviewChartColor('indigo') : reportPreviewChartColor('rose'),
                 fill: periodShowDues ? 'rgba(99, 102, 241, 0.1)' : 'rgba(244, 63, 94, 0.1)'
             }
         ], { tension: 0.3 });
@@ -2439,7 +2474,7 @@ function setExpensesReportActionsEnabled(enabled) {
 }
 
 function clearExpensesReportPreview(message) {
-    destroyChartById('expensesReportChart');
+    reportPreviewDestroyChart('expensesReportChart');
     expensesReportSnapshot = null;
     expensesReportSignature = '';
     setExpensesReportActionsEnabled(false);
@@ -2507,7 +2542,7 @@ function renderExpensesReportHtml(report) {
         esc(row.month), fmtNum(row.count), money(row.expenseCents),
         totals.expenseCents > 0 ? fmtNum(Math.round((row.expenseCents / totals.expenseCents) * 100)) + '%' : '—'
     ]);
-    const expensesChartHasData = hasReportChartData(report.categories.map(item => item.cents));
+    const expensesChartHasData = reportPreviewChartHasData(report.categories.map(item => item.cents));
     const topExpenseCategory = report.categories[0] || null;
     const fundNote = report.cashAccountFilter
         ? `<p>المصروفات معروضة لصندوق «${esc(report.cashAccountLabel)}» فقط.</p>`
@@ -2589,12 +2624,12 @@ async function generateExpensesReport() {
     setExpensesReportActionsEnabled(true);
 
     // Render chart for expenses report (lazy-loaded Chart.js)
-    if (typeof renderDoughnutValues === 'function' && hasReportChartData(report.categories.map(c => c.cents))) {
+    if (typeof renderDoughnutValues === 'function' && reportPreviewChartHasData(report.categories.map(c => c.cents))) {
         await renderDoughnutValues(
             'expensesReportChart',
             report.categories.map(c => c.label),
             report.categories.map(c => c.cents / 100),
-            reportChartPalette(report.categories.length),
+            reportPreviewChartPalette(report.categories.length),
             { cutout: '55%' }
         );
     }
@@ -2832,7 +2867,7 @@ function setAdjustmentsReportActionsEnabled(enabled) {
 }
 
 function clearAdjustmentsReportPreview(message) {
-    destroyChartById('adjustmentsReportChart');
+    reportPreviewDestroyChart('adjustmentsReportChart');
     adjustmentsReportSnapshot = null;
     adjustmentsReportSignature = '';
     setAdjustmentsReportActionsEnabled(false);
@@ -2851,7 +2886,7 @@ function renderAdjustmentsReportHtml(report) {
         esc(row.month), fmtNum(row.count), money(row.amountCents),
         totals.amountCents > 0 ? fmtNum(Math.round((row.amountCents / totals.amountCents) * 100)) + '%' : '—'
     ]);
-    const adjustmentsChartHasData = hasReportChartData(report.months.map(row => row.amountCents));
+    const adjustmentsChartHasData = reportPreviewChartHasData(report.months.map(row => row.amountCents));
     const adjustmentsPeakMonth = report.months.reduce((best, row) => {
         return !best || row.amountCents > best.amountCents ? row : best;
     }, null);
@@ -2936,12 +2971,12 @@ async function generateAdjustmentsReport() {
     setAdjustmentsReportActionsEnabled(true);
 
     // Render chart for adjustments report (lazy-loaded Chart.js)
-    if (typeof renderBarValues === 'function' && hasReportChartData(report.months.map(m => m.amountCents))) {
+    if (typeof renderBarValues === 'function' && reportPreviewChartHasData(report.months.map(m => m.amountCents))) {
         await renderBarValues(
             'adjustmentsReportChart',
             report.months.map(m => m.month),
             report.months.map(m => m.amountCents / 100),
-            REPORT_CHART_COLORS.amber,
+            reportPreviewChartColor('amber'),
             'الإعفاءات والتخفيضات'
         );
     }
@@ -3282,7 +3317,7 @@ function setResidentStatementActionsEnabled(enabled) {
 }
 
 function clearResidentStatement(message) {
-    destroyChartById('residentStatementChart');
+    reportPreviewDestroyChart('residentStatementChart');
     residentStatementSnapshot = null;
     residentStatementResidentId = '';
     residentStatementSignature = '';
@@ -3335,7 +3370,7 @@ function getResidentStatementChart(statement) {
     const totals = statement.totals;
     if (statement.showDues !== false) {
         const rows = statement.months;
-        const hasData = hasReportChartData(rows.flatMap(row => [row.dueCents, row.paidCents]));
+        const hasData = reportPreviewChartHasData(rows.flatMap(row => [row.dueCents, row.paidCents]));
         const peak = rows.reduce((best, row) => {
             return !best || row.dueCents > best.dueCents ? row : best;
         }, null);
@@ -3346,13 +3381,13 @@ function getResidentStatementChart(statement) {
                 {
                     label: 'المستحق',
                     values: rows.map(row => row.dueCents / 100),
-                    color: REPORT_CHART_COLORS.indigo,
+                    color: reportPreviewChartColor('indigo'),
                     fill: 'rgba(99, 102, 241, 0.1)'
                 },
                 {
                     label: 'المدفوع',
                     values: rows.map(row => row.paidCents / 100),
-                    color: REPORT_CHART_COLORS.emerald
+                    color: reportPreviewChartColor('emerald')
                 }
             ],
             summary: hasData ? [
@@ -3383,7 +3418,7 @@ function getResidentStatementChart(statement) {
     const items = Array.from(byMonth.values())
         .sort((a, b) => String(a.key).localeCompare(String(b.key)))
         .filter(item => item.cents > 0);
-    const hasData = hasReportChartData(items.map(item => item.cents));
+    const hasData = reportPreviewChartHasData(items.map(item => item.cents));
     const peak = items.reduce((best, item) => {
         return !best || item.cents > best.cents ? item : best;
     }, null);
@@ -3393,7 +3428,7 @@ function getResidentStatementChart(statement) {
         series: [{
             label: 'الحركات',
             values: items.map(item => item.cents / 100),
-            color: REPORT_CHART_COLORS.sky
+            color: reportPreviewChartColor('sky')
         }],
         summary: hasData ? [
             { label: 'إجمالي الحركات', cents: totals.filteredPaidCents, tone: 'emerald' },
@@ -3514,7 +3549,7 @@ async function generateResidentStatement() {
             'residentStatementChart',
             statementChart.labels,
             statementChart.series[0].values,
-            REPORT_CHART_COLORS.sky,
+            reportPreviewChartColor('sky'),
             statementChart.series[0].label,
             { maintainAspectRatio: false }
         );

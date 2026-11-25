@@ -25,6 +25,12 @@ function monthlyCloseMoney(value) {
     return fmtNum(Number.isFinite(amount) ? amount : 0);
 }
 
+function monthlyCloseChartColor(name) {
+    return typeof REPORT_CHART_COLORS !== 'undefined' && REPORT_CHART_COLORS
+        ? REPORT_CHART_COLORS[name]
+        : 'currentColor';
+}
+
 function destroyMonthlyCloseChart() {
     if (typeof destroyChartsInContainer === 'function') destroyChartsInContainer('monthlyCloseChartContainer');
 }
@@ -68,7 +74,7 @@ async function drawMonthlyCloseChart(data) {
         canvas.setAttribute('aria-label', 'مخطط أرصدة الصناديق في نهاية الشهر؛ البيانات نفسها متاحة في الجدول.');
     }
     await renderBarValues('monthlyCloseChart', chart.rows.map(row => row.label),
-        chart.rows.map(row => row.value), REPORT_CHART_COLORS.sky, 'رصيد نهاية الشهر',
+        chart.rows.map(row => row.value), monthlyCloseChartColor('sky'), 'رصيد نهاية الشهر',
         { horizontal: true, maintainAspectRatio: false });
 }
 

@@ -207,6 +207,19 @@ function applyCashFlowPreset() {
     applyExtendedPreset('cashFlowPreset', 'cashFlowFrom', 'cashFlowTo', invalidateCashFlowPreview);
 }
 
+function extendedChartHasData(values) {
+    return Array.isArray(values) && values.some(value => {
+        const number = Number(value);
+        return Number.isFinite(number) && number !== 0;
+    });
+}
+
+function extendedChartColor(name) {
+    return typeof REPORT_CHART_COLORS !== 'undefined' && REPORT_CHART_COLORS
+        ? REPORT_CHART_COLORS[name]
+        : 'currentColor';
+}
+
 function cashFlowStatItems(report) {
     return [
         { label: 'إجمالي التحصيل', cents: report.totals.incomeCents, tone: 'emerald' },
@@ -238,7 +251,7 @@ function renderCashFlowHtml(report) {
     ];
     const best = report.totals.bestMonth;
     const worst = report.totals.worstMonth;
-    const cashFlowChartHasData = hasReportChartData(report.months.flatMap(row => [
+    const cashFlowChartHasData = extendedChartHasData(report.months.flatMap(row => [
         row.incomeCents, row.expenseCents, row.netCents
     ]));
     return [
@@ -292,7 +305,7 @@ function renderCashFlowHtml(report) {
 
 function drawCashFlowChart(report) {
     if (!document.getElementById('extendedCashFlowChartContainer')) return;
-    if (!hasReportChartData(report.months.flatMap(row => [row.incomeCents, row.expenseCents, row.netCents]))) return;
+    if (!extendedChartHasData(report.months.flatMap(row => [row.incomeCents, row.expenseCents, row.netCents]))) return;
     if (typeof createChartContainer !== 'function' || typeof renderLineSeries !== 'function') return;
     const canvas = createChartContainer('extendedCashFlowChartContainer', 'cashFlowChart', 220);
     if (canvas && typeof canvas.setAttribute === 'function') {
@@ -300,9 +313,9 @@ function drawCashFlowChart(report) {
         canvas.setAttribute('aria-label', 'مخطط التدفق النقدي شهرًا بشهر؛ البيانات نفسها متاحة في الجدول أدناه');
     }
     renderLineSeries('cashFlowChart', report.months.map(row => row.month), [
-        { label: 'تحصيل', values: report.months.map(row => row.incomeCents / 100), color: REPORT_CHART_COLORS.emerald },
-        { label: 'مصروفات', values: report.months.map(row => row.expenseCents / 100), color: REPORT_CHART_COLORS.rose },
-        { label: 'الصافي', values: report.months.map(row => row.netCents / 100), color: REPORT_CHART_COLORS.indigo }
+        { label: 'تحصيل', values: report.months.map(row => row.incomeCents / 100), color: extendedChartColor('emerald') },
+        { label: 'مصروفات', values: report.months.map(row => row.expenseCents / 100), color: extendedChartColor('rose') },
+        { label: 'الصافي', values: report.months.map(row => row.netCents / 100), color: extendedChartColor('indigo') }
     ], { maintainAspectRatio: false });
 }
 
@@ -593,7 +606,7 @@ function renderApartmentsHtml(report) {
     const money = cents => fmtMoney(cents / 100);
     const stats = renderReportStatTiles(apartmentsStatItems(report), true);
     const apartmentsChartRows = getApartmentsChartRows(report);
-    const apartmentsChartHasData = hasReportChartData(apartmentsChartRows.map(row => row.remainingCents));
+    const apartmentsChartHasData = extendedChartHasData(apartmentsChartRows.map(row => row.remainingCents));
     const topApartment = apartmentsChartRows[0] || null;
     const rows = report.rows.map(row => [
         esc(row.label),
@@ -647,7 +660,7 @@ function renderApartmentsHtml(report) {
 function drawApartmentsChart(report) {
     if (!document.getElementById('extendedApartmentsChartContainer')) return;
     const top = getApartmentsChartRows(report);
-    if (!hasReportChartData(top.map(row => row.remainingCents))) return;
+    if (!extendedChartHasData(top.map(row => row.remainingCents))) return;
     if (typeof createChartContainer !== 'function' || typeof renderBarValues !== 'function') return;
     const canvas = createChartContainer('extendedApartmentsChartContainer', 'apartmentsChart', 220);
     if (canvas && typeof canvas.setAttribute === 'function') {
@@ -655,7 +668,7 @@ function drawApartmentsChart(report) {
         canvas.setAttribute('aria-label', 'مخطط المتبقي للأشهر العشرة الأعلى؛ البيانات نفسها متاحة في الجدول أدناه');
     }
     renderBarValues('apartmentsChart', top.map(row => row.label),
-        top.map(row => row.remainingCents / 100), REPORT_CHART_COLORS.amber, 'المتبقي', { maintainAspectRatio: false });
+        top.map(row => row.remainingCents / 100), extendedChartColor('amber'), 'المتبقي', { maintainAspectRatio: false });
 }
 
 function generateApartmentsReport() {

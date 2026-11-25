@@ -100,6 +100,12 @@ function resetArrearsFilters() {
     renderArrearsReport();
 }
 
+function arrearsChartColor(name) {
+    return typeof REPORT_CHART_COLORS !== 'undefined' && REPORT_CHART_COLORS
+        ? REPORT_CHART_COLORS[name]
+        : 'currentColor';
+}
+
 function destroyArrearsChart() {
     if (typeof destroyChartsInContainer === 'function') destroyChartsInContainer('arrearsChartContainer');
 }
@@ -139,7 +145,7 @@ async function drawArrearsChart(report) {
         canvas.setAttribute('aria-label', 'مخطط أعلى الشقق مديونية؛ البيانات نفسها متاحة في الجدول.');
     }
     await renderBarValues('arrearsChart', chart.rows.map(row => 'شقة ' + String(row.resident.apartmentNumber || '—')),
-        chart.rows.map(row => row.totalDebt), REPORT_CHART_COLORS.rose, 'المديونية',
+        chart.rows.map(row => row.totalDebt), arrearsChartColor('rose'), 'المديونية',
         { horizontal: true, maintainAspectRatio: false });
 }
 
