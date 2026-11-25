@@ -915,3 +915,5 @@ const INSIGHTS_REPORT_API = {
 };
 
 if (typeof window !== 'undefined') window.MANZIL_INSIGHTS_REPORTS = INSIGHTS_REPORT_API;
+
+// تقارير التحليلات: سلوك السداد وانحراف المصروفات وتوزيع طرق الدفع تسجّل نفسها في فهرس التقارير.
