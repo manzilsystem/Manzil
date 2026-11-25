@@ -492,10 +492,35 @@ function renderIncomeListRow(i, resident, rowIndexLabel = '') {
         </div>`;
 }
 
-function renderIncomeTable() {
+function toggleIncomeFilters() {
+    const panel = document.getElementById('incomeFiltersMore');
+    const toggle = document.getElementById('incomeFiltersToggle');
+    if (!panel || !toggle) return;
+    const open = panel.classList.toggle('hidden') === false;
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.classList.toggle('is-open', open);
+}
+
+function updateIncomeFiltersToggleBadge() {
+    const badge = document.getElementById('incomeFiltersActiveCount');
+    if (!badge) return;
+    const active = ['filterIncomeMonth', 'filterIncomePurpose', 'filterIncomeCashbox', 'filterIncomePaymentMethod']
+        .filter(id => { const el = /** @type {HTMLSelectElement|null} */ (document.getElementById(id)); return el && el.value; }).length;
+    badge.textContent = active ? `(${fmtNum(active)})` : '';
+    badge.classList.toggle('hidden', !active);
+}
+
+const INCOME_LIST_PAGE_SIZE = 8;
+let incomeListVisibleGroups = INCOME_LIST_PAGE_SIZE;
+
+function renderIncomeTable(options) {
     const c = document.getElementById('incomeCardsList');
     if (!c) return;
+    incomeListVisibleGroups = options && options.more === true
+        ? incomeListVisibleGroups + INCOME_LIST_PAGE_SIZE
+        : INCOME_LIST_PAGE_SIZE;
     populateIncomeListFilters();
+    updateIncomeFiltersToggleBadge();
     const search = (/** @type {HTMLInputElement} */ (document.getElementById('searchIncomeInput'))?.value || '').toLocaleLowerCase('ar-EG');
     const month = /** @type {HTMLSelectElement} */ (document.getElementById('filterIncomeMonth'))?.value || '';
     const purpose = /** @type {HTMLSelectElement} */ (document.getElementById('filterIncomePurpose'))?.value || '';
@@ -535,7 +560,13 @@ function renderIncomeTable() {
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(item);
     });
-    c.innerHTML = [...groups.values()].map((group, groupIndex) => {
+    const allGroups = [...groups.values()];
+    const visibleGroups = allGroups.slice(0, incomeListVisibleGroups);
+    const remainingGroups = allGroups.length - visibleGroups.length;
+    const moreButton = remainingGroups > 0
+        ? `<button type="button" onclick="renderIncomeTable({ more: true })" class="income-more-btn no-print">عرض المزيد (${fmtNum(remainingGroups)})</button>`
+        : '';
+    c.innerHTML = visibleGroups.map((group, groupIndex) => {
         const first = group[0];
         const resident = state.residents.find(person => person.id === first.residentId);
         const entryNumber = groupIndex + 1;
@@ -561,7 +592,7 @@ function renderIncomeTable() {
                     return renderIncomeListRow(item, resident, position ? `${position.index}/${position.total}` : '');
                 }).join('')}
             </section>`;
-    }).join('');
+    }).join('') + moreButton;
 }
 
 function renderExpenseTable() {

@@ -84,3 +84,22 @@ test('long income notes wrap instead of being truncated', () => {
     assert.doesNotMatch(render, /income-note[^"]*truncate|truncate[^"]*income-note/);
     assert.match(css, /#incomeCardsList \.income-note \{ overflow-wrap: anywhere; \}/);
 });
+
+test('income list pages long results behind a show-more button to cut scrolling', () => {
+    assert.match(render, /INCOME_LIST_PAGE_SIZE = 8/);
+    assert.match(render, /renderIncomeTable\(\{ more: true \}\)/);
+    assert.match(render, /عرض المزيد \(\$\{fmtNum\(remainingGroups\)\}\)/);
+    assert.match(render, /allGroups\.slice\(0, incomeListVisibleGroups\)/);
+    assert.match(render, /income-more-btn/);
+});
+
+test('income selects collapse behind a filters toggle while search stays visible', () => {
+    for (const src of [partial, html]) {
+        assert.match(src, /id="incomeFiltersToggle"/);
+        assert.match(src, /id="incomeFiltersMore"/);
+        assert.match(src, /aria-controls="incomeFiltersMore"/);
+    }
+    assert.match(render, /function toggleIncomeFilters\(\)/);
+    assert.match(render, /aria-expanded/);
+    assert.match(render, /function updateIncomeFiltersToggleBadge\(\)/);
+});

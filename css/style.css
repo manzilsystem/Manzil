@@ -5288,6 +5288,30 @@ body.owner-mode .owner-theme-control {
 #incomeResultsSummary .income-stat-total .income-stat-value { color: var(--state-success); }
 /* Long collection notes wrap instead of being cut off */
 #incomeCardsList .income-note { overflow-wrap: anywhere; }
+/* Collapsible filters toggle and "show more" paging: less scrolling on phones */
+.income-filters-toggle { display: flex; align-items: center; justify-content: center; gap: var(--space-45); color: var(--text-muted); cursor: pointer; }
+.income-filters-toggle:hover { color: var(--text-main); }
+.income-filters-toggle .income-filters-chevron { transition: transform var(--motion-200) var(--ease-standard); }
+.income-filters-toggle.is-open .income-filters-chevron { transform: rotate(180deg); }
+.income-filters-toggle.is-open { color: var(--accent-color); border-color: var(--accent-color); }
+.income-filters-count { color: var(--accent-color); font-weight: var(--weight-800); }
+.income-more-btn { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 2.75rem; padding: var(--space-55) var(--space-75); border: 1px dashed var(--border-color); border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-input) 45%, transparent); color: var(--accent-color); font-size: var(--font-75); font-weight: var(--weight-700); cursor: pointer; }
+.income-more-btn:hover { border-color: var(--accent-color); }
+/* Two-column cards start on tablets, not just desktops: halves the scroll length */
+@media screen and (min-width: 640px) and (max-width: 1023.98px) {
+    #incomeCardsList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-65); align-items: start; }
+    #incomeCardsList > * { margin: var(--space-none); }
+    #incomeCardsList .income-more-btn { grid-column: 1 / -1; }
+    #incomeCardsList .flex.justify-between.items-center { flex-wrap: wrap; row-gap: var(--space-60); }
+    #incomeCardsList .flex.justify-between.items-center > .shrink-0:last-child { width: 100%; justify-content: space-between; padding-top: var(--space-50); border-top: 1px solid var(--border-color); }
+}
+@media screen and (min-width: 1024px) {
+    #incomeCardsList .income-more-btn { grid-column: 1 / -1; }
+}
+@media screen and (max-width: 639.98px) {
+    #incomeCardsList .app-card { padding: var(--space-60); }
+    #incomeCardsList .py-2 { padding-block: var(--space-50); }
+}
 /* Entry meta (apartment, month, date, method) wraps cleanly on narrow screens */
 #incomeCardsList .income-entry-meta { overflow-wrap: anywhere; }
 
