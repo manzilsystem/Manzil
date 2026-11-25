@@ -187,12 +187,15 @@ test('report visualizations render data-driven charts with numeric summaries', a
 
     await backToIndex(page);
     await openReportPanel(page, 'expenses');
+    // The seeded expense is in January 2024; the default range is now the last 6 months, so pick the month explicitly.
+    await page.evaluate(() => { for (const id of ['expensesReportFrom', 'expensesReportTo']) { const el = document.getElementById(id); el.value = 'يناير 2024'; } });
     await page.locator('#expensesReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
     await showReportChart(page, 'expensesReportChart');
     await expect(page.locator('#expensesReportPreview .report-chart-metrics')).toContainText('أعلى تصنيف');
 
     await backToIndex(page);
     await openReportPanel(page, 'adjustments');
+    await page.evaluate(() => { for (const id of ['adjustmentsReportFrom', 'adjustmentsReportTo']) { const el = document.getElementById(id); el.value = 'يناير 2024'; } });
     await page.locator('#adjustmentsReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
     await showReportChart(page, 'adjustmentsReportChart');
     await expect(page.locator('#adjustmentsReportPreview .report-chart-metrics')).toContainText('أعلى شهر');

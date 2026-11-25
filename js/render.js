@@ -253,8 +253,10 @@ function populatePeriodReportSelects(months, current = getCurrentMonth()) {
     ['periodReportFrom', 'periodReportTo'].forEach(id => {
         const el = /** @type {HTMLSelectElement} */ (document.getElementById(id));
         if (!el) return;
+        // Read the previous choice BEFORE the options are rebuilt: a rebuilt select reports its first option, which made both ends default to the oldest month.
+        const previous = el.value;
         el.innerHTML = months.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
-        const v = el.value || defaults[id];
+        const v = previous || defaults[id];
         el.value = months.includes(v) ? v : defaults[id];
     });
 }

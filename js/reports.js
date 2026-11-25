@@ -2445,8 +2445,9 @@ function populateExpensesReportFilters(months, current = getCurrentMonth()) {
     ['expensesReportFrom', 'expensesReportTo'].forEach(id => {
         const select = /** @type {HTMLSelectElement | null} */ (document.getElementById(id));
         if (!select) return;
+        const previousValue = select.value;
         select.innerHTML = months.map(month => `<option value="${esc(month)}">${esc(month)}</option>`).join('');
-        const currentValue = select.value || defaults[id];
+        const currentValue = previousValue || defaults[id];
         select.value = months.includes(currentValue) ? currentValue : defaults[id];
     });
     const categorySelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('expensesReportCategory'));
@@ -2841,8 +2842,9 @@ function populateAdjustmentsReportFilters(months, current = getCurrentMonth()) {
     ['adjustmentsReportFrom', 'adjustmentsReportTo'].forEach(id => {
         const select = /** @type {HTMLSelectElement | null} */ (document.getElementById(id));
         if (!select) return;
+        const previousValue = select.value;
         select.innerHTML = options.map(month => `<option value="${esc(month)}">${esc(month)}</option>`).join('');
-        const currentValue = select.value || defaults[id];
+        const currentValue = previousValue || defaults[id];
         select.value = options.includes(currentValue) ? currentValue : defaults[id];
     });
 }
