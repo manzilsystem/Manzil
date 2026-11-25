@@ -71,6 +71,6 @@ test('secret scanner never reads the ignored .env file', () => {
 
 test('the vendored XLSX bundle is only used to write reports, never to parse untrusted files', () => {
     const source = read('js/reports/shared/excel-exporter.js');
-    assert.match(source, /XLSX\.writeFile/);
+    assert.match(source, /XLSX\.write\s*\(/);
     assert.doesNotMatch(source, /XLSX\.(?:read|readFile)\s*\(/);
 });
