@@ -1,27 +1,15 @@
-<<<<<<< HEAD
-const CACHE_NAME = 'manzil-9067a45111';
-=======
-const CACHE_NAME = 'manzil-01243d17e8';
->>>>>>> 74edd40 (Rebuild generated assets after rebase)
+const CACHE_NAME = 'manzil-53b8c8bbe4';
 const APP_CACHE_PREFIX = 'manzil-';
 const APP_SHELL = [
     './',
     './index.html',
-<<<<<<< HEAD
-    './css/tailwind.css?v=adb54422b2',
-=======
-    './css/tailwind.css?v=adb54422b2',
->>>>>>> 74edd40 (Rebuild generated assets after rebase)
+    './css/tailwind.css?v=2d8b09c1fd',
     './vendor/chart.umd.js?v=c6d8bdd707',
     './vendor/xlsx.full.min.js?v=c9506197ca',
     './vendor/supabase.js?v=8816af04d9',
     './css/style.css?v=8ac09a2377',
     './js/sw-register.js?v=27964153c8',
-<<<<<<< HEAD
-    './js/telemetry.js?v=manzil-9067a45111',
-=======
-    './js/telemetry.js?v=manzil-9067a45111',
->>>>>>> 74edd40 (Rebuild generated assets after rebase)
+    './js/telemetry.js?v=manzil-53b8c8bbe4',
     './js/state.js?v=f367c7dc5c',
     './js/access.js?v=1ca370a57a',
     './js/render.js?v=eea5f1388a',
@@ -31,11 +19,7 @@ const APP_SHELL = [
     './js/settings.js?v=c274fd024a',
     './js/supabase.js?v=66dd8cd5e5',
     './js/cashbox.js?v=630080f12a',
-<<<<<<< HEAD
-    './js/subscription-rates.js?v=manzil-9067a45111',
-=======
-    './js/subscription-rates.js?v=manzil-9067a45111',
->>>>>>> 74edd40 (Rebuild generated assets after rebase)
+    './js/subscription-rates.js?v=manzil-53b8c8bbe4',
     './js/app.js?v=a3c44d1eab',
     './js/monthly-close.js?v=f589d46a58',
     './js/backup.js?v=65b179f1d7',
