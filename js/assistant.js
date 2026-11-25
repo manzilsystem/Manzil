@@ -3795,7 +3795,17 @@ function syncAssistantFab() {
     }
 }
 
+let assistantFabScrollTimer = 0;
+function markAssistantFabScrolling() {
+    const fab = document.getElementById('assistantFab');
+    if (!fab || !fab.classList) return;
+    fab.classList.add('is-scrolling');
+    clearTimeout(assistantFabScrollTimer);
+    assistantFabScrollTimer = setTimeout(() => fab.classList.remove('is-scrolling'), 650);
+}
+
 function handleAssistantFabScroll() {
+    markAssistantFabScrolling();
     const y = window.scrollY || document.documentElement.scrollTop || 0;
     const delta = y - assistantFabLastScrollY;
     if (Math.abs(delta) < ASSISTANT_FAB_SCROLL_DEADZONE) return;
