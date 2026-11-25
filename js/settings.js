@@ -136,14 +136,22 @@ function setupSettingsAccordion(tab) {
         };
         const phone = () => window.matchMedia('(max-width: 639.98px)').matches;
         set(block === blocks.find(item => item.matches('.settings-subsection, .settings-payment-card')) || !phone());
-        const toggle = () => { if (phone()) set(block.classList.contains('is-folded')); };
+        // التركيز باللمس يفتح القسم قبل وصول click؛ فلا نطويه مرة أخرى في نفس النقرة.
+        let openedByFocus = false;
+        const toggle = () => {
+            if (!phone()) return;
+            if (openedByFocus) { openedByFocus = false; return; }
+            set(block.classList.contains('is-folded'));
+        };
         head.addEventListener('click', toggle);
         head.addEventListener('keydown', event => {
             if (event.key !== 'Enter' && event.key !== ' ') return;
             event.preventDefault();
             toggle();
         });
-        block.addEventListener('focusin', () => { if (block.classList.contains('is-folded')) set(true); });
+        block.addEventListener('focusin', () => {
+            if (block.classList.contains('is-folded')) { set(true); openedByFocus = true; }
+        });
     });
 }
 
@@ -553,6 +561,79 @@ function openSettingsModal() {
     openModal('settingsModal');
 }
 
+const SETTINGS_FIELD_ERROR_CLASS = 'is-field-error';
+
+/** هاتف المدير اختياري. يقبل الرقم المصري 01XXXXXXXXX والأرقام الدولية بصيغة E.164
+ *  (‏+ ثم 8-15 رقمًا، أو بادئة 00) مع تحمل المسافات والشرطات؛ يرفض ما هو بوضوح غير صحيح. */
+function isValidManagerPhone(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return true;
+    const compact = raw.replace(/[\s\-()‎‏]/g, '');
+    if (/^01\d{9}$/.test(compact)) return true;
+    if (/^\+[1-9]\d{7,14}$/.test(compact)) return true;
+    if (/^00[1-9]\d{7,14}$/.test(compact)) return true;
+    return false;
+}
+
+/** الصيغة المعتمدة للتخزين: بلا مسافات أو شرطات، وبادئة 00 تتحول إلى +. روابط wa.me تزيل غير الأرقام فتبقى سليمة. */
+function normalizeManagerPhone(value) {
+    const compact = String(value || '').trim().replace(/[\s\-()‎‏]/g, '');
+    if (compact.startsWith('00')) return '+' + compact.slice(2);
+    return compact;
+}
+
+/** وسيلة الدفع المفعّلة بلا بيانات تحويل حقيقية تضلل الملاك، فنمنع حفظها برسالة واضحة. */
+function getPaymentMethodSettingsError(paymentSettings) {
+    if (!Object.values(paymentSettings).some(method => method && method.enabled)) {
+        return { fieldId: 'settingsPaymentCashEnabled', message: 'فعّل وسيلة دفع واحدة على الأقل قبل حفظ الإعدادات.' };
+    }
+    if (paymentSettings.wallet.enabled && !paymentSettings.wallet.number) {
+        return { fieldId: 'settingsWalletNumber', message: 'أدخل رقم المحفظة الإلكترونية أو أوقفها قبل الحفظ.' };
+    }
+    if (paymentSettings.instapay.enabled && !paymentSettings.instapay.address) {
+        return { fieldId: 'settingsInstapayAddress', message: 'أدخل عنوان إنستاباي أو أوقف إنستاباي قبل الحفظ.' };
+    }
+    if (paymentSettings.bank_transfer.enabled && !paymentSettings.bank_transfer.accountNumber && !paymentSettings.bank_transfer.iban) {
+        return { fieldId: 'settingsBankAccountNumber', message: 'أدخل رقم الحساب أو رقم IBAN للتحويل البنكي أو أوقفه قبل الحفظ.' };
+    }
+    return null;
+}
+
+function clearSettingsFieldErrors() {
+    if (typeof document === 'undefined' || typeof document.querySelectorAll !== 'function') return;
+    document.querySelectorAll('#settingsModal .' + SETTINGS_FIELD_ERROR_CLASS).forEach(field => {
+        field.classList.remove(SETTINGS_FIELD_ERROR_CLASS);
+        field.removeAttribute('aria-invalid');
+    });
+}
+
+/** يعلّم الحقل المخالف بالأحمر، يفتح تبويبه وقسمه المطوي، وينقل التركيز إليه، ثم يعرض الرسالة. */
+function flagSettingsFieldError(fieldId, tab, message) {
+    const field = /** @type {HTMLElement | null} */ (typeof document === 'undefined' ? null : document.getElementById(fieldId));
+    if (field && field.classList) {
+        field.classList.add(SETTINGS_FIELD_ERROR_CLASS);
+        field.setAttribute('aria-invalid', 'true');
+        if (!field.dataset.settingsErrorWatch) {
+            field.dataset.settingsErrorWatch = 'true';
+            field.addEventListener('input', () => {
+                field.classList.remove(SETTINGS_FIELD_ERROR_CLASS);
+                field.removeAttribute('aria-invalid');
+            });
+        }
+    }
+    if (tab && typeof switchSettingsTab === 'function') switchSettingsTab(tab);
+    if (field) {
+        const folded = field.closest('.is-folded');
+        if (folded) {
+            folded.classList.remove('is-folded');
+            folded.querySelector('[aria-expanded="false"]')?.setAttribute('aria-expanded', 'true');
+        }
+        if (typeof field.scrollIntoView === 'function') field.scrollIntoView({ block: 'center' });
+        if (typeof field.focus === 'function') field.focus({ preventScroll: true });
+    }
+    toast(message, 'error');
+}
+
 async function saveSettings() {
     if (!requireManager()) return;
     const defaultSubscription = Number(/** @type {HTMLInputElement | null} */ (document.getElementById('settingsDefaultSub')).value || 0);
@@ -565,9 +646,6 @@ async function saveSettings() {
     const subscriptionDueDay = Number(/** @type {HTMLInputElement | null} */ (document.getElementById('settingsSubscriptionDueDay')).value);
     const subscriptionGraceDays = Number(/** @type {HTMLInputElement | null} */ (document.getElementById('settingsSubscriptionGraceDays')).value);
     const paymentAllocationPolicy = /** @type {HTMLSelectElement | null} */ (document.getElementById('settingsPaymentAllocationPolicy')).value;
-    const validSubscriptionRules = Number.isInteger(subscriptionDueDay) && subscriptionDueDay >= 1 && subscriptionDueDay <= 28
-        && Number.isInteger(subscriptionGraceDays) && subscriptionGraceDays >= 0 && subscriptionGraceDays <= 31
-        && ['oldest_first', 'selected_month_first'].includes(paymentAllocationPolicy);
     const paymentSettings = normalizePaymentSettings({
         cash: { enabled: /** @type {HTMLInputElement | null} */ (document.getElementById('settingsPaymentCashEnabled')).checked },
         wallet: {
@@ -589,18 +667,40 @@ async function saveSettings() {
             iban: /** @type {HTMLInputElement | null} */ (document.getElementById('settingsBankIban')).value
         }
     });
-    const hasEnabledPaymentMethod = Object.values(paymentSettings).some(method => method.enabled);
-    if (!Number.isFinite(defaultSubscription) || defaultSubscription < 0
-        || !Number.isFinite(startingBalance) || !validLayout) {
-        toast('تحقق من قيم الاشتراك والرصيد وعدد الأدوار والشقق (من 1 إلى 100).', 'error');
+    const managerPhoneInput = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsManagerPhone'));
+    const managerPhone = managerPhoneInput ? managerPhoneInput.value.trim() : '';
+    clearSettingsFieldErrors();
+    if (!Number.isFinite(defaultSubscription) || defaultSubscription < 0) {
+        flagSettingsFieldError('settingsDefaultSub', 'building', 'الاشتراك الشهري الافتراضي يجب أن يكون رقمًا لا يقل عن صفر.');
         return;
     }
-    if (!validSubscriptionRules) {
-        toast('يجب أن يكون يوم الاستحقاق من 1 إلى 28، وفترة السماح من 0 إلى 31 يومًا.', 'error');
+    if (!Number.isFinite(startingBalance)) {
+        flagSettingsFieldError('settingsStartingBalance', 'building', 'الرصيد الافتتاحي للخزنة يجب أن يكون رقمًا صحيحًا.');
         return;
     }
-    if (!hasEnabledPaymentMethod) {
-        toast('فعّل وسيلة دفع واحدة على الأقل قبل حفظ الإعدادات.', 'error');
+    if (!validLayout) {
+        flagSettingsFieldError('settingsFloorCount', 'building', 'عدد الأدوار والشقق في كل دور يجب أن يكون عددًا صحيحًا من 1 إلى 100.');
+        return;
+    }
+    if (!isValidManagerPhone(managerPhone)) {
+        flagSettingsFieldError('settingsManagerPhone', 'building', 'رقم هاتف المدير غير صحيح. اكتبه بصيغة 01XXXXXXXXX أو دوليًا يبدأ بـ ‎+.');
+        return;
+    }
+    if (!Number.isInteger(subscriptionDueDay) || subscriptionDueDay < 1 || subscriptionDueDay > 28) {
+        flagSettingsFieldError('settingsSubscriptionDueDay', 'subscriptions', 'يوم الاستحقاق يجب أن يكون عددًا صحيحًا من 1 إلى 28.');
+        return;
+    }
+    if (!Number.isInteger(subscriptionGraceDays) || subscriptionGraceDays < 0 || subscriptionGraceDays > 31) {
+        flagSettingsFieldError('settingsSubscriptionGraceDays', 'subscriptions', 'فترة السماح يجب أن تكون عددًا صحيحًا من 0 إلى 31 يومًا.');
+        return;
+    }
+    if (!['oldest_first', 'selected_month_first'].includes(paymentAllocationPolicy)) {
+        flagSettingsFieldError('settingsPaymentAllocationPolicy', 'subscriptions', 'اختر سياسة توزيع الدفعات.');
+        return;
+    }
+    const paymentMethodError = getPaymentMethodSettingsError(paymentSettings);
+    if (paymentMethodError) {
+        flagSettingsFieldError(paymentMethodError.fieldId, 'payments', paymentMethodError.message);
         return;
     }
     const managerPhoneRaw = String(/** @type {HTMLInputElement | null} */ (document.getElementById('settingsManagerPhone'))?.value || '').trim();
@@ -612,8 +712,12 @@ async function saveSettings() {
     const receiptThankYou = String(receiptInput?.value || '').trim();
     const reminderInput = /** @type {HTMLInputElement | HTMLTextAreaElement | null} */ (document.getElementById('settingsReminderTemplate'));
     const reminderTemplate = String(reminderInput?.value || '').trim();
-    if (receiptThankYou.length > 180 || reminderTemplate.length > 500) {
-        toast('تحقق من طول رسالة الإيصال أو التذكير.', 'error');
+    if (receiptThankYou.length > 180) {
+        flagSettingsFieldError('settingsReceiptThankYou', 'receipts', 'رسالة الشكر في الإيصال أطول من 180 حرفًا. قصّرها ثم احفظ.');
+        return;
+    }
+    if (reminderTemplate.length > 500) {
+        flagSettingsFieldError('settingsReminderTemplate', 'reminders', 'نص رسالة التذكير أطول من 500 حرف. قصّره ثم احفظ.');
         return;
     }
     const previousState = cloneStateSnapshot();
@@ -621,8 +725,7 @@ async function saveSettings() {
     if (buildingNameInput) state.buildingName = buildingNameInput.value.trim();
     const managerNameInput = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsManagerName'));
     if (managerNameInput) state.managerName = managerNameInput.value.trim();
-    const managerPhoneInput = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsManagerPhone'));
-    if (managerPhoneInput) state.managerPhone = managerPhoneInput.value.trim();
+    if (managerPhoneInput) state.managerPhone = normalizeManagerPhone(managerPhone);
     state.defaultSubscription = defaultSubscription;
     state.startingBalance = startingBalance;
     state.floorCount = floorCount;

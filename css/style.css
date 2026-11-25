@@ -428,6 +428,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .app-input { background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-color); }
 .app-input:user-invalid:not(:focus) { border-color: var(--state-danger); box-shadow: 0 0 0 1px color-mix(in srgb, var(--state-danger) 18%, transparent); }
+.app-input.is-field-error, input.is-field-error, select.is-field-error, textarea.is-field-error { border-color: var(--state-danger) !important; box-shadow: 0 0 0 3px var(--state-danger-soft), 0 0 0 1px var(--state-danger-line); }
 .cash-account-tag {
     display: inline-flex;
     align-items: center;
