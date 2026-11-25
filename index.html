@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="fonts/cairo.css?v=aecf0ab114">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/tailwind.css?v=ed653d8eef">
-    <link rel="stylesheet" href="css/style.css?v=4505a91588">
+    <link rel="stylesheet" href="css/style.css?v=08b60b7456">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -779,8 +779,8 @@
                     <p class="report-preview-empty">اضغط «معاينة» لعرض تقرير الشهر المحدد.</p>
                 </div>
                 <div class="report-actions report-actions-3 no-print">
-                    <button type="button" id="reportPrintBtn" onclick="printLandlordReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة PDF</button>
-                    <button type="button" id="reportPdfBtn" onclick="exportLandlordReportPdf()" disabled class="report-action report-tone-indigo"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
+                    <button type="button" id="reportPrintBtn" title="نص قابل للنسخ" onclick="printLandlordReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة PDF</button>
+                    <button type="button" id="reportPdfBtn" onclick="exportLandlordReportPdf()" disabled class="report-action report-tone-indigo"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF (صورة)</button>
                     <button type="button" id="reportExportBtn" onclick="exportToCSV()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                 </div>
                 <p class="report-hint no-print">الطباعة تشمل الملخص والتفاصيل، وتصدير CSV يضم حركات شهر التقرير فقط.</p>
@@ -847,8 +847,8 @@
                     <p class="report-preview-empty">اضغط «معاينة» لعرض تقرير الفترة المحددة.</p>
                 </div>
                 <div class="report-actions report-actions-4 no-print">
-                    <button type="button" id="periodReportPrintBtn" onclick="printPeriodReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
-                    <button type="button" id="periodReportPdfBtn" onclick="exportPeriodReportPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
+                    <button type="button" id="periodReportPrintBtn" title="نص قابل للنسخ" onclick="printPeriodReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+                    <button type="button" id="periodReportPdfBtn" onclick="exportPeriodReportPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF (صورة)</button>
                     <button type="button" id="periodReportExportBtn" onclick="exportPeriodReportCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                     <button type="button" id="periodReportExcelBtn" onclick="exportPeriodReportExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
                 </div>
@@ -904,8 +904,8 @@
                     <p class="report-preview-empty">اضغط «معاينة» لعرض التدفق النقدي للفترة المحددة.</p>
                 </div>
                 <div class="report-actions report-actions-4 no-print">
-                    <button type="button" id="cashFlowPrintBtn" onclick="printCashFlowReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
-                    <button type="button" id="cashFlowPdfBtn" onclick="exportCashFlowPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
+                    <button type="button" id="cashFlowPrintBtn" title="نص قابل للنسخ" onclick="printCashFlowReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+                    <button type="button" id="cashFlowPdfBtn" onclick="exportCashFlowPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF (صورة)</button>
                     <button type="button" id="cashFlowExportBtn" onclick="exportCashFlowCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                     <button type="button" id="cashFlowExcelBtn" onclick="exportCashFlowExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
                 </div>
@@ -950,8 +950,8 @@
                     <p class="report-preview-empty">اضغط «معاينة» لعرض مصروفات الفترة المحددة.</p>
                 </div>
                 <div class="report-actions report-actions-4 no-print">
-                    <button type="button" id="expensesReportPrintBtn" onclick="printExpensesReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
-                    <button type="button" id="expensesReportPdfBtn" onclick="exportExpensesReportPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
+                    <button type="button" id="expensesReportPrintBtn" title="نص قابل للنسخ" onclick="printExpensesReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+                    <button type="button" id="expensesReportPdfBtn" onclick="exportExpensesReportPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF (صورة)</button>
                     <button type="button" id="expensesReportExportBtn" onclick="exportExpensesReportCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                     <button type="button" id="expensesReportExcelBtn" onclick="exportExpensesReportExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
                 </div>
@@ -1000,8 +1000,8 @@
                     <p class="report-preview-empty">اضغط «معاينة» لعرض إعفاءات وتخفيضات الفترة المحددة.</p>
                 </div>
                 <div class="report-actions report-actions-4 no-print">
-                    <button type="button" id="adjustmentsReportPrintBtn" onclick="printAdjustmentsReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
-                    <button type="button" id="adjustmentsReportPdfBtn" onclick="exportAdjustmentsReportPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
+                    <button type="button" id="adjustmentsReportPrintBtn" title="نص قابل للنسخ" onclick="printAdjustmentsReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+                    <button type="button" id="adjustmentsReportPdfBtn" onclick="exportAdjustmentsReportPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF (صورة)</button>
                     <button type="button" id="adjustmentsReportExportBtn" onclick="exportAdjustmentsReportCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                     <button type="button" id="adjustmentsReportExcelBtn" onclick="exportAdjustmentsReportExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
                 </div>
@@ -1040,7 +1040,7 @@
                     <p class="report-preview-empty">اختر مالكًا ثم اضغط «معاينة» لعرض كشف الحساب.</p>
                 </div>
                 <div class="report-actions report-actions-4 no-print">
-                    <button type="button" id="statementPrintBtn" onclick="printResidentStatement()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة / حفظ PDF</button>
+                    <button type="button" id="statementPrintBtn" title="نص قابل للنسخ" onclick="printResidentStatement()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة / حفظ PDF</button>
                     <button type="button" id="statementPdfBtn" onclick="exportResidentStatementPdf()" disabled class="report-action report-tone-indigo"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> كشف الحساب PDF</button>
                     <button type="button" id="unitReportPdfBtn" onclick="exportUnitReportPdf()" disabled class="report-action report-tone-sky"><i class="fa-solid fa-building-user" aria-hidden="true"></i> تقرير الوحدة PDF</button>
                     <button type="button" id="statementCsvBtn" onclick="exportResidentStatementCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
@@ -1086,8 +1086,8 @@
                     <p class="report-preview-empty">اضغط «معاينة» لعرض أداء الشقق في الفترة المحددة.</p>
                 </div>
                 <div class="report-actions report-actions-4 no-print">
-                    <button type="button" id="apartmentsPrintBtn" onclick="printApartmentsReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
-                    <button type="button" id="apartmentsPdfBtn" onclick="exportApartmentsPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
+                    <button type="button" id="apartmentsPrintBtn" title="نص قابل للنسخ" onclick="printApartmentsReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+                    <button type="button" id="apartmentsPdfBtn" onclick="exportApartmentsPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF (صورة)</button>
                     <button type="button" id="apartmentsExportBtn" onclick="exportApartmentsCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                     <button type="button" id="apartmentsExcelBtn" onclick="exportApartmentsExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
                 </div>
@@ -1120,8 +1120,8 @@
                     <p class="report-preview-empty">اضغط «معاينة» لعرض سلوك السداد لكل مالك.</p>
                 </div>
                 <div class="report-actions report-actions-4 no-print">
-                    <button type="button" id="paymentBehaviorPrintBtn" onclick="printPayerBehaviorReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
-                    <button type="button" id="paymentBehaviorPdfBtn" onclick="exportPayerBehaviorPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
+                    <button type="button" id="paymentBehaviorPrintBtn" title="نص قابل للنسخ" onclick="printPayerBehaviorReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+                    <button type="button" id="paymentBehaviorPdfBtn" onclick="exportPayerBehaviorPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF (صورة)</button>
                     <button type="button" id="paymentBehaviorCsvBtn" onclick="exportPayerBehaviorCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                     <button type="button" id="paymentBehaviorExcelBtn" onclick="exportPayerBehaviorExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
                 </div>
@@ -1158,8 +1158,8 @@
                     <p class="report-preview-empty">اضغط «معاينة» لعرض انحراف المصروفات عن متوسط 6 أشهر.</p>
                 </div>
                 <div class="report-actions report-actions-4 no-print">
-                    <button type="button" id="expenseVariancePrintBtn" onclick="printExpenseVarianceReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
-                    <button type="button" id="expenseVariancePdfBtn" onclick="exportExpenseVariancePdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
+                    <button type="button" id="expenseVariancePrintBtn" title="نص قابل للنسخ" onclick="printExpenseVarianceReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+                    <button type="button" id="expenseVariancePdfBtn" onclick="exportExpenseVariancePdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF (صورة)</button>
                     <button type="button" id="expenseVarianceCsvBtn" onclick="exportExpenseVarianceCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                     <button type="button" id="expenseVarianceExcelBtn" onclick="exportExpenseVarianceExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
                 </div>
@@ -1200,8 +1200,8 @@
                     <p class="report-preview-empty">اضغط «معاينة» لعرض توزيع طرق الدفع خلال الفترة.</p>
                 </div>
                 <div class="report-actions report-actions-4 no-print">
-                    <button type="button" id="paymentMethodsPrintBtn" onclick="printPaymentMethodsReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
-                    <button type="button" id="paymentMethodsPdfBtn" onclick="exportPaymentMethodsPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
+                    <button type="button" id="paymentMethodsPrintBtn" title="نص قابل للنسخ" onclick="printPaymentMethodsReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+                    <button type="button" id="paymentMethodsPdfBtn" onclick="exportPaymentMethodsPdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF (صورة)</button>
                     <button type="button" id="paymentMethodsCsvBtn" onclick="exportPaymentMethodsCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                     <button type="button" id="paymentMethodsExcelBtn" onclick="exportPaymentMethodsExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
                 </div>
@@ -2691,7 +2691,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-7b8dbe6d36"></script>
+    <script src="js/telemetry.js?v=manzil-b0eaa5a52d"></script>
     <script src="js/state.js?v=f367c7dc5c"></script>
     <script src="js/access.js?v=0d7f855407"></script>
     <script src="js/render.js?v=708c3ae2a7"></script>

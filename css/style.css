@@ -1149,6 +1149,13 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     #printBuildingTitle { overflow-wrap: anywhere; font-size: var(--font-print-title) !important; }
     #printableArea .text-slate-400, #printableArea .text-slate-500, #printableArea .text-slate-600 { color: var(--print-muted) !important; }
     #printableArea .report-stat-label { color: var(--print-muted) !important; }
+    /* Sheet tables share the printable width: every column prints, long values wrap instead of running off the page. */
+    #printableArea .sheet-wrap { overflow: visible !important; }
+    #printableArea .sheet-table { width: 100% !important; max-width: 100%; table-layout: fixed; }
+    #printableArea .sheet-table th, #printableArea .sheet-table td { padding: var(--space-30) var(--space-30); font-size: var(--font-70); overflow-wrap: anywhere; }
+    #printableArea .sheet-table .sheet-num, #printableArea .sheet-kpi tbody td { white-space: normal; }
+    #printableArea .sheet-kpi tbody td { padding: var(--space-30); font-size: var(--font-78); }
+    #printableArea .sheet-kpi .report-stat { padding: var(--space-30); }
     #printableArea .text-emerald-400 { color: var(--print-success) !important; }
     #printableArea .text-rose-400 { color: var(--print-danger) !important; }
     #printableArea .text-indigo-400 { color: var(--print-info) !important; }
