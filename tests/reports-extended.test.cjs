@@ -337,3 +337,24 @@ test('CSV, Excel and PDF outputs use the previewed snapshot', async () => {
     assert.match(api.renderApartmentsPdfHtml(api.getSelectedApartmentsSnapshot()), /تقرير أداء الشقق/);
 });
 
+
+test('apartments CSV and Excel carry the same rows, headers and totals', () => {
+    const { api, calls } = loadExtended();
+    api.generateApartmentsReport();
+    api.exportApartmentsCsv();
+    api.exportApartmentsExcel();
+    const snapshot = api.getSelectedApartmentsSnapshot();
+    const expected = api.apartmentsCsvRows(snapshot);
+    const excel = calls.excels.find(entry => /manzil_apartments_/.test(entry.filename));
+    assert.ok(excel, 'excel export ran');
+    // the first sheet is exactly the CSV table: same title, headers, apartment rows and totals row
+    assert.deepEqual(excel.sheets[0].rows, expected);
+    const csv = calls.downloads.find(download => /manzil_apartments_.*\.csv$/.test(download.name));
+    assert.ok(csv, 'csv export ran');
+    expected.filter(row => row.length).forEach(row => row.forEach(cell => {
+        if (cell !== '') assert.ok(csv.content.includes(String(cell)), 'CSV is missing ' + cell);
+    }));
+    // no NaN or undefined leaks into either output
+    assert.doesNotMatch(csv.content, /NaN|undefined|Infinity/);
+    assert.doesNotMatch(JSON.stringify(excel.sheets), /NaN|undefined|Infinity|null/);
+});
