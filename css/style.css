@@ -705,8 +705,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-chart-summary::before { content: '+'; display: inline-grid; place-items: center; width: 1.25rem; height: 1.25rem; border-radius: var(--radius-pill); background: color-mix(in srgb, var(--accent-color) 18%, var(--bg-card)); color: var(--accent-color); font-weight: var(--weight-900); }
 .report-chart-fold[open] > .report-chart-summary { border-bottom: 1px solid var(--border-color); }
 .report-chart-fold[open] > .report-chart-summary::before { content: '−'; }
-.report-chart-fold > .report-chart-container { height: 220px; margin: var(--space-none); padding: var(--space-70); }
+.report-chart-body { display: flex; flex-direction: column; gap: var(--space-65); padding: var(--space-70); }
+.report-chart-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-55); }
+@media (min-width: 640px) { .report-chart-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.report-chart-metric { display: flex; flex-direction: column; gap: var(--space-20); min-width: 0; padding: var(--space-55) var(--space-65); border: 1px solid var(--border-color); border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-input) 55%, transparent); }
+.report-chart-metric-label { color: var(--text-muted); font-size: var(--font-70); font-weight: var(--weight-700); }
+.report-chart-metric-value { font-size: var(--font-85); font-weight: var(--weight-900); line-height: var(--leading-135); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.report-chart-metric-note { color: var(--text-muted); font-size: var(--font-68); line-height: var(--leading-155); }
+.report-chart-body > .report-chart-container { height: 220px; margin: var(--space-none); }
 .report-chart-container { position: relative; width: 100%; min-height: 180px; }
+.report-chart-empty { display: flex; align-items: center; justify-content: center; gap: var(--space-55); min-height: 180px; padding: var(--space-85); border: 1px dashed var(--border-color); border-radius: var(--radius-85); color: var(--text-muted); font-size: var(--font-76); text-align: center; }
+.report-chart-empty i { color: var(--accent-color); font-size: var(--font-95); }
 .report-comparison-table th, .report-comparison-table td { text-align: center; }
 .report-comparison-table td:first-child, .report-comparison-table th:first-child { text-align: right; }
 .report-change-positive { color: var(--state-success); font-weight: var(--weight-700); }

@@ -100,9 +100,59 @@ function resetArrearsFilters() {
     renderArrearsReport();
 }
 
+function arrearsChartColor(name) {
+    return typeof REPORT_CHART_COLORS !== 'undefined' && REPORT_CHART_COLORS
+        ? REPORT_CHART_COLORS[name]
+        : 'currentColor';
+}
+
+function destroyArrearsChart() {
+    if (typeof destroyChartsInContainer === 'function') destroyChartsInContainer('arrearsChartContainer');
+}
+
+function getArrearsChart(report) {
+    const rows = report.residents.slice()
+        .sort((a, b) => b.totalDebt - a.totalDebt)
+        .slice(0, 10);
+    const hasData = typeof hasReportChartData === 'function'
+        ? hasReportChartData(rows.map(row => row.totalDebt))
+        : rows.some(row => row.totalDebt > 0);
+    const top = rows[0] || null;
+    return {
+        rows,
+        hasData,
+        summary: hasData ? [
+            { label: 'إجمالي المديونية', text: fmtNum(report.totalDebt) + ' ج.م', tone: 'rose' },
+            { label: 'الشقق المتأخرة', text: fmtNum(report.overdueResidents) },
+            {
+                label: 'أعلى شقة مديونية',
+                text: top ? 'شقة ' + String(top.resident.apartmentNumber || '—') : '—',
+                note: top ? fmtNum(top.totalDebt) + ' ج.م' : ''
+            },
+            { label: '4+ أشهر', text: fmtNum(report.buckets['4 أشهر فأكثر']), tone: 'amber' }
+        ] : []
+    };
+}
+
+async function drawArrearsChart(report) {
+    if (!document.getElementById('arrearsChartContainer')) return;
+    const chart = getArrearsChart(report);
+    if (!chart.hasData) return;
+    if (typeof createChartContainer !== 'function' || typeof renderBarValues !== 'function') return;
+    const canvas = createChartContainer('arrearsChartContainer', 'arrearsChart', 220);
+    if (canvas && typeof canvas.setAttribute === 'function') {
+        canvas.setAttribute('role', 'img');
+        canvas.setAttribute('aria-label', 'مخطط أعلى الشقق مديونية؛ البيانات نفسها متاحة في الجدول.');
+    }
+    await renderBarValues('arrearsChart', chart.rows.map(row => 'شقة ' + String(row.resident.apartmentNumber || '—')),
+        chart.rows.map(row => row.totalDebt), arrearsChartColor('rose'), 'المديونية',
+        { horizontal: true, maintainAspectRatio: false });
+}
+
 function renderArrearsReport() {
     const c = document.getElementById('arrearsReportContainer');
     if (!c) return;
+    destroyArrearsChart();
     populateArrearsApartmentFilter();
     const filters = getArrearsReportFilters();
     const report = buildArrearsReport(filters);
@@ -116,6 +166,7 @@ function renderArrearsReport() {
         return;
     }
     const money = value => '<span class="sheet-negative">' + fmtNum(value) + ' ج.م</span>';
+    const arrearsChart = getArrearsChart(report);
     const duration = days => days ? esc(formatOverdueDuration(days)) : '—';
     const summaryRows = report.residents.map(item => [
         'شقة ' + esc(item.resident.apartmentNumber || '—') + ' · ' + esc(item.resident.name),
@@ -147,8 +198,14 @@ function renderArrearsReport() {
             empty: 'لا توجد أشهر غير مسددة.', numeric: [3],
             foot: ['الإجمالي', fmtNum(report.overdueMonths) + ' شهر', '—', money(report.totalDebt)]
         }),
+        renderChartFoldContainer('arrearsChartContainer', 'التصور البياني - أعلى الشقق مديونية', {
+            hasData: arrearsChart.hasData,
+            empty: 'لا توجد مديونيات كافية لعرض الرسم.',
+            summary: arrearsChart.summary
+        }),
         '</div>'
     ].join('');
+    drawArrearsChart(report).catch(() => {});
 }
 
 function populateSelects() {

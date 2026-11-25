@@ -13,6 +13,7 @@ function invalidateMonthlyClosePreview() {
     if (exportButton) exportButton.disabled = true;
     const status = document.getElementById('monthlyCloseReportStatus');
     if (status) status.textContent = 'تغيّر الشهر المحدد. أنشئ معاينة جديدة قبل التصدير.';
+    destroyMonthlyCloseChart();
     const preview = document.getElementById('monthlyClosePreview');
     if (preview) preview.innerHTML = '<p class="report-preview-empty">اختر الشهر ثم اضغط «مراجعة الإقفال».</p>';
     markReportPreviewStale('monthlyClosePreview', true);
@@ -24,9 +25,63 @@ function monthlyCloseMoney(value) {
     return fmtNum(Number.isFinite(amount) ? amount : 0);
 }
 
+function monthlyCloseChartColor(name) {
+    return typeof REPORT_CHART_COLORS !== 'undefined' && REPORT_CHART_COLORS
+        ? REPORT_CHART_COLORS[name]
+        : 'currentColor';
+}
+
+function destroyMonthlyCloseChart() {
+    if (typeof destroyChartsInContainer === 'function') destroyChartsInContainer('monthlyCloseChartContainer');
+}
+
+function getMonthlyCloseChart(data) {
+    const money = value => monthlyCloseMoney(value) + ' ج.م';
+    const rows = monthlyCloseAccounts.map(function (account) {
+        const balance = Number((data.accounts[account.code] || {}).closing_balance || 0);
+        return { label: account.label, value: Number.isFinite(balance) ? balance : 0 };
+    });
+    const hasData = typeof hasReportChartData === 'function'
+        ? hasReportChartData(rows.map(row => row.value))
+        : rows.some(row => row.value !== 0);
+    const top = rows.reduce(function (best, row) {
+        return !best || row.value > best.value ? row : best;
+    }, null);
+    return {
+        rows,
+        hasData,
+        summary: hasData ? [
+            { label: 'رصيد نهاية الشهر', text: money(data.totals.closing_balance) },
+            { label: 'عدد الصناديق', text: fmtNum(rows.length) },
+            { label: 'أعلى صندوق', text: top ? top.label : '—', note: top ? money(top.value) : '' },
+            {
+                label: 'حالة المطابقة',
+                text: data.reconciled ? 'مطابق' : 'يحتاج مراجعة',
+                tone: data.reconciled ? 'emerald' : 'amber'
+            }
+        ] : []
+    };
+}
+
+async function drawMonthlyCloseChart(data) {
+    if (!document.getElementById('monthlyCloseChartContainer')) return;
+    const chart = getMonthlyCloseChart(data);
+    if (!chart.hasData) return;
+    if (typeof createChartContainer !== 'function' || typeof renderBarValues !== 'function') return;
+    const canvas = createChartContainer('monthlyCloseChartContainer', 'monthlyCloseChart', 220);
+    if (canvas && typeof canvas.setAttribute === 'function') {
+        canvas.setAttribute('role', 'img');
+        canvas.setAttribute('aria-label', 'مخطط أرصدة الصناديق في نهاية الشهر؛ البيانات نفسها متاحة في الجدول.');
+    }
+    await renderBarValues('monthlyCloseChart', chart.rows.map(row => row.label),
+        chart.rows.map(row => row.value), monthlyCloseChartColor('sky'), 'رصيد نهاية الشهر',
+        { horizontal: true, maintainAspectRatio: false });
+}
+
 function renderMonthlyClosePreview(report) {
     const totals = report.totals;
     const money = value => monthlyCloseMoney(value) + ' ج.م';
+    const closeChart = getMonthlyCloseChart(report);
     const accountRows = monthlyCloseAccounts.map(function (account) {
         const row = report.accounts[account.code] || {};
         return [
@@ -63,6 +118,11 @@ function renderMonthlyClosePreview(report) {
         '<p class="text-xs font-bold ', report.reconciled ? 'text-emerald-400' : 'text-rose-400', '" role="status">',
         report.reconciled ? '✓ إجمالي الصناديق مطابق للحركة النقدية.' : '⚠ يوجد فرق في المطابقة. راجع حركة الصناديق قبل اعتماد التقرير.',
         '</p>',
+        renderChartFoldContainer('monthlyCloseChartContainer', 'التصور البياني - أرصدة الصناديق', {
+            hasData: closeChart.hasData,
+            empty: 'لا توجد أرصدة كافية لعرض الرسم.',
+            summary: closeChart.summary
+        }),
         renderReportNotes([
             '<p>إجمالي رصيد الصناديق في نهاية الشهر: <strong class="report-amount">' +
                 money(totals.closing_balance) + '</strong>. التحويلات الداخلية لا تزيد أو تنقص إجمالي النقد.</p>',
@@ -96,6 +156,7 @@ async function loadMonthlyCloseReport() {
     if (exportButton) exportButton.disabled = true;
     if (reviewButton) reviewButton.disabled = true;
     status.textContent = 'جارٍ حساب الأرصدة والحركات من قاعدة البيانات...';
+    destroyMonthlyCloseChart();
     preview.innerHTML = '<p class="report-preview-empty">جارٍ إعداد المراجعة الشهرية...</p>';
     markReportPreviewStale('monthlyClosePreview', false);
     syncReportNavStatus();
@@ -119,6 +180,7 @@ async function loadMonthlyCloseReport() {
 
         monthlyCloseLastReport = { data: data, buildingId: buildingId, monthKey: monthKey };
         preview.innerHTML = renderMonthlyClosePreview(data);
+        await drawMonthlyCloseChart(data);
         status.textContent = data.reconciled
             ? 'اكتملت المراجعة والمطابقة النقدية.'
             : 'اكتملت المراجعة مع وجود فرق يحتاج إلى مراجعة.';
@@ -127,6 +189,7 @@ async function loadMonthlyCloseReport() {
         syncReportNavStatus();
     } catch (error) {
         console.error('Monthly cashbox close failed:', error);
+        destroyMonthlyCloseChart();
         status.textContent = 'تعذر إعداد الإقفال الشهري. تحقق من الاتصال ثم أعد المحاولة.';
         preview.innerHTML = '<p class="text-rose-400 text-center py-4">لم تكتمل المراجعة. لم يتم حفظ أو تعديل أي بيانات.</p>';
         toast('تعذر إعداد المراجعة الشهرية.', 'error');

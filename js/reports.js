@@ -912,18 +912,98 @@ function renderReportNotes(paragraphs) {
         '<div class="report-note">' + list.join('') + '</div></details>';
 }
 
-// الرسم دائمًا طيّة واحدة في آخر الجداول؛ canvas يُنشأ هنا في التقارير الأساسية.
-function renderChartFold(canvasId, label) {
-    return '<details class="report-chart-fold report-chart-block no-print">' +
-        '<summary class="report-chart-summary">' + esc(label) + '</summary>' +
-        '<div class="report-chart-container"><canvas id="' + esc(canvasId) + '"></canvas></div></details>';
+
+// Compatibility helpers keep previews safe in unit harnesses that do not load charts.js.
+// In the browser these simply delegate to the shared chart module.
+function reportPreviewChartHasData(values) {
+    return Array.isArray(values) && values.some(value => {
+        const number = Number(value);
+        return Number.isFinite(number) && number !== 0;
+    });
 }
 
-// التقارير الموسّعة تُنشئ canvas داخل حاوية موجودة، فتُطوى الحاوية نفسها.
-function renderChartFoldContainer(containerId, label) {
+function reportPreviewDestroyChart(canvasId) {
+    if (typeof destroyChartById === 'function') destroyChartById(canvasId);
+}
+
+function reportPreviewChartColor(name) {
+    const defaultColor = typeof REPORT_CHART_COLORS !== 'undefined' && REPORT_CHART_COLORS.emerald
+        ? REPORT_CHART_COLORS.emerald
+        : 'currentColor';
+    if (typeof REPORT_CHART_COLORS !== 'undefined' && REPORT_CHART_COLORS) {
+        return REPORT_CHART_COLORS[name] || defaultColor;
+    }
+    return typeof REPORT_PDF_PALETTE !== 'undefined' && REPORT_PDF_PALETTE && REPORT_PDF_PALETTE[name]
+        ? REPORT_PDF_PALETTE[name]
+        : defaultColor;
+}
+
+function reportPreviewChartPalette(count) {
+    if (typeof reportChartPalette === 'function') return reportChartPalette(count);
+    const tokens = typeof REPORT_PDF_PALETTE !== 'undefined' && REPORT_PDF_PALETTE ? REPORT_PDF_PALETTE : {};
+    const fallback = [tokens.rule, tokens.muted, tokens.faint, tokens.line, tokens.hairline, tokens.ink]
+        .filter(Boolean);
+    const size = Math.max(0, Math.min(60, Number(count) || 0));
+    return Array.from({ length: size }, (_, index) => fallback[index % fallback.length] || 'currentColor');
+}
+
+// الملخص الرقمي المرافق للرسم يستخدم نفس وحدة الجداول؛ لا أرقام تجريبية ولا مصادر أخرى.
+/**
+ * @param {Array<{label: string, cents?: number, text?: string, tone?: string, note?: string}>} items
+ */
+function renderChartMetricStrip(items) {
+    const tones = ['emerald', 'rose', 'amber', 'sky'];
+    return '<div class="report-chart-metrics">' + items.map(item => {
+        const value = item.text !== undefined
+            ? esc(String(item.text))
+            : fmtMoney((Number(item.cents) || 0) / 100);
+        const tone = tones.includes(String(item.tone || '')) ? ' sheet-' + item.tone : '';
+        const note = item.note ? '<span class="report-chart-metric-note">' + esc(item.note) + '</span>' : '';
+        return '<div class="report-chart-metric"><span class="report-chart-metric-label">' +
+            esc(item.label) + '</span><strong class="report-chart-metric-value' + tone + '">' +
+            value + '</strong>' + note + '</div>';
+    }).join('') + '</div>';
+}
+
+/**
+ * @param {string} canvasId
+ * @param {string} label
+ * @param {{summary?: Array<{label: string, cents?: number, text?: string, tone?: string, note?: string}>, hasData?: boolean, empty?: string, ariaLabel?: string}} [options]
+ */
+function renderChartFold(canvasId, label, options = {}) {
+    const summary = Array.isArray(options.summary) ? options.summary.filter(Boolean) : [];
+    const hasData = options.hasData !== false;
+    const emptyMessage = options.empty || 'لا توجد بيانات كافية لعرض الرسم.';
+    const ariaLabel = options.ariaLabel || 'رسم بياني؛ البيانات نفسها متاحة في الجداول التفصيلية.';
+    const summaryHtml = summary.length ? renderChartMetricStrip(summary) : '';
+    const visualHtml = hasData
+        ? '<div class="report-chart-container"><canvas id="' + esc(canvasId) +
+            '" role="img" aria-label="' + esc(ariaLabel) + '"></canvas></div>'
+        : '<p class="report-chart-empty"><i class="fa-solid fa-chart-column" aria-hidden="true"></i>' +
+            '<span>' + esc(emptyMessage) + '</span></p>';
     return '<details class="report-chart-fold report-chart-block no-print">' +
         '<summary class="report-chart-summary">' + esc(label) + '</summary>' +
-        '<div id="' + esc(containerId) + '" class="report-chart-container"></div></details>';
+        '<div class="report-chart-body">' + summaryHtml + visualHtml + '</div></details>';
+}
+
+/**
+ * التقارير الموسّعة تُنشئ canvas داخل حاوية موجودة، فتُطوى الحاوية نفسها.
+ * @param {string} containerId
+ * @param {string} label
+ * @param {{summary?: Array<{label: string, cents?: number, text?: string, tone?: string, note?: string}>, hasData?: boolean, empty?: string}} [options]
+ */
+function renderChartFoldContainer(containerId, label, options = {}) {
+    const summary = Array.isArray(options.summary) ? options.summary.filter(Boolean) : [];
+    const hasData = options.hasData !== false;
+    const emptyMessage = options.empty || 'لا توجد بيانات كافية لعرض الرسم.';
+    const summaryHtml = summary.length ? renderChartMetricStrip(summary) : '';
+    const visualHtml = hasData
+        ? '<div id="' + esc(containerId) + '" class="report-chart-container"></div>'
+        : '<p class="report-chart-empty"><i class="fa-solid fa-chart-column" aria-hidden="true"></i>' +
+            '<span>' + esc(emptyMessage) + '</span></p>';
+    return '<details class="report-chart-fold report-chart-block no-print">' +
+        '<summary class="report-chart-summary">' + esc(label) + '</summary>' +
+        '<div class="report-chart-body">' + summaryHtml + visualHtml + '</div></details>';
 }
 
 function renderReportStatTiles(items, compact = false) {
@@ -1129,6 +1209,7 @@ function setLandlordReportActionsEnabled(enabled) {
 }
 
 function clearLandlordReportPreview(message) {
+    reportPreviewDestroyChart('landlordReportChart');
     landlordReportMonth = '';
     landlordReportSignature = '';
     landlordReportPurposeFilter = '';
@@ -1181,6 +1262,12 @@ async function generateLandlordReport() {
         ];
     });
     const expenseRows = exp.map(e => [esc(e.title), '<span class="sheet-negative">' + money(toCents(e.amount)) + '</span>']);
+    const paymentMethodChartRows = Array.from(paymentMethodTotals.entries())
+        .map(([label, totals]) => ({ label, cents: totals.cents }))
+        .filter(item => item.cents > 0)
+        .sort((a, b) => b.cents - a.cents);
+    const paymentMethodChartHasData = reportPreviewChartHasData(paymentMethodChartRows.map(item => item.cents));
+    const topPaymentMethod = paymentMethodChartRows[0] || null;
     const statsHtml = renderReportStatTiles(getLandlordSummaryItems(model), !showDues);
     const note = residentFilter
         ? 'التحصيلات معروضة لشقة «' + esc(residentLabel) + '» فقط' +
@@ -1230,7 +1317,22 @@ async function generateLandlordReport() {
                 empty: 'لا توجد مصروفات في هذا التقرير.', numeric: [1],
                 foot: ['الإجمالي', '<span class="sheet-negative">' + money(model.totalExpCents) + '</span>']
             })}
-            ${renderChartFold('landlordReportChart', 'إظهار التصور البياني')}
+            ${renderChartFold('landlordReportChart', 'التصور البياني - توزيع التحصيل حسب طريقة الدفع', {
+                hasData: paymentMethodChartHasData,
+                empty: 'لا يوجد تحصيل لعرض توزيع طرق الدفع.',
+                ariaLabel: 'مخطط دائري لتوزيع التحصيل حسب طريقة الدفع؛ البيانات نفسها متاحة في الجدول.',
+                summary: paymentMethodChartHasData ? [
+                    { label: 'إجمالي التحصيل', cents: model.totalIncCents, tone: 'emerald' },
+                    { label: 'عدد الطرق', text: fmtNum(paymentMethodChartRows.length) },
+                    { label: 'أعلى طريقة', text: topPaymentMethod.label, note: fmtMoney(topPaymentMethod.cents / 100) },
+                    {
+                        label: 'حصة الأعلى',
+                        text: model.totalIncCents > 0
+                            ? fmtNum(Math.round((topPaymentMethod.cents / model.totalIncCents) * 100)) + '%'
+                            : '—'
+                    }
+                ] : []
+            })}
             ${renderReportNotes(['<p>' + note + '</p>'])}
         </div>`;
     landlordReportMonth = m;
@@ -1242,12 +1344,12 @@ async function generateLandlordReport() {
     setLandlordReportActionsEnabled(true);
 
     // Render chart for landlord report (lazy-loaded Chart.js, fire-and-forget)
-    if (typeof renderDoughnutValues === 'function' && paymentMethodTotals.size > 0) {
+    if (typeof renderDoughnutValues === 'function' && paymentMethodChartHasData) {
         renderDoughnutValues(
             'landlordReportChart',
-            Array.from(paymentMethodTotals.keys()),
-            Array.from(paymentMethodTotals.values()).map(t => t.cents / 100),
-            [REPORT_CHART_COLORS.emerald, REPORT_CHART_COLORS.sky, REPORT_CHART_COLORS.amber, REPORT_CHART_COLORS.rose, REPORT_CHART_COLORS.indigo],
+            paymentMethodChartRows.map(item => item.label),
+            paymentMethodChartRows.map(item => item.cents / 100),
+            reportPreviewChartPalette(paymentMethodChartRows.length),
             { cutout: '55%' }
         ).catch(() => {});
     }
@@ -1797,6 +1899,7 @@ function setPeriodReportActionsEnabled(enabled) {
 }
 
 function clearPeriodReportPreview(message) {
+    reportPreviewDestroyChart('periodReportChart');
     if (typeof window !== 'undefined') {
         window.__manzilPeriodReportRequestToken = (window.__manzilPeriodReportRequestToken || 0) + 1;
     }
@@ -1870,6 +1973,15 @@ function renderPeriodReportHtml(report) {
             tone(row.netCents, row.netCents >= 0)
         ]);
     const totals = report.totals;
+    const periodPrimaryValue = row => showDues ? row.collectedCents : row.totalIncomeCents;
+    const periodSecondaryValue = row => showDues ? row.expectedCents : row.expenseCents;
+    const periodChartHasData = reportPreviewChartHasData(report.months.flatMap(row => [
+        periodPrimaryValue(row), periodSecondaryValue(row)
+    ]));
+    const periodPeakMonth = report.months.reduce((best, row) => {
+        const value = periodPrimaryValue(row);
+        return !best || value > best.value ? { month: row.month, value } : best;
+    }, null);
     const methodRows = report.methods.map(item => [
         esc(item.label), fmtNum(item.count),
         item.share === null ? '—' : fmtNum(item.share) + '%', tone(item.cents, true)
@@ -1942,7 +2054,29 @@ function renderPeriodReportHtml(report) {
                 empty: 'لا تحصيلات في هذه الفترة.', numeric: [1, 2, 3],
                 foot: ['الإجمالي', fmtNum(totals.movementCount), '100%', tone(totals.totalIncomeCents, true)]
             })}
-            ${renderChartFold('periodReportChart', 'إظهار التصور البياني - التحصيل عبر الأشهر')}
+            ${renderChartFold('periodReportChart', 'التصور البياني - الحركة عبر الأشهر', {
+                hasData: periodChartHasData,
+                empty: 'لا توجد حركات أو مستحقات كافية لعرض الرسم.',
+                ariaLabel: 'مخطط خطي للحركة شهرًا بشهر؛ البيانات نفسها متاحة في الجدول.',
+                summary: periodChartHasData ? [
+                    {
+                        label: showDues ? 'إجمالي المحصّل' : 'إجمالي التحصيل',
+                        cents: showDues ? totals.collectedCents : totals.totalIncomeCents,
+                        tone: 'emerald'
+                    },
+                    {
+                        label: showDues ? 'إجمالي المستحق' : 'إجمالي المصروف',
+                        cents: showDues ? totals.expectedCents : totals.expenseCents,
+                        tone: showDues ? 'sky' : 'rose'
+                    },
+                    {
+                        label: 'أعلى شهر تحصيلًا',
+                        text: periodPeakMonth ? periodPeakMonth.month : '—',
+                        note: periodPeakMonth ? fmtMoney(periodPeakMonth.value / 100) : ''
+                    },
+                    { label: 'عدد الأشهر', text: fmtNum(report.months.length) }
+                ] : []
+            })}
             ${renderReportNotes([
                 report.residentFilter
                     ? `<p>${showDues ? 'المستحق ونسبة التحصيل يخصان الشقة المحددة.' : 'المستحق ونسبة التحصيل لا يظهران عند تصفية الصندوق مع الشقة.'} المصروفات معروضة كاملة لأنها غير مرتبطة بشقة محددة.</p>`
@@ -2032,19 +2166,22 @@ async function generatePeriodReport() {
 
     // Render chart for period report
     const periodShowDues = report.showDues !== false;
-    if (typeof renderLineSeries === 'function' && report.months.length > 0) {
+    const periodPrimaryValues = report.months.map(m => periodShowDues ? m.collectedCents : m.totalIncomeCents);
+    const periodSecondaryValues = report.months.map(m => periodShowDues ? m.expectedCents : m.expenseCents);
+    if (typeof renderLineSeries === 'function' &&
+        reportPreviewChartHasData([...periodPrimaryValues, ...periodSecondaryValues])) {
         await renderLineSeries('periodReportChart', report.months.map(m => m.month), [
             {
-                label: periodShowDues ? 'المستحق' : 'التحصيل',
-                values: report.months.map(m => periodShowDues ? m.expectedCents / 100 : m.totalIncomeCents / 100),
-                color: REPORT_CHART_COLORS.indigo,
-                fill: 'rgba(99, 102, 241, 0.1)'
+                label: periodShowDues ? 'المحصّل' : 'التحصيل',
+                values: periodPrimaryValues.map(cents => cents / 100),
+                color: periodShowDues ? reportPreviewChartColor('emerald') : reportPreviewChartColor('indigo'),
+                fill: periodShowDues ? 'rgba(16, 185, 129, 0.1)' : 'rgba(99, 102, 241, 0.1)'
             },
             {
-                label: periodShowDues ? 'المحصّل' : 'المصروف',
-                values: report.months.map(m => periodShowDues ? m.collectedCents / 100 : m.expenseCents / 100),
-                color: periodShowDues ? REPORT_CHART_COLORS.emerald : REPORT_CHART_COLORS.rose,
-                fill: periodShowDues ? 'rgba(16, 185, 129, 0.1)' : 'rgba(244, 63, 94, 0.1)'
+                label: periodShowDues ? 'المستحق' : 'المصروف',
+                values: periodSecondaryValues.map(cents => cents / 100),
+                color: periodShowDues ? reportPreviewChartColor('indigo') : reportPreviewChartColor('rose'),
+                fill: periodShowDues ? 'rgba(99, 102, 241, 0.1)' : 'rgba(244, 63, 94, 0.1)'
             }
         ], { tension: 0.3 });
     }
@@ -2337,6 +2474,7 @@ function setExpensesReportActionsEnabled(enabled) {
 }
 
 function clearExpensesReportPreview(message) {
+    reportPreviewDestroyChart('expensesReportChart');
     expensesReportSnapshot = null;
     expensesReportSignature = '';
     setExpensesReportActionsEnabled(false);
@@ -2404,6 +2542,8 @@ function renderExpensesReportHtml(report) {
         esc(row.month), fmtNum(row.count), money(row.expenseCents),
         totals.expenseCents > 0 ? fmtNum(Math.round((row.expenseCents / totals.expenseCents) * 100)) + '%' : '—'
     ]);
+    const expensesChartHasData = reportPreviewChartHasData(report.categories.map(item => item.cents));
+    const topExpenseCategory = report.categories[0] || null;
     const fundNote = report.cashAccountFilter
         ? `<p>المصروفات معروضة لصندوق «${esc(report.cashAccountLabel)}» فقط.</p>`
         : '';
@@ -2440,7 +2580,21 @@ function renderExpensesReportHtml(report) {
                 empty: 'لا توجد مصروفات مطابقة.', numeric: [4],
                 foot: ['الإجمالي', '', '', fmtNum(totals.count) + ' حركة', money(totals.expenseCents)]
             })}
-            ${renderChartFold('expensesReportChart', 'إظهار التصور البياني - المصروف حسب التصنيف')}
+            ${renderChartFold('expensesReportChart', 'التصور البياني - المصروف حسب التصنيف', {
+                hasData: expensesChartHasData,
+                empty: 'لا توجد مصروفات مطابقة لعرض التوزيع.',
+                ariaLabel: 'مخطط دائري لتوزيع المصروفات حسب التصنيف؛ البيانات نفسها متاحة في الجدول.',
+                summary: expensesChartHasData ? [
+                    { label: 'إجمالي المصروف', cents: totals.expenseCents, tone: 'rose' },
+                    { label: 'عدد التصنيفات', text: fmtNum(report.categories.length) },
+                    {
+                        label: 'أعلى تصنيف',
+                        text: topExpenseCategory.label,
+                        note: fmtMoney(topExpenseCategory.cents / 100)
+                    },
+                    { label: 'أشهر فيها مصروف', text: fmtNum(totals.monthCount) }
+                ] : []
+            })}
             ${renderReportNotes([
                 '<p>تقرير للقراءة فقط ولا يعدل أي بيانات. المصروفات محسوبة على شهر استحقاقها المسجل.</p>',
                 fundNote,
@@ -2470,12 +2624,12 @@ async function generateExpensesReport() {
     setExpensesReportActionsEnabled(true);
 
     // Render chart for expenses report (lazy-loaded Chart.js)
-    if (typeof renderDoughnutValues === 'function' && report.categories.length > 0) {
+    if (typeof renderDoughnutValues === 'function' && reportPreviewChartHasData(report.categories.map(c => c.cents))) {
         await renderDoughnutValues(
             'expensesReportChart',
             report.categories.map(c => c.label),
             report.categories.map(c => c.cents / 100),
-            [REPORT_CHART_COLORS.rose, REPORT_CHART_COLORS.amber, REPORT_CHART_COLORS.sky, REPORT_CHART_COLORS.emerald, REPORT_CHART_COLORS.indigo, REPORT_CHART_COLORS.slate],
+            reportPreviewChartPalette(report.categories.length),
             { cutout: '55%' }
         );
     }
@@ -2713,6 +2867,7 @@ function setAdjustmentsReportActionsEnabled(enabled) {
 }
 
 function clearAdjustmentsReportPreview(message) {
+    reportPreviewDestroyChart('adjustmentsReportChart');
     adjustmentsReportSnapshot = null;
     adjustmentsReportSignature = '';
     setAdjustmentsReportActionsEnabled(false);
@@ -2731,6 +2886,10 @@ function renderAdjustmentsReportHtml(report) {
         esc(row.month), fmtNum(row.count), money(row.amountCents),
         totals.amountCents > 0 ? fmtNum(Math.round((row.amountCents / totals.amountCents) * 100)) + '%' : '—'
     ]);
+    const adjustmentsChartHasData = reportPreviewChartHasData(report.months.map(row => row.amountCents));
+    const adjustmentsPeakMonth = report.months.reduce((best, row) => {
+        return !best || row.amountCents > best.amountCents ? row : best;
+    }, null);
     const detailRows = report.list.map(item => [
         'شقة ' + esc(item.apartmentNumber) + ' · ' + esc(item.residentName),
         esc(item.kindLabel), esc(item.month), esc(item.reason || '—'), money(item.amountCents)
@@ -2767,7 +2926,21 @@ function renderAdjustmentsReportHtml(report) {
                 empty: 'لا توجد إعفاءات مطابقة.', numeric: [4],
                 foot: ['الإجمالي', '', '', fmtNum(totals.count) + ' تسجيل', money(totals.amountCents)]
             })}
-            ${renderChartFold('adjustmentsReportChart', 'إظهار التصور البياني - الإعفاءات عبر الأشهر')}
+            ${renderChartFold('adjustmentsReportChart', 'التصور البياني - الإعفاءات عبر الأشهر', {
+                hasData: adjustmentsChartHasData,
+                empty: 'لا توجد إعفاءات أو تخفيضات مطابقة لعرض الرسم.',
+                ariaLabel: 'مخطط أعمدة للإعفاءات والتخفيضات شهرًا بشهر؛ البيانات نفسها متاحة في الجدول.',
+                summary: adjustmentsChartHasData ? [
+                    { label: 'إجمالي الإعفاءات', cents: totals.amountCents, tone: 'amber' },
+                    { label: 'عدد التسجيلات', text: fmtNum(totals.count) },
+                    {
+                        label: 'أعلى شهر',
+                        text: adjustmentsPeakMonth ? adjustmentsPeakMonth.month : '—',
+                        note: adjustmentsPeakMonth ? fmtMoney(adjustmentsPeakMonth.amountCents / 100) : ''
+                    },
+                    { label: 'أشهر مشمولة', text: fmtNum(totals.monthCount) }
+                ] : []
+            })}
             ${renderReportNotes([
                 '<p>تقرير للقراءة فقط ولا يعدل أي بيانات. تُخصم الإعفاءات والتخفيضات من مستحق الشهر المسجل فيه الاستحقاق.</p>',
                 residentNote,
@@ -2798,12 +2971,12 @@ async function generateAdjustmentsReport() {
     setAdjustmentsReportActionsEnabled(true);
 
     // Render chart for adjustments report (lazy-loaded Chart.js)
-    if (typeof renderBarValues === 'function' && report.months.length > 0) {
+    if (typeof renderBarValues === 'function' && reportPreviewChartHasData(report.months.map(m => m.amountCents))) {
         await renderBarValues(
             'adjustmentsReportChart',
             report.months.map(m => m.month),
             report.months.map(m => m.amountCents / 100),
-            REPORT_CHART_COLORS.amber,
+            reportPreviewChartColor('amber'),
             'الإعفاءات والتخفيضات'
         );
     }
@@ -3144,6 +3317,7 @@ function setResidentStatementActionsEnabled(enabled) {
 }
 
 function clearResidentStatement(message) {
+    reportPreviewDestroyChart('residentStatementChart');
     residentStatementSnapshot = null;
     residentStatementResidentId = '';
     residentStatementSignature = '';
@@ -3192,9 +3366,89 @@ function getStatementFileSlug(statement, includePurpose = true) {
     return `${apartment}_${lastKey.slice(0, 7)}${purposeSuffix}`;
 }
 
+function getResidentStatementChart(statement) {
+    const totals = statement.totals;
+    if (statement.showDues !== false) {
+        const rows = statement.months;
+        const hasData = reportPreviewChartHasData(rows.flatMap(row => [row.dueCents, row.paidCents]));
+        const peak = rows.reduce((best, row) => {
+            return !best || row.dueCents > best.dueCents ? row : best;
+        }, null);
+        return {
+            hasData,
+            labels: rows.map(row => row.month),
+            series: [
+                {
+                    label: 'المستحق',
+                    values: rows.map(row => row.dueCents / 100),
+                    color: reportPreviewChartColor('indigo'),
+                    fill: 'rgba(99, 102, 241, 0.1)'
+                },
+                {
+                    label: 'المدفوع',
+                    values: rows.map(row => row.paidCents / 100),
+                    color: reportPreviewChartColor('emerald')
+                }
+            ],
+            summary: hasData ? [
+                { label: 'إجمالي المستحق', cents: totals.dueCents, tone: 'sky' },
+                { label: 'إجمالي المدفوع', cents: totals.paidCents, tone: 'emerald' },
+                {
+                    label: 'المتبقي',
+                    cents: totals.remainingCents,
+                    tone: totals.remainingCents > 0 ? 'rose' : 'emerald'
+                },
+                {
+                    label: 'أعلى شهر استحقاقًا',
+                    text: peak ? peak.month : '—',
+                    note: peak ? fmtMoney(peak.dueCents / 100) : ''
+                }
+            ] : [],
+            empty: 'لا توجد مستحقات أو دفعات كافية لعرض الرسم.',
+            ariaLabel: 'مخطط خطي للمستحق والمدفوع شهرًا بشهر؛ البيانات نفسها متاحة في الجدول.'
+        };
+    }
+    const byMonth = new Map();
+    statement.payments.forEach(payment => {
+        const key = monthLabelToKey(payment.month) || String(payment.month || '—');
+        const bucket = byMonth.get(key) || { key, label: payment.month, cents: 0 };
+        bucket.cents += payment.amountCents;
+        byMonth.set(key, bucket);
+    });
+    const items = Array.from(byMonth.values())
+        .sort((a, b) => String(a.key).localeCompare(String(b.key)))
+        .filter(item => item.cents > 0);
+    const hasData = reportPreviewChartHasData(items.map(item => item.cents));
+    const peak = items.reduce((best, item) => {
+        return !best || item.cents > best.cents ? item : best;
+    }, null);
+    return {
+        hasData,
+        labels: items.map(item => item.label),
+        series: [{
+            label: 'الحركات',
+            values: items.map(item => item.cents / 100),
+            color: reportPreviewChartColor('sky')
+        }],
+        summary: hasData ? [
+            { label: 'إجمالي الحركات', cents: totals.filteredPaidCents, tone: 'emerald' },
+            { label: 'عدد الأشهر', text: fmtNum(items.length) },
+            {
+                label: 'أعلى شهر',
+                text: peak ? peak.label : '—',
+                note: peak ? fmtMoney(peak.cents / 100) : ''
+            },
+            { label: 'عدد الحركات', text: fmtNum(statement.payments.length) }
+        ] : [],
+        empty: 'لا توجد حركات كافية لعرض الرسم.',
+        ariaLabel: 'مخطط أعمدة لحركات المالك شهرًا بشهر؛ البيانات نفسها متاحة في الجدول.'
+    };
+}
+
 function renderResidentStatementHtml(statement) {
     const resident = statement.resident;
     const showDues = statement.showDues !== false;
+    const statementChart = getResidentStatementChart(statement);
     const money = cents => fmtMoney(cents / 100);
     const paid = cents => '<span class="sheet-positive">' + money(cents) + '</span>';
     const due = cents => '<span class="sheet-negative">' + money(cents) + '</span>';
@@ -3254,6 +3508,12 @@ function renderResidentStatementHtml(statement) {
                 empty: 'لا توجد حركات مسجلة.', numeric: [6],
                 foot: ['الإجمالي', '', '', '', '', fmtNum(statement.payments.length) + ' حركة', paid(totals.filteredPaidCents)]
             })}
+            ${renderChartFold('residentStatementChart', 'التصور البياني - حركة المستحق والمدفوع', {
+                hasData: statementChart.hasData,
+                empty: statementChart.empty,
+                ariaLabel: statementChart.ariaLabel,
+                summary: statementChart.summary
+            })}
             ${renderReportNotes([
                 showDues
                     ? '<p>كل شهر محسوب بقيمة الاشتراك السارية فيه. يُخصم الإعفاء أو التخفيض، وتُحتسب دفعات التسوية على اتفاق التسوية المرتبط بها، دون تكرارها ضمن مدفوع الاشتراك.</p>'
@@ -3264,7 +3524,7 @@ function renderResidentStatementHtml(statement) {
         </div>`;
 }
 
-function generateResidentStatement() {
+async function generateResidentStatement() {
     if (!requireManager()) return;
     const residentId = String(/** @type {HTMLSelectElement} */ (document.getElementById('statementResidentSelect'))?.value || '');
     if (!residentId) { toast('اختر مالكًا','error'); return; }
@@ -3278,6 +3538,22 @@ function generateResidentStatement() {
     residentStatementResidentId = residentId;
     residentStatementSignature = getResidentStatementSignature(residentId, purposeFilter);
     setResidentStatementActionsEnabled(true);
+    const statementChart = getResidentStatementChart(statement);
+    if (!statementChart.hasData) return;
+    if (statement.showDues !== false && typeof renderLineSeries === 'function') {
+        await renderLineSeries('residentStatementChart', statementChart.labels, statementChart.series, {
+            maintainAspectRatio: false
+        });
+    } else if (typeof renderBarValues === 'function') {
+        await renderBarValues(
+            'residentStatementChart',
+            statementChart.labels,
+            statementChart.series[0].values,
+            reportPreviewChartColor('sky'),
+            statementChart.series[0].label,
+            { maintainAspectRatio: false }
+        );
+    }
 }
 
 function printResidentStatement() {
