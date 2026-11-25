@@ -3579,15 +3579,15 @@ function sendAssistantMessage(event, options = {}) {
         ? options.userHtml
         : reviewedVoiceNote || formatAssistantUserText(text);
     appendAssistantMessage('user', userHtml, text);
-    const answer = answerAssistantQuery(text);
+    const localAnswer = answerAssistantQuery(text);
     const typing = showAssistantTyping();
-    const deliver = () => {
+    const deliver = answer => {
         if (revision !== assistantChatRevision) {
             if (typing && typing.parentNode) typing.parentNode.removeChild(typing);
             return;
         }
         if (typing && typing.parentNode) typing.parentNode.removeChild(typing);
-        const botMessage = appendAssistantMessage('bot', assistantAnswerHtml(answer), null, { answerId: answer.id });
+        const botMessage = appendAssistantMessage('bot', assistantAnswerHtml(answer), null, { answerId: answer.id, source: answer.source || 'local' });
         if (typeof assistantVoiceOnBotReply === 'function') assistantVoiceOnBotReply(answer, botMessage);
         if (answer.id === 'operation-confirm-request') {
             setAssistantBusy(true);
@@ -3606,8 +3606,26 @@ function sendAssistantMessage(event, options = {}) {
             openAssistantReportsRequest(request.tab || 'landlord', request.month || '', request.residentId || '');
         }
     };
-    if (typeof setTimeout === 'function' && ASSISTANT_TYPING_DELAY_MS > 0) setTimeout(deliver, ASSISTANT_TYPING_DELAY_MS);
-    else deliver();
+    // The optional bridge is a local dev-only rephraser. It never computes
+    // numbers or permissions; when absent, delivery stays synchronous.
+    const groqAnswer = assistantGlobalFunction('assistantGroqAnswer');
+    if (typeof groqAnswer === 'function') {
+        setAssistantBusy(true, 'جارٍ تجهيز الرد…');
+        void Promise.resolve()
+            .then(() => groqAnswer(text, localAnswer))
+            .then(remote => {
+                setAssistantBusy(false);
+                deliver(remote && typeof remote.html === 'string' ? remote : localAnswer);
+            })
+            .catch(() => {
+                setAssistantBusy(false);
+                deliver(localAnswer);
+            });
+    } else if (typeof setTimeout === 'function' && ASSISTANT_TYPING_DELAY_MS > 0) {
+        setTimeout(() => deliver(localAnswer), ASSISTANT_TYPING_DELAY_MS);
+    } else {
+        deliver(localAnswer);
+    }
     if (typeof input.focus === 'function') input.focus();
 }
 
