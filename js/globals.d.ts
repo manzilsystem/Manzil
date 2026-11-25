@@ -40,6 +40,9 @@ declare const REPORT_CHART_COLORS: { emerald: string; rose: string; amber: strin
 declare function renderDoughnutValues(canvasId: string, labels: string[], values: number[], palette: string[], options?: Record<string, unknown>): any;
 declare function renderBarValues(canvasId: string, labels: string[], values: number[], color: string, label?: string, options?: Record<string, unknown>): any;
 declare function renderLineSeries(canvasId: string, labels: string[], series: Array<{ label: string; values: number[]; color: string; fill?: string }>, options?: Record<string, unknown>): any;
+declare function reportChartPalette(count: number): string[];
+declare function hasReportChartData(values: unknown[]): boolean;
+declare function destroyChartById(canvasId: string): void;
 declare function createChartContainer(containerId: string, canvasId: string, height?: number): HTMLElement | null;
 declare function destroyChartsInContainer(containerId: string): void;
 

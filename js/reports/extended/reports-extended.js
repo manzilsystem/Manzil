@@ -238,6 +238,9 @@ function renderCashFlowHtml(report) {
     ];
     const best = report.totals.bestMonth;
     const worst = report.totals.worstMonth;
+    const cashFlowChartHasData = hasReportChartData(report.months.flatMap(row => [
+        row.incomeCents, row.expenseCents, row.netCents
+    ]));
     return [
         '<div class="report-preview-flow" dir="rtl">',
         renderReportHeader('تقرير التدفق النقدي · ' + (state.buildingName || 'العمارة'), [
@@ -260,7 +263,24 @@ function renderCashFlowHtml(report) {
         distributionRows.length ? renderSheetBlock('التوزيع حسب الغرض والتصنيف', ['البند', 'النوع', 'القيمة'], distributionRows, {
             empty: 'لا توجد بيانات مطابقة.', numeric: [2]
         }) : '',
-        renderChartFoldContainer('extendedCashFlowChartContainer', 'إظهار التصور البياني'),
+        renderChartFoldContainer('extendedCashFlowChartContainer', 'التصور البياني - التحصيل والمصروفات والصافي', {
+            hasData: cashFlowChartHasData,
+            empty: 'لا توجد حركات كافية لعرض الرسم.',
+            summary: cashFlowChartHasData ? [
+                { label: 'صافي التدفق', cents: report.totals.netCents, tone: report.totals.netCents >= 0 ? 'emerald' : 'rose' },
+                { label: 'عدد الأشهر', text: fmtNum(report.totals.monthCount) },
+                {
+                    label: 'أعلى صافي',
+                    text: best ? best.month : '—',
+                    note: best ? money(best.netCents) : ''
+                },
+                {
+                    label: 'أدنى صافي',
+                    text: worst ? worst.month : '—',
+                    note: worst ? money(worst.netCents) : ''
+                }
+            ] : []
+        }),
         renderReportNotes([
             best && worst ? '<p>أعلى صافي في ' + esc(best.month) + ': ' + money(best.netCents) +
                 ' · أدنى صافي في ' + esc(worst.month) + ': ' + money(worst.netCents) + '.</p>' : '',
@@ -272,6 +292,7 @@ function renderCashFlowHtml(report) {
 
 function drawCashFlowChart(report) {
     if (!document.getElementById('extendedCashFlowChartContainer')) return;
+    if (!hasReportChartData(report.months.flatMap(row => [row.incomeCents, row.expenseCents, row.netCents]))) return;
     if (typeof createChartContainer !== 'function' || typeof renderLineSeries !== 'function') return;
     const canvas = createChartContainer('extendedCashFlowChartContainer', 'cashFlowChart', 220);
     if (canvas && typeof canvas.setAttribute === 'function') {
@@ -562,9 +583,18 @@ function apartmentsStatItems(report) {
     ];
 }
 
+function getApartmentsChartRows(report) {
+    return report.rows.slice()
+        .sort((a, b) => b.remainingCents - a.remainingCents)
+        .slice(0, 10);
+}
+
 function renderApartmentsHtml(report) {
     const money = cents => fmtMoney(cents / 100);
     const stats = renderReportStatTiles(apartmentsStatItems(report), true);
+    const apartmentsChartRows = getApartmentsChartRows(report);
+    const apartmentsChartHasData = hasReportChartData(apartmentsChartRows.map(row => row.remainingCents));
+    const topApartment = apartmentsChartRows[0] || null;
     const rows = report.rows.map(row => [
         esc(row.label),
         money(row.dueCents),
@@ -589,7 +619,23 @@ function renderApartmentsHtml(report) {
                 '<span class="sheet-negative">' + money(report.totals.remainingCents) + '</span>',
                 report.totals.rate === null ? '—' : fmtNum(report.totals.rate) + '%', '—']
         }),
-        renderChartFoldContainer('extendedApartmentsChartContainer', 'إظهار التصور البياني'),
+        renderChartFoldContainer('extendedApartmentsChartContainer', 'التصور البياني - أعلى الشقق متبقٍّ', {
+            hasData: apartmentsChartHasData,
+            empty: 'لا توجد أرصدة متبقية كافية لعرض الرسم.',
+            summary: apartmentsChartHasData ? [
+                { label: 'إجمالي المتبقي', cents: report.totals.remainingCents, tone: 'rose' },
+                { label: 'عدد الشقق', text: fmtNum(report.totals.unitCount) },
+                {
+                    label: 'أعلى شقة متبقٍّ',
+                    text: topApartment ? topApartment.label : '—',
+                    note: topApartment ? money(topApartment.remainingCents) : ''
+                },
+                {
+                    label: 'نسبة التحصيل',
+                    text: report.totals.rate === null ? '—' : fmtNum(report.totals.rate) + '%'
+                }
+            ] : []
+        }),
         renderReportNotes([
             report.totals.otherIncomeCents ? '<p>تحصيلات أخرى غير الاشتراك في الفترة: ' + money(report.totals.otherIncomeCents) + ' (لا تُخصم من المستحق).</p>' : '',
             '<p>المستحق يحترم تاريخ إضافة الشقة وسعر الاشتراك الساري في كل شهر، والمتبقٍ لا يقل عن صفر. تغيير أي فلتر يعطّل التصدير حتى معاينة جديدة.</p>'
@@ -600,13 +646,14 @@ function renderApartmentsHtml(report) {
 
 function drawApartmentsChart(report) {
     if (!document.getElementById('extendedApartmentsChartContainer')) return;
+    const top = getApartmentsChartRows(report);
+    if (!hasReportChartData(top.map(row => row.remainingCents))) return;
     if (typeof createChartContainer !== 'function' || typeof renderBarValues !== 'function') return;
     const canvas = createChartContainer('extendedApartmentsChartContainer', 'apartmentsChart', 220);
     if (canvas && typeof canvas.setAttribute === 'function') {
         canvas.setAttribute('role', 'img');
         canvas.setAttribute('aria-label', 'مخطط المتبقي للأشهر العشرة الأعلى؛ البيانات نفسها متاحة في الجدول أدناه');
     }
-    const top = report.rows.slice().sort((a, b) => b.remainingCents - a.remainingCents).slice(0, 10);
     renderBarValues('apartmentsChart', top.map(row => row.label),
         top.map(row => row.remainingCents / 100), REPORT_CHART_COLORS.amber, 'المتبقي', { maintainAspectRatio: false });
 }

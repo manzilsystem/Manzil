@@ -203,12 +203,18 @@ test('generated previews use the shared report blocks and theme-safe styles', ()
     // One contract for every preview: header, KPI table, blocks, chart fold, notes.
     assert.match(reports, /function renderReportHeader\(title, metaLines = \[\]\)/);
     assert.match(reports, /function renderReportNotes\(paragraphs\)/);
-    assert.match(reports, /function renderChartFold\(canvasId, label\)/);
-    assert.match(reports, /function renderChartFoldContainer\(containerId, label\)/);
+    assert.match(reports, /function renderChartFold\(canvasId, label, options = \{\}\)/);
+    assert.match(reports, /function renderChartFoldContainer\(containerId, label, options = \{\}\)/);
+    assert.match(reports, /function renderChartMetricStrip\(items\)/);
+    assert.match(css, /\.report-chart-metrics \{/);
+    assert.match(css, /\.report-chart-empty \{/);
     ['landlordReportChart', 'periodReportChart', 'expensesReportChart', 'adjustmentsReportChart'].forEach(id =>
         assert.match(reports, new RegExp("renderChartFold\\('" + id + "'")));
     ['extendedCashFlowChartContainer', 'extendedApartmentsChartContainer'].forEach(id =>
         assert.match(extended, new RegExp("renderChartFoldContainer\\('" + id + "'")));
+    assert.match(reports, /renderChartFold\('residentStatementChart'/);
+    assert.match(render, /renderChartFoldContainer\('arrearsChartContainer'/);
+    assert.match(monthlyClose, /renderChartFoldContainer\('monthlyCloseChartContainer'/);
     assert.match(reports, /renderReportNotes\(\[/);
     assert.match(extended, /renderReportNotes\(\[/);
     assert.match(monthlyClose, /renderReportHeader\(/);

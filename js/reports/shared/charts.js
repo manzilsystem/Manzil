@@ -23,6 +23,15 @@ const REPORT_CHART_COLORS = Object.freeze({
   slate: '#64748b'
 });
 
+const REPORT_CHART_PALETTE = Object.freeze([
+  REPORT_CHART_COLORS.indigo,
+  REPORT_CHART_COLORS.emerald,
+  REPORT_CHART_COLORS.amber,
+  REPORT_CHART_COLORS.rose,
+  REPORT_CHART_COLORS.sky,
+  REPORT_CHART_COLORS.slate
+]);
+
 /**
  * إعدادات Chart.js الافتراضية (RTL)
  */
@@ -104,6 +113,41 @@ function recordChartCall(config) {
   if (typeof window !== 'undefined' && window.__chartCalls) {
     window.__chartCalls.push(config);
   }
+}
+
+/**
+ * ألوان ثابتة لأي عدد من البنود؛ تتكرر الدورة بدل إضافة ألوان عشوائية.
+ * @param {number} count
+ * @returns {string[]}
+ */
+function reportChartPalette(count) {
+  const size = Math.max(0, Math.min(60, Number(count) || 0));
+  return Array.from({ length: size }, (_, index) => REPORT_CHART_PALETTE[index % REPORT_CHART_PALETTE.length]);
+}
+
+/**
+ * لا يُعد الرسم بيانات صحيحة إلا إذا كان هناك رقم غير صفري واحد على الأقل.
+ * @param {unknown[]} values
+ * @returns {boolean}
+ */
+function hasReportChartData(values) {
+  return Array.isArray(values) && values.some(value => {
+    const number = Number(value);
+    return Number.isFinite(number) && number !== 0;
+  });
+}
+
+/**
+ * إتلاف رسم قديم قبل استبدال المعاينة كي لا تبقى مراجع Chart.js معلّقة.
+ * @param {string} canvasId
+ */
+function destroyChartById(canvasId) {
+  if (typeof document === 'undefined' || typeof Chart === 'undefined') return;
+  if (typeof Chart.getChart !== 'function') return;
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const chart = Chart.getChart(canvas);
+  if (chart && typeof chart.destroy === 'function') chart.destroy();
 }
 
 /**
@@ -373,6 +417,10 @@ function destroyChartsInContainer(containerId) {
 if (typeof window !== 'undefined') {
   window.REPORT_CHART_COLORS = REPORT_CHART_COLORS;
   window.REPORT_CHART_DEFAULTS = REPORT_CHART_DEFAULTS;
+  window.REPORT_CHART_PALETTE = REPORT_CHART_PALETTE;
+  window.reportChartPalette = reportChartPalette;
+  window.hasReportChartData = hasReportChartData;
+  window.destroyChartById = destroyChartById;
   window.createBarChart = createBarChart;
   window.createLineChart = createLineChart;
   window.createDoughnutChart = createDoughnutChart;

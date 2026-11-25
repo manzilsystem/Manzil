@@ -114,7 +114,7 @@ test('generated report previews share one section order', async ({ page }) => {
         ['period', 'periodReportPreview', async () => previewPeriod(page, 'يناير 2024', 'فبراير 2024'), true],
         ['expenses', 'expensesReportPreview', async () => previewExpenses(page), true],
         ['adjustments', 'adjustmentsReportPreview', async () => previewAdjustments(page), true],
-        ['statement', 'residentStatementPreview', async () => previewStatement(page), false],
+        ['statement', 'residentStatementPreview', async () => previewStatement(page), true],
         ['cashflow', 'cashFlowPreview', async () => {
             await openReportPanel(page, 'cashflow');
             await page.locator('#cashFlowPanel').getByRole('button', { name: 'معاينة', exact: true }).click();
@@ -154,28 +154,59 @@ test('generated report previews share one section order', async ({ page }) => {
     }
 });
 
-test('report visualizations render charts for landlord, period, expenses and adjustments', async ({ page }) => {
+test('report visualizations render data-driven charts with numeric summaries', async ({ page }) => {
     await openReports(page);
+    await page.evaluate(() => {
+        state.expenses = [{
+            id: 'e1', residentId: 'r1', month: 'يناير 2024', title: 'صيانة',
+            amount: 100, category: 'maintenance', cashAccountCode: 'main', date: '2024-01-05'
+        }];
+        state.adjustments = [{
+            id: 'a1', residentId: 'r1', effectiveMonth: '2024-01-01',
+            kind: 'waiver', amount: 25, reason: 'اختبار الرسم'
+        }];
+        renderAll();
+    });
 
     const hasChart = await page.evaluate(() => typeof window.Chart !== 'undefined');
     expect(hasChart).toBe(true);
 
     await previewMonth(page, 'يناير 2024');
     await showReportChart(page, 'landlordReportChart');
+    await expect(page.locator('#landlordReportPreview .report-chart-metrics')).toContainText('إجمالي التحصيل');
 
     await backToIndex(page);
     await previewPeriod(page, 'يناير 2024', 'فبراير 2024');
     await showReportChart(page, 'periodReportChart');
+    await expect(page.locator('#periodReportPreview .report-chart-metrics')).toContainText('أعلى شهر تحصيلًا');
+
+    await backToIndex(page);
+    await previewStatement(page);
+    await showReportChart(page, 'residentStatementChart');
+    await expect(page.locator('#residentStatementPreview .report-chart-metrics')).toContainText('إجمالي المستحق');
 
     await backToIndex(page);
     await openReportPanel(page, 'expenses');
     await page.locator('#expensesReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
     await showReportChart(page, 'expensesReportChart');
+    await expect(page.locator('#expensesReportPreview .report-chart-metrics')).toContainText('أعلى تصنيف');
 
     await backToIndex(page);
     await openReportPanel(page, 'adjustments');
     await page.locator('#adjustmentsReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
     await showReportChart(page, 'adjustmentsReportChart');
+    await expect(page.locator('#adjustmentsReportPreview .report-chart-metrics')).toContainText('أعلى شهر');
+});
+
+test('an empty chart fold shows a clear message instead of an empty canvas', async ({ page }) => {
+    await openReports(page);
+    await openReportPanel(page, 'expenses');
+    await page.locator('#expensesReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+
+    const fold = page.locator('#expensesReportPreview .report-chart-fold');
+    await fold.evaluate(element => { element.open = true; });
+    await expect(fold.locator('.report-chart-empty')).toContainText('لا توجد مصروفات مطابقة لعرض التوزيع.');
+    await expect(fold.locator('canvas')).toHaveCount(0);
 });
 
 test('period comparison renders a comparison table when a mode is selected', async ({ page }) => {
@@ -1590,7 +1621,10 @@ test('apartment performance previews dues, applies the apartment filter and expo
     await expectKpi(preview, 'المستحق', '200 ج.م');
     await expectKpi(preview, 'المحصّل', '1,000 ج.م');
     await expectKpi(preview, 'المتبقٍ', '0 ج.م');
-    await showReportChart(page, 'apartmentsChart');
+    const chartFold = preview.locator('.report-chart-fold');
+    await chartFold.evaluate(element => { element.open = true; });
+    await expect(chartFold.locator('.report-chart-empty')).toContainText('لا توجد أرصدة متبقية كافية لعرض الرسم.');
+    await expect(chartFold.locator('canvas')).toHaveCount(0);
     await expect(page.locator('#apartmentsExportBtn')).toBeEnabled();
 
     await page.locator('#apartmentsReportResident').selectOption('r1');
