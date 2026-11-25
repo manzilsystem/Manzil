@@ -78,6 +78,38 @@ function getArrearsReportFilters() {
     };
 }
 
+function getArrearsMonthOptionKeys(extra = []) {
+    const currentKey = (monthLabelToKey(getCurrentMonth()) || '').slice(0, 7);
+    if (!currentKey) return [];
+    const seen = [];
+    const add = key => { if (/^\d{4}-\d{2}$/.test(key || '')) seen.push(key); };
+    (state.income || []).forEach(item => add((monthLabelToKey(item.month) || '').slice(0, 7)));
+    (state.expenses || []).forEach(item => add((monthLabelToKey(item.month) || '').slice(0, 7)));
+    (state.residents || []).forEach(item => add(String(item.createdAt || '').slice(0, 7)));
+    extra.forEach(add);
+    const earliest = seen.length ? seen.reduce((a, b) => (a < b ? a : b)) : currentKey;
+    const keys = [];
+    let key = earliest < currentKey ? earliest : currentKey;
+    for (let guard = 0; key <= currentKey && guard < 240; guard += 1) {
+        keys.push(key);
+        const [year, month] = key.split('-').map(Number);
+        key = month === 12 ? `${year + 1}-01` : `${year}-${String(month + 1).padStart(2, '0')}`;
+    }
+    return keys.reverse();
+}
+
+function populateArrearsMonthSelects() {
+    ['arrearsFromMonth', 'arrearsToMonth'].forEach(id => {
+        const el = /** @type {HTMLSelectElement} */ (document.getElementById(id));
+        if (!el || el.tagName !== 'SELECT') return;
+        const previous = el.value;
+        const keys = getArrearsMonthOptionKeys(previous ? [previous] : []);
+        el.innerHTML = '<option value="">كل الفترات</option>' + keys
+            .map(key => `<option value="${esc(key)}">${esc(getStatementMonthLabel(key + '-01') || key)}</option>`).join('');
+        el.value = keys.includes(previous) ? previous : '';
+    });
+}
+
 function populateArrearsApartmentFilter() {
     const select = /** @type {HTMLSelectElement} */ (document.getElementById('arrearsApartmentFilter'));
     if (!select) return;
@@ -155,6 +187,7 @@ function renderArrearsReport() {
     if (!c) return;
     destroyArrearsChart();
     populateArrearsApartmentFilter();
+    populateArrearsMonthSelects();
     const filters = getArrearsReportFilters();
     const report = buildArrearsReport(filters);
     if (!report.residents.length) {

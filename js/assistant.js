@@ -2657,6 +2657,7 @@ function openAssistantReportsRequest(tab = 'landlord', month = '', residentId = 
             const from = /** @type {HTMLInputElement | null} */ (document.getElementById('arrearsFromMonth'));
             const to = /** @type {HTMLInputElement | null} */ (document.getElementById('arrearsToMonth'));
             if (monthKey && from && to) {
+                if (typeof populateArrearsMonthSelects === 'function') populateArrearsMonthSelects();
                 from.value = monthKey.slice(0, 7);
                 to.value = monthKey.slice(0, 7);
                 if (typeof renderArrearsReport === 'function') renderArrearsReport();

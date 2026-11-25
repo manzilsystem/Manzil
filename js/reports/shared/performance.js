@@ -13,7 +13,7 @@ let chartJsLoaded = false;
  */
 async function ensureChartJs() {
   if (chartJsLoaded && typeof Chart !== 'undefined') return true;
-  if (chartJsPromise) return chartJsPromise.then(() => true);
+  if (chartJsPromise) return chartJsPromise;
 
   chartJsPromise = new Promise((resolve) => {
     if (typeof Chart !== 'undefined') {
@@ -30,6 +30,8 @@ async function ensureChartJs() {
     };
     script.onerror = () => {
       console.warn('[Performance] Chart.js failed to load');
+      script.remove();
+      chartJsPromise = null;
       resolve(false);
     };
     document.head.appendChild(script);
