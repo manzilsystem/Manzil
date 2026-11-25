@@ -27,10 +27,10 @@ test('monthly close and arrears are panels with their controls preserved', () =>
     assert.doesNotMatch(reportTab, /<details\b(?!\s*class="[^"]*(?:report-chart-fold|report-note-fold))/, 'only chart folds and the relocated template fold may be disclosure panels');
 });
 
-test('the reports index groups all ten panels and marks the active one', () => {
+test('the reports index groups all eleven panels and marks the active one', () => {
     const entries = [...reportTab.matchAll(/data-report-nav="([a-zA-Z]+)"[^>]*aria-controls="([a-zA-Z]+)"/g)];
-    assert.deepEqual(entries.map(match => match[1]), ['landlord', 'period', 'cashflow', 'expenses', 'statement', 'apartments', 'arrears', 'adjustments', 'monthlyClose', 'audit']);
-    assert.deepEqual(entries.map(match => match[2]), ['landlordReportPrint', 'periodReportCard', 'cashFlowPanel', 'expensesReportCard', 'residentStatementCard', 'apartmentsPanel', 'arrearsPanel', 'adjustmentsReportCard', 'monthlyClosePanel', 'auditLogPanel']);
+    assert.deepEqual(entries.map(match => match[1]), ['landlord', 'period', 'cashflow', 'expenses', 'statement', 'apartments', 'arrears', 'paymentBehavior', 'adjustments', 'monthlyClose', 'audit']);
+    assert.deepEqual(entries.map(match => match[2]), ['landlordReportPrint', 'periodReportCard', 'cashFlowPanel', 'expensesReportCard', 'residentStatementCard', 'apartmentsPanel', 'arrearsPanel', 'paymentBehaviorPanel', 'adjustmentsReportCard', 'monthlyClosePanel', 'auditLogPanel']);
     entries.forEach(match => assert.ok(reportTab.includes('id="' + match[2] + '"'), match[2] + ' has no panel'));
     assert.equal((reportTab.match(/class="report-index-item is-active[^"]*"/g) || []).length, 0, 'no report is open until the user taps a card');
     assert.equal((reportTab.match(/aria-current="page"/g) || []).length, 0, 'the active marker is set only while a report is open');
@@ -76,8 +76,8 @@ test('reports surface shares card headers, stat tiles, and tabular numerals', ()
     assert.match(css, /\.report-stat-value \{[^}]*font-variant-numeric: tabular-nums/);
     assert.match(css, /\.report-amount \{ font-variant-numeric: tabular-nums/);
     assert.match(css, /#printableArea \.app-card, #printableArea \.app-input, #printableArea \.report-stat \{/);
-    assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 10);
-    assert.equal((reportTab.match(/class="report-card-badge /g) || []).length, 10);
+    assert.equal((reportTab.match(/class="report-card-title"/g) || []).length, 11);
+    assert.equal((reportTab.match(/class="report-card-badge /g) || []).length, 11);
     assert.equal((reports.match(/class="report-stat"/g) || []).length, 2, 'every preview now builds its KPI cells through renderReportStatTiles');
     assert.equal((render.match(/class="report-stat"/g) || []).length, 0, 'arrears and audit KPIs come from the shared helper');
     assert.match(reports, /sheet-positive/);
@@ -112,17 +112,17 @@ test('reports section has a calm card index with search, categories and unified 
 
     const titles = [...reportTab.matchAll(/<span class="report-card-line"><b>([^<]+)<\/b>/g)].map(match => match[1]);
     assert.deepEqual(titles, ['الملخص المالي الشهري', 'تقرير الفترة', 'تحليل التدفق النقدي', 'تحليل المصروفات',
-        'كشف حساب المالك', 'تقرير أداء الشقق', 'تقرير المتأخرات', 'تقرير الإعفاءات والتخفيضات', 'مراجعة الإقفال الشهري', 'سجل العمليات والتدقيق']);
+        'كشف حساب المالك', 'تقرير أداء الشقق', 'تقرير المتأخرات', 'سلوك السداد', 'تقرير الإعفاءات والتخفيضات', 'مراجعة الإقفال الشهري', 'سجل العمليات والتدقيق']);
     assert.deepEqual([...reportTab.matchAll(/<h3>([^<]+)<\/h3>/g)].map(match => match[1]), ['الملخص المالي', 'الملاك والوحدات', 'المراجعة والرقابة']);
     assert.deepEqual([...reportTab.matchAll(/<span class="report-index-badge">([^<]+)<\/span>/g)].map(match => match[1]),
-        ['شهري', 'فترة', 'تحليل', 'تحليل', 'كشف', 'أداء', 'متابعة', 'قيود', 'مراجعة', 'سجل']);
+        ['شهري', 'فترة', 'تحليل', 'تحليل', 'كشف', 'أداء', 'متابعة', 'تحليل', 'قيود', 'مراجعة', 'سجل']);
     const icons = [...reportTab.matchAll(/<span class="report-index-icon" aria-hidden="true"><i class="fa-solid ([^"]+)"><\/i>/g)].map(match => match[1]);
     assert.deepEqual(icons, ['fa-file-invoice-dollar', 'fa-calendar-days', 'fa-chart-line', 'fa-chart-pie',
-        'fa-file-invoice', 'fa-building', 'fa-clock-rotate-left', 'fa-tags', 'fa-clipboard-check', 'fa-list-check']);
+        'fa-file-invoice', 'fa-building', 'fa-clock-rotate-left', 'fa-user-clock', 'fa-tags', 'fa-clipboard-check', 'fa-list-check']);
     assert.match(reportTab, /class="report-index-search"[^>]*>[\s\S]*?fa-solid fa-magnifying-glass/);
-    assert.equal((reportTab.match(/class="report-index-copy"/g) || []).length, 10, 'one description per card');
-    assert.equal((reportTab.match(/class="report-index-open"/g) || []).length, 10, 'every card has an open action');
-    assert.equal((reportTab.match(/class="report-index-state" data-report-freshness=/g) || []).length, 10, 'one restrained status per card');
+    assert.equal((reportTab.match(/class="report-index-copy"/g) || []).length, 11, 'one description per card');
+    assert.equal((reportTab.match(/class="report-index-open"/g) || []).length, 11, 'every card has an open action');
+    assert.equal((reportTab.match(/class="report-index-state" data-report-freshness=/g) || []).length, 11, 'one restrained status per card');
     assert.doesNotMatch(reportTab, /report-index-number/, 'the removed number watermark does not return');
     assert.doesNotMatch(reportTab, /report-quality-mark|report-stage-mark|report-view-icon|report-view-hint/, 'no decorative empty-state or shortcut chrome');
     assert.match(css, /\.report-index-grid \{[^}]*grid-template-columns: repeat\(auto-fit/);
@@ -316,7 +316,7 @@ test('the report index is grouped and searchable, free of hub or schedule layers
     assert.doesNotMatch(reportTab, /reportHub|report-hub|report-command-strip|report-group-chip|data-report-shortcut/);
     assert.doesNotMatch(reportTab, /scheduledReports|scheduleForm|loadScheduledReports|reportScheduledCount/);
     assert.match(reportTab, /class="report-index no-print" aria-label="فهرس التقارير"/);
-    assert.equal((reportTab.match(/data-report-glyph="/g) || []).length, 10, 'each card keeps its panel identity token');
+    assert.equal((reportTab.match(/data-report-glyph="/g) || []).length, 11, 'each card keeps its panel identity token');
     assert.match(css, /#tab-reports \{[^}]*grid-template-areas: "head" "index" "stage"/);
     assert.match(css, /#tab-reports\[data-report-view="panel"\] \{[^}]*grid-template-areas: "head" "bar" "panel"/);
     assert.doesNotMatch(extended, /renderReportHub|filterReportNav|setReportGroup|recordRecentReport/);
@@ -343,16 +343,16 @@ test('the single report stage keeps guided steps and a live output status', () =
     assert.match(css, /\.report-view-status\.is-stale::before \{ background: var\(--state-warning\)/);
 
     const toneKeys = [...css.matchAll(/\[data-report-nav="([a-zA-Z]+)"\] \{[^}]*--report-tone:/g)].map(match => match[1]);
-    assert.deepEqual(toneKeys, ['landlord', 'period', 'cashflow', 'expenses', 'adjustments', 'statement', 'apartments', 'monthlyClose', 'arrears', 'audit']);
+    assert.deepEqual(toneKeys, ['landlord', 'period', 'cashflow', 'expenses', 'adjustments', 'statement', 'apartments', 'monthlyClose', 'arrears', 'audit', 'paymentBehavior']);
 });
 
 test('every open panel carries the exact index title and exposes its active filters', () => {
     const expectedTitles = ['الملخص المالي الشهري', 'تقرير الفترة', 'تحليل التدفق النقدي', 'تحليل المصروفات',
-        'تقرير الإعفاءات والتخفيضات', 'كشف حساب المالك', 'تقرير أداء الشقق', 'مراجعة الإقفال الشهري',
+        'تقرير الإعفاءات والتخفيضات', 'كشف حساب المالك', 'تقرير أداء الشقق', 'سلوك السداد لكل مالك', 'مراجعة الإقفال الشهري',
         'تقرير المتأخرات', 'سجل العمليات والتدقيق'];
     const panelTitles = [...reportTab.matchAll(/<[^>]+class="report-card-title"[^>]*>([^<]+)</g)].map(match => match[1]);
     assert.deepEqual(panelTitles, expectedTitles, 'panel headings must not contradict the report index');
-    assert.equal((reportTab.match(/data-report-filter-summary="[a-zA-Z]+"/g) || []).length, 10);
+    assert.equal((reportTab.match(/data-report-filter-summary="[a-zA-Z]+"/g) || []).length, 11);
     assert.equal((reportTab.match(/onclick="clearReportFilters\('[a-zA-Z]+'\)"/g) || []).length, 10);
     assert.match(reports, /const REPORT_FILTER_DESCRIPTORS = \{/);
     assert.match(reports, /function renderReportFilterSummaries\(\)/);
@@ -453,7 +453,7 @@ test('the report center card index keeps quality and template surfaces', () => {
     assert.match(reportTab, /id="periodReportTemplates"/);
     assert.match(reportTab, /id="templateNameInput"/);
     assert.doesNotMatch(reportTab, /data-report-metric|report-nav-table|reportScheduledCount|scheduledReportsSection/);
-    assert.equal((reportTab.match(/data-report-freshness="[a-zA-Z]+"/g) || []).length, 10);
+    assert.equal((reportTab.match(/data-report-freshness="[a-zA-Z]+"/g) || []).length, 11);
     ['hasReportMetricHelpers', 'runReportQualityCheck', 'initReportTemplatesUI'].forEach(name =>
         assert.match(reports, new RegExp('function ' + name + '\\('), 'missing ' + name));
     assert.match(reports, /runReportQualityCheck\(\);/);
