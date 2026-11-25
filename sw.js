@@ -1,4 +1,4 @@
-const CACHE_NAME = 'manzil-e20c70791b';
+const CACHE_NAME = 'manzil-d9ea753a53';
 const APP_CACHE_PREFIX = 'manzil-';
 const APP_SHELL = [
     './',
@@ -12,9 +12,9 @@ const APP_SHELL = [
     './vendor/chart.umd.js?v=c6d8bdd707',
     './vendor/xlsx.full.min.js?v=c9506197ca',
     './vendor/supabase.js?v=8816af04d9',
-    './css/style.css?v=6eeb97029c',
+    './css/style.css?v=cf1a998b0c',
     './js/sw-register.js?v=27964153c8',
-    './js/telemetry.js?v=manzil-e20c70791b',
+    './js/telemetry.js?v=manzil-d9ea753a53',
     './js/state.js?v=f367c7dc5c',
     './js/access.js?v=4e42881cb7',
     './js/render.js?v=708c3ae2a7',
@@ -24,7 +24,7 @@ const APP_SHELL = [
     './js/settings.js?v=d439fb3bea',
     './js/supabase.js?v=66dd8cd5e5',
     './js/cashbox.js?v=630080f12a',
-    './js/subscription-rates.js?v=manzil-e20c70791b',
+    './js/subscription-rates.js?v=manzil-d9ea753a53',
     './js/app.js?v=a3c44d1eab',
     './js/monthly-close.js?v=b25c74fbbc',
     './js/backup.js?v=65b179f1d7',
@@ -33,7 +33,7 @@ const APP_SHELL = [
     './js/assistant-groq.js?v=a5ac117af0',
     './js/assistant-avatar-3d.js?v=8b346cf60d',
     './manifest.json?v=3f552df72d',
-    './icons/manzil-logo.png?v=fe10a27702',
+    './icons/manzil-logo.png?v=21c05e57ac',
     './icons/manzil-full-1.png?v=be5105a674',
     './icons/manzil-full-2.png?v=73e8771d9e',
     './icons/manzil-full-3.png?v=114bb1656a',
@@ -41,8 +41,8 @@ const APP_SHELL = [
     './icons/manzil-brand.svg?v=0149260cc9',
     './icons/assistant-abbah.png?v=a53ee77e42',
     './icons/assistant-abbah-full.png?v=0e2e887a58',
-    './icons/icon-192.png?v=fe10a27702',
-    './icons/icon-512.png?v=a5e14df5fd'
+    './icons/icon-192.png?v=24837f2463',
+    './icons/icon-512.png?v=dfe76ac325'
 ];
 
 self.addEventListener('install', event => {
