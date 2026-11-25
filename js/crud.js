@@ -390,6 +390,12 @@ function openResidentModal(mode, id, options = {}) {
         }
     } else {
         /** @type {any} */ (document.getElementById('residentForm')).reset();
+        {
+            // New apartments must state when billing starts; default to the current month so it is one tap to accept.
+            const newBillingInput = /** @type {HTMLInputElement | null} */ (document.getElementById('residentBillingStart'));
+            const currentKey = typeof monthLabelToKey === 'function' ? monthLabelToKey(getCurrentMonth()) : '';
+            if (newBillingInput && currentKey) newBillingInput.value = currentKey.slice(0, 7);
+        }
         populateResidentFloorOptions();
         updateResidentApartmentOptions();
         toggleResidentTenantFields();
@@ -1390,6 +1396,10 @@ async function handleResidentSubmit(e) {
     const billingStartValue = String(/** @type {any} */ (document.getElementById('residentBillingStart'))?.value || '').trim();
     if (billingStartValue && !isValidEffectiveMonth(billingStartValue)) {
         toast('اختر شهرًا صحيحًا لبداية المحاسبة.', 'error');
+        return;
+    }
+    if (!editingResidentId && !billingStartValue) {
+        toast('حدّد شهر بداية المحاسبة للشقة الجديدة.', 'error');
         return;
     }
     const billingStartMonth = billingStartValue ? `${billingStartValue}-01` : null;

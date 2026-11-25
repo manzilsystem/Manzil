@@ -14,6 +14,7 @@ test('saving a Latin apartment number rejects an existing Arabic-Indic equivalen
         residentApartment: { value: '3' },
         residentFloor: { value: '2' },
         residentPhone: { value: '' },
+        residentBillingStart: { value: '2024-01' },
         residentAmount: { value: '0' },
         residentNotes: { value: '' }
     };
@@ -45,4 +46,10 @@ test('saving a Latin apartment number rejects an existing Arabic-Indic equivalen
     assert.equal(messages.length, 1);
     assert.equal(messages[0].type, 'error');
     assert.match(messages[0].message, /رقم الشقة مسجل بالفعل/);
+});
+
+test('adding an apartment requires a billing start month', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'crud.js'), 'utf8');
+    assert.match(src, /if \(!editingResidentId && !billingStartValue\)/);
+    assert.match(src, /حدّد شهر بداية المحاسبة للشقة الجديدة/);
 });
