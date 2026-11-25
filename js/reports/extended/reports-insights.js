@@ -29,6 +29,10 @@ if (typeof REPORT_TABS !== 'undefined' && Array.isArray(REPORT_TABS)) {
     Object.assign(REPORT_FILTER_DESCRIPTORS, {
         paymentBehavior: [
             { id: 'paymentBehaviorResident', label: 'الشقة', text: reportResidentFilterLabel }
+        ],
+        expenseVariance: [
+            { id: 'expenseVarianceMonth', label: 'الشهر' },
+            { id: 'expenseVarianceCategory', label: 'التصنيف' }
         ]
     });
 }
@@ -112,6 +116,12 @@ function clearInsightsFilters(tab) {
         const select = /** @type {HTMLSelectElement | null} */ (document.getElementById('paymentBehaviorResident'));
         if (select) select.value = '';
         invalidatePayerBehaviorPreview();
+    } else if (tab === 'expenseVariance') {
+        const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('expenseVarianceMonth'));
+        if (monthSelect && monthSelect.options && monthSelect.options.length) monthSelect.value = monthSelect.options[monthSelect.options.length - 1].value;
+        const categorySelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('expenseVarianceCategory'));
+        if (categorySelect) categorySelect.value = '';
+        invalidateExpenseVariancePreview();
     } else {
         return false;
     }
@@ -133,6 +143,22 @@ function populateInsightsReportFilters(months, current = getCurrentMonth()) {
         residentSelect.innerHTML = '<option value="">كل الشقق</option>' + residents;
         residentSelect.value = (Array.isArray(state.residents) ? state.residents : []).some(resident => resident.id === selected) ? selected : '';
     }
+    const monthSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('expenseVarianceMonth'));
+    if (monthSelect && Array.isArray(months) && months.length) {
+        const selectedMonth = monthSelect.value;
+        monthSelect.innerHTML = months.map(month => '<option value="' + esc(month) + '">' + esc(month) + '</option>').join('');
+        monthSelect.value = months.includes(selectedMonth) ? selectedMonth : (months.includes(current) ? current : months[months.length - 1]);
+    }
+    const categorySelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('expenseVarianceCategory'));
+    if (categorySelect) {
+        const categories = Array.from(new Set((Array.isArray(state.expenses) ? state.expenses : [])
+            .map(expense => String(expense.category || '').trim() || 'غير مصنف')))
+            .sort((a, b) => a.localeCompare(b, 'ar'));
+        const selectedCategory = categorySelect.value;
+        categorySelect.innerHTML = '<option value="">كل التصنيفات</option>' +
+            categories.map(category => '<option value="' + esc(category) + '">' + esc(category) + '</option>').join('');
+        categorySelect.value = categories.includes(selectedCategory) ? selectedCategory : '';
+    }
 }
 
 function initInsightsReportsUI() {
@@ -141,6 +167,7 @@ function initInsightsReportsUI() {
 
 function invalidateInsightsReportsIfStale() {
     invalidatePayerBehaviorIfStale();
+    invalidateExpenseVarianceIfStale();
 }
 
 /* ============================================================
@@ -609,9 +636,271 @@ function buildExpenseVarianceReport(monthLabel = '', categoryFilter = '') {
     };
 }
 
+let expenseVarianceSnapshot = null;
+let expenseVarianceSignature = '';
+const EXPENSE_VARIANCE_SIGNATURE_PREFIX = 'built:';
+const EXPENSE_VARIANCE_ACTION_IDS = ['expenseVariancePrintBtn', 'expenseVariancePdfBtn', 'expenseVarianceCsvBtn', 'expenseVarianceExcelBtn'];
+
+function expenseVarianceFlagLabel(row) {
+    if (row.flag === 'up') return { text: 'ارتفاع ' + fmtNum(row.variancePct) + '%', tone: 'rose' };
+    if (row.flag === 'down') return { text: 'انخفاض ' + fmtNum(Math.abs(row.variancePct)) + '%', tone: 'emerald' };
+    if (row.flag === 'new') return { text: 'تصنيف جديد', tone: 'amber' };
+    return { text: 'ضمن المتوسط', tone: '' };
+}
+
+function getExpenseVarianceSelection() {
+    return {
+        month: insightsValue('expenseVarianceMonth'),
+        category: insightsValue('expenseVarianceCategory')
+    };
+}
+
+function getExpenseVarianceSignature() {
+    const selection = getExpenseVarianceSelection();
+    return `${selection.month}/${selection.category}/${insightsDataFingerprint()}`;
+}
+
+function setExpenseVarianceActions(enabled) {
+    insightsSetActions(EXPENSE_VARIANCE_ACTION_IDS, enabled);
+}
+
+function clearExpenseVariancePreview(message) {
+    insightsClearPreview('expenseVariancePreview', message, EXPENSE_VARIANCE_ACTION_IDS);
+    if (typeof destroyChartsInContainer === 'function') destroyChartsInContainer('insightsExpenseVarianceChartContainer');
+}
+
+function invalidateExpenseVariancePreview() {
+    if (!expenseVarianceSnapshot) return;
+    expenseVarianceSnapshot = null;
+    clearExpenseVariancePreview('غيّرت الفلاتر المعاينة. اضغط «معاينة» لتحديث التقرير.');
+}
+
+function isExpenseVarianceCurrent() {
+    return Boolean(expenseVarianceSnapshot) && expenseVarianceSignature === EXPENSE_VARIANCE_SIGNATURE_PREFIX + getExpenseVarianceSignature();
+}
+
+function invalidateExpenseVarianceIfStale() {
+    if (!expenseVarianceSnapshot) return;
+    if (!isExpenseVarianceCurrent()) invalidateExpenseVariancePreview();
+}
+
+function expenseVarianceStatItems(report) {
+    const money = cents => fmtMoney(cents / 100);
+    return [
+        { label: 'مصروفات ' + report.month, text: money(report.totals.currentCents) },
+        { label: 'متوسط 6 أشهر', text: money(report.totals.baselineAvgCents) },
+        { label: 'صافي الانحراف', text: money(report.totals.currentCents - report.totals.baselineAvgCents),
+            tone: report.totals.currentCents > report.totals.baselineAvgCents ? 'rose' : 'emerald' },
+        { label: 'تصنيفات منحرفة', text: fmtNum(report.flaggedCount), tone: report.flaggedCount ? 'amber' : 'emerald' }
+    ];
+}
+
+function expenseVarianceChartRows(report) {
+    return report.rows.filter(row => row.varianceCents !== 0).slice(0, 12);
+}
+
+function renderExpenseVarianceHtml(report) {
+    const stats = renderReportStatTiles(expenseVarianceStatItems(report), true);
+    const money = cents => fmtMoney(cents / 100);
+    const rows = report.rows.map(row => {
+        const flag = expenseVarianceFlagLabel(row);
+        return [
+            esc(row.category),
+            fmtNum(row.currentCount),
+            money(row.currentCents),
+            money(row.baselineAvgCents),
+            row.varianceCents > 0
+                ? '<span class="sheet-negative">+' + money(row.varianceCents) + '</span>'
+                : (row.varianceCents < 0 ? '<span class="sheet-positive">' + money(row.varianceCents) + '</span>' : money(0)),
+            row.variancePct === null ? '—' : (row.variancePct > 0 ? '+' : '') + fmtNum(row.variancePct) + '%',
+            '<span class="sheet-' + (flag.tone || 'muted') + '">' + esc(flag.text) + '</span>'
+        ];
+    });
+    const chartRows = expenseVarianceChartRows(report);
+    const hasChartData = chartRows.length > 0;
+    return [
+        '<div class="report-preview-flow" dir="rtl">',
+        renderReportHeader('تقرير انحراف المصروفات · ' + (state.buildingName || 'العمارة'), [
+            'شهر ' + esc(report.month) + ' مقابل متوسط ' + fmtNum(report.baselineMonths) + ' أشهر سابقة • ' +
+            fmtNum(report.rows.length) + ' تصنيف • ' + fmtNum(report.flaggedCount) + ' منحرف'
+        ]),
+        stats,
+        renderSheetBlock('الانحراف لكل تصنيف', ['التصنيف', 'قيود الشهر', 'مصروف الشهر', 'متوسط 6 أشهر', 'الانحراف', 'النسبة', 'الحالة'], rows, {
+            empty: 'لا توجد مصروفات مطابقة للفلاتر.',
+            numeric: [1, 2, 3, 4, 5], tableClass: 'statement-table',
+            foot: ['الإجمالي', '',
+                money(report.totals.currentCents),
+                money(report.totals.baselineAvgCents),
+                money(report.totals.currentCents - report.totals.baselineAvgCents),
+                '—', '—']
+        }),
+        renderChartFoldContainer('insightsExpenseVarianceChartContainer', 'التصور البياني - الانحراف بالجنيه لكل تصنيف (الأكبر أولًا)', {
+            hasData: hasChartData,
+            empty: 'لا توجد انحرافات لعرض الرسم.',
+            summary: hasChartData ? [
+                { label: 'تصنيفات منحرفة', text: fmtNum(report.flaggedCount), tone: report.flaggedCount ? 'amber' : 'emerald' },
+                { label: 'صافي الانحراف', cents: report.totals.currentCents - report.totals.baselineAvgCents,
+                    tone: report.totals.currentCents > report.totals.baselineAvgCents ? 'rose' : 'emerald' }
+            ] : []
+        }),
+        renderReportNotes([
+            '<p>المتوسط من المصروفات المسجلة في الأشهر الستة السابقة للشهر المحدد مقسومة على ' + fmtNum(report.baselineMonths) +
+                '؛ شهر بلا مصروفات يُحسب صفرًا. «منحرف» يعني تغيّرًا ' + fmtNum(EXPENSE_VARIANCE_FLAG_PCT) + '% أو أكثر عن المتوسط، و«تصنيف جديد» تصنيفًا بلا متوسط سابق.</p>'
+        ])
+    ].join('');
+}
+
+function drawExpenseVarianceChart(report) {
+    if (!document.getElementById('insightsExpenseVarianceChartContainer')) return;
+    const chartRows = expenseVarianceChartRows(report);
+    if (!chartRows.length) return;
+    if (typeof createChartContainer !== 'function' || typeof renderBarValues !== 'function') return;
+    const canvas = createChartContainer('insightsExpenseVarianceChartContainer', 'expenseVarianceChart', 220);
+    if (canvas && typeof canvas.setAttribute === 'function') {
+        canvas.setAttribute('role', 'img');
+        canvas.setAttribute('aria-label', 'مخطط انحراف المصروفات بالجنيه لكل تصنيف؛ البيانات نفسها متاحة في الجدول أعلاه');
+    }
+    renderBarValues('expenseVarianceChart',
+        chartRows.map(row => row.category),
+        chartRows.map(row => Math.round(row.varianceCents / 100)),
+        insightsChartColor('amber'), 'الانحراف (ج.م)');
+}
+
+function generateExpenseVarianceReport() {
+    if (typeof requireManager === 'function' && !requireManager()) return;
+    const selection = getExpenseVarianceSelection();
+    const report = buildExpenseVarianceReport(selection.month, selection.category);
+    if (!report) {
+        clearExpenseVariancePreview('تعذر بناء التقرير من البيانات الحالية.');
+        return;
+    }
+    expenseVarianceSnapshot = report;
+    expenseVarianceSignature = EXPENSE_VARIANCE_SIGNATURE_PREFIX + getExpenseVarianceSignature();
+    const preview = document.getElementById('expenseVariancePreview');
+    if (preview) preview.innerHTML = renderExpenseVarianceHtml(report);
+    markReportPreviewStale('expenseVariancePreview', false);
+    setExpenseVarianceActions(true);
+    drawExpenseVarianceChart(report);
+    if (typeof syncReportNavStatus === 'function') syncReportNavStatus();
+}
+
+function getSelectedExpenseVarianceSnapshot() {
+    if (!isExpenseVarianceCurrent()) {
+        if (expenseVarianceSnapshot) invalidateExpenseVariancePreview();
+        return null;
+    }
+    return expenseVarianceSnapshot;
+}
+
+function printExpenseVarianceReport() {
+    const report = getSelectedExpenseVarianceSnapshot();
+    if (!report) return;
+    printInsightsReport('print-expense-variance', 'تقرير انحراف المصروفات',
+        'شهر ' + report.month + ' مقابل متوسط ' + fmtNum(report.baselineMonths) + ' أشهر');
+}
+
+function expenseVarianceCsvRows(report) {
+    const money = cents => (cents / 100);
+    return [
+        ['تقرير انحراف المصروفات'],
+        ['الشهر', report.month, 'المقارنة', 'متوسط ' + report.baselineMonths + ' أشهر سابقة'],
+        [],
+        ['التصنيف', 'قيود الشهر', 'مصروف الشهر', 'متوسط 6 أشهر', 'الانحراف', 'النسبة %', 'الحالة'],
+        ...report.rows.map(row => [
+            row.category,
+            row.currentCount,
+            money(row.currentCents),
+            money(row.baselineAvgCents),
+            money(row.varianceCents),
+            row.variancePct === null ? '' : row.variancePct,
+            expenseVarianceFlagLabel(row).text
+        ]),
+        [],
+        ['الإجمالي', '', money(report.totals.currentCents), money(report.totals.baselineAvgCents),
+            money(report.totals.currentCents - report.totals.baselineAvgCents), '', '']
+    ];
+}
+
+function exportExpenseVarianceCsv() {
+    if (typeof requireManager === 'function' && !requireManager()) return;
+    const report = getSelectedExpenseVarianceSnapshot();
+    if (!report) return;
+    downloadCsv('manzil_expense_variance_' + report.monthKey.slice(0, 7) + '.csv', expenseVarianceCsvRows(report));
+}
+
+function exportExpenseVarianceExcel() {
+    if (typeof requireManager === 'function' && !requireManager()) return;
+    const report = getSelectedExpenseVarianceSnapshot();
+    if (!report) return;
+    exportReportExcel('manzil_expense_variance_' + report.monthKey.slice(0, 7), [
+        { name: 'انحراف المصروفات', rows: expenseVarianceCsvRows(report), options: { autoFilter: true, freezeHeader: true, columnWidths: [22, 12, 14, 14, 14, 10, 16] } },
+        { name: 'الملخص', rows: [['البند', 'القيمة'],
+            ['الشهر', report.month],
+            ['مصروف الشهر', report.totals.currentCents / 100],
+            ['متوسط 6 أشهر', report.totals.baselineAvgCents / 100],
+            ['صافي الانحراف', (report.totals.currentCents - report.totals.baselineAvgCents) / 100],
+            ['تصنيفات منحرفة', report.flaggedCount]] }
+    ]);
+}
+
+function renderExpenseVariancePdfHtml(report) {
+    const generatedLabel = formatDate(new Date().toISOString());
+    const money = cents => fmtMoney(cents / 100);
+    const rows = report.rows.map(row => {
+        const flag = expenseVarianceFlagLabel(row);
+        return [
+            '<tr>',
+            statementPdfHeadCell(esc(row.category)),
+            statementPdfCell(money(row.currentCents)),
+            statementPdfCell(money(row.baselineAvgCents)),
+            statementPdfCell((row.varianceCents > 0 ? '+' : '') + money(row.varianceCents)),
+            statementPdfCell(row.variancePct === null ? '—' : (row.variancePct > 0 ? '+' : '') + fmtNum(row.variancePct) + '%'),
+            statementPdfCell(esc(flag.text)),
+            '</tr>'
+        ].join('');
+    }).join('');
+    return [
+        reportPdfDocumentOpen(),
+        reportPdfHeader(['تقرير انحراف المصروفات'], [
+            'شهر ' + esc(report.month) + ' مقابل متوسط ' + fmtNum(report.baselineMonths) + ' أشهر سابقة',
+            fmtNum(report.rows.length) + ' تصنيف • ' + fmtNum(report.flaggedCount) + ' منحرف'
+        ]),
+        reportPdfSection('الملخص', reportPdfSummaryTable(expenseVarianceStatItems(report))),
+        reportPdfSection('الانحراف لكل تصنيف', reportPdfTable(
+            ['التصنيف', 'مصروف الشهر', 'متوسط 6 أشهر', 'الانحراف', 'النسبة', 'الحالة'],
+            rows || reportPdfEmptyRow(6, 'لا توجد مصروفات مطابقة للفلاتر.'),
+            ['الإجمالي', money(report.totals.currentCents), money(report.totals.baselineAvgCents),
+                (report.totals.currentCents > report.totals.baselineAvgCents ? '+' : '') +
+                money(report.totals.currentCents - report.totals.baselineAvgCents), '—', '—']
+        )),
+        reportPdfFooter(generatedLabel),
+        '</div>'
+    ].join('');
+}
+
+async function exportExpenseVariancePdf() {
+    if (typeof requireManager === 'function' && !requireManager()) return;
+    const report = getSelectedExpenseVarianceSnapshot();
+    if (!report) return;
+    await downloadStatementPdf(renderExpenseVariancePdfHtml(report),
+        'manzil_expense_variance_' + report.monthKey.slice(0, 7) + '.pdf',
+        'expenseVariancePdfBtn', 'تم تنزيل تقرير انحراف المصروفات', 'expense variance pdf',
+        () => Boolean(expenseVarianceSnapshot));
+}
+
 const INSIGHTS_REPORT_API = {
     buildPayerBehaviorReport,
     buildExpenseVarianceReport,
+    generateExpenseVarianceReport,
+    getSelectedExpenseVarianceSnapshot,
+    renderExpenseVarianceHtml,
+    renderExpenseVariancePdfHtml,
+    expenseVarianceCsvRows,
+    invalidateExpenseVariancePreview,
+    printExpenseVarianceReport,
+    exportExpenseVarianceCsv,
+    exportExpenseVarianceExcel,
+    exportExpenseVariancePdf,
     getPayerBehaviorSignature,
     generatePayerBehaviorReport,
     getSelectedPayerBehaviorSnapshot,

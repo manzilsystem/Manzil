@@ -27,6 +27,14 @@ const MS_PER_DAY = 86400000;
 
 function loadInsights(overrides = {}) {
     const elements = {
+        expenseVarianceMonth: { value: '' },
+        expenseVarianceCategory: { value: '' },
+        expenseVariancePreview: { innerHTML: '', dataset: {} },
+        insightsExpenseVarianceChartContainer: {},
+        expenseVariancePrintBtn: { disabled: true },
+        expenseVariancePdfBtn: { disabled: true },
+        expenseVarianceCsvBtn: { disabled: true },
+        expenseVarianceExcelBtn: { disabled: true },
         paymentBehaviorResident: { value: '' },
         paymentBehaviorPreview: { innerHTML: '', dataset: {} },
         insightsPaymentBehaviorChartContainer: {},
@@ -124,6 +132,9 @@ function loadInsights(overrides = {}) {
         `${reportsSource}\n${insightsSource}\n({
             REPORT_TABS, REPORT_PANEL_IDS, REPORT_OUTPUT_BUTTON_IDS, REPORT_FILTER_DESCRIPTORS,
             buildPayerBehaviorReport, buildExpenseVarianceReport, getPayerBehaviorSignature, generatePayerBehaviorReport,
+            generateExpenseVarianceReport, getSelectedExpenseVarianceSnapshot, expenseVarianceCsvRows,
+            invalidateExpenseVariancePreview, printExpenseVarianceReport,
+            exportExpenseVarianceCsv, exportExpenseVarianceExcel, exportExpenseVariancePdf,
             getSelectedPayerBehaviorSnapshot, invalidatePayerBehaviorPreview, invalidatePayerBehaviorIfStale,
             payerBehaviorCsvRows, renderPayerBehaviorHtml, renderPayerBehaviorPdfHtml,
             printPayerBehaviorReport, exportPayerBehaviorCsv, exportPayerBehaviorExcel, exportPayerBehaviorPdf,
@@ -354,3 +365,64 @@ test('expense variance ignores months outside the 6-month baseline and honors th
     assert.equal(api.buildExpenseVarianceReport('يناير 2025', 'غير موجود').rows.length, 0);
 });
 
+
+const EXPENSE_FIXTURE = [
+    ...[0, 1, 2, 3, 4, 5].flatMap(offset => {
+        const key = shiftMonth('2024-07-01', offset);
+        const label = monthNames[Number(key.slice(5, 7)) - 1] + ' ' + key.slice(0, 4);
+        return [
+            { id: `m${offset}`, month: label, category: 'صيانة', amount: 100 },
+            { id: `c${offset}`, month: label, category: 'نظافة', amount: 50 }
+        ];
+    }),
+    { id: 't1', month: 'يناير 2025', category: 'صيانة', amount: 300 },
+    { id: 't2', month: 'يناير 2025', category: 'نظافة', amount: 50 },
+    { id: 't3', month: 'يناير 2025', category: 'كهرباء', amount: 80 }
+];
+
+test('expense variance preview renders stats and table, then exports csv, excel, pdf and print', async () => {
+    const { api, elements, calls } = loadInsights({ expenses: EXPENSE_FIXTURE });
+    elements.expenseVarianceMonth.value = 'يناير 2025';
+    api.generateExpenseVarianceReport();
+    const snapshot = api.getSelectedExpenseVarianceSnapshot();
+    assert.equal(snapshot.monthKey, '2025-01-01');
+    assert.match(elements.expenseVariancePreview.innerHTML, /تقرير انحراف المصروفات/);
+    assert.match(elements.expenseVariancePreview.innerHTML, /صيانة/);
+    assert.match(elements.expenseVariancePreview.innerHTML, /ارتفاع 200%/);
+    assert.match(elements.expenseVariancePreview.innerHTML, /تصنيف جديد/);
+    assert.equal(elements.expenseVariancePrintBtn.disabled, false);
+    api.exportExpenseVarianceCsv();
+    assert.equal(calls.downloads.length, 1);
+    assert.equal(calls.downloads[0].filename, 'manzil_expense_variance_2025-01.csv');
+    const header = [...calls.downloads[0].rows.find(row => row[0] === 'التصنيف')];
+    assert.deepEqual(header, ['التصنيف', 'قيود الشهر', 'مصروف الشهر', 'متوسط 6 أشهر', 'الانحراف', 'النسبة %', 'الحالة']);
+    const maintenance = [...calls.downloads[0].rows.find(row => row[0] === 'صيانة')];
+    assert.deepEqual(maintenance.slice(1, 6), [1, 300, 100, 200, 200]);
+    api.exportExpenseVarianceExcel();
+    assert.equal(calls.excels.length, 1);
+    assert.equal(calls.excels[0].sheets.length, 2);
+    await api.exportExpenseVariancePdf();
+    assert.equal(calls.pdfs.length, 1);
+    assert.match(calls.pdfs[0].html, /انحراف المصروفات/);
+    assert.equal(calls.pdfs[0].filename, 'manzil_expense_variance_2025-01.pdf');
+    api.printExpenseVarianceReport();
+    assert.equal(calls.printed, true);
+});
+
+test('expense variance filter change invalidates the preview and the clear restores it', () => {
+    const { api, elements } = loadInsights({ expenses: EXPENSE_FIXTURE });
+    elements.expenseVarianceMonth.value = 'يناير 2025';
+    api.generateExpenseVarianceReport();
+    assert.ok(api.getSelectedExpenseVarianceSnapshot());
+    elements.expenseVarianceCategory.value = 'صيانة';
+    api.invalidateExpenseVariancePreview();
+    assert.equal(api.getSelectedExpenseVarianceSnapshot(), null);
+    assert.match(elements.expenseVariancePreview.innerHTML, /معاينة/);
+    api.generateExpenseVarianceReport();
+    const snapshot = api.getSelectedExpenseVarianceSnapshot();
+    assert.equal(snapshot.rows.length, 1);
+    assert.equal(snapshot.rows[0].category, 'صيانة');
+    api.clearInsightsFilters('expenseVariance');
+    assert.equal(elements.expenseVarianceCategory.value, '');
+    assert.equal(api.getSelectedExpenseVarianceSnapshot(), null);
+});
