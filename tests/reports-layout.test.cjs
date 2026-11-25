@@ -177,7 +177,8 @@ test('the nav marker follows the same freshness gate as the output buttons', () 
     assert.match(reports, /function syncReportNavStatus\(\)/);
     assert.match(reports, /item\.classList\.toggle\('is-ready', ready\)/);
     assert.match(reports, /function markReportPreviewStale\(previewId, stale\)/);
-    ['setLandlordReportActionsEnabled', 'setPeriodReportActionsEnabled', 'setResidentStatementActionsEnabled'].forEach(name => {
+    ['setLandlordReportActionsEnabled', 'setPeriodReportActionsEnabled', 'setResidentStatementActionsEnabled',
+        'setExpensesReportActionsEnabled', 'setAdjustmentsReportActionsEnabled'].forEach(name => {
         const body = new RegExp('function ' + name + '\\(enabled\\) \\{[\\s\\S]*?\\n\\}').exec(reports)[0];
         assert.match(body, /markReportPreviewStale\('[a-zA-Z]+Preview', !enabled\)/);
         assert.match(body, /syncReportNavStatus\(\)/);
@@ -289,6 +290,7 @@ test('period report rolls the monthly landlord figures across a range with gated
     assert.match(reports, /function buildPeriodReport\(fromMonth, toMonth, purposeFilter = '', cashAccountFilter = '', residentFilter = ''\)/);
     assert.match(reports, /const \{ expectedCents, outstandingCents, adjustmentCents \} = showDues\s*\? getMonthlyBillingTotals\(month, normalizedResident\)/);
     assert.match(reports, /function getPeriodReportSignature\(fromMonth, toMonth, purposeFilter = '', cashAccountFilter = '', residentFilter = ''\)/);
+    assert.match(reports, /periodReportSnapshot = normalized;\s*periodReportSignature = getPeriodReportSignature\(from, to, purposeFilter, cashAccountFilter, residentFilter\);/);
     assert.match(reports, /function invalidatePeriodReportIfStale\(\)/);
     assert.match(render, /invalidatePeriodReportIfStale\(\)/);
     assert.match(render, /function populatePeriodReportSelects\(months/);
@@ -336,6 +338,34 @@ test('the single report stage keeps guided steps and a live output status', () =
 
     const toneKeys = [...css.matchAll(/\[data-report-nav="([a-zA-Z]+)"\] \{[^}]*--report-tone:/g)].map(match => match[1]);
     assert.deepEqual(toneKeys, ['landlord', 'period', 'cashflow', 'expenses', 'adjustments', 'statement', 'apartments', 'monthlyClose', 'arrears', 'audit']);
+});
+
+test('every open panel carries the exact index title and exposes its active filters', () => {
+    const expectedTitles = ['الملخص المالي الشهري', 'تقرير الفترة', 'تحليل التدفق النقدي', 'تحليل المصروفات',
+        'تقرير الإعفاءات والتخفيضات', 'كشف حساب المالك', 'تقرير أداء الشقق', 'مراجعة الإقفال الشهري',
+        'تقرير المتأخرات', 'سجل العمليات والتدقيق'];
+    const panelTitles = [...reportTab.matchAll(/<[^>]+class="report-card-title"[^>]*>([^<]+)</g)].map(match => match[1]);
+    assert.deepEqual(panelTitles, expectedTitles, 'panel headings must not contradict the report index');
+    assert.equal((reportTab.match(/data-report-filter-summary="[a-zA-Z]+"/g) || []).length, 10);
+    assert.equal((reportTab.match(/onclick="clearReportFilters\('[a-zA-Z]+'\)"/g) || []).length, 10);
+    assert.match(reports, /const REPORT_FILTER_DESCRIPTORS = \{/);
+    assert.match(reports, /function renderReportFilterSummaries\(\)/);
+    assert.match(reports, /function clearReportFilters\(tab\)/);
+    assert.match(reports, /window\.clearReportFilters = clearReportFilters/);
+    assert.match(reports, /renderReportFilterSummaries\(\);\s*renderReportViewStatus\(\);/, 'chips follow the same freshness sweep as the nav status');
+    assert.match(css, /\.report-filter-chip \{/);
+    assert.match(css, /\.report-filter-clear \{/);
+});
+
+test('live report panels keep the filters, preview and export steps in order', () => {
+    const arrears = reportTab.slice(reportTab.indexOf('id="arrearsPanel"'), reportTab.indexOf('id="auditLogPanel"'));
+    assert.ok(arrears.indexOf('class="report-toolbar no-print"') < arrears.indexOf('id="arrearsReportContainer"'));
+    assert.ok(arrears.indexOf('id="arrearsReportContainer"') < arrears.indexOf('class="report-actions report-actions-2 no-print"'));
+    const audit = reportTab.slice(reportTab.indexOf('id="auditLogPanel"'), reportTab.indexOf('id="appCopyright"'));
+    assert.ok(audit.includes('class="report-toolbar no-print"'));
+    assert.ok(audit.includes('id="auditLogPreview"'));
+    assert.ok(audit.includes('class="report-actions report-actions-2 no-print"'));
+    assert.match(reports, /if \(!section && tab === 'monthlyClose'\) section = document\.getElementById\('monthlyClosePdfButton'\)/);
 });
 
 test('generated previews are navigable and collapsible without weakening print', () => {

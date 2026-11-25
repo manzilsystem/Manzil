@@ -1459,6 +1459,56 @@ test('guided steps and live status follow the single stage output gate', async (
     await expect(page.locator('#reportExportBtn')).toBeDisabled();
 });
 
+test('active filter chips and clearing stay in sync with the output gate', async ({ page }) => {
+    await openReports(page);
+    await openReportPanel(page, 'expenses');
+    const summary = page.locator('#expensesReportCard [data-report-filter-summary="expenses"]');
+    await expect(summary).toBeVisible();
+    await expect(summary).toContainText('من شهر');
+
+    await page.locator('#expensesReportCashAccount').selectOption('development');
+    await expect(summary).toContainText('الصندوق');
+    await page.locator('#expensesReportCard').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await expect(page.locator('#expensesReportPrintBtn')).toBeEnabled();
+
+    await page.locator('#expensesReportCashAccount').selectOption('emergency');
+    await expect(summary).toContainText('صندوق الصيانة الطارئة');
+    await expect(page.locator('#reportViewStatus')).toContainText('تغيّرت البيانات');
+    await expect(page.locator('#expensesReportPrintBtn')).toBeDisabled();
+
+    await summary.getByRole('button', { name: 'مسح الفلاتر' }).click();
+    await expect(summary).not.toContainText('الصندوق');
+    await expect(page.locator('#expensesReportCashAccount')).toHaveValue('');
+    await expect(page.locator('#expensesReportCategory')).toHaveValue('');
+    await expect(page.locator('#expensesReportPrintBtn')).toBeDisabled();
+});
+
+test('guided steps focus real sections in live and monthly close reports', async ({ page }) => {
+    await openReports(page);
+
+    await page.locator('[data-report-nav="arrears"]').click();
+    await page.locator('[data-report-step="filters"]').click();
+    await expect(page.locator('#arrearsPanel .report-toolbar')).toHaveClass(/report-focus-flash/);
+    await page.locator('[data-report-step="preview"]').click();
+    await expect(page.locator('#arrearsReportContainer')).toHaveClass(/report-focus-flash/);
+    await page.locator('[data-report-step="export"]').click();
+    await expect(page.locator('#arrearsPanel .report-actions')).toHaveClass(/report-focus-flash/);
+
+    await backToIndex(page);
+    await page.locator('[data-report-nav="audit"]').click();
+    await page.locator('[data-report-step="filters"]').click();
+    await expect(page.locator('#auditLogPanel .report-toolbar')).toHaveClass(/report-focus-flash/);
+    await page.locator('[data-report-step="preview"]').click();
+    await expect(page.locator('#auditLogPreview')).toHaveClass(/report-focus-flash/);
+    await page.locator('[data-report-step="export"]').click();
+    await expect(page.locator('#auditLogPanel .report-actions')).toHaveClass(/report-focus-flash/);
+
+    await backToIndex(page);
+    await page.locator('[data-report-nav="monthlyClose"]').click();
+    await page.locator('[data-report-step="export"]').click();
+    await expect(page.locator('#monthlyClosePdfButton')).toHaveClass(/report-focus-flash/);
+});
+
 test('preview sections can be navigated and collapsed without hiding them from print or CSV', async ({ page }) => {
     await openReports(page);
     await previewMonth(page, 'يناير 2024');

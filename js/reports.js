@@ -255,6 +255,164 @@ function populateReportResidentFilters() {
     });
 }
 
+const REPORT_FILTER_DESCRIPTORS = {
+    landlord: [
+        { id: 'reportMonthSelect', label: 'الشهر' },
+        { id: 'landlordReportResident', label: 'الشقة', text: reportResidentFilterLabel },
+        { id: 'landlordReportPurpose', label: 'غرض التحصيل', text: reportPurposeFilterLabel },
+        { id: 'landlordReportCashAccount', label: 'الصندوق', text: reportCashAccountFilterLabel },
+        { id: 'landlordReportPaymentMethod', label: 'طريقة الدفع', text: reportPaymentMethodFilterLabel }
+    ],
+    period: [
+        { id: 'periodReportFrom', label: 'من شهر' },
+        { id: 'periodReportTo', label: 'إلى شهر' },
+        { id: 'periodReportPurpose', label: 'غرض التحصيل', text: reportPurposeFilterLabel },
+        { id: 'periodReportCashAccount', label: 'الصندوق', text: reportCashAccountFilterLabel },
+        { id: 'periodReportResident', label: 'الشقة', text: reportResidentFilterLabel },
+        { id: 'periodReportComparison', label: 'المقارنة', text: value => ({ previous: 'الفترة السابقة', previous_year: 'نفس الفترة من العام الماضي' })[value] || '' }
+    ],
+    cashflow: [
+        { id: 'cashFlowFrom', label: 'من شهر' },
+        { id: 'cashFlowTo', label: 'إلى شهر' },
+        { id: 'cashFlowCashAccount', label: 'الصندوق', text: reportCashAccountFilterLabel }
+    ],
+    expenses: [
+        { id: 'expensesReportFrom', label: 'من شهر' },
+        { id: 'expensesReportTo', label: 'إلى شهر' },
+        { id: 'expensesReportCashAccount', label: 'الصندوق', text: reportCashAccountFilterLabel },
+        { id: 'expensesReportCategory', label: 'التصنيف' }
+    ],
+    adjustments: [
+        { id: 'adjustmentsReportFrom', label: 'من شهر' },
+        { id: 'adjustmentsReportTo', label: 'إلى شهر' },
+        { id: 'adjustmentsReportResident', label: 'الشقة', text: reportResidentFilterLabel },
+        { id: 'adjustmentsReportKind', label: 'النوع', text: value => value === 'waiver' ? 'إعفاء' : value === 'discount' ? 'تخفيض' : '' }
+    ],
+    statement: [
+        { id: 'statementResidentSelect', label: 'المالك', text: reportResidentFilterLabel },
+        { id: 'statementPurpose', label: 'غرض التحصيل', text: reportPurposeFilterLabel }
+    ],
+    apartments: [
+        { id: 'apartmentsReportFrom', label: 'من شهر' },
+        { id: 'apartmentsReportTo', label: 'إلى شهر' },
+        { id: 'apartmentsReportResident', label: 'الشقة', text: reportResidentFilterLabel }
+    ],
+    monthlyClose: [
+        { id: 'monthlyCloseMonthSelect', label: 'شهر الإقفال' }
+    ],
+    arrears: [
+        { id: 'arrearsApartmentFilter', label: 'الشقة', text: reportResidentFilterLabel },
+        { id: 'arrearsStatusFilter', label: 'حالة التأخير', text: value => ({ one: 'شهر واحد', two_three: '2–3 أشهر', four_plus: '4 أشهر فأكثر' })[value] || '' },
+        { id: 'arrearsFromMonth', label: 'من شهر', text: reportFilterMonthInputLabel },
+        { id: 'arrearsToMonth', label: 'إلى شهر', text: reportFilterMonthInputLabel }
+    ],
+    audit: [
+        { id: 'auditLogSearch', label: 'البحث' }
+    ]
+};
+
+function reportFilterMonthInputLabel(value) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+    return getStatementMonthLabel(/^\d{4}-\d{2}$/.test(text) ? text + '-01' : text) || text;
+}
+
+function getReportClearRange() {
+    const current = getCurrentMonth();
+    const currentKey = monthLabelToKey(current);
+    const from = currentKey ? (getStatementMonthLabel(shiftStatementMonthKey(currentKey, -5)) || current) : current;
+    return { from, to: current };
+}
+
+function setReportFilterControlValue(id, value) {
+    const control = /** @type {HTMLInputElement | HTMLSelectElement | null} */ (document.getElementById(id));
+    if (control) control.value = value;
+}
+
+/** تعرض الفلاتر المؤثرة بجانب أدوات التقرير، دون لمس بيانات المحاسبة أو المعاينة. */
+function renderReportFilterSummaries() {
+    Object.keys(REPORT_FILTER_DESCRIPTORS).forEach(tab => {
+        const summary = /** @type {HTMLElement | null} */ (document.querySelector(`[data-report-filter-summary="${tab}"]`));
+        if (!summary) return;
+        const chips = REPORT_FILTER_DESCRIPTORS[tab].map(descriptor => {
+            const control = /** @type {HTMLInputElement | HTMLSelectElement | null} */ (document.getElementById(descriptor.id));
+            const raw = String(control?.value || '').trim();
+            if (!raw || raw === 'all' || raw === 'none' || raw === 'custom') return '';
+            const text = descriptor.text ? String(descriptor.text(raw) || '').trim() : raw;
+            if (!text) return '';
+            return `<span class="report-filter-chip">${esc(descriptor.label)}: <b>${esc(text)}</b></span>`;
+        }).filter(Boolean);
+        const list = /** @type {HTMLElement | null} */ (summary.querySelector('[data-report-filter-list]'));
+        if (list) list.innerHTML = chips.join('');
+        summary.hidden = chips.length === 0;
+    });
+}
+
+/** إعادة الفلاتر إلى حالتها الافتراضية دون حذف أي سجل مالي. */
+function clearReportFilters(tab) {
+    if (!REPORT_FILTER_DESCRIPTORS[tab]) return false;
+    const range = getReportClearRange();
+    switch (tab) {
+        case 'landlord':
+            setReportFilterControlValue('reportMonthSelect', getCurrentMonth());
+            ['landlordReportResident', 'landlordReportPurpose', 'landlordReportCashAccount', 'landlordReportPaymentMethod']
+                .forEach(id => setReportFilterControlValue(id, ''));
+            invalidateLandlordReportPreview();
+            break;
+        case 'period':
+            ['periodReportPurpose', 'periodReportCashAccount', 'periodReportResident']
+                .forEach(id => setReportFilterControlValue(id, ''));
+            setReportFilterControlValue('periodReportComparison', 'none');
+            setReportFilterControlValue('periodReportPreset', '6');
+            applyPeriodReportPreset();
+            break;
+        case 'cashflow':
+            setReportFilterControlValue('cashFlowCashAccount', '');
+            setReportFilterControlValue('cashFlowPreset', '6');
+            applyCashFlowPreset();
+            break;
+        case 'expenses':
+            setReportFilterControlValue('expensesReportFrom', range.from);
+            setReportFilterControlValue('expensesReportTo', range.to);
+            setReportFilterControlValue('expensesReportCashAccount', '');
+            setReportFilterControlValue('expensesReportCategory', '');
+            invalidateExpensesReportPreview();
+            break;
+        case 'adjustments':
+            setReportFilterControlValue('adjustmentsReportFrom', range.from);
+            setReportFilterControlValue('adjustmentsReportTo', range.to);
+            setReportFilterControlValue('adjustmentsReportResident', '');
+            setReportFilterControlValue('adjustmentsReportKind', '');
+            invalidateAdjustmentsReportPreview();
+            break;
+        case 'statement':
+            // المالك مطلوب لبناء الكشف، لذلك يبقى كما هو ويُمسح غرض التحصيل فقط.
+            setReportFilterControlValue('statementPurpose', '');
+            invalidateResidentStatementPreview();
+            break;
+        case 'apartments':
+            setReportFilterControlValue('apartmentsReportResident', '');
+            setReportFilterControlValue('apartmentsReportPreset', '6');
+            applyApartmentsPreset();
+            break;
+        case 'monthlyClose':
+            setReportFilterControlValue('monthlyCloseMonthSelect', getCurrentMonth());
+            invalidateMonthlyClosePreview();
+            break;
+        case 'arrears':
+            resetArrearsFilters();
+            break;
+        case 'audit':
+            setReportFilterControlValue('auditLogSearch', '');
+            renderAuditLog();
+            break;
+        default:
+            return false;
+    }
+    renderReportFilterSummaries();
+    return true;
+}
+
 function getReportView() {
     return document.getElementById('tab-reports')?.dataset.reportView === 'panel' ? 'panel' : 'index';
 }
@@ -453,6 +611,7 @@ function syncReportNavStatus() {
         const fresh = item.querySelector('[data-report-freshness]');
         if (fresh) fresh.textContent = ready ? 'معاينة جاهزة' : stale ? 'يحتاج تحديث' : 'لم تُعرض';
     });
+    renderReportFilterSummaries();
     renderReportViewStatus();
 }
 
@@ -507,8 +666,10 @@ function focusReportStep(step) {
     if (!panel) return false;
     let section = null;
     if (target === 'filters') section = panel.querySelector('.report-toolbar');
-    else if (target === 'export') section = panel.querySelector('.report-actions');
-    else section = panel.querySelector('[id$="Preview"]') || panel.querySelector('.report-preview');
+    else if (target === 'export') {
+        section = panel.querySelector('.report-actions');
+        if (!section && tab === 'monthlyClose') section = document.getElementById('monthlyClosePdfButton');
+    } else section = panel.querySelector('[id$="Preview"]') || panel.querySelector('.report-preview');
     if (!section) return true;
     const targetSection = /** @type {HTMLElement} */ (section);
     targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -838,6 +999,18 @@ function initReportPreviewInteractions() {
     if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
     runReportQualityCheck();
     enhanceReportPreviews(document);
+    renderReportFilterSummaries();
+    const reportFilterIds = new Set(Object.values(REPORT_FILTER_DESCRIPTORS).flatMap(descriptors => descriptors.map(descriptor => descriptor.id)));
+    document.addEventListener('change', event => {
+        const target = /** @type {Element | null} */ (event && event.target);
+        if (!target?.id || !reportFilterIds.has(target.id)) return;
+        renderReportFilterSummaries();
+    });
+    document.addEventListener('input', event => {
+        const target = /** @type {Element | null} */ (event && event.target);
+        if (target?.id !== 'auditLogSearch') return;
+        renderReportFilterSummaries();
+    });
     if (typeof document.addEventListener === 'function') {
         document.addEventListener('click', event => {
             const target = /** @type {Element | null} */ (event && event.target);
@@ -1896,6 +2069,7 @@ async function generatePeriodReport() {
             const comparisonHtml = buildPeriodComparisonHtml(normalized, purposeFilter, cashAccountFilter, residentFilter);
             preview.innerHTML = renderPeriodReportHtml(normalized) + comparisonHtml;
             periodReportSnapshot = normalized;
+            periodReportSignature = getPeriodReportSignature(from, to, purposeFilter, cashAccountFilter, residentFilter);
             setPeriodReportActionsEnabled(true);
         })
         .catch(error => {
@@ -2158,6 +2332,8 @@ function setExpensesReportActionsEnabled(enabled) {
         const button = /** @type {HTMLButtonElement} */ (document.getElementById(id));
         if (button) button.disabled = !enabled;
     });
+    markReportPreviewStale('expensesReportPreview', !enabled);
+    syncReportNavStatus();
 }
 
 function clearExpensesReportPreview(message) {
@@ -2532,6 +2708,8 @@ function setAdjustmentsReportActionsEnabled(enabled) {
         const button = /** @type {HTMLButtonElement} */ (document.getElementById(id));
         if (button) button.disabled = !enabled;
     });
+    markReportPreviewStale('adjustmentsReportPreview', !enabled);
+    syncReportNavStatus();
 }
 
 function clearAdjustmentsReportPreview(message) {
@@ -2539,9 +2717,7 @@ function clearAdjustmentsReportPreview(message) {
     adjustmentsReportSignature = '';
     setAdjustmentsReportActionsEnabled(false);
     const preview = document.getElementById('adjustmentsReportPreview');
-    if (!preview) return;
-    preview.innerHTML = `<p class="report-preview-empty">${esc(message)}</p>`;
-    preview.dataset.stale = 'false';
+    if (preview) preview.innerHTML = `<p class="report-preview-empty">${esc(message)}</p>`;
 }
 
 function renderAdjustmentsReportHtml(report) {
@@ -2636,8 +2812,6 @@ async function generateAdjustmentsReport() {
 function invalidateAdjustmentsReportPreview() {
     if (adjustmentsReportSnapshot) {
         clearAdjustmentsReportPreview('تغيّر الشهر أو الفلتر أو البيانات — اضغط «معاينة» لتحديث التقرير.');
-        const preview = document.getElementById('adjustmentsReportPreview');
-        if (preview) preview.dataset.stale = 'true';
     }
     syncReportNavStatus();
 }
@@ -3771,6 +3945,8 @@ if (typeof window !== 'undefined') {
     window.clearReportIndexSearch = clearReportIndexSearch;
     window.closeReportPanel = closeReportPanel;
     window.focusReportStep = focusReportStep;
+    window.renderReportFilterSummaries = renderReportFilterSummaries;
+    window.clearReportFilters = clearReportFilters;
     window.runReportQualityCheck = runReportQualityCheck;
     window.invalidateLandlordReportPreview = invalidateLandlordReportPreview;
     window.invalidatePeriodReportPreview = invalidatePeriodReportPreview;
