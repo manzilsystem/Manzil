@@ -361,6 +361,55 @@ function syncReportNavTabIndex() {
     });
 }
 
+function normalizeReportIndexSearch(value) {
+    return String(value || '')
+        .toLowerCase()
+        .replace(/[\u064B-\u0652\u0670\u0640]/g, '')
+        .replace(/[أإآ]/g, 'ا')
+        .replace(/ة/g, 'ه')
+        .replace(/ى/g, 'ي')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function filterReportIndex() {
+    const input = /** @type {HTMLInputElement | null} */ (document.getElementById('reportIndexSearch'));
+    const term = normalizeReportIndexSearch(input?.value || '');
+    const clear = document.getElementById('reportIndexClear');
+    if (clear) clear.hidden = !term;
+
+    let visible = 0;
+    document.querySelectorAll('.report-index-item[data-report-nav]').forEach(item => {
+        const card = /** @type {HTMLElement} */ (item);
+        const searchable = [
+            card.closest('.report-index-group')?.querySelector('.report-index-group-head h3')?.textContent,
+            card.querySelector('.report-index-copy b')?.textContent,
+            card.querySelector('.report-index-copy small')?.textContent,
+            card.querySelector('.report-index-badge')?.textContent
+        ].join(' ');
+        const matches = !term || normalizeReportIndexSearch(searchable).includes(term);
+        card.hidden = !matches;
+        card.classList.toggle('hidden', !matches);
+        if (matches) visible += 1;
+    });
+
+    document.querySelectorAll('.report-index-group').forEach(group => {
+        const section = /** @type {HTMLElement} */ (group);
+        section.hidden = !section.querySelector('.report-index-item:not([hidden])');
+    });
+    const empty = document.getElementById('reportIndexEmpty');
+    if (empty) empty.hidden = visible > 0;
+    syncReportNavTabIndex();
+    return visible;
+}
+
+function clearReportIndexSearch() {
+    const input = /** @type {HTMLInputElement | null} */ (document.getElementById('reportIndexSearch'));
+    if (input) input.value = '';
+    filterReportIndex();
+    input?.focus();
+}
+
 function handleReportTabKeydown(event) {
     if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
     const items = [...document.querySelectorAll('[data-report-nav]')].filter(item => !item.classList.contains('hidden'));
@@ -3718,6 +3767,8 @@ if (typeof window !== 'undefined') {
     window.exportResidentStatementPdf = exportResidentStatementPdf;
     window.switchReportTab = switchReportTab;
     window.showReportIndex = showReportIndex;
+    window.filterReportIndex = filterReportIndex;
+    window.clearReportIndexSearch = clearReportIndexSearch;
     window.closeReportPanel = closeReportPanel;
     window.focusReportStep = focusReportStep;
     window.runReportQualityCheck = runReportQualityCheck;
