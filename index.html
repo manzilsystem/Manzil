@@ -18,8 +18,8 @@
     <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png?v=6ec97fda11">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/tailwind.css?v=f5e5385b5c">
-    <link rel="stylesheet" href="css/style.css?v=0ffecccc42">
+    <link rel="stylesheet" href="css/tailwind.css?v=560313a037">
+    <link rel="stylesheet" href="css/style.css?v=57732a1708">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -323,12 +323,12 @@
 
         <!-- INCOME -->
         <section id="tab-income" class="hidden space-y-4">
-            <div class="section-toolbar flex justify-between items-center app-card p-4 rounded-3xl border no-print">
+            <div class="section-toolbar flex flex-wrap justify-between items-center gap-2 app-card p-4 rounded-3xl border no-print">
                 <div><h2 class="font-bold text-base">سجل التحصيلات</h2><p class="text-xs text-slate-400">اشتراكات الملاك</p></div>
                 <button onclick="openNewIncomeModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-emerald-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> تحصيل جديد</button>
             </div>
             <div class="list-filters app-card p-3 rounded-3xl border grid grid-cols-2 md:grid-cols-4 gap-2 no-print">
-                <input type="search" id="searchIncomeInput" aria-label="البحث في التحصيلات" oninput="renderIncomeTable()" placeholder="ابحث في التحصيلات..." class="col-span-2 app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
+                <input type="search" id="searchIncomeInput" aria-label="البحث في التحصيلات" oninput="renderIncomeTable()" placeholder="ابحث في التحصيلات..." class="col-span-2 md:col-span-4 app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
                 <select id="filterIncomeMonth" aria-label="تصفية التحصيلات حسب الشهر" onchange="renderIncomeTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold"><option value="">كل الشهور</option></select>
                 <select id="filterIncomePurpose" aria-label="تصفية التحصيلات حسب الغرض" onchange="renderIncomeTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold"><option value="">كل الأغراض</option></select>
                 <select id="filterIncomeCashbox" aria-label="تصفية التحصيلات حسب الصندوق" onchange="renderIncomeTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold"><option value="">كل الصناديق</option></select>
@@ -2469,10 +2469,10 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-a06cad7af5"></script>
+    <script src="js/telemetry.js?v=manzil-cceb0fefaa"></script>
     <script src="js/state.js?v=f367c7dc5c"></script>
     <script src="js/access.js?v=1ca370a57a"></script>
-    <script src="js/render.js?v=d944ff9099"></script>
+    <script src="js/render.js?v=eea5f1388a"></script>
     <script src="js/crud.js?v=74a52991d9"></script>
     <script src="js/notices.js?v=708550996a"></script>
     <!-- Chart.js for report visualizations (bundled locally) -->

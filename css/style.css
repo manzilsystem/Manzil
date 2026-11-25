@@ -5190,6 +5190,17 @@ body.owner-mode .owner-theme-control {
     .report-actions .report-action { min-height: 2.6rem; }
 }
 
+/* ===== Income section polish (screen only, no logic changes) ===== */
+/* Filtered-results summary: KPI tiles like the report stat tiles */
+#incomeResultsSummary .income-stat { display: flex; flex-direction: column; gap: var(--space-20); padding: var(--space-65); border: 1px solid var(--border-color); border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-input) 55%, transparent); text-align: center; min-width: 0; }
+#incomeResultsSummary .income-stat-label { color: var(--text-muted); font-size: var(--font-70); font-weight: var(--weight-700); }
+#incomeResultsSummary .income-stat-value { color: var(--text-main); font-size: var(--font-105); font-weight: var(--weight-800); overflow-wrap: anywhere; }
+#incomeResultsSummary .income-stat-total .income-stat-value { color: var(--state-success); }
+/* Long collection notes wrap instead of being cut off */
+#incomeCardsList .income-note { overflow-wrap: anywhere; }
+/* Entry meta (apartment, month, date, method) wraps cleanly on narrow screens */
+#incomeCardsList .income-entry-meta { overflow-wrap: anywhere; }
+
 /* ===== Visual cleanup, part 2 (screen only, no logic changes) ===== */
 @media screen {
     /* Empty report tables: one quiet line instead of a header, an empty row and a zero total */
