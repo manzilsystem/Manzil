@@ -471,7 +471,7 @@
                     <div class="report-card-heading">
                         <span class="report-card-icon report-tone-indigo" aria-hidden="true"><i class="fa-solid fa-file-invoice-dollar"></i></span>
                         <div class="min-w-0">
-                            <h2 class="report-card-title">تقارير الملاك</h2>
+                            <h2 class="report-card-title">الملخص المالي الشهري</h2>
                             <p class="report-card-subtitle">تحصيل ومصروف وصافي، مع المستحق وغير المحصّل ونسبة التحصيل.</p>
                         </div>
                     </div>
@@ -499,6 +499,11 @@
                         <select id="landlordReportPaymentMethod" aria-label="فلتر طريقة الدفع" onchange="invalidateLandlordReportPreview()" class="report-control app-input border focus:outline-none"></select>
                     </label>
                     <button type="button" onclick="generateLandlordReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
+                    <div class="report-filter-summary" data-report-filter-summary="landlord" hidden>
+                        <span class="report-filter-summary-label">الفلاتر النشطة</span>
+                        <span class="report-filter-chips" data-report-filter-list></span>
+                        <button type="button" class="report-filter-clear" onclick="clearReportFilters('landlord')"><i class="fa-solid fa-eraser" aria-hidden="true"></i> مسح الفلاتر</button>
+                    </div>
                 </div>
                 <div id="landlordReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
                     <p class="report-preview-empty">اضغط «معاينة» لعرض تقرير الشهر المحدد.</p>
@@ -561,6 +566,11 @@
                         </select>
                     </label>
                     <button type="button" onclick="generatePeriodReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
+                    <div class="report-filter-summary" data-report-filter-summary="period" hidden>
+                        <span class="report-filter-summary-label">الفلاتر النشطة</span>
+                        <span class="report-filter-chips" data-report-filter-list></span>
+                        <button type="button" class="report-filter-clear" onclick="clearReportFilters('period')"><i class="fa-solid fa-eraser" aria-hidden="true"></i> مسح الفلاتر</button>
+                    </div>
                 </div>
                 <div id="periodReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
                     <p class="report-preview-empty">اضغط «معاينة» لعرض تقرير الفترة المحددة.</p>
@@ -589,7 +599,7 @@
                     <div class="report-card-heading">
                         <span class="report-card-icon report-tone-emerald" aria-hidden="true"><i class="fa-solid fa-chart-line"></i></span>
                         <div class="min-w-0">
-                            <h2 class="report-card-title">تقرير التدفق النقدي</h2>
+                            <h2 class="report-card-title">تحليل التدفق النقدي</h2>
                             <p class="report-card-subtitle">الدخل والمصروفات والصافي شهرًا بشهر، مع توزيع الصناديق وأعلى وأدنى شهر.</p>
                         </div>
                     </div>
@@ -613,6 +623,11 @@
                         <select id="cashFlowCashAccount" aria-label="فلتر الصندوق" onchange="invalidateCashFlowPreview()" class="report-control app-input border focus:outline-none"></select>
                     </label>
                     <button type="button" onclick="generateCashFlowReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
+                    <div class="report-filter-summary" data-report-filter-summary="cashflow" hidden>
+                        <span class="report-filter-summary-label">الفلاتر النشطة</span>
+                        <span class="report-filter-chips" data-report-filter-list></span>
+                        <button type="button" class="report-filter-clear" onclick="clearReportFilters('cashflow')"><i class="fa-solid fa-eraser" aria-hidden="true"></i> مسح الفلاتر</button>
+                    </div>
                 </div>
                 <div id="cashFlowPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
                     <p class="report-preview-empty">اضغط «معاينة» لعرض التدفق النقدي للفترة المحددة.</p>
@@ -630,7 +645,7 @@
                     <div class="report-card-heading">
                         <span class="report-card-icon report-tone-rose" aria-hidden="true"><i class="fa-solid fa-receipt"></i></span>
                         <div class="min-w-0">
-                            <h2 class="report-card-title">تقرير المصروفات</h2>
+                            <h2 class="report-card-title">تحليل المصروفات</h2>
                             <p class="report-card-subtitle">مصروفات فترة كاملة حسب الصندوق والتصنيف، مع التفاصيل والتصدير.</p>
                         </div>
                     </div>
@@ -654,6 +669,11 @@
                         <select id="expensesReportCategory" aria-label="فلتر التصنيف" onchange="invalidateExpensesReportPreview()" class="report-control app-input border focus:outline-none"></select>
                     </label>
                     <button type="button" onclick="generateExpensesReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
+                    <div class="report-filter-summary" data-report-filter-summary="expenses" hidden>
+                        <span class="report-filter-summary-label">الفلاتر النشطة</span>
+                        <span class="report-filter-chips" data-report-filter-list></span>
+                        <button type="button" class="report-filter-clear" onclick="clearReportFilters('expenses')"><i class="fa-solid fa-eraser" aria-hidden="true"></i> مسح الفلاتر</button>
+                    </div>
                 </div>
                 <div id="expensesReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
                     <p class="report-preview-empty">اضغط «معاينة» لعرض مصروفات الفترة المحددة.</p>
@@ -671,7 +691,7 @@
                     <div class="report-card-heading">
                         <span class="report-card-icon report-tone-amber" aria-hidden="true"><i class="fa-solid fa-hand-holding-dollar"></i></span>
                         <div class="min-w-0">
-                            <h2 class="report-card-title">الإعفاءات والتخفيضات</h2>
+                            <h2 class="report-card-title">تقرير الإعفاءات والتخفيضات</h2>
                             <p class="report-card-subtitle">إعفاءات وتخفيضات فترة كاملة حسب الشقة والنوع، مع أثرها على المستحق.</p>
                         </div>
                     </div>
@@ -699,6 +719,11 @@
                         </select>
                     </label>
                     <button type="button" onclick="generateAdjustmentsReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
+                    <div class="report-filter-summary" data-report-filter-summary="adjustments" hidden>
+                        <span class="report-filter-summary-label">الفلاتر النشطة</span>
+                        <span class="report-filter-chips" data-report-filter-list></span>
+                        <button type="button" class="report-filter-clear" onclick="clearReportFilters('adjustments')"><i class="fa-solid fa-eraser" aria-hidden="true"></i> مسح الفلاتر</button>
+                    </div>
                 </div>
                 <div id="adjustmentsReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
                     <p class="report-preview-empty">اضغط «معاينة» لعرض إعفاءات وتخفيضات الفترة المحددة.</p>
@@ -715,7 +740,7 @@
                     <div class="report-card-heading">
                         <span class="report-card-icon report-tone-emerald" aria-hidden="true"><i class="fa-solid fa-user-check"></i></span>
                         <div class="min-w-0">
-                            <h2 class="report-card-title">كشف حساب مالك</h2>
+                            <h2 class="report-card-title">كشف حساب المالك</h2>
                             <p class="report-card-subtitle">مستحق ومدفوع ومتبقٍ لكل شهر، مع سجل حركات المالك.</p>
                         </div>
                     </div>
@@ -733,6 +758,11 @@
                         <select id="statementPurpose" aria-label="فلتر غرض التحصيل" onchange="invalidateResidentStatementPreview()" class="report-control app-input border"></select>
                     </label>
                     <button type="button" onclick="generateResidentStatement()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
+                    <div class="report-filter-summary" data-report-filter-summary="statement" hidden>
+                        <span class="report-filter-summary-label">الفلاتر النشطة</span>
+                        <span class="report-filter-chips" data-report-filter-list></span>
+                        <button type="button" class="report-filter-clear" onclick="clearReportFilters('statement')"><i class="fa-solid fa-eraser" aria-hidden="true"></i> مسح الفلاتر</button>
+                    </div>
                 </div>
                 <div id="residentStatementPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
                     <p class="report-preview-empty">اختر مالكًا ثم اضغط «معاينة» لعرض كشف الحساب.</p>
@@ -774,6 +804,11 @@
                         <select id="apartmentsReportResident" aria-label="فلتر الشقة" onchange="invalidateApartmentsPreview()" class="report-control app-input border focus:outline-none"></select>
                     </label>
                     <button type="button" onclick="generateApartmentsReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
+                    <div class="report-filter-summary" data-report-filter-summary="apartments" hidden>
+                        <span class="report-filter-summary-label">الفلاتر النشطة</span>
+                        <span class="report-filter-chips" data-report-filter-list></span>
+                        <button type="button" class="report-filter-clear" onclick="clearReportFilters('apartments')"><i class="fa-solid fa-eraser" aria-hidden="true"></i> مسح الفلاتر</button>
+                    </div>
                 </div>
                 <div id="apartmentsReportPreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
                     <p class="report-preview-empty">اضغط «معاينة» لعرض أداء الشقق في الفترة المحددة.</p>
@@ -791,7 +826,7 @@
                     <div class="report-card-heading">
                         <span class="report-card-icon report-tone-emerald" aria-hidden="true"><i class="fa-solid fa-scale-balanced"></i></span>
                         <div class="min-w-0">
-                            <span id="monthlyCloseTitle" class="report-card-title">المراجعة والإقفال الشهري</span>
+                            <span id="monthlyCloseTitle" class="report-card-title">مراجعة الإقفال الشهري</span>
                             <p class="report-card-subtitle">الرصيد الافتتاحي وحركة كل صندوق والرصيد الختامي بالتوقيت المحلي للقاهرة.</p>
                         </div>
                     </div>
@@ -805,6 +840,11 @@
                         </label>
                         <button type="button" id="monthlyCloseReviewButton" onclick="loadMonthlyCloseReport()" class="report-action report-action-primary"><i class="fa-solid fa-list-check" aria-hidden="true"></i> مراجعة الإقفال</button>
                         <button type="button" id="monthlyClosePdfButton" onclick="exportMonthlyClosePdf()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
+                        <div class="report-filter-summary" data-report-filter-summary="monthlyClose" hidden>
+                            <span class="report-filter-summary-label">الفلاتر النشطة</span>
+                            <span class="report-filter-chips" data-report-filter-list></span>
+                            <button type="button" class="report-filter-clear" onclick="clearReportFilters('monthlyClose')"><i class="fa-solid fa-eraser" aria-hidden="true"></i> مسح الفلاتر</button>
+                        </div>
                     </div>
                     <p id="monthlyCloseReportStatus" class="report-note" role="status" aria-live="polite">اختر الشهر ثم اضغط «مراجعة الإقفال».</p>
                     <div id="monthlyClosePreview" class="report-preview" aria-live="polite">
@@ -817,65 +857,83 @@
                     <div class="report-card-heading">
                         <span class="report-card-icon report-tone-amber" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span>
                         <div class="min-w-0">
-                            <span class="report-card-title">كشف المتأخرات</span>
+                            <span class="report-card-title">تقرير المتأخرات</span>
                             <p class="report-card-subtitle">إجمالي المديونية وتصنيف الفترات غير المسددة لكل شقة.</p>
                         </div>
                     </div>
                     <span class="report-card-badge report-tone-amber">مديونية</span>
                 </div>
                 <div class="space-y-3">
-                    <div class="flex items-center justify-between gap-2">
+                    <div class="report-toolbar no-print">
+                        <div class="app-input border rounded-2xl p-3 space-y-2 flex-1">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                                <label class="report-field">
+                                    <span class="report-field-label">الشقة</span>
+                                    <select id="arrearsApartmentFilter" onchange="renderArrearsReport()" class="report-control app-input border">
+                                        <option value="">كل الشقق</option>
+                                    </select>
+                                </label>
+                                <label class="report-field">
+                                    <span class="report-field-label">حالة التأخير</span>
+                                    <select id="arrearsStatusFilter" onchange="renderArrearsReport()" class="report-control app-input border">
+                                        <option value="all">كل الحالات</option>
+                                        <option value="one">شهر واحد</option>
+                                        <option value="two_three">2–3 أشهر</option>
+                                        <option value="four_plus">4 أشهر فأكثر</option>
+                                    </select>
+                                </label>
+                                <label class="report-field">
+                                    <span class="report-field-label">من شهر</span>
+                                    <input type="month" id="arrearsFromMonth" onchange="renderArrearsReport()" class="report-control app-input border">
+                                </label>
+                                <label class="report-field">
+                                    <span class="report-field-label">إلى شهر</span>
+                                    <input type="month" id="arrearsToMonth" onchange="renderArrearsReport()" class="report-control app-input border">
+                                </label>
+                            </div>
+                            <div class="report-filter-summary" data-report-filter-summary="arrears" hidden>
+                                <span class="report-filter-summary-label">الفلاتر النشطة</span>
+                                <span class="report-filter-chips" data-report-filter-list></span>
+                                <button type="button" class="report-filter-clear" onclick="clearReportFilters('arrears')"><i class="fa-solid fa-eraser" aria-hidden="true"></i> مسح الفلاتر</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="arrearsReportContainer" class="report-preview space-y-3"></div>
+                    <div class="report-actions report-actions-2 no-print">
                         <p class="report-note">صفِّ النتائج ثم صدّرها كما هي معروضة.</p>
                         <div class="flex items-center gap-2">
                             <button type="button" onclick="sendBulkArrearsReminders()" class="report-action report-action-compact report-tone-emerald"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> مراسلة المتأخرين</button>
                             <button type="button" onclick="exportArrearsCSV()" class="report-action report-action-compact report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                         </div>
                     </div>
-                    <div class="app-input border rounded-2xl p-3 space-y-2">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                            <label class="report-field">
-                                <span class="report-field-label">الشقة</span>
-                                <select id="arrearsApartmentFilter" onchange="renderArrearsReport()" class="report-control app-input border">
-                                    <option value="">كل الشقق</option>
-                                </select>
-                            </label>
-                            <label class="report-field">
-                                <span class="report-field-label">حالة التأخير</span>
-                                <select id="arrearsStatusFilter" onchange="renderArrearsReport()" class="report-control app-input border">
-                                    <option value="all">كل الحالات</option>
-                                    <option value="one">شهر واحد</option>
-                                    <option value="two_three">2–3 أشهر</option>
-                                    <option value="four_plus">4 أشهر فأكثر</option>
-                                </select>
-                            </label>
-                            <label class="report-field">
-                                <span class="report-field-label">من شهر</span>
-                                <input type="month" id="arrearsFromMonth" onchange="renderArrearsReport()" class="report-control app-input border">
-                            </label>
-                            <label class="report-field">
-                                <span class="report-field-label">إلى شهر</span>
-                                <input type="month" id="arrearsToMonth" onchange="renderArrearsReport()" class="report-control app-input border">
-                            </label>
-                        </div>
-                        <button type="button" onclick="resetArrearsFilters()" class="text-xs text-indigo-300 hover:text-indigo-200 underline">مسح الفلاتر</button>
-                    </div>
-                    <div id="arrearsReportContainer" class="report-preview space-y-3"></div>
                     <p class="report-note">تُحسب كل فترة بسعر الاشتراك المسجل بتاريخ سريانه، وليس بالسعر الحالي فقط.</p>
                 </div>
             </div>
             <div id="auditLogPanel" class="report-panel app-card p-5 rounded-3xl border space-y-3 hidden">
-                <div class="report-card-head">
+                <div class="report-card-head no-print">
                     <div class="report-card-heading">
                         <span class="report-card-icon report-tone-sky" aria-hidden="true"><i class="fa-solid fa-clock-rotate-left"></i></span>
                         <div class="min-w-0">
-                            <h3 class="report-card-title">سجل العمليات</h3>
+                            <h3 class="report-card-title">سجل العمليات والتدقيق</h3>
                             <p class="report-card-subtitle">يُحفظ تلقائيًا للمراجعة، ولا يمكن مسحه من التطبيق.</p>
                         </div>
                     </div>
                     <span class="report-card-badge report-tone-sky">سجل</span>
                 </div>
-                <label class="block"><span class="sr-only">البحث في سجل العمليات</span><input id="auditLogSearch" type="search" oninput="renderAuditLog()" placeholder="ابحث بالعملية أو التفاصيل أو اسم المنفذ" class="report-control app-input border w-full" /></label>
-                <div id="auditLogContainer" class="space-y-1.5 max-h-[32rem] overflow-y-auto pr-1" aria-live="polite"></div>
+                <div class="report-toolbar no-print">
+                    <label class="block flex-1"><span class="sr-only">البحث في سجل العمليات</span><input id="auditLogSearch" type="search" oninput="renderAuditLog()" placeholder="ابحث بالعملية أو التفاصيل أو اسم المنفذ" class="report-control app-input border w-full" /></label>
+                    <div class="report-filter-summary" data-report-filter-summary="audit" hidden>
+                        <span class="report-filter-summary-label">الفلاتر النشطة</span>
+                        <span class="report-filter-chips" data-report-filter-list></span>
+                        <button type="button" class="report-filter-clear" onclick="clearReportFilters('audit')"><i class="fa-solid fa-eraser" aria-hidden="true"></i> مسح الفلاتر</button>
+                    </div>
+                </div>
+                <div id="auditLogPreview" class="report-preview">
+                    <div id="auditLogContainer" class="space-y-1.5 max-h-[32rem] overflow-y-auto pr-1" aria-live="polite"></div>
+                </div>
+                <div class="report-actions report-actions-2 no-print">
+                    <p class="report-note">السجل عرض مباشر؛ لا توجد معاينة منفصلة أو ملفات تصدير له.</p>
+                </div>
             </div>
         </section>
         <footer id="appCopyright" class="text-center text-xs text-slate-500 leading-5 pt-2 no-print">

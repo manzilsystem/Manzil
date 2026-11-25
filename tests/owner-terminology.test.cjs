@@ -25,7 +25,7 @@ test('Arabic interface uses owner terminology consistently', () => {
     assert.match(html, /اسم المالك/);
     assert.match(html, /بيانات المالك/);
     assert.match(html, /اختر المالك/);
-    assert.match(html, /كشف حساب مالك/);
+    assert.match(html, /كشف حساب المالك/);
     assert.match(html, /متأخرات الملاك/);
     assert.doesNotMatch(html, /اسم المالك أو المالك/);
 });
