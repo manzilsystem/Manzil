@@ -35,7 +35,16 @@ const REPORT_TONE_CLASSES = ['report-tone-indigo', 'report-tone-emerald', 'repor
 // تخزين مؤقت لنماذج التقارير (محلي، لتجنب تكرار依赖 على performance.js الذي قد يسبب تكراراً لا نهائياً)
 const REPORT_MODEL_CACHE_LOCAL = new Map();
 
-function getCachedReportModel(cacheKey, builder, invalidateChecker) {
+function getReportCacheScope() {
+  // نطاق التخزين المؤقت: المبنى والدور والمالك، حتى لا يظهر تقرير جلسة أخرى بنفس الفلاتر.
+  const building = typeof activeBuildingId !== 'undefined' ? activeBuildingId : '';
+  const role = typeof currentUserRole !== 'undefined' ? currentUserRole : '';
+  const resident = typeof currentResidentId !== 'undefined' ? currentResidentId : '';
+  return `${building || ''}|${role || ''}|${resident || ''}|`;
+}
+
+function getCachedReportModel(rawCacheKey, builder, invalidateChecker) {
+  const cacheKey = getReportCacheScope() + rawCacheKey;
   const cached = REPORT_MODEL_CACHE_LOCAL.get(cacheKey);
   if (cached && (!invalidateChecker || invalidateChecker(cached))) {
     return cached.model;

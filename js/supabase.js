@@ -636,6 +636,8 @@ async function loadState() {
     activeBuildingId = membership.building_id;
     activeBuildingVersion = 1;
     currentUserRole = membership.role;
+    // تغيير المبنى أو الدور يعني بيانات مختلفة: امسح نماذج التقارير المخزنة.
+    if (typeof clearReportModelCache === 'function') clearReportModelCache();
     currentProfileName = typeof profile?.full_name === 'string' ? profile.full_name.trim() || null : null;
     ownerMustChangePin = currentUserRole === 'owner' && profile?.must_change_pin === true;
     if (ownerMustChangePin) {
@@ -737,6 +739,8 @@ async function loadState() {
     const cashboxSummary = currentUserRole === 'manager'
         ? normalizeCashboxSummary(cashboxSummaryResult.data)
         : { balances: { main: 0, development: 0, emergency: 0 }, transfers: [] };
+    // إعادة تحميل البيانات من السيرفر تستبدل الحالة بالكامل.
+    if (typeof clearReportModelCache === 'function') clearReportModelCache();
     state = {
         ...state,
         buildingName: building.name || 'Manzil',
@@ -934,6 +938,8 @@ function clearAuthenticatedState() {
     activeBuildingVersion = 1;
     supabaseStateLoaded = false;
     authLoading = false;
+    // لا تبقى نماذج تقارير الجلسة السابقة بعد تسجيل الخروج أو تغيير الهوية.
+    if (typeof clearReportModelCache === 'function') clearReportModelCache();
     ownerMustChangePin = false;
     currentUserRole = null;
     currentResidentId = null;
