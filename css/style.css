@@ -5224,3 +5224,58 @@ body.owner-mode .owner-theme-control {
 /* Paper size picker (the @page size itself is set by setPrintPaper) */
 .report-paper-pick { display: inline-flex; align-items: center; gap: var(--space-60); font-size: var(--font-80); color: var(--text-muted); }
 .report-paper-pick select { width: auto; padding-block: var(--space-40); }
+/* ===== Mobile-first pass (phones only, screen only; desktop is unchanged) ===== */
+@media screen and (max-width: 639.98px) {
+    /* Bigger base size: every rem-based text, padding and control scales with it */
+    html { font-size: 106.25%; }
+    main#printableArea { padding-inline: var(--space-100); padding-bottom: var(--space-600); row-gap: var(--space-100); }
+    /* Chips and section jumps wrap on two lines instead of cutting the text */
+    .report-section-jump { white-space: normal; text-overflow: clip; overflow: visible; line-height: var(--leading-140); padding-block: var(--space-55); flex: 1 1 100%; text-align: center; }
+    .report-view-copy b, .report-view-copy small { white-space: normal; text-overflow: clip; }
+    /* Tap targets: at least 44px for small icon buttons */
+    .icon-action, #incomeCardsList button, #expensesList button { min-width: 2.75rem; min-height: 2.75rem; display: inline-flex; align-items: center; justify-content: center; }
+    /* Income rows: details on top, amount and actions on their own line */
+    #incomeCardsList .flex.justify-between.items-center { flex-wrap: wrap; row-gap: var(--space-60); }
+    #incomeCardsList .flex.justify-between.items-center > .shrink-0:last-child { width: 100%; justify-content: space-between; padding-top: var(--space-50); border-top: 1px solid var(--border-color); }
+    /* Breathing room between cards and sections */
+    .app-card { border-radius: var(--radius-95); }
+    .report-index-grid { gap: var(--space-85); }
+    .report-block { gap: var(--space-75); }
+    .report-toolbar { gap: var(--space-85); }
+    /* Assistant: smaller and see-through enough not to hide controls under it */
+    .assistant-fab { opacity: var(--opacity-75); }
+    .assistant-fab:hover, .assistant-fab:focus-visible { opacity: var(--opacity-100); }
+}
+
+/* ===== Responsive prototype: tablet grid, desktop side navigation, avatar behaviours ===== */
+@media screen and (min-width: 640px) {
+    body main#printableArea, body header .container { max-width: 64rem; }
+    body #tab-dashboard { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-100); align-items: stretch; }
+    body #tab-dashboard > * { margin: var(--space-none); }
+    body #tab-dashboard > :is(details, section, .grid, .sm\:flex-row, .shadow-xl) { grid-column: 1 / -1; }
+    body #tab-dashboard > .app-card { min-width: 0; }
+    body nav[aria-label="التنقل الرئيسي"] { bottom: var(--space-100); left: 50%; right: auto; width: min(34rem, calc(100% - 2rem)); transform: translateX(-50%); border: 1px solid var(--border-color); border-radius: var(--radius-95); }
+}
+@media screen and (min-width: 1024px) {
+    :root { --rail-width: 13.5rem; }
+    body:not(.owner-mode) { padding-inline-start: var(--rail-width); }
+    body main#printableArea, body header .container { max-width: 80rem; }
+    body #tab-dashboard { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    body nav[aria-label="التنقل الرئيسي"] { top: 0; bottom: 0; left: auto; right: 0; width: var(--rail-width); max-width: none; transform: none; border-radius: var(--radius-none); border-width: 0 0 0 1px; flex-direction: column; justify-content: flex-start; gap: var(--space-50); padding: var(--space-150) var(--space-85); }
+    body nav[aria-label="التنقل الرئيسي"] .tab-btn { flex-direction: row; justify-content: flex-start; gap: var(--space-85); padding: var(--space-75) var(--space-85); border-radius: var(--radius-85); font-size: var(--font-90); }
+    body nav[aria-label="التنقل الرئيسي"] .tab-btn { flex: 0 0 auto; }
+    body nav[aria-label="التنقل الرئيسي"] .tab-btn span { font-size: var(--font-90); }
+    body nav[aria-label="التنقل الرئيسي"] .tab-btn i { width: 1.5rem; text-align: center; }
+    body nav[aria-label="التنقل الرئيسي"] .tab-btn.active { background: color-mix(in srgb, var(--accent-color) 18%, transparent); }
+    /* The doorman lives at the foot of the side navigation: never over content */
+    body:not(.owner-mode) .assistant-fab { inset-inline-start: auto; right: calc((var(--rail-width) - 6.4rem) / 2); bottom: calc(1.6rem + env(safe-area-inset-bottom, 0px)); opacity: var(--opacity-100); }
+    body main#printableArea { padding-bottom: var(--space-300); }
+}
+/* Draggable avatar: user-placed position wins over the default corner */
+.assistant-fab.is-dragged { inset-inline-start: auto; right: auto; touch-action: none; }
+.assistant-fab.is-dragging { transition: none; cursor: grabbing; }
+/* Phones and tablets: scrolling down tucks the doorman half behind the screen edge, scrolling up brings him back */
+@media screen and (max-width: 1023.98px) {
+    .assistant-fab.is-compact:not(.is-dragged) { transform: translateX(55%) scale(.8); opacity: var(--opacity-60); }
+}
+@media (prefers-reduced-motion: reduce) { .assistant-fab.is-compact { transition: none; } }
