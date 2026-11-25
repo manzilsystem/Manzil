@@ -1021,7 +1021,7 @@ function renderReportStatTiles(items, compact = false) {
     const body = items.map(item => {
         const value = item.text !== undefined ? esc(item.text) : fmtMoney(item.cents / 100);
         const tone = item.tone ? ' sheet-' + item.tone : '';
-        return '<td class="report-stat"><span class="report-stat-value' + tone + '">' + value + '</span></td>';
+        return '<td class="report-stat" data-label="' + esc(item.label) + '"><span class="report-stat-value' + tone + '">' + value + '</span></td>';
     }).join('');
     // عدد الأعمدة موحّد في كل المعاينات؛ الجدول نفسه يتوسّط داخل غلاف واحد.
     return '<div class="report-stats report-stats-4">' +
