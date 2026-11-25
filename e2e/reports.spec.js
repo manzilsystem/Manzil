@@ -958,6 +958,36 @@ test('unit report PDF downloads a per-unit file from a fresh preview', async ({ 
     expect(download.suggestedFilename()).toMatch(/^manzil_unit_3_\d{4}-\d{2}\.pdf$/);
 });
 
+test('unit report image export saves one PNG per page and sits beside the PDF button', async ({ page }) => {
+    await openReports(page);
+    await previewStatement(page);
+    await expect(page.locator('#unitReportPdfBtnImage')).toBeEnabled();
+
+    await page.evaluate(() => {
+        window.html2pdf = () => {
+            const worker = {
+                prop: { canvas: null },
+                set() { return worker; },
+                from() { return worker; },
+                toCanvas() {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 600;
+                    canvas.height = 4000;
+                    worker.prop.canvas = canvas;
+                    return worker;
+                },
+                then(callback) { if (callback) callback.call(worker); return Promise.resolve(); }
+            };
+            return worker;
+        };
+    });
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#unitReportPdfBtnImage').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/^manzil_unit_3_\d{4}-\d{2}_A[45](_p\d+)?\.png$/);
+});
+
 test('resident profile opens the statement for the same resident', async ({ page }) => {
     await openReports(page);
     await page.evaluate(() => openResidentProfile('r1'));

@@ -4148,6 +4148,11 @@ function mountReportExportRoot(root) {
     stage.style.cssText = 'position:fixed;top:0;left:-10000px;pointer-events:none';
     stage.appendChild(root);
     document.body.appendChild(stage);
+    // html2canvas drops plain spaces between Arabic words in table cells; a no-break space survives.
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (/[\u0600-\u06FF]/.test(node.nodeValue || '')) node.nodeValue = (node.nodeValue || '').replace(/ /g, '\u00a0');
+    }
 }
 
 /** @param {HTMLElement} root */
@@ -4269,7 +4274,8 @@ function initReportImageButtons() {
 }
 if (typeof window !== 'undefined' && typeof document !== 'undefined' && document.documentElement) {
     window.exportReportAsImage = exportReportAsImage;
-    // Image buttons are enabled in the follow-up PR.
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initReportImageButtons);
+    else initReportImageButtons();
 }
 
 async function downloadStatementPdf(html, filename, buttonId, successMessage, logLabel, isPreviewValid) {
