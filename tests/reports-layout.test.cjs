@@ -134,9 +134,9 @@ test('reports section has a calm card index with search, categories and unified 
     assert.match(reportTab, /class="report-actions report-actions-4/);
     assert.match(reportTab, /class="report-toolbar no-print"/);
     assert.match(reportTab, /class="report-preview text-xs leading-relaxed"/);
-    assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-index \{[^}]*position: sticky/, 'the index stays fixed beside the stage');
-    assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-index-group:not\(\[hidden\]\) \{ display: contents; \}/, 'the compact sidebar keeps every card visible');
-    assert.match(css, /@media \(max-width: 900px\) \{[\s\S]*?\.report-index-grid/, 'phone cards keep the same grouping');
+    assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-index \{[^}]*display: none;/, 'the index gives way to the full report page');
+    assert.doesNotMatch(css, /#tab-reports\[data-report-view="panel"\] \.report-index-group:not\(\[hidden\]\) \{ display: contents; \}/, 'no compact sidebar returns');
+    assert.match(css, /@media \(max-width: 900px\) \{[\s\S]*?\.report-section-head \{ grid-template-columns: minmax\(0, 1fr\); align-items: start; \}/, 'phone header stays stacked');
     assert.match(css, /\.report-action:disabled \{/);
     assert.match(css, /\.report-action-primary \{/);
     assert.match(css, /\.report-preview:has\(> \.report-preview-empty:only-child\) \{/);
@@ -168,7 +168,7 @@ test('tapping an index row opens one report stage and back returns to the index'
     assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-section-head \{ display: none; \}/, 'the header leaves the screen while a report is open');
     assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-view-bar \{ display: flex; \}/);
     assert.match(css, /\.report-view-bar \{[^}]*border-bottom: 1px solid var\(--border-color\)/, 'the open bar is a plain toolbar row');
-    assert.match(css, /#tab-reports\[data-report-view="panel"\] \{[^}]*grid-template-areas: "head head" "index bar" "index panel"/, 'the back bar and the open panel stack instead of overlapping');
+    assert.match(css, /#tab-reports\[data-report-view="panel"\] \{[^}]*grid-template-areas: "head" "bar" "panel"/, 'the back bar and the open panel occupy the full width');
     assert.match(css, /\.report-view-bar \{[\s\S]*?scroll-margin-top: 8rem;/, 'the sticky header must not swallow the back bar');
 });
 
@@ -318,7 +318,7 @@ test('the report index is grouped and searchable, free of hub or schedule layers
     assert.match(reportTab, /class="report-index no-print" aria-label="فهرس التقارير"/);
     assert.equal((reportTab.match(/data-report-glyph="/g) || []).length, 10, 'each card keeps its panel identity token');
     assert.match(css, /#tab-reports \{[^}]*grid-template-areas: "head" "index" "stage"/);
-    assert.match(css, /#tab-reports\[data-report-view="panel"\] \{[^}]*grid-template-areas: "head head" "index bar" "index panel"/);
+    assert.match(css, /#tab-reports\[data-report-view="panel"\] \{[^}]*grid-template-areas: "head" "bar" "panel"/);
     assert.doesNotMatch(extended, /renderReportHub|filterReportNav|setReportGroup|recordRecentReport/);
     assert.doesNotMatch(render, /renderReportHub/);
     assert.match(template, /<script src="js\/reports\/extended\/reports-extended\.js"><\/script>/);
