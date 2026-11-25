@@ -5258,7 +5258,7 @@ body.owner-mode .owner-theme-control {
 }
 @media screen and (min-width: 1024px) {
     :root { --rail-width: 13.5rem; }
-    body { padding-inline-start: var(--rail-width); }
+    body:not(.owner-mode) { padding-inline-start: var(--rail-width); }
     body main#printableArea, body header .container { max-width: 80rem; }
     body #tab-dashboard { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     body nav[aria-label="التنقل الرئيسي"] { top: 0; bottom: 0; left: auto; right: 0; width: var(--rail-width); max-width: none; transform: none; border-radius: var(--radius-none); border-width: 0 0 0 1px; flex-direction: column; justify-content: flex-start; gap: var(--space-50); padding: var(--space-150) var(--space-85); }
@@ -5268,7 +5268,7 @@ body.owner-mode .owner-theme-control {
     body nav[aria-label="التنقل الرئيسي"] .tab-btn i { width: 1.5rem; text-align: center; }
     body nav[aria-label="التنقل الرئيسي"] .tab-btn.active { background: color-mix(in srgb, var(--accent-color) 18%, transparent); }
     /* The doorman lives at the foot of the side navigation: never over content */
-    body .assistant-fab, body.owner-mode .assistant-fab { inset-inline-start: auto; right: calc((var(--rail-width) - 6.4rem) / 2); bottom: var(--space-100); opacity: var(--opacity-100); }
+    body:not(.owner-mode) .assistant-fab { inset-inline-start: auto; right: calc((var(--rail-width) - 6.4rem) / 2); bottom: calc(1.6rem + env(safe-area-inset-bottom, 0px)); opacity: var(--opacity-100); }
     body main#printableArea { padding-bottom: var(--space-300); }
 }
 /* Draggable avatar: user-placed position wins over the default corner */
