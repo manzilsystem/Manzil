@@ -1,4 +1,4 @@
-const CACHE_NAME = 'manzil-e0d7735ea4';
+const CACHE_NAME = 'manzil-7b8dbe6d36';
 const APP_CACHE_PREFIX = 'manzil-';
 const APP_SHELL = [
     './',
@@ -12,19 +12,20 @@ const APP_SHELL = [
     './vendor/chart.umd.js?v=c6d8bdd707',
     './vendor/xlsx.full.min.js?v=c9506197ca',
     './vendor/supabase.js?v=8816af04d9',
-    './css/style.css?v=5be0fd3d92',
+    './css/style.css?v=4505a91588',
     './js/sw-register.js?v=27964153c8',
-    './js/telemetry.js?v=manzil-e0d7735ea4',
+    './js/telemetry.js?v=manzil-7b8dbe6d36',
     './js/state.js?v=f367c7dc5c',
-    './js/access.js?v=bb421d4d2d',
+    './js/access.js?v=0d7f855407',
+    './js/push.js?v=93d6b20d62',
     './js/render.js?v=708c3ae2a7',
     './js/crud.js?v=d1e4b518ab',
     './js/notices.js?v=93c0d216cc',
     './js/reports.js?v=eb9dd15731',
     './js/settings.js?v=c3f39ea537',
-    './js/supabase.js?v=66dd8cd5e5',
+    './js/supabase.js?v=9391d4ff19',
     './js/cashbox.js?v=630080f12a',
-    './js/subscription-rates.js?v=manzil-e0d7735ea4',
+    './js/subscription-rates.js?v=manzil-7b8dbe6d36',
     './js/app.js?v=fa7ab2bdf3',
     './js/monthly-close.js?v=b25c74fbbc',
     './js/backup.js?v=65b179f1d7',
@@ -125,3 +126,6 @@ self.addEventListener('fetch', event => {
         }).catch(() => caches.match(request))
     );
 });
+
+// Web Push handlers (push, notificationclick) live in their own file.
+importScripts('./js/push-sw.js');

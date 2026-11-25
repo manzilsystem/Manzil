@@ -5270,6 +5270,8 @@ body.owner-mode .owner-theme-control {
 .manager-notification-row.is-read { opacity: var(--opacity-65); }
 .manager-notifications-earlier-toggle { display:flex; width:100%; align-items:center; justify-content:space-between; min-height:2.75rem; padding: var(--space-none) var(--space-30); font-size: var(--font-70); font-weight: var(--weight-800); color: var(--text-muted, #94a3b8); border-top: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent); }
 .owner-notifications-btn { position: relative; min-width:2.75rem; min-height:2.75rem; }
+.push-control { display:flex; align-items:center; justify-content:space-between; gap: var(--space-60); padding: var(--space-60) var(--space-30); border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent); }
+.push-control-btn { flex:0 0 auto; min-height:2.75rem; padding: var(--space-none) var(--space-70); border-radius: var(--radius-lg); font-size: var(--font-70); font-weight: var(--weight-800); color: var(--text-muted, #a5b4fc); border:1px solid var(--border-color); }
 .owner-notification-read { opacity: var(--opacity-65); }
 @media (max-width: 640px) {
     .manager-notifications-control { position: static; }

@@ -773,6 +773,7 @@ function renderOwnerPortal() {
                 </div>
                 ${unreadNotifications.length ? '<button type="button" onclick="markAllOwnerNotificationsRead()" class="inline-flex items-center min-h-11 px-3 text-xs text-indigo-300 font-bold">قراءة الكل</button>' : ''}
             </div>
+            ${typeof pushControlHtml === 'function' ? pushControlHtml() : ''}
             <div class="space-y-2">${notificationRows}</div>
         </section>
         <section class="app-card border rounded-3xl p-5 space-y-2" aria-labelledby="ownerPaymentHistoryTitle">
@@ -995,6 +996,7 @@ function renderManagerNotifications() {
             <span class="text-xs font-bold">الإشعارات${unread ? ` · ${fmtNum(unread)} جديد` : ''}</span>
             ${unread ? '<button type="button" onclick="markAllManagerNotificationsRead()" class="text-xs text-indigo-300 font-bold">قراءة الكل</button>' : ''}
         </div>
+        ${typeof pushControlHtml === 'function' ? pushControlHtml() : ''}
         ${unreadList.map(renderManagerNotificationRow).join('') || '<p class="text-xs text-slate-500 text-center py-3">لا توجد إشعارات جديدة.</p>'}
         ${readList.length ? `
             <button type="button" class="manager-notifications-earlier-toggle" onclick="toggleManagerEarlierNotifications()" aria-expanded="${managerShowEarlierNotifications}">

@@ -792,6 +792,7 @@ async function loadState() {
     supabaseStateLoaded = true;
     subscribeOwnerNotificationsRealtime();
     subscribeManagerNotificationsRealtime();
+    if (typeof syncPushSubscription === 'function') syncPushSubscription();
     return true;
 }
 
@@ -978,6 +979,8 @@ function clearAuthenticatedState() {
 }
 
 async function signOutLocally() {
+    // Stop this device receiving the account's push notifications before the session ends.
+    if (typeof releasePushForSignOut === 'function') { try { await releasePushForSignOut(); } catch { /* best effort */ } }
     try {
         const { error } = await supabaseClient.auth.signOut({ scope: 'local' });
         return error || null;
