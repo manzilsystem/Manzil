@@ -447,6 +447,7 @@ function resetAssistantSessionForAuthChange() {
     assistantChat = [];
     assistantContext = { period: null, residentId: null };
     assistantNoticeDraft = null;
+    assistantMorningBriefDay = '';
     assistantOperationDraft = null;
     assistantMutationDraft = null;
     assistantResidentEntryDraft = null;
@@ -939,6 +940,7 @@ function detectAssistantIntent(normalized, hasResident) {
         if (/(?:تحصيل|تحصيلات|مدفوع|مدفوعات|دفع|دفعات|دخل|ايراد)/.test(normalized)) return 'income';
     }
     if (/(تقرير|تقارير|طباعه|تصدير|كشف)/.test(normalized) && /(?:مصروف|مصاريف|صرف|مالك|فتره|فترة|اعفاء|تخفيض|تسويه|كشف حساب|تحصيل|ايراد|متاخر|مديون|مستحق)/.test(normalized)) return 'reports';
+    if (/(?:ملخص اليوم|ملخص النهارده|ملخص الصباح|بريف|ابدا يومي|اخبار النهارده|ايه الجديد النهارده)/.test(normalized)) return 'morning_brief';
     if (hasResident) {
         if (/(السلام عليكم|سلام|صباح|مساء|ازيك|عامل ايه|اهلا)/.test(normalized)) return 'greeting';
         if (/(شكرا|تسلم|مشكور|ربنا يكرمك)/.test(normalized)) return 'thanks';
@@ -2266,6 +2268,41 @@ function buildAssistantChangeAlertsAnswer(period, now = new Date()) {
     }
     return { id: 'change_alerts', title, html, followUpQueries };
 }
+/** Morning brief for the manager: this month's collection, late apartments, reminders ready and the cash total. Read-only, computed locally. */
+function buildAssistantMorningBriefAnswer(now = new Date()) {
+    const monthLabel = getAssistantNowLabel(now);
+    const summary = getAssistantMonthSummary({ type: 'month', label: monthLabel, months: [monthLabel] }, now);
+    const cash = getAssistantCashSnapshot();
+    const arrears = getAssistantArrearsSnapshot();
+    const lateWithPhone = arrears.residents.filter(item => String(item.resident?.phone || '').replace(/\D/g, '')).length;
+    const name = String(state.managerName || '').trim();
+    let html = `<p class="assistant-answer-subtitle">${assistantEscape(name ? 'صباح الخير يا ' + name : 'صباح الخير')} · ${assistantEscape(monthLabel)}</p>`;
+    html += assistantRow('محصّل من المستحق هذا الشهر', `${assistantMoney(summary.paidDueTotal)} من ${assistantMoney(summary.dueTotal)}`, summary.unpaidUnits > 0 ? 'warn' : 'good');
+    html += assistantRow('شقق لم تسدد هذا الشهر', assistantNumber(summary.unpaidUnits), summary.unpaidUnits > 0 ? 'warn' : 'good');
+    html += assistantRow('المتأخرات (بعد فترة السماح)', arrears.overdueResidents > 0 ? `${assistantMoney(arrears.totalDebt)} · ${assistantNumber(arrears.overdueResidents)} شقة` : 'لا يوجد', arrears.overdueResidents > 0 ? 'bad' : 'good');
+    html += assistantRow('إجمالي السيولة', assistantMoney(cash.total), cash.total >= 0 ? 'good' : 'bad');
+    if (arrears.overdueResidents > 0) {
+        html += assistantNote(lateWithPhone > 0
+            ? `${assistantNumber(lateWithPhone)} من المتأخرين عليهم رقم هاتف. اكتب «ذكّر المتأخرين» وأفتحلك قائمة التذكيرات.`
+            : 'المتأخرون بلا أرقام هاتف مسجلة. أضف الأرقام في بيانات الشقق عشان التذكير يشتغل.');
+    }
+    return { id: 'morning_brief', title: 'ملخص اليوم', html };
+}
+
+let assistantMorningBriefDay = '';
+
+/** Shows the brief once per day the first time the manager opens the chat. */
+function maybeAppendAssistantMorningBrief(now = new Date()) {
+    if (!assistantCanWrite()) return false;
+    const day = now.toISOString().slice(0, 10);
+    if (assistantMorningBriefDay === day) return false;
+    if (!Array.isArray(state.residents) || !state.residents.length) return false;
+    assistantMorningBriefDay = day;
+    const answer = buildAssistantMorningBriefAnswer(now);
+    appendAssistantMessage('bot', assistantAnswerHtml(answer), null, { answerId: answer.id, source: 'local' });
+    return true;
+}
+
 function buildAssistantExecutiveAnswer(period) {
     const summary = getAssistantMonthSummary(period);
     const cash = getAssistantCashSnapshot();
@@ -3384,6 +3421,8 @@ function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
             return buildAssistantCashAnswer();
         case 'summary':
             return buildAssistantSummaryAnswer(period);
+        case 'morning_brief':
+            return buildAssistantMorningBriefAnswer(now);
         case 'executive':
             return buildAssistantExecutiveAnswer(period);
         case 'change_alerts':
@@ -3577,7 +3616,9 @@ function openAssistantModal() {
             log.innerHTML = '';
             if (assistantChat.length) assistantChat.forEach(item => renderAssistantMessage(item.role, item.html));
             else appendAssistantMessage('bot', buildAssistantGreetingHtml(), null, { greeting: true });
-        });
+        }).then(() => { maybeAppendAssistantMorningBrief(); });
+    } else {
+        maybeAppendAssistantMorningBrief();
     }
     requestAnimationFrame(() => {
         const input = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('assistantInput'));
