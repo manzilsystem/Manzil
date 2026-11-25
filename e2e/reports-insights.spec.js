@@ -82,3 +82,64 @@ test('payer behavior csv and excel exports download for the previewed filter', a
     await page.locator('#paymentBehaviorExcelBtn').click();
     expect((await excelDownload).suggestedFilename()).toMatch(/^manzil_payment_behavior_\d+\.xlsx$/);
 });
+
+async function openReportsWithExpenses(page) {
+    await loadShell(page);
+    await page.waitForFunction(() => typeof window.switchTab === 'function' && typeof renderAll === 'function');
+    await page.evaluate(() => {
+        window.currentUserRole = 'manager';
+        document.body.classList.remove('session-locked', 'modal-open', 'owner-mode');
+        document.getElementById('pinLockModal').classList.add('hidden');
+        state.buildingName = 'عمارة الاختبار';
+        state.managerName = 'مدير الاختبار';
+        state.residents = [
+            { id: 'r1', name: 'أحمد', apartmentNumber: '3', monthlyAmount: 100, createdAt: '2026-05-01T00:00:00.000Z' }
+        ];
+        state.income = [];
+        const baseline = ['مايو 2026', 'يونيو 2026', 'يوليو 2026', 'أغسطس 2026', 'سبتمبر 2026', 'أكتوبر 2026'];
+        state.expenses = [
+            ...baseline.flatMap((month, index) => ([
+                { id: `m${index}`, month, category: 'صيانة', amount: 100 },
+                { id: `c${index}`, month, category: 'نظافة', amount: 50 }
+            ])),
+            { id: 'n1', month: 'نوفمبر 2026', category: 'صيانة', amount: 300 },
+            { id: 'n2', month: 'نوفمبر 2026', category: 'نظافة', amount: 50 },
+            { id: 'n3', month: 'نوفمبر 2026', category: 'كهرباء', amount: 80 }
+        ];
+        renderAll();
+        switchTab('reports');
+    });
+    await expect(page.locator('#tab-reports')).toBeVisible();
+}
+
+test('expense variance report: preview, flags per category and stale guard', async ({ page }) => {
+    await openReportsWithExpenses(page);
+    await openReportPanel(page, 'expenseVariance');
+    await expect(page.locator('#expenseVariancePanel')).toBeVisible();
+    await page.locator('#expenseVariancePanel').getByRole('button', { name: 'معاينة', exact: true }).click();
+    const preview = page.locator('#expenseVariancePreview');
+    await expect(preview.locator('.sheet-table').first()).toBeVisible({ timeout: 15000 });
+    await expect(preview).toContainText('الانحراف لكل تصنيف');
+    await expect(preview).toContainText('صيانة');
+    await expect(preview).toContainText('ارتفاع 200%');
+    await expect(preview).toContainText('تصنيف جديد');
+    await expect(preview).toContainText('ضمن المتوسط');
+    await expect(page.locator('#expenseVariancePrintBtn')).toBeEnabled();
+    await expect(page.locator('#expenseVarianceCsvBtn')).toBeEnabled();
+    await expect(page.locator('[data-report-nav="expenseVariance"]')).toHaveClass(/is-ready/);
+    // تغيير الشهر يعطل التصدير حتى معاينة جديدة
+    await page.locator('#expenseVarianceMonth').selectOption('أكتوبر 2026');
+    await expect(page.locator('#expenseVariancePrintBtn')).toBeDisabled();
+    await page.locator('#expenseVariancePanel').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await expect(preview).toContainText('ضمن المتوسط');
+});
+
+test('expense variance csv downloads with a month-based filename', async ({ page }) => {
+    await openReportsWithExpenses(page);
+    await openReportPanel(page, 'expenseVariance');
+    await page.locator('#expenseVariancePanel').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await expect(page.locator('#expenseVarianceCsvBtn')).toBeEnabled({ timeout: 15000 });
+    const csvDownload = page.waitForEvent('download');
+    await page.locator('#expenseVarianceCsvBtn').click();
+    expect((await csvDownload).suggestedFilename()).toBe('manzil_expense_variance_2026-11.csv');
+});

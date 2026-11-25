@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="fonts/cairo.css?v=aecf0ab114">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/tailwind.css?v=ed653d8eef">
-    <link rel="stylesheet" href="css/style.css?v=cf1a998b0c">
+    <link rel="stylesheet" href="css/style.css?v=6e79e68b28">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -609,6 +609,15 @@
                             </span>
                             <span class="report-index-state" data-report-freshness="expenses">لم تُعرض</span>
                         </button>
+                        <button type="button" class="report-index-item report-tone-amber" data-report-nav="expenseVariance" data-report-glyph="12" aria-controls="expenseVariancePanel" onclick="switchReportTab('expenseVariance')">
+                            <span class="report-index-icon" aria-hidden="true"><i class="fa-solid fa-arrow-trend-up"></i></span>
+                            <span class="report-index-copy">
+                                <span class="report-card-line"><b>انحراف المصروفات</b><span class="report-index-badge">تحليل</span></span>
+                                <small>مصروف الشهر مقابل متوسط 6 أشهر لكل تصنيف.</small>
+                                <span class="report-index-open">افتح التقرير <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></span>
+                            </span>
+                            <span class="report-index-state" data-report-freshness="expenseVariance">لم تُعرض</span>
+                        </button>
                     </div>
                 </section>
                 <section class="report-index-group" data-report-group="owners">
@@ -1098,6 +1107,44 @@
                     <button type="button" id="paymentBehaviorExcelBtn" onclick="exportPayerBehaviorExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
                 </div>
                 <p class="report-hint no-print">الحكم من تاريخ التحصيل الفعلي مقابل يوم الاستحقاق وفترة السماح. تغيير الشقة يعطّل التصدير حتى معاينة جديدة.</p>
+            </div>
+            <div id="expenseVariancePanel" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
+                <div class="report-card-head no-print">
+                    <div class="report-card-heading">
+                        <span class="report-card-icon report-tone-amber" aria-hidden="true"><i class="fa-solid fa-arrow-trend-up"></i></span>
+                        <div class="min-w-0">
+                            <h2 class="report-card-title">انحراف المصروفات</h2>
+                            <p class="report-card-subtitle">مصروف كل تصنيف في الشهر المحدد مقابل متوسط الأشهر الستة السابقة، مع علامة للانحرافات المؤثرة.</p>
+                        </div>
+                    </div>
+                    <span class="report-card-badge report-tone-amber">تحليل</span>
+                </div>
+                <div class="report-toolbar no-print">
+                    <label class="report-field report-field-narrow" for="expenseVarianceMonth">
+                        <span class="report-field-label">الشهر</span>
+                        <select id="expenseVarianceMonth" aria-label="فلتر الشهر" onchange="invalidateExpenseVariancePreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field report-field-narrow" for="expenseVarianceCategory">
+                        <span class="report-field-label">التصنيف</span>
+                        <select id="expenseVarianceCategory" aria-label="فلتر التصنيف" onchange="invalidateExpenseVariancePreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <button type="button" onclick="generateExpenseVarianceReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
+                    <div class="report-filter-summary" data-report-filter-summary="expenseVariance" hidden>
+                        <span class="report-filter-summary-label">الفلاتر النشطة</span>
+                        <span class="report-filter-chips" data-report-filter-list></span>
+                        <button type="button" class="report-filter-clear" onclick="clearInsightsFilters('expenseVariance')"><i class="fa-solid fa-eraser" aria-hidden="true"></i> مسح الفلاتر</button>
+                    </div>
+                </div>
+                <div id="expenseVariancePreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
+                    <p class="report-preview-empty">اضغط «معاينة» لعرض انحراف المصروفات عن متوسط 6 أشهر.</p>
+                </div>
+                <div class="report-actions report-actions-4 no-print">
+                    <button type="button" id="expenseVariancePrintBtn" onclick="printExpenseVarianceReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+                    <button type="button" id="expenseVariancePdfBtn" onclick="exportExpenseVariancePdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
+                    <button type="button" id="expenseVarianceCsvBtn" onclick="exportExpenseVarianceCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
+                    <button type="button" id="expenseVarianceExcelBtn" onclick="exportExpenseVarianceExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
+                </div>
+                <p class="report-hint no-print">المتوسط من الأشهر الستة السابقة للشهر المحدد، والشهر بلا مصروفات يُحسب صفرًا. تغيير الشهر أو التصنيف يعطّل التصدير حتى معاينة جديدة.</p>
             </div>
             <div id="monthlyClosePanel" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
                 <div class="report-card-head no-print">
@@ -2582,7 +2629,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-a8053e35dc"></script>
+    <script src="js/telemetry.js?v=manzil-1496ad50b0"></script>
     <script src="js/state.js?v=f367c7dc5c"></script>
     <script src="js/access.js?v=4e42881cb7"></script>
     <script src="js/render.js?v=708c3ae2a7"></script>
@@ -2607,7 +2654,7 @@
     <!-- Extended reports (cash flow and apartment performance) -->
     <script src="js/reports/extended/reports-extended.js?v=5580bb2057"></script>
     <!-- Insight reports (payer behavior, expense variance, payment methods) -->
-    <script src="js/reports/extended/reports-insights.js?v=24c7220de1"></script>
+    <script src="js/reports/extended/reports-insights.js?v=b5435bfeb8"></script>
     <script src="js/settings.js?v=d439fb3bea"></script>
     <script src="vendor/supabase.js"></script>
     <script src="js/supabase.js?v=66dd8cd5e5"></script>
