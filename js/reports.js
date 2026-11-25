@@ -4150,6 +4150,8 @@ function renderAdjustmentsReportPdfHtml(report) {
 // ===== PDF and image export share the chosen paper size (A4 / A5) =====
 const REPORT_PAPER_MM = { A4: { w: 210, h: 297 }, A5: { w: 148, h: 210 } };
 const REPORT_EXPORT_MARGIN_MM = 8;
+/** Image export: content up to this many pages tall is scaled onto one page. */
+const REPORT_IMAGE_FIT_MAX_PAGES = 1.7;
 /** @type {'pdf' | 'image'} */
 let reportExportMode = 'pdf';
 
@@ -4262,6 +4264,23 @@ async function saveReportRootAsImages(root, pdfFilename) {
     }).from(root).toCanvas().then(function () { canvas = this.prop.canvas; });
     if (!canvas || !canvas.width || !canvas.height) throw new Error('report_image_generation_failed');
     const base = pdfFilename.replace(/\.pdf$/i, '');
+    // A report that spills only a little onto a second page is shrunk onto one page, so the image stays a single sheet.
+    const pageCanvasHeight = Math.round((canvas.width * paper.h) / paper.w);
+    if (cuts.length > 1 && canvas.height <= pageCanvasHeight * REPORT_IMAGE_FIT_MAX_PAGES) {
+        const fit = pageCanvasHeight / canvas.height;
+        const single = document.createElement('canvas');
+        single.width = canvas.width;
+        single.height = pageCanvasHeight;
+        const singleContext = single.getContext('2d');
+        singleContext.fillStyle = REPORT_PDF_PALETTE.surface;
+        singleContext.fillRect(0, 0, single.width, single.height);
+        const drawWidth = Math.round(canvas.width * fit);
+        singleContext.drawImage(canvas, 0, 0, canvas.width, canvas.height, canvas.width - drawWidth, 0, drawWidth, pageCanvasHeight);
+        const singleBlob = await new Promise(resolve => single.toBlob(resolve, 'image/png'));
+        if (!singleBlob) throw new Error('report_image_generation_failed');
+        downloadReportImageBlob(singleBlob, `${base}_${paper.key}.png`);
+        return 1;
+    }
     let start = 0;
     for (let index = 0; index < cuts.length; index += 1) {
         const y0 = Math.round(start * scale);
