@@ -190,21 +190,22 @@ function renderCashboxMovementSummary() {
         const transfers = bucket.transfersIn - bucket.transfersOut;
         const net = bucket.income + transfers - bucket.expenses;
         const netClass = net > 0 ? 'text-emerald-400' : net < 0 ? 'text-rose-400' : 'text-slate-300';
+        const tone = code === 'main' ? 'cashbox-tone-emerald' : code === 'development' ? 'cashbox-tone-sky' : 'cashbox-tone-amber';
         return `
-            <article class="app-input border rounded-2xl p-3 space-y-2">
-                <div class="flex justify-between items-center gap-2">
-                    <strong class="text-xs">${esc(getCashAccountLabel(code))}</strong>
-                    <strong class="${netClass} whitespace-nowrap">${fmtNum(net / 100)} ج.م</strong>
+            <article class="cashbox-fund">
+                <div class="cashbox-fund-head">
+                    <strong class="cashbox-fund-name"><span class="cashbox-fund-dot ${tone}" aria-hidden="true"></span>${esc(getCashAccountLabel(code))}</strong>
+                    <strong class="cashbox-fund-net ${netClass}">${fmtNum(net / 100)} ج.م</strong>
                 </div>
-                <div class="grid grid-cols-3 gap-2 text-center text-xs text-slate-400">
-                    <div><span class="block font-bold text-emerald-400">${fmtNum(bucket.income / 100)}</span>تحصيلات</div>
-                    <div><span class="block font-bold text-rose-400">${fmtNum(bucket.expenses / 100)}</span>مصروفات</div>
-                    <div><span class="block font-bold ${transfers >= 0 ? 'text-indigo-300' : 'text-amber-300'}">${fmtNum(Math.abs(transfers) / 100)}</span>${transfers >= 0 ? 'صافي وارد' : 'صافي صادر'}</div>
+                <div class="cashbox-metrics">
+                    <div class="cashbox-metric"><span class="cashbox-metric-value text-emerald-400">${fmtNum(bucket.income / 100)}</span><span class="cashbox-metric-label">تحصيلات</span></div>
+                    <div class="cashbox-metric"><span class="cashbox-metric-value text-rose-400">${fmtNum(bucket.expenses / 100)}</span><span class="cashbox-metric-label">مصروفات</span></div>
+                    <div class="cashbox-metric"><span class="cashbox-metric-value ${transfers >= 0 ? 'text-indigo-300' : 'text-amber-300'}">${fmtNum(Math.abs(transfers) / 100)}</span><span class="cashbox-metric-label">${transfers >= 0 ? 'صافي وارد' : 'صافي صادر'}</span></div>
                 </div>
-                <p class="text-xs text-slate-400">تحويلات داخلة: <span class="font-bold text-indigo-300">${fmtNum(bucket.transfersIn / 100)}</span> ج.م · تحويلات خارجة: <span class="font-bold text-amber-300">${fmtNum(bucket.transfersOut / 100)}</span> ج.م</p>
+                <p class="cashbox-fund-transfers">تحويلات داخلة: <span class="font-bold text-indigo-300">${fmtNum(bucket.transfersIn / 100)}</span> ج.م · تحويلات خارجة: <span class="font-bold text-amber-300">${fmtNum(bucket.transfersOut / 100)}</span> ج.م</p>
             </article>
         `;
-    }).join('') + `<p class="text-xs text-slate-500">صافي الحركة = التحصيلات + التحويلات الواردة − المصروفات − التحويلات الصادرة. التحويلات الداخلية لا تُحسب إيرادًا أو مصروفًا.</p>`;
+    }).join('');
 }
 
 function buildCashboxMovements() {
@@ -277,21 +278,26 @@ function renderCashboxRecentMovements() {
         .filter(item => account === 'all' || item.accountCode === account)
         .slice(0, 10);
     if (!movements.length) {
-        container.innerHTML = '<p class="text-center text-xs text-slate-500 py-5">لا توجد حركات مسجلة حتى الآن.</p>';
+        container.innerHTML = '<p class="cashbox-empty">لا توجد حركات مسجلة حتى الآن.</p>';
         return;
     }
     container.innerHTML = movements.map(item => {
         const positive = item.direction > 0;
-        const kindTone = item.kind === 'income' ? 'text-emerald-400'
-            : item.kind === 'expense' ? 'text-rose-400'
-                : 'text-indigo-300';
+        const kindTone = item.kind === 'income' ? 'cashbox-tone-emerald'
+            : item.kind === 'expense' ? 'cashbox-tone-rose'
+                : 'cashbox-tone-indigo';
+        const kindIcon = item.kind === 'income' ? 'fa-circle-arrow-down'
+            : item.kind === 'expense' ? 'fa-circle-arrow-up'
+                : 'fa-arrows-rotate';
+        const amountTone = positive ? 'text-emerald-400' : 'text-rose-400';
         return `
-            <article class="app-input border rounded-2xl p-3 flex items-start justify-between gap-3">
-                <div class="min-w-0 space-y-1">
-                    <p class="text-xs font-bold"><span class="${kindTone}">${esc(item.label)}</span> · ${esc(getCashAccountLabel(item.accountCode))}</p>
-                    <p class="text-xs text-slate-500">${formatDate(item.at)}${item.notes ? ` · ${esc(item.notes)}` : ''}</p>
+            <article class="cashbox-row">
+                <span class="cashbox-row-icon ${kindTone}" aria-hidden="true"><i class="fa-solid ${kindIcon}"></i></span>
+                <div class="cashbox-row-main">
+                    <p class="cashbox-row-title">${esc(item.label)} · ${esc(getCashAccountLabel(item.accountCode))}</p>
+                    <p class="cashbox-row-sub">${formatDate(item.at)}${item.notes ? ` · ${esc(item.notes)}` : ''}</p>
                 </div>
-                <strong class="text-sm ${positive ? 'text-emerald-400' : 'text-rose-400'} whitespace-nowrap">${positive ? '+' : '−'}${fmtNum(item.amount)} ج.م</strong>
+                <strong class="cashbox-row-amount ${amountTone}">${positive ? '+' : '−'}${fmtNum(item.amount)} ج.م</strong>
             </article>
         `;
     }).join('');
@@ -317,7 +323,7 @@ function renderCashbox() {
     if (!list) return;
     const transfers = Array.isArray(state.cashTransfers) ? state.cashTransfers : [];
     if (!transfers.length) {
-        list.innerHTML = '<p class="text-center text-xs text-slate-500 py-5">لا توجد تحويلات مسجلة حتى الآن.</p>';
+        list.innerHTML = '<p class="cashbox-empty">لا توجد تحويلات مسجلة حتى الآن.</p>';
         return;
     }
 
@@ -325,12 +331,13 @@ function renderCashbox() {
         const fromLabel = getCashAccountLabel(transfer.fromAccountCode);
         const toLabel = getCashAccountLabel(transfer.toAccountCode);
         return `
-            <article class="app-input border rounded-2xl p-3 flex items-start justify-between gap-3">
-                <div class="min-w-0 space-y-1">
-                    <p class="text-xs font-bold">${esc(fromLabel)} <i class="fa-solid fa-arrow-left-long mx-1 text-indigo-400"></i> ${esc(toLabel)}</p>
-                    <p class="text-xs text-slate-500">${formatDate(transfer.transferredAt)}${transfer.notes ? ` · ${esc(transfer.notes)}` : ''}</p>
+            <article class="cashbox-row">
+                <span class="cashbox-row-icon cashbox-tone-indigo" aria-hidden="true"><i class="fa-solid fa-arrow-left-long"></i></span>
+                <div class="cashbox-row-main">
+                    <p class="cashbox-row-title">${esc(fromLabel)} <i class="fa-solid fa-arrow-left-long mx-1 text-indigo-400" aria-hidden="true"></i> ${esc(toLabel)}</p>
+                    <p class="cashbox-row-sub">${formatDate(transfer.transferredAt)}${transfer.notes ? ` · ${esc(transfer.notes)}` : ''}</p>
                 </div>
-                <strong class="text-sm text-indigo-300 whitespace-nowrap">${fmtNum(transfer.amount)} ج.م</strong>
+                <strong class="cashbox-row-amount text-indigo-300">${fmtNum(transfer.amount)} ج.م</strong>
             </article>
         `;
     }).join('');

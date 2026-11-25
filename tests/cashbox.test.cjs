@@ -413,7 +413,8 @@ test('cash transfer preview requires a reason and disables invalid or over-balan
 });
 
 test('cash transfer requires a non-empty reason in the form', () => {
-    assert.match(html, /id="cashTransferNotes"[\s\S]*?required[\s\S]*?placeholder="سبب التحويل \(مطلوب\)"/);
+    assert.match(html, /id="cashTransferNotes"[\s\S]*?required/);
+    assert.match(html, /cashbox-field-label">سبب التحويل \(مطلوب\)</);
     assert.doesNotMatch(html, /سبب التحويل \(اختياري\)/);
     assert.match(cashbox, /const validReason = notes\.length > 0/);
     assert.match(cashbox, /const valid = validAmount && validAccounts && sufficient && validReason/);
