@@ -5506,3 +5506,8 @@ body.owner-mode .owner-theme-control {
     body > :not([data-report-export-stage]) .sheet-cards td.sheet-empty { grid-column: 1 / -1; }
     body > :not([data-report-export-stage]) .sheet-cards tfoot tr { border-color: var(--accent-color); }
 }
+
+/* Phones: an open report panel is full of figures, so the doorman launcher steps aside until the manager returns to the report index. */
+@media screen and (max-width: 639.98px) {
+    body:has(#tab-reports[data-report-view="panel"]:not(.hidden)) .assistant-fab { display: none; }
+}
