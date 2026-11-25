@@ -4499,11 +4499,15 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     filter: drop-shadow(0 9px 22px var(--assistant-fab-shadow-compact));
 }
 .assistant-fab.is-compact .assistant-fab-greeting { display: none; }
+/* While the page scrolls the figure fades so it never hides what is underneath; it returns when scrolling stops. */
+.assistant-fab.is-scrolling { opacity: var(--opacity-40); }
 .assistant-fab.is-compact::after { display: none; }
 body.session-locked .assistant-fab { display: none; }
 body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-bottom, 0px)); }
 @media (max-width: 560px) {
-    .assistant-fab { inset-inline-start: .6rem; }
+    /* Phones: dock the figure low over the tab bar edge and a little smaller so it stays off the action buttons. */
+    .assistant-fab { inset-inline-start: .4rem; bottom: calc(4.3rem + env(safe-area-inset-bottom, 0px)); transform: scale(.82); }
+    .assistant-fab.is-compact { transform: scale(.66); }
     .assistant-fab-greeting { display: none; }
     .assistant-fab::after { display: none; }
 }
