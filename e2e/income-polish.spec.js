@@ -244,12 +244,15 @@ test('the calendar picker refuses a fully paid month and confirms a month before
     await expect(page.locator('#incomeMonthsGrid input[data-income-month]:checked')).toHaveCount(0);
     await expect(page.locator('#toastContainer')).toContainText('مسدد بالكامل');
 
-    page.once('dialog', dialog => dialog.dismiss());
+    let confirmText = '';
+    page.once('dialog', dialog => { confirmText = dialog.message(); dialog.dismiss(); });
     await page.locator('#incomeMonthPicker').fill(beforeStartKey);
     await page.locator('#incomeMonthPicker').dispatchEvent('change');
     await expect(page.locator('#incomeMonthsGrid input[data-income-month]:checked')).toHaveCount(0);
     await expect(page.locator('#incomeMonthPickerHint')).toContainText('قبل بداية محاسبة الشقة');
     expect(await page.evaluate(() => state.residents.find(item => item.id === 'r1').billingStartMonth)).toBeUndefined();
+    expect(confirmText).toContain('سيضيف ذلك');
+    expect(confirmText).toContain('متأخرات');
 
     page.once('dialog', dialog => dialog.accept());
     await page.locator('#incomeMonthPicker').dispatchEvent('change');
@@ -280,7 +283,7 @@ test('the apartment form stores a billing start that predates creation and backf
         return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}`;
     });
     await page.locator('#residentBillingStart').fill(olderKey);
-    await page.locator('#residentModal').getByRole('button', { name: /حفظ بيانات الشقة/ }).click();
+    await page.locator('#residentModal').getByRole('button', { name: 'حفظ الشقة', exact: true }).click();
     await expect(page.locator('#residentModal')).toBeHidden();
 
     const resident = await page.evaluate(() => {
@@ -414,4 +417,16 @@ test('income wizard keeps keyboard focus inside the dialog and announces each st
     await page.keyboard.press('Escape');
     await expect(modal).toBeHidden();
     await expect(page.locator('#btn-income')).toBeFocused();
+});
+
+test('opening a modal clears stale toasts and the apartment form shows app messages for required fields', async ({ page }) => {
+    await seedManager(page);
+    await page.evaluate(() => { state.floorCount = 4; state.apartmentsPerFloor = 4; toast('رسالة قديمة', 'info'); });
+    await expect(page.locator('#toastContainer')).toContainText('رسالة قديمة');
+    await page.evaluate(() => openResidentModal('create'));
+    await expect(page.locator('#residentModal')).toBeVisible();
+    await expect(page.locator('#toastContainer')).not.toContainText('رسالة قديمة');
+    await page.locator('#residentModal').getByRole('button', { name: 'حفظ الشقة', exact: true }).click();
+    await expect(page.locator('#toastContainer')).toContainText('اكتب اسم المالك');
+    await expect(page.locator('#residentName')).toHaveAttribute('aria-invalid', 'true');
 });

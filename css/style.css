@@ -4504,6 +4504,10 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 .assistant-fab.is-compact::after { display: none; }
 body.session-locked .assistant-fab { display: none; }
 body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-bottom, 0px)); }
+/* Owner mode has no tab bar: leave room under the last card so the docked figure never rests on text. */
+body.owner-mode #ownerPortal { padding-bottom: calc(var(--space-600) + var(--space-100) + env(safe-area-inset-bottom, 0px)); }
+#ownerPortal .tabular-nums, #ownerPortal strong { white-space: nowrap; }
+#residentForm [aria-invalid="true"] { border-color: var(--state-danger); box-shadow: 0 0 0 var(--space-20) var(--state-danger-soft); }
 @media (max-width: 560px) {
     /* Phones: dock the figure low over the tab bar edge and a little smaller so it stays off the action buttons. */
     .assistant-fab { inset-inline-start: .4rem; bottom: calc(4.3rem + env(safe-area-inset-bottom, 0px)); transform: scale(.82); }
