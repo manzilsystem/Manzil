@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="fonts/cairo.css?v=aecf0ab114">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/tailwind.css?v=ed653d8eef">
-    <link rel="stylesheet" href="css/style.css?v=7d19611d71">
+    <link rel="stylesheet" href="css/style.css?v=9084c61d0d">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -171,6 +171,10 @@
                     </button>
                     <div class="owner-theme-menu app-card border hidden" id="ownerThemeMenu" role="group" aria-label="اختيار مظهر البوابة"></div>
                 </div>
+                <button type="button" id="ownerNotificationsBtn" class="owner-notifications-btn app-card border p-2.5 rounded-xl text-xs transition relative hidden" onclick="focusOwnerNotifications()" aria-label="الإشعارات" title="الإشعارات">
+                    <i class="fa-solid fa-bell text-sm" aria-hidden="true"></i>
+                    <span id="ownerNotificationsBadge" class="manager-notifications-badge hidden" aria-hidden="true"></span>
+                </button>
                 <div class="manager-notifications-control hidden" id="managerNotificationsControl">
                     <button type="button" id="managerNotificationsBtn" class="app-card border p-2.5 rounded-xl text-xs transition relative" onclick="toggleManagerNotifications()" aria-haspopup="true" aria-expanded="false" aria-controls="managerNotificationsMenu" aria-label="إشعارات المدير" title="الإشعارات">
                         <i class="fa-solid fa-bell text-sm"></i>
@@ -2687,9 +2691,9 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-638a8e0b3b"></script>
+    <script src="js/telemetry.js?v=manzil-09a80ed6eb"></script>
     <script src="js/state.js?v=f367c7dc5c"></script>
-    <script src="js/access.js?v=4e42881cb7"></script>
+    <script src="js/access.js?v=bb421d4d2d"></script>
     <script src="js/render.js?v=708c3ae2a7"></script>
     <script src="js/crud.js?v=d1e4b518ab"></script>
     <script src="js/notices.js?v=93c0d216cc"></script>

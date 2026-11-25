@@ -709,8 +709,8 @@ function renderOwnerPortal() {
         </article>`).join('') : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إعلانات حالياً.</p>';
     const ownerNotifications = Array.isArray(state.ownerNotifications) ? state.ownerNotifications : [];
     const unreadNotifications = ownerNotifications.filter(notification => !notification.readAt);
-    const notificationRows = ownerNotifications.length ? ownerNotifications.map(notification => `
-        <article class="app-input border rounded-2xl p-3 space-y-2">
+    const renderOwnerNotificationRow = notification => `
+        <article class="app-input border rounded-2xl p-3 space-y-2 ${notification.readAt ? 'owner-notification-read' : ''}">
             <div class="flex items-start justify-between gap-3">
                 <p class="text-xs font-bold">${esc(notification.title)}</p>
                 ${notification.readAt ? '<span class="text-xs text-slate-500">مقروء</span>' : '<span class="text-xs text-indigo-300 font-bold">جديد</span>'}
@@ -720,9 +720,21 @@ function renderOwnerPortal() {
                 <span class="text-xs text-slate-500">${formatDate(notification.createdAt)}</span>
                 ${notification.readAt ? '' : `<button type="button" onclick="markOwnerNotificationRead('${esc(notification.id)}')" class="inline-flex items-center min-h-11 px-3 text-xs text-indigo-300 font-bold">تحديد كمقروء</button>`}
             </div>
-        </article>`).join('') : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إشعارات حتى الآن.</p>';
+        </article>`;
+    const readOwnerNotifications = ownerNotifications.filter(notification => notification.readAt);
+    const notificationRows = ownerNotifications.length
+        ? (unreadNotifications.length
+            ? unreadNotifications.map(renderOwnerNotificationRow).join('')
+            : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إشعارات جديدة.</p>')
+            + (readOwnerNotifications.length ? `
+        <details class="owner-notifications-earlier">
+            <summary class="text-xs text-slate-400 font-bold min-h-11 flex items-center cursor-pointer">إشعارات سابقة (${fmtNum(readOwnerNotifications.length)})</summary>
+            <div class="space-y-2 pt-2">${readOwnerNotifications.map(renderOwnerNotificationRow).join('')}</div>
+        </details>` : '')
+        : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إشعارات حتى الآن.</p>';
 
     renderOwnerThemeMenu();
+    renderOwnerNotificationsBell();
     portal.innerHTML = `
         <div class="app-card border rounded-3xl p-5 sm:p-6 space-y-2">
             <p class="text-xs font-bold text-indigo-400">بوابة المالك • قراءة فقط</p>
@@ -903,12 +915,44 @@ async function markAllOwnerNotificationsRead() {
     renderOwnerPortal();
 }
 
+function renderOwnerNotificationsBell() {
+    const button = document.getElementById('ownerNotificationsBtn');
+    if (!button) return;
+    const visible = currentUserRole === 'owner' && Boolean(activeSession);
+    button.classList.toggle('hidden', !visible);
+    if (!visible) return;
+    const unread = (Array.isArray(state.ownerNotifications) ? state.ownerNotifications : []).filter(item => !item.readAt).length;
+    const label = unread > 99 ? '99+' : String(unread);
+    const badge = document.getElementById('ownerNotificationsBadge');
+    if (badge) {
+        badge.textContent = label;
+        badge.classList.toggle('hidden', unread === 0);
+    }
+    button.setAttribute('aria-label', unread ? `الإشعارات، ${label} غير مقروءة` : 'الإشعارات');
+}
+
+function focusOwnerNotifications() {
+    const title = document.getElementById('ownerNotificationsTitle');
+    const section = title?.closest('section');
+    if (!section) return;
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    title.setAttribute('tabindex', '-1');
+    title.focus({ preventScroll: true });
+}
+
 function syncManagerNotificationsControl() {
+    renderOwnerNotificationsBell();
     const control = document.getElementById('managerNotificationsControl');
     if (!control) return;
     const visible = currentUserRole === 'manager' && Boolean(activeSession);
     control.classList.toggle('hidden', !visible);
     if (!visible) closeManagerNotifications();
+}
+
+let managerShowEarlierNotifications = false;
+function toggleManagerEarlierNotifications() {
+    managerShowEarlierNotifications = !managerShowEarlierNotifications;
+    renderManagerNotifications();
 }
 
 function renderManagerNotifications() {
@@ -935,20 +979,28 @@ function renderManagerNotifications() {
         menu.innerHTML = '<p class="text-xs text-slate-500 text-center py-3">لا توجد إشعارات حتى الآن.</p>';
         return;
     }
-    menu.innerHTML = `
-        <div class="flex items-center justify-between gap-3 px-1 pb-2">
-            <span class="text-xs font-bold">الإشعارات${unread ? ` · ${fmtNum(unread)} جديد` : ''}</span>
-            ${unread ? '<button type="button" onclick="markAllManagerNotificationsRead()" class="text-xs text-indigo-300 font-bold">قراءة الكل</button>' : ''}
-        </div>
-        ${list.map(notification => `
-            <button type="button" class="manager-notification-row block w-full text-right" onclick="openManagerNotification('${esc(notification.id)}')">
+    const unreadList = list.filter(notification => !notification.readAt);
+    const readList = list.filter(notification => notification.readAt);
+    const renderManagerNotificationRow = notification => `
+            <button type="button" class="manager-notification-row block w-full text-right ${notification.readAt ? 'is-read' : ''}" onclick="openManagerNotification('${esc(notification.id)}')">
                 <span class="flex items-start justify-between gap-2">
                     <span class="text-xs font-bold">${esc(notification.title)}</span>
                     ${notification.readAt ? '' : '<span class="text-xs text-indigo-300 font-bold shrink-0">جديد</span>'}
                 </span>
                 <span class="block text-xs text-slate-400 mt-1 whitespace-pre-line">${esc(notification.body)}</span>
                 <span class="block text-xs text-slate-500 mt-1">${formatDate(notification.createdAt)}</span>
-            </button>`).join('')}`;
+            </button>`;
+    menu.innerHTML = `
+        <div class="flex items-center justify-between gap-3 px-1 pb-2">
+            <span class="text-xs font-bold">الإشعارات${unread ? ` · ${fmtNum(unread)} جديد` : ''}</span>
+            ${unread ? '<button type="button" onclick="markAllManagerNotificationsRead()" class="text-xs text-indigo-300 font-bold">قراءة الكل</button>' : ''}
+        </div>
+        ${unreadList.map(renderManagerNotificationRow).join('') || '<p class="text-xs text-slate-500 text-center py-3">لا توجد إشعارات جديدة.</p>'}
+        ${readList.length ? `
+            <button type="button" class="manager-notifications-earlier-toggle" onclick="toggleManagerEarlierNotifications()" aria-expanded="${managerShowEarlierNotifications}">
+                إشعارات سابقة (${fmtNum(readList.length)}) <i class="fa-solid ${managerShowEarlierNotifications ? 'fa-chevron-up' : 'fa-chevron-down'}" aria-hidden="true"></i>
+            </button>
+            ${managerShowEarlierNotifications ? readList.slice(0, 20).map(renderManagerNotificationRow).join('') : ''}` : ''}`;
 }
 
 function toggleManagerNotifications(force) {

@@ -5267,6 +5267,14 @@ body.owner-mode .owner-theme-control {
 }
 .manager-notification-row { padding: var(--space-55) var(--space-30); border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent); }
 .manager-notification-row:last-child { border-bottom: 0; }
+.manager-notification-row.is-read { opacity: var(--opacity-65); }
+.manager-notifications-earlier-toggle { display:flex; width:100%; align-items:center; justify-content:space-between; min-height:2.75rem; padding: var(--space-none) var(--space-30); font-size: var(--font-70); font-weight: var(--weight-800); color: var(--text-muted, #94a3b8); border-top: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent); }
+.owner-notifications-btn { position: relative; min-width:2.75rem; min-height:2.75rem; }
+.owner-notification-read { opacity: var(--opacity-65); }
+@media (max-width: 640px) {
+    .manager-notifications-control { position: static; }
+    .manager-notifications-menu { position: fixed; inset-inline: .5rem; top: 4.6rem; width: auto; max-height: min(26rem, calc(100dvh - 9rem)); }
+}
 
 /* ===== Visual cleanup: reports (screen only, no logic changes) ===== */
 @media screen {

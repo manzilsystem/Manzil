@@ -67,3 +67,14 @@ test('the manager bell announces its unread count in its accessible name', () =>
     assert.ok(access.includes("unread ? `إشعارات المدير، ${unreadLabel} غير مقروءة` : 'إشعارات المدير'"),
         'the bell must fall back to its plain name when everything is read');
 });
+
+test('notification UI: read items are split from unread and owner has a header bell', () => {
+    const fs = require('node:fs');
+    const access = fs.readFileSync(require('node:path').join(__dirname, '..', 'js', 'access.js'), 'utf8');
+    const header = fs.readFileSync(require('node:path').join(__dirname, '..', 'src', 'partials', 'header.html'), 'utf8');
+    assert.match(access, /toggleManagerEarlierNotifications/);
+    assert.match(access, /owner-notifications-earlier/);
+    assert.match(access, /renderOwnerNotificationsBell/);
+    assert.match(header, /id="ownerNotificationsBtn"/);
+    assert.match(header, /id="ownerNotificationsBadge"/);
+});
