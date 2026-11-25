@@ -5221,3 +5221,26 @@ body.owner-mode .owner-theme-control {
 }
 /* Toolbars that wrap their fields in one box (arrears) span the whole row of the filter grid */
 @media screen { .report-toolbar > div { grid-column: 1 / -1; } }
+
+/* ===== Mobile-first pass (phones only, screen only; desktop is unchanged) ===== */
+@media screen and (max-width: 639.98px) {
+    /* Bigger base size: every rem-based text, padding and control scales with it */
+    html { font-size: 106.25%; }
+    main#printableArea { padding-inline: var(--space-100); padding-bottom: var(--space-600); row-gap: var(--space-100); }
+    /* Chips and section jumps wrap on two lines instead of cutting the text */
+    .report-section-jump { white-space: normal; text-overflow: clip; overflow: visible; line-height: var(--leading-140); padding-block: var(--space-55); flex: 1 1 100%; text-align: center; }
+    .report-view-copy b, .report-view-copy small { white-space: normal; text-overflow: clip; }
+    /* Tap targets: at least 44px for small icon buttons */
+    .icon-action, #incomeCardsList button, #expensesList button { min-width: 2.75rem; min-height: 2.75rem; display: inline-flex; align-items: center; justify-content: center; }
+    /* Income rows: details on top, amount and actions on their own line */
+    #incomeCardsList .flex.justify-between.items-center { flex-wrap: wrap; row-gap: var(--space-60); }
+    #incomeCardsList .flex.justify-between.items-center > .shrink-0:last-child { width: 100%; justify-content: space-between; padding-top: var(--space-50); border-top: 1px solid var(--border-color); }
+    /* Breathing room between cards and sections */
+    .app-card { border-radius: var(--radius-95); }
+    .report-index-grid { gap: var(--space-85); }
+    .report-block { gap: var(--space-75); }
+    .report-toolbar { gap: var(--space-85); }
+    /* Assistant: smaller and see-through enough not to hide controls under it */
+    .assistant-fab { opacity: var(--opacity-75); }
+    .assistant-fab:hover, .assistant-fab:focus-visible { opacity: var(--opacity-100); }
+}
