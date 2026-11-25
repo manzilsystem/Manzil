@@ -1571,9 +1571,8 @@ test('the header brand mark frame resolves from canonical tokens', () => {
 test('the remaining accent-surface inks and report/owner literals resolve from canonical tokens', () => {
     // Part 63: the last raw colors outside the excluded settings/login scopes —
     // the settings/notice header and save-button ink (#fff, sand override #211b16),
-    // the reports navigation hover shadow tint rgba(2, 8, 23, .3) and the owner
-    // theme swatch fallback accent #6366f1 — now resolve from canonical tokens
-    // declared once in :root. Every value matches the literal it replaced.
+    // the reports navigation hover surface and the owner theme swatch fallback
+    // accent #6366f1 now resolve from canonical tokens declared once in :root.
     const css = read('css/style.css');
     const rootBlock = blocks(css, ':root')[0][1];
     const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1581,7 +1580,6 @@ test('the remaining accent-surface inks and report/owner literals resolve from c
     const tokens = {
         '--accent-surface-ink': '#fff',
         '--accent-surface-ink-sand': '#211b16',
-        '--report-nav-shadow-tint': 'rgba(2, 8, 23, .3)',
         '--owner-swatch-fallback-accent': '#6366f1'
     };
     for (const [name, value] of Object.entries(tokens)) {
@@ -1610,8 +1608,10 @@ test('the remaining accent-surface inks and report/owner literals resolve from c
 
     const nav = css.match(/\n\.report-index-item:hover \{([^}]*)\}/);
     assert.ok(nav, 'expected a rule for the reports index hover');
-    assert.ok(/var\(--report-nav-shadow-tint\)/.test(nav[1]),
-        'the reports index hover must mix its shadow tint via var(--report-nav-shadow-tint)');
+    assert.ok(/var\(--text-main\)/.test(nav[1]),
+        'the reports index hover must paint its label via var(--text-main)');
+    assert.ok(/var\(--bg-input\)/.test(nav[1]),
+        'the reports index hover must mix its surface via var(--bg-input)');
     assert.ok(!/rgba\(2, 8, 23/.test(nav[1]),
         'the reports index hover must not keep a raw rgba(2, 8, 23, …) tint');
 
@@ -1622,9 +1622,6 @@ test('the remaining accent-surface inks and report/owner literals resolve from c
         'the owner theme swatch must fall back to var(--owner-swatch-fallback-accent)');
     assert.ok(!/#6366f1/.test(swatch), 'the owner theme swatch must not keep a raw #6366f1 fallback');
 
-    // The shadow tint literal was unique to its rule and may only survive in its token.
-    assert.equal((css.match(/rgba\(2, 8, 23, \.3\)/g) || []).length, 1,
-        'rgba(2, 8, 23, .3) must only appear in the canonical token definition');
     // The fallback accent literal also remains as the default --accent-color.
     assert.equal((css.match(/#6366f1/g) || []).length, 2,
         '#6366f1 must only appear in the default accent and the fallback token');

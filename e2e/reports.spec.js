@@ -308,7 +308,7 @@ test('transition motion tokens resolve consistently across themes and print', as
     const samples = [
         ['body', '0.3s, 0.3s', 'ease, ease'],
         ['.report-action', '0.2s, 0.2s, 0.2s, 0.2s', 'ease, ease, ease, ease'],
-        ['.report-index-item', '0.16s, 0.16s, 0.16s, 0.16s', 'ease, ease, ease, ease'],
+        ['.report-index-item', '0.16s, 0.16s, 0.16s', 'ease, ease, ease'],
         ['#settingsModal .settings-close-button', '0.18s, 0.18s, 0.18s', 'ease, ease, ease'],
         ['#settingsModal .settings-field input', '0.15s, 0.15s', 'ease, ease'],
         ['.assistant-fab', '0.26s, 0.2s, 0.26s', 'ease, ease, ease']
@@ -453,7 +453,7 @@ test('typographic scale resolves consistently across themes and print', async ({
         '.report-index-copy b',
         '.report-index-copy small',
         '.report-section-eyebrow',
-        '.report-view-hint',
+        '.report-view-status',
         '.report-block-count',
         '#settingsModal .settings-brand-copy span'
     ];
@@ -1383,7 +1383,7 @@ test('guided steps and live status follow the single stage output gate', async (
 
     await backToIndex(page);
     await page.locator('[data-report-nav="landlord"]').click();
-    await expect(page.locator('#reportViewStatus')).toContainText('اضغط «معاينة» لتفعيل الطباعة والتصدير');
+    await expect(page.locator('#reportViewStatus')).toContainText('معاينة مطلوبة قبل التصدير');
     await expect(page.locator('[data-report-step="filters"]')).toHaveAttribute('aria-pressed', 'true');
     const tone = await page.evaluate(() => {
       const read = selector => getComputedStyle(document.querySelector(selector)).getPropertyValue('--report-tone').trim();
@@ -1391,9 +1391,6 @@ test('guided steps and live status follow the single stage output gate', async (
     });
     expect(tone.panel).toBeTruthy();
     expect(tone.panel).toBe(tone.nav);
-    const glyph = await page.evaluate(() =>
-      getComputedStyle(document.getElementById('reportViewBar'), '::after').content);
-    expect(glyph).toContain('01');
     await expect(page.locator('#scheduledReportsSection')).toHaveCount(0);
     await expect(page.locator('#landlordReportPrint > .report-card-head')).toBeHidden();
 

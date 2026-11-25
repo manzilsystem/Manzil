@@ -284,7 +284,6 @@ function renderReportViewBar(tab) {
     copyReportTone(bar, item);
     const panel = document.getElementById(REPORT_PANEL_IDS[tab]);
     if (panel) copyReportTone(panel, item);
-    document.getElementById('reportViewIcon').innerHTML = '<span aria-hidden="true">' + esc(item.dataset.reportGlyph || '') + '</span>';
     document.getElementById('reportViewTitle').textContent = item.querySelector('.report-index-copy b')?.textContent || '';
     document.getElementById('reportViewMeta').textContent = item.querySelector('.report-index-copy small')?.textContent || '';
     renderReportViewStatus();
@@ -403,7 +402,7 @@ function syncReportNavStatus() {
         const stale = !ready && /** @type {HTMLElement} */ (preview)?.dataset.stale === 'true';
         item.classList.toggle('is-stale', stale);
         const fresh = item.querySelector('[data-report-freshness]');
-        if (fresh) fresh.textContent = ready ? 'معاينة جاهزة' : stale ? 'يحتاج تحديث' : 'جاهز للفتح';
+        if (fresh) fresh.textContent = ready ? 'معاينة جاهزة' : stale ? 'يحتاج تحديث' : 'لم تُعرض';
     });
     renderReportViewStatus();
 }
@@ -425,17 +424,17 @@ function renderReportViewStatus() {
     const buttonId = REPORT_OUTPUT_BUTTON_IDS[tab];
     const button = buttonId ? /** @type {HTMLButtonElement | null} */ (document.getElementById(buttonId)) : null;
     const preview = document.querySelector(`#${REPORT_PANEL_IDS[tab]} [id$="Preview"]`);
-    let message = 'عرض مباشر — لا يحتاج معاينة';
+    let message = 'عرض مباشر';
     let state = 'live';
     if (button) {
         if (!button.disabled) {
-            message = 'المعاينة جاهزة — الطباعة والتصدير مفعّلان';
+            message = 'المعاينة جاهزة';
             state = 'ready';
         } else if (/** @type {HTMLElement | null} */ (preview)?.dataset.stale === 'true') {
-            message = 'تغيّرت البيانات — أعد المعاينة قبل التصدير';
+            message = 'تغيّرت البيانات — أعد المعاينة';
             state = 'stale';
         } else {
-            message = 'اضغط «معاينة» لتفعيل الطباعة والتصدير';
+            message = 'معاينة مطلوبة قبل التصدير';
             state = 'idle';
         }
     }

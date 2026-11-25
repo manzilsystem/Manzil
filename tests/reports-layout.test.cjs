@@ -102,6 +102,9 @@ test('reports section has a quiet header, fixed index, and unified actions', () 
     assert.equal((reportTab.match(/class="report-index-number"/g) || []).length, 10, 'ten fixed sequence numbers');
     assert.equal((reportTab.match(/class="report-index-copy"/g) || []).length, 10, 'one label and one description per row');
     assert.equal((reportTab.match(/class="report-index-state" data-report-freshness=/g) || []).length, 10, 'one simple status per row');
+    assert.doesNotMatch(reportTab, /report-quality-mark|report-stage-mark|report-view-icon|report-view-hint/, 'no decorative empty-state or shortcut chrome');
+    assert.match(css, /\.report-index \{[^}]*border-inline-start: 1px solid var\(--border-color\)/, 'the index is a ruled list, not a card');
+    assert.match(css, /\.report-index-number \{[^}]*color: var\(--text-muted\)/, 'the sequence numbers stay quiet');
     assert.match(reportTab, /class="report-actions report-actions-4/);
     assert.match(reportTab, /class="report-toolbar no-print"/);
     assert.match(reportTab, /class="report-preview text-xs/);
@@ -119,7 +122,7 @@ test('reports section has a quiet header, fixed index, and unified actions', () 
 test('tapping an index row opens one report stage and back returns to the index', () => {
     assert.match(reportTab, /id="reportViewBar" class="report-view-bar no-print"/);
     assert.match(reportTab, /class="report-view-back" onclick="showReportIndex\(\)" aria-label="رجوع إلى فهرس التقارير"/);
-    ['reportViewIcon', 'reportViewTitle', 'reportViewMeta'].forEach(id => assert.ok(reportTab.includes('id="' + id + '"'), 'missing ' + id));
+    ['reportViewTitle', 'reportViewMeta'].forEach(id => assert.ok(reportTab.includes('id="' + id + '"'), 'missing ' + id));
     assert.match(reports, /function showReportIndex\(\)/);
     assert.match(reports, /function resetReportView\(\)/);
     assert.match(reports, /function renderReportViewBar\(tab\)/);
@@ -138,6 +141,7 @@ test('tapping an index row opens one report stage and back returns to the index'
     assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-stage-home \{ display: none; \}/, 'the empty stage gives way to the single report');
     assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-section-head \{ display: none; \}/, 'the header leaves the screen while a report is open');
     assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-view-bar \{ display: flex; \}/);
+    assert.match(css, /\.report-view-bar \{[^}]*border-bottom: 1px solid var\(--border-color\)/, 'the open bar is a plain toolbar row');
     assert.match(css, /#tab-reports\[data-report-view="panel"\] \{[^}]*grid-template-areas: "head head" "index bar" "index panel"/, 'the back bar and the open panel stack instead of overlapping');
     assert.match(css, /\.report-view-bar \{[\s\S]*?scroll-margin-top: 8rem;/, 'the sticky header must not swallow the back bar');
 });
@@ -298,7 +302,7 @@ test('the single report stage keeps guided steps and a live output status', () =
     assert.match(reports, /'--report-glyph'/, 'the open report also carries its sequence watermark');
     assert.match(reports, /window\.focusReportStep = focusReportStep/);
     assert.match(reports, /REPORT_OUTPUT_BUTTON_IDS\[tab\]/, 'the status reads the same output gate as the print and export buttons');
-    assert.match(css, /\.report-view-bar::after \{[\s\S]*?content: var\(--report-glyph/);
+    assert.doesNotMatch(css, /\.report-view-bar::after/, 'the open bar no longer wears a decorative sequence watermark');
     assert.match(css, /#tab-reports\[data-report-view="panel"\] \.report-panel > \.report-card-head \{ display: none; \}/, 'a panel must not repeat its title under the view bar');
     assert.match(css, /\.report-view-status\.is-ready::before \{ background: var\(--state-success\)/);
     assert.match(css, /\.report-view-status\.is-stale::before \{ background: var\(--state-warning\)/);
