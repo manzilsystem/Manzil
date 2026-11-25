@@ -999,6 +999,35 @@ function assistantNote(text) {
     return `<p class="assistant-note">${assistantEscape(text)}</p>`;
 }
 
+function parseAssistantReminderCommand(text) {
+    if (!assistantCanWrite()) return null;
+    const normalized = replaceAssistantNumberWords(normalizeAssistantArabic(String(text || '')));
+    if (!/^(?:(?:ابعت|ابعتلي|ارسل|بعت|جهز|جهزلي|جهز لي)\s+)?(?:تذكير|تذكيرات|ذكر|ذكرني)(?:\s|$)/.test(normalized)) return null;
+    if (/(?:المتاخرين|المتاخرات|الكل|كل الشقق|كل المتاخر)/.test(normalized) && !/(?:شقه|وحده)\s*\d/.test(normalized)) return { residentId: '' };
+    const match = resolveAssistantResident(text);
+    if (match.resident) return { residentId: match.resident.id };
+    if (match.matches.length > 1) return { ambiguous: true };
+    return { residentId: '' };
+}
+
+function buildAssistantReminderAnswer(request) {
+    if (request.ambiguous) {
+        return {
+            id: 'reminder-choice',
+            title: 'أي مالك؟',
+            html: assistantNote('في أكتر من مالك مطابق. حدد رقم الشقة، مثال: «ذكّر شقة 3».')
+        };
+    }
+    const resident = request.residentId ? (state.residents || []).find(item => item.id === request.residentId) : null;
+    const target = resident ? `شقة ${assistantEscape(String(resident.apartmentNumber || '—'))} · ${assistantEscape(resident.name || '')}` : 'كل المتأخرين';
+    return {
+        id: 'reminder-open-request',
+        title: 'تذكير المتأخرات',
+        html: assistantNote(`فتحت لك قائمة التذكيرات (${target}). اضغط «إرسال» جنب كل شقة ويفتح واتساب بالرسالة جاهزة، ولا يُرسل شيء قبل ما تضغط إرسال في واتساب.`),
+        reminderRequest: request
+    };
+}
+
 function parseAssistantNoticeCommand(text) {
     if (!assistantCanWrite()) return '';
     const raw = String(text || '').trim();
@@ -3278,6 +3307,8 @@ function answerAssistantQuery(text, now = new Date()) {
     }
     const operationFollowup = mergeAssistantOperationFollowup(text, now);
     if (operationFollowup) return withAssistantAnswerMeta(operationFollowup, resolveAssistantPeriod(text, now), assistantOperationDraft?.resident || null, text);
+    const reminderRequest = parseAssistantReminderCommand(text);
+    if (reminderRequest) return withAssistantAnswerMeta(buildAssistantReminderAnswer(reminderRequest), resolveAssistantPeriod(text, now), null, text);
     const noticeText = parseAssistantNoticeCommand(text);
     if (noticeText) return withAssistantAnswerMeta(buildAssistantNoticePreview(noticeText), resolveAssistantPeriod(text, now), null, text);
     const residentEntry = parseAssistantResidentEntryCommand(text);
@@ -3601,6 +3632,9 @@ function sendAssistantMessage(event, options = {}) {
             }).finally(() => setAssistantBusy(false));
         } else if (answer.id === 'operation-open-form-request') {
             openAssistantOperation();
+        } else if (answer.id === 'reminder-open-request') {
+            if (typeof closeModal === 'function') closeModal('assistantModal');
+            if (typeof openArrearsRemindersList === 'function') openArrearsRemindersList(answer.reminderRequest?.residentId || '');
         } else if (answer.id === 'reports-open-request') {
             const request = answer.reportRequest || {};
             openAssistantReportsRequest(request.tab || 'landlord', request.month || '', request.residentId || '');
