@@ -118,6 +118,35 @@ function showSettingsOverview() {
     document.getElementById('settingsModalTitle').innerHTML = '<i class="fa-solid fa-gear ml-2"></i> الإعدادات';
     syncSettingsWorkspace(null);
 }
+/** Phones: a section's sub-blocks become an accordion (first one open) so the screen stays short. */
+function setupSettingsAccordion(tab) {
+    const panel = document.getElementById('settings-panel-' + tab);
+    if (!panel || typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const blocks = /** @type {HTMLElement[]} */ ([...panel.querySelectorAll('.settings-subsection, .settings-payment-card')]);
+    if (blocks.length < 2 || panel.dataset.accordionReady === 'true') return;
+    panel.dataset.accordionReady = 'true';
+    blocks.forEach((block, index) => {
+        const head = /** @type {HTMLElement | null} */ (block.querySelector(':scope > .settings-subsection-heading, :scope > .settings-method-head'));
+        if (!head) return;
+        head.setAttribute('role', 'button');
+        head.setAttribute('tabindex', '0');
+        const set = open => {
+            block.classList.toggle('is-folded', !open);
+            head.setAttribute('aria-expanded', open ? 'true' : 'false');
+        };
+        const phone = () => window.matchMedia('(max-width: 639.98px)').matches;
+        set(index === 0 || !phone());
+        const toggle = () => { if (phone()) set(block.classList.contains('is-folded')); };
+        head.addEventListener('click', toggle);
+        head.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            toggle();
+        });
+        block.addEventListener('focusin', () => { if (block.classList.contains('is-folded')) set(true); });
+    });
+}
+
 function switchSettingsTab(tab) {
     if (!SETTINGS_TABS.includes(tab)) return;
     document.getElementById('settingsOverview')?.classList.add('hidden');
@@ -137,6 +166,7 @@ function switchSettingsTab(tab) {
         document.getElementById('settings-panel-' + name)?.classList.toggle('hidden', name !== tab);
     });
     syncSettingsWorkspace(tab);
+    setupSettingsAccordion(tab);
     document.getElementById('settings-content')?.scrollTo?.({ top: 0, behavior: 'auto' });
 }
 
