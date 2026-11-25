@@ -3696,6 +3696,11 @@ const REPORT_PDF_DOCUMENT_STYLE = '<style>' +
     '.manzil-pdf tbody tr:nth-child(even){background:' + REPORT_PDF_PALETTE.hairline + '}' +
     '.manzil-pdf th,.manzil-pdf td{font-variant-numeric:tabular-nums;vertical-align:middle}' +
     '.manzil-pdf section{break-inside:avoid}' +
+    '.manzil-pdf thead th{background:' + REPORT_PDF_PALETTE.rule + ';color:' + REPORT_PDF_PALETTE.surface + ';border-color:' + REPORT_PDF_PALETTE.rule + '}' +
+    '.manzil-pdf tfoot td{font-weight:700;border-top:2px solid ' + REPORT_PDF_PALETTE.rule + '}' +
+    '.manzil-pdf table.pdf-summary th{width:45%;font-weight:600}' +
+    '.manzil-pdf table.pdf-summary th,.manzil-pdf table.pdf-summary td{padding:4px 8px !important}' +
+    '.manzil-pdf table.pdf-summary th{background:' + REPORT_PDF_PALETTE.hairline + '}' +
     '</style>';
 
 function reportPdfDocumentOpen() {
@@ -3745,7 +3750,7 @@ function reportPdfTable(headers, bodyRows, footRow) {
 }
 
 function reportPdfSummaryTable(items) {
-    return '<table style="width:100%;border-collapse:collapse;font-size:11px"><tbody>' + renderPdfSummaryRows(items) + '</tbody></table>';
+    return '<table class="pdf-summary" style="width:100%;border-collapse:collapse;font-size:11px"><tbody>' + renderPdfSummaryRows(items) + '</tbody></table>';
 }
 
 function reportPdfEmptyRow(columns, message) {
@@ -4148,10 +4153,10 @@ function mountReportExportRoot(root) {
     stage.style.cssText = 'position:fixed;top:0;left:-10000px;pointer-events:none';
     stage.appendChild(root);
     document.body.appendChild(stage);
-    // html2canvas drops plain spaces between Arabic words in table cells; a no-break space survives.
+    // html2canvas drops plain spaces between Arabic words in table cells; a no-break space survives. Long text keeps normal spaces so it can wrap.
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-        if (/[\u0600-\u06FF]/.test(node.nodeValue || '')) node.nodeValue = (node.nodeValue || '').replace(/ /g, '\u00a0');
+        if ((node.nodeValue || '').length <= 28 && /[\u0600-\u06FF]/.test(node.nodeValue || '')) node.nodeValue = (node.nodeValue || '').replace(/ /g, '\u00a0');
     }
 }
 
