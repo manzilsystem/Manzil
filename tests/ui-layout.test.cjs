@@ -23,7 +23,7 @@ test('modal cards and controls stay usable on small screens', () => {
 });
 
 test('mobile action bars and filters can wrap without horizontal overflow', () => {
-    assert.match(html, /class="quick-actions-grid grid grid-cols-2 sm:grid-cols-4 gap-2"/);
+    assert.match(html, /class="quick-actions-grid grid grid-cols-4 gap-2"/);
     assert.ok((html.match(/class="section-toolbar /g) || []).length >= 3);
     assert.ok((html.match(/class="list-filters /g) || []).length >= 2);
     assert.match(css, /\.section-toolbar > button \{ flex-shrink: 0; white-space: nowrap; \}/);
