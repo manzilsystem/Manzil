@@ -60,10 +60,7 @@ declare function adjustmentsReportToExcelRows(report: any): { summary: any[][]; 
 declare function arrearsReportToExcelRows(report: any): { summary: any[][]; details: any[][] };
 
 // Reports - performance (js/reports/shared/performance.js)
-declare function memoize(fn: Function, maxSize?: number): any;
 declare function ensureChartJs(): Promise<boolean>;
-declare function isChartJsReady(): boolean;
-declare function clearAllReportCaches(): void;
 declare function clearReportModelCache(): void;
 declare function getCachedReportModel(cacheKey: string, builder: Function, invalidateChecker?: Function): any;
 
