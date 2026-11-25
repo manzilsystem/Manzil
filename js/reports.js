@@ -1121,6 +1121,12 @@ function initReportPreviewInteractions() {
     });
     if (typeof document.addEventListener === 'function') {
         document.addEventListener('click', event => {
+            const filtersToggle = /** @type {HTMLElement | null} */ (/** @type {Element | null} */ (event && event.target)?.closest?.('[data-report-filters-toggle]'));
+            if (filtersToggle) {
+                const open = filtersToggle.closest('.report-toolbar')?.classList.toggle('is-open') === true;
+                filtersToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                return;
+            }
             const target = /** @type {Element | null} */ (event && event.target);
             const toggle = /** @type {HTMLElement | null} */ (target?.closest?.('[data-report-block-toggle]'));
             if (!toggle) return;
