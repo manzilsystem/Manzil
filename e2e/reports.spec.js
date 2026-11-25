@@ -743,8 +743,8 @@ test('period report CSV downloads the range with a totals row', async ({ page })
     const chunks = [];
     for await (const chunk of stream) chunks.push(chunk);
     const csv = Buffer.concat(chunks).toString('utf8');
-    expect(csv).toContain('"يناير 2024","100","100","0","100","0","100"');
-    expect(csv).toContain('"الإجمالي","200","1000","0","500","0","1000"');
+    expect(csv).toContain('"يناير 2024","100","100","0","100","0","0","100"');
+    expect(csv).toContain('"الإجمالي","200","1000","0","500","0","0","1000"');
     expect(csv).toContain('"طريقة التحصيل","عدد الحركات","المبلغ","نسبته من المحصّل %"');
     expect(csv).toContain('"نقدًا","2","1000","100"');
 });
