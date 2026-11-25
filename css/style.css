@@ -5421,3 +5421,8 @@ body.owner-mode .owner-theme-control {
     .dashboard-kpis > .app-card { padding: var(--space-75); }
     .dashboard-kpis .dashboard-balance { padding: var(--space-75) var(--space-85); }
 }
+
+@media screen and (max-width: 639.98px) {
+    .report-section-rail { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+    .report-section-rail > * { flex: 0 0 auto; }
+}

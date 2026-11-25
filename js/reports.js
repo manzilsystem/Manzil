@@ -1048,6 +1048,21 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 // داخل المعاينة نفسها: فهرس سريع يقفز إلى كل جدول، وزر طيّ لكل قسم حتى يبقى
 // التقرير الطويل قابلًا للمسح دون فقدان الترويسة أو أزرار الإخراج. الطيّ عرضي
 // فقط؛ قواعد الطباعة تُظهر كل الأقسام مهما كانت حالة الزر على الشاشة.
+/** @param {HTMLElement} block @param {boolean} collapsed */
+function setReportBlockCollapsed(block, collapsed) {
+    block.classList.toggle('is-collapsed', collapsed);
+    const toggle = block.querySelector('[data-report-block-toggle]');
+    if (!toggle) return;
+    const title = (block.querySelector('.report-block-title')?.textContent || '').replace(/\s+/g, ' ').trim() || 'القسم';
+    toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    toggle.setAttribute('aria-label', (collapsed ? 'إظهار' : 'طي') + ' قسم ' + title);
+    toggle.setAttribute('title', collapsed ? 'إظهار القسم' : 'طي القسم');
+}
+
+function isReportPhoneView() {
+    return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 639.98px)').matches;
+}
+
 function enhanceReportPreviews(root = document) {
     if (!root || typeof root.querySelectorAll !== 'function') return;
     const flows = /** @type {HTMLElement[]} */ ([...root.querySelectorAll('.report-preview-flow')]);
@@ -1067,6 +1082,7 @@ function enhanceReportPreviews(root = document) {
         const kpi = flow.querySelector(':scope > .report-stats');
         if (kpi) kpi.after(rail);
         else flow.prepend(rail);
+        if (isReportPhoneView()) blocks.slice(1).forEach(block => setReportBlockCollapsed(block, true));
 
         rail.querySelectorAll('[data-report-section-jump]').forEach(button => {
             button.addEventListener('click', () => {
@@ -1076,6 +1092,7 @@ function enhanceReportPreviews(root = document) {
                 rail.querySelectorAll('[data-report-section-jump]').forEach(item =>
                     item.classList.toggle('is-active', item === button));
                 if (!target) return;
+                setReportBlockCollapsed(target, false);
                 target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 target.classList.remove('report-focus-flash');
                 void target.offsetWidth;
@@ -1089,6 +1106,7 @@ function initReportPreviewInteractions() {
     if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
     runReportQualityCheck();
     enhanceReportPreviews(document);
+
     renderReportFilterSummaries();
     const reportFilterIds = new Set(Object.values(REPORT_FILTER_DESCRIPTORS).flatMap(descriptors => descriptors.map(descriptor => descriptor.id)));
     document.addEventListener('change', event => {
