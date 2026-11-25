@@ -493,7 +493,10 @@ test('typographic scale resolves consistently across themes and print', async ({
         for (const selector of list) {
             const element = document.querySelector(selector);
             if (!element) continue;
-            values[selector] = getComputedStyle(element).fontSize;
+            // Sizes are compared in rem (px divided by the root size): phones use a larger
+            // root size on screen, print keeps the normal one, and the scale must still match.
+            const root = parseFloat(getComputedStyle(document.documentElement).fontSize);
+            values[selector] = Math.round((parseFloat(getComputedStyle(element).fontSize) / root) * 1000) / 1000;
         }
         return values;
     }, selectors);
@@ -501,7 +504,7 @@ test('typographic scale resolves consistently across themes and print', async ({
     const found = Object.keys(baseline);
     expect(found.length).toBeGreaterThanOrEqual(3);
     for (const selector of found) {
-        expect(baseline[selector]).toMatch(/^[1-9]\d*(\.\d+)?px$/);
+        expect(baseline[selector]).toBeGreaterThan(0);
     }
     for (const theme of ['light', 'emerald', 'ocean', 'sand', 'turquoise']) {
         await page.evaluate(value => applyThemeToDocument(value), theme);
