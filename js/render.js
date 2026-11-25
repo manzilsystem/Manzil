@@ -196,6 +196,8 @@ function renderArrearsReport() {
         }),
         renderSheetBlock('تفاصيل الأشهر غير المسددة', ['الشقة والمالك', 'الشهر', 'مدة التأخير', 'المبلغ'], detailRows, {
             empty: 'لا توجد أشهر غير مسددة.', numeric: [3],
+            // القائمة الطويلة تبدأ مطوية على الشاشة (الملخص أعلاها يكفي)؛ الطباعة تعرضها كاملة.
+            collapsed: detailRows.length > 12,
             foot: ['الإجمالي', fmtNum(report.overdueMonths) + ' شهر', '—', money(report.totalDebt)]
         }),
         renderChartFoldContainer('arrearsChartContainer', 'التصور البياني - أعلى الشقق مديونية', {
