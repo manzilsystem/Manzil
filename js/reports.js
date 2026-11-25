@@ -1634,7 +1634,7 @@ async function exportLandlordReportPdf() {
         root.lang = 'ar';
         root.style.cssText = reportExportRootCss();
         root.innerHTML = renderLandlordReportPdfHtml(landlordReportMonth, landlordReportPurposeFilter, landlordReportCashAccountFilter, landlordReportPaymentMethodFilter, landlordReportResidentFilter);
-        document.body.appendChild(root);
+        mountReportExportRoot(root);
 
         if (reportExportMode === 'image') {
             await saveReportRootAsImages(root, filename);
@@ -1668,7 +1668,7 @@ async function exportLandlordReportPdf() {
         console.error('Landlord report PDF export failed:', error);
         toast('تعذر إنشاء PDF. تحقق من الاتصال ثم أعد المحاولة.', 'error');
     } finally {
-        if (root) root.remove();
+        if (root) removeReportExportRoot(root);
         if (button && landlordReportMonth) setLandlordReportActionsEnabled(true);
     }
 }
@@ -4133,7 +4133,28 @@ function reportExportPaper() {
 function reportExportRootCss() {
     const paper = reportExportPaper();
     const width = paper.w - 2 * REPORT_EXPORT_MARGIN_MM + (paper.key === 'A4' ? 2 : 0);
-    return 'position:fixed;top:0;left:0;width:' + width + 'mm;padding:' + REPORT_EXPORT_MARGIN_MM + 'mm;box-sizing:border-box;background:' + REPORT_PDF_PALETTE.surface + ';z-index:-1';
+    return 'width:' + width + 'mm;padding:' + REPORT_EXPORT_MARGIN_MM + 'mm;box-sizing:border-box;background:' + REPORT_PDF_PALETTE.surface + ';z-index:-1';
+}
+
+/**
+ * The sheet sits in normal flow inside an off-screen stage: html2pdf measures a copy of it,
+ * and a position:fixed sheet measures as zero height (blank output).
+ * @param {HTMLElement} root
+ */
+function mountReportExportRoot(root) {
+    const stage = document.createElement('div');
+    stage.dataset.reportExportStage = 'true';
+    stage.setAttribute('aria-hidden', 'true');
+    stage.style.cssText = 'position:fixed;top:0;left:-10000px;pointer-events:none';
+    stage.appendChild(root);
+    document.body.appendChild(stage);
+}
+
+/** @param {HTMLElement} root */
+function removeReportExportRoot(root) {
+    const stage = root.parentElement;
+    root.remove();
+    if (stage && stage.dataset && stage.dataset.reportExportStage) stage.remove();
 }
 
 function reportExportJsPdfOptions() {
@@ -4203,7 +4224,7 @@ async function saveReportRootAsImages(root, pdfFilename) {
     await /** @type {any} */ (window).html2pdf().set({
         margin: REPORT_EXPORT_MARGIN_MM,
         jsPDF: reportExportJsPdfOptions(),
-        html2canvas: { scale, useCORS: true, backgroundColor: REPORT_PDF_PALETTE.surface, logging: false }
+        html2canvas: { scale, useCORS: true, backgroundColor: REPORT_PDF_PALETTE.surface, logging: false, scrollX: 0, scrollY: 0 }
     }).from(root).toCanvas().then(function () { canvas = this.prop.canvas; });
     if (!canvas || !canvas.width || !canvas.height) throw new Error('report_image_generation_failed');
     const base = pdfFilename.replace(/\.pdf$/i, '');
@@ -4265,7 +4286,7 @@ async function downloadStatementPdf(html, filename, buttonId, successMessage, lo
         root.lang = 'ar';
         root.style.cssText = reportExportRootCss();
         root.innerHTML = html;
-        document.body.appendChild(root);
+        mountReportExportRoot(root);
 
         if (reportExportMode === 'image') {
             await saveReportRootAsImages(root, filename);
@@ -4299,7 +4320,7 @@ async function downloadStatementPdf(html, filename, buttonId, successMessage, lo
         console.error(logLabel, error);
         toast('تعذر إنشاء PDF. تحقق من الاتصال ثم أعد المحاولة.','error');
     } finally {
-        if (root) root.remove();
+        if (root) removeReportExportRoot(root);
         if (button && isPreviewValid()) /** @type {HTMLButtonElement} */ (button).disabled = false;
     }
 }
