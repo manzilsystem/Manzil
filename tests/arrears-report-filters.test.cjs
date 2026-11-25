@@ -79,6 +79,9 @@ test('arrears UI exposes apartment, period, and status filters and exports the f
     for (const id of ['arrearsApartmentFilter', 'arrearsFromMonth', 'arrearsToMonth', 'arrearsStatusFilter']) {
         assert.ok(html.includes(`id="${id}"`), id);
     }
+    assert.match(html, /<select id="arrearsFromMonth"[^>]*>\s*<option value="">كل الفترات<\/option>/);
+    assert.match(html, /<select id="arrearsToMonth"[^>]*>\s*<option value="">كل الفترات<\/option>/);
+    assert.match(render, /function populateArrearsMonthSelects/);
     assert.match(render, /function getArrearsReportFilters/);
     assert.match(reports, /buildArrearsReport\(getArrearsReportFilters\(\)\)/);
 });
