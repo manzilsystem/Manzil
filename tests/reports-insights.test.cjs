@@ -27,6 +27,15 @@ const MS_PER_DAY = 86400000;
 
 function loadInsights(overrides = {}) {
     const elements = {
+        paymentMethodsFromMonth: { value: '' },
+        paymentMethodsToMonth: { value: '' },
+        paymentMethodsMethod: { value: '' },
+        paymentMethodsPreview: { innerHTML: '', dataset: {} },
+        insightsPaymentMethodsChartContainer: {},
+        paymentMethodsPrintBtn: { disabled: true },
+        paymentMethodsPdfBtn: { disabled: true },
+        paymentMethodsCsvBtn: { disabled: true },
+        paymentMethodsExcelBtn: { disabled: true },
         expenseVarianceMonth: { value: '' },
         expenseVarianceCategory: { value: '' },
         expenseVariancePreview: { innerHTML: '', dataset: {} },
@@ -111,6 +120,7 @@ function loadInsights(overrides = {}) {
             return Math.floor((current.getTime() - deadline.getTime()) / MS_PER_DAY) + 1;
         },
         getIncomePurposeFormCode: purpose => (purpose === 'subscription' ? 'subscription' : 'other'),
+        getIncomePaymentMethodLabel: method => ({ cash: 'نقدًا', wallet: 'محفظة إلكترونية', instapay: 'InstaPay', bank_transfer: 'تحويل بنكي' }[method] || 'غير محدد'),
         formatApartmentLabel: value => `شقة ${String(value ?? '').trim()}`,
         formatDate: value => String(value || '').slice(0, 10),
         requireManager: () => true,
@@ -131,10 +141,13 @@ function loadInsights(overrides = {}) {
     const api = vm.runInNewContext(
         `${reportsSource}\n${insightsSource}\n({
             REPORT_TABS, REPORT_PANEL_IDS, REPORT_OUTPUT_BUTTON_IDS, REPORT_FILTER_DESCRIPTORS,
-            buildPayerBehaviorReport, buildExpenseVarianceReport, getPayerBehaviorSignature, generatePayerBehaviorReport,
+            buildPayerBehaviorReport, buildExpenseVarianceReport, buildPaymentMethodsReport, getPayerBehaviorSignature, generatePayerBehaviorReport,
             generateExpenseVarianceReport, getSelectedExpenseVarianceSnapshot, expenseVarianceCsvRows,
             invalidateExpenseVariancePreview, printExpenseVarianceReport,
             exportExpenseVarianceCsv, exportExpenseVarianceExcel, exportExpenseVariancePdf,
+            generatePaymentMethodsReport, getSelectedPaymentMethodsSnapshot, paymentMethodsCsvRows,
+            invalidatePaymentMethodsPreview, printPaymentMethodsReport,
+            exportPaymentMethodsCsv, exportPaymentMethodsExcel, exportPaymentMethodsPdf,
             getSelectedPayerBehaviorSnapshot, invalidatePayerBehaviorPreview, invalidatePayerBehaviorIfStale,
             payerBehaviorCsvRows, renderPayerBehaviorHtml, renderPayerBehaviorPdfHtml,
             printPayerBehaviorReport, exportPayerBehaviorCsv, exportPayerBehaviorExcel, exportPayerBehaviorPdf,
@@ -425,4 +438,115 @@ test('expense variance filter change invalidates the preview and the clear resto
     api.clearInsightsFilters('expenseVariance');
     assert.equal(elements.expenseVarianceCategory.value, '');
     assert.equal(api.getSelectedExpenseVarianceSnapshot(), null);
+});
+
+test('payment methods split totals each method share within the period', () => {
+    const { api } = loadInsights({
+        income: [
+            { id: 'p1', residentId: 'r1', month: 'يناير 2025', amount: 100, purposeCode: 'subscription', paymentMethod: 'cash', date: '2025-01-05T12:00:00' },
+            { id: 'p2', residentId: 'r2', month: 'يناير 2025', amount: 200, purposeCode: 'subscription', paymentMethod: 'instapay', date: '2025-01-06T12:00:00' },
+            { id: 'p3', residentId: 'r3', month: 'فبراير 2025', amount: 100, purposeCode: 'subscription', paymentMethod: 'cash', date: '2025-02-05T12:00:00' },
+            { id: 'p4', residentId: 'r3', month: 'فبراير 2025', amount: 600, purposeCode: 'services', paymentMethod: 'wallet', date: '2025-02-07T12:00:00' },
+            { id: 'out', residentId: 'r1', month: 'ديسمبر 2023', amount: 999, purposeCode: 'subscription', paymentMethod: 'cash', date: '2023-12-05T12:00:00' }
+        ]
+    });
+    const report = api.buildPaymentMethodsReport('يناير 2025', 'فبراير 2025');
+    assert.equal(report.totals.cents, 100000);
+    assert.equal(report.totals.count, 4);
+    assert.equal(report.rows.length, 3);
+    assert.equal(report.rows[0].code, 'wallet');
+    assert.equal(report.rows[0].pct, 60);
+    const cash = report.rows.find(row => row.code === 'cash');
+    assert.equal(cash.cents, 20000);
+    assert.equal(cash.pct, 20);
+    assert.equal(report.months.length, 2);
+    assert.equal(report.months[0].label, 'يناير 2025');
+    assert.equal(report.months[0].byMethod.cash, 10000);
+    assert.equal(report.months[1].byMethod.wallet, 60000);
+    assert.equal(report.totals.topMethod, 'محفظة إلكترونية');
+    assert.equal(report.totals.topPct, 60);
+});
+
+test('payment methods method filter narrows the split and defaults to 6 months back', () => {
+    const { api } = loadInsights({
+        income: [
+            { id: 'p1', residentId: 'r1', month: 'فبراير 2024', amount: 100, purposeCode: 'subscription', paymentMethod: 'cash', date: '2024-02-05T12:00:00' },
+            { id: 'p2', residentId: 'r2', month: 'مارس 2024', amount: 50, purposeCode: 'subscription', paymentMethod: 'instapay', date: '2024-03-05T12:00:00' },
+            { id: 'old', residentId: 'r1', month: 'أغسطس 2023', amount: 700, purposeCode: 'subscription', paymentMethod: 'cash', date: '2023-08-05T12:00:00' }
+        ]
+    });
+    // الشهر الحالي في بيئة الاختبار مارس 2024: الافتراضي من أكتوبر 2023 إلى مارس 2024
+    const report = api.buildPaymentMethodsReport();
+    assert.equal(report.fromKey, '2023-10-01');
+    assert.equal(report.toKey, '2024-03-01');
+    assert.equal(report.totals.cents, 15000);
+    const cashOnly = api.buildPaymentMethodsReport('', '', 'cash');
+    assert.equal(cashOnly.rows.length, 1);
+    assert.equal(cashOnly.totals.cents, 10000);
+    assert.equal(api.buildPaymentMethodsReport('مارس 2024', 'يناير 2024'), null);
+});
+
+const PAYMENT_FIXTURE = [
+    { id: 'p1', residentId: 'r1', month: 'يناير 2025', amount: 100, purposeCode: 'subscription', paymentMethod: 'cash', date: '2025-01-05T12:00:00' },
+    { id: 'p2', residentId: 'r2', month: 'يناير 2025', amount: 200, purposeCode: 'subscription', paymentMethod: 'instapay', date: '2025-01-06T12:00:00' },
+    { id: 'p3', residentId: 'r3', month: 'فبراير 2025', amount: 100, purposeCode: 'subscription', paymentMethod: 'cash', date: '2025-02-05T12:00:00' },
+    { id: 'p4', residentId: 'r3', month: 'فبراير 2025', amount: 600, purposeCode: 'services', paymentMethod: 'wallet', date: '2025-02-07T12:00:00' }
+];
+
+test('payment methods preview renders shares and monthly split, then exports csv, excel, pdf and print', async () => {
+    const { api, elements, calls } = loadInsights({ income: PAYMENT_FIXTURE });
+    elements.paymentMethodsFromMonth.value = 'يناير 2025';
+    elements.paymentMethodsToMonth.value = 'فبراير 2025';
+    api.generatePaymentMethodsReport();
+    const snapshot = api.getSelectedPaymentMethodsSnapshot();
+    assert.equal(snapshot.totals.cents, 100000);
+    assert.match(elements.paymentMethodsPreview.innerHTML, /تقرير توزيع طرق الدفع/);
+    assert.match(elements.paymentMethodsPreview.innerHTML, /محفظة إلكترونية/);
+    assert.match(elements.paymentMethodsPreview.innerHTML, /التوزيع الشهري/);
+    assert.match(elements.paymentMethodsPreview.innerHTML, /60%/);
+    assert.equal(elements.paymentMethodsPrintBtn.disabled, false);
+    api.exportPaymentMethodsCsv();
+    assert.equal(calls.downloads.length, 1);
+    assert.equal(calls.downloads[0].filename, 'manzil_payment_methods_2025-01_2025-02.csv');
+    const header = [...calls.downloads[0].rows.find(row => row[0] === 'طريقة الدفع')];
+    assert.deepEqual(header, ['طريقة الدفع', 'عدد التحصيلات', 'المبلغ', 'الحصة %']);
+    const wallet = [...calls.downloads[0].rows.find(row => row[0] === 'محفظة إلكترونية')];
+    assert.deepEqual(wallet.slice(1), [1, 600, 60]);
+    api.exportPaymentMethodsExcel();
+    assert.equal(calls.excels.length, 1);
+    assert.equal(calls.excels[0].sheets.length, 2);
+    await api.exportPaymentMethodsPdf();
+    assert.equal(calls.pdfs.length, 1);
+    assert.match(calls.pdfs[0].html, /توزيع طرق الدفع/);
+    assert.equal(calls.pdfs[0].filename, 'manzil_payment_methods_2025-01_2025-02.pdf');
+    api.printPaymentMethodsReport();
+    assert.equal(calls.printed, true);
+});
+
+test('payment methods filter change invalidates the preview and the clear restores it', () => {
+    const { api, elements } = loadInsights({ income: PAYMENT_FIXTURE });
+    elements.paymentMethodsFromMonth.value = 'يناير 2025';
+    elements.paymentMethodsToMonth.value = 'فبراير 2025';
+    api.generatePaymentMethodsReport();
+    assert.ok(api.getSelectedPaymentMethodsSnapshot());
+    elements.paymentMethodsMethod.value = 'cash';
+    api.invalidatePaymentMethodsPreview();
+    assert.equal(api.getSelectedPaymentMethodsSnapshot(), null);
+    assert.match(elements.paymentMethodsPreview.innerHTML, /معاينة/);
+    api.generatePaymentMethodsReport();
+    const snapshot = api.getSelectedPaymentMethodsSnapshot();
+    assert.equal(snapshot.rows.length, 1);
+    assert.equal(snapshot.rows[0].code, 'cash');
+    api.clearInsightsFilters('paymentMethods');
+    assert.equal(elements.paymentMethodsMethod.value, '');
+    assert.equal(api.getSelectedPaymentMethodsSnapshot(), null);
+});
+
+test('payment methods reversed period shows an error instead of a snapshot', () => {
+    const { api, elements } = loadInsights({ income: PAYMENT_FIXTURE });
+    elements.paymentMethodsFromMonth.value = 'فبراير 2025';
+    elements.paymentMethodsToMonth.value = 'يناير 2025';
+    api.generatePaymentMethodsReport();
+    assert.equal(api.getSelectedPaymentMethodsSnapshot(), null);
+    assert.match(elements.paymentMethodsPreview.innerHTML, /تعذر بناء التقرير/);
 });

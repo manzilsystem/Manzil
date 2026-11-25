@@ -143,3 +143,60 @@ test('expense variance csv downloads with a month-based filename', async ({ page
     await page.locator('#expenseVarianceCsvBtn').click();
     expect((await csvDownload).suggestedFilename()).toBe('manzil_expense_variance_2026-11.csv');
 });
+
+async function openReportsWithPayments(page) {
+    await loadShell(page);
+    await page.waitForFunction(() => typeof window.switchTab === 'function' && typeof renderAll === 'function');
+    await page.evaluate(() => {
+        window.currentUserRole = 'manager';
+        document.body.classList.remove('session-locked', 'modal-open', 'owner-mode');
+        document.getElementById('pinLockModal').classList.add('hidden');
+        state.buildingName = 'عمارة الاختبار';
+        state.managerName = 'مدير الاختبار';
+        state.residents = [
+            { id: 'r1', name: 'أحمد', apartmentNumber: '3', monthlyAmount: 100, createdAt: '2026-05-01T00:00:00.000Z' }
+        ];
+        state.income = [
+            { id: 'p1', residentId: 'r1', month: 'أكتوبر 2026', amount: 100, purposeCode: 'subscription', paymentMethod: 'cash', date: '2026-10-05T12:00:00' },
+            { id: 'p2', residentId: 'r1', month: 'أكتوبر 2026', amount: 200, purposeCode: 'subscription', paymentMethod: 'instapay', date: '2026-10-06T12:00:00' },
+            { id: 'p3', residentId: 'r1', month: 'نوفمبر 2026', amount: 100, purposeCode: 'subscription', paymentMethod: 'cash', date: '2026-11-05T12:00:00' },
+            { id: 'p4', residentId: 'r1', month: 'نوفمبر 2026', amount: 600, purposeCode: 'services', paymentMethod: 'wallet', date: '2026-11-07T12:00:00' }
+        ];
+        state.expenses = [];
+        renderAll();
+        switchTab('reports');
+    });
+    await expect(page.locator('#tab-reports')).toBeVisible();
+}
+
+test('payment methods report: preview, shares, monthly split and stale guard', async ({ page }) => {
+    await openReportsWithPayments(page);
+    await openReportPanel(page, 'paymentMethods');
+    await expect(page.locator('#paymentMethodsPanel')).toBeVisible();
+    await page.locator('#paymentMethodsPanel').getByRole('button', { name: 'معاينة', exact: true }).click();
+    const preview = page.locator('#paymentMethodsPreview');
+    await expect(preview.locator('.sheet-table').first()).toBeVisible({ timeout: 15000 });
+    await expect(preview).toContainText('حصة كل طريقة');
+    await expect(preview).toContainText('محفظة إلكترونية');
+    await expect(preview).toContainText('60%');
+    await expect(preview).toContainText('التوزيع الشهري');
+    await expect(page.locator('#paymentMethodsPrintBtn')).toBeEnabled();
+    await expect(page.locator('#paymentMethodsCsvBtn')).toBeEnabled();
+    await expect(page.locator('[data-report-nav="paymentMethods"]')).toHaveClass(/is-ready/);
+    // تغيير طريقة الدفع يعطل التصدير حتى معاينة جديدة
+    await page.locator('#paymentMethodsMethod').selectOption('cash');
+    await expect(page.locator('#paymentMethodsPrintBtn')).toBeDisabled();
+    await page.locator('#paymentMethodsPanel').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await expect(preview).toContainText('نقدًا');
+    await expect(preview).not.toContainText('محفظة إلكترونية');
+});
+
+test('payment methods csv downloads with a period-based filename', async ({ page }) => {
+    await openReportsWithPayments(page);
+    await openReportPanel(page, 'paymentMethods');
+    await page.locator('#paymentMethodsPanel').getByRole('button', { name: 'معاينة', exact: true }).click();
+    await expect(page.locator('#paymentMethodsCsvBtn')).toBeEnabled({ timeout: 15000 });
+    const csvDownload = page.waitForEvent('download');
+    await page.locator('#paymentMethodsCsvBtn').click();
+    expect((await csvDownload).suggestedFilename()).toBe('manzil_payment_methods_2026-06_2026-11.csv');
+});
