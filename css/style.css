@@ -646,6 +646,21 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-index-item.is-stale .report-index-state { color: var(--state-warning); }
 .report-index-item.is-stale .report-index-state::before { background: var(--state-warning); }
 
+/* Phones: index cards become compact rows (title + one-line hint, status on the side) so the list scrolls far less. */
+@media (max-width: 639.98px) {
+    .report-index-grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-45); }
+    .report-index-item {
+        grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "icon copy state";
+        align-items: center; padding: var(--space-65) var(--space-80); gap: var(--space-65);
+    }
+    .report-index-icon { inline-size: 2rem; block-size: 2rem; font-size: var(--font-85); }
+    .report-index-copy { gap: var(--space-15); }
+    .report-index-copy small { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; line-height: var(--leading-140); }
+    .report-index-open, .report-index-badge { display: none; }
+    .report-index-state { justify-self: end; }
+    .report-index-group { gap: var(--space-45); }
+}
+
 .report-stage-home {
     grid-area: stage; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
     gap: var(--space-40); min-height: calc(var(--space-600) * 3); padding: var(--space-150);
