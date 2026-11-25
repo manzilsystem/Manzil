@@ -441,6 +441,96 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     white-space: nowrap;
 }
 .cash-account-tag i { color: var(--accent-color); font-size: var(--font-60); }
+
+/* Cashbox tab: report-style head, stat cards, fund movement rows and lists.
+   Scoped to #tab-cashbox so report e2e counts and other tabs stay untouched. */
+.cashbox-tone-indigo { --cashbox-tone: var(--indigo-bright); --cashbox-tone-soft: var(--indigo-soft); --cashbox-tone-line: var(--indigo-line); }
+.cashbox-tone-emerald { --cashbox-tone: var(--state-success); --cashbox-tone-soft: var(--state-success-soft); --cashbox-tone-line: var(--state-success-line); }
+.cashbox-tone-amber { --cashbox-tone: var(--state-warning); --cashbox-tone-soft: var(--state-warning-soft); --cashbox-tone-line: var(--state-warning-line); }
+.cashbox-tone-rose { --cashbox-tone: var(--state-danger); --cashbox-tone-soft: var(--state-danger-soft); --cashbox-tone-line: var(--state-danger-line); }
+.cashbox-tone-sky { --cashbox-tone: var(--state-info); --cashbox-tone-soft: var(--state-info-soft); --cashbox-tone-line: var(--state-info-line); }
+.cashbox-head { display: flex; flex-direction: column; gap: var(--space-25); padding: var(--space-15) var(--space-20) var(--space-none); }
+.cashbox-eyebrow { color: var(--text-muted); font-size: var(--font-62); font-weight: var(--weight-700); letter-spacing: var(--tracking-2); }
+.cashbox-title { display: flex; align-items: center; gap: var(--space-50); font-size: var(--font-112); font-weight: var(--weight-900); line-height: var(--leading-135); }
+.cashbox-title i { color: var(--accent-color); font-size: var(--font-100); }
+.cashbox-subtitle { max-width: 56ch; color: var(--text-muted); font-size: var(--font-72); line-height: var(--leading-175); }
+.cashbox-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-50); }
+@media (min-width: 900px) { .cashbox-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-65); } }
+.cashbox-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-65); align-items: start; }
+@media (min-width: 900px) { .cashbox-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.cashbox-rows-scroll { max-height: 18rem; overflow-y: auto; overscroll-behavior: contain; }
+@media (max-width: 639px) { .cashbox-metric { padding: var(--space-30); } .cashbox-fund { padding: var(--space-55); gap: var(--space-40); } .cashbox-stat-note, .cashbox-subtitle, .cashbox-card-subtitle, .cashbox-footnote, .cashbox-fund-transfers { display: none; } .cashbox-stat { padding: var(--space-65); gap: var(--space-30); } .cashbox-stat-value { font-size: var(--font-110); } .cashbox-stat-icon { display: none; } .cashbox-card { padding: var(--space-85); } }
+.cashbox-stat {
+    display: flex; flex-direction: column; gap: var(--space-40); min-width: 0;
+    padding: var(--space-85); border: 1px solid var(--border-color); border-radius: var(--radius-90);
+    background: color-mix(in srgb, var(--bg-card) 55%, var(--bg-input));
+}
+.cashbox-stat-top { display: flex; align-items: center; gap: var(--space-55); min-width: 0; }
+.cashbox-stat-icon {
+    display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+    width: 2.3rem; height: 2.3rem; border-radius: var(--radius-80);
+    border: 1px solid var(--cashbox-tone-line, var(--border-color));
+    background: var(--cashbox-tone-soft, var(--bg-input));
+    color: var(--cashbox-tone, var(--accent-color)); font-size: var(--font-95);
+}
+.cashbox-stat-label { color: var(--text-muted); font-size: var(--font-72); font-weight: var(--weight-700); line-height: var(--leading-150); }
+.cashbox-stat-value { color: var(--cashbox-tone, var(--text-main)); font-size: var(--font-140); font-weight: var(--weight-900); line-height: var(--leading-135); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.cashbox-stat-note { color: var(--text-muted); font-size: var(--font-70); line-height: var(--leading-160); }
+.cashbox-card { display: flex; flex-direction: column; gap: var(--space-75); }
+.cashbox-card-head { display: flex; align-items: flex-start; flex-wrap: wrap; gap: var(--space-65); }
+.cashbox-card-icon {
+    display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+    width: 2.3rem; height: 2.3rem; border-radius: var(--radius-80);
+    border: 1px solid var(--cashbox-tone-line, var(--border-color));
+    background: var(--cashbox-tone-soft, var(--bg-input));
+    color: var(--cashbox-tone, var(--accent-color)); font-size: var(--font-95);
+}
+.cashbox-card-heading { flex: 1 1 12rem; min-width: 0; }
+.cashbox-card-title { font-size: var(--font-90); font-weight: var(--weight-800); line-height: var(--leading-140); }
+.cashbox-card-subtitle { margin-top: var(--space-20); color: var(--text-muted); font-size: var(--font-70); line-height: var(--leading-170); }
+.cashbox-select { flex: 0 0 auto; max-width: 100%; }
+.cashbox-rows { display: flex; flex-direction: column; gap: var(--space-55); }
+.cashbox-fund {
+    display: flex; flex-direction: column; gap: var(--space-55); min-width: 0;
+    padding: var(--space-70) var(--space-75); border: 1px solid var(--border-color);
+    border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-input) 55%, transparent);
+}
+.cashbox-fund-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-55); }
+.cashbox-fund-name { display: inline-flex; align-items: center; gap: var(--space-45); font-size: var(--font-78); font-weight: var(--weight-800); }
+.cashbox-fund-dot { inline-size: .55rem; block-size: .55rem; border-radius: var(--radius-circle); background: var(--cashbox-tone, var(--accent-color)); }
+.cashbox-fund-net { font-size: var(--font-90); font-weight: var(--weight-900); font-variant-numeric: tabular-nums; }
+.cashbox-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-50); }
+.cashbox-metric {
+    display: flex; flex-direction: column; align-items: center; gap: var(--space-15); min-width: 0;
+    padding: var(--space-45) var(--space-40); border: 1px solid var(--border-color);
+    border-radius: var(--radius-75); background: color-mix(in srgb, var(--bg-card) 60%, transparent); text-align: center;
+}
+.cashbox-metric-value { font-size: var(--font-85); font-weight: var(--weight-800); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.cashbox-metric-label { color: var(--text-muted); font-size: var(--font-70); font-weight: var(--weight-700); }
+.cashbox-fund-transfers { color: var(--text-muted); font-size: var(--font-70); line-height: var(--leading-160); }
+.cashbox-footnote { padding-top: var(--space-55); border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: var(--font-70); line-height: var(--leading-170); }
+.cashbox-row {
+    display: flex; align-items: center; gap: var(--space-65); min-width: 0;
+    padding: var(--space-60) var(--space-75); border: 1px solid var(--border-color);
+    border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-input) 55%, transparent);
+}
+.cashbox-row-icon {
+    display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+    width: 2rem; height: 2rem; border-radius: var(--radius-70);
+    border: 1px solid var(--cashbox-tone-line, var(--border-color));
+    background: var(--cashbox-tone-soft, var(--bg-input));
+    color: var(--cashbox-tone, var(--accent-color)); font-size: var(--font-80);
+}
+.cashbox-row-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: var(--space-15); }
+.cashbox-row-title { font-size: var(--font-75); font-weight: var(--weight-700); line-height: var(--leading-150); overflow-wrap: anywhere; }
+.cashbox-row-sub { color: var(--text-muted); font-size: var(--font-70); line-height: var(--leading-160); overflow-wrap: anywhere; }
+.cashbox-row-amount { flex: 0 0 auto; font-size: var(--font-80); font-weight: var(--weight-800); font-variant-numeric: tabular-nums; }
+.cashbox-empty { padding: var(--space-85) var(--space-60); color: var(--text-muted); font-size: var(--font-72); text-align: center; }
+.cashbox-form { display: flex; flex-direction: column; gap: var(--space-65); }
+.cashbox-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-55); }
+.cashbox-field { display: flex; flex-direction: column; gap: var(--space-25); min-width: 0; }
+.cashbox-field-wide { grid-column: 1 / -1; }
+.cashbox-field-label { color: var(--text-muted); font-size: var(--font-72); font-weight: var(--weight-700); }
 .report-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-75); min-width: 0; }
 .report-card-heading { display: flex; align-items: flex-start; gap: var(--space-65); min-width: 0; }
 .report-card-icon {

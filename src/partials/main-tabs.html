@@ -208,71 +208,96 @@
 
         <!-- CASHBOX -->
         <section id="tab-cashbox" class="hidden space-y-4">
-            <div class="app-card p-5 rounded-3xl border space-y-2">
-                <h2 class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-vault text-indigo-400"></i> الخزنة والصناديق</h2>
-                <p class="text-xs text-slate-400">رصيد كل صندوق مستقل. اختر الصندوق وقت التحصيل ليصل المبلغ إليه مباشرة، والتحويلات الداخلية لا تُحسب إيرادًا أو مصروفًا.</p>
-            </div>
+            <header class="cashbox-head">
+                <p class="cashbox-eyebrow">إدارة النقدية</p>
+                <h2 class="cashbox-title"><i class="fa-solid fa-vault" aria-hidden="true"></i> الخزنة والصناديق</h2>
+                <p class="cashbox-subtitle">رصيد كل صندوق مستقل. اختر الصندوق وقت التحصيل ليصل المبلغ إليه مباشرة، والتحويلات الداخلية لا تُحسب إيرادًا أو مصروفًا.</p>
+            </header>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                <article class="app-card border rounded-3xl p-4 space-y-2">
-                    <p class="text-xs text-slate-400">إجمالي النقدية في الصناديق</p>
-                    <p id="cashBalance-total" class="text-2xl font-black">0 ج.م</p>
-                    <p class="text-xs text-slate-500">مجموع أرصدة الخزنة والتطوير والطوارئ</p>
-                </article>
-                <article class="app-card border rounded-3xl p-4 space-y-2">
-                    <p class="text-xs text-slate-400">الخزنة الرئيسية</p>
-                    <p id="cashBalance-main" class="text-2xl font-black text-emerald-400">0 ج.م</p>
-                    <p class="text-xs text-slate-500">تحصيلات الخزنة + رصيد البداية − المصروفات والتحويلات</p>
-                </article>
-                <article class="app-card border rounded-3xl p-4 space-y-2">
-                    <p class="text-xs text-slate-400">صندوق التطوير</p>
-                    <p id="cashBalance-development" class="text-2xl font-black text-indigo-300">0 ج.م</p>
-                    <p class="text-xs text-slate-500">تحصيلات موجهة إليه + تحويلات واردة − مصروفاته</p>
-                </article>
-                <article class="app-card border rounded-3xl p-4 space-y-2">
-                    <p class="text-xs text-slate-400">صندوق الصيانة الطارئة</p>
-                    <p id="cashBalance-emergency" class="text-2xl font-black text-amber-300">0 ج.م</p>
-                    <p class="text-xs text-slate-500">تحصيلات موجهة إليه + تحويلات واردة − مصروفاته</p>
-                </article>
-            </div>
-
-            <div class="app-card p-5 rounded-3xl border space-y-3">
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                        <h3 class="font-bold text-sm">حركة الصناديق الشهرية</h3>
-                        <p class="text-xs text-slate-500 mt-1">التحصيلات والمصروفات وصافي التحويلات لكل صندوق في الشهر المختار، من نفس سجلات الخزنة.</p>
+            <div class="cashbox-stats">
+                <article class="cashbox-stat cashbox-tone-indigo">
+                    <div class="cashbox-stat-top">
+                        <span class="cashbox-stat-icon"><i class="fa-solid fa-sack-dollar" aria-hidden="true"></i></span>
+                        <p class="cashbox-stat-label">إجمالي النقدية في الصناديق</p>
                     </div>
-                    <select id="cashboxSummaryMonth" onchange="renderCashbox()" aria-label="شهر حركة الصناديق" class="app-input border rounded-xl px-3 py-2 text-xs"></select>
-                </div>
-                <div id="cashboxSummaryRows" class="space-y-2"></div>
+                    <p id="cashBalance-total" class="cashbox-stat-value">0 ج.م</p>
+                    <p class="cashbox-stat-note">مجموع أرصدة الخزنة والتطوير والطوارئ</p>
+                </article>
+                <article class="cashbox-stat cashbox-tone-emerald">
+                    <div class="cashbox-stat-top">
+                        <span class="cashbox-stat-icon"><i class="fa-solid fa-vault" aria-hidden="true"></i></span>
+                        <p class="cashbox-stat-label">الخزنة الرئيسية</p>
+                    </div>
+                    <p id="cashBalance-main" class="cashbox-stat-value">0 ج.م</p>
+                    <p class="cashbox-stat-note">تحصيلات الخزنة + رصيد البداية − المصروفات والتحويلات</p>
+                </article>
+                <article class="cashbox-stat cashbox-tone-sky">
+                    <div class="cashbox-stat-top">
+                        <span class="cashbox-stat-icon"><i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i></span>
+                        <p class="cashbox-stat-label">صندوق التطوير</p>
+                    </div>
+                    <p id="cashBalance-development" class="cashbox-stat-value">0 ج.م</p>
+                    <p class="cashbox-stat-note">تحصيلات موجهة إليه + تحويلات واردة − مصروفاته</p>
+                </article>
+                <article class="cashbox-stat cashbox-tone-amber">
+                    <div class="cashbox-stat-top">
+                        <span class="cashbox-stat-icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
+                        <p class="cashbox-stat-label">صندوق الصيانة الطارئة</p>
+                    </div>
+                    <p id="cashBalance-emergency" class="cashbox-stat-value">0 ج.م</p>
+                    <p class="cashbox-stat-note">تحصيلات موجهة إليه + تحويلات واردة − مصروفاته</p>
+                </article>
             </div>
 
-            <div class="app-card p-5 rounded-3xl border space-y-4">
-                <div>
-                    <h3 class="font-bold text-sm">تحويل بين الصناديق</h3>
-                    <p class="text-xs text-slate-500 mt-1">لا يُسمح بتحويل مبلغ أكبر من الرصيد المتاح في الصندوق المصدر.</p>
+            <div class="cashbox-grid">
+            <div class="app-card cashbox-card p-5 rounded-3xl border">
+                <div class="cashbox-card-head">
+                    <span class="cashbox-card-icon cashbox-tone-indigo"><i class="fa-solid fa-calendar-week" aria-hidden="true"></i></span>
+                    <div class="cashbox-card-heading">
+                        <h3 class="cashbox-card-title">حركة الصناديق الشهرية</h3>
+                        <p class="cashbox-card-subtitle">التحصيلات والمصروفات وصافي التحويلات لكل صندوق في الشهر المختار، من نفس سجلات الخزنة.</p>
+                    </div>
+                    <select id="cashboxSummaryMonth" onchange="renderCashbox()" aria-label="شهر حركة الصناديق" class="app-input cashbox-select border rounded-xl px-3 py-2 text-xs"></select>
                 </div>
-                <form id="cashTransferForm" onsubmit="submitCashTransfer(event)" class="space-y-3">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <label class="block text-xs space-y-1">
-                            <span class="text-slate-400">من صندوق</span>
+                <div id="cashboxSummaryRows" class="cashbox-rows"></div>
+                <p class="cashbox-footnote">صافي الحركة = التحصيلات + التحويلات الواردة − المصروفات − التحويلات الصادرة. التحويلات الداخلية لا تُحسب إيرادًا أو مصروفًا.</p>
+            </div>
+
+            <div class="app-card cashbox-card p-5 rounded-3xl border">
+                <div class="cashbox-card-head">
+                    <span class="cashbox-card-icon cashbox-tone-indigo"><i class="fa-solid fa-arrow-right-arrow-left" aria-hidden="true"></i></span>
+                    <div class="cashbox-card-heading">
+                        <h3 class="cashbox-card-title">تحويل بين الصناديق</h3>
+                        <p class="cashbox-card-subtitle">لا يُسمح بتحويل مبلغ أكبر من الرصيد المتاح في الصندوق المصدر.</p>
+                    </div>
+                </div>
+                <form id="cashTransferForm" onsubmit="submitCashTransfer(event)" class="cashbox-form">
+                    <div class="cashbox-form-grid">
+                        <label class="cashbox-field">
+                            <span class="cashbox-field-label">من صندوق</span>
                             <select id="cashTransferFrom" onchange="previewCashTransfer()" required class="w-full app-input border rounded-xl px-3 py-2.5">
                                 <option value="main">الخزنة الرئيسية</option>
                                 <option value="development">صندوق التطوير</option>
                                 <option value="emergency">صندوق الصيانة الطارئة</option>
                             </select>
                         </label>
-                        <label class="block text-xs space-y-1">
-                            <span class="text-slate-400">إلى صندوق</span>
+                        <label class="cashbox-field">
+                            <span class="cashbox-field-label">إلى صندوق</span>
                             <select id="cashTransferTo" onchange="previewCashTransfer()" required class="w-full app-input border rounded-xl px-3 py-2.5">
                                 <option value="development">صندوق التطوير</option>
                                 <option value="emergency">صندوق الصيانة الطارئة</option>
                                 <option value="main">الخزنة الرئيسية</option>
                             </select>
                         </label>
+                        <label class="cashbox-field cashbox-field-wide">
+                            <span class="cashbox-field-label">مبلغ التحويل</span>
+                            <input type="number" id="cashTransferAmount" min="0.01" step="0.01" inputmode="decimal" oninput="previewCashTransfer()" required placeholder="0.00" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
+                        </label>
+                        <label class="cashbox-field cashbox-field-wide">
+                            <span class="cashbox-field-label">سبب التحويل (مطلوب)</span>
+                            <textarea id="cashTransferNotes" rows="1" maxlength="500" oninput="previewCashTransfer()" required placeholder="مثال: تغطية أعمال التطوير" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm"></textarea>
+                        </label>
                     </div>
-                    <input type="number" id="cashTransferAmount" min="0.01" step="0.01" inputmode="decimal" oninput="previewCashTransfer()" required aria-label="مبلغ التحويل" placeholder="مبلغ التحويل" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
-                    <textarea id="cashTransferNotes" rows="2" maxlength="500" oninput="previewCashTransfer()" required aria-label="سبب التحويل (مطلوب)" placeholder="سبب التحويل (مطلوب)" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm"></textarea>
                     <div id="cashTransferPreview" aria-live="polite" class="hidden app-input border rounded-xl p-3">
                         <p id="cashTransferPreviewText" class="text-xs font-bold"></p>
                     </div>
@@ -280,28 +305,33 @@
                 </form>
             </div>
 
-            <div class="app-card p-5 rounded-3xl border space-y-3">
-                <div class="flex items-center justify-between gap-3">
-                    <h3 class="font-bold text-sm">سجل التحويلات الداخلية</h3>
-                    <span class="text-xs text-slate-500">أحدث 100 تحويل</span>
+            <div class="app-card cashbox-card p-5 rounded-3xl border">
+                <div class="cashbox-card-head">
+                    <span class="cashbox-card-icon cashbox-tone-indigo"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i></span>
+                    <div class="cashbox-card-heading">
+                        <h3 class="cashbox-card-title">سجل التحويلات الداخلية</h3>
+                        <p class="cashbox-card-subtitle">أحدث 100 تحويل بين الصناديق.</p>
+                    </div>
                 </div>
-                <div id="cashTransfersList" class="space-y-2"></div>
+                <div id="cashTransfersList" class="cashbox-rows cashbox-rows-scroll"></div>
             </div>
 
-            <div class="app-card p-5 rounded-3xl border space-y-3">
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                        <h3 class="font-bold text-sm">آخر 10 حركات</h3>
-                        <p class="text-xs text-slate-500 mt-1">أحدث تحصيل ومصروف وتحويل وارد أو صادر على الصناديق.</p>
+            <div class="app-card cashbox-card p-5 rounded-3xl border">
+                <div class="cashbox-card-head">
+                    <span class="cashbox-card-icon cashbox-tone-indigo"><i class="fa-solid fa-list-ul" aria-hidden="true"></i></span>
+                    <div class="cashbox-card-heading">
+                        <h3 class="cashbox-card-title">آخر 10 حركات</h3>
+                        <p class="cashbox-card-subtitle">أحدث تحصيل ومصروف وتحويل وارد أو صادر على الصناديق.</p>
                     </div>
-                    <select id="cashboxMovementsAccount" onchange="renderCashbox()" aria-label="تصفية آخر الحركات حسب الصندوق" class="app-input border rounded-xl px-3 py-2 text-xs">
+                    <select id="cashboxMovementsAccount" onchange="renderCashbox()" aria-label="تصفية آخر الحركات حسب الصندوق" class="app-input cashbox-select border rounded-xl px-3 py-2 text-xs">
                         <option value="all">كل الصناديق</option>
                         <option value="main">الخزنة الرئيسية</option>
                         <option value="development">صندوق التطوير</option>
                         <option value="emergency">صندوق الصيانة الطارئة</option>
                     </select>
                 </div>
-                <div id="cashboxRecentMovements" class="space-y-2"></div>
+                <div id="cashboxRecentMovements" class="cashbox-rows cashbox-rows-scroll"></div>
+            </div>
             </div>
         </section>
 
