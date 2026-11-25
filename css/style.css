@@ -5213,7 +5213,8 @@ body.owner-mode .owner-theme-control {
 @media screen and (max-width: 639.98px) {
     .sheet-wrap:has(> .sheet-kpi) { overflow: visible; border: 0; background: transparent; }
     .sheet-kpi, .sheet-kpi tbody, .sheet-kpi tr { display: block; }
-    .sheet-kpi thead { display: none; }
+    /* labels stay in the DOM and the accessibility tree; each tile shows its own label via ::before */
+    .sheet-kpi thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     .sheet-kpi tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-50); }
     .sheet-kpi tbody td.report-stat { display: flex; flex-direction: column; gap: var(--space-20); padding: var(--space-65); border: 1px solid var(--border-color) !important; border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-input) 55%, transparent); text-align: center; }
     .sheet-kpi tbody td.report-stat::before { content: attr(data-label); color: var(--text-muted); font-size: var(--font-70); font-weight: var(--weight-700); }
