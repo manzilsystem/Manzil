@@ -7,7 +7,10 @@ const vm = require('node:vm');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const crudSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'crud.js'), 'utf8');
 
-function runSend({ phone = '', pin = '', apartmentNumber = '', ownerName = '', buildingName = '' } = {}) {
+const noticesSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'notices.js'), 'utf8');
+const cleanPhoneSource = noticesSource.slice(noticesSource.indexOf('function cleanPhone'), noticesSource.indexOf('function sendWhatsAppReminder'));
+
+function runSend({ phone = '', pin = '', apartmentNumber = '', ownerName = '', buildingName = '', withCleanPhone = false } = {}) {
     const opened = [];
     const toasts = [];
     const elements = {
@@ -20,7 +23,7 @@ function runSend({ phone = '', pin = '', apartmentNumber = '', ownerName = '', b
         toast: (message, type) => toasts.push({ message, type }),
     };
     const sendOwnerTempPinOnWhatsApp = vm.runInNewContext(
-        `${crudSource}\nsendOwnerTempPinOnWhatsApp`,
+        `${withCleanPhone ? cleanPhoneSource : ''}\n${crudSource}\nsendOwnerTempPinOnWhatsApp`,
         sandbox,
         { filename: 'js/crud.js' }
     );
@@ -101,4 +104,11 @@ test('greeting and place fall back gracefully when the name or building name is 
 
     const bare = text({});
     assert.match(bare, /\(Manzil\)\.\n/);
+});
+
+test('WhatsApp link normalizes a stored Egyptian 01 number to 20 and keeps international numbers', () => {
+    const egypt = runSend({ phone: '010 6800-4792', pin: '25637901', apartmentNumber: '12', withCleanPhone: true });
+    assert.equal(new URL(egypt.opened[0][0]).pathname, '/201068004792');
+    const uk = runSend({ phone: '+44 7911 123456', pin: '25637901', apartmentNumber: '12', withCleanPhone: true });
+    assert.equal(new URL(uk.opened[0][0]).pathname, '/447911123456');
 });
