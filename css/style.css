@@ -5447,3 +5447,20 @@ body.owner-mode .owner-theme-control {
     .report-block-body .sheet-wrap:not(:has(> .sheet-kpi)) { max-height: 22rem; overflow-y: auto; overscroll-behavior: contain; }
     .report-block-body .sheet-wrap tbody td:first-child { white-space: nowrap; }
 }
+
+/* Expenses list: same compact pattern as collections */
+#expenseResultsSummary .income-stat { display: flex; flex-direction: column; gap: var(--space-20); padding: var(--space-65); border: 1px solid var(--border-color); border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-input) 55%, transparent); }
+#expenseResultsSummary .income-stat-label { color: var(--text-muted); font-size: var(--font-70); font-weight: var(--weight-700); }
+#expenseResultsSummary .income-stat-value { color: var(--text-main); font-size: var(--font-105); font-weight: var(--weight-800); overflow-wrap: anywhere; }
+#expenseResultsSummary .expense-stat-total .income-stat-value { color: var(--state-danger); }
+#expenseCardsList .income-more-btn { grid-column: 1 / -1; }
+@media screen and (min-width: 640px) {
+    #expenseCardsList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-65); align-items: start; }
+    #expenseCardsList > * { margin: var(--space-none); }
+}
+@media screen and (min-width: 1280px) {
+    #expenseCardsList { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media screen and (max-width: 639.98px) {
+    #expenseCardsList .app-card { padding: var(--space-60); }
+}

@@ -19,7 +19,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/tailwind.css?v=adb54422b2">
-    <link rel="stylesheet" href="css/style.css?v=93cf3849b8">
+    <link rel="stylesheet" href="css/style.css?v=d5bd80539c">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -348,13 +348,17 @@
                 <div><h2 class="font-bold text-base">مصروفات العمارة</h2><p class="text-xs text-slate-400">فواتير وصيانة</p></div>
                 <button onclick="openExpenseModal()" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-rose-600/20 transition flex items-center gap-2"><i class="fa-solid fa-plus text-sm"></i> مصروف جديد</button>
             </div>
-            <div class="list-filters app-card p-3 rounded-3xl border flex flex-wrap gap-2 no-print">
-                <input type="search" id="searchExpenseInput" aria-label="البحث في المصروفات" oninput="renderExpenseTable()" placeholder="ابحث في المصروفات..." class="flex-grow app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
+            <div class="list-filters app-card p-3 rounded-3xl border grid grid-cols-2 md:grid-cols-4 gap-2 no-print">
+                <input type="search" id="searchExpenseInput" aria-label="البحث في المصروفات" oninput="renderExpenseTable()" placeholder="ابحث في المصروفات..." class="col-span-2 md:col-span-4 app-input border rounded-2xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none">
+                <button type="button" id="expenseFiltersToggle" onclick="toggleExpenseFilters()" aria-expanded="false" aria-controls="expenseFiltersMore" class="col-span-2 md:col-span-4 income-filters-toggle app-input border rounded-2xl px-3 py-2 text-xs font-bold focus:outline-none"><i class="fa-solid fa-sliders" aria-hidden="true"></i> الفلاتر <span id="expenseFiltersActiveCount" class="income-filters-count hidden"></span> <i class="fa-solid fa-chevron-down income-filters-chevron" aria-hidden="true"></i></button>
+                <div id="expenseFiltersMore" class="col-span-2 md:col-span-4 grid grid-cols-2 md:grid-cols-4 gap-2 hidden">
                 <select id="filterExpenseCategory" aria-label="تصفية المصروفات حسب الفئة" onchange="renderExpenseTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold">
                     <option value="">كل الفئات</option><option value="كهرباء">كهرباء</option><option value="صيانة أسانسير">صيانة أسانسير</option><option value="نظافة">نظافة</option><option value="أعمال سباكة وصنايعي">أعمال سباكة وصنايعي</option><option value="أخرى">أخرى</option>
                 </select>
                 <select id="filterExpenseMonth" aria-label="تصفية المصروفات حسب الشهر" onchange="renderExpenseTable()" class="app-input border rounded-2xl px-3 py-2 text-xs focus:outline-none font-semibold"><option value="">كل الشهور</option></select>
+                </div>
             </div>
+            <div id="expenseResultsSummary" class="hidden app-card p-3 rounded-2xl border text-xs grid grid-cols-2 gap-2 no-print" aria-live="polite"></div>
             <div id="expenseCardsList" class="space-y-3"></div>
         </section>
 
@@ -2504,10 +2508,10 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-a195f3b6b2"></script>
+    <script src="js/telemetry.js?v=manzil-69161abeea"></script>
     <script src="js/state.js?v=f367c7dc5c"></script>
     <script src="js/access.js?v=1ca370a57a"></script>
-    <script src="js/render.js?v=829261a564"></script>
+    <script src="js/render.js?v=8de19f1462"></script>
     <script src="js/crud.js?v=74a52991d9"></script>
     <script src="js/notices.js?v=708550996a"></script>
     <!-- Chart.js for report visualizations (bundled locally) -->
