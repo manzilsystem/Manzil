@@ -535,8 +535,9 @@ test('the grouped report cards are clickable and free of hub layers', async ({ p
 
     await page.locator('[data-report-nav="monthlyClose"]').click();
     await expect(page.locator('#monthlyClosePanel')).toBeVisible();
-    await expect(page.locator('.report-index-item:visible')).toHaveCount(10);
-    await expect(page.locator('.report-index-group-head:visible')).toHaveCount(0);
+    await expect(page.locator('.report-index')).toBeHidden();
+    await expect(page.locator('.report-index-item:visible')).toHaveCount(0);
+    await expect(page.locator('.report-view-back')).toBeVisible();
     await backToIndex(page);
     await expect(page.locator('.report-index')).toBeVisible();
 });
