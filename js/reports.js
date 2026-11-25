@@ -2380,7 +2380,7 @@ function exportPeriodReportExcel() {
         'الغرض': report.purposeLabel,
         'الصندوق': report.cashAccountLabel,
         'الشقة': report.residentLabel,
-        'تاريخ الإنشاء': formatDate(report.generatedAt)
+        'تاريخ الإنشاء': new Date(report.generatedAt || Date.now())
     });
 }
 
@@ -2771,7 +2771,7 @@ function exportExpensesReportExcel() {
         'الفترة': report.rangeLabel,
         'الصندوق': report.cashAccountLabel,
         'التصنيف': report.categoryLabel,
-        'تاريخ الإنشاء': formatDate(report.generatedAt)
+        'تاريخ الإنشاء': new Date(report.generatedAt || Date.now())
     });
 }
 
@@ -3145,7 +3145,7 @@ function exportAdjustmentsReportExcel() {
         'الفترة': report.rangeLabel,
         'الشقة': report.residentLabel,
         'النوع': report.kindLabel,
-        'تاريخ الإنشاء': formatDate(report.generatedAt)
+        'تاريخ الإنشاء': new Date(report.generatedAt || Date.now())
     });
 }
 
@@ -3200,7 +3200,7 @@ function exportArrearsExcel() {
     }
     const { summary, details } = arrearsReportToExcelRows(report);
     exportReportWithDetailExcel(`manzil_arrears_${Date.now()}`, `تقرير المتأخرات - ${state.buildingName || 'Manzil'}`, summary, details, {
-        'تاريخ الإنشاء': formatDate(new Date().toISOString())
+        'تاريخ الإنشاء': new Date()
     });
 }
 

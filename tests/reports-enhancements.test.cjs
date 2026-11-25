@@ -134,14 +134,21 @@ function loadExcel(withXlsx) {
     console,
     XLSX: withXlsx ? {
       utils: {
-        aoa_to_sheet: rows => ({ rows }),
-        book_new: () => ({ sheets: [] }),
-        book_append_sheet: (wb, sheet, name) => wb.sheets.push({ name, sheet }),
-        decode_range: () => ({ e: { r: 1 } }),
-        encode_range: () => 'A1:B2'
+        aoa_to_sheet: rows => ({ rows, '!ref': 'A1:A1' }),
+        book_new: () => ({ SheetNames: [], Sheets: {} }),
+        book_append_sheet: (wb, sheet, name) => { wb.SheetNames.push(name); wb.Sheets[name] = sheet; },
+        decode_range: () => ({ s: { r: 0, c: 0 }, e: { r: 1, c: 1 } }),
+        encode_range: () => 'A1:B2',
+        encode_cell: ({ r, c }) => `R${r}C${c}`
       },
-      writeFile: () => {}
+      write: () => new Uint8Array([80, 75, 3, 4]).buffer
     } : undefined,
+    Blob: class { constructor(parts) { this.parts = parts; } },
+    URL: { createObjectURL: () => 'blob:test', revokeObjectURL: () => {} },
+    document: { createElement: () => ({ href: '', download: '', click: () => {} }) },
+    setTimeout: () => 0,
+    TextEncoder,
+    TextDecoder,
     downloadCsv: (name, rows) => downloads.push({ name, rows }),
     toast: () => {}
   };
