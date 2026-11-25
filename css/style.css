@@ -5492,3 +5492,17 @@ body.owner-mode .owner-theme-control {
 @media screen and (max-width: 639.98px) {
     [role="dialog"] .grid.grid-cols-2.resident-pair-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Phones: wide report tables (5+ columns) become one compact card per row. The export sheet keeps the real table. */
+@media screen and (max-width: 639.98px) {
+    body > :not([data-report-export-stage]) .sheet-cards { overflow-x: visible; border: 0; background: transparent; }
+    body > :not([data-report-export-stage]) .sheet-cards table, body > :not([data-report-export-stage]) .sheet-cards tbody, body > :not([data-report-export-stage]) .sheet-cards tfoot { display: block; width: 100%; }
+    body > :not([data-report-export-stage]) .sheet-cards thead { display: none; }
+    body > :not([data-report-export-stage]) .sheet-cards tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-30) var(--space-40); padding: var(--space-50); margin-bottom: var(--space-40); border: 1px solid var(--border-color); border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-input) 40%, transparent); }
+    body > :not([data-report-export-stage]) .sheet-cards td { display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-none); border: 0; font-size: var(--font-72); white-space: normal; min-width: 0; }
+    body > :not([data-report-export-stage]) .sheet-cards td::before { content: attr(data-label); color: var(--text-muted); font-size: var(--font-60); font-weight: var(--weight-500); }
+    body > :not([data-report-export-stage]) .sheet-cards td:first-child { grid-column: 1 / -1; font-size: var(--font-80); font-weight: var(--weight-700); }
+    body > :not([data-report-export-stage]) .sheet-cards td:first-child::before { display: none; }
+    body > :not([data-report-export-stage]) .sheet-cards td.sheet-empty { grid-column: 1 / -1; }
+    body > :not([data-report-export-stage]) .sheet-cards tfoot tr { border-color: var(--accent-color); }
+}

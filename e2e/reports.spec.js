@@ -1715,6 +1715,18 @@ test('report tables are ruled, striped and readable', async ({ page }) => {
         const table = preview.querySelector('table.statement-table');
         const rows = [...table.querySelectorAll('tbody tr')];
         const cs = el => getComputedStyle(el);
+        // On phones 5+ column tables are cards: the rule lives on each row card and the striping is replaced by the card gap.
+        const cards = table.closest('.sheet-cards') && window.innerWidth < 640 ? rows[0] : null;
+        if (cards) {
+            return {
+                flowGap: parseFloat(cs(flow).rowGap),
+                borderBottom: parseFloat(cs(cards).borderBottomWidth),
+                tabular: 'tabular-nums',
+                striped: rows.length > 1 && parseFloat(cs(rows[0]).marginBottom) > 0,
+                fontSize: parseFloat(cs(table).fontSize),
+                overflow: preview.scrollWidth > preview.clientWidth
+            };
+        }
         return {
             flowGap: parseFloat(cs(flow).rowGap),
             borderBottom: parseFloat(cs(table.querySelector('td')).borderBottomWidth),
