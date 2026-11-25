@@ -892,7 +892,7 @@ function renderSheetTable(headers, rows, options = {}) {
         : '';
     const tableClass = options.tableClass ? ' sheet-table ' + options.tableClass : ' sheet-table';
     return (caption ? '<p class="sheet-caption">' + esc(caption) + '</p>' : '') +
-        '<div class="sheet-wrap' + (headers.length >= 5 ? ' sheet-cards' : '') + '"><table class="' + tableClass.trim() + '"><thead><tr>' + head +
+        '<div class="sheet-wrap' + (headers.length >= 5 || options.cards ? ' sheet-cards' : '') + '"><table class="' + tableClass.trim() + '"><thead><tr>' + head +
         '</tr></thead><tbody>' + body + '</tbody>' + footHtml + '</table></div>';
 }
 
