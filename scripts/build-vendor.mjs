@@ -11,7 +11,8 @@ const modules = path.join(root, 'node_modules');
 const bundles = [
     ['chart.js/dist/chart.umd.js', 'chart.umd.js'],
     ['xlsx/dist/xlsx.full.min.js', 'xlsx.full.min.js'],
-    ['@supabase/supabase-js/dist/umd/supabase.js', 'supabase.js']
+    ['@supabase/supabase-js/dist/umd/supabase.js', 'supabase.js'],
+    ['html2pdf.js/dist/html2pdf.bundle.min.js', 'html2pdf.bundle.min.js']
 ];
 
 const outputs = [];

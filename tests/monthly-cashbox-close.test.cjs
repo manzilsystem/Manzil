@@ -43,7 +43,7 @@ test('monthly close UI and export remain manager-side and Arabic RTL', () => {
     assert.match(html, /onclick="exportMonthlyClosePdf\(\)"/);
     assert.match(html, /dir="rtl"/);
     assert.match(html, /js\/monthly-close\.js/);
-    assert.match(appSource, /html2pdf\.js/);
+    assert.match(appSource, /vendor\/html2pdf\.bundle\.min\.js/);
     assert.match(moduleSource, /await ensurePdfLibrary\(\)/);
     assert.match(moduleSource, /application\/pdf/);
     assert.match(moduleSource, /pdfBlob\.type !== 'application\/pdf'/);
