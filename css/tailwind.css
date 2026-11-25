@@ -1550,6 +1550,9 @@
   .underline {
     text-decoration-line: underline;
   }
+  .underline-offset-4 {
+    text-underline-offset: 4px;
+  }
   .placeholder-slate-500::-moz-placeholder {
     color: var(--color-slate-500);
   }
