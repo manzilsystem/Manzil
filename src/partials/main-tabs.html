@@ -324,6 +324,13 @@
                         </label>
                         <button type="button" id="reportIndexClear" class="report-index-clear" onclick="clearReportIndexSearch()" hidden>مسح</button>
                     </div>
+                    <label class="report-paper-pick" for="printPaperSelect">
+                        <span>حجم الورق</span>
+                        <select id="printPaperSelect" class="app-input" aria-label="حجم الورق للطباعة والتصدير" onchange="setPrintPaper(this.value)">
+                            <option value="A4">A4</option>
+                            <option value="A5">A5</option>
+                        </select>
+                    </label>
                     <div class="report-quality-bar no-print" role="group" aria-label="فحص دقة التقارير">
                         <span id="reportQualityNote">فحص سريع لاتساق السجلات قبل الطباعة.</span>
                         <button type="button" class="report-quality-check" onclick="runReportQualityCheck()">فحص الدقة</button>

@@ -1365,6 +1365,47 @@ async function generateLandlordReport() {
     }
 }
 
+// ===== Paper size (A4 / A5) for print and PDF =====
+// The browser reads the @page size when printing, and "save as PDF" uses the same size.
+const PRINT_PAPER_KEY = 'manzilPrintPaper';
+const PRINT_PAPER_SIZES = { A4: 'A4 portrait', A5: 'A5 portrait' };
+const PRINT_PAPER_MARGINS = { A4: '14mm', A5: '10mm' };
+
+function getPrintPaper() {
+    try {
+        const saved = localStorage.getItem(PRINT_PAPER_KEY);
+        return PRINT_PAPER_SIZES[saved] ? saved : 'A4';
+    } catch (_) { return 'A4'; }
+}
+
+function applyPrintPaper(size) {
+    const paper = PRINT_PAPER_SIZES[size] ? size : 'A4';
+    let style = document.getElementById('printPaperStyle');
+    if (!style) {
+        style = document.createElement('style');
+        style.id = 'printPaperStyle';
+        document.head.appendChild(style);
+    }
+    style.textContent = `@page { size: ${PRINT_PAPER_SIZES[paper]}; margin: ${PRINT_PAPER_MARGINS[paper]}; }`;
+    document.documentElement.setAttribute('data-print-paper', paper);
+    const select = document.getElementById('printPaperSelect');
+    if (select instanceof HTMLSelectElement) select.value = paper;
+    return paper;
+}
+
+function setPrintPaper(size) {
+    const paper = applyPrintPaper(size);
+    try { localStorage.setItem(PRINT_PAPER_KEY, paper); } catch (_) { /* storage may be unavailable */ }
+}
+
+function initPrintPaper() { applyPrintPaper(getPrintPaper()); }
+if (typeof window !== 'undefined' && typeof document !== 'undefined' && document.documentElement) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initPrintPaper);
+    else initPrintPaper();
+    window.setPrintPaper = setPrintPaper;
+    window.getPrintPaper = getPrintPaper;
+}
+
 function printLandlordReport() {
     if (!requireManager()) return;
     const selected = getSelectedReportMonth();
