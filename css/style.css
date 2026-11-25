@@ -1189,10 +1189,6 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 [data-theme="emerald"] { --bg-main:#071c18; --bg-card:#102b24; --bg-input:#0a211b; --text-main:#e9fff5; --text-muted:#a0c9b8; --border-color:#285446; --accent-color:var(--theme-accent-emerald); --surface-raised:#15382e; }
 [data-theme="ocean"] { --bg-main:#071827; --bg-card:#10283b; --bg-input:#0a2032; --text-main:#edf8ff; --text-muted:#9ab8ce; --border-color:#28485f; --accent-color:var(--theme-accent-ocean); --surface-raised:#15334a; }
 [data-theme="sand"] { --bg-main:#211b16; --bg-card:#30271f; --bg-input:#241e18; --text-main:#fff7ed; --text-muted:#c8b8a5; --border-color:#594735; --accent-color:var(--theme-accent-sand); --surface-raised:#3b3025; }
-/* Light theme: the gold-and-navy logo is tuned for dark surfaces, so on light it gets a touch more saturation and a thin navy edge. */
-[data-theme="light"] .header-brand-mark img,
-[data-theme="light"] .auth-logo-frame img,
-[data-theme="light"] .settings-brand-mark { filter: saturate(1.25) contrast(1.08) brightness(.94) drop-shadow(0 0 .6px rgba(6,24,70,.95)) drop-shadow(0 0 .6px rgba(6,24,70,.95)) drop-shadow(0 3px 5px rgba(6,24,70,.28)); }
 [data-theme] .app-card { background-color:var(--bg-card); border-color:var(--border-color); }
 [data-theme] .app-input { background-color:var(--bg-input); color:var(--text-main); border-color:var(--border-color); }
 [data-theme] .text-slate-400,[data-theme] .text-slate-500 { color:var(--text-muted) !important; }

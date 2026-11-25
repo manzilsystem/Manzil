@@ -153,9 +153,11 @@ test('brand icons are transparent PNGs and the manifest has real maskable icons'
     assert.match(css, /\.auth-logo-frame \{[^}]*background:transparent/);
 });
 
-test('light theme gives the transparent logo a contrast filter on header, login and settings', () => {
+test('brand logo is a vector redraw: SVG source ships next to the transparent PNGs', () => {
     const fs = require('node:fs');
     const path = require('node:path');
-    const css = fs.readFileSync(path.join(__dirname, '..', 'css', 'style.css'), 'utf8');
-    assert.match(css, /\[data-theme="light"\] \.header-brand-mark img,\s*\[data-theme="light"\] \.auth-logo-frame img,\s*\[data-theme="light"\] \.settings-brand-mark \{ filter: saturate\(1\.25\)/);
+    const svg = fs.readFileSync(path.join(__dirname, '..', 'icons', 'manzil-brand.svg'), 'utf8');
+    assert.match(svg, /^<svg[^>]+viewBox="0 0 768 768"/);
+    assert.ok(!/<image\b/.test(svg), 'the logo must be drawn as vectors, not an embedded raster');
+    assert.match(svg, /منزل/);
 });
