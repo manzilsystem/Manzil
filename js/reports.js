@@ -3683,11 +3683,11 @@ const REPORT_PDF_PALETTE = Object.freeze({
     faint: '#64748b'
 });
 
-const REPORT_PDF_HEADER_STYLE = 'text-align:center;border-bottom:2px solid ' + REPORT_PDF_PALETTE.rule + ';padding-bottom:10px;margin-bottom:12px';
+const REPORT_PDF_HEADER_STYLE = 'text-align:center;border-bottom:2px solid ' + REPORT_PDF_PALETTE.rule + ';padding-bottom:12px;margin-bottom:18px';
 const REPORT_PDF_TITLE_STYLE = 'font-size:22px;font-weight:800;margin:0';
 const REPORT_PDF_SUBTITLE_STYLE = 'font-size:17px;font-weight:700;margin:4px 0';
 const REPORT_PDF_META_STYLE = 'font-size:11px;color:' + REPORT_PDF_PALETTE.muted + ';margin:0';
-const REPORT_PDF_FOOTER_STYLE = 'font-size:9px;color:' + REPORT_PDF_PALETTE.faint + ';margin-top:10px;text-align:center';
+const REPORT_PDF_FOOTER_STYLE = 'font-size:9px;color:' + REPORT_PDF_PALETTE.faint + ';margin-top:18px;text-align:center';
 
 // Shared PDF shell so every report renders an identical RTL header and footer.
 // أنماط مضمّنة تجعل جداول التقرير المطبوعة مسطّرة وذات صفوف متناوبة واضحة.
@@ -3721,7 +3721,7 @@ function reportPdfFooter(generatedLabel) {
     return '<footer style="' + REPORT_PDF_FOOTER_STYLE + '">Manzil — ' + esc(generatedLabel) + '</footer>';
 }
 
-const REPORT_PDF_SECTION_STYLE = 'margin-bottom:12px';
+const REPORT_PDF_SECTION_STYLE = 'margin-bottom:10px';
 const REPORT_PDF_SECTION_TITLE_STYLE = 'font-size:14px;margin:0 0 8px';
 const REPORT_PDF_TABLE_STYLE = 'width:100%;border-collapse:collapse;font-size:10px';
 const REPORT_PDF_TABLE_HEAD_STYLE = 'background:' + REPORT_PDF_PALETTE.hairline;
