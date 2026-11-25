@@ -851,8 +851,8 @@
                 </div>
                 <div class="report-actions report-actions-4 no-print">
                     <button type="button" id="statementPrintBtn" title="نص قابل للنسخ" onclick="printResidentStatement()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة / حفظ PDF</button>
-                    <button type="button" id="statementPdfBtn" onclick="exportResidentStatementPdf()" disabled class="report-action report-tone-indigo"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> كشف الحساب PDF</button>
-                    <button type="button" id="unitReportPdfBtn" onclick="exportUnitReportPdf()" disabled class="report-action report-tone-sky"><i class="fa-solid fa-building-user" aria-hidden="true"></i> تقرير الوحدة PDF</button>
+                    <button type="button" id="statementPdfBtn" onclick="exportResidentStatementPdf()" disabled class="report-action report-tone-indigo"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> كشف الحساب PDF (صورة)</button>
+                    <button type="button" id="unitReportPdfBtn" onclick="exportUnitReportPdf()" disabled class="report-action report-tone-sky"><i class="fa-solid fa-building-user" aria-hidden="true"></i> تقرير الوحدة PDF (صورة)</button>
                     <button type="button" id="statementCsvBtn" onclick="exportResidentStatementCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
                 </div>
                 <p class="report-hint no-print">الكشف يغطي كل شهر من إضافة المالك حتى الشهر الحالي، والمخرجات تعرض نفس الأرقام المعروضة هنا.</p>
@@ -1035,7 +1035,8 @@
                             <select id="monthlyCloseMonthSelect" onchange="invalidateMonthlyClosePreview()" class="report-control app-input border"></select>
                         </label>
                         <button type="button" id="monthlyCloseReviewButton" onclick="loadMonthlyCloseReport()" class="report-action report-action-primary"><i class="fa-solid fa-list-check" aria-hidden="true"></i> مراجعة الإقفال</button>
-                        <button type="button" id="monthlyClosePdfButton" onclick="exportMonthlyClosePdf()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF</button>
+                        <button type="button" id="monthlyClosePrintButton" title="نص قابل للنسخ" onclick="printMonthlyClose()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة PDF</button>
+                        <button type="button" id="monthlyClosePdfButton" onclick="exportMonthlyClosePdf()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF (صورة)</button>
                         <div class="report-filter-summary" data-report-filter-summary="monthlyClose" hidden>
                             <span class="report-filter-summary-label">الفلاتر النشطة</span>
                             <span class="report-filter-chips" data-report-filter-list></span>

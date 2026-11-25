@@ -11,6 +11,8 @@ function invalidateMonthlyClosePreview() {
     monthlyCloseLastReport = null;
     const exportButton = /** @type {HTMLButtonElement} */ (document.getElementById('monthlyClosePdfButton'));
     if (exportButton) exportButton.disabled = true;
+    const printButton = /** @type {HTMLButtonElement} */ (document.getElementById('monthlyClosePrintButton'));
+    if (printButton) printButton.disabled = true;
     const status = document.getElementById('monthlyCloseReportStatus');
     if (status) status.textContent = 'تغيّر الشهر المحدد. أنشئ معاينة جديدة قبل التصدير.';
     destroyMonthlyCloseChart();
@@ -185,6 +187,8 @@ async function loadMonthlyCloseReport() {
             ? 'اكتملت المراجعة والمطابقة النقدية.'
             : 'اكتملت المراجعة مع وجود فرق يحتاج إلى مراجعة.';
         if (exportButton) exportButton.disabled = false;
+        const printButton = /** @type {HTMLButtonElement} */ (document.getElementById('monthlyClosePrintButton'));
+        if (printButton) printButton.disabled = false;
         markReportPreviewStale('monthlyClosePreview', false);
         syncReportNavStatus();
     } catch (error) {
@@ -301,4 +305,27 @@ async function exportMonthlyClosePdf() {
             button.disabled = false;
         }
     }
+}
+
+// Real-text path: the browser prints only the review card, so "Save as PDF" keeps selectable Arabic text.
+function printMonthlyClose() {
+    if (!requireManager()) return;
+    const report = monthlyCloseLastReport;
+    if (!report || report.buildingId !== activeBuildingId) {
+        toast('أنشئ مراجعة جديدة قبل الطباعة.', 'error');
+        return;
+    }
+    const title = document.getElementById('printBuildingTitle');
+    const meta = document.getElementById('printBuildingMeta');
+    const previousTitle = title ? title.textContent : '';
+    const previousMeta = meta ? meta.textContent : '';
+    if (title) title.textContent = 'مراجعة الإقفال الشهري - ' + (state.buildingName || 'Manzil');
+    if (meta) meta.textContent = 'شهر ' + report.data.month + ' • المدير: ' + (state.managerName || '—');
+    document.body.classList.add('print-monthly-close');
+    window.addEventListener('afterprint', function () {
+        document.body.classList.remove('print-monthly-close');
+        if (title) title.textContent = previousTitle;
+        if (meta) meta.textContent = previousMeta;
+    }, { once: true });
+    window.print();
 }
