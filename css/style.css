@@ -5140,3 +5140,53 @@ body.owner-mode .owner-theme-control {
 }
 .manager-notification-row { padding: var(--space-55) var(--space-30); border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent); }
 .manager-notification-row:last-child { border-bottom: 0; }
+
+/* ===== Visual cleanup: reports (screen only, no logic changes) ===== */
+@media screen {
+    @media (min-width: 1024px) {
+        main#printableArea.max-w-4xl { max-width: 72rem; }
+        body > nav.max-w-4xl, nav[aria-label="التنقل الرئيسي"].max-w-4xl { max-width: 72rem; }
+    }
+    main#printableArea { padding-bottom: var(--space-600); }
+    /* Index: even grid, quiet cards, one status dot */
+    .report-index-group { gap: var(--space-70); }
+    .report-index-group-head { padding-bottom: var(--space-40); border-bottom: 1px solid var(--border-color); }
+    .report-index-group-head h3 { font-size: var(--font-100); }
+    .report-index-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--space-70); }
+    .report-index-item { padding: var(--space-85); border-radius: var(--radius-95); box-shadow: none; }
+    .report-index-item .report-index-open { display: none; }
+    .report-index-copy { gap: var(--space-30); }
+    .report-index-badge { display: none; }
+    .report-index-item:hover { border-color: var(--report-tone-line, var(--accent-color)); transform: translateY(-1px); }
+    .report-index-item:not(.is-ready):not(.is-stale) .report-index-state { visibility: hidden; }
+    /* Filters: one aligned grid, preview as primary */
+    .report-toolbar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-65); align-items: end; }
+    @media (min-width: 900px) { .report-toolbar { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    .report-toolbar > .report-field, .report-toolbar > .report-field-narrow { flex: initial; }
+    .report-toolbar .report-action-primary { grid-column: 1 / -1; justify-content: center; min-height: 2.8rem; }
+    @media (min-width: 900px) { .report-toolbar .report-action-primary { grid-column: auto; } }
+    .report-field-label { font-size: var(--font-70); }
+    /* KPI: full width, big numbers */
+    .report-stats, .report-stats-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-70); }
+    @media (min-width: 700px) { .report-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } .report-stats-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    .report-stats:has(.sheet-kpi) { display: block; }
+    .sheet-kpi { width: 100%; }
+    .sheet-kpi th { white-space: normal; padding-inline: var(--space-30); line-height: var(--leading-135); }
+    .sheet-kpi td { padding-inline: var(--space-30); }
+    .sheet-kpi thead th { background: transparent; color: var(--text-muted); font-weight: var(--weight-700); border-bottom: 0; }
+    .sheet-kpi tbody td { font-size: var(--font-90); padding-block: var(--space-60); }
+    .sheet-kpi th, .sheet-kpi td { border-inline-start: 1px solid var(--border-color) !important; }
+    .sheet-kpi th:first-child, .sheet-kpi td:first-child { border-inline-start: 0 !important; }
+    .report-head-aside { min-width: min(100%, 22rem); }
+    .report-index-search { min-width: 14rem; }
+    /* Tables: calm header, thin lines, no zebra noise */
+    .sheet-table thead th { border-bottom: 1px solid var(--border-color); background: color-mix(in srgb, var(--bg-input) 70%, transparent); color: var(--text-muted); font-size: var(--font-70); font-weight: var(--weight-700); }
+    .sheet-table th, .sheet-table td { border-inline-start: 0; padding: var(--space-60) var(--space-75); }
+    .sheet-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--bg-card) 30%, transparent); }
+    .sheet-table tfoot td { border-top: 1px solid var(--border-color); background: transparent; }
+    .sheet-wrap { border-radius: var(--radius-95); }
+    /* Actions: one primary, calm secondaries */
+    .report-action:not(.report-action-primary) { background: transparent; border-color: var(--border-color); color: var(--text-main); }
+    .report-action:not(.report-action-primary):hover:not(:disabled) { border-color: var(--accent-color); }
+    .report-actions .report-action { min-height: 2.6rem; }
+}
