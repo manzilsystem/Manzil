@@ -63,7 +63,7 @@ for (const paper of ['A4', 'A5']) {
         test.setTimeout(240_000);
         await seed(page);
         await page.evaluate(p => setPrintPaper(p), paper);
-        const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manzil-print-'));
+        const tmp = process.env.PRINT_OUT || fs.mkdtempSync(path.join(os.tmpdir(), 'manzil-print-')); fs.mkdirSync(tmp, { recursive: true });
         const hasPdftotext = spawnSync('pdftotext', ['-v']).error === undefined;
         for (const r of REPORTS) {
             await test.step(r.nav, async () => {
@@ -120,6 +120,9 @@ for (const paper of ['A4', 'A5']) {
                     const file = path.join(tmp, `${r.nav}-${paper}.pdf`);
                     fs.writeFileSync(file, pdf); const text = execFileSync('pdftotext', ['-enc', 'UTF-8', file, '-'], { encoding: 'utf8' });
                     expect(text).toMatch(/[\u0600-\u06FF]{3,}/);
+                    // the report starts on page one: its table/body text is there, not pushed to page two
+                    const first = execFileSync('pdftotext', ['-enc', 'UTF-8', '-f', '1', '-l', '1', file, '-'], { encoding: 'utf8' });
+                    expect(first.replace(/\s/g, '').length).toBeGreaterThan(150);
                     expect(text).not.toMatch(/\uFFFD/);
                 }
             });
