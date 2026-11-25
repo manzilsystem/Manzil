@@ -11,7 +11,7 @@ const appSource = fs.readFileSync(path.join(root, 'js', 'app.js'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'css', 'style.css'), 'utf8');
 
-function createHarness() {
+function createHarness(extra = {}) {
     const appended = [];
     const sent = [];
     const revoked = [];
@@ -53,6 +53,7 @@ function createHarness() {
         sendAssistantMessage: (event, options) => sent.push(options || {}),
         updateAssistantComposerState() {}
     };
+    Object.assign(sandbox, extra);
     input = { value: '', style: {}, focus() {} };
     const context = vm.createContext(sandbox);
     vm.runInContext(voiceSource, context, { filename: 'js/assistant-voice.js' });
@@ -65,7 +66,11 @@ function createHarness() {
         assistantVoiceSubmit,
         assistantVoiceConsumeReviewNote,
         assistantVoiceClearPendingReview,
-        assistantVoiceStop
+        assistantVoiceStop,
+        assistantVoiceStart,
+        assistantVoiceFinish,
+        interim: () => assistantVoiceInterim,
+        languageIndex: () => assistantVoiceLangIndex
     })`, context);
     return { api, input, appended, sent, revoked };
 }
@@ -73,7 +78,7 @@ function createHarness() {
 test('voice notes use the browser engines only', () => {
     assert.match(voiceSource, /webkitSpeechRecognition/, 'Safari prefix must be supported alongside the standard API');
     assert.match(voiceSource, /ASSISTANT_VOICE_LANGS = Object\.freeze\(\['ar-EG', 'ar-SA', 'ar'\]\)/);
-    assert.match(voiceSource, /recognition\.lang = ASSISTANT_VOICE_LANGS\[0\]/);
+    assert.match(voiceSource, /recognition\.lang = ASSISTANT_VOICE_LANGS\[assistantVoiceLangIndex % ASSISTANT_VOICE_LANGS\.length\]/);
     assert.match(voiceSource, /SpeechRecognitionPhrase/, 'domain words boost Egyptian Arabic dictation');
     assert.match(voiceSource, /\['تحصيل', 8\]/, 'collection vocabulary is boosted');
     assert.match(voiceSource, /getUserMedia\(\{ audio: true \}\)/);
@@ -170,4 +175,83 @@ test('cancelling a reviewed voice note clears the pending bubble and releases it
     api.assistantVoiceStop('cancel');
     assert.equal(api.assistantVoiceConsumeReviewNote('إلغاء'), null);
     assert.ok(revoked.includes('blob:voice'), 'the unreviewed recording is not kept in memory');
+});
+
+function recognitionHarness(recorder = false) {
+    const recognitions = [];
+    const toasts = [];
+    let releasePermission;
+    class FakeRecognition {
+        constructor() {
+            recognitions.push(this);
+            this.lang = '';
+        }
+
+        start() { this.started = true; }
+        stop() { this.onend?.(); }
+        abort() { this.onend?.(); }
+    }
+    const windowStub = { addEventListener() {}, speechSynthesis: undefined, SpeechRecognition: FakeRecognition };
+    const extra = {
+        window: windowStub,
+        toast: (message, type) => toasts.push({ message, type })
+    };
+    if (recorder) {
+        const FakeRecorder = function FakeRecorder() {
+            this.state = 'recording';
+            this.start = () => {};
+            this.stop = () => { this.state = 'inactive'; this.onstop?.(); };
+        };
+        FakeRecorder.isTypeSupported = () => true;
+        extra.MediaRecorder = FakeRecorder;
+        extra.navigator = {
+            mediaDevices: {
+                getUserMedia: () => new Promise(resolve => { releasePermission = resolve; })
+            }
+        };
+    }
+    const harness = createHarness(extra);
+    return { ...harness, recognitions, toasts, release: value => releasePermission?.(value) };
+}
+
+const tick = () => new Promise(resolve => setImmediate(resolve));
+
+test('dictation starts before mic recording permission and keeps words later emptied by an interim result', async () => {
+    const { api, sent, recognitions, toasts, release } = recognitionHarness(true);
+    await api.assistantVoiceStart();
+    assert.equal(recognitions.length, 1, 'recognition is not blocked by the recording permission prompt');
+    assert.equal(recognitions[0].lang, 'ar-EG');
+
+    recognitions[0].onresult({ results: [{ isFinal: false, 0: { transcript: 'رصيد الخزنة' } }] });
+    recognitions[0].onresult({ results: [{ isFinal: false, 0: { transcript: '' } }] });
+    assert.equal(api.interim(), 'رصيد الخزنة', 'an empty interim result does not erase the heard words');
+    recognitions[0].onresult({ results: [{ isFinal: true, 0: { transcript: 'رصيد الخزنة كام؟' } }] });
+    recognitions[0].onend();
+    await tick();
+
+    assert.equal(sent.length, 1);
+    assert.match(sent[0].userHtml, /رصيد الخزنة كام؟/);
+    assert.equal(toasts.length, 0);
+    release({ getTracks: () => [{ stop() {} }] });
+    await tick();
+    assert.equal(toasts.length, 0, 'a late permission grant does not produce a false error');
+});
+
+test('a quick press explains the hold gesture and the next press tries another Arabic dialect', async () => {
+    const { api, recognitions, toasts } = recognitionHarness();
+    await api.assistantVoiceStart();
+    recognitions[0].onend();
+    await tick();
+    assert.equal(toasts.length, 1);
+    assert.match(toasts[0].message, /اضغط مطولاً/);
+    assert.doesNotMatch(toasts[0].message, /ما سمعتش كلام واضح/);
+    assert.equal(api.languageIndex(), 1);
+
+    await api.assistantVoiceStart();
+    assert.equal(recognitions[1].lang, 'ar-SA');
+    recognitions[1].onerror({ error: 'no-speech' });
+    recognitions[1].onend();
+    await tick();
+    assert.match(toasts[1].message, /قرّب من المايك/);
+    assert.equal(api.languageIndex(), 2);
 });

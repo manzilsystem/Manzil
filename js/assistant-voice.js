@@ -22,6 +22,7 @@ let assistantVoiceChunks = [];
 let assistantVoiceListening = false;
 let assistantVoiceCancelled = false;
 let assistantVoiceInterim = '';
+let assistantVoiceLangIndex = 0;
 let assistantVoiceStartedAt = 0;
 let assistantVoicePointerStartY = null;
 let assistantVoiceLiveElement = null;
@@ -139,6 +140,11 @@ async function assistantVoiceCaptureStream() {
     if (typeof MediaRecorder === 'undefined') return;
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (!assistantVoiceListening) {
+            // Released while the permission prompt was open; do not keep the device.
+            stream.getTracks?.().forEach(track => track.stop());
+            return;
+        }
         assistantVoiceStream = stream;
         const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
         const mimeType = candidates.find(type => typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(type)) || '';
@@ -375,7 +381,14 @@ async function assistantVoiceFinish(cancelled) {
     if (cancelled || !text) {
         assistantVoiceClearPendingReview();
         if (url) URL.revokeObjectURL(url);
-        if (!cancelled) assistantVoiceNotify('ما سمعتش كلام واضح، جرّب مرة تانية', 'error');
+        if (!cancelled) {
+            // Give the next press a different dialect, since ar-EG is not
+            // equally accurate for every speaker or browser installation.
+            assistantVoiceLangIndex = (assistantVoiceLangIndex + 1) % ASSISTANT_VOICE_LANGS.length;
+            assistantVoiceNotify(durationMs < 900
+                ? 'اضغط مطولاً على المايك وكلّم عم عبده'
+                : 'ما سمعتش كلام واضح، جرّب مرة تانية', 'error');
+        }
         return;
     }
     assistantVoiceSubmit(text, assistantVoiceNoteHtml(text, durationMs, url));
@@ -399,19 +412,12 @@ async function assistantVoiceStart() {
     assistantVoiceStartedAt = Date.now();
     assistantVoiceSyncRecordButton(true);
     assistantVoiceShowLive('');
-    await assistantVoiceCaptureStream();
-    if (!assistantVoiceListening) {
-        // The button was released while permission was pending: release the
-        // device again instead of starting an orphaned recognition session.
-        assistantVoiceReleaseStream();
-        const lateUrl = await assistantVoiceFinaliseRecorder();
-        if (lateUrl) URL.revokeObjectURL(lateUrl);
-        assistantVoiceHideLive();
-        return;
-    }
+    // Start dictation immediately. Recording the audio bubble runs in parallel,
+    // because its permission prompt must not swallow the first words.
+    void assistantVoiceCaptureStream();
     try {
         const recognition = new Recogniser();
-        recognition.lang = ASSISTANT_VOICE_LANGS[0];
+        recognition.lang = ASSISTANT_VOICE_LANGS[assistantVoiceLangIndex % ASSISTANT_VOICE_LANGS.length];
         recognition.continuous = false;
         recognition.interimResults = true;
         recognition.maxAlternatives = 1;
@@ -432,7 +438,9 @@ async function assistantVoiceStart() {
                 if (result.isFinal) finalText += transcript;
                 else interimText += transcript;
             }
-            assistantVoiceInterim = (finalText || interimText).trim();
+            const shown = (finalText || interimText).trim();
+            // An empty interim result must never erase words already heard.
+            if (shown) assistantVoiceInterim = shown;
             assistantVoiceShowLive(assistantVoiceInterim);
         };
         recognition.onerror = event => {
@@ -441,6 +449,11 @@ async function assistantVoiceStart() {
                 assistantVoiceNotify('المايك مقفول؛ اسمح بالمايك من المتصفح', 'error');
             } else if (event?.error === 'network') {
                 assistantVoiceNotify('التعريف الصوتي محتاج إنترنت في المتصفح ده', 'error');
+            } else if (event?.error === 'no-speech') {
+                assistantVoiceLangIndex = (assistantVoiceLangIndex + 1) % ASSISTANT_VOICE_LANGS.length;
+                assistantVoiceNotify('المايك ما سمعش كلام، قرّب من المايك واضغط مطولاً', 'error');
+            } else if (event?.error === 'audio-capture') {
+                assistantVoiceNotify('المايك مشغول في برنامج تاني، قفله وجرّب', 'error');
             }
         };
         recognition.onend = () => { void assistantVoiceFinish(assistantVoiceCancelled); };
