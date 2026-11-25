@@ -37,9 +37,7 @@ permissions:
 
 jobs:
   chromium:
-    name: Chromium smoke and settings flows (${{ matrix.shard }}/4)
-    # Pushes only run smoke and settings, which one runner covers.
-    if: github.event_name != 'push' || matrix.shard == 1
+    name: Chromium smoke and settings flows (${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -48,7 +46,8 @@ jobs:
       # not cancel the others, so one run shows every failure.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        # Pushes only run smoke and settings, which one runner covers.
+        shard: ${{ fromJSON(github.event_name == 'push' && '[1]' || '[1,2,3,4]') }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
