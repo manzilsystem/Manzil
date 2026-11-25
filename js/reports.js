@@ -2867,7 +2867,7 @@ function getAdjustmentsReportSignature(fromMonth, toMonth, residentFilter = '', 
 }
 
 function setAdjustmentsReportActionsEnabled(enabled) {
-    ['adjustmentsReportPrintBtn', 'adjustmentsReportPdfBtn', 'adjustmentsReportExportBtn'].forEach(id => {
+    ['adjustmentsReportPrintBtn', 'adjustmentsReportPdfBtn', 'adjustmentsReportExportBtn', 'adjustmentsReportExcelBtn'].forEach(id => {
         const button = /** @type {HTMLButtonElement} */ (document.getElementById(id));
         if (button) button.disabled = !enabled;
     });
@@ -3063,6 +3063,25 @@ function printAdjustmentsReport() {
     window.print();
 }
 
+function exportAdjustmentsReportExcel() {
+    if (!requireManager()) return;
+    const report = getSelectedAdjustmentsReportSnapshot();
+    if (!report || typeof exportReportWithDetailExcel !== 'function') return;
+
+    const residentSlug = reportResidentFileSlug(report.residentFilter);
+    const residentSuffix = residentSlug ? `_apt_${residentSlug}` : '';
+    const kindSuffix = report.kindFilter ? `_${report.kindFilter}` : '';
+    const filename = `manzil_adjustments_${getPeriodReportFileSlug(report)}${residentSuffix}${kindSuffix}`;
+
+    const { summary, details } = adjustmentsReportToExcelRows(report);
+    exportReportWithDetailExcel(filename, `تقرير الإعفاءات والتخفيضات - ${state.buildingName || 'Manzil'}`, summary, details, {
+        'الفترة': report.rangeLabel,
+        'الشقة': report.residentLabel,
+        'النوع': report.kindLabel,
+        'تاريخ الإنشاء': formatDate(report.generatedAt)
+    });
+}
+
 function exportAdjustmentsReportCsv() {
     if (!requireManager()) return;
     const report = getSelectedAdjustmentsReportSnapshot();
@@ -3102,6 +3121,20 @@ async function exportAdjustmentsReportPdf() {
         'Adjustments report PDF export failed:',
         () => !!adjustmentsReportSnapshot
     );
+}
+
+function exportArrearsExcel() {
+    if (!requireManager()) return;
+    if (typeof exportReportWithDetailExcel !== 'function') return;
+    const report = buildArrearsReport(getArrearsReportFilters());
+    if (!report.residents.length) {
+        toast('لا توجد متأخرات للتصدير','error');
+        return;
+    }
+    const { summary, details } = arrearsReportToExcelRows(report);
+    exportReportWithDetailExcel(`manzil_arrears_${Date.now()}`, `تقرير المتأخرات - ${state.buildingName || 'Manzil'}`, summary, details, {
+        'تاريخ الإنشاء': formatDate(new Date().toISOString())
+    });
 }
 
 function exportArrearsCSV() {
@@ -4219,6 +4252,8 @@ if (typeof window !== 'undefined') {
     window.generateAdjustmentsReport = generateAdjustmentsReport;
     window.printAdjustmentsReport = printAdjustmentsReport;
     window.exportAdjustmentsReportCsv = exportAdjustmentsReportCsv;
+    window.exportAdjustmentsReportExcel = exportAdjustmentsReportExcel;
+    window.exportArrearsExcel = exportArrearsExcel;
     window.exportAdjustmentsReportPdf = exportAdjustmentsReportPdf;
     window.generateResidentStatement = generateResidentStatement;
     window.printResidentStatement = printResidentStatement;

@@ -56,6 +56,8 @@ declare function exportReportExcel(filename: string, sheets: Array<{ name: strin
 declare function exportReportWithDetailExcel(filename: string, title: string, summaryRows: any[][], detailRows: any[][], meta?: Record<string, unknown>): boolean;
 declare function periodReportToExcelRows(report: any): { summary: any[][]; details: any[][] };
 declare function expensesReportToExcelRows(report: any): { summary: any[][]; details: any[][] };
+declare function adjustmentsReportToExcelRows(report: any): { summary: any[][]; details: any[][] };
+declare function arrearsReportToExcelRows(report: any): { summary: any[][]; details: any[][] };
 
 // Reports - performance (js/reports/shared/performance.js)
 declare function memoize(fn: Function, maxSize?: number): any;
