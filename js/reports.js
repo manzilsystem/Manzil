@@ -4269,8 +4269,7 @@ function initReportImageButtons() {
 }
 if (typeof window !== 'undefined' && typeof document !== 'undefined' && document.documentElement) {
     window.exportReportAsImage = exportReportAsImage;
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initReportImageButtons);
-    else initReportImageButtons();
+    // Image buttons are enabled in the follow-up PR.
 }
 
 async function downloadStatementPdf(html, filename, buttonId, successMessage, logLabel, isPreviewValid) {
