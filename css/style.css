@@ -5587,3 +5587,11 @@ footer#appCopyright .copyright-divider img { width: 1.125rem; height: 1.125rem; 
     body:has(#tab-reports[data-report-view="panel"]:not(.hidden)) .assistant-fab { display: none; }
 }
 
+<<<<<<< HEAD
+=======
+/* Very narrow phones (360px): report tables tighten padding and type so 4-column tables never clip. Not applied to the export stage. */
+@media screen and (max-width: 380px) {
+    body > :not([data-report-export-stage]) .sheet-table th, body > :not([data-report-export-stage]) .sheet-table td { padding-inline: var(--space-30); font-size: var(--font-70); white-space: normal; }
+    body > :not([data-report-export-stage]) .sheet-table thead th { font-size: var(--font-65); }
+}
+>>>>>>> 0fbabac (Insights reports: 4-column tables fit at 360px; e2e guard for the three insights reports at 360 and 390)
