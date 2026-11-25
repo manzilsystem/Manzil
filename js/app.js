@@ -134,9 +134,9 @@ function ensurePdfLibrary() {
 
     pdfLibraryPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+        // Self-hosted: the CSP only allows scripts from this origin, so a CDN copy never loads.
+        script.src = 'vendor/html2pdf.bundle.min.js';
         script.async = true;
-        script.crossOrigin = 'anonymous';
         script.onload = () => {
             if (typeof window.html2pdf === 'function') resolve();
             else reject(new Error('pdf_library_unavailable'));

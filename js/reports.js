@@ -1632,16 +1632,22 @@ async function exportLandlordReportPdf() {
         root = document.createElement('section');
         root.dir = 'rtl';
         root.lang = 'ar';
-        root.style.cssText = 'position:fixed;top:0;left:0;width:190mm;padding:8mm;box-sizing:border-box;background:' + REPORT_PDF_PALETTE.surface + ';z-index:-1';
+        root.style.cssText = reportExportRootCss();
         root.innerHTML = renderLandlordReportPdfHtml(landlordReportMonth, landlordReportPurposeFilter, landlordReportCashAccountFilter, landlordReportPaymentMethodFilter, landlordReportResidentFilter);
         document.body.appendChild(root);
+
+        if (reportExportMode === 'image') {
+            await saveReportRootAsImages(root, filename);
+            toast('تم حفظ صورة التقرير.', 'success');
+            return;
+        }
 
         const pdfBlob = await window.html2pdf().set({
             margin: 8,
             filename,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true, backgroundColor: REPORT_PDF_PALETTE.surface, logging: false },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            jsPDF: reportExportJsPdfOptions(),
             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
         }).from(root).outputPdf('blob');
 
@@ -4112,6 +4118,140 @@ function renderAdjustmentsReportPdfHtml(report) {
     ].join('');
 }
 
+// ===== PDF and image export share the chosen paper size (A4 / A5) =====
+const REPORT_PAPER_MM = { A4: { w: 210, h: 297 }, A5: { w: 148, h: 210 } };
+const REPORT_EXPORT_MARGIN_MM = 8;
+/** @type {'pdf' | 'image'} */
+let reportExportMode = 'pdf';
+
+function reportExportPaper() {
+    const key = typeof getPrintPaper === 'function' ? getPrintPaper() : 'A4';
+    return { key, ...(REPORT_PAPER_MM[key] || REPORT_PAPER_MM.A4) };
+}
+
+/** Inline style for the detached export sheet: content width = paper width minus margins. */
+function reportExportRootCss() {
+    const paper = reportExportPaper();
+    const width = paper.w - 2 * REPORT_EXPORT_MARGIN_MM + (paper.key === 'A4' ? 2 : 0);
+    return 'position:fixed;top:0;left:0;width:' + width + 'mm;padding:' + REPORT_EXPORT_MARGIN_MM + 'mm;box-sizing:border-box;background:' + REPORT_PDF_PALETTE.surface + ';z-index:-1';
+}
+
+function reportExportJsPdfOptions() {
+    return { unit: 'mm', format: reportExportPaper().key.toLowerCase(), orientation: 'portrait' };
+}
+
+/** Run an existing "export PDF" action but save page images (PNG) instead of a PDF. */
+async function exportReportAsImage(pdfExportAction) {
+    if (typeof pdfExportAction !== 'function') return;
+    reportExportMode = 'image';
+    try { await pdfExportAction(); } finally { reportExportMode = 'pdf'; }
+}
+
+/**
+ * Pick row-safe page cuts so a table row is never sliced in half.
+ * @param {HTMLElement} root
+ * @param {number} pageHeightPx page height in the root's CSS pixels
+ * @returns {number[]} cut positions (CSS px from the top of root), ending with the total height
+ */
+function planReportImageCuts(root, pageHeightPx) {
+    const top = root.getBoundingClientRect().top;
+    const total = root.scrollHeight;
+    const bottoms = Array.from(root.querySelectorAll('tr, h1, h2, h3, section, table'))
+        .map(el => el.getBoundingClientRect().bottom - top)
+        .filter(value => value > 0 && value < total)
+        .sort((a, b) => a - b);
+    const cuts = [];
+    let start = 0;
+    while (total - start > pageHeightPx + 1) {
+        const limit = start + pageHeightPx;
+        const safe = bottoms.filter(value => value <= limit && value > start + pageHeightPx * 0.4).pop();
+        const cut = safe || limit;
+        cuts.push(cut);
+        start = cut;
+    }
+    cuts.push(total);
+    return cuts;
+}
+
+function downloadReportImageBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+}
+
+/**
+ * Render the detached export sheet to high-resolution PNG files, one per page.
+ * The scale is capped so old phones do not run out of memory.
+ * @param {HTMLElement} root
+ * @param {string} pdfFilename
+ * @returns {Promise<number>} number of images saved
+ */
+async function saveReportRootAsImages(root, pdfFilename) {
+    const paper = reportExportPaper();
+    const widthPx = root.getBoundingClientRect().width;
+    const pageHeightPx = widthPx * paper.h / paper.w;
+    const cuts = planReportImageCuts(root, pageHeightPx);
+    const totalPx = widthPx * root.scrollHeight;
+    const scale = Math.max(1.5, Math.min(3, Math.sqrt(16000000 / totalPx)));
+    /** @type {HTMLCanvasElement | null} */
+    let canvas = null;
+    await /** @type {any} */ (window).html2pdf().set({
+        margin: REPORT_EXPORT_MARGIN_MM,
+        jsPDF: reportExportJsPdfOptions(),
+        html2canvas: { scale, useCORS: true, backgroundColor: REPORT_PDF_PALETTE.surface, logging: false }
+    }).from(root).toCanvas().then(function () { canvas = this.prop.canvas; });
+    if (!canvas || !canvas.width || !canvas.height) throw new Error('report_image_generation_failed');
+    const base = pdfFilename.replace(/\.pdf$/i, '');
+    let start = 0;
+    for (let index = 0; index < cuts.length; index += 1) {
+        const y0 = Math.round(start * scale);
+        const y1 = Math.min(canvas.height, Math.round(cuts[index] * scale));
+        const height = Math.max(1, y1 - y0);
+        const page = document.createElement('canvas');
+        page.width = canvas.width;
+        page.height = Math.round(Math.max(height, (canvas.width * paper.h) / paper.w));
+        const context = page.getContext('2d');
+        context.fillStyle = REPORT_PDF_PALETTE.surface;
+        context.fillRect(0, 0, page.width, page.height);
+        context.drawImage(canvas, 0, y0, canvas.width, height, 0, 0, canvas.width, height);
+        const blob = await new Promise(resolve => page.toBlob(resolve, 'image/png'));
+        if (!blob) throw new Error('report_image_generation_failed');
+        downloadReportImageBlob(blob, cuts.length > 1 ? `${base}_${paper.key}_p${index + 1}.png` : `${base}_${paper.key}.png`);
+        if (index < cuts.length - 1) await new Promise(resolve => window.setTimeout(resolve, 250));
+        start = cuts[index];
+    }
+    return cuts.length;
+}
+
+/** Add an image button beside every PDF button and keep its enabled state in sync. */
+function initReportImageButtons() {
+    document.querySelectorAll('button[id$="PdfBtn"]').forEach(pdfButton => {
+        if (!(pdfButton instanceof HTMLButtonElement) || document.getElementById(pdfButton.id + 'Image')) return;
+        const match = /^\s*(\w+)\(\)/.exec(pdfButton.getAttribute('onclick') || '');
+        if (!match) return;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.id = pdfButton.id + 'Image';
+        button.className = pdfButton.className;
+        button.disabled = pdfButton.disabled;
+        button.setAttribute('onclick', `exportReportAsImage(${match[1]})`);
+        button.innerHTML = '<i class="fa-solid fa-image" aria-hidden="true"></i> صورة';
+        pdfButton.insertAdjacentElement('afterend', button);
+        new MutationObserver(() => { button.disabled = pdfButton.disabled; })
+            .observe(pdfButton, { attributes: true, attributeFilter: ['disabled'] });
+    });
+}
+if (typeof window !== 'undefined' && typeof document !== 'undefined' && document.documentElement) {
+    window.exportReportAsImage = exportReportAsImage;
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initReportImageButtons);
+    else initReportImageButtons();
+}
+
 async function downloadStatementPdf(html, filename, buttonId, successMessage, logLabel, isPreviewValid) {
     let root = null;
     const button = /** @type {HTMLButtonElement} */ (document.getElementById(buttonId));
@@ -4123,16 +4263,22 @@ async function downloadStatementPdf(html, filename, buttonId, successMessage, lo
         root = document.createElement('section');
         root.dir = 'rtl';
         root.lang = 'ar';
-        root.style.cssText = 'position:fixed;top:0;left:0;width:190mm;padding:8mm;box-sizing:border-box;background:' + REPORT_PDF_PALETTE.surface + ';z-index:-1';
+        root.style.cssText = reportExportRootCss();
         root.innerHTML = html;
         document.body.appendChild(root);
+
+        if (reportExportMode === 'image') {
+            await saveReportRootAsImages(root, filename);
+            toast('تم حفظ صورة التقرير.', 'success');
+            return;
+        }
 
         const pdfBlob = await window.html2pdf().set({
             margin: 8,
             filename,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true, backgroundColor: REPORT_PDF_PALETTE.surface, logging: false },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            jsPDF: reportExportJsPdfOptions(),
             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
         }).from(root).outputPdf('blob');
 
