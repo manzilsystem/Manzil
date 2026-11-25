@@ -1429,7 +1429,7 @@ async function handleResidentSubmit(e) {
         rentAmount: isRented ? rentAmount : null,
         depositAmount: isRented ? depositAmount : null
     };
-    if (shouldProvisionOwner && !normalizeOwnerPhone(phone)) { toast('أدخل رقم جوال صحيحًا أولاً؛ مثال مصري: 01012345678','error'); return; }
+    if ((shouldProvisionOwner || phone) && !normalizeOwnerPhone(phone)) { toast('رقم الجوال غير صحيح. اكتب رقمًا مصريًا مثل 01012345678 أو رقمًا دوليًا يبدأ بـ + مثل +447911123456','error'); return; }
     const normalizedApartment = normalizeApartmentNumberKey(apartmentNumber);
     if (state.residents.some(r => r.id !== editingResidentId && normalizeApartmentNumberKey(r.apartmentNumber) === normalizedApartment)) {
         toast('رقم الشقة مسجل بالفعل','error'); return;
@@ -1507,7 +1507,7 @@ async function getOwnerProvisioningErrorCode(error, data) {
 async function provisionOwnerAccess(residentId) {
     if (!requireManager()) return;
     const messages = {
-        invalid_phone: 'رقم الجوال غير صحيح. استخدم رقمًا مصريًا مثل 01012345678.',
+        invalid_phone: 'رقم الجوال غير صحيح. استخدم رقمًا مصريًا مثل 01012345678 أو رقمًا دوليًا يبدأ بـ +.',
         phone_already_linked: 'رقم الجوال مربوط بحساب مالك آخر.',
         phone_account_create_failed: 'تعذر إنشاء حساب لهذا الرقم؛ ربما له حساب سابق. راجع المدير.',
         manager_only: 'إنشاء حساب المالك متاح للمدير فقط.',

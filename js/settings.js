@@ -603,6 +603,11 @@ async function saveSettings() {
         toast('فعّل وسيلة دفع واحدة على الأقل قبل حفظ الإعدادات.', 'error');
         return;
     }
+    const managerPhoneRaw = String(/** @type {HTMLInputElement | null} */ (document.getElementById('settingsManagerPhone'))?.value || '').trim();
+    if (managerPhoneRaw && typeof normalizeOwnerPhone === 'function' && !normalizeOwnerPhone(managerPhoneRaw)) {
+        toast('رقم جوال المدير غير صحيح. اكتب رقمًا مصريًا (01012345678) أو دوليًا يبدأ بـ +.', 'error');
+        return;
+    }
     const receiptInput = /** @type {HTMLInputElement | HTMLTextAreaElement | null} */ (document.getElementById('settingsReceiptThankYou'));
     const receiptThankYou = String(receiptInput?.value || '').trim();
     const reminderInput = /** @type {HTMLInputElement | HTMLTextAreaElement | null} */ (document.getElementById('settingsReminderTemplate'));

@@ -137,3 +137,21 @@ test('Amm Abdo has a once-a-day morning brief and a "ملخص اليوم" comman
     assert.match(assistant, /assistantMorningBriefDay === day/, 'the brief shows once per day');
     assert.match(assistant, /if \(!assistantCanWrite\(\)\) return false;/, 'manager only');
 });
+
+test('cleanPhone accepts Egyptian and international numbers and rejects junk', () => {
+    const { api } = loadNotices();
+    const cases = [
+        ['01012345678', '201012345678'],
+        ['010 1234-5678', '201012345678'],
+        ['+20 101 234 5678', '201012345678'],
+        ['+44 7911 123456', '447911123456'],
+        ['0044 7911 123456', '447911123456'],
+        ['+1 (415) 555-2671', '14155552671'],
+        ['٠١٠١٢٣٤٥٦٧٨', '201012345678'],
+        ['abc', ''],
+        ['123', ''],
+        ['+1234567890123456', ''],
+        ['', '']
+    ];
+    for (const [input, expected] of cases) assert.equal(api.cleanPhone(input), expected, input);
+});
