@@ -29,13 +29,15 @@ function initAssistantFabDrag() {
     } catch (_) { /* ignore corrupt saved position */ }
     let start = null;
     let moved = false;
+    // The picture must not start the browser's own image drag, which would cancel ours
+    fab.addEventListener('dragstart', event => event.preventDefault());
     fab.addEventListener('pointerdown', event => {
         if (!dragEnabled() || event.button > 0) return;
         const rect = fab.getBoundingClientRect();
         start = { px: event.clientX, py: event.clientY, left: rect.left, top: rect.top };
         moved = false;
     });
-    fab.addEventListener('pointermove', event => {
+    window.addEventListener('pointermove', event => {
         if (!start) return;
         const dx = event.clientX - start.px;
         const dy = event.clientY - start.py;
@@ -43,7 +45,6 @@ function initAssistantFabDrag() {
         if (!moved) {
             moved = true;
             fab.classList.add('is-dragging');
-            if (fab.setPointerCapture) fab.setPointerCapture(event.pointerId);
         }
         place(start.left + dx, start.top + dy);
     });
@@ -57,8 +58,8 @@ function initAssistantFabDrag() {
             localStorage.setItem(ASSISTANT_FAB_POS_KEY, JSON.stringify({ fx: rect.left / window.innerWidth, fy: rect.top / window.innerHeight }));
         } catch (_) { /* storage may be unavailable */ }
     };
-    fab.addEventListener('pointerup', finish);
-    fab.addEventListener('pointercancel', finish);
+    window.addEventListener('pointerup', finish);
+    window.addEventListener('pointercancel', finish);
     // A drag must not also open the chat
     fab.addEventListener('click', event => {
         if (moved) { event.stopImmediatePropagation(); event.preventDefault(); moved = false; }

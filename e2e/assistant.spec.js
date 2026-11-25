@@ -582,7 +582,15 @@ test.describe('assistant floating launcher', () => {
 
         const box = await fab.boundingBox();
         const navBox = await page.locator('nav[aria-label="التنقل الرئيسي"]').boundingBox();
-        expect(box.y + box.height).toBeLessThanOrEqual(navBox.y + 1);
+        if (page.viewportSize().width >= 1024) {
+            // desktop: the navigation is a side rail and the doorman lives inside it, below the last tab
+            expect(box.x).toBeGreaterThanOrEqual(navBox.x - 1);
+            expect(box.x + box.width).toBeLessThanOrEqual(navBox.x + navBox.width + 1);
+            const lastTab = await page.locator('nav[aria-label="التنقل الرئيسي"] .tab-btn').last().boundingBox();
+            expect(box.y).toBeGreaterThanOrEqual(lastTab.y + lastTab.height - 1);
+        } else {
+            expect(box.y + box.height).toBeLessThanOrEqual(navBox.y + 1);
+        }
 
         const scrollRoom = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
         expect(scrollRoom).toBeGreaterThan(400);
