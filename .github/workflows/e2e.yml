@@ -29,6 +29,8 @@ on:
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/e2e.yml"
+  schedule:
+    - cron: "0 3 * * *"
 
 permissions:
   contents: read
@@ -54,7 +56,14 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run browser tests
+      # Push stays fast: smoke + settings only. Full suite still guards PRs
+      # and runs nightly so main keeps complete browser coverage.
+      - name: "Run browser tests (push: smoke and settings)"
+        if: github.event_name == 'push'
+        run: npx playwright test e2e/smoke.spec.js e2e/settings.spec.js
+
+      - name: "Run browser tests (pull request / schedule: full suite)"
+        if: github.event_name != 'push'
         run: npx playwright test
 
       - name: Upload failure artifacts
