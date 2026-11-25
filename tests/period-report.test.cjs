@@ -271,7 +271,10 @@ test('period report caps the displayed rate and flags negative payments and empt
     assert.equal(report.totals.negativePaymentCount, 1);
     assert.equal(report.totals.emptyExpenseCount, 1);
     const html = app.renderPeriodReportHtml(report);
-    assert.match(html, />200%/);
+    assert.match(html, /100%/);
+    assert.doesNotMatch(html, /900%/);
+    assert.equal(report.totals.advanceCents, 80000);
+    assert.match(html, /مدفوع مقدمًا/);
     assert.match(html, /سالبة/);
     assert.match(html, /بلا مبلغ/);
 });
