@@ -70,3 +70,14 @@ declare function renderTemplateList(reportType: string, containerId: string): vo
 declare function addReportTemplate(name: string, reportType: string, filters: Record<string, unknown>): any;
 declare function applyReportTemplate(templateId: string): Record<string, unknown> | null;
 declare function deleteReportTemplate(templateId: string): boolean;
+
+// Report flow helpers called from inline handlers and sibling modules
+declare function renderReportFilterSummaries(): void;
+declare function clearReportFilters(tab: string): boolean;
+declare function invalidateMonthlyClosePreview(): void;
+declare function renderAuditLog(options?: { more?: boolean }): void;
+declare function resetArrearsFilters(): void;
+declare function applyCashFlowPreset(): void;
+declare function applyApartmentsPreset(): void;
+declare function invalidateCashFlowPreview(): void;
+declare function invalidateApartmentsPreview(): void;

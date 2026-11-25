@@ -8,7 +8,7 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const state = fs.readFileSync(path.join(root, 'js', 'state.js'), 'utf8');
 const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 
-const auditSection = html.slice(html.indexOf('id="auditLogContainer"') - 600, html.indexOf('id="auditLogContainer"') + 150);
+const auditSection = html.slice(html.indexOf('id="auditLogPanel"'), html.indexOf('id="auditLogContainer"') + 150);
 
 test('audit history is clearly described and has no misleading clear action', () => {
     assert.match(auditSection, /سجل العمليات/);

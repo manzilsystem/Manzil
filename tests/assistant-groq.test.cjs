@@ -99,9 +99,10 @@ test('the browser hook sends only approved facts through the same-origin proxy',
         fetch,
         document: fakeDocument(),
         currentUserRole: 'manager',
-        globalThis: { location: { hostname: '127.0.0.1' } }
+        location: { hostname: '127.0.0.1' }
     });
-    const answer = await sandbox.globalThis.assistantGroqAnswer('رصيد الخزنة كام؟', {
+    await sandbox.assistantGroqHealth;
+    const answer = await sandbox.assistantGroqAnswer('رصيد الخزنة كام؟', {
         id: 'cashbox', title: 'أرصدة الخزائن', html: '<p>الخزنة الرئيسية: 100 جنيه</p>', followUps: ['ملخص الشهر']
     });
     assert.equal(answer.source, 'groq');
@@ -115,23 +116,26 @@ test('the browser hook sends only approved facts through the same-origin proxy',
     assert.match(sent.messages[0].content, /الحقائق المقدمة فقط/);
     assert.match(sent.messages[1].content, /الخزنة الرئيسية: 100 جنيه/);
     assert.doesNotMatch(JSON.stringify(sent), /api\.groq\.com|gsk_/);
-    assert.equal(await sandbox.globalThis.assistantGroqAnswer('سجل تحصيل', {
+    assert.equal(await sandbox.assistantGroqAnswer('سجل تحصيل', {
         id: 'operation-confirm-request', html: '<p>جارٍ الحفظ</p>'
     }), null);
 });
 
 test('the hook is not installed when the local proxy is unavailable', async () => {
-    const sandbox = bareModule(clientSource, {
+    const { sandbox } = bareModule(clientSource, {
         fetch: async () => ({ ok: false }),
         document: fakeDocument(),
-        globalThis: { location: { hostname: '127.0.0.1' } }
+        location: { hostname: '127.0.0.1' }
     });
-    assert.equal(await sandbox.globalThis.assistantGroqHealth, false);
-    assert.equal(sandbox.globalThis.assistantGroqAnswer, undefined,
+    assert.equal(await sandbox.assistantGroqHealth, false);
+    assert.equal(sandbox.assistantGroqAnswer, undefined,
         'a static build or e2e server keeps the synchronous local path');
 });
 
 test('the dev proxy forwards the key server-side and never returns it', async () => {
+    // Deliberately shorter than a real Groq key so the secret scanner never
+    // mistakes this fixture for a credential.
+    const fakeKey = 'gsk_localproxytest';
     let upstreamAuth = '';
     let upstreamBody = null;
     const upstream = http.createServer((request, response) => {
@@ -153,7 +157,7 @@ test('the dev proxy forwards the key server-side and never returns it', async ()
             ...process.env,
             GROQ_DEV_PORT: String(port),
             GROQ_API_BASE: `http://127.0.0.1:${upstreamPort}/v1`,
-            GROQ_API_KEY: 'gsk_testkeyforthelocalproxy123'
+            GROQ_API_KEY: fakeKey
         },
         stdio: ['ignore', 'pipe', 'pipe']
     });
@@ -183,7 +187,7 @@ test('the dev proxy forwards the key server-side and never returns it', async ()
         const reply = await chat.json();
         assert.equal(reply.content, 'رد تجريبي من Groq');
         assert.doesNotMatch(JSON.stringify(reply), /gsk_/);
-        assert.equal(upstreamAuth, 'Bearer gsk_testkeyforthelocalproxy123');
+        assert.equal(upstreamAuth, `Bearer ${fakeKey}`);
         assert.equal(upstreamBody.model, 'openai/gpt-oss-20b');
         assert.equal(upstreamBody.messages[0].content, 'رصيد الخزنة كام؟');
 
@@ -202,6 +206,7 @@ test('the dev proxy forwards the key server-side and never returns it', async ()
 
 test('secret scanning recognises Groq keys', () => {
     const { findSecrets } = require('../scripts/check-secrets.cjs');
-    assert.ok(findSecrets('GROQ_API_KEY=gsk_abcdefghijklmnopqrstuvwxyz').some(item => item.name === 'groq_api_key'));
+    const longKey = `gsk_${'a'.repeat(26)}`;
+    assert.ok(findSecrets(`GROQ_API_KEY=${longKey}`).some(item => item.name === 'groq_api_key'));
     assert.deepEqual(findSecrets('GROQ_API_KEY=\n# gsk_ قصير'), []);
 });

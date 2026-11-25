@@ -631,6 +631,30 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-field-label { color: var(--text-muted); font-size: var(--font-65); font-weight: var(--weight-800); }
 .report-control { width: 100%; border-radius: var(--radius-90); padding: var(--space-60) var(--space-75); font-size: var(--font-72); font-weight: var(--weight-600); }
 .report-toolbar .report-action { flex: 0 0 auto; }
+.report-filter-summary {
+    flex: 1 1 100%; display: flex; align-items: center; flex-wrap: wrap;
+    gap: var(--space-45); padding-top: var(--space-55); border-top: 1px dashed var(--border-color);
+    color: var(--text-muted); font-size: var(--font-70);
+}
+.report-filter-summary[hidden] { display: none; }
+.report-filter-summary-label { font-weight: var(--weight-800); }
+.report-filter-chips { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-40); }
+.report-filter-chip {
+    display: inline-flex; align-items: center; gap: var(--space-35);
+    padding: var(--space-25) var(--space-55); border: 1px solid var(--border-color);
+    border-radius: var(--radius-pill); background: color-mix(in srgb, var(--bg-input) 82%, var(--bg-card));
+    color: var(--text-muted); font-size: var(--font-68); line-height: var(--leading-140);
+}
+.report-filter-chip b { color: var(--text-main); font-weight: var(--weight-700); }
+.report-filter-clear {
+    display: inline-flex; align-items: center; gap: var(--space-35); margin-inline-start: auto;
+    padding: var(--space-none); border: 0; border-bottom: 1px solid transparent;
+    border-radius: var(--radius-none); background: transparent; color: var(--accent-color);
+    font-size: var(--font-68); font-weight: var(--weight-700);
+}
+.report-filter-clear:hover { border-color: var(--accent-color); }
+.report-filter-clear:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; }
+@media (max-width: 639.98px) { .report-filter-clear { margin-inline-start: var(--space-none); } }
 @media (min-width: 640px) {
     .report-toolbar-split { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: end; }
     .report-toolbar-split .report-field { min-width: 0; }
