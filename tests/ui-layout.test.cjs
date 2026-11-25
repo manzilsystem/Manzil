@@ -93,3 +93,10 @@ test('apartments list folds its filters and pages the list', () => {
     assert.match(render, /RESIDENT_LIST_PAGE_SIZE = 6/);
     assert.match(render, /renderResidentsGrid\(\{ more: true \}\)/);
 });
+
+test('settings sub-blocks fold into an accordion on phones', () => {
+    const settings = fs.readFileSync('js/settings.js', 'utf8');
+    assert.match(settings, /function setupSettingsAccordion\(tab\)/);
+    assert.match(settings, /\.settings-subsection, \.settings-payment-card/);
+    assert.match(css, /\.is-folded > :not\(\.settings-subsection-heading\):not\(\.settings-method-head\)/);
+});
