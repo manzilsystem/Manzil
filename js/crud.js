@@ -1619,7 +1619,9 @@ function buildOwnerTempPinMessage(pin, apartmentNumber, ownerName, buildingName)
 function sendOwnerTempPinOnWhatsApp() {
     const phoneDisplay = /** @type {any} */ (document.getElementById('ownerTempPinPhone'));
     const pin = /** @type {any} */ (document.getElementById('ownerTempPinValue'))?.value.trim() || '';
-    const phoneDigits = String(phoneDisplay?.dataset.phone || '').replace(/\D/g, '');
+    const storedPhone = String(phoneDisplay?.dataset.phone || '');
+    // Normalize Egyptian 01XXXXXXXXX to 20XXXXXXXXXX and keep international numbers as digits.
+    const phoneDigits = typeof cleanPhone === 'function' ? cleanPhone(storedPhone) : storedPhone.replace(/\D/g, '');
     const apartmentNumber = String(phoneDisplay?.dataset.apartmentNumber || '').trim();
     const ownerName = String(phoneDisplay?.dataset.ownerName || '').trim();
     const buildingName = String(phoneDisplay?.dataset.buildingName || '').trim();
