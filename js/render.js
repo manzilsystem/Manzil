@@ -510,7 +510,7 @@ function updateIncomeFiltersToggleBadge() {
     badge.classList.toggle('hidden', !active);
 }
 
-const INCOME_LIST_PAGE_SIZE = 8;
+const INCOME_LIST_PAGE_SIZE = 6;
 let incomeListVisibleGroups = INCOME_LIST_PAGE_SIZE;
 
 function renderIncomeTable(options) {
