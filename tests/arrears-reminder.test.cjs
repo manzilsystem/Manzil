@@ -128,3 +128,12 @@ test('the arrears panel exposes a bulk WhatsApp reminder button next to the CSV 
     assert.match(panel, /onclick="sendBulkArrearsReminders\(\)"/);
     assert.match(panel, /onclick="exportArrearsCSV\(\)"/);
 });
+
+test('Amm Abdo has a once-a-day morning brief and a "ملخص اليوم" command', () => {
+    const assistant = read('js/assistant.js');
+    assert.match(assistant, /function buildAssistantMorningBriefAnswer\(/);
+    assert.match(assistant, /function maybeAppendAssistantMorningBrief\(/);
+    assert.match(assistant, /return 'morning_brief'/);
+    assert.match(assistant, /assistantMorningBriefDay === day/, 'the brief shows once per day');
+    assert.match(assistant, /if \(!assistantCanWrite\(\)\) return false;/, 'manager only');
+});
