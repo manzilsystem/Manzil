@@ -25,7 +25,10 @@ test('arrears reminders list and Amm Abdo command', async ({ page }, info) => {
         renderAll();
     });
     await page.evaluate(() => { window.__opened = []; window.open = u => { window.__opened.push(u); return null; }; });
-    await page.evaluate(() => openArrearsRemindersList(''));
+    await page.evaluate(() => { switchTab('dashboard'); renderAll(); });
+    await expect(page.locator('#dashboardRemindersCard')).toBeVisible();
+    await expect(page.locator('#dashboardRemindersText')).toContainText('شقة متأخرة');
+    await page.locator('#dashboardRemindersCard').getByRole('button', { name: 'افتح القائمة' }).click();
     const modal = page.locator('#arrearsRemindersModal');
     await expect(modal).toBeVisible();
     const rows = modal.locator('[data-reminder-row]');

@@ -231,6 +231,16 @@
                 </div>
             </section>
 
+            <section id="dashboardRemindersCard" class="app-card dashboard-reminders hidden p-3 rounded-3xl border" aria-labelledby="dashboardRemindersTitle">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                        <h2 id="dashboardRemindersTitle" class="font-bold text-sm flex items-center gap-2"><i class="fa-brands fa-whatsapp text-emerald-400" aria-hidden="true"></i> تذكيرات اليوم</h2>
+                        <p id="dashboardRemindersText" class="text-xs text-slate-400 mt-1"></p>
+                    </div>
+                    <button type="button" onclick="openArrearsRemindersList('')" class="min-h-11 px-4 rounded-xl bg-emerald-600 text-white text-xs font-bold shrink-0">افتح القائمة</button>
+                </div>
+            </section>
+
             <section class="app-card p-4 sm:p-5 rounded-3xl border space-y-3" aria-labelledby="monthSummaryTitle">
                 <div class="flex items-center justify-between gap-2">
                     <h2 id="monthSummaryTitle" class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-calendar-check text-emerald-400"></i> ملخص الشهر الحالي</h2>
@@ -2527,12 +2537,12 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-4eaa95da97"></script>
+    <script src="js/telemetry.js?v=manzil-c7be5f9ff6"></script>
     <script src="js/state.js?v=f367c7dc5c"></script>
     <script src="js/access.js?v=1ca370a57a"></script>
-    <script src="js/render.js?v=057537880a"></script>
+    <script src="js/render.js?v=305f8790af"></script>
     <script src="js/crud.js?v=74a52991d9"></script>
-    <script src="js/notices.js?v=5923550388"></script>
+    <script src="js/notices.js?v=5161601b8f"></script>
     <!-- Chart.js for report visualizations (bundled locally) -->
     <script src="vendor/chart.umd.js"></script>
     <!-- SheetJS for advanced Excel export (bundled locally) -->

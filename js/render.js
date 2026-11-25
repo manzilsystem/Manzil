@@ -300,6 +300,7 @@ function matchesDashboardPeriod(record, period = getDashboardPeriod(), periodMon
 }
 
 function renderDashboard() {
+    if (typeof renderDashboardRemindersCard === 'function') renderDashboardRemindersCard();
     const period = getDashboardPeriod();
     const periodLabel = getDashboardPeriodLabel(period);
     const periodMonths = new Set(getDashboardPeriodMonths(period));
