@@ -1744,6 +1744,11 @@ function buildPeriodMonthKeys(fromMonth, toMonth) {
     return keys.length ? keys : null;
 }
 
+function formatPeriodRate(rate) {
+    if (rate === null || rate === undefined || rate === '') return '—';
+    return Number(rate) > 200 ? '>200%' : fmtNum(rate) + '%';
+}
+
 function getPeriodCollectionRate(expectedCents, collectedCents) {
     return expectedCents > 0 ? Math.round((collectedCents / expectedCents) * 100) : null;
 }
@@ -1765,13 +1770,16 @@ function _buildPeriodReport(fromMonth, toMonth, purposeFilter = '', cashAccountF
         const monthIncome = filterReportIncome((state.income || []).filter(item => item.month === month), normalizedPurpose, normalizedCashAccount, '', normalizedResident);
         const totalIncomeCents = monthIncome.reduce((sum, item) => sum + toCents(item.amount), 0);
         const collectedCents = monthIncome
-            .filter(item => reportIsSubscriptionPayment(item))
+            .filter(item => reportIsSubscriptionPayment(item) && toCents(item.amount) > 0)
             .reduce((sum, item) => sum + toCents(item.amount), 0);
         const otherIncomeCents = totalIncomeCents - collectedCents;
-        const expenseCents = filterReportExpenses(
+        const negativePaymentCount = monthIncome.filter(item => toCents(item.amount) < 0).length;
+        const monthExpenses = filterReportExpenses(
             (state.expenses || []).filter(item => item.month === month),
             normalizedCashAccount
-        ).reduce((sum, item) => sum + toCents(item.amount), 0);
+        );
+        const emptyExpenseCount = monthExpenses.filter(item => item.amount === null || item.amount === undefined || String(item.amount).trim() === '').length;
+        const expenseCents = monthExpenses.reduce((sum, item) => sum + toCents(item.amount), 0);
         const { expectedCents, outstandingCents, adjustmentCents } = showDues
             ? getMonthlyBillingTotals(month, normalizedResident)
             : { expectedCents: 0, outstandingCents: 0, adjustmentCents: 0 };
@@ -1786,6 +1794,8 @@ function _buildPeriodReport(fromMonth, toMonth, purposeFilter = '', cashAccountF
             otherIncomeCents,
             outstandingCents,
             expenseCents,
+            negativePaymentCount,
+            emptyExpenseCount,
             netCents: totalIncomeCents - expenseCents,
             rate: showDues ? getPeriodCollectionRate(expectedCents, collectedCents) : null
         };
@@ -1797,11 +1807,13 @@ function _buildPeriodReport(fromMonth, toMonth, purposeFilter = '', cashAccountF
         acc.movementCount += row.movementCount;
         acc.collectedCents += row.collectedCents;
         acc.otherIncomeCents += row.otherIncomeCents;
+        acc.negativePaymentCount += row.negativePaymentCount || 0;
+        acc.emptyExpenseCount += row.emptyExpenseCount || 0;
         acc.outstandingCents += row.outstandingCents;
         acc.expenseCents += row.expenseCents;
         if (row.outstandingCents > 0) acc.unpaidMonths += 1;
         return acc;
-    }, { expectedCents: 0, adjustmentCents: 0, totalIncomeCents: 0, movementCount: 0, collectedCents: 0, otherIncomeCents: 0, outstandingCents: 0, expenseCents: 0, unpaidMonths: 0, netCents: 0, rate: null });
+    }, { expectedCents: 0, adjustmentCents: 0, totalIncomeCents: 0, movementCount: 0, collectedCents: 0, otherIncomeCents: 0, negativePaymentCount: 0, emptyExpenseCount: 0, outstandingCents: 0, expenseCents: 0, unpaidMonths: 0, netCents: 0, rate: null });
     totals.netCents = totals.totalIncomeCents - totals.expenseCents;
     totals.rate = showDues ? getPeriodCollectionRate(totals.expectedCents, totals.collectedCents) : null;
     const rangeLabels = new Set(months.map(row => row.month));
@@ -1899,11 +1911,13 @@ function normalizeServerPeriodReport(serverReport, localReport) {
         acc.movementCount += row.movementCount;
         acc.collectedCents += row.collectedCents;
         acc.otherIncomeCents += row.otherIncomeCents;
+        acc.negativePaymentCount += row.negativePaymentCount || 0;
+        acc.emptyExpenseCount += row.emptyExpenseCount || 0;
         acc.outstandingCents += row.outstandingCents;
         acc.expenseCents += row.expenseCents;
         if (row.outstandingCents > 0) acc.unpaidMonths += 1;
         return acc;
-    }, { expectedCents: 0, adjustmentCents: 0, totalIncomeCents: 0, movementCount: 0, collectedCents: 0, otherIncomeCents: 0, outstandingCents: 0, expenseCents: 0, unpaidMonths: 0, netCents: 0, rate: null });
+    }, { expectedCents: 0, adjustmentCents: 0, totalIncomeCents: 0, movementCount: 0, collectedCents: 0, otherIncomeCents: 0, negativePaymentCount: 0, emptyExpenseCount: 0, outstandingCents: 0, expenseCents: 0, unpaidMonths: 0, netCents: 0, rate: null });
     totals.netCents = totals.totalIncomeCents - totals.expenseCents;
     totals.rate = localReport.showDues ? getPeriodCollectionRate(totals.expectedCents, totals.collectedCents) : null;
     const methods = (Array.isArray(serverReport.methods) ? serverReport.methods : []).map(item => ({
@@ -2037,7 +2051,8 @@ function renderPeriodReportHtml(report) {
         ? report.months.map(row => [
             esc(row.month), money(row.expectedCents), tone(row.collectedCents, true),
             row.outstandingCents ? tone(row.outstandingCents, false) : money(0),
-            row.rate === null ? '—' : fmtNum(row.rate) + '%',
+            formatPeriodRate(row.rate),
+            row.otherIncomeCents ? tone(row.otherIncomeCents, true) : money(0),
             row.expenseCents ? tone(row.expenseCents, false) : money(0),
             tone(row.netCents, row.netCents >= 0)
         ])
@@ -2066,6 +2081,10 @@ function renderPeriodReportHtml(report) {
     const unpaidNote = showDues && totals.unpaidMonths > 0
         ? `<p>${fmtNum(totals.unpaidMonths)} شهر من الفترة فيه متبقٍّ غير محصّل.</p>`
         : '';
+    const flagNote = (totals.negativePaymentCount > 0
+        ? `<p>تنبيه: ${fmtNum(totals.negativePaymentCount)} حركة تحصيل بقيمة سالبة، لم تُحسب ضمن المحصّل.</p>` : '')
+        + (totals.emptyExpenseCount > 0
+            ? `<p>تنبيه: ${fmtNum(totals.emptyExpenseCount)} مصروف بلا مبلغ، راجعه.</p>` : '');
     const adjustmentNote = showDues && totals.adjustmentCents > 0
         ? `<p>المستحق بعد إعفاءات وتخفيضات بقيمة ${fmtMoney(totals.adjustmentCents / 100)}.</p>`
         : '';
@@ -2085,7 +2104,7 @@ function renderPeriodReportHtml(report) {
             ...(totals.adjustmentCents > 0 ? [{ label: 'إعفاء/تخفيض', cents: totals.adjustmentCents, tone: 'amber' }] : []),
             { label: 'المحصّل', cents: totals.collectedCents, tone: 'emerald' },
             { label: 'غير المحصّل', cents: totals.outstandingCents, tone: totals.outstandingCents > 0 ? 'amber' : 'emerald' },
-            { label: 'نسبة التحصيل', text: totals.rate === null ? '—' : fmtNum(totals.rate) + '%' },
+            { label: 'نسبة التحصيل', text: formatPeriodRate(totals.rate) },
             { label: 'إيرادات أخرى', cents: totals.otherIncomeCents, tone: 'sky' },
             { label: 'المصروف', cents: totals.expenseCents, tone: 'rose' },
             { label: 'الصافي', cents: totals.netCents, tone: totals.netCents >= 0 ? 'emerald' : 'rose' }
@@ -2097,10 +2116,11 @@ function renderPeriodReportHtml(report) {
             { label: 'الصافي', cents: totals.netCents, tone: totals.netCents >= 0 ? 'emerald' : 'rose' }
         ], true);
     const tableHtml = showDues
-        ? renderSheetBlock('الحركة شهرًا بشهر', ['الشهر', 'المستحق', 'المحصّل', 'غير المحصّل', 'نسبة التحصيل', 'المصروف', 'الصافي'], monthRows, {
-            empty: 'لا توجد حركات في الفترة المحددة.', numeric: [1, 2, 3, 4, 5, 6], tableClass: 'statement-table',
+        ? renderSheetBlock('الحركة شهرًا بشهر', ['الشهر', 'المستحق', 'المحصّل', 'غير المحصّل', 'نسبة التحصيل', 'إيرادات أخرى', 'المصروف', 'الصافي'], monthRows, {
+            empty: 'لا توجد حركات في الفترة المحددة.', numeric: [1, 2, 3, 4, 5, 6, 7], tableClass: 'statement-table',
             foot: ['الإجمالي', money(totals.expectedCents), tone(totals.collectedCents, true),
-                tone(totals.outstandingCents, false), totals.rate === null ? '—' : fmtNum(totals.rate) + '%',
+                tone(totals.outstandingCents, false), formatPeriodRate(totals.rate),
+                totals.otherIncomeCents ? tone(totals.otherIncomeCents, true) : money(0),
                 tone(totals.expenseCents, false), tone(totals.netCents, totals.netCents >= 0)]
         })
         : renderSheetBlock('الحركة شهرًا بشهر', ['الشهر', incomeStatLabel, 'عدد الحركات', 'المصروف', 'الصافي'], monthRows, {
@@ -2162,7 +2182,7 @@ function renderPeriodReportHtml(report) {
                 '<p>كل شهر محسوب بسعر الاشتراك السارية فيه وحصيلته من حركات الشهر نفسه، مثل تقرير الملاك الشهري.</p>',
                 '<p>نسبة تزيد على 100% تعني تحصيلًا أعلى من مستحق الشهر (مقدمة أو متأخرات مسددة).</p>',
                 '<p>توزيع الطرق يغطي كل تحصيلات أشهر الفترة، ومجموعه يساوي إجمالي التحصيل.</p>',
-                filterNote, cashFilterNote, residentFilterNote, unpaidNote, adjustmentNote
+                filterNote, cashFilterNote, residentFilterNote, unpaidNote, flagNote, adjustmentNote
             ])}
          </div>`;
 }
@@ -2324,19 +2344,19 @@ function exportPeriodReportCsv() {
     const totals = report.totals;
     const showDues = report.showDues !== false;
     const rows = showDues
-        ? [['الشهر','المستحق','المحصّل','غير المحصّل','نسبة التحصيل %','المصروف','الصافي']]
+        ? [['الشهر','المستحق','المحصّل','غير المحصّل','نسبة التحصيل %','إيرادات أخرى','المصروف','الصافي']]
         : [['الشهر', report.cashAccountFilter ? 'تحصيل الصندوق' : report.residentFilter ? 'تحصيل الشقة' : 'تحصيل الغرض','عدد الحركات','المصروف','الصافي']];
     report.months.forEach(row => {
         if (showDues) {
             rows.push([row.month, row.expectedCents / 100, row.collectedCents / 100, row.outstandingCents / 100,
-                row.rate ?? '', row.expenseCents / 100, row.netCents / 100]);
+                row.rate ?? '', row.otherIncomeCents / 100, row.expenseCents / 100, row.netCents / 100]);
         } else {
             rows.push([row.month, row.totalIncomeCents / 100, row.movementCount, row.expenseCents / 100, row.netCents / 100]);
         }
     });
     if (showDues) {
         rows.push(['الإجمالي', totals.expectedCents / 100, totals.collectedCents / 100, totals.outstandingCents / 100,
-            totals.rate ?? '', totals.expenseCents / 100, totals.netCents / 100]);
+            totals.rate ?? '', totals.otherIncomeCents / 100, totals.expenseCents / 100, totals.netCents / 100]);
     } else {
         rows.push(['الإجمالي', totals.totalIncomeCents / 100, totals.movementCount, totals.expenseCents / 100, totals.netCents / 100]);
         rows.push([]);
@@ -3987,7 +4007,8 @@ function renderPeriodReportPdfHtml(report) {
             statementPdfCell(money(row.expectedCents)),
             statementPdfCell(money(row.collectedCents), 'color:#047857;font-weight:700'),
             statementPdfCell(money(row.outstandingCents), row.outstandingCents ? 'color:#be123c;font-weight:700' : ''),
-            statementPdfCell(row.rate === null ? '—' : fmtNum(row.rate) + '%'),
+            statementPdfCell(formatPeriodRate(row.rate)),
+            statementPdfCell(money(row.otherIncomeCents), row.otherIncomeCents ? 'color:#047857' : ''),
             statementPdfCell(money(row.expenseCents), 'color:#be123c'),
             statementPdfCell(money(row.netCents), row.netCents >= 0 ? 'color:#047857;font-weight:700' : 'color:#be123c;font-weight:700'),
             '</tr>'
@@ -4002,10 +4023,10 @@ function renderPeriodReportPdfHtml(report) {
             '</tr>'
         ].join('')).join('');
     const headers = showDues
-        ? ['الشهر', 'المستحق', 'المحصّل', 'غير المحصّل', 'نسبة التحصيل', 'المصروف', 'الصافي']
+        ? ['الشهر', 'المستحق', 'المحصّل', 'غير المحصّل', 'نسبة التحصيل', 'إيرادات أخرى', 'المصروف', 'الصافي']
         : ['الشهر', incomeStatLabel, 'عدد الحركات', 'المصروف', 'الصافي'];
     const footRow = showDues
-        ? ['الإجمالي', money(totals.expectedCents), money(totals.collectedCents), money(totals.outstandingCents), totals.rate === null ? '—' : fmtNum(totals.rate) + '%', money(totals.expenseCents), money(totals.netCents)]
+        ? ['الإجمالي', money(totals.expectedCents), money(totals.collectedCents), money(totals.outstandingCents), formatPeriodRate(totals.rate), money(totals.otherIncomeCents), money(totals.expenseCents), money(totals.netCents)]
         : ['الإجمالي', money(totals.totalIncomeCents), fmtNum(totals.movementCount), money(totals.expenseCents), money(totals.netCents)];
     const summaryItems = showDues
         ? [
@@ -4013,7 +4034,7 @@ function renderPeriodReportPdfHtml(report) {
             ...(totals.adjustmentCents > 0 ? [{ label: 'إعفاء/تخفيض', cents: totals.adjustmentCents, tone: 'amber' }] : []),
             { label: 'المحصّل', cents: totals.collectedCents, tone: 'emerald' },
             { label: 'غير المحصّل', cents: totals.outstandingCents, tone: totals.outstandingCents ? 'rose' : 'emerald' },
-            { label: 'نسبة التحصيل', text: totals.rate === null ? '—' : fmtNum(totals.rate) + '%' },
+            { label: 'نسبة التحصيل', text: formatPeriodRate(totals.rate) },
             { label: 'إيرادات أخرى', cents: totals.otherIncomeCents },
             { label: 'المصروف', cents: totals.expenseCents, tone: 'rose' },
             { label: 'الصافي', cents: totals.netCents, tone: totals.netCents >= 0 ? 'emerald' : 'rose' }
