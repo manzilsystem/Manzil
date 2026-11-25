@@ -19,6 +19,10 @@
                     </button>
                     <div class="owner-theme-menu app-card border hidden" id="ownerThemeMenu" role="group" aria-label="اختيار مظهر البوابة"></div>
                 </div>
+                <button type="button" id="ownerNotificationsBtn" class="owner-notifications-btn app-card border p-2.5 rounded-xl text-xs transition relative hidden" onclick="focusOwnerNotifications()" aria-label="الإشعارات" title="الإشعارات">
+                    <i class="fa-solid fa-bell text-sm" aria-hidden="true"></i>
+                    <span id="ownerNotificationsBadge" class="manager-notifications-badge hidden" aria-hidden="true"></span>
+                </button>
                 <div class="manager-notifications-control hidden" id="managerNotificationsControl">
                     <button type="button" id="managerNotificationsBtn" class="app-card border p-2.5 rounded-xl text-xs transition relative" onclick="toggleManagerNotifications()" aria-haspopup="true" aria-expanded="false" aria-controls="managerNotificationsMenu" aria-label="إشعارات المدير" title="الإشعارات">
                         <i class="fa-solid fa-bell text-sm"></i>
