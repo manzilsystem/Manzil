@@ -37,9 +37,17 @@ permissions:
 
 jobs:
   chromium:
-    name: Chromium smoke and settings flows
+    name: Chromium smoke and settings flows (${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      # The full suite is split over four runners on pull requests and the
+      # nightly run; every test still runs exactly once. A failing shard does
+      # not cancel the others, so one run shows every failure.
+      fail-fast: false
+      matrix:
+        # Pushes only run smoke and settings, which one runner covers.
+        shard: ${{ fromJSON(github.event_name == 'push' && '[1]' || '[1,2,3,4]') }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -59,17 +67,17 @@ jobs:
       # Push stays fast: smoke + settings only. Full suite still guards PRs
       # and runs nightly so main keeps complete browser coverage.
       - name: "Run browser tests (push: smoke and settings)"
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && matrix.shard == 1
         run: npx playwright test e2e/smoke.spec.js e2e/settings.spec.js
 
       - name: "Run browser tests (pull request / schedule: full suite)"
         if: github.event_name != 'push'
-        run: npx playwright test
+        run: npx playwright test --shard=${{ matrix.shard }}/4
 
       - name: Upload failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-results
+          name: playwright-results-${{ matrix.shard }}
           path: test-results
           retention-days: 7
