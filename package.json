@@ -27,6 +27,6 @@
     "xlsx": "^0.18.5"
   },
   "dependencies": {
-    "html2pdf.js": "0.10.1"
+    "html2pdf.js": "0.14.0"
   }
 }
