@@ -112,3 +112,39 @@ test('income form previews the split and saves separate month allocations with o
     assert.ok(crudSource.includes('دفعة موزعة ${paymentReference}'));
     assert.match(crudSource, /if \(!requireManager\(\) \|\| incomeSaving\) return/);
 });
+
+test('selected-month-first policy never allocates the selected month twice when the payment covers arrears and future months', () => {
+    const app = load();
+    app.state.paymentAllocationPolicy = 'selected_month_first';
+    app.state.residents = [resident('r1')];
+    app.state.income = [];
+    // Resident owes 100 for each of يناير..مايو 2024; paying 600 covers the
+    // selected month, all arrears and يونيو as an advance.
+    const result = app.calculateIncomeAllocationPreview('r1', 600, 'مايو 2024');
+    const perMonth = {};
+    for (const item of result.allocations) {
+        perMonth[item.month] = (perMonth[item.month] || 0) + item.amount;
+    }
+    assert.deepEqual(JSON.parse(JSON.stringify(perMonth)), {
+        'يناير 2024': 100,
+        'فبراير 2024': 100,
+        'مارس 2024': 100,
+        'أبريل 2024': 100,
+        'مايو 2024': 100,
+        'يونيو 2024': 100
+    });
+    assert.equal(result.allocations.filter(item => item.month === 'مايو 2024').length, 1);
+    assert.equal(result.totalAllocated, 600);
+    assert.equal(result.remainingCents, 0);
+});
+
+test('selected-month-first policy allocates the selected month before older arrears', () => {
+    const app = load();
+    app.state.residents = [resident('r1')];
+    app.state.income = [];
+    const result = app.calculateIncomeAllocationPreview('r1', 150, 'مايو 2024', 120, 'selected_month_first');
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(result.allocations.map(item => [item.month, item.amount]))),
+        [['مايو 2024', 100], ['يناير 2024', 50]]
+    );
+});
