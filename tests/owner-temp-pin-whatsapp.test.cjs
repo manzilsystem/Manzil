@@ -7,11 +7,11 @@ const vm = require('node:vm');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const crudSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'crud.js'), 'utf8');
 
-function runSend({ phone = '', pin = '', apartmentNumber = '' } = {}) {
+function runSend({ phone = '', pin = '', apartmentNumber = '', ownerName = '', buildingName = '' } = {}) {
     const opened = [];
     const toasts = [];
     const elements = {
-        ownerTempPinPhone: { textContent: phone, dataset: { phone, apartmentNumber } },
+        ownerTempPinPhone: { textContent: phone, dataset: { phone, apartmentNumber, ownerName, buildingName } },
         ownerTempPinValue: { value: pin },
     };
     const sandbox = {
@@ -39,6 +39,8 @@ test('WhatsApp opens to the registered number with the temporary PIN and apartme
         phone: '+201068004792',
         pin: '25637901',
         apartmentNumber: '12',
+        ownerName: 'محمد علي',
+        buildingName: 'النور',
     });
 
     assert.equal(opened.length, 1);
@@ -49,7 +51,8 @@ test('WhatsApp opens to the registered number with the temporary PIN and apartme
     assert.equal(url.pathname, '/201068004792');
     const message = url.searchParams.get('text');
     assert.match(message, /رمز الدخول المؤقت/);
-    assert.match(message, /لشقة 12/);
+    assert.match(message, /أهلًا بحضرتك أستاذ\/ة محمد علي/);
+    assert.match(message, /في عمارة النور، شقة 12\./);
     assert.match(message, /25637901/);
     assert.match(message, /لا تشاركه مع أي شخص/);
     assert.match(message, /https:\/\/manzilsystem\.github\.io\/Manzil\//);
@@ -81,4 +84,21 @@ test('a six-digit PIN is not treated as a newly issued temporary PIN', () => {
 
     assert.equal(opened.length, 0);
     assert.equal(toasts[0].type, 'error');
+});
+
+test('greeting and place fall back gracefully when the name or building name is missing', () => {
+    const text = options => new URL(runSend({ phone: '+201068004792', pin: '25637901', ...options }).opened[0][0]).searchParams.get('text');
+
+    const noName = text({ apartmentNumber: '12', buildingName: 'النور' });
+    assert.match(noName, /^🏢 أهلًا بحضرتك 👋\n/);
+    assert.doesNotMatch(noName, /أستاذ/);
+    assert.match(noName, /في عمارة النور، شقة 12\./);
+
+    const noBuilding = text({ apartmentNumber: '12', ownerName: 'سارة' });
+    assert.match(noBuilding, /أستاذ\/ة سارة/);
+    assert.match(noBuilding, /\(Manzil\) في شقة 12\./);
+    assert.doesNotMatch(noBuilding, /في عمارة/);
+
+    const bare = text({});
+    assert.match(bare, /\(Manzil\)\.\n/);
 });

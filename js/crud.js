@@ -1556,6 +1556,8 @@ async function provisionOwnerAccess(residentId) {
     phoneDisplay.textContent = data.phone;
     phoneDisplay.dataset.phone = data.phone;
     phoneDisplay.dataset.apartmentNumber = resident?.apartmentNumber || '';
+    phoneDisplay.dataset.ownerName = resident?.name || '';
+    phoneDisplay.dataset.buildingName = state.buildingName || '';
     /** @type {any} */ (document.getElementById('ownerTempPinValue')).value = data.temporary_pin;
     const modal = /** @type {any} */ (document.getElementById('ownerTempPinModal'));
     modal.classList.remove('hidden');
@@ -1565,10 +1567,15 @@ async function provisionOwnerAccess(residentId) {
 const MANZIL_APP_URL = 'https://manzilsystem.github.io/Manzil/';
 
 // رسالة واتساب للمالك عند إنشاء رمز دخول مؤقت: خطوات الدخول الأول وما يظهر في البوابة فعلًا.
-function buildOwnerTempPinMessage(pin, apartmentNumber) {
-    const apartmentLabel = apartmentNumber ? ` لشقة ${apartmentNumber}` : '';
+function buildOwnerTempPinMessage(pin, apartmentNumber, ownerName, buildingName) {
+    const name = String(ownerName || '').trim();
+    const building = String(buildingName || '').trim();
+    const apartment = String(apartmentNumber || '').trim();
+    const greeting = name ? `🏢 أهلًا بحضرتك أستاذ/ة ${name} 👋` : '🏢 أهلًا بحضرتك 👋';
+    const placeParts = [building ? `عمارة ${building}` : '', apartment ? `شقة ${apartment}` : ''].filter(Boolean);
+    const apartmentLabel = placeParts.length ? ` في ${placeParts.join('، ')}` : '';
     return [
-        `🏢 أهلًا بحضرتك 👋`,
+        greeting,
         `تم تجهيز دخولك لتطبيق منزل (Manzil)${apartmentLabel}.`,
         '',
         '🔑 رمز الدخول المؤقت:',
@@ -1604,6 +1611,8 @@ function sendOwnerTempPinOnWhatsApp() {
     const pin = /** @type {any} */ (document.getElementById('ownerTempPinValue'))?.value.trim() || '';
     const phoneDigits = String(phoneDisplay?.dataset.phone || '').replace(/\D/g, '');
     const apartmentNumber = String(phoneDisplay?.dataset.apartmentNumber || '').trim();
+    const ownerName = String(phoneDisplay?.dataset.ownerName || '').trim();
+    const buildingName = String(phoneDisplay?.dataset.buildingName || '').trim();
     if (!/^[1-9]\d{7,14}$/.test(phoneDigits)) {
         toast('رقم المالك المسجل غير صالح؛ انسخ الرمز وأرسله يدويًا.', 'error');
         return;
@@ -1612,7 +1621,7 @@ function sendOwnerTempPinOnWhatsApp() {
         toast('لا يوجد PIN مؤقت صالح من 8 أرقام لإرساله.', 'error');
         return;
     }
-    const message = buildOwnerTempPinMessage(pin, apartmentNumber);
+    const message = buildOwnerTempPinMessage(pin, apartmentNumber, ownerName, buildingName);
     const url = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
     toast('فتحنا واتساب على رقم المالك المسجل. راجع الرسالة واضغط «إرسال».', 'success');
