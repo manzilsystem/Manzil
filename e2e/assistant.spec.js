@@ -676,15 +676,16 @@ test.describe('assistant remembers the conversation', () => {
     test('the chat survives closing the assistant and resets on demand', async ({ page }) => {
         await seedAndOpenAssistant(page);
         const messages = page.locator('#assistantLog .assistant-msg:not(.is-typing)');
+        // greeting + the once-a-day morning brief, then the question and its answer
 
         await page.locator('#assistantInput').fill('رصيد الخزنة كام؟');
         await page.locator('#assistantInput').press('Enter');
-        await expect(messages).toHaveCount(3);
+        await expect(messages).toHaveCount(4);
 
         await page.keyboard.press('Escape');
         await page.locator('#assistantFab').click();
         await expect(page.locator('#assistantModal')).toBeVisible();
-        await expect(messages).toHaveCount(3);
+        await expect(messages).toHaveCount(4);
         await expect(page.locator('#assistantLog .assistant-msg.is-user').last()).toContainText('رصيد الخزنة كام؟');
 
         await page.getByRole('button', { name: 'بدء محادثة جديدة' }).click();
