@@ -949,17 +949,31 @@ test('unit report PDF downloads a per-unit file from a fresh preview', async ({ 
     await expect(page.locator('#unitReportPdfBtn')).toBeEnabled();
 
     await page.evaluate(() => {
-        window.html2pdf = () => ({
-            set() { return this; },
-            from() { return this; },
-            outputPdf() { return Promise.resolve(new Blob([new Uint8Array(200)], { type: 'application/pdf' })); }
-        });
+        window.__pdfImages = [];
+        window.html2pdf = () => {
+            const pdf = {
+                internal: { getNumberOfPages: () => 2 },
+                setPage() {},
+                addImage(...args) { window.__pdfImages.push(args[1]); }
+            };
+            const worker = {
+                set() { return worker; },
+                from() { return worker; },
+                toPdf() { return worker; },
+                get() { return worker; },
+                then(callback) { if (callback) callback(pdf); return worker; },
+                outputPdf() { return Promise.resolve(new Blob([new Uint8Array(200)], { type: 'application/pdf' })); }
+            };
+            return worker;
+        };
     });
 
     const downloadPromise = page.waitForEvent('download');
     await page.locator('#unitReportPdfBtn').click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/^manzil_unit_3_\d{4}-\d{2}\.pdf$/);
+    // One footer image (building name + page number) per page.
+    expect(await page.evaluate(() => window.__pdfImages.length)).toBe(2);
 });
 
 test('unit report image export saves one PNG per page and sits beside the PDF button', async ({ page }) => {

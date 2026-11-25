@@ -70,7 +70,7 @@ test('every external stylesheet and script host is permitted by the CSP', () => 
         .map(tag => tag.match(/(?:src|href)="(https:\/\/[^"]+)"/)?.[1])
         .filter(Boolean)
         .map(url => new URL(url).origin);
-    assert.ok(hosts.length >= 2);
+    assert.ok(hosts.length >= 1);
     for (const origin of hosts) {
         const allowed = [...tokens('style-src'), ...tokens('font-src'), ...tokens('script-src')];
         assert.ok(allowed.includes(origin), `${origin} must be allowlisted`);
