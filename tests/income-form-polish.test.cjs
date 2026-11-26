@@ -222,3 +222,10 @@ test('receipt image plan exposes header, body and footer with the receipt totals
     assert.equal(app.receiptImageFilename(receipt), 'manzil_receipt_RCPT-2026-01.png');
     assert.equal(app.receiptImageFilename({}), 'manzil_receipt_receipt.png');
 });
+
+test('each income note chip has a short helper line', () => {
+    for (const label of ['سداد متأخرات', 'دفعة مقدمة', 'تسوية حساب', 'إيصال بدل فاقد']) {
+        const re = new RegExp(`setIncomeNoteSuggestion\\('${label}'\\)[^\\n]*</button>\\s*<p class="income-chip-help [^"]*">[^<]{6,}</p>`);
+        assert.match(html, re, label);
+    }
+});
