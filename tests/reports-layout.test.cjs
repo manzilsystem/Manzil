@@ -450,8 +450,8 @@ test('the report center card index keeps quality and template surfaces', () => {
         assert.ok(reportTab.includes('id="' + id + '"'), 'missing quality surface ' + id));
     assert.match(reportTab, /onclick="runReportQualityCheck\(\)"/);
     assert.match(reportTab, /class="report-stage-home no-print"/);
-    assert.match(reportTab, /id="periodReportTemplates"/);
-    assert.match(reportTab, /id="templateNameInput"/);
+    assert.match(reports, /report-template-fold no-print/);
+    assert.match(reports, /data-report-template-name/);
     assert.doesNotMatch(reportTab, /data-report-metric|report-nav-table|reportScheduledCount|scheduledReportsSection/);
     assert.equal((reportTab.match(/data-report-freshness="[a-zA-Z]+"/g) || []).length, 13);
     ['hasReportMetricHelpers', 'runReportQualityCheck', 'initReportTemplatesUI'].forEach(name =>

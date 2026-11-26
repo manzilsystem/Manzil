@@ -224,10 +224,9 @@ test('report UI exposes comparison, Excel and relocated template controls', () =
   assert.match(partial, /id="periodReportComparison"/);
   assert.match(partial, /id="periodReportExcelBtn"/);
   assert.doesNotMatch(partial, /scheduledReportsSection|scheduleFormContainer|openScheduleForm/);
-  assert.match(partial, /id="periodReportTemplates"/);
-  assert.match(partial, /id="templateNameInput"/);
-  assert.match(partial, /id="savedTemplatesList"/);
-  assert.match(partial, /onclick="saveCurrentPeriodTemplate\(\)"/);
+  assert.doesNotMatch(partial, /id="periodReportTemplates"|id="templateNameInput"/);
+  assert.match(reportsSource, /data-report-template-save/);
+  assert.match(reportsSource, /REPORT_TEMPLATE_TABS/);
   assert.match(reportsSource, /function exportPeriodReportExcel\(\)/);
   assert.match(reportsSource, /function buildPeriodComparisonHtml\(/);
   assert.match(reportsSource, /function initReportTemplatesUI\(\)/);

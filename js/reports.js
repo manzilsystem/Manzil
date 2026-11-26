@@ -4661,55 +4661,171 @@ function exportResidentStatementCsv() {
     toast('تم تصدير كشف الحساب','success');
 }
 
-/** تهيئة قوالب تقرير الفترة داخل لوحة التقرير نفسها. */
-function initReportTemplatesUI() {
-    if (typeof renderTemplateList === 'function') renderTemplateList('period', 'savedTemplatesList');
+/** القوالب الجاهزة: تحفظ فلاتر أي تقرير وتعيد تطبيقها بضغطة، وتبقى بعد إعادة تحميل الصفحة. */
+const REPORT_TEMPLATE_LIMIT = 8;
+const REPORT_TEMPLATE_NAME_MAX = 40;
+const REPORT_TEMPLATE_TABS = {
+    landlord: { preset: '', apply: () => invalidateLandlordReportPreview() },
+    period: { preset: 'periodReportPreset', apply: () => applyPeriodReportPreset(), range: () => onPeriodReportRangeChange() },
+    cashflow: { preset: 'cashFlowPreset', apply: () => applyCashFlowPreset(), range: () => onCashFlowRangeChange() },
+    expenses: { preset: '', apply: () => invalidateExpensesReportPreview() },
+    adjustments: { preset: '', apply: () => invalidateAdjustmentsReportPreview() },
+    statement: { preset: '', apply: () => invalidateResidentStatementPreview() },
+    apartments: { preset: 'apartmentsReportPreset', apply: () => applyApartmentsPreset(), range: () => onApartmentsRangeChange() },
+    monthlyClose: { preset: '', apply: () => invalidateMonthlyClosePreview() },
+    arrears: { preset: '', apply: () => renderArrearsReport() }
+};
+
+function getReportTemplateControlIds(tab) {
+    const config = REPORT_TEMPLATE_TABS[tab];
+    if (!config) return [];
+    const ids = (REPORT_FILTER_DESCRIPTORS[tab] || []).map(descriptor => descriptor.id);
+    return config.preset ? [config.preset, ...ids] : ids;
 }
 
-/** حفظ فلاتر تقرير الفترة الحالية كقالب */
-function saveCurrentPeriodTemplate() {
-    const name = String(/** @type {HTMLInputElement} */ (document.getElementById('templateNameInput'))?.value || '').trim();
-    if (!name) { toast('أدخل اسم القالب', 'error'); return; }
-    const filters = {
-        fromMonth: String(/** @type {HTMLSelectElement} */ (document.getElementById('periodReportFrom'))?.value || ''),
-        toMonth: String(/** @type {HTMLSelectElement} */ (document.getElementById('periodReportTo'))?.value || ''),
-        purposeFilter: String(/** @type {HTMLSelectElement} */ (document.getElementById('periodReportPurpose'))?.value || ''),
-        cashAccountFilter: String(/** @type {HTMLSelectElement} */ (document.getElementById('periodReportCashAccount'))?.value || ''),
-        residentFilter: String(/** @type {HTMLSelectElement} */ (document.getElementById('periodReportResident'))?.value || '')
-    };
-    if (typeof addReportTemplate === 'function') {
-        addReportTemplate(name, 'period', filters);
-        toast('تم حفظ القالب', 'success');
-        const input = /** @type {HTMLInputElement} */ (document.getElementById('templateNameInput'));
-        if (input) input.value = '';
-        if (typeof renderTemplateList === 'function') renderTemplateList('period', 'savedTemplatesList');
-    }
-}
-
-/** تطبيق قالب محفوظ على فلاتر تقرير الفترة */
-function applyTemplate(templateId) {
-    const filters = typeof applyReportTemplate === 'function' ? applyReportTemplate(templateId) : null;
-    if (!filters) { toast('تعذر العثور على القالب', 'error'); return; }
-    const mapping = {
-        periodReportFrom: filters.fromMonth,
-        periodReportTo: filters.toMonth,
-        periodReportPurpose: filters.purposeFilter,
-        periodReportCashAccount: filters.cashAccountFilter,
-        periodReportResident: filters.residentFilter
-    };
-    Object.entries(mapping).forEach(([id, value]) => {
-        const select = /** @type {HTMLSelectElement | null} */ (document.getElementById(id));
-        if (select && value) select.value = String(value);
+/** يقرأ قيم فلاتر التقرير الحالية كما هي في الشاشة. */
+function captureReportTemplateControls(tab) {
+    /** @type {Record<string, string>} */
+    const controls = {};
+    getReportTemplateControlIds(tab).forEach(id => {
+        const control = /** @type {HTMLInputElement | HTMLSelectElement | null} */ (document.getElementById(id));
+        if (control) controls[id] = String(control.value || '');
     });
-    toast('تم تطبيق القالب — اضغط معاينة', 'success');
+    return controls;
+}
+
+/** يطبق قيم قالب على الفلاتر؛ الفترات السريعة تُحسب من الشهر الحالي لتبقى القوالب صالحة. */
+function applyReportTemplateControls(tab, controls) {
+    const config = REPORT_TEMPLATE_TABS[tab];
+    if (!config || !controls || typeof controls !== 'object') return false;
+    const presetValue = config.preset ? String(controls[config.preset] || '') : '';
+    const usePreset = !!presetValue && presetValue !== 'custom';
+    getReportTemplateControlIds(tab).forEach(id => {
+        if (!(id in controls)) return;
+        if (usePreset && /(From|To)$/.test(id)) return;
+        const control = /** @type {HTMLInputElement | HTMLSelectElement | null} */ (document.getElementById(id));
+        if (!control) return;
+        control.value = String(controls[id] || '');
+    });
+    if (usePreset || !config.range) config.apply();
+    else config.range();
+    renderReportFilterSummaries();
+    return true;
+}
+
+function getReportTemplatePanelId(tab) { return 'reportTemplates-' + tab; }
+
+function renderReportTemplateList(tab) {
+    const panel = document.getElementById(getReportTemplatePanelId(tab));
+    if (!panel) return;
+    const templates = typeof getTemplatesForReport === 'function' ? getTemplatesForReport(tab) : [];
+    const count = panel.querySelector('[data-report-template-count]');
+    if (count) count.textContent = templates.length ? '(' + templates.length + ')' : '';
+    const list = panel.querySelector('[data-report-template-list]');
+    if (!list) return;
+    if (!templates.length) {
+        list.innerHTML = '<p class="report-note">لا توجد قوالب بعد. اضبط الفلاتر ثم احفظها باسم تعرفه، مثل «تحصيل الربع الأول».</p>';
+        return;
+    }
+    list.innerHTML = '<div class="report-list">' + templates.map(tpl => `
+        <div class="report-list-row report-template-row">
+            <span class="report-list-title">${esc(tpl.name)}</span>
+            <span class="report-template-actions">
+                <button type="button" class="report-action report-action-sm" data-report-template-apply="${esc(tpl.id)}" aria-label="تطبيق القالب ${esc(tpl.name)}"><i class="fa-solid fa-play" aria-hidden="true"></i> تطبيق</button>
+                <button type="button" class="report-action report-action-sm report-action-danger" data-report-template-delete="${esc(tpl.id)}" aria-label="حذف القالب ${esc(tpl.name)}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+            </span>
+        </div>`).join('') + '</div>';
+}
+
+/** يضيف لوحة القوالب بجوار فلاتر كل تقرير مرة واحدة، ثم يحدّث قوائمها. */
+function initReportTemplatesUI() {
+    if (typeof document === 'undefined') return;
+    Object.keys(REPORT_TEMPLATE_TABS).forEach(tab => {
+        const summary = document.querySelector(`[data-report-filter-summary="${tab}"]`);
+        if (!summary) return;
+        if (!document.getElementById(getReportTemplatePanelId(tab))) {
+            const anchor = summary.closest('.report-toolbar') || summary;
+            const details = document.createElement('details');
+            details.id = getReportTemplatePanelId(tab);
+            details.className = 'report-note-fold report-template-fold no-print';
+            details.setAttribute('data-report-templates', tab);
+            details.innerHTML = `
+                <summary class="report-note-summary">قوالب جاهزة <span data-report-template-count></span></summary>
+                <div class="report-note report-template-body">
+                    <div class="report-template-save">
+                        <input type="text" maxlength="${REPORT_TEMPLATE_NAME_MAX}" data-report-template-name aria-label="اسم القالب" placeholder="اسم القالب" autocomplete="off" class="report-control app-input border">
+                        <button type="button" class="report-action report-action-sm" data-report-template-save><i class="fa-solid fa-bookmark" aria-hidden="true"></i> حفظ الفلاتر الحالية</button>
+                    </div>
+                    <div data-report-template-list></div>
+                </div>`;
+            anchor.insertAdjacentElement('afterend', details);
+        }
+        renderReportTemplateList(tab);
+    });
+}
+
+function saveReportTemplateFromPanel(tab) {
+    const panel = document.getElementById(getReportTemplatePanelId(tab));
+    const input = /** @type {HTMLInputElement | null} */ (panel?.querySelector('[data-report-template-name]'));
+    const name = String(input?.value || '').replace(/\s+/g, ' ').trim().slice(0, REPORT_TEMPLATE_NAME_MAX);
+    if (!name) { toast('أدخل اسم القالب', 'error'); return null; }
+    const existing = getTemplatesForReport(tab);
+    if (existing.some(tpl => tpl.name === name)) { toast('اسم القالب مستخدم، اختر اسمًا آخر', 'error'); return null; }
+    if (existing.length >= REPORT_TEMPLATE_LIMIT) { toast('وصلت للحد الأقصى ' + REPORT_TEMPLATE_LIMIT + ' قوالب، احذف قالبًا أولًا', 'error'); return null; }
+    const template = addReportTemplate(name, tab, { controls: captureReportTemplateControls(tab) });
+    if (!template) return null;
+    if (input) input.value = '';
+    renderReportTemplateList(tab);
+    toast('تم حفظ القالب', 'success');
+    return template;
+}
+
+/** تطبيق قالب محفوظ على فلاتر التقرير. */
+function applyTemplate(templateId) {
+    const template = loadReportTemplates().find(tpl => tpl.id === templateId);
+    if (!template || !REPORT_TEMPLATE_TABS[template.reportType]) { toast('تعذر العثور على القالب', 'error'); return false; }
+    const tab = template.reportType;
+    let controls = template.filters && template.filters.controls;
+    if (!controls && tab === 'period') {
+        // قوالب قديمة حُفظت قبل تعميم القوالب على كل التقارير.
+        const legacy = template.filters || {};
+        controls = {
+            periodReportPreset: 'custom',
+            periodReportFrom: legacy.fromMonth,
+            periodReportTo: legacy.toMonth,
+            periodReportPurpose: legacy.purposeFilter,
+            periodReportCashAccount: legacy.cashAccountFilter,
+            periodReportResident: legacy.residentFilter
+        };
+    }
+    if (!applyReportTemplateControls(tab, controls)) { toast('تعذر تطبيق القالب', 'error'); return false; }
+    toast('تم تطبيق القالب، اضغط معاينة', 'success');
+    return true;
 }
 
 /** حذف قالب محفوظ */
 function deleteTemplate(templateId) {
-    if (typeof deleteReportTemplate === 'function' && deleteReportTemplate(templateId)) {
-        toast('تم حذف القالب', 'success');
-        if (typeof renderTemplateList === 'function') renderTemplateList('period', 'savedTemplatesList');
-    }
+    const template = loadReportTemplates().find(tpl => tpl.id === templateId);
+    if (!template || !deleteReportTemplate(templateId)) return false;
+    toast('تم حذف القالب', 'success');
+    renderReportTemplateList(template.reportType);
+    return true;
+}
+
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+    document.addEventListener('click', event => {
+        const target = /** @type {Element | null} */ (event && event.target);
+        const button = /** @type {HTMLElement | null} */ (target?.closest?.('[data-report-template-save],[data-report-template-apply],[data-report-template-delete]'));
+        if (!button) return;
+        const panel = button.closest('[data-report-templates]');
+        if (button.hasAttribute('data-report-template-save')) {
+            if (panel) saveReportTemplateFromPanel(String(panel.getAttribute('data-report-templates')));
+        } else if (button.hasAttribute('data-report-template-apply')) {
+            applyTemplate(String(button.getAttribute('data-report-template-apply')));
+        } else {
+            deleteTemplate(String(button.getAttribute('data-report-template-delete')));
+        }
+    });
 }
 
 // Export report functions to window for inline event handlers
@@ -4752,7 +4868,7 @@ if (typeof window !== 'undefined') {
     window.invalidateExpensesReportPreview = invalidateExpensesReportPreview;
     window.invalidateAdjustmentsReportPreview = invalidateAdjustmentsReportPreview;
     window.initReportTemplatesUI = initReportTemplatesUI;
-    window.saveCurrentPeriodTemplate = saveCurrentPeriodTemplate;
+    window.saveReportTemplateFromPanel = saveReportTemplateFromPanel;
     window.applyTemplate = applyTemplate;
     window.deleteTemplate = deleteTemplate;
 }
