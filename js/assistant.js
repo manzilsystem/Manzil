@@ -1013,26 +1013,12 @@ function assistantClosestQuestions(rawText, role = 'manager', count = 3) {
     return ranked.slice(0, count).map(item => item.question);
 }
 
-function buildAssistantAskChips(questions) {
-    return `<div class="assistant-followups">${questions.map(question =>
-        `<button type="button" class="assistant-chip is-followup" data-assistant-ask="${assistantEscape(question)}">${assistantEscape(question)}</button>`
-    ).join('')}</div>`;
-}
-
-if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
-    document.addEventListener('click', event => {
-        const button = event.target && typeof event.target.closest === 'function' ? event.target.closest('[data-assistant-ask]') : null;
-        if (!button || typeof sendAssistantMessage !== 'function') return;
-        sendAssistantMessage(null, { text: button.getAttribute('data-assistant-ask') || '' });
-    });
-}
-
 function buildAssistantNotUnderstoodAnswer(rawText, role) {
     const questions = assistantClosestQuestions(rawText, role);
     return {
         id: 'unknown',
         title: 'ماوصلتش للمقصود',
-        html: `<p class="assistant-note">ماوصلتش للمقصود ${assistantAddress()}، ومش هخمّن وأقولك رقم غلط. تقصد واحد من دول؟</p>${buildAssistantAskChips(questions)}`,
+        html: `<p class="assistant-note">ماوصلتش للمقصود ${assistantAddress()}، ومش هخمّن وأقولك رقم غلط. تقصد واحد من دول؟</p>${assistantList(questions)}`,
         followUpQueries: questions
     };
 }

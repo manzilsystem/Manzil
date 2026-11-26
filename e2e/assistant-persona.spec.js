@@ -18,12 +18,9 @@ for (const width of [390, 360]) {
         await page.locator('#assistantInput').press('Enter');
         const log = page.locator('#assistantLog');
         await expect(log).toContainText('ماوصلتش للمقصود', { timeout: 8000 });
-        await expect(log.locator('.assistant-followups button')).toHaveCount(3);
+        await expect(log.locator('.assistant-bubble li')).toHaveCount(3);
         await page.screenshot({ path: info.outputPath(`persona-fallback-${width}.png`) });
         await page.screenshot({ path: `/tmp/persona-fallback-${width}.png` });
-        await log.locator('.assistant-followups button').first().click();
-        await expect(log.locator('.assistant-msg.is-user').last()).toBeVisible();
-        await page.waitForTimeout(600);
         const overflow = await page.evaluate(() => {
             const el = document.getElementById('assistantLog');
             return el.scrollWidth - el.clientWidth;
