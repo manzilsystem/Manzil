@@ -63,6 +63,7 @@ function renderAll() {
     if (typeof invalidateAdjustmentsReportIfStale === 'function') invalidateAdjustmentsReportIfStale();
     if (typeof invalidateExtendedReportsIfStale === 'function') invalidateExtendedReportsIfStale();
     if (typeof invalidateInsightsReportsIfStale === 'function') invalidateInsightsReportsIfStale();
+    if (typeof invalidateCollectionCurveIfStale === 'function') invalidateCollectionCurveIfStale();
     syncReportNavStatus();
     renderCashbox();
     if (typeof renderManagerNotifications === 'function') renderManagerNotifications();
@@ -275,6 +276,7 @@ function populateSelects() {
     if (typeof populateAdjustmentsReportFilters === 'function') populateAdjustmentsReportFilters(months, current);
     if (typeof populateExtendedReportFilters === 'function') populateExtendedReportFilters(months, current);
     if (typeof populateInsightsReportFilters === 'function') populateInsightsReportFilters(months, current);
+    if (typeof populateCollectionCurveFilters === 'function') populateCollectionCurveFilters(months, current);
     if (typeof populateReportPurposeFilters === 'function') populateReportPurposeFilters();
     if (typeof populateReportCashAccountFilters === 'function') populateReportCashAccountFilters();
     if (typeof populateReportPaymentMethodFilters === 'function') populateReportPaymentMethodFilters();

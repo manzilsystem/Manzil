@@ -25,6 +25,7 @@ interface Window {
     MANZIL_RELEASE?: string;
     MANZIL_EXTENDED_REPORTS?: Record<string, unknown>;
     MANZIL_INSIGHTS_REPORTS?: Record<string, unknown>;
+    MANZIL_COLLECTION_CURVE_REPORT?: Record<string, unknown>;
     html2pdf?: () => { set: (options: Record<string, unknown>) => { from: (element: HTMLElement) => any } };
 }
 

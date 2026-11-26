@@ -1497,9 +1497,9 @@ test('the grouped index keeps every report, description and open action', async 
     })));
 
     expect(cards.map(card => card.tab)).toEqual(['landlord', 'period', 'cashflow', 'expenses', 'expenseVariance',
-      'paymentMethods', 'statement', 'apartments', 'arrears', 'paymentBehavior', 'adjustments', 'monthlyClose', 'audit']);
+      'paymentMethods', 'collectionCurve', 'statement', 'apartments', 'arrears', 'paymentBehavior', 'adjustments', 'monthlyClose', 'audit']);
     expect(cards.map(card => card.group)).toEqual(['financial', 'financial', 'financial', 'financial', 'financial', 'financial',
-      'owners', 'owners', 'owners', 'owners', 'review', 'review', 'review']);
+      'financial', 'owners', 'owners', 'owners', 'owners', 'review', 'review', 'review']);
     const expected = {
       landlord: { title: 'الملخص المالي الشهري', badge: 'شهري', icon: 'fa-file-invoice-dollar' },
       period: { title: 'تقرير الفترة', badge: 'فترة', icon: 'fa-calendar-days' },
@@ -1511,6 +1511,7 @@ test('the grouped index keeps every report, description and open action', async 
       paymentBehavior: { title: 'سلوك السداد', badge: 'تحليل', icon: 'fa-user-clock' },
       expenseVariance: { title: 'انحراف المصروفات', badge: 'تحليل', icon: 'fa-arrow-trend-up' },
       paymentMethods: { title: 'توزيع طرق الدفع', badge: 'تحليل', icon: 'fa-money-bill-transfer' },
+      collectionCurve: { title: 'منحنى التحصيل', badge: 'تحليل', icon: 'fa-chart-area' },
       adjustments: { title: 'تقرير الإعفاءات والتخفيضات', badge: 'قيود', icon: 'fa-tags' },
       monthlyClose: { title: 'مراجعة الإقفال الشهري', badge: 'مراجعة', icon: 'fa-clipboard-check' },
       audit: { title: 'سجل العمليات والتدقيق', badge: 'سجل', icon: 'fa-list-check', state: 'مباشر' }

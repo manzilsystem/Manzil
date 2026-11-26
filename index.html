@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="fonts/cairo.css?v=aecf0ab114">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/tailwind.css?v=aea143ed99">
-    <link rel="stylesheet" href="css/style.css?v=9ca95d8ace">
+    <link rel="stylesheet" href="css/style.css?v=1b28aa9d61">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -637,6 +637,15 @@
                             </span>
                             <span class="report-index-state" data-report-freshness="paymentMethods">لم تُعرض</span>
                         </button>
+                        <button type="button" class="report-index-item report-tone-sky" data-report-nav="collectionCurve" data-report-glyph="14" aria-controls="collectionCurvePanel" onclick="switchReportTab('collectionCurve')">
+                            <span class="report-index-icon" aria-hidden="true"><i class="fa-solid fa-chart-area"></i></span>
+                            <span class="report-index-copy">
+                                <span class="report-card-line"><b>منحنى التحصيل</b><span class="report-index-badge">تحليل</span></span>
+                                <small>سرعة تحصيل مستحق كل شهر حتى مواعيده.</small>
+                                <span class="report-index-open">افتح التقرير <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></span>
+                            </span>
+                            <span class="report-index-state" data-report-freshness="collectionCurve">لم تُعرض</span>
+                        </button>
                     </div>
                 </section>
                 <section class="report-index-group" data-report-group="owners">
@@ -853,6 +862,17 @@
                     <button type="button" id="periodReportExcelBtn" onclick="exportPeriodReportExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
                 </div>
                 <p class="report-hint no-print">تغيير الفترة أو البيانات يعطّل الطباعة والتصدير حتى معاينة جديدة، والأرقام تطابق تقرير الملاك لكل شهر. أقصى مدة 60 شهرًا.</p>
+                <details class="report-note-fold no-print" id="periodReportTemplates">
+                    <summary class="report-note-summary">القوالب المحفوظة لفلاتر الفترة</summary>
+                    <div class="report-note report-template-body">
+                        <label class="report-field" for="templateNameInput">
+                            <span class="report-field-label">اسم القالب</span>
+                            <input id="templateNameInput" type="text" class="report-control app-input border" placeholder="مثال: تحصيل الربع الأول">
+                        </label>
+                        <button type="button" onclick="saveCurrentPeriodTemplate()" class="report-action report-action-sm"><i class="fa-solid fa-bookmark" aria-hidden="true"></i> حفظ الفلاتر الحالية</button>
+                        <div id="savedTemplatesList" class="report-template-list"></div>
+                    </div>
+                </details>
             </div>
             <div id="cashFlowPanel" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
                 <div class="report-card-head no-print">
@@ -1195,6 +1215,44 @@
                     <button type="button" id="paymentMethodsExcelBtn" onclick="exportPaymentMethodsExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
                 </div>
                 <p class="report-hint no-print">الحصة نسبة مبلغ الطريقة من إجمالي تحصيلات الفترة. تغيير الفترة أو الطريقة يعطّل التصدير حتى معاينة جديدة.</p>
+            </div>
+            <div id="collectionCurvePanel" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
+                <div class="report-card-head no-print">
+                    <div class="report-card-heading">
+                        <span class="report-card-icon report-tone-sky" aria-hidden="true"><i class="fa-solid fa-chart-area"></i></span>
+                        <div class="min-w-0">
+                            <h2 class="report-card-title">منحنى التحصيل</h2>
+                            <p class="report-card-subtitle">النسبة التراكمية المحصّلة من مستحق كل شهر حتى يوم الاستحقاق ونهاية السماح ومنتصف الشهر ونهايته.</p>
+                        </div>
+                    </div>
+                    <span class="report-card-badge report-tone-sky">تحليل</span>
+                </div>
+                <div class="report-toolbar no-print">
+                    <label class="report-field report-field-narrow" for="collectionCurveFromMonth">
+                        <span class="report-field-label">من شهر</span>
+                        <select id="collectionCurveFromMonth" aria-label="من شهر" onchange="invalidateCollectionCurvePreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field report-field-narrow" for="collectionCurveToMonth">
+                        <span class="report-field-label">إلى شهر</span>
+                        <select id="collectionCurveToMonth" aria-label="إلى شهر" onchange="invalidateCollectionCurvePreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <button type="button" onclick="generateCollectionCurveReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
+                    <div class="report-filter-summary" data-report-filter-summary="collectionCurve" hidden>
+                        <span class="report-filter-summary-label">الفلاتر النشطة</span>
+                        <span class="report-filter-chips" data-report-filter-list></span>
+                        <button type="button" class="report-filter-clear" onclick="clearCollectionCurveFilters()"><i class="fa-solid fa-eraser" aria-hidden="true"></i> مسح الفلاتر</button>
+                    </div>
+                </div>
+                <div id="collectionCurvePreview" aria-live="polite" class="report-preview text-xs leading-relaxed">
+                    <p class="report-preview-empty">اضغط «معاينة» لعرض منحنى التحصيل خلال الفترة.</p>
+                </div>
+                <div class="report-actions report-actions-4 no-print">
+                    <button type="button" id="collectionCurvePrintBtn" title="نص قابل للنسخ" onclick="printCollectionCurveReport()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+                    <button type="button" id="collectionCurvePdfBtn" onclick="exportCollectionCurvePdf()" disabled class="report-action report-action-primary"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF (صورة)</button>
+                    <button type="button" id="collectionCurveCsvBtn" onclick="exportCollectionCurveCsv()" disabled class="report-action report-tone-amber"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
+                    <button type="button" id="collectionCurveExcelBtn" onclick="exportCollectionCurveExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
+                </div>
+                <p class="report-hint no-print">النقاط تقيس النسبة التراكمية المحصّلة من تاريخ التحصيل الفعلي. تغيير الفترة يعطّل التصدير حتى معاينة جديدة.</p>
             </div>
             <div id="monthlyClosePanel" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
                 <div class="report-card-head no-print">
@@ -2692,10 +2750,10 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-b243a92d92"></script>
+    <script src="js/telemetry.js?v=manzil-d7f88075aa"></script>
     <script src="js/state.js?v=e5413f9503"></script>
     <script src="js/access.js?v=74b1d89efb"></script>
-    <script src="js/render.js?v=48bf50210c"></script>
+    <script src="js/render.js?v=1b31084c58"></script>
     <script src="js/crud.js?v=90c5435b73"></script>
     <script src="js/notices.js?v=177b763f9e"></script>
     <script src="js/push.js?v=7bd2efa86c"></script>
@@ -2714,11 +2772,13 @@
     <script src="js/reports/shared/excel-exporter.js?v=51809f6710"></script>
     <script src="js/reports/shared/performance.js?v=c569867b58"></script>
     <!-- Reports Main -->
-    <script src="js/reports.js?v=32588fa67a"></script>
+    <script src="js/reports.js?v=905b693c81"></script>
     <!-- Extended reports (cash flow and apartment performance) -->
-    <script src="js/reports/extended/reports-extended.js?v=ef4f271833"></script>
+    <script src="js/reports/extended/reports-extended.js?v=5580bb2057"></script>
     <!-- Insight reports (payer behavior, expense variance, payment methods) -->
-    <script src="js/reports/extended/reports-insights.js?v=d7ca02fed2"></script>
+    <script src="js/reports/extended/reports-insights.js?v=e177b9e02e"></script>
+    <!-- Collection curve report -->
+    <script src="js/reports/extended/reports-collection-curve.js?v=96024d2fd2"></script>
     <script src="js/settings.js?v=86fa26cfed"></script>
     <script src="vendor/supabase.js"></script>
     <script src="js/supabase.js?v=7842a0460d"></script>
