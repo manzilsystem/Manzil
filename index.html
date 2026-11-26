@@ -20,7 +20,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=c705893f36">
     <link rel="stylesheet" href="fonts/cairo.css?v=aecf0ab114">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/tailwind.css?v=493642aa97">
+    <link rel="stylesheet" href="css/tailwind.css?v=e9504a0696">
     <link rel="stylesheet" href="css/style.css?v=00439e6f98">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
@@ -2654,11 +2654,23 @@
                     <p id="incomeAllocationSummary" class="text-xs font-bold"></p>
                     <div id="incomeAllocationRows" class="space-y-1"></div>
                 </div>
-                <div class="flex flex-wrap gap-1.5" aria-label="اقتراحات ملاحظات الدفع">
-                    <button type="button" onclick="setIncomeNoteSuggestion('سداد متأخرات')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-xs font-bold text-slate-300">سداد متأخرات</button>
-                    <button type="button" onclick="setIncomeNoteSuggestion('دفعة مقدمة')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-xs font-bold text-slate-300">دفعة مقدمة</button>
-                    <button type="button" onclick="setIncomeNoteSuggestion('تسوية حساب')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-xs font-bold text-slate-300">تسوية حساب</button>
-                    <button type="button" onclick="setIncomeNoteSuggestion('إيصال بدل فاقد')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-xs font-bold text-slate-300">إيصال بدل فاقد</button>
+                <div class="grid grid-cols-2 gap-2" aria-label="اقتراحات ملاحظات الدفع">
+                    <div class="flex flex-col items-stretch gap-1">
+                        <button type="button" onclick="setIncomeNoteSuggestion('سداد متأخرات')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-xs font-bold text-slate-300">سداد متأخرات</button>
+                        <p class="income-chip-help text-xs text-slate-500 text-center">بتدفع بيها شهور فاتت</p>
+                    </div>
+                    <div class="flex flex-col items-stretch gap-1">
+                        <button type="button" onclick="setIncomeNoteSuggestion('دفعة مقدمة')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-xs font-bold text-slate-300">دفعة مقدمة</button>
+                        <p class="income-chip-help text-xs text-slate-500 text-center">فلوس عن شهور لسه جاية</p>
+                    </div>
+                    <div class="flex flex-col items-stretch gap-1">
+                        <button type="button" onclick="setIncomeNoteSuggestion('تسوية حساب')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-xs font-bold text-slate-300">تسوية حساب</button>
+                        <p class="income-chip-help text-xs text-slate-500 text-center">تقفيل فرق أو اتفاق على مبلغ</p>
+                    </div>
+                    <div class="flex flex-col items-stretch gap-1">
+                        <button type="button" onclick="setIncomeNoteSuggestion('إيصال بدل فاقد')" class="min-h-9 rounded-full border border-slate-700/60 px-3 text-xs font-bold text-slate-300">إيصال بدل فاقد</button>
+                        <p class="income-chip-help text-xs text-slate-500 text-center">إيصال جديد بدل اللي ضاع</p>
+                    </div>
                 </div>
                 <textarea id="incomeNotes" aria-label="ملاحظات التحصيل" rows="2" placeholder="ملاحظات التحصيل — اكتب الغرض بالتفصيل عند اختيار «أخرى»" oninput="previewIncomeAllocation()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
 
@@ -2854,7 +2866,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-6740fd9a6e"></script>
+    <script src="js/telemetry.js?v=manzil-6479de6c5a"></script>
     <script src="js/state.js?v=8c1fbc9a2c"></script>
     <script src="js/access.js?v=470b57b889"></script>
     <script src="js/render.js?v=7fc4381154"></script>
