@@ -50,7 +50,8 @@ declare function destroyChartsInContainer(containerId: string): void;
 
 // Reports - period comparison (js/reports/shared/comparison.js)
 declare function getComparisonRange(fromMonth: string, toMonth: string, mode: string, customFrom?: string, customTo?: string): { fromMonth: string; toMonth: string; label: string } | null;
-declare function buildComparisonModel(currentReport: any, previousReport: any): any;
+declare function buildComparisonModel(currentReport: any, previousReport: any, metricsOverride?: any[]): any;
+declare function buildReportComparisonHtml(currentReport: any, previousReport: any, metrics?: any[]): string;
 declare function renderComparisonHtml(comparison: any): string;
 
 // Reports - Excel export (js/reports/shared/excel-exporter.js)
