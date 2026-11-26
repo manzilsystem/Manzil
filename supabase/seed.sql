@@ -256,8 +256,9 @@ VALUES (
     TIMESTAMPTZ '2026-11-03 10:00:00+02'
 );
 
+-- target_scope is generated from target_user_id; do not insert it explicitly.
 INSERT INTO public.notifications (
-    id, building_id, target_user_id, target_resident_id, target_scope,
+    id, building_id, target_user_id, target_resident_id,
     kind, dedupe_key, title, body, severity, action_path, created_by
 )
 VALUES
@@ -265,7 +266,6 @@ VALUES
     '45000000-0000-4000-8000-000000000001',
     '20000000-0000-4000-8000-000000000001',
     '10000000-0000-4000-8000-000000000002',
-    '30000000-0000-4000-8000-000000000001',
     '30000000-0000-4000-8000-000000000001',
     'payment', 'local-seed-payment-101',
     'إشعار تحصيل تجريبي', 'تم تسجيل تحصيل تجريبي بقيمة 250 ج.م.',
@@ -276,7 +276,6 @@ VALUES
     '45000000-0000-4000-8000-000000000002',
     '20000000-0000-4000-8000-000000000001',
     '10000000-0000-4000-8000-000000000003',
-    '30000000-0000-4000-8000-000000000002',
     '30000000-0000-4000-8000-000000000002',
     'announcement', 'local-seed-announcement-102',
     'إعلان تجريبي', 'يوجد إعلان تجريبي مخصص لهذه الشقة.',
