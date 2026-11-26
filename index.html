@@ -20,8 +20,8 @@
     <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=c705893f36">
     <link rel="stylesheet" href="fonts/cairo.css?v=aecf0ab114">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/tailwind.css?v=6ead83baff">
-    <link rel="stylesheet" href="css/style.css?v=a409257091">
+    <link rel="stylesheet" href="css/tailwind.css?v=a9d676b910">
+    <link rel="stylesheet" href="css/style.css?v=a4b67c10b9">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -2397,12 +2397,13 @@
 
     <!-- Income Modal -->
     <div id="incomeModal" role="dialog" aria-modal="true" aria-labelledby="incomeModalTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
-        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn sticky-modal-card">
             <div class="bg-emerald-700 text-white px-5 py-4 flex justify-between items-center">
                 <h3 id="incomeModalTitle" class="font-bold text-sm"><i class="fa-solid fa-hand-holding-dollar ml-2"></i> تحصيل جديد</h3>
                 <button onclick="closeModal('incomeModal')" aria-label="إغلاق نافذة التحصيل" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <form id="incomeForm" novalidate onsubmit="handleIncomeSubmit(event)" class="p-5 space-y-3">
+            <form id="incomeForm" novalidate onsubmit="handleIncomeSubmit(event)" class="sticky-modal-form">
+                <div id="incomeWizardBody" class="sticky-modal-body space-y-3">
                 <div class="flex items-center justify-between gap-3" aria-label="تقدم التحصيل">
                     <p id="incomeWizardProgress" aria-live="polite" class="text-xs font-bold text-emerald-300">الخطوة 1 من 3 · بيانات المالك</p>
                     <span id="incomeWizardStepDots" class="text-xs text-slate-500">● ○ ○</span>
@@ -2511,15 +2512,17 @@
                 <textarea id="incomeNotes" aria-label="ملاحظات التحصيل" rows="2" placeholder="ملاحظات التحصيل — اكتب الغرض بالتفصيل عند اختيار «أخرى»" oninput="previewIncomeAllocation()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></textarea>
 
                 </section>
-                <div class="sticky bottom-0 rounded-xl border border-slate-700/60 bg-slate-900/95 p-3">
-                    <p class="text-xs text-slate-400">مراجعة قبل الحفظ</p>
-                    <p id="incomeWizardSummary" class="text-xs font-bold" aria-live="polite">اختر المالك والغرض والمبلغ لعرض ملخص التحصيل.</p>
                 </div>
-                <div class="grid grid-cols-2 gap-2 pt-2">
-                    <button type="button" id="incomeWizardBack" onclick="changeIncomeWizardStep(-1)" class="hidden min-h-11 rounded-xl border border-slate-700/60 px-3 text-sm font-bold">رجوع</button>
-                    <button type="button" id="incomeWizardNext" onclick="changeIncomeWizardStep(1)" class="min-h-11 rounded-xl bg-emerald-700 px-3 text-sm font-bold text-white">التالي</button>
+                <div class="sticky-modal-footer space-y-2">
+                    <div class="rounded-xl border border-slate-700/60 p-2.5">
+                        <p id="incomeWizardSummary" class="text-xs font-bold" aria-live="polite">اختر المالك والغرض والمبلغ لعرض ملخص التحصيل.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" id="incomeWizardBack" onclick="changeIncomeWizardStep(-1)" class="hidden min-h-11 shrink-0 rounded-xl border border-slate-700/60 px-4 text-sm font-bold">رجوع</button>
+                        <button type="button" id="incomeWizardNext" onclick="changeIncomeWizardStep(1)" class="min-h-11 flex-1 rounded-xl bg-emerald-700 px-3 text-sm font-bold text-white">التالي</button>
+                        <button type="submit" id="incomeSubmitButton" class="min-h-11 flex-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-3 text-sm font-bold transition">حفظ التحصيل وتوزيعه</button>
+                    </div>
                 </div>
-                <button type="submit" id="incomeSubmitButton" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-2xl font-bold transition">حفظ التحصيل وتوزيعه</button>
             </form>
         </div>
     </div>
@@ -2601,15 +2604,17 @@
 
     <!-- Expense Modal -->
     <div id="expenseModal" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
-        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn sticky-modal-card">
             <div class="bg-rose-700 text-white px-5 py-4 flex justify-between items-center">
                 <h3 id="expenseModalTitle" class="font-bold text-sm"><i class="fa-solid fa-receipt ml-2"></i> مصروف جديد</h3>
                 <button onclick="closeModal('expenseModal')" aria-label="إغلاق نافذة المصروف" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <form id="expenseForm" onsubmit="handleExpenseSubmit(event)" class="p-5 space-y-3">
+            <form id="expenseForm" novalidate onsubmit="handleExpenseSubmit(event)" class="sticky-modal-form">
+                <div class="sticky-modal-body space-y-3">
                 <input type="text" id="expenseTitle" aria-label="وصف المصروف" placeholder="وصف المصروف" oninput="previewExpense()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 <input type="number" id="expenseAmount" min="0.01" step="0.01" aria-label="مبلغ المصروف" placeholder="مبلغ المصروف" oninput="previewExpense()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
-                <select id="expenseCategory" aria-label="فئة المصروف" onchange="previewExpense()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                <select id="expenseCategory" aria-label="فئة المصروف" onchange="previewExpense()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                    <option value="" disabled selected>اختر فئة المصروف</option>
                     <option value="كهرباء">كهرباء</option>
                     <option value="صيانة أسانسير">صيانة أسانسير</option>
                     <option value="نظافة">نظافة</option>
@@ -2636,7 +2641,10 @@
                         <span>أؤكد صرف مبلغ يتجاوز رصيد الخزنة الرئيسية — سيُسجَّل هذا التأكيد في سجل التدقيق.</span>
                     </label>
                 </div>
-                <button type="submit" id="expenseSubmitButton" class="w-full bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-2xl font-bold transition">حفظ المصروف</button>
+                </div>
+                <div class="sticky-modal-footer">
+                    <button type="submit" id="expenseSubmitButton" class="w-full min-h-11 bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-xl font-bold transition">حفظ المصروف</button>
+                </div>
             </form>
         </div>
     </div>
@@ -2693,11 +2701,11 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-b31f559a61"></script>
+    <script src="js/telemetry.js?v=manzil-3fdf809a4c"></script>
     <script src="js/state.js?v=877c3f8967"></script>
     <script src="js/access.js?v=d67452e586"></script>
     <script src="js/render.js?v=708c3ae2a7"></script>
-    <script src="js/crud.js?v=b15f8edb32"></script>
+    <script src="js/crud.js?v=6dd11d7095"></script>
     <script src="js/notices.js?v=93c0d216cc"></script>
     <script src="js/push.js?v=93d6b20d62"></script>
     <!-- Chart.js for report visualizations (bundled locally) -->
