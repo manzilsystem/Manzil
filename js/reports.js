@@ -3340,7 +3340,9 @@ function _buildResidentStatement(residentId, purposeFilter = '') {
         const rowNetDueCents = settlement
             ? settlementAmountCents
             : Math.max(0, rowDueCents - rowAdjustmentCents);
-        const rowPaidCents = settlement ? settlementPaidCents : subscriptionPaidCents;
+        // Product rule (approved 2026-11-26): on a settled month both the earlier
+        // subscription payments and the settlement payments count against the due.
+        const rowPaidCents = settlement ? subscriptionPaidCents + settlementPaidCents : subscriptionPaidCents;
         const rowRemainingCents = Math.max(0, rowNetDueCents - rowPaidCents);
         dueCents += rowDueCents;
         adjustmentCents += rowAdjustmentCents;

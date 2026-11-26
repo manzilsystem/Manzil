@@ -2168,8 +2168,10 @@ function renderIncomeMonthsGrid(resident) {
         const settlement = typeof getSettlementAdjustmentForMonth === 'function'
             ? getSettlementAdjustmentForMonth(resident.id, month) : null;
         const due = settlement ? Number(settlement.amount) || 0 : getSubscriptionAmountForMonth(resident, month);
+        // Product rule (approved 2026-11-26): earlier subscription payments count too.
         const paid = settlement && typeof getSettlementPaidAmount === 'function'
-            ? getSettlementPaidAmount(settlement.id) : getPaidAmountForMonth(resident.id, month);
+            ? getSettlementPaidAmount(settlement.id) + getPaidAmountForMonth(resident.id, month)
+            : getPaidAmountForMonth(resident.id, month);
         return `<label class="income-month-row flex items-start gap-2 rounded-xl border px-2.5 py-2 text-xs ${info.disabled ? 'border-slate-800/60 opacity-60' : 'border-slate-700/60'}">
             <input type="checkbox" data-income-month="${crudHtmlEscape(month)}" ${checked ? 'checked' : ''} ${info.disabled ? 'disabled' : ''} onchange="handleIncomeMonthToggle(this)" aria-label="${crudHtmlEscape(`${month} ${info.status}`)}" class="mt-0.5 h-4 w-4 accent-emerald-500">
             <span class="flex-1 min-w-0">

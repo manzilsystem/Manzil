@@ -469,8 +469,13 @@ function getSettlementPaidAmount(adjustmentId, excludeIncomeId = '') {
 function getSettlementRemainingAmount(adjustment, excludeIncomeId = '') {
     if (!adjustment || adjustment.kind !== 'settlement') return 0;
     const totalCents = Math.max(0, Math.round((Number(adjustment.amount) || 0) * 100));
+    // Product rule (approved 2026-11-26): subscription payments recorded for the
+    // settlement's month count against the agreed amount, so a resident who paid
+    // part of the subscription before the agreement only owes the difference.
+    const month = monthKeyToLabel(String(adjustment.effectiveMonth || '').slice(0, 7));
+    const subscriptionCents = Math.round(getPaidAmountForMonth(adjustment.residentId, month) * 100);
     const paidCents = Math.round(getSettlementPaidAmount(adjustment.id, excludeIncomeId) * 100);
-    return Math.max(0, totalCents - paidCents) / 100;
+    return Math.max(0, totalCents - subscriptionCents - paidCents) / 100;
 }
 
 function getMonthlyDueAmountForMonth(resident, month) {
@@ -484,9 +489,12 @@ function getMonthlyDueAmountForMonth(resident, month) {
 
 function getMonthlyDuePaidAmount(residentId, month) {
     const settlement = getSettlementAdjustmentForMonth(residentId, month);
-    return settlement
-        ? getSettlementPaidAmount(settlement.id)
-        : getPaidAmountForMonth(residentId, month);
+    if (!settlement) return getPaidAmountForMonth(residentId, month);
+    // Product rule (approved 2026-11-26): earlier subscription payments for the
+    // month still count against the settled due; settlement payments add on top.
+    const paidCents = Math.round(getPaidAmountForMonth(residentId, month) * 100)
+        + Math.round(getSettlementPaidAmount(settlement.id) * 100);
+    return paidCents / 100;
 }
 
 function getAdjustmentAmountForMonth(residentId, month) {
