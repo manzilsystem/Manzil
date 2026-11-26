@@ -2369,7 +2369,7 @@ function buildAssistantMorningBriefAnswer(now = new Date()) {
     const arrears = getAssistantArrearsSnapshot();
     const lateWithPhone = arrears.residents.filter(item => String(item.resident?.phone || '').replace(/\D/g, '')).length;
     const name = String(state.managerName || '').trim();
-    let html = `<p class="assistant-answer-subtitle">${assistantEscape(name ? 'صباح الخير يا ' + name : 'صباح الخير')} · ${assistantEscape(monthLabel)}</p>`;
+    let html = `<p class="assistant-answer-subtitle">${assistantEscape(name ? 'صباح الخير ' + assistantGreetingNameRaw(name) : 'صباح الخير')} · ${assistantEscape(monthLabel)}</p>`;
     html += assistantRow('محصّل من المستحق هذا الشهر', `${assistantMoney(summary.paidDueTotal)} من ${assistantMoney(summary.dueTotal)}`, summary.unpaidUnits > 0 ? 'warn' : 'good');
     html += assistantRow('شقق لم تسدد هذا الشهر', assistantNumber(summary.unpaidUnits), summary.unpaidUnits > 0 ? 'warn' : 'good');
     html += assistantRow('المتأخرات (بعد فترة السماح)', arrears.overdueResidents > 0 ? `${assistantMoney(arrears.totalDebt)} · ${assistantNumber(arrears.overdueResidents)} شقة` : 'لا يوجد', arrears.overdueResidents > 0 ? 'bad' : 'good');
@@ -2907,9 +2907,61 @@ function assistantUserDisplayName() {
     return String(typeof currentProfileName === 'string' ? currentProfileName : '').trim();
 }
 
-function assistantAddress() {
+const ASSISTANT_TITLE_ABBREVIATION = /^\s*(أ|ا|إ|م|د)\s*(?:[\/\\.\-]\s*|\s+)(\S.*)$/;
+const ASSISTANT_TITLE_WORD = /^\s*(أستاذ|استاذ|أستاذة|استاذة|مهندس|مهندسة|دكتور|دكتورة|حاج|حاجة)\s+(\S+)/;
+const ASSISTANT_MASCULINE_TA_MARBUTA = /^(?:حمزة|اسامة|أسامة|معاوية|طلحة|قتيبة|عكاشة|ابو بكر)$/;
+
+function assistantLooksFeminine(firstName) {
+    const name = String(firstName || '').trim();
+    if (!name || ASSISTANT_MASCULINE_TA_MARBUTA.test(name)) return false;
+    return /(?:ة|ى|اء)$/.test(name);
+}
+
+// "أ/ سمير" -> أستاذ سمير, "م. أحمد" -> مهندس أحمد, "د/ منى" -> دكتورة منى.
+// The feminine form is used only when the first name clearly ends like one (ة، ى، اء); otherwise masculine.
+function assistantTitledName(rawName) {
+    const raw = String(rawName || '').trim();
+    if (!raw) return null;
+    const word = ASSISTANT_TITLE_WORD.exec(raw);
+    if (word) return { title: word[1].replace('استاذ', 'أستاذ'), first: word[2], plain: false };
+    const abbreviation = ASSISTANT_TITLE_ABBREVIATION.exec(raw);
+    if (!abbreviation) return null;
+    const first = abbreviation[2].trim().split(/\s+/)[0];
+    if (!first || /^[\/\\.\-]+$/.test(first)) return null;
+    const feminine = assistantLooksFeminine(first);
+    const titles = {
+        'أ': feminine ? 'أستاذة' : 'أستاذ', 'ا': feminine ? 'أستاذة' : 'أستاذ', 'إ': feminine ? 'أستاذة' : 'أستاذ',
+        'م': feminine ? 'مهندسة' : 'مهندس',
+        'د': feminine ? 'دكتورة' : 'دكتور'
+    };
+    return { title: titles[abbreviation[1]], first, plain: false };
+}
+
+// How to call the user inside a sentence: "يا أستاذ سمير", "يا سمير محمد" or "يا باشا".
+function assistantAddressRaw() {
     const name = assistantUserDisplayName();
-    return name ? `يا ${assistantEscape(name)}` : 'يا باشا';
+    if (!name) return 'يا باشا';
+    const titled = assistantTitledName(name);
+    return titled ? `يا ${titled.title} ${titled.first}` : `يا ${name}`;
+}
+
+// Greeting form: "أهلاً أستاذ سمير" (no "يا" before a title), otherwise the normal address.
+function assistantGreetingNameRaw(name) {
+    const titled = name ? assistantTitledName(name) : null;
+    return titled ? `${titled.title} ${titled.first}` : `يا ${name}`;
+}
+
+function assistantGreetingAddressRaw() {
+    const name = assistantUserDisplayName();
+    return name ? assistantGreetingNameRaw(name) : 'يا باشا';
+}
+
+function assistantAddress() {
+    return assistantEscape(assistantAddressRaw());
+}
+
+function assistantGreetingAddress() {
+    return assistantEscape(assistantGreetingAddressRaw());
 }
 
 function assistantCents(value) {
@@ -3290,7 +3342,7 @@ function buildAssistantGreetingHtml(now = new Date()) {
     if (assistantIsOwner()) return buildAssistantOwnerGreetingHtml(now);
     const month = getAssistantNowLabel(now);
     const residents = Array.isArray(state.residents) ? state.residents : [];
-    const hello = `أهلاً ${assistantAddress()}، أنا <strong>${assistantEscape(ASSISTANT_NAME)}</strong> بواب العمارة ومساعدك المحلي، تحت أمرك.`;
+    const hello = `أهلاً ${assistantGreetingAddress()}، أنا <strong>${assistantEscape(ASSISTANT_NAME)}</strong> بواب العمارة ومساعدك المحلي، تحت أمرك.`;
     if (!residents.length) {
         return `${assistantHeroHtml()}<p class="assistant-hello">${hello}</p>
             <p class="assistant-note">لسه مفيش شقق مسجلة. أضف الشقق والاشتراكات، وبعدها أقدر أقولك تحصيل الشهر والمتأخرات وأرصدة الخزائن.</p>`;
@@ -3309,7 +3361,7 @@ function buildAssistantGreetingHtml(now = new Date()) {
 function buildAssistantOwnerGreetingHtml(now = new Date()) {
     if (assistantDataSavePending()) return buildAssistantPendingSaveAnswer().html;
     const resident = assistantOwnerResident();
-    const hello = `أهلاً ${assistantAddress()}، أنا <strong>${assistantEscape(ASSISTANT_NAME)}</strong> بواب العمارة.`;
+    const hello = `أهلاً ${assistantGreetingAddress()}، أنا <strong>${assistantEscape(ASSISTANT_NAME)}</strong> بواب العمارة.`;
     if (!resident) {
         return `${assistantHeroHtml()}<p class="assistant-hello">${hello}</p>${buildAssistantOwnerMissingAnswer().html}`;
     }
