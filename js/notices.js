@@ -101,6 +101,7 @@ function sendWhatsAppReminder(residentId) {
         months: Array.isArray(debt.unpaidMonths) ? debt.unpaidMonths.join('، ') : ''
     });
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+    markArrearsReminderSent(residentId);
 }
 
 function buildArrearsReminderMessage(item) {
@@ -121,6 +122,10 @@ function buildArrearsReminderMessage(item) {
         duration: typeof formatOverdueDuration === 'function' ? formatOverdueDuration(item.daysOverdue) : '',
         months
     });
+    const status = typeof getArrearsReminderStatus === 'function' ? getArrearsReminderStatus(resident.id) : { kind: 'none' };
+    const finalMessage = status.kind === 'followup'
+        ? 'تذكير تاني بعد رسالتنا ' + arrearsReminderDaysLabel(status.days) + '.\n' + message
+        : message;
     return {
         residentId: resident.id,
         name: resident.name || '',
@@ -128,8 +133,9 @@ function buildArrearsReminderMessage(item) {
         phone,
         amount: item.totalDebt,
         count: item.count,
-        message,
-        url: `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+        message: finalMessage,
+        followUp: status.kind === 'followup',
+        url: `https://wa.me/${phone}?text=${encodeURIComponent(finalMessage)}`
     };
 }
 
@@ -141,6 +147,8 @@ const ARREARS_REMINDER_PAGE_SIZE = 8;
 let arrearsReminderLimit = ARREARS_REMINDER_PAGE_SIZE;
 /** @type {string} */
 let arrearsReminderOnly = '';
+/** @type {'all' | 'new' | 'followup'} */
+let arrearsReminderFilter = 'all';
 
 function getArrearsReminderSentKey() {
     const buildingId = typeof activeBuildingId === 'undefined' ? 'default' : (activeBuildingId || 'default');
@@ -159,6 +167,39 @@ function markArrearsReminderSent(residentId) {
     const sent = readArrearsReminderSent();
     sent[residentId] = new Date().toISOString().slice(0, 10);
     try { localStorage.setItem(getArrearsReminderSentKey(), JSON.stringify(sent)); } catch { /* storage full or blocked: the mark is only a convenience */ }
+}
+
+const ARREARS_FOLLOWUP_DAYS = 3;
+
+/**
+ * Where one late apartment stands after the last reminder, from what the app already knows:
+ * none (never reminded), waiting (reminded less than 3 days ago), followup (3+ days, nothing paid since),
+ * partial (paid something since the reminder, still late). Payments dated after the reminder day count as "since".
+ */
+function getArrearsReminderStatus(residentId, now = new Date()) {
+    const last = readArrearsReminderSent()[residentId];
+    if (!last) return { kind: 'none', days: 0, last: '' };
+    const todayKey = now.toISOString().slice(0, 10);
+    const days = Math.max(0, Math.round((Date.parse(todayKey) - Date.parse(last)) / 86400000));
+    const paidSince = (Array.isArray(state.income) ? state.income : []).some(row =>
+        row.residentId === residentId && String(row.date || '').slice(0, 10) > last);
+    if (paidSince) return { kind: 'partial', days, last };
+    return { kind: days >= ARREARS_FOLLOWUP_DAYS ? 'followup' : 'waiting', days, last };
+}
+
+function arrearsReminderDaysLabel(days) {
+    if (days <= 0) return 'النهارده';
+    if (days === 1) return 'من يوم';
+    if (days === 2) return 'من يومين';
+    return 'من ' + fmtNum(days) + ' أيام';
+}
+
+/** Late apartments that were reminded 3+ days ago and have paid nothing since. */
+function getArrearsFollowUps(report, now = new Date()) {
+    return (report?.residents || [])
+        .map(item => ({ item, status: getArrearsReminderStatus(item.resident?.id, now) }))
+        .filter(entry => entry.status.kind === 'followup')
+        .sort((a, b) => b.status.days - a.status.days);
 }
 
 function arrearsReminderTodayKey() {
@@ -197,6 +238,25 @@ function setArrearsReminderTone(tone) {
     renderArrearsReminderRows();
 }
 
+function renderArrearsReminderFilters(counts, visible) {
+    const host = document.getElementById('arrearsReminderFilters');
+    if (!host) return;
+    if (!visible) { host.innerHTML = ''; return; }
+    const chips = [['all', 'كلهم'], ['new', 'لسه ما اتذكّروش'], ['followup', 'محتاجين متابعة']].map(([key, label]) => {
+        const active = arrearsReminderFilter === key;
+        return '<button type="button" role="radio" aria-checked="' + (active ? 'true' : 'false') + '" data-reminder-filter="' + key + '" onclick="setArrearsReminderFilter(\'' + key + '\')" class="min-h-11 rounded-xl border text-xs font-bold px-1 ' + (active ? 'bg-emerald-600 text-white border-emerald-500' : 'app-input') + '">'
+            + esc(label) + ' <span class="opacity-75">' + fmtNum(counts[key] || 0) + '</span></button>';
+    }).join('');
+    host.innerHTML = '<div role="radiogroup" aria-label="تصفية التذكيرات" class="grid grid-cols-3 gap-2">' + chips + '</div>';
+}
+
+function setArrearsReminderFilter(filter) {
+    if (!['all', 'new', 'followup'].includes(filter)) return;
+    arrearsReminderFilter = filter;
+    arrearsReminderLimit = ARREARS_REMINDER_PAGE_SIZE;
+    renderArrearsReminderRows();
+}
+
 function renderArrearsReminderRows() {
     renderArrearsReminderTonePicker();
     const host = document.getElementById('arrearsRemindersList');
@@ -205,7 +265,19 @@ function renderArrearsReminderRows() {
     const report = typeof buildArrearsReport === 'function'
         ? buildArrearsReport(typeof getArrearsReportFilters === 'function' ? getArrearsReportFilters() : {})
         : { residents: [] };
-    const items = (report.residents || []).filter(item => !arrearsReminderOnly || item.resident?.id === arrearsReminderOnly);
+    const scoped = (report.residents || []).filter(item => !arrearsReminderOnly || item.resident?.id === arrearsReminderOnly);
+    const statusOf = item => getArrearsReminderStatus(item.resident?.id);
+    const counts = {
+        all: scoped.length,
+        new: scoped.filter(item => statusOf(item).kind === 'none').length,
+        followup: scoped.filter(item => statusOf(item).kind === 'followup').length
+    };
+    renderArrearsReminderFilters(counts, !arrearsReminderOnly);
+    const items = scoped.filter(item => {
+        if (arrearsReminderOnly || arrearsReminderFilter === 'all') return true;
+        const kind = statusOf(item).kind;
+        return arrearsReminderFilter === 'new' ? kind === 'none' : kind === 'followup';
+    });
     const sent = readArrearsReminderSent();
     const today = arrearsReminderTodayKey();
     if (summary) {
@@ -215,7 +287,10 @@ function renderArrearsReminderRows() {
             : '';
     }
     if (!items.length) {
-        host.innerHTML = '<p class="text-xs text-slate-500 text-center py-6">لا توجد متأخرات لإرسال تذكير بها.</p>';
+        const emptyText = arrearsReminderFilter === 'followup' && scoped.length ? 'مفيش حد محتاج متابعة دلوقتي.'
+            : arrearsReminderFilter === 'new' && scoped.length ? 'كلهم اتذكّروا.'
+                : 'لا توجد متأخرات لإرسال تذكير بها.';
+        host.innerHTML = '<p class="text-xs text-slate-500 text-center py-6">' + esc(emptyText) + '</p>';
         return;
     }
     const shown = items.slice(0, arrearsReminderLimit);
@@ -226,10 +301,13 @@ function renderArrearsReminderRows() {
         const title = esc(resident.name || 'مالك') + ' · شقة ' + esc(String(resident.apartmentNumber || '—'));
         const meta = fmtNum(item.totalDebt) + ' ج.م · ' + fmtNum(item.count) + ' شهر';
         const doneToday = sent[resident.id] === today;
+        const reminded = statusOf(item);
         const status = doneToday ? '<span class="text-emerald-400 text-xs font-bold">أُرسل اليوم</span>'
-            : sent[resident.id] ? '<span class="text-slate-500 text-xs">آخر مرة ' + esc(sent[resident.id]) + '</span>' : '';
+            : reminded.kind === 'followup' ? '<span class="text-amber-400 text-xs font-bold">اتذكّر ' + esc(arrearsReminderDaysLabel(reminded.days)) + ' ولسه ما دفعش</span>'
+                : reminded.kind === 'partial' ? '<span class="text-sky-400 text-xs font-bold">دفع جزء بعد التذكير</span>'
+                    : sent[resident.id] ? '<span class="text-slate-500 text-xs">اتذكّر ' + esc(arrearsReminderDaysLabel(reminded.days)) + '</span>' : '';
         const action = built
-            ? '<button type="button" data-reminder-send="' + id + '" onclick="sendArrearsReminderFor(\'' + id + '\')" class="min-h-11 px-3 rounded-xl bg-emerald-600 text-white text-xs font-bold"><i class="fa-brands fa-whatsapp ml-1" aria-hidden="true"></i>' + (doneToday ? 'إعادة' : 'إرسال') + '</button>'
+            ? '<button type="button" data-reminder-send="' + id + '" onclick="sendArrearsReminderFor(\'' + id + '\')" class="min-h-11 px-3 rounded-xl bg-emerald-600 text-white text-xs font-bold"><i class="fa-brands fa-whatsapp ml-1" aria-hidden="true"></i>' + (reminded.kind === 'followup' ? 'تذكير تاني' : doneToday ? 'إعادة' : 'إرسال') + '</button>'
             : '<span class="text-xs text-amber-400">بلا رقم هاتف</span>';
         const preview = built
             ? '<button type="button" onclick="toggleArrearsReminderPreview(this)" aria-expanded="false" class="min-h-11 min-w-11 rounded-xl app-input border text-xs" aria-label="عرض نص الرسالة"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>'
@@ -258,8 +336,10 @@ function renderDashboardRemindersCard() {
     const sent = readArrearsReminderSent();
     const today = arrearsReminderTodayKey();
     const pending = late.filter(item => sent[item.resident?.id] !== today).length;
+    const followUps = late.filter(item => getArrearsReminderStatus(item.resident?.id).kind === 'followup').length;
     if (text) {
-        text.textContent = fmtNum(late.length) + ' شقة متأخرة · ' + (pending ? fmtNum(pending) + ' لم يُرسل لها تذكير اليوم' : 'تم إرسال تذكير للجميع اليوم');
+        text.textContent = fmtNum(late.length) + ' شقة متأخرة · ' + (pending ? fmtNum(pending) + ' لم يُرسل لها تذكير اليوم' : 'تم إرسال تذكير للجميع اليوم')
+            + (followUps ? ' · ' + fmtNum(followUps) + ' محتاجين متابعة' : '');
     }
     card.classList.remove('hidden');
 }
@@ -299,6 +379,7 @@ function sendArrearsReminderFor(residentId) {
 function openArrearsRemindersList(residentId = '') {
     if (!requireManager()) return false;
     arrearsReminderOnly = String(residentId || '');
+    arrearsReminderFilter = 'all';
     arrearsReminderLimit = ARREARS_REMINDER_PAGE_SIZE;
     renderArrearsReminderRows();
     openModal('arrearsRemindersModal');

@@ -2603,3 +2603,11 @@ test('small talk is warm, varied and answers the greeting in kind', () => {
     assert.doesNotMatch(complaint.html, /\d/, 'small talk never carries numbers');
     assert.match(api.answerAssistantQuery('عامل ايه', NOW).html, /الحمد لله|تمام/);
 });
+
+test('assistant routes "who was reminded but still unpaid" to the follow-up answer', () => {
+    const { api } = createHarness(true, { role: 'manager' });
+    for (const q of ['مين اتذكر ولسه مدفعش', 'مين اللي ذكرناهم ولسه ما دفعوش', 'متابعة التذكيرات']) {
+        assert.equal(api.detectAssistantIntent(api.normalizeAssistantArabic(q), false), 'reminder_followup', q);
+    }
+    assert.notEqual(api.detectAssistantIntent(api.normalizeAssistantArabic('مين متأخر'), false), 'reminder_followup');
+});
