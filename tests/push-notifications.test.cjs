@@ -134,3 +134,10 @@ test('refreshNotificationsFromServer replaces the list, throttles, and ignores a
     sandbox.currentUserRole = 'resident';
     assert.equal(await sandbox.refresh({ force: true }), false);
 });
+
+test('opening the manager bell asks for a fresh list once, without polling', () => {
+    const access = read('js/access.js');
+    const body = access.slice(access.indexOf('function toggleManagerNotifications'), access.indexOf('function closeManagerNotifications'));
+    assert.match(body, /refreshNotificationsFromServer\(\)/);
+    assert.doesNotMatch(body, /setInterval|setTimeout/);
+});

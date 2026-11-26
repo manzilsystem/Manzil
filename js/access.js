@@ -1014,7 +1014,11 @@ function toggleManagerNotifications(force) {
     const button = document.getElementById('managerNotificationsBtn');
     if (!menu || !button) return;
     const open = typeof force === 'boolean' ? force : menu.classList.contains('hidden');
-    if (open) renderManagerNotifications();
+    if (open) {
+        renderManagerNotifications();
+        // Opening the bell is a moment the manager expects fresh news (throttled, no polling).
+        if (typeof refreshNotificationsFromServer === 'function') refreshNotificationsFromServer();
+    }
     menu.classList.toggle('hidden', !open);
     button.setAttribute('aria-expanded', String(open));
 }
