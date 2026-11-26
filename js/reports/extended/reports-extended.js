@@ -476,25 +476,35 @@ function buildApartmentPerformanceReport(fromMonth, toMonth, residentFilter = ''
         const months = [];
         let otherIncomeCents = 0;
         let lastPaymentDate = '';
+        let totalIncomeCents = 0;
+        let subscriptionFamilyCents = 0;
         (Array.isArray(state.income) ? state.income : []).forEach(payment => {
             if (payment.residentId !== resident.id) return;
             const paymentKey = monthLabelToKey(payment.month);
             if (!paymentKey || paymentKey < keys[0] || paymentKey > keys[keys.length - 1]) return;
             const date = String(payment.date || payment.createdAt || '');
             if (date && date > lastPaymentDate) lastPaymentDate = date;
-            const purpose = typeof getIncomePurposeFormCode === 'function'
-                ? getIncomePurposeFormCode(payment.purposeCode)
-                : (String(payment.purposeCode || '').trim() || 'subscription');
-            if (purpose !== 'subscription') otherIncomeCents += toCents(payment.amount);
+            totalIncomeCents += toCents(payment.amount);
+            // المحصّل = الاشتراكات والتسويات الموجبة فقط؛ الباقي إيرادات أخرى (مطابق لتقرير الفترة).
+            if (typeof reportIsSubscriptionPayment === 'function'
+                ? reportIsSubscriptionPayment(payment)
+                : (String(payment.purposeCode || '').trim() || 'subscription') === 'subscription') {
+                const cents = toCents(payment.amount);
+                if (cents > 0) subscriptionFamilyCents += cents;
+            }
         });
+        otherIncomeCents = totalIncomeCents - subscriptionFamilyCents;
         keys.forEach(key => {
             const month = getStatementMonthLabel(key);
             if (!isResidentActiveInMonth(resident, key)) return;
             const dueCents = toCents(getMonthlyDueAmountForMonth(resident, month));
-            const paidCents = filterReportIncome(
-                (Array.isArray(state.income) ? state.income : []).filter(item => item.residentId === resident.id && item.month === month),
-                'subscription', '', '', resident.id
-            ).reduce((sum, item) => sum + toCents(item.amount), 0);
+            // القاعدة الموحدة: المحصّل ضد المستحق = اشتراكات الشهر الموجبة + دفعات التسوية.
+            const paidCents = typeof getMonthlyDuePaidAmount === 'function'
+                ? Math.round(getMonthlyDuePaidAmount(resident.id, month) * 100)
+                : filterReportIncome(
+                    (Array.isArray(state.income) ? state.income : []).filter(item => item.residentId === resident.id && item.month === month),
+                    'subscription', '', '', resident.id
+                ).reduce((sum, item) => sum + toCents(item.amount), 0);
             months.push({
                 key,
                 month,
@@ -506,6 +516,9 @@ function buildApartmentPerformanceReport(fromMonth, toMonth, residentFilter = ''
         });
         const dueCents = months.reduce((sum, item) => sum + item.dueCents, 0);
         const paidCents = months.reduce((sum, item) => sum + item.paidCents, 0);
+        // المتبقي يجمع متبقي كل شهر على حدة (قاعدة المتأخرات): الدفع المقدم
+        // لشهر لا يلغي استحقاق شهر آخر، تمامًا كما في تقرير الفترة.
+        const remainingCents = months.reduce((sum, item) => sum + item.remainingCents, 0);
         return {
             resident,
             label: (typeof formatApartmentLabel === 'function' ? formatApartmentLabel(resident.apartmentNumber) : 'شقة ' + String(resident.apartmentNumber || '')) + ' · ' + (resident.name || '—'),
@@ -513,7 +526,7 @@ function buildApartmentPerformanceReport(fromMonth, toMonth, residentFilter = ''
             dueCents,
             paidCents,
             otherIncomeCents,
-            remainingCents: Math.max(0, dueCents - paidCents),
+            remainingCents,
             rate: dueCents > 0 ? Math.round((paidCents / dueCents) * 100) : null,
             lastPaymentDate
         };

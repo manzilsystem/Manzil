@@ -797,9 +797,11 @@ function _buildLandlordReportModel(month, purposeFilter = '', cashAccountFilter 
     const residentLabel = reportResidentFilterLabel(residentFilter);
     const { income: inc, expenses: exp } = getLandlordReportData(month, purposeFilter, cashAccountFilter, paymentMethodFilter, residentFilter);
     const totalIncCents = inc.reduce((sum, i) => sum + toCents(i.amount), 0);
+    // المحصّل من الاشتراكات والتسويات يحتسب الحركات الموجبة فقط، مثل تقرير الفترة.
     const subscriptionIncCents = inc
-        .filter(item => reportIsSubscriptionPayment(item))
+        .filter(item => reportIsSubscriptionPayment(item) && toCents(item.amount) > 0)
         .reduce((sum, item) => sum + toCents(item.amount), 0);
+    const negativePaymentCount = inc.filter(item => toCents(item.amount) < 0).length;
     const totalExpCents = exp.reduce((sum, e) => sum + toCents(e.amount), 0);
     const netCents = totalIncCents - totalExpCents;
     const { expectedCents, outstandingCents, adjustmentCents } = showDues
@@ -839,6 +841,7 @@ function _buildLandlordReportModel(month, purposeFilter = '', cashAccountFilter 
         residentsById: buildResidentIndex(),
         totalIncCents,
         subscriptionIncCents,
+        negativePaymentCount,
         totalExpCents,
         netCents,
         expectedCents,
@@ -1306,6 +1309,8 @@ async function generateLandlordReport() {
     const paymentMethodChartHasData = reportPreviewChartHasData(paymentMethodChartRows.map(item => item.cents));
     const topPaymentMethod = paymentMethodChartRows[0] || null;
     const statsHtml = renderReportStatTiles(getLandlordSummaryItems(model), !showDues);
+    const negativeNote = (model.negativePaymentCount > 0
+        ? `<p>تنبيه: ${fmtNum(model.negativePaymentCount)} حركة تحصيل بقيمة سالبة، لم تُحسب ضمن المحصّل من الاشتراكات والتسويات.</p>` : '');
     const note = residentFilter
         ? 'التحصيلات معروضة لشقة «' + esc(residentLabel) + '» فقط' +
             (cashAccountFilter ? ' ضمن صندوق «' + esc(cashAccountLabel) + '»' : '') +
@@ -1334,6 +1339,7 @@ async function generateLandlordReport() {
                 'تم الإنشاء ' + esc(formatDate(new Date().toISOString()))
             ])}
             ${statsHtml}
+            ${negativeNote}
             ${renderSheetBlock('التحصيل حسب الغرض', ['الغرض', 'الحركات', 'التحصيل'], purposeRows, {
                 empty: 'لا يوجد تحصيل في هذا التقرير.', numeric: [1, 2],
                 foot: ['الإجمالي', fmtNum(inc.length), '<span class="sheet-positive">' + money(model.totalIncCents) + '</span>']
@@ -1885,6 +1891,9 @@ function canUsePeriodReportRpc() {
 
 function normalizeServerPeriodReport(serverReport, localReport) {
     if (!serverReport || !Array.isArray(serverReport.months) || !localReport) return null;
+    // المستحقات تُخفى عند تصفية الصندوق أو الغرض غير الاشتراك؛ لا نعتمد أرقام
+    // مستحقات من الخادم لا يراعي هذا الشرط، فنصفّرها ليتطابق مع التقرير المحلي.
+    const showDues = Boolean(localReport.showDues);
     const months = serverReport.months.map(row => {
         const key = String(row?.key || '').slice(0, 10);
         const month = getStatementMonthLabel(key);
@@ -1896,16 +1905,16 @@ function normalizeServerPeriodReport(serverReport, localReport) {
         return {
             key,
             month,
-            expectedCents: cents(row.expectedCents),
-            adjustmentCents: cents(row.adjustmentCents),
+            expectedCents: showDues ? cents(row.expectedCents) : 0,
+            adjustmentCents: showDues ? cents(row.adjustmentCents) : 0,
             totalIncomeCents: cents(row.totalIncomeCents),
             movementCount: Math.max(0, Math.round(Number(row.movementCount) || 0)),
             collectedCents: cents(row.collectedCents),
             otherIncomeCents: cents(row.otherIncomeCents),
-            outstandingCents: cents(row.outstandingCents),
+            outstandingCents: showDues ? cents(row.outstandingCents) : 0,
             expenseCents: cents(row.expenseCents),
             netCents: cents(row.netCents),
-            rate
+            rate: showDues ? rate : null
         };
     });
     const expectedKeys = localReport.months.map(row => row.key).join('|');

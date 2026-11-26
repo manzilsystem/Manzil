@@ -259,12 +259,25 @@ function buildPayerBehaviorReport(residentFilter = '', now = new Date()) {
             if (!isResidentActiveInMonth(resident, key)) return;
             const dueCents = toCents(getMonthlyDueAmountForMonth(resident, month));
             if (dueCents <= 0) return;
-            const payments = income.filter(payment =>
-                payment.residentId === resident.id &&
-                payment.month === month &&
-                (typeof getIncomePurposeFormCode === 'function' ? getIncomePurposeFormCode(payment.purposeCode) : 'subscription') === 'subscription'
-            );
-            const paidCents = payments.reduce((sum, payment) => sum + toCents(payment.amount), 0);
+            // القاعدة الموحدة: السداد ضد المستحق = اشتراكات الشهر الموجبة + دفعات التسوية
+            // المرتبطة بها، تمامًا كما في تقرير الفترة وكشف الشقة.
+            const settlement = typeof getSettlementAdjustmentForMonth === 'function'
+                ? getSettlementAdjustmentForMonth(resident.id, month)
+                : null;
+            const payments = income.filter(payment => {
+                if (payment.residentId !== resident.id || payment.month !== month) return false;
+                const purpose = typeof getIncomePurposeFormCode === 'function'
+                    ? getIncomePurposeFormCode(payment.purposeCode)
+                    : (String(payment.purposeCode || '').trim() || 'subscription');
+                if (purpose === 'subscription') return true;
+                return Boolean(settlement)
+                    && purpose === 'settlement'
+                    && String(payment.settlementAdjustmentId || '') === String(settlement.id);
+            });
+            const paidCents = payments.reduce((sum, payment) => {
+                const cents = toCents(payment.amount);
+                return cents > 0 ? sum + cents : sum;
+            }, 0);
             const fullyPaid = paidCents >= dueCents;
             const lastPaidAt = payments.reduce((latest, payment) => {
                 const value = String(payment.date || '').trim();
