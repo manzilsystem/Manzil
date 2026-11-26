@@ -614,11 +614,16 @@ function renderOwnerPortal() {
             } else {
                 details.push('يتم التسليم مباشرةً إلى مدير العمارة.');
             }
+            // A method the manager enabled but never filled in has nothing to
+            // show the owner, so it is left out instead of an empty card.
+            if (!details.length) return '';
             return `<div class="app-input border rounded-xl p-3 space-y-1">
                 <p class="text-xs font-bold">${esc(label)}</p>
-                ${details.length ? details.map(item => `<p class="text-xs text-slate-400 break-words">${esc(item)}</p>`).join('') : '<p class="text-xs text-slate-500">يرجى التواصل مع المدير للحصول على بيانات الاستلام.</p>'}
+                ${details.map(item => `<p class="text-xs text-slate-400 break-words">${esc(item)}</p>`).join('')}
             </div>`;
         }).join('');
+    const paymentInstructionsHtml = paymentInstructions
+        || '<p class="text-xs text-slate-500 sm:col-span-2">لم تُسجَّل بيانات السداد بعد. تواصل مع المدير لمعرفة طريقة الدفع.</p>';
     const subscriptionDueDay = Math.min(28, Math.max(1, Number(state.subscriptionDueDay) || 1));
     const subscriptionGraceDays = Math.min(31, Math.max(0, Number(state.subscriptionGraceDays) || 0));
     const ownPayments = state.income
@@ -748,7 +753,7 @@ function renderOwnerPortal() {
                 <div class="app-input border rounded-2xl p-3"><p class="text-xs text-slate-500">المدفوع هذا الشهر</p><p class="font-black text-emerald-400 mt-1">${fmtNum(paidThisMonth)} ج.م</p></div>
                 <div class="app-input border rounded-2xl p-3"><p class="text-xs text-slate-500">المتبقي لهذا الشهر</p><p class="font-black ${remainingThisMonth ? 'text-rose-400' : 'text-emerald-400'} mt-1">${fmtNum(remainingThisMonth)} ج.م</p></div>
             </div>
-            <div class="app-input border rounded-2xl p-3 flex items-center justify-between gap-3"><span class="text-xs font-bold">إجمالي متأخرات حسابك (${debt.count} شهر${debt.daysOverdue ? ` · متأخر ${esc(formatOverdueDuration(debt.daysOverdue))}` : ''})</span><strong class="text-sm whitespace-nowrap ${debt.totalDebt ? 'text-rose-400' : 'text-emerald-400'}">${fmtNum(debt.totalDebt)} ج.م</strong></div>
+            <div class="app-input border rounded-2xl p-3 flex items-center justify-between gap-3"><span class="text-xs font-bold min-w-0">إجمالي متأخرات حسابك (${debt.count} شهر${debt.daysOverdue ? ` · متأخر ${esc(formatOverdueDuration(debt.daysOverdue))}` : ''})</span><strong class="text-sm whitespace-nowrap shrink-0 ${debt.totalDebt ? 'text-rose-400' : 'text-emerald-400'}">${fmtNum(debt.totalDebt)} ج.م</strong></div>
             ${ownerArrearsHtml}
         </section>
         <section class="app-card border rounded-3xl p-5 space-y-3" aria-labelledby="ownerPaymentMethodsTitle">
@@ -756,7 +761,7 @@ function renderOwnerPortal() {
                 <h3 id="ownerPaymentMethodsTitle" class="font-bold text-sm">طرق سداد الاشتراك</h3>
                 <p class="text-xs text-slate-500 mt-1">موعد الاستحقاق يوم ${subscriptionDueDay} من كل شهر · فترة السماح ${subscriptionGraceDays} يوم</p>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${paymentInstructions}</div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${paymentInstructionsHtml}</div>
         </section>
         <section class="app-card border rounded-3xl p-5 space-y-3" aria-labelledby="ownerReceiptsTitle">
             <div>
