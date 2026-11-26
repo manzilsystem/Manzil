@@ -2656,3 +2656,19 @@ test('owner audit: first-person account questions and payment-date wording get a
     assert.equal(api.answerAssistantQuery('مين متأخر', NOW).id, 'owner_scope', 'building-wide questions stay refused for the owner');
     assert.match(strip(api.answerAssistantQuery('اخر يوم للدفع', NOW).html), /عليك 10 شهور متأخر/);
 });
+
+test('reminder command audit: personal reminders and unknown apartments are answered honestly', () => {
+    const { api } = createHarness(true, { role: 'manager' });
+    const strip = html => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    for (const q of ['ذكرني بكره اتصل بالسباك', 'فكرني بعد 3 ايام اجيب الايصالات']) {
+        const answer = api.answerAssistantQuery(q, NOW);
+        assert.equal(answer.id, 'reminder-personal-unsupported', q);
+        assert.ok(!answer.reminderRequest, 'must not open the residents reminder list');
+        assert.match(strip(answer.html), /لسه مش موجودة/);
+    }
+    const missing = api.answerAssistantQuery('ذكر شقة 99', NOW);
+    assert.equal(missing.id, 'reminder-apartment-missing');
+    assert.match(strip(missing.html), /99/);
+    assert.equal(api.answerAssistantQuery('ذكر شقة 7', NOW).id, 'reminder-open-request');
+    assert.equal(api.answerAssistantQuery('ذكر كل المتأخرين', NOW).id, 'reminder-open-request');
+});
