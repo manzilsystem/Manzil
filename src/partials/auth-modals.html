@@ -48,6 +48,7 @@
                     <button type="submit" class="auth-submit">تسجيل الدخول</button>
                 </form>
                 <button id="managerRecoveryBtn" type="button" onclick="requestManagerPasswordReset()" class="auth-link-button mt-3 hidden">نسيت كلمة مرور المدير؟ أرسل رابط استعادة إلى البريد</button>
+                <button id="managerSignupLink" type="button" onclick="openManagerSignup()" class="auth-link-button mt-3">مدير جديد؟ سجّل مبناك</button>
                 <details id="ownerLoginHelp" class="auth-owner-help hidden mt-5 p-4 rounded-2xl border" aria-labelledby="ownerPinHelpTitle">
                     <summary id="ownerPinHelpTitle" class="cursor-pointer list-none text-sm font-black"><i class="fa-solid fa-key ml-1 text-amber-300" aria-hidden="true"></i> مالك الشقة ولا تملك PIN؟ <i class="fa-solid fa-chevron-down mr-1 text-[10px] text-slate-400" aria-hidden="true"></i></summary>
                     <p class="text-xs leading-6 mt-3">حساب المالك لا يُنشأ من شاشة الدخول؛ يجب أن يرتبط بالشقة الصحيحة. اطلب من مدير المبنى تسجيل رقم جوالك في بيانات الشقة ثم اختيار «حفظ الشقة وإنشاء / إعادة ضبط PIN المالك».</p>
@@ -114,4 +115,21 @@
             <select id="buildingContextSelect" class="w-full app-input border rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-indigo-500"></select>
             <button type="button" onclick="confirmBuildingSelection()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl text-sm font-bold">متابعة بهذا المبنى</button>
         </section>
+    </div>
+
+    <div id="managerSignupModal" role="dialog" aria-modal="true" aria-labelledby="managerSignupTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[70] hidden items-center justify-center p-3">
+        <div class="app-card border w-full max-w-sm rounded-3xl shadow-2xl p-4 space-y-3 max-h-[94vh] overflow-y-auto">
+            <h2 id="managerSignupTitle" class="text-base font-black text-center">سجّل مبناك في منزل</h2>
+            <p class="text-xs text-slate-400 text-center">بعد التسجيل، طلبك بيتراجع وبيتفعّل لك مبنى جديد.</p>
+            <p id="managerSignupMessage" class="hidden text-xs font-bold text-center leading-6" role="alert" aria-live="polite"></p>
+            <form id="managerSignupForm" onsubmit="submitManagerSignup(event)" class="space-y-2" novalidate>
+                <input id="signupFullName" type="text" autocomplete="name" maxlength="80" aria-label="الاسم" placeholder="الاسم" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm">
+                <input id="signupEmail" type="email" autocomplete="email" inputmode="email" aria-label="البريد الإلكتروني" placeholder="البريد الإلكتروني" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm text-left" dir="ltr">
+                <input id="signupPhone" type="tel" autocomplete="tel" inputmode="tel" aria-label="رقم الجوال" placeholder="رقم الجوال" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm text-left" dir="ltr">
+                <input id="signupBuildingName" type="text" maxlength="80" aria-label="اسم المبنى" placeholder="اسم المبنى" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm">
+                <input id="signupPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" aria-label="كلمة المرور" placeholder="كلمة المرور (8 حروف على الأقل)" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm text-left" dir="ltr">
+                <button id="managerSignupSubmit" type="submit" class="w-full min-h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-sm font-bold">إرسال الطلب</button>
+            </form>
+            <button type="button" onclick="closeManagerSignup()" class="w-full min-h-11 app-input border rounded-2xl text-sm font-bold text-slate-300">رجوع لتسجيل الدخول</button>
+        </div>
     </div>

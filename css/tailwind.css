@@ -550,6 +550,9 @@
   .max-h-\[65vh\] {
     max-height: 65vh;
   }
+  .max-h-\[70vh\] {
+    max-height: 70vh;
+  }
   .max-h-\[80vh\] {
     max-height: 80vh;
   }
@@ -561,6 +564,9 @@
   }
   .max-h-\[94dvh\] {
     max-height: 94dvh;
+  }
+  .max-h-\[94vh\] {
+    max-height: 94vh;
   }
   .min-h-9 {
     min-height: calc(var(--spacing) * 9);

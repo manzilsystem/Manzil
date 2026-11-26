@@ -91,3 +91,6 @@ declare function applyCashFlowPreset(): void;
 declare function applyApartmentsPreset(): void;
 declare function invalidateCashFlowPreview(): void;
 declare function invalidateApartmentsPreview(): void;
+
+declare function resolveMemberlessSignupMessage(session: any): Promise<string>;
+declare function refreshSignupAdminEntry(): Promise<void>;

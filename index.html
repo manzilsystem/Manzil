@@ -20,7 +20,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=c705893f36">
     <link rel="stylesheet" href="fonts/cairo.css?v=aecf0ab114">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/tailwind.css?v=e9504a0696">
+    <link rel="stylesheet" href="css/tailwind.css?v=fb2946d5c7">
     <link rel="stylesheet" href="css/style.css?v=00439e6f98">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
@@ -83,6 +83,7 @@
                     <button type="submit" class="auth-submit">تسجيل الدخول</button>
                 </form>
                 <button id="managerRecoveryBtn" type="button" onclick="requestManagerPasswordReset()" class="auth-link-button mt-3 hidden">نسيت كلمة مرور المدير؟ أرسل رابط استعادة إلى البريد</button>
+                <button id="managerSignupLink" type="button" onclick="openManagerSignup()" class="auth-link-button mt-3">مدير جديد؟ سجّل مبناك</button>
                 <details id="ownerLoginHelp" class="auth-owner-help hidden mt-5 p-4 rounded-2xl border" aria-labelledby="ownerPinHelpTitle">
                     <summary id="ownerPinHelpTitle" class="cursor-pointer list-none text-sm font-black"><i class="fa-solid fa-key ml-1 text-amber-300" aria-hidden="true"></i> مالك الشقة ولا تملك PIN؟ <i class="fa-solid fa-chevron-down mr-1 text-[10px] text-slate-400" aria-hidden="true"></i></summary>
                     <p class="text-xs leading-6 mt-3">حساب المالك لا يُنشأ من شاشة الدخول؛ يجب أن يرتبط بالشقة الصحيحة. اطلب من مدير المبنى تسجيل رقم جوالك في بيانات الشقة ثم اختيار «حفظ الشقة وإنشاء / إعادة ضبط PIN المالك».</p>
@@ -150,6 +151,23 @@
             <button type="button" onclick="confirmBuildingSelection()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl text-sm font-bold">متابعة بهذا المبنى</button>
         </section>
     </div>
+
+    <div id="managerSignupModal" role="dialog" aria-modal="true" aria-labelledby="managerSignupTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[70] hidden items-center justify-center p-3">
+        <div class="app-card border w-full max-w-sm rounded-3xl shadow-2xl p-4 space-y-3 max-h-[94vh] overflow-y-auto">
+            <h2 id="managerSignupTitle" class="text-base font-black text-center">سجّل مبناك في منزل</h2>
+            <p class="text-xs text-slate-400 text-center">بعد التسجيل، طلبك بيتراجع وبيتفعّل لك مبنى جديد.</p>
+            <p id="managerSignupMessage" class="hidden text-xs font-bold text-center leading-6" role="alert" aria-live="polite"></p>
+            <form id="managerSignupForm" onsubmit="submitManagerSignup(event)" class="space-y-2" novalidate>
+                <input id="signupFullName" type="text" autocomplete="name" maxlength="80" aria-label="الاسم" placeholder="الاسم" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm">
+                <input id="signupEmail" type="email" autocomplete="email" inputmode="email" aria-label="البريد الإلكتروني" placeholder="البريد الإلكتروني" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm text-left" dir="ltr">
+                <input id="signupPhone" type="tel" autocomplete="tel" inputmode="tel" aria-label="رقم الجوال" placeholder="رقم الجوال" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm text-left" dir="ltr">
+                <input id="signupBuildingName" type="text" maxlength="80" aria-label="اسم المبنى" placeholder="اسم المبنى" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm">
+                <input id="signupPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" aria-label="كلمة المرور" placeholder="كلمة المرور (8 حروف على الأقل)" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm text-left" dir="ltr">
+                <button id="managerSignupSubmit" type="submit" class="w-full min-h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-sm font-bold">إرسال الطلب</button>
+            </form>
+            <button type="button" onclick="closeManagerSignup()" class="w-full min-h-11 app-input border rounded-2xl text-sm font-bold text-slate-300">رجوع لتسجيل الدخول</button>
+        </div>
+    </div>
     <!-- Header -->
     <header class="app-card sticky top-0 z-30 border-b no-print">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center max-w-4xl">
@@ -182,6 +200,7 @@
                     </button>
                     <div class="manager-notifications-menu app-card border hidden" id="managerNotificationsMenu" role="group" aria-label="إشعارات المدير"></div>
                 </div>
+                <button id="signupAdminBtn" type="button" onclick="openSignupRequests()" aria-label="طلبات التسجيل" class="app-card border p-2.5 rounded-xl text-xs transition hidden" title="طلبات التسجيل"><i class="fa-solid fa-user-clock text-sm"></i></button>
                 <button onclick="openSettingsModal()" aria-label="فتح الإعدادات" class="app-card border p-2.5 rounded-xl text-xs transition" title="الإعدادات"><i class="fa-solid fa-gear text-sm"></i></button>
                 <button id="accessSwitchBtn" onclick="lockCurrentSession()" aria-label="تبديل المستخدم أو قفل التطبيق" class="app-card border p-2.5 rounded-xl text-xs transition hidden" title="خروج / تبديل المستخدم"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
             </div>
@@ -2874,8 +2893,18 @@
         </div>
     </div>
 
+    <div id="signupRequestsModal" role="dialog" aria-modal="true" aria-labelledby="signupRequestsTitle" aria-hidden="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+            <div class="bg-indigo-700 text-white px-5 py-4 flex justify-between items-center">
+                <h3 id="signupRequestsTitle" class="font-bold text-sm"><i class="fa-solid fa-user-clock ml-2"></i> طلبات التسجيل</h3>
+                <button onclick="closeModal('signupRequestsModal')" aria-label="إغلاق طلبات التسجيل" class="text-white/80 hover:text-white inline-flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -m-2"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="signupRequestsList" class="p-4 space-y-2 max-h-[70vh] overflow-y-auto"></div>
+        </div>
+    </div>
+
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-813992e9c5"></script>
+    <script src="js/telemetry.js?v=manzil-a499519fa3"></script>
     <script src="js/state.js?v=8c1fbc9a2c"></script>
     <script src="js/access.js?v=470b57b889"></script>
     <script src="js/render.js?v=13c195fb52"></script>
@@ -2909,7 +2938,8 @@
     <script src="js/reports/extended/reports-cashbox-forecast.js?v=b841f17957"></script>
     <script src="js/settings.js?v=86fa26cfed"></script>
     <script src="vendor/supabase.js"></script>
-    <script src="js/supabase.js?v=7b2f051523"></script>
+    <script src="js/supabase.js?v=8e3a44c21a"></script>
+    <script src="js/manager-signup.js?v=a8e740f980"></script>
     <script src="js/cashbox.js?v=630080f12a"></script>
     <script src="js/monthly-close.js?v=d7ca9836eb"></script>
     <script src="js/backup.js?v=65b179f1d7"></script>
