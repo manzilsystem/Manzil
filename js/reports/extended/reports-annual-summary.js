@@ -103,15 +103,26 @@ function populateAnnualSummaryFilters() {
 }
 
 /**
+ * مفتاح الشهر الحالي من مرجع «now» إن وُجد، وإلا من ساعة التطبيق.
+ * @param {Date|null} [now]
+ */
+function annualSummaryCurrentKey(now) {
+    if (now instanceof Date && !Number.isNaN(now.getTime())) {
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    }
+    return monthLabelToKey(getCurrentMonth());
+}
+
+/**
  * يبني ملخص السنة شهرًا بشهر. الأشهر التي لم تحل بعد تظهر بشرطات
  * ولا تدخل المتوسطات ولا نسبة التحصيل.
  * @param {string} [year] السنة المطلوبة أو فارغة للسنة الحالية
  * @param {Date} [now] مرجع «اليوم» لقابلية الاختبار
  */
-function buildAnnualSummaryReport(year = '', now = new Date()) {
-    const targetYear = /^\d{4}$/.test(String(year).trim()) ? String(year).trim() : String(now.getFullYear());
-    const currentKey = monthLabelToKey(getCurrentMonth());
+function buildAnnualSummaryReport(year = '', now = null) {
+    const currentKey = annualSummaryCurrentKey(now);
     if (!currentKey) return null;
+    const targetYear = /^\d{4}$/.test(String(year).trim()) ? String(year).trim() : currentKey.slice(0, 4);
     const residents = Array.isArray(state.residents) ? state.residents : [];
     const income = Array.isArray(state.income) ? state.income : [];
     const expenses = Array.isArray(state.expenses) ? state.expenses : [];
