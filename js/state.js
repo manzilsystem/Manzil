@@ -309,19 +309,59 @@ function getReceiptThankYouMessage() {
 }
 
 const DEFAULT_REMINDER_TEMPLATE = 'مرحباً {name}،\nنذكركم بسداد مستحقات العمارة {building}.\nإجمالي المتأخرات: {amount} ج.م ({count} شهر).\nالشهور المستحقة: {months}\nشكراً لتعاونكم.';
+// Three ready-made voices for the arrears reminder. «رسمي» is the long-standing default text, so nothing changes until the manager picks another one.
+const REMINDER_TONES = {
+    gentle: {
+        label: 'لطيف',
+        hint: 'دافي وعلى قد الذوق',
+        template: 'أهلاً {name} 🌷\nبس تذكير بسيط بمستحقات عمارة {building}: {amount} ج.م ({count} شهر).\nالشهور: {months}\nلو ينفع تسددها في أقرب وقت يبقى جميل، وتسلم على ذوقك.'
+    },
+    formal: {
+        label: 'رسمي',
+        hint: 'محترم ومباشر',
+        template: DEFAULT_REMINDER_TEMPLATE
+    },
+    firm: {
+        label: 'حازم',
+        hint: 'واضح وبدون لف',
+        template: '{name}، المطلوب سداده لعمارة {building}: {amount} ج.م عن {count} شهر ({months}).\nلازم يتسدد في أقرب وقت عشان مصاريف العمارة تمشي.\nلو عندك ظرف عرّفنا النهارده.'
+    }
+};
+const DEFAULT_REMINDER_TONE = 'formal';
+function getReminderToneKey() {
+    const buildingId = typeof activeBuildingId === 'undefined' ? 'default' : (activeBuildingId || 'default');
+    return 'manzil:' + buildingId + ':arrears-reminder-tone';
+}
+function getReminderTone() {
+    try {
+        const value = String(localStorage.getItem(getReminderToneKey()) || '');
+        return Object.prototype.hasOwnProperty.call(REMINDER_TONES, value) ? value : DEFAULT_REMINDER_TONE;
+    } catch {
+        return DEFAULT_REMINDER_TONE;
+    }
+}
+function setReminderTone(tone) {
+    if (!Object.prototype.hasOwnProperty.call(REMINDER_TONES, tone)) return false;
+    try { localStorage.setItem(getReminderToneKey(), tone); } catch { return false; }
+    return true;
+}
+/** Text used when the manager has not written a custom message: the chosen tone. */
+function getDefaultReminderTemplate() {
+    return REMINDER_TONES[getReminderTone()].template;
+}
 function getReminderTemplateKey() {
     const buildingId = typeof activeBuildingId === 'undefined' ? 'default' : (activeBuildingId || 'default');
     return 'manzil:' + buildingId + ':arrears-reminder-template';
 }
 function getReminderMessageTemplate() {
     if (state.reminderMessageTemplate !== null && state.reminderMessageTemplate !== undefined) {
-        return String(state.reminderMessageTemplate).trim().slice(0, 500) || DEFAULT_REMINDER_TEMPLATE;
+        return String(state.reminderMessageTemplate).trim().slice(0, 500) || getDefaultReminderTemplate();
     }
     try {
         const value = String(localStorage.getItem(getReminderTemplateKey()) || '').trim();
-        return value.slice(0, 500) || DEFAULT_REMINDER_TEMPLATE;
+        return value.slice(0, 500) || getDefaultReminderTemplate();
     } catch {
-        return DEFAULT_REMINDER_TEMPLATE;
+        return getDefaultReminderTemplate();
     }
 }
 function renderReminderTemplate(template, values) {

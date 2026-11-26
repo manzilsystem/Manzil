@@ -29,7 +29,7 @@ function renderReminderPreview() {
     const preview = /** @type {HTMLElement | null} */ (document.getElementById('settingsReminderPreview'));
     updateSettingsMessageCounter('settingsReminderTemplate', 'settingsReminderCharacterCount', 500);
     if (!preview) return;
-    const template = String(input?.value || '').trim() || DEFAULT_REMINDER_TEMPLATE;
+    const template = String(input?.value || '').trim() || (typeof getDefaultReminderTemplate === 'function' ? getDefaultReminderTemplate() : DEFAULT_REMINDER_TEMPLATE);
     preview.textContent = renderReminderTemplate(template, {
         name: 'أحمد', building: state.buildingName || 'عمارة النور',
         apartment: '12', month: 'نوفمبر 2026', amount: '1,250',
