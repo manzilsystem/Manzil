@@ -778,6 +778,7 @@ function renderOwnerPortal() {
                 </div>
                 ${unreadNotifications.length ? '<button type="button" onclick="markAllOwnerNotificationsRead()" class="inline-flex items-center min-h-11 px-3 text-xs text-indigo-300 font-bold">قراءة الكل</button>' : ''}
             </div>
+            ${typeof installCardHtml === 'function' ? installCardHtml() : ''}
             ${typeof pushControlHtml === 'function' ? pushControlHtml() : ''}
             <div class="space-y-2">${notificationRows}</div>
         </section>

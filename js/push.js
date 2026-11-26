@@ -176,6 +176,75 @@ function pushControlHtml() {
     return `<div class="push-control" data-push-state="${state}"><p class="text-xs text-slate-400">${text}</p>${button}</div>`;
 }
 
+// PWA install prompt for owners. Chrome/Edge on Android hand us an install
+// event; iPhone and iPad have no event, so they get the Share-sheet steps.
+const INSTALL_DISMISS_KEY = 'manzil.installCardDismissedAt';
+const INSTALL_DISMISS_MS = 14 * 24 * 60 * 60 * 1000;
+let deferredInstallPrompt = null;
+
+function appIsInstalled() {
+    try {
+        if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+    } catch (_) { /* matchMedia unavailable */ }
+    return /** @type {any} */ (navigator).standalone === true;
+}
+
+function installIsAppleMobile() {
+    const ua = String(navigator.userAgent || '');
+    return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+}
+
+function installCardDismissed() {
+    try {
+        const at = Number(localStorage.getItem(INSTALL_DISMISS_KEY) || 0);
+        return at > 0 && Date.now() - at < INSTALL_DISMISS_MS;
+    } catch (_) { return false; }
+}
+
+function installCardHtml() {
+    if (appIsInstalled() || installCardDismissed()) return '';
+    let body = '';
+    if (deferredInstallPrompt) {
+        body = '<p class="text-xs text-slate-400">ثبّت منزل على شاشتك الرئيسية لتفتحه بضغطة واحدة وتصلك الإشعارات.</p>'
+            + '<button type="button" class="push-control-btn" onclick="installManzilApp()">تثبيت التطبيق</button>';
+    } else if (installIsAppleMobile()) {
+        body = '<p class="text-xs text-slate-400">لتثبيت التطبيق: اضغط زر المشاركة في سفاري، ثم «إضافة إلى الشاشة الرئيسية».</p>';
+    } else {
+        return '';
+    }
+    return `<div class="push-control" data-install-card="true">${body}<button type="button" class="inline-flex items-center justify-center min-h-11 min-w-11 text-xs text-slate-500" aria-label="إخفاء" onclick="dismissInstallCard()"><i class="fa-solid fa-xmark"></i></button></div>`;
+}
+
+async function installManzilApp() {
+    const promptEvent = deferredInstallPrompt;
+    if (!promptEvent) return;
+    deferredInstallPrompt = null;
+    try {
+        await promptEvent.prompt();
+        await promptEvent.userChoice;
+    } catch (error) {
+        console.warn('Install prompt failed:', error);
+    }
+    refreshPushControls();
+}
+
+function dismissInstallCard() {
+    try { localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now())); } catch (_) { /* private mode */ }
+    refreshPushControls();
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('beforeinstallprompt', event => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        refreshPushControls();
+    });
+    window.addEventListener('appinstalled', () => {
+        deferredInstallPrompt = null;
+        refreshPushControls();
+    });
+}
+
 function refreshPushControls() {
     if (typeof renderManagerNotifications === 'function') renderManagerNotifications();
     if (currentUserRole === 'owner' && typeof renderOwnerPortal === 'function') renderOwnerPortal();
