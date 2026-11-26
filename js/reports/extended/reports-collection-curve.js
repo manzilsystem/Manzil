@@ -114,6 +114,17 @@ function collectionCurveRule() {
 }
 
 /**
+ * مفتاح الشهر الحالي من مرجع «now» إن وُجد، وإلا من ساعة التطبيق.
+ * @param {Date|null} [now]
+ */
+function collectionCurveCurrentKey(now) {
+    if (now instanceof Date && !Number.isNaN(now.getTime())) {
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    }
+    return monthLabelToKey(getCurrentMonth());
+}
+
+/**
  * يبني منحنى التحصيل التراكمي لكل شهر في الفترة.
  * التحصيل المؤرخ داخل شهر الاستحقاق يدخل المنحنى بيومه، والمحصّل بعد
  * نهاية الشهر يظهر في «المحصّل حتى الآن» دون نقاط المنحنى، والتحصيل
@@ -122,8 +133,8 @@ function collectionCurveRule() {
  * @param {string} toMonth آخر شهر أو فارغ للشهر الحالي
  * @param {Date} [now] مرجع «اليوم» لقابلية الاختبار
  */
-function buildCollectionCurveReport(fromMonth = '', toMonth = '', now = new Date()) {
-    const currentKey = monthLabelToKey(getCurrentMonth());
+function buildCollectionCurveReport(fromMonth = '', toMonth = '', now = null) {
+    const currentKey = collectionCurveCurrentKey(now);
     if (!currentKey) return null;
     const toKey0 = monthLabelToKey(toMonth) || currentKey;
     const toKey = toKey0 > currentKey ? currentKey : toKey0;
@@ -143,6 +154,7 @@ function buildCollectionCurveReport(fromMonth = '', toMonth = '', now = new Date
     ].sort((a, b) => a.day - b.day);
     const income = Array.isArray(state.income) ? state.income : [];
     const residents = Array.isArray(state.residents) ? state.residents : [];
+    const adjustments = Array.isArray(state.adjustments) ? state.adjustments : [];
     const rows = [];
     let undatedCount = 0;
     monthKeys.forEach(key => {
@@ -152,10 +164,18 @@ function buildCollectionCurveReport(fromMonth = '', toMonth = '', now = new Date
             return sum + toCents(getMonthlyDueAmountForMonth(resident, monthLabel));
         }, 0);
         if (dueCents <= 0) return;
-        const payments = income.filter(payment =>
-            monthLabelToKey(payment.month) === key &&
-            (typeof getIncomePurposeFormCode === 'function' ? getIncomePurposeFormCode(payment.purposeCode) : 'subscription') === 'subscription'
-        );
+        // المنحنى يقيس تحصيل مستحق الشهر بنفس قاعدة كشف الحساب: موجب فقط
+        // (عكس القيد لا ينقص المحصل)، ومدفوعات التسوية تُنسب لشهر تسويتها
+        // مهما كان شهر تسجيلها، وتُوزع على المنحنى بتاريخها الفعلي.
+        const payments = income.filter(payment => {
+            if (toCents(payment.amount) <= 0) return false;
+            if (String(payment.purposeCode || '').trim() === 'settlement') {
+                const adjustment = adjustments.find(item => item.id === payment.settlementAdjustmentId);
+                return Boolean(adjustment) && adjustment.effectiveMonth === key;
+            }
+            return monthLabelToKey(payment.month) === key &&
+                (typeof getIncomePurposeFormCode === 'function' ? getIncomePurposeFormCode(payment.purposeCode) : 'subscription') === 'subscription';
+        });
         const monthPrefix = key.slice(0, 7);
         const within = [];
         let afterCents = 0;
