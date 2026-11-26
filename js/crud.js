@@ -2475,7 +2475,7 @@ function resetIncomeFormFields() {
 
 
 let incomeWizardStep = 1;
-const INCOME_WIZARD_LABELS = ['بيانات المالك', 'المبلغ والتوزيع', 'الدفع والمراجعة'];
+const INCOME_WIZARD_LABELS = ['الشقة والغرض', 'المبلغ والتوزيع', 'الدفع والمراجعة'];
 
 function validateIncomeWizardStep(step) {
     const value = id => String((/** @type {HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null} */ (document.getElementById(id)))?.value || '').trim();
