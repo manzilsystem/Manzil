@@ -497,8 +497,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     padding: var(--space-70) var(--space-75); border: 1px solid var(--border-color);
     border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-input) 55%, transparent);
 }
-.cashbox-fund-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-55); }
-.cashbox-fund-name { display: inline-flex; align-items: center; gap: var(--space-45); font-size: var(--font-78); font-weight: var(--weight-800); }
+.cashbox-fund-movement { border-style: dashed; border-inline-start: 4px solid var(--cashbox-tone, var(--accent-color)); background: color-mix(in srgb, var(--accent-color) 7%, transparent); }
+.cashbox-fund-chip { white-space: nowrap; flex: 0 0 auto; padding: var(--space-10) var(--space-35); border-radius: var(--radius-circle); background: color-mix(in srgb, var(--accent-color) 18%, transparent); color: var(--text-muted); font-size: var(--font-70); font-weight: var(--weight-700); }
+.cashbox-fund-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-55); }
+.cashbox-fund-name { display: inline-flex; flex-wrap: wrap; min-width: 0; align-items: center; gap: var(--space-45); font-size: var(--font-78); font-weight: var(--weight-800); }
 .cashbox-fund-dot { inline-size: .55rem; block-size: .55rem; border-radius: var(--radius-circle); background: var(--cashbox-tone, var(--accent-color)); }
 .cashbox-fund-net { font-size: var(--font-90); font-weight: var(--weight-900); font-variant-numeric: tabular-nums; }
 .cashbox-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-50); }
