@@ -229,6 +229,18 @@ test('annual summary counts settlements and positive payments only, per resident
     assert.equal(mar.pct, 19, '50/260 ≈ 19%');
 });
 
+test('annual summary past/future boundary follows the now reference', () => {
+    const { api } = loadAnnual();
+    // ساعة الحاضنة ثابتة على يونيو 2024؛ مرجع now في مارس يجب أن يجعل أبريل فصاعدًا شرطات.
+    const march = api.buildAnnualSummaryReport('2024', new Date('2024-03-10T12:00:00'));
+    assert.equal(march.monthCount, 3, 'يناير إلى مارس فقط محسوبة');
+    assert.equal(march.rows.find(row => row.key === '2024-04-01').future, true);
+    assert.equal(march.rows.find(row => row.key === '2024-03-01').future, false);
+    // بلا مرجع now: الحد من ساعة التطبيق (يونيو 2024 في الحاضنة).
+    const appClock = api.buildAnnualSummaryReport('2024');
+    assert.equal(appClock.monthCount, 6);
+});
+
 test('annual summary renders grid, dashes for future months and totals row', () => {
     const { api } = loadAnnual();
     const report = api.buildAnnualSummaryReport('2024', new Date('2024-06-10T12:00:00'));
