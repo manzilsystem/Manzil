@@ -685,7 +685,10 @@ async function loadState() {
         .from('building_members').select('building_id, role').eq('user_id', session.user.id).order('building_id');
     if (!isCurrentAuthSession(session, generation)) return false;
     if (membershipError) throw membershipError;
-    if (!memberships?.length) throw new Error('لا يوجد مبنى مرتبط بهذا الحساب. اطلب من المدير ربط الحساب أولاً.');
+    if (!memberships?.length) {
+        const pendingMessage = typeof resolveMemberlessSignupMessage === 'function' ? await resolveMemberlessSignupMessage(session) : '';
+        throw new Error(pendingMessage || 'لا يوجد مبنى مرتبط بهذا الحساب. اطلب من المدير ربط الحساب أولاً.');
+    }
     const membership = await chooseBuildingMembership(memberships, session, generation);
     if (!membership || !isCurrentAuthSession(session, generation)) return false;
     const { data: profile, error: profileError } = await supabaseClient.from('profiles')
@@ -1370,6 +1373,7 @@ async function openAuthenticatedApp() {
     }
     updateAccessSwitchButton();
     if (typeof syncAssistantFab === 'function') syncAssistantFab();
+    if (typeof refreshSignupAdminEntry === 'function') refreshSignupAdminEntry();
     const status = document.getElementById('syncStatus');
     if (status) status.textContent = currentUserRole === 'manager' ? 'Supabase — مدير' : 'Supabase — مالك للعرض فقط';
 }
