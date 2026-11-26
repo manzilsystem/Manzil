@@ -23,6 +23,27 @@ function isXlsxAvailable() {
   return typeof XLSX !== 'undefined' && XLSX && typeof XLSX.utils !== 'undefined';
 }
 
+let xlsxLoadPromise = null;
+
+/**
+ * تحميل مكتبة SheetJS عند أول طلب تصدير فقط، فلا تُحمَّل مع التطبيق.
+ * @returns {Promise<boolean>} هل أصبحت المكتبة متاحة؟
+ */
+function loadXlsxLibrary() {
+  if (isXlsxAvailable()) return Promise.resolve(true);
+  if (typeof document === 'undefined' || !document.head || typeof document.createElement !== 'function') return Promise.resolve(false);
+  if (!xlsxLoadPromise) {
+    xlsxLoadPromise = new Promise(resolve => {
+      const script = document.createElement('script');
+      script.src = 'vendor/xlsx.full.min.js';
+      script.onload = () => resolve(isXlsxAvailable());
+      script.onerror = () => { xlsxLoadPromise = null; script.remove(); resolve(false); };
+      document.head.appendChild(script);
+    });
+  }
+  return xlsxLoadPromise;
+}
+
 // ============================================
 // تنسيقات الخلايا وأنواع الأعمدة
 // ============================================
@@ -546,6 +567,15 @@ function downloadXlsxBlob(filename, bytes) {
  * @returns {boolean} - هل نجح التصدير؟
  */
 function exportReportExcel(filename, sheets) {
+  if (!isXlsxAvailable() && typeof document !== 'undefined' && document.head && !exportReportExcel.retrying) {
+    // أول تصدير: تحميل المكتبة ثم إعادة المحاولة. إن فشل التحميل نرجع إلى CSV.
+    if (typeof toast === 'function') toast('جاري تجهيز ملف Excel...', 'info');
+    loadXlsxLibrary().then(() => {
+      exportReportExcel.retrying = true;
+      try { exportReportExcel(filename, sheets); } finally { exportReportExcel.retrying = false; }
+    });
+    return true;
+  }
   if (!isXlsxAvailable()) {
     console.warn('[Excel] XLSX library not available, falling back to CSV');
     if (sheets.length === 1) {
