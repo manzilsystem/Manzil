@@ -1610,7 +1610,7 @@ test('guided steps focus real sections in live and monthly close reports', async
     await backToIndex(page);
     await page.locator('[data-report-nav="monthlyClose"]').click();
     await page.locator('[data-report-step="export"]').click();
-    await expect(page.locator('#monthlyClosePdfButton')).toHaveClass(/report-focus-flash/);
+    await expect(page.locator('#monthlyClosePanel .report-actions')).toHaveClass(/report-focus-flash/);
 });
 
 test('preview sections can be navigated and collapsed without hiding them from print or CSV', async ({ page }) => {

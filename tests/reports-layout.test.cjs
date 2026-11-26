@@ -371,7 +371,10 @@ test('live report panels keep the filters, preview and export steps in order', (
     assert.ok(audit.includes('class="report-toolbar no-print"'));
     assert.ok(audit.includes('id="auditLogPreview"'));
     assert.ok(audit.includes('class="report-actions report-actions-2 no-print"'));
-    assert.match(reports, /if \(!section && tab === 'monthlyClose'\) section = document\.getElementById\('monthlyClosePdfButton'\)/);
+    const monthlyClose = reportTab.slice(reportTab.indexOf('id="monthlyClosePanel"'), reportTab.indexOf('id="arrearsPanel"'));
+    assert.ok(monthlyClose.indexOf('class="report-toolbar no-print"') < monthlyClose.indexOf('id="monthlyClosePreview"'));
+    assert.ok(monthlyClose.indexOf('id="monthlyClosePreview"') < monthlyClose.indexOf('class="report-actions report-actions-2 no-print"'));
+    assert.match(reports, /section = panel\.querySelector\('\.report-actions'\)/);
 });
 
 test('generated previews are navigable and collapsible without weakening print', () => {
