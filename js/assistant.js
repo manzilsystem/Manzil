@@ -1127,6 +1127,7 @@ function detectAssistantIntent(normalized, hasResident) {
     if (/(مقارنه|قارن|مقابل|زاد|زادت|قل|قلت|اكتر من|اقل من)/.test(normalized)) return 'comparison';
     if (/(اعفاء|تخفيض|تسويه|خصم|خصومات|سامحنا)/.test(normalized)) return 'adjustments';
     if (/(قايمه متابعه|قائمه متابعه|قائمة متابعة|مهام المدير|ابدأ بايه|ابدا بايه|مين اكلمه|مين اكلم|اولويات التحصيل|اتابع مين)/.test(normalized)) return 'manager_tasks';
+    if (/(?:اتذكر|اتذكروا|ذكرناه|ذكرناهم|بعتنا (?:له|لهم) تذكير|اتبعتله|اتبعتلهم|بعد التذكير|متابعه (?:ال)?تذكير|متابعه التذكيرات)/.test(normalized)) return 'reminder_followup';
     if (/(متاخر|متاخرات|مستحق|مديون|مش دفع|غير مدفوع|مش دافع|مش سدد|متاخرين|عليه فلوس)/.test(normalized)) return 'arrears';
     if (/(اكبر مصروف|اعلى مصروف|اغلى مصروف|اكبر المصروفات|المصروفات الاكبر|اكبر المصاريف)/.test(normalized)) return 'top_expenses';
     if (/(مصروف|مصاريف|صرف|منصرف|اتصرف|اللي اتدفع من الخزنه)/.test(normalized)) return 'expenses';
@@ -2687,6 +2688,34 @@ function buildAssistantTodayIncomeAnswer(now = new Date()) {
     return { id: 'today_income', title, html };
 }
 
+
+// Late apartments reminded 3+ days ago with nothing paid since. Numbers come from the saved reminders and payments.
+function buildAssistantReminderFollowUpAnswer(now = new Date()) {
+    const title = 'متابعة التذكيرات';
+    if (typeof buildArrearsReport !== 'function' || typeof getArrearsFollowUps !== 'function') {
+        return { id: 'reminder_followup', title, html: assistantNote('متابعة التذكيرات مش متاحة دلوقتي.') };
+    }
+    const report = buildArrearsReport({});
+    const followUps = getArrearsFollowUps(report, now);
+    if (!followUps.length) {
+        const reminded = (report.residents || []).filter(item => getArrearsReminderStatus(item.resident?.id, now).kind !== 'none').length;
+        return {
+            id: 'reminder_followup',
+            title,
+            html: assistantNote(reminded
+                ? `مفيش حد محتاج متابعة دلوقتي. اتذكّر ${assistantNumber(reminded)} شقة ولسه الفترة قصيرة أو دفعوا جزء.`
+                : 'لسه ما بعتّش تذكير لحد من المتأخرين، فمفيش متابعة.')
+        };
+    }
+    const lines = followUps.slice(0, 6).map(({ item, status }) =>
+        `${assistantEscape(assistantApartmentLabel(item.resident))} · ${assistantEscape(assistantResidentName(item.resident))} — اتذكّر ${assistantEscape(arrearsReminderDaysLabel(status.days))} ولسه ما دفعش، عليه <strong>${assistantEscape(assistantMoney(item.totalDebt))}</strong>`);
+    let html = assistantRow('محتاجين متابعة', assistantNumber(followUps.length), 'warn');
+    html += assistantList(lines);
+    if (followUps.length > 6) html += assistantNote(`وفي ${assistantNumber(followUps.length - 6)} تانيين في قايمة التذكيرات.`);
+    html += assistantNote('افتح قايمة التذكيرات وهتلاقي زرار «تذكير تاني» جنب كل واحد.');
+    return { id: 'reminder_followup', title, html };
+}
+
 function buildAssistantAdjustmentsAnswer(period) {
     const allowed = new Set(period.months);
     const rows = (Array.isArray(state.adjustments) ? state.adjustments : []).filter(adjustment => {
@@ -3777,6 +3806,8 @@ function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
             return buildAssistantNoticesAnswer();
         case 'building':
             return buildAssistantBuildingAnswer();
+        case 'reminder_followup':
+            return buildAssistantReminderFollowUpAnswer(now);
         case 'resident_receipts':
             return resident ? buildAssistantResidentReceiptsAnswer(resident, hasAssistantTimeHint(rawText) ? period : null) : buildAssistantResidentAnswer(resident, now, period);
         case 'today_income':
