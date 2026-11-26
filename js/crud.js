@@ -569,7 +569,7 @@ function buildResidentProfileHtml(resident) {
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <div class="app-card border rounded-xl p-3 min-w-0"><p class="text-xs text-slate-500">قيمة الاشتراك</p><p class="text-sm font-black mt-1">${formatSubscriptionAmount(currentAmount)}</p></div>
                     <div class="app-card border rounded-xl p-3 min-w-0"><p class="text-xs text-slate-500">المدفوع</p><p class="text-sm font-black text-emerald-400 mt-1">${formatSubscriptionAmount(currentPaid)}</p></div>
-                    <div class="app-card border rounded-xl p-3 min-w-0"><p class="text-xs text-slate-500">المتبقي</p><p class="text-sm font-black mt-1">${formatSubscriptionAmount(currentOutstanding)}</p></div>
+                    <div class="app-card border rounded-xl p-3 min-w-0"><p class="text-xs text-slate-500">المتبقي</p><p class="text-sm font-black mt-1">${formatSubscriptionAmount(currentOutstanding)}</p><p class="text-xs text-slate-500">لسه ما اتدفعش</p></div>
                     <div class="app-card border rounded-xl p-3 min-w-0"><p class="text-xs text-slate-500">إجمالي المتأخرات</p><p class="text-sm font-black text-rose-400 mt-1">${formatSubscriptionAmount(debt.totalDebt)}</p><p class="text-xs text-slate-500">${fmtNum(debt.count)} شهر</p></div>
                 </div>
                 <div class="flex items-center justify-between gap-2">
