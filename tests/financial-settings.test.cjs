@@ -29,7 +29,7 @@ function loadStateHelpers(now = fixedNow) {
         static now() { return new Date(now).getTime(); }
     }
     return vm.runInNewContext(
-        stateSource + '\n({ state, normalizePaymentSettings, populatePaymentMethodOptions, getSubscriptionDueDeadline, isSubscriptionMonthOverdue, calculateIncomeAllocationPreview, calculateCumulativeDebt })',
+        stateSource + '\n({ state, normalizePaymentSettings, applyNewBuildingPaymentDefaults, populatePaymentMethodOptions, getSubscriptionDueDeadline, isSubscriptionMonthOverdue, calculateIncomeAllocationPreview, calculateCumulativeDebt })',
         { Date: TestDate },
         { filename: 'js/state.js' }
     );
@@ -220,4 +220,20 @@ test('settings card layout and payment details adapt to mobile screens', () => {
     assert.ok(html.includes('class="settings-payment-card settings-payment-card-wide"'));
     assert.match(css, /@media \(max-width: 640px\)[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/, 'payment details stack on phones');
     assert.match(css, /\.settings-card-grid \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/, 'mobile keeps a compact two-column grid');
+});
+
+test('a new building starts with only cash on, existing buildings keep their methods', () => {
+    const app = loadStateHelpers();
+    const dbDefault = { cash: { enabled: true }, wallet: { enabled: true, provider: '', accountName: '', number: '' }, instapay: { enabled: true, accountName: '', address: '' }, bank_transfer: { enabled: true, bankName: '', accountName: '', accountNumber: '', iban: '' } };
+    const fresh = JSON.parse(JSON.stringify(app.applyNewBuildingPaymentDefaults(dbDefault, true)));
+    assert.equal(fresh.cash.enabled, true);
+    assert.equal(fresh.wallet.enabled, false);
+    assert.equal(fresh.instapay.enabled, false);
+    assert.equal(fresh.bank_transfer.enabled, false);
+    const existing = JSON.parse(JSON.stringify(app.applyNewBuildingPaymentDefaults(dbDefault, false)));
+    assert.deepEqual(existing, JSON.parse(JSON.stringify(app.normalizePaymentSettings(dbDefault))));
+    assert.equal(existing.wallet.enabled, true);
+    const configured = JSON.parse(JSON.stringify(app.applyNewBuildingPaymentDefaults({ wallet: { enabled: true, number: '01012345678' } }, true)));
+    assert.equal(configured.wallet.enabled, true, 'a method with real details is never switched off');
+    assert.match(supabaseSource, /applyNewBuildingPaymentDefaults\(building\.payment_settings, !Number\(building\.floor_count\) && !Number\(building\.apartments_per_floor\) && residents\.length === 0 && income\.length === 0\)/);
 });
