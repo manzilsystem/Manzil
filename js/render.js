@@ -728,6 +728,14 @@ function renderResidentsGrid(options) {
     const s = (/** @type {HTMLInputElement} */ (document.getElementById('searchResidentsInput'))?.value||'').toLowerCase();
     const statusFilter = /** @type {HTMLSelectElement} */ (document.getElementById('residentStatusFilter'))?.value || 'all';
     const sortBy = /** @type {HTMLSelectElement} */ (document.getElementById('residentSort'))?.value || 'apartment';
+    const totalLabel = document.getElementById('residentsMonthlyTotal');
+    if (totalLabel && typeof getCurrentSubscriptionAmount === 'function') {
+        const residents = Array.isArray(state.residents) ? state.residents : [];
+        const monthlyTotal = residents.reduce((sum, resident) => sum + (Number(getCurrentSubscriptionAmount(resident)) || 0), 0);
+        totalLabel.textContent = residents.length
+            ? `${fmtNum(residents.length)} شقة · إجمالي الاشتراك الشهري ${fmtNum(monthlyTotal)} ج.م`
+            : 'الاشتراكات الشهرية';
+    }
     const getStatus = resident => {
         const outstanding = getMonthOutstanding(resident, getCurrentMonth());
         const paid = getPaidAmountForMonth(resident.id, getCurrentMonth());
