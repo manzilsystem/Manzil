@@ -1037,6 +1037,7 @@ function detectAssistantIntent(normalized, hasResident) {
     if (hasResident) {
         if (/(السلام عليكم|سلام|صباح|مساء|ازيك|عامل ايه|اهلا)/.test(normalized)) return 'greeting';
         if (/(شكرا|تسلم|مشكور|ربنا يكرمك)/.test(normalized)) return 'thanks';
+        if (/(?:ايصال|ايصالات|دفعات|دفعاته|دفعاتها|سجل (?:ال)?دفع|حركات)/.test(normalized)) return 'resident_receipts';
         return 'resident';
     }
     if (/(السلام عليكم|سلام|صباح|مساء|ازيك|عامل ايه|اهلا|هاي)/.test(normalized)) return 'greeting';
@@ -1058,8 +1059,9 @@ function detectAssistantIntent(normalized, hasResident) {
     if (/(اكبر مصروف|اعلى مصروف|اغلى مصروف|اكبر المصروفات|المصروفات الاكبر|اكبر المصاريف)/.test(normalized)) return 'top_expenses';
     if (/(مصروف|مصاريف|صرف|منصرف|اتصرف|اللي اتدفع من الخزنه)/.test(normalized)) return 'expenses';
     if (/(كهرب|نور|عداد كهرب|ميه|مياه|عداد ميه|نضافه|نظافة|نظف|صيانه|صيانة|تصليح|اسانسير|أسانسير|حراسه|حراسة|بواب|امن|أمن)/.test(normalized)) return 'expenses';
+    if (/(?:النهارده|انهارده|اليوم)/.test(normalized) && /(?:اتحصل|اتجمع|حصلنا|دفع|دفعوا|دخل|ايصالات|تحصيل)/.test(normalized) && !/ملخص|متاخر|مدفعش|مسددش/.test(normalized)) return 'today_income';
     if (/(طرق التحصيل|اتدفعت بايه|دفعوا ازاي|وسيله الدفع|وسائل التحصيل|حسب طريقه الدفع)/.test(normalized)) return 'payment_breakdown';
-    if (/(تحصيل|تحصيلات|ايراد|دخل|وارد|دفع|مدفوع|متحصل|المتحصلات|اللي اتجمع)/.test(normalized)) return 'income';
+    if (/(تحصيل|تحصيلات|ايراد|دخل|وارد|دفع|مدفوع|متحصل|المتحصلات|اللي اتجمع|اتحصل|اتجمع|ايصالات)/.test(normalized)) return 'income';
     if (/(خزنه|صندوق|رصيد|كاش|فلوس|سيوله|الموجود في الخزنه)/.test(normalized)) return 'cashbox';
     if (/(اعلان|اعلانات|لوحه|اخبار العماره|فيه جديد)/.test(normalized)) return 'notices';
     if (/(ملخص تنفيذي|ملخص الاداره|ملخص العماره|الخلاصه السريعه)/.test(normalized)) return 'executive';
@@ -2564,6 +2566,55 @@ function buildAssistantResidentAnswer(resident, now = new Date(), period = null)
     return { id: 'resident', title, html };
 }
 
+
+function assistantResidentById(id) {
+    return (Array.isArray(state.residents) ? state.residents : []).find(item => item.id === id) || null;
+}
+
+function assistantPaymentLine(payment, withName = false) {
+    const dateLabel = assistantDateLabel(payment.date);
+    const method = typeof getIncomePaymentMethodLabel === 'function' ? getIncomePaymentMethodLabel(payment.paymentMethod) : 'نقدًا';
+    const who = withName ? `${assistantEscape(assistantResidentName(assistantResidentById(payment.residentId) || {}) || 'مالك')} · ` : '';
+    return `${who}${assistantEscape(payment.month || '')}${dateLabel ? ` · ${assistantEscape(dateLabel)}` : ''} — <strong>${assistantEscape(assistantMoney(payment.amount))}</strong> · ${assistantEscape(String(method))}`;
+}
+
+// Receipts of one resident, newest first. Every number comes from the saved payments.
+function buildAssistantResidentReceiptsAnswer(resident, period) {
+    const allowed = period && period.type === 'month' && Array.isArray(period.months) ? new Set(period.months) : null;
+    const payments = (Array.isArray(state.income) ? state.income : [])
+        .filter(payment => payment.residentId === resident.id)
+        .filter(payment => !allowed || allowed.has(String(payment.month || '')))
+        .slice()
+        .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+    const title = `إيصالات ${assistantApartmentLabel(resident)} · ${assistantResidentName(resident)}${allowed ? ` · ${period.label}` : ''}`;
+    if (!payments.length) {
+        return { id: 'resident_receipts', title, html: assistantNote(`مفيش دفعات مسجلة${allowed ? ' في الشهر ده' : ''} لـ ${assistantEscape(assistantResidentName(resident))}.`) };
+    }
+    const totalCents = payments.reduce((sum, payment) => sum + assistantCents(payment.amount), 0);
+    let html = assistantRow('عدد الإيصالات', assistantNumber(payments.length));
+    html += assistantRow('إجمالي المدفوع', assistantMoney(totalCents / 100), 'good');
+    html += assistantList(payments.slice(0, 6).map(payment => assistantPaymentLine(payment)));
+    if (payments.length > 6) html += assistantNote(`وفي ${assistantNumber(payments.length - 6)} إيصالات أقدم في سجل المالك.`);
+    return { id: 'resident_receipts', title, html };
+}
+
+// What was recorded today (device date). Never guesses: no rows means "nothing recorded yet".
+function buildAssistantTodayIncomeAnswer(now = new Date()) {
+    const sameDay = value => {
+        const date = new Date(value || 0);
+        return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
+    };
+    const rows = (Array.isArray(state.income) ? state.income : []).filter(payment => sameDay(payment.date));
+    const title = 'تحصيل النهارده';
+    if (!rows.length) return { id: 'today_income', title, html: assistantNote('لسه مفيش تحصيل متسجل النهارده.') };
+    const totalCents = rows.reduce((sum, payment) => sum + assistantCents(payment.amount), 0);
+    let html = assistantRow('إجمالي النهارده', assistantMoney(totalCents / 100), 'good');
+    html += assistantRow('عدد الدفعات', assistantNumber(rows.length));
+    html += assistantList(rows.slice(0, 6).map(payment => assistantPaymentLine(payment, true)));
+    if (rows.length > 6) html += assistantNote(`وفي ${assistantNumber(rows.length - 6)} دفعات تانية النهارده.`);
+    return { id: 'today_income', title, html };
+}
+
 function buildAssistantAdjustmentsAnswer(period) {
     const allowed = new Set(period.months);
     const rows = (Array.isArray(state.adjustments) ? state.adjustments : []).filter(adjustment => {
@@ -3642,6 +3693,10 @@ function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
             return buildAssistantNoticesAnswer();
         case 'building':
             return buildAssistantBuildingAnswer();
+        case 'resident_receipts':
+            return resident ? buildAssistantResidentReceiptsAnswer(resident, hasAssistantTimeHint(rawText) ? period : null) : buildAssistantResidentAnswer(resident, now, period);
+        case 'today_income':
+            return buildAssistantTodayIncomeAnswer(now);
         case 'resident':
             return buildAssistantResidentAnswer(resident, now, period);
         default:
