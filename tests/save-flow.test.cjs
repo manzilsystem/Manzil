@@ -52,7 +52,7 @@ test('mutating CRUD handlers await the rollback-aware save path', () => {
     ]) {
         assert.match(crudSource, new RegExp(`async function ${name}\\b`));
     }
-    assert.match(crudSource, /function quickPayResident\(residentId\)[\s\S]*paymentMethodSelect\.value = ''[\s\S]*openModal\('incomeModal'\)/);
+    assert.match(crudSource, /function quickPayResident\(residentId\)[\s\S]*applyDefaultIncomePaymentMethod\(\)[\s\S]*openModal\('incomeModal'\)/);
     assert.doesNotMatch(crudSource, /state\.income\.push\(\{[^}]*notes: 'دفع سريع'/);
     assert.match(settingsSource, /async function saveSettings\b[\s\S]*saveWithRollback\(previousState\)/);
     for (const name of ['handleNoticeSubmit', 'deleteNotice']) assert.match(noticesSource, new RegExp('async function ' + name + '\\b'));

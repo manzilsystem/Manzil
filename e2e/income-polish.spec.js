@@ -201,6 +201,7 @@ test('the calendar picker settles an older unpaid month even after the month has
     await page.locator('#incomeResident').selectOption('r2');
     await advanceIncomeStep(page, 2);
 
+    await page.locator('#incomeOtherMonthLink').click();
     await page.locator('#incomeMonthPicker').fill(pickerKey);
     await page.locator('#incomeMonthPicker').dispatchEvent('change');
 
@@ -239,6 +240,7 @@ test('the calendar picker refuses a fully paid month and confirms a month before
     await page.locator('#incomeResident').selectOption('r1');
     await advanceIncomeStep(page, 2);
 
+    await page.locator('#incomeOtherMonthLink').click();
     await page.locator('#incomeMonthPicker').fill(previousKey);
     await page.locator('#incomeMonthPicker').dispatchEvent('change');
     await expect(page.locator('#incomeMonthsGrid input[data-income-month]:checked')).toHaveCount(0);

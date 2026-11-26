@@ -1092,10 +1092,11 @@
                         </div>
                         <span id="incomeMonthsSummary" class="shrink-0 whitespace-nowrap text-xs text-slate-400"></span>
                     </div>
-                    <div class="app-input border rounded-xl p-2.5 space-y-1">
+                    <button type="button" id="incomeOtherMonthLink" aria-expanded="false" aria-controls="incomeOtherMonthBox" onclick="toggleIncomeOtherMonth()" class="min-h-11 text-xs font-bold text-emerald-300 underline underline-offset-4"><i class="fa-regular fa-calendar ml-1"></i> شهر آخر</button>
+                    <div id="incomeOtherMonthBox" class="hidden app-input border rounded-xl p-2.5 space-y-1">
                         <label class="block text-xs space-y-1">
                             <span class="text-slate-400">شهر التحصيل من الكلندر</span>
-                            <input type="month" id="incomeMonthPicker" aria-label="اختيار شهر التحصيل من الكلندر" onchange="handleIncomeMonthPickerChange()" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
+                            <input type="month" id="incomeMonthPicker" lang="ar" aria-label="اختيار شهر التحصيل من الكلندر" onchange="handleIncomeMonthPickerChange()" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
                         </label>
                         <p id="incomeMonthPickerHint" role="status" aria-live="polite" class="text-xs text-slate-500"></p>
                     </div>

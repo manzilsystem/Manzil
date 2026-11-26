@@ -32,8 +32,9 @@ test('payment method is loaded, persisted, displayed and included in WhatsApp re
     assert.match(notices, /طريقة الدفع: \$\{getIncomePaymentMethodLabel\(payment\.paymentMethod\)\}/);
 });
 
-test('quick pay requires the same explicit payment method as manual collections', () => {
-    assert.match(crud, /paymentMethodSelect\.value = ''/);
+test('quick pay defaults to the last used payment method, else cash', () => {
+    assert.match(crud, /applyDefaultIncomePaymentMethod\(\);[\s\S]*openModal\('incomeModal'\)/);
+    assert.match(crud, /\[last, 'cash'\]/);
     assert.match(crud, /openModal\('incomeModal'\)/);
     assert.match(html, /id="incomePaymentMethod"[\s\S]*required/);
 });

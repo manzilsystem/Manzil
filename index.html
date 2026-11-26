@@ -20,7 +20,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=c705893f36">
     <link rel="stylesheet" href="fonts/cairo.css?v=aecf0ab114">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/tailwind.css?v=ed653d8eef">
+    <link rel="stylesheet" href="css/tailwind.css?v=6ead83baff">
     <link rel="stylesheet" href="css/style.css?v=a409257091">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
@@ -2441,10 +2441,11 @@
                         </div>
                         <span id="incomeMonthsSummary" class="shrink-0 whitespace-nowrap text-xs text-slate-400"></span>
                     </div>
-                    <div class="app-input border rounded-xl p-2.5 space-y-1">
+                    <button type="button" id="incomeOtherMonthLink" aria-expanded="false" aria-controls="incomeOtherMonthBox" onclick="toggleIncomeOtherMonth()" class="min-h-11 text-xs font-bold text-emerald-300 underline underline-offset-4"><i class="fa-regular fa-calendar ml-1"></i> شهر آخر</button>
+                    <div id="incomeOtherMonthBox" class="hidden app-input border rounded-xl p-2.5 space-y-1">
                         <label class="block text-xs space-y-1">
                             <span class="text-slate-400">شهر التحصيل من الكلندر</span>
-                            <input type="month" id="incomeMonthPicker" aria-label="اختيار شهر التحصيل من الكلندر" onchange="handleIncomeMonthPickerChange()" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
+                            <input type="month" id="incomeMonthPicker" lang="ar" aria-label="اختيار شهر التحصيل من الكلندر" onchange="handleIncomeMonthPickerChange()" class="w-full app-input border rounded-xl px-3 py-2.5 text-sm">
                         </label>
                         <p id="incomeMonthPickerHint" role="status" aria-live="polite" class="text-xs text-slate-500"></p>
                     </div>
@@ -2692,11 +2693,11 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-09606fec78"></script>
-    <script src="js/state.js?v=9593b3d510"></script>
+    <script src="js/telemetry.js?v=manzil-b31f559a61"></script>
+    <script src="js/state.js?v=877c3f8967"></script>
     <script src="js/access.js?v=d67452e586"></script>
     <script src="js/render.js?v=708c3ae2a7"></script>
-    <script src="js/crud.js?v=8c8720660a"></script>
+    <script src="js/crud.js?v=b15f8edb32"></script>
     <script src="js/notices.js?v=93c0d216cc"></script>
     <script src="js/push.js?v=93d6b20d62"></script>
     <!-- Chart.js for report visualizations (bundled locally) -->
