@@ -62,10 +62,10 @@ test('snapshot payload construction is guarded against invalid timestamps and fi
     assert.ok(supabaseSource.includes('تعذر تجهيز البيانات للحفظ'));
 });
 
-test('database constraint accepts all six themes supported by the UI', () => {
+test('database constraint still accepts light and dark (the only themes the UI offers); legacy values stay allowed', () => {
     for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand']) assert.ok(themeMigration.includes(`'${theme}'`));
     for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise']) assert.ok(turquoiseThemeMigration.includes(`'${theme}'`));
-    assert.match(stateSource, /\['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise'\]/);
+    assert.match(stateSource, /MANZIL_THEME_LIST = \['dark', 'light'\]/);
     assert.match(supabaseSource, /resolveUserTheme\(building\.current_theme, profile\?\.theme_preference, currentUserRole\)/);
 });
 

@@ -38,22 +38,30 @@ function loadThemeHelpers() {
 test('owner theme preference overrides the building theme for owners only', () => {
     const { api } = loadThemeHelpers();
 
-    assert.deepEqual([...api.MANZIL_THEME_LIST], ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise']);
-    assert.equal(api.resolveUserTheme('emerald', 'sand', 'owner'), 'sand');
-    assert.equal(api.resolveUserTheme('emerald', null, 'owner'), 'emerald');
-    assert.equal(api.resolveUserTheme('emerald', 'invalid', 'owner'), 'emerald');
-    assert.equal(api.resolveUserTheme('emerald', 'sand', 'manager'), 'emerald');
-    assert.equal(api.resolveUserTheme('invalid', 'invalid', 'owner'), 'dark');
-    assert.equal(api.normalizeThemeName('turquoise'), 'turquoise');
-    assert.equal(api.normalizeThemeName('neon'), null);
+    assert.deepEqual([...api.MANZIL_THEME_LIST], ['dark', 'light']);
+    assert.equal(api.resolveUserTheme('light', 'dark', 'owner'), 'dark');
+    assert.equal(api.resolveUserTheme('light', null, 'owner'), 'light');
+    assert.equal(api.resolveUserTheme('dark', 'invalid', 'owner'), 'dark');
+    assert.equal(api.resolveUserTheme('light', 'dark', 'manager'), 'light');
+    assert.equal(api.resolveUserTheme(null, null, 'owner'), 'dark');
+    // Legacy palette values read as dark; nothing is rewritten and nothing throws.
+    for (const legacy of ['emerald', 'ocean', 'sand', 'turquoise', 'neon']) {
+        assert.equal(api.normalizeThemeName(legacy), 'dark');
+        assert.equal(api.resolveUserTheme(legacy, null, 'manager'), 'dark');
+        assert.equal(api.resolveUserTheme('light', legacy, 'owner'), 'dark');
+    }
+    assert.equal(api.normalizeThemeName('light'), 'light');
+    assert.equal(api.normalizeThemeName(null), null);
 });
 
 test('applying a theme updates the document attribute and browser chrome color', () => {
     const { api, body, meta } = loadThemeHelpers();
 
-    assert.equal(api.applyThemeToDocument('turquoise'), 'turquoise');
-    assert.equal(body.attrs['data-theme'], 'turquoise');
-    assert.equal(meta.attrs.content, '#071f27');
+    assert.equal(api.applyThemeToDocument('light'), 'light');
+    assert.equal(body.attrs['data-theme'], 'light');
+    assert.equal(meta.attrs.content, '#f3f6fc');
+    assert.equal(api.applyThemeToDocument('turquoise'), 'dark');
+    assert.equal(body.attrs['data-theme'], 'dark');
 
     assert.equal(api.applyThemeToDocument('unknown'), 'dark');
     assert.equal(body.attrs['data-theme'], 'dark');

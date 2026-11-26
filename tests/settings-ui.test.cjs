@@ -50,11 +50,14 @@ test('settings use responsive cards and full-page section navigation', () => {
     assert.match(settings, /function switchSettingsTab\(tab\)/);
 });
  
-test('all six themes are selectable, persisted and restored after authentication', () => {
-    for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise']) {
+test('only light and dark are selectable, persisted and restored after authentication', () => {
+    for (const theme of ['dark', 'light']) {
         assert.match(html, new RegExp('data-theme-option="' + theme + '"'));
         assert.match(css, new RegExp('\\[data-theme="' + theme + '"\\]'));
         assert.ok(state.includes("'" + theme + "'"), 'state.js must support ' + theme);
+    }
+    for (const legacy of ['emerald', 'ocean', 'sand', 'turquoise']) {
+        assert.doesNotMatch(html, new RegExp('data-theme-option="' + legacy + '"'), legacy + ' is no longer offered');
     }
     assert.match(auth, /resolveUserTheme\(building\.current_theme, profile\?\.theme_preference, currentUserRole\)/, 'auth bootstrap resolves the account theme override');
     assert.match(state, /updateThemeSelection\(\)/);
