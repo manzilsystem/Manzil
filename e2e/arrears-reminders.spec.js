@@ -33,8 +33,9 @@ test('arrears reminders list and Amm Abdo command', async ({ page }, info) => {
     await expect(modal).toBeVisible();
     const rows = modal.locator('[data-reminder-row]');
     expect(await rows.count()).toBeGreaterThan(0);
-    await page.waitForTimeout(300);
-    await rows.first().locator('button[aria-label="عرض نص الرسالة"]').click();
+    const expandButton = rows.first().locator('button[aria-label="عرض نص الرسالة"]');
+    await expect(expandButton).toBeVisible();
+    await expandButton.click();
     await expect(rows.first().locator('.arrears-reminder-text')).toBeVisible();
     const send = modal.locator('[data-reminder-send]').first();
     await send.click();

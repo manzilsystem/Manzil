@@ -42,7 +42,8 @@ test('the doorman can be dragged on phones and tablets and his spot is remembere
     // the position survives a reload
     await page.reload();
     await page.waitForFunction(() => document.getElementById('assistantFab'));
-    await page.waitForTimeout(300);
+    // The saved position is applied once the fab restores it; wait for that, not a fixed delay.
+    await page.waitForFunction(() => /left:\s*[\d.]+px/.test(document.getElementById('assistantFab').getAttribute('style') || ''));
     const style = await page.locator('#assistantFab').getAttribute('style');
     expect(parseFloat(/left:\s*([\d.]+)px/.exec(style)[1])).toBeCloseTo(moved.x, -1);
     expect(parseFloat(/top:\s*([\d.]+)px/.exec(style)[1])).toBeCloseTo(moved.y, -1);

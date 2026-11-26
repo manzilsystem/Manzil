@@ -53,10 +53,13 @@ for (const W of [360, 390]) {
         for (const [nav, panel] of [['paymentBehavior', 'paymentBehaviorPanel'], ['expenseVariance', 'expenseVariancePanel'], ['paymentMethods', 'paymentMethodsPanel']]) {
             await page.evaluate(() => { switchTab('reports'); if (typeof showReportIndex === 'function') showReportIndex(); });
             await page.locator(`[data-report-nav="${nav}"]`).click();
-            await page.waitForTimeout(300);
             const btn = page.locator(`#${panel}`).getByRole('button', { name: 'معاينة', exact: true });
             if (await btn.count()) await btn.first().click();
-            await page.waitForTimeout(1500);
+            // Wait for the rendered sheets, not a fixed delay.
+            await page.waitForFunction(id => {
+                const p = document.getElementById(id);
+                return p && [...p.querySelectorAll('.sheet-wrap')].some(el => el.offsetParent && el.querySelector('thead th'));
+            }, panel);
             await page.evaluate(id => document.getElementById(id).querySelectorAll('details').forEach(d => { d.open = true; }), panel);
             const clipped = await page.evaluate(id => [...document.getElementById(id).querySelectorAll('.sheet-wrap')]
                 .filter(el => el.offsetParent && el.scrollWidth > el.clientWidth + 1)
