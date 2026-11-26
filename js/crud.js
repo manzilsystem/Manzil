@@ -1110,6 +1110,33 @@ function validateResidentRequiredFields() {
             return false;
         }
     }
+    return validateResidentPhoneFields(false);
+}
+
+const RESIDENT_PHONE_HINT = 'اكتب رقمًا مصريًا (01012345678) أو دوليًا يبدأ بـ +';
+
+/** يتحقق من هاتف المالك وهاتف المستأجر، ويسمّي الحقل في الرسالة ويضع المؤشر عليه. */
+function validateResidentPhoneFields(requireOwnerPhone) {
+    const isRented = /** @type {HTMLInputElement | null} */ (document.getElementById('residentIsRented'))?.checked === true;
+    const checks = [
+        { id: 'residentPhone', label: 'هاتف المالك', active: true },
+        { id: 'residentTenantPhone', label: 'هاتف المستأجر', active: isRented }
+    ];
+    for (const { id, label, active } of checks) {
+        const field = /** @type {HTMLInputElement | null} */ (document.getElementById(id));
+        if (!field || !active) continue;
+        const value = String(field.value || '').trim();
+        const required = id === 'residentPhone' && requireOwnerPhone;
+        let message = '';
+        if (!value && required) message = 'أدخل ' + label + ' لإنشاء حساب المالك. ' + RESIDENT_PHONE_HINT;
+        else if (value && !normalizeOwnerPhone(value)) message = label + ' غير صحيح. ' + RESIDENT_PHONE_HINT;
+        if (!message) continue;
+        field.setAttribute('aria-invalid', 'true');
+        field.addEventListener('input', () => field.removeAttribute('aria-invalid'), { once: true });
+        toast(message, 'error');
+        field.focus();
+        return false;
+    }
     return true;
 }
 
@@ -1117,6 +1144,7 @@ function saveResidentAndProvisionOwner() {
     if (!requireManager()) return;
     const form = /** @type {any} */ (document.getElementById('residentForm'));
     if (!validateResidentRequiredFields()) return;
+    if (!validateResidentPhoneFields(true)) return;
     ownerProvisionRequested = true;
     form.requestSubmit();
 }
@@ -1464,7 +1492,8 @@ async function handleResidentSubmit(e) {
         rentAmount: isRented ? rentAmount : null,
         depositAmount: isRented ? depositAmount : null
     };
-    if ((shouldProvisionOwner || phone) && !normalizeOwnerPhone(phone)) { toast('رقم الجوال غير صحيح. اكتب رقمًا مصريًا مثل 01012345678 أو رقمًا دوليًا يبدأ بـ + مثل +447911123456','error'); return; }
+    if ((shouldProvisionOwner || phone) && !normalizeOwnerPhone(phone)) { toast('هاتف المالك غير صحيح. ' + RESIDENT_PHONE_HINT, 'error'); return; }
+    if (isRented && tenantPhone && !normalizeOwnerPhone(tenantPhone)) { toast('هاتف المستأجر غير صحيح. ' + RESIDENT_PHONE_HINT, 'error'); return; }
     const normalizedApartment = normalizeApartmentNumberKey(apartmentNumber);
     if (state.residents.some(r => r.id !== editingResidentId && normalizeApartmentNumberKey(r.apartmentNumber) === normalizedApartment)) {
         toast('رقم الشقة مسجل بالفعل','error'); return;
