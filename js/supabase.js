@@ -457,6 +457,64 @@ window.manzilAssistantChatStore = Object.freeze({
     clear: clearAssistantChatHistory
 });
 
+// Mobile browsers freeze the realtime socket while the app is in the background, so a notification can
+// arrive (and push) without the list knowing. Refetch the list when the app wakes up or a push lands.
+const NOTIFICATIONS_REFRESH_MIN_GAP_MS = 5000;
+let notificationsRefreshInFlight = false;
+let notificationsRefreshedAt = 0;
+
+async function refreshNotificationsFromServer(options = {}) {
+    const role = currentUserRole;
+    if ((role !== 'owner' && role !== 'manager') || !activeSession?.user?.id || !activeBuildingId || !supabaseStateLoaded) return false;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+    if (notificationsRefreshInFlight) return false;
+    const now = Date.now();
+    if (!options.force && now - notificationsRefreshedAt < NOTIFICATIONS_REFRESH_MIN_GAP_MS) return false;
+    notificationsRefreshInFlight = true;
+    notificationsRefreshedAt = now;
+    const session = activeSession;
+    const buildingId = activeBuildingId;
+    try {
+        let query = supabaseClient.from('notifications')
+            .select('id,building_id,target_user_id,target_resident_id,kind,title,body,severity,action_path,read_at,created_at')
+            .eq('building_id', buildingId);
+        query = role === 'owner' ? query.eq('target_user_id', session.user.id) : query.is('target_user_id', null);
+        const { data, error } = await query.order('created_at', { ascending: false }).limit(50);
+        if (error) throw error;
+        // The user may have signed out or switched building while the request ran.
+        if (activeSession !== session || activeBuildingId !== buildingId || currentUserRole !== role) return false;
+        const list = (data || []).map(mapNotification);
+        if (role === 'owner') {
+            state.ownerNotifications = list;
+            if (typeof renderOwnerPortal === 'function') renderOwnerPortal();
+        } else {
+            state.managerNotifications = list;
+            if (typeof renderManagerNotifications === 'function') renderManagerNotifications();
+        }
+        return true;
+    } catch (error) {
+        console.warn('Could not refresh notifications:', error);
+        return false;
+    } finally {
+        notificationsRefreshInFlight = false;
+    }
+}
+
+function setupNotificationsAutoRefresh() {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refreshNotificationsFromServer();
+    });
+    window.addEventListener('focus', () => refreshNotificationsFromServer());
+    window.addEventListener('online', () => refreshNotificationsFromServer({ force: true }));
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', event => {
+            if (event.data?.type === 'manzil-push-received') refreshNotificationsFromServer({ force: true });
+        });
+    }
+}
+setupNotificationsAutoRefresh();
+
 function stopOwnerNotificationsRealtime() {
     if (!ownerNotificationsChannel) return;
     const channel = ownerNotificationsChannel;
