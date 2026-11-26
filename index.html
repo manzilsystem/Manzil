@@ -20,8 +20,8 @@
     <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=c705893f36">
     <link rel="stylesheet" href="fonts/cairo.css?v=aecf0ab114">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/tailwind.css?v=a3268cfe75">
-    <link rel="stylesheet" href="css/style.css?v=88b4ac5c72">
+    <link rel="stylesheet" href="css/tailwind.css?v=cd9322de0d">
+    <link rel="stylesheet" href="css/style.css?v=5661215821">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -2212,9 +2212,9 @@
                     <p class="text-xs text-slate-400 leading-6">موعد النسخ اليومي 02:23 UTC (04:23 شتاءً و05:23 صيفًا بتوقيت القاهرة)، مع فحص SHA-256 وصلاحية أرشيف PostgreSQL، والاحتفاظ بآخر 30 نسخة.</p>
                     <div id="backupLastStatus" class="text-xs text-slate-400">جارٍ تحميل سجل النسخ...</div>
                     <div id="backupStaleNotice" role="alert" class="hidden rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-300">هذه البيانات محفوظة محليًا من زيارة سابقة. لا يمكن إنشاء نسخة أو استعادة حتى يتم التحقق من الحالة من الخادم.</div>
-                    <div class="flex items-center justify-between gap-2">
-                        <p id="backupRefreshNotice" class="text-xs text-slate-500" role="status" aria-live="polite">حالة الطلبات تُحدّث تلقائيًا أثناء التنفيذ.</p>
-                        <button type="button" onclick="loadBackupConsole()" class="app-input border rounded-lg px-3 py-1.5 text-xs font-bold whitespace-nowrap"><i class="fa-solid fa-rotate ml-1" aria-hidden="true"></i> تحديث الحالة</button>
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <p id="backupRefreshNotice" class="text-xs text-slate-500 min-w-0 flex-1 basis-40" role="status" aria-live="polite">حالة الطلبات تُحدّث تلقائيًا أثناء التنفيذ.</p>
+                        <button type="button" onclick="loadBackupConsole()" class="app-input border rounded-lg px-3 py-1.5 text-xs font-bold whitespace-nowrap shrink-0 min-h-[2.75rem]"><i class="fa-solid fa-rotate ml-1" aria-hidden="true"></i> تحديث الحالة</button>
                     </div>
                 </section>
                 <section class="rounded-2xl border border-indigo-500/30 p-4 space-y-2">
@@ -2852,7 +2852,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-159497a95d"></script>
+    <script src="js/telemetry.js?v=manzil-4e7eea7bd8"></script>
     <script src="js/state.js?v=e5413f9503"></script>
     <script src="js/access.js?v=7d6defc630"></script>
     <script src="js/render.js?v=2cf3677bab"></script>
