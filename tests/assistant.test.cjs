@@ -2515,3 +2515,32 @@ test('when Amm Abdo does not understand he says so and offers the three closest 
     assert.equal(api.assistantClosestQuestions('اي حاجة', 'owner').length, 3);
     assert.doesNotMatch(unknown.html, /\d{3,}/, 'no invented numbers in the fallback');
 });
+
+test('title abbreviations in names become spoken titles', () => {
+    const cases = [
+        ['أ/ سمير محمد', 'أستاذ سمير', 'يا أستاذ سمير'],
+        ['أ. سمير', 'أستاذ سمير', 'يا أستاذ سمير'],
+        ['ا سمير', 'أستاذ سمير', 'يا أستاذ سمير'],
+        ['م/ أحمد علي', 'مهندس أحمد', 'يا مهندس أحمد'],
+        ['م. أحمد', 'مهندس أحمد', 'يا مهندس أحمد'],
+        ['م احمد', 'مهندس احمد', 'يا مهندس احمد'],
+        ['د/ خالد', 'دكتور خالد', 'يا دكتور خالد'],
+        ['د. منى', 'دكتورة منى', 'يا دكتورة منى'],
+        ['أ/ سارة', 'أستاذة سارة', 'يا أستاذة سارة'],
+        ['م/ هبة', 'مهندسة هبة', 'يا مهندسة هبة'],
+        ['أ/ حمزة', 'أستاذ حمزة', 'يا أستاذ حمزة'],
+        ['أستاذ كريم', 'أستاذ كريم', 'يا أستاذ كريم'],
+        ['مهندس وائل سعد', 'مهندس وائل', 'يا مهندس وائل'],
+        ['محمد علي', null, 'يا محمد علي'],
+        ['منى حسن', null, 'يا منى حسن'],
+        ['دعاء', null, 'يا دعاء'],
+        ['مصطفى', null, 'يا مصطفى'],
+        ['أحمد', null, 'يا أحمد']
+    ];
+    for (const [name, greeting, address] of cases) {
+        const { api } = createHarness(true, { role: 'manager', profileName: name });
+        const html = api.buildAssistantGreetingHtml(NOW);
+        assert.match(html, new RegExp(`أهلاً ${greeting || 'يا ' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[،،]`), `${name} greeting`);
+        assert.match(api.answerAssistantQuery('شكرا', NOW).html, new RegExp(`تحت أمرك ${address}`), `${name} address`);
+    }
+});

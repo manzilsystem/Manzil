@@ -2369,7 +2369,7 @@ function buildAssistantMorningBriefAnswer(now = new Date()) {
     const arrears = getAssistantArrearsSnapshot();
     const lateWithPhone = arrears.residents.filter(item => String(item.resident?.phone || '').replace(/\D/g, '')).length;
     const name = String(state.managerName || '').trim();
-    let html = `<p class="assistant-answer-subtitle">${assistantEscape(name ? 'صباح الخير ' + assistantGreetingAddress().replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'") : 'صباح الخير')} · ${assistantEscape(monthLabel)}</p>`;
+    let html = `<p class="assistant-answer-subtitle">${assistantEscape(name ? 'صباح الخير ' + assistantGreetingNameRaw(name) : 'صباح الخير')} · ${assistantEscape(monthLabel)}</p>`;
     html += assistantRow('محصّل من المستحق هذا الشهر', `${assistantMoney(summary.paidDueTotal)} من ${assistantMoney(summary.dueTotal)}`, summary.unpaidUnits > 0 ? 'warn' : 'good');
     html += assistantRow('شقق لم تسدد هذا الشهر', assistantNumber(summary.unpaidUnits), summary.unpaidUnits > 0 ? 'warn' : 'good');
     html += assistantRow('المتأخرات (بعد فترة السماح)', arrears.overdueResidents > 0 ? `${assistantMoney(arrears.totalDebt)} · ${assistantNumber(arrears.overdueResidents)} شقة` : 'لا يوجد', arrears.overdueResidents > 0 ? 'bad' : 'good');
@@ -2938,18 +2938,30 @@ function assistantTitledName(rawName) {
 }
 
 // How to call the user inside a sentence: "يا أستاذ سمير", "يا سمير محمد" or "يا باشا".
-function assistantAddress() {
+function assistantAddressRaw() {
     const name = assistantUserDisplayName();
     if (!name) return 'يا باشا';
     const titled = assistantTitledName(name);
-    return titled ? `يا ${assistantEscape(titled.title)} ${assistantEscape(titled.first)}` : `يا ${assistantEscape(name)}`;
+    return titled ? `يا ${titled.title} ${titled.first}` : `يا ${name}`;
 }
 
 // Greeting form: "أهلاً أستاذ سمير" (no "يا" before a title), otherwise the normal address.
-function assistantGreetingAddress() {
-    const name = assistantUserDisplayName();
+function assistantGreetingNameRaw(name) {
     const titled = name ? assistantTitledName(name) : null;
-    return titled ? `${assistantEscape(titled.title)} ${assistantEscape(titled.first)}` : assistantAddress();
+    return titled ? `${titled.title} ${titled.first}` : `يا ${name}`;
+}
+
+function assistantGreetingAddressRaw() {
+    const name = assistantUserDisplayName();
+    return name ? assistantGreetingNameRaw(name) : 'يا باشا';
+}
+
+function assistantAddress() {
+    return assistantEscape(assistantAddressRaw());
+}
+
+function assistantGreetingAddress() {
+    return assistantEscape(assistantGreetingAddressRaw());
 }
 
 function assistantCents(value) {
