@@ -539,6 +539,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 @media (min-width: 900px) { #cashboxSummaryRows { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 [data-theme="light"] #tab-cashbox .text-amber-300 { color: var(--state-warning); }
 [data-theme="light"] #tab-cashbox .text-indigo-300 { color: var(--indigo-bright); }
+/* Declutter: helper texts are hidden, spacing is tighter, long lists show 3 rows until "عرض الكل". */
+.cashbox-eyebrow, .cashbox-subtitle, .cashbox-stat-note, .cashbox-card-subtitle, .cashbox-footnote, .cashbox-fund-transfers { display: none; }
+#tab-cashbox.space-y-4 > * + * { margin-top: var(--space-55); }
+#tab-cashbox .cashbox-card { padding: var(--space-65); gap: var(--space-55); }
+#tab-cashbox .cashbox-stat { padding: var(--space-60); gap: var(--space-30); }
+#tab-cashbox .cashbox-fund { padding: var(--space-55) var(--space-60); gap: var(--space-40); }
+#tab-cashbox .cashbox-row { padding: var(--space-45) var(--space-60); gap: var(--space-55); }
+#tab-cashbox .cashbox-rows { gap: var(--space-40); }
+.cashbox-rows.is-collapsed > .cashbox-row:nth-child(n+4) { display: none; }
+.cashbox-rows-scroll.is-collapsed { max-height: none; overflow: visible; -webkit-mask-image: none; mask-image: none; }
+.cashbox-more { width: 100%; min-height: 2.75rem; border-radius: var(--radius-lg); font-size: var(--font-72); font-weight: var(--weight-800); color: var(--text-muted); }
 .cashbox-form { display: flex; flex-direction: column; gap: var(--space-65); }
 .cashbox-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-55); }
 .cashbox-field { display: flex; flex-direction: column; gap: var(--space-25); min-width: 0; }
