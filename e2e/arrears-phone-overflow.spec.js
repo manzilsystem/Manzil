@@ -29,7 +29,12 @@ test('arrears report fits the phone width and the doorman launcher steps aside',
     await page.locator('[data-report-nav="arrears"]').click();
     const preview = page.locator('#arrearsPanel button:visible', { hasText: /معاينة|عرض|تحديث/ }).first();
     if (await preview.count()) await preview.click();
-    await page.waitForTimeout(500);
+    // Wait for the rendered report, not a fixed delay: a visible results element with real content.
+    await page.waitForFunction(() => {
+        const panel = document.getElementById('arrearsPanel');
+        return panel && [...panel.querySelectorAll('table tbody tr, .sheet-wrap, [id$="Preview"]')]
+            .some(el => el.offsetParent && el.textContent.trim().length > 10);
+    });
     const res = await page.evaluate(() => {
         const root = document.getElementById('arrearsPanel');
         const vw = document.documentElement.clientWidth;
