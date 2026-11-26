@@ -571,6 +571,9 @@
   .min-h-\[2\.75rem\] {
     min-height: 2.75rem;
   }
+  .min-h-\[44px\] {
+    min-height: 44px;
+  }
   .min-h-screen {
     min-height: 100vh;
   }
@@ -1166,6 +1169,12 @@
     background-color: color-mix(in srgb, oklch(12.9% 0.042 264.695) 95%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-slate-950) 95%, transparent);
+    }
+  }
+  .bg-white\/20 {
+    background-color: color-mix(in srgb, #fff 20%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-white) 20%, transparent);
     }
   }
   .bg-gradient-to-l {

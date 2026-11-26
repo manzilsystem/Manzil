@@ -346,7 +346,7 @@ function openResidentModal(mode, id, options = {}) {
     if (!requireManager()) return false;
     const isEdit = mode === 'edit';
     if (!isEdit && (!state.floorCount || !state.apartmentsPerFloor)) {
-        toast('حدد عدد الأدوار وعدد الشقق في إعدادات العقار أولًا.', 'error');
+        toast('حدد عدد الأدوار وعدد الشقق في إعدادات العقار أولًا.', 'error', { label: 'افتح الإعدادات', onClick: () => openSettingsModal() });
         return false;
     }
     editingResidentId = isEdit ? id : null;

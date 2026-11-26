@@ -31,7 +31,7 @@ function generateId() {
 }
 
 const recentToasts = new Map();
-function toast(msg, type = 'success') {
+function toast(msg, type = 'success', action) {
     const toastKey = type + '|' + msg;
     const toastNow = Date.now();
     if (recentToasts.has(toastKey) && toastNow - recentToasts.get(toastKey) < 3000) return;
@@ -41,8 +41,18 @@ function toast(msg, type = 'success') {
     const el = document.createElement('div');
     el.className = `toast ${colors[type]||colors.info} px-5 py-3 rounded-2xl text-xs font-bold shadow-2xl border pointer-events-auto`;
     el.textContent = msg;
+    const hasAction = !!(action && action.label && typeof action.onClick === 'function');
+    const dismiss = () => { el.style.opacity = '0'; el.style.transition = 'all 0.3s'; setTimeout(() => el.remove(), 300); };
+    if (hasAction) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'toast-action block mx-auto mt-2 min-h-[44px] px-4 rounded-xl bg-white/20 font-black underline';
+        button.textContent = action.label;
+        button.addEventListener('click', () => { dismiss(); action.onClick(); });
+        el.appendChild(button);
+    }
     document.getElementById('toastContainer').appendChild(el);
-    setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'all 0.3s'; setTimeout(() => el.remove(), 300); }, 2500);
+    setTimeout(dismiss, hasAction ? 7000 : 2500);
 }
 
 function confirmRecordDeletion(label) {
