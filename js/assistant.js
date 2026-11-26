@@ -1131,12 +1131,12 @@ function detectAssistantIntent(normalized, hasResident) {
     if (/(قايمه متابعه|قائمه متابعه|قائمة متابعة|مهام المدير|ابدأ بايه|ابدا بايه|مين اكلمه|مين اكلم|اولويات التحصيل|اتابع مين)/.test(normalized)) return 'manager_tasks';
     if (/(?:اتذكر|اتذكروا|ذكرناه|ذكرناهم|بعتنا (?:له|لهم) تذكير|اتبعتله|اتبعتلهم|بعد التذكير|متابعه (?:ال)?تذكير|متابعه التذكيرات)/.test(normalized)) return 'reminder_followup';
     if (/(متاخر|متاخرات|مستحق|مديون|مش دفع|غير مدفوع|مش دافع|مش سدد|متاخرين|عليه فلوس)/.test(normalized)) return 'arrears';
-    if (/(اكبر مصروف|اعلى مصروف|اغلى مصروف|اكبر المصروفات|المصروفات الاكبر|اكبر المصاريف)/.test(normalized)) return 'top_expenses';
+    if (/(اكبر مصروف|اعلى مصروف|اغلى مصروف|اكبر المصروفات|المصروفات الاكبر|اكبر المصاريف|اكتر (?:مصروف|بند)|اكتر حاجه صرفنا)/.test(normalized)) return 'top_expenses';
     if (/(مصروف|مصاريف|صرف|منصرف|اتصرف|اللي اتدفع من الخزنه)/.test(normalized)) return 'expenses';
     if (/(كهرب|نور|عداد كهرب|ميه|مياه|عداد ميه|نضافه|نظافة|نظف|صيانه|صيانة|تصليح|اسانسير|أسانسير|حراسه|حراسة|بواب|امن|أمن)/.test(normalized)) return 'expenses';
     if (/(?:النهارده|انهارده|اليوم)/.test(normalized) && /(?:اتحصل|اتجمع|حصلنا|دفع|دفعوا|دخل|ايصالات|تحصيل)/.test(normalized) && !/ملخص|متاخر|مدفعش|مسددش/.test(normalized)) return 'today_income';
     if (/(طرق التحصيل|اتدفعت بايه|دفعوا ازاي|وسيله الدفع|وسائل التحصيل|حسب طريقه الدفع)/.test(normalized)) return 'payment_breakdown';
-    if (/(تحصيل|تحصيلات|ايراد|دخل|وارد|دفع|مدفوع|متحصل|المتحصلات|اللي اتجمع|اتحصل|اتجمع|ايصالات)/.test(normalized)) return 'income';
+    if (/(تحصيل|تحصيلات|ايراد|دخل|وارد|دفع|مدفوع|متحصل|المتحصلات|اللي اتجمع|اتحصل|اتجمع|حصلنا|ايصالات)/.test(normalized)) return 'income';
     if (/(خزنه|صندوق|رصيد|كاش|فلوس|سيوله|الموجود في الخزنه)/.test(normalized)) return 'cashbox';
     if (/(اعلان|اعلانات|لوحه|اخبار العماره|فيه جديد)/.test(normalized)) return 'notices';
     if (/(ملخص تنفيذي|ملخص الاداره|ملخص العماره|الخلاصه السريعه)/.test(normalized)) return 'executive';
@@ -1373,6 +1373,9 @@ function parseAssistantOperationCommand(text, now = new Date()) {
             notes: parseAssistantOperationReason(raw)
         };
     }
+    // "صرفنا كام الشهر اللي فات؟" is a question, not an expense to record.
+    const writeVerb = /(?:اعمل|سجل|سجّل|قيد|دون|دوّن|اضف|أضف|ضيف|ادفع|إدفع|جهز)/.test(normalized);
+    if (!amount && !writeVerb && /(?:(?:^|\s)كام(?:\s|$)|قد ايه|اد ايه|ايه هو|اكتر|اكبر|اعلى|صرفنا عليه|؟|\?)/.test(normalized)) return null;
     if ((hasIncomeVerb || /(?:اعمل|اعمل لي|سجل|سجّل|قيد|دون|دوّن|اضف|أضف|ضيف|ادفع|إدفع|صرفت|صرفنا)/.test(normalized)) && hasExpenseWord) {
         const title = raw.replace(/^.*?(?:مصروف(?:ات)?|فاتورة|فاتوره|صرفنا|صرفت|صرف|قيد|دون|دوّن)\s*[:：-]?\s*/is, '')
             .replace(/[\d٠-٩۰-۹]+(?:[.,٫٬][\d٠-٩۰-۹]{1,3})*\s*(?:ج\.?م|جم|جنيه(?:ات)?|ج)?/gi, '')
