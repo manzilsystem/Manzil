@@ -141,3 +141,10 @@ test('opening the manager bell asks for a fresh list once, without polling', () 
     assert.match(body, /refreshNotificationsFromServer\(\)/);
     assert.doesNotMatch(body, /setInterval|setTimeout/);
 });
+
+test('tapping the owner bell asks for a fresh list, without polling', () => {
+    const access = read('js/access.js');
+    const body = access.slice(access.indexOf('function focusOwnerNotifications'), access.indexOf('function syncManagerNotificationsControl'));
+    assert.match(body, /refreshNotificationsFromServer\(\)/);
+    assert.doesNotMatch(body, /setInterval|setTimeout/);
+});
