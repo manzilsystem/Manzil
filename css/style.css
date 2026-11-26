@@ -5226,7 +5226,7 @@ body.owner-mode #ownerPortal { padding-bottom: calc(var(--space-600) + var(--spa
 }
 @media (max-width: 380px) {
     .assistant-composer-meta { font-size: var(--font-62); }
-    #assistantInputHint { max-width: 12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #assistantInputHint { max-width: 12rem; white-space: normal; line-height: var(--leading-140); }
     .assistant-send-button { width: 2.75rem; height: 2.75rem; }
 }
 @media (prefers-reduced-motion: reduce) {

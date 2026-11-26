@@ -76,7 +76,7 @@ test('built index.html ships the dashboard reading floor', () => {
     assert.match(built, /class="flex justify-center gap-4 text-xs text-slate-400 pt-1"/);
     assert.match(built, /id="appCopyright" class="text-center text-xs text-slate-500/);
     assert.match(built, /<p class="text-xs text-slate-400 flex items-center gap-1">/);
-    assert.match(built, /id="backupRefreshNotice" class="text-xs text-slate-500"/);
+    assert.match(built, /id="backupRefreshNotice" class="text-xs text-slate-500 min-w-0 flex-1 basis-40"/);
     assert.match(
         built,
         /onclick="openNoticeModal\(\)" class="bg-indigo-600\/20 hover:bg-indigo-600\/30 text-indigo-400 border border-indigo-500\/30 px-3 py-1\.5 rounded-xl text-xs font-bold transition">إعلان</
