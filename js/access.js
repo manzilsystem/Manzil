@@ -935,7 +935,12 @@ function renderOwnerNotificationsBell() {
         badge.textContent = label;
         badge.classList.toggle('hidden', unread === 0);
     }
-    button.setAttribute('aria-label', unread ? `الإشعارات، ${label} غير مقروءة` : 'الإشعارات');
+    // Count agreement: 1 and 2 need the singular and dual forms; 3+ reads fine
+    // with the non-human plural "غير مقروءة".
+    const unreadLabel = unread === 1 ? 'إشعار واحد غير مقروء'
+        : unread === 2 ? 'إشعاران غير مقروءان'
+        : `${label} غير مقروءة`;
+    button.setAttribute('aria-label', unread ? `الإشعارات، ${unreadLabel}` : 'الإشعارات');
 }
 
 function focusOwnerNotifications() {
