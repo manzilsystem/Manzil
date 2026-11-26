@@ -70,3 +70,16 @@ test('send-push is secret-gated, never takes a JWT, and keeps VAPID keys in env 
     // Not declared for Branching (that list is capped); it is deployed by hand with --no-verify-jwt.
     assert.doesNotMatch(read('supabase/config.toml'), /\[functions\.send-push\]/);
 });
+
+test('notifications push trigger reads the secret from vault, is exception-safe and a no-op without a secret', () => {
+    const sql = read('supabase/migrations/20261126053000_notifications_push_trigger.sql');
+    assert.match(sql, /security definer/i);
+    assert.match(sql, /set search_path = ''/i);
+    assert.match(sql, /vault\.decrypted_secrets/);
+    assert.match(sql, /name = 'push_webhook_secret'/);
+    assert.match(sql, /v_secret is null or v_secret = ''[\s\S]*?return new/);
+    assert.match(sql, /exception when others then\s+null;/i);
+    assert.match(sql, /after insert on public\.notifications/i);
+    assert.match(sql, /revoke all on function private\.notify_push\(\) from public, anon, authenticated/i);
+    assert.doesNotMatch(sql, /x-push-secret'\s*,\s*'[^']+'/);
+});
