@@ -18,22 +18,32 @@ test('service worker imports the push handlers and they cover push and notificat
     assert.match(handlers, /tag: data\.id/);
 });
 
-test('push client reports unconfigured until a VAPID public key exists and never holds a private key', () => {
+test('push client holds only the public VAPID key; a blank key reports unconfigured, a set key shows the control', () => {
     const source = read('js/push.js');
-    assert.match(source, /const PUSH_VAPID_PUBLIC_KEY = '';/);
+    const keyMatch = source.match(/const PUSH_VAPID_PUBLIC_KEY = '([A-Za-z0-9_-]*)';/);
+    assert.ok(keyMatch, 'public key constant exists');
+    // Uncompressed P-256 public point: 65 bytes = 87 base64url chars, starts with 0x04 (BA/BB/BC/BD..).
+    assert.match(keyMatch[1], /^B[A-Za-z0-9_-]{86}$/);
     assert.doesNotMatch(source, /VAPID_PRIVATE|PRIVATE KEY/i);
-    const sandbox = {
-        window: { PushManager: {} },
-        navigator: { serviceWorker: { addEventListener() {} } },
-        Notification: { permission: 'default' },
-        localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
-        currentUserRole: 'manager'
+    const run = code => {
+        const sandbox = {
+            window: { PushManager: {} },
+            navigator: { serviceWorker: { addEventListener() {} } },
+            Notification: { permission: 'default' },
+            localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+            currentUserRole: 'manager'
+        };
+        sandbox.window.Notification = sandbox.Notification;
+        vm.createContext(sandbox);
+        vm.runInContext(`${code}\nthis.__state = getPushState; this.__html = pushControlHtml;`, sandbox);
+        return sandbox;
     };
-    sandbox.window.Notification = sandbox.Notification;
-    vm.createContext(sandbox);
-    vm.runInContext(`${source}\nthis.__state = getPushState; this.__html = pushControlHtml;`, sandbox);
-    assert.equal(sandbox.__state(), 'unconfigured');
-    assert.equal(sandbox.__html(), '', 'no button is shown while the server side is not configured');
+    const blank = run(source.replace(/const PUSH_VAPID_PUBLIC_KEY = '[^']*';/, "const PUSH_VAPID_PUBLIC_KEY = '';"));
+    assert.equal(blank.__state(), 'unconfigured');
+    assert.equal(blank.__html(), '', 'no button is shown while the key is blank');
+    const configured = run(source);
+    assert.equal(configured.__state(), 'disabled');
+    assert.notEqual(configured.__html(), '');
 });
 
 test('sign-in refreshes and sign-out releases the device subscription', () => {
