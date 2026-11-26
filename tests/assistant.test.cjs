@@ -1231,6 +1231,13 @@ test('executive summary combines period metrics with cumulative management signa
     assert.match(answer.html, /المتأخرات المتراكمة/);
     assert.match(answer.html, /تخص الفترة المحددة/);
 });
+test('arrears answer offers a WhatsApp share button whose text lists the late apartments', () => {
+    const { api } = createHarness();
+    const answer = api.answerAssistantQuery('مين عليه متأخرات؟', NOW);
+    assert.equal(answer.id, 'arrears');
+    assert.match(answer.html, /onclick="assistantShareArrearsWhatsApp\(\)"/);
+    assert.doesNotMatch(answer.html, /<script|javascript:/i);
+});
 test('summary combines collections, expenses, current dues and unpaid units', () => {
     const { api } = createHarness();
     const summary = api.getAssistantMonthSummary({ type: 'month', label: 'نوفمبر 2026', months: ['نوفمبر 2026'] }, NOW);
