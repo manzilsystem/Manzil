@@ -59,6 +59,7 @@ function createHarness(extra = {}) {
     vm.runInContext(voiceSource, context, { filename: 'js/assistant-voice.js' });
     const api = vm.runInContext(`({
         assistantVoiceNeedsReview,
+        assistantVoicePick,
         assistantVoiceResponseText,
         assistantVoiceNoteHtml,
         assistantVoiceWaveHtml,
@@ -279,4 +280,21 @@ test('a quick press explains the hold gesture and the next press tries another A
     await tick();
     assert.match(toasts[1].message, /قرّب من المايك/);
     assert.equal(api.languageIndex(), 2);
+});
+
+test('the doorman voice prefers a male Arabic voice and falls back honestly', () => {
+    const { api } = createHarness();
+    const v = (name, lang) => ({ name, lang, voiceURI: name });
+    const picked = api.assistantVoicePick([v('Laila', 'ar-EG'), v('Majed', 'ar-SA'), v('Samantha', 'en-US')]);
+    assert.equal(picked.voice.name, 'Majed');
+    assert.equal(picked.male, true);
+    const egyptianMale = api.assistantVoicePick([v('Majed', 'ar-SA'), v('Google Egypt male', 'ar-EG')]);
+    assert.equal(egyptianMale.voice.name, 'Google Egypt male');
+    const femaleOnly = api.assistantVoicePick([v('Laila', 'ar-EG'), v('Samantha', 'en-US')]);
+    assert.equal(femaleOnly.voice.name, 'Laila');
+    assert.equal(femaleOnly.male, false, 'pitch is lowered when no male voice exists');
+    const none = api.assistantVoicePick([v('Samantha', 'en-US')]);
+    assert.equal(none.voice, null);
+    assert.equal(none.male, false);
+    assert.match(voiceSource, /utterance\.pitch = 0\.8/);
 });

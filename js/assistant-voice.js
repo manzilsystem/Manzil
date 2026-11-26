@@ -228,6 +228,22 @@ function assistantVoiceStopSpeech() {
     }
 }
 
+const ASSISTANT_VOICE_MALE_HINTS = /(?:\bmale\b|majed|maged|tarik|tarek|hamed|hamid|shakir|naayf|fahad|omar|ahmed|maged|ماجد|طارق|شاكر|حامد|فهد|عمر|أحمد|رجل)/i;
+const ASSISTANT_VOICE_FEMALE_HINTS = /(?:female|zariyah|laila|leila|salma|hoda|hala|mariam|maryam|amira|zeina|noura|fatima|sara|لينا|ليلى|سلمى|هدى|هالة|مريم|أميرة|زينة|نورة|فاطمة|سارة)/i;
+
+// Picks the best Arabic voice the device offers. Assistant is a man, so a male-looking voice wins;
+// when only a female (or unlabelled) voice exists the caller lowers the pitch a little.
+function assistantVoicePick(voices) {
+    const arabic = (Array.isArray(voices) ? voices : []).filter(voice => voice && /^ar([-_]|$)/i.test(String(voice.lang || '')));
+    if (!arabic.length) return { voice: null, male: false };
+    const label = voice => `${voice.name || ''} ${voice.voiceURI || ''}`;
+    const isMale = voice => ASSISTANT_VOICE_MALE_HINTS.test(label(voice)) && !ASSISTANT_VOICE_FEMALE_HINTS.test(label(voice));
+    const egyptian = voice => /^ar[-_]EG/i.test(voice.lang);
+    const male = arabic.filter(isMale);
+    const voice = male.find(egyptian) || male[0] || arabic.find(egyptian) || arabic[0];
+    return { voice, male: Boolean(male.length) && male.includes(voice) };
+}
+
 function assistantVoiceSpeakText(text, onEnd) {
     const speech = String(text || '').trim();
     if (!speech || typeof SpeechSynthesisUtterance === 'undefined' || !window.speechSynthesis) {
@@ -239,8 +255,13 @@ function assistantVoiceSpeakText(text, onEnd) {
     utterance.lang = ASSISTANT_VOICE_LANGS[0];
     try {
         const voices = window.speechSynthesis.getVoices() || [];
-        const arabic = voices.find(voice => /^ar[-_]/i.test(voice.lang)) || voices.find(voice => /ar/i.test(voice.lang));
-        if (arabic) utterance.voice = arabic;
+        const picked = assistantVoicePick(voices);
+        if (picked.voice) {
+            utterance.voice = picked.voice;
+            utterance.lang = picked.voice.lang || utterance.lang;
+        }
+        // No male voice on this device: lower the pitch slightly so it sounds less high.
+        if (!picked.male) utterance.pitch = 0.8;
     } catch (error) {
         // Voice lists are optional; the default voice still reads Arabic text.
     }
