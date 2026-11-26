@@ -3475,9 +3475,14 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
         padding: var(--space-80) var(--space-70) var(--space-100);
     }
     #settingsModal .settings-hero {
+        flex: 0 0 auto;
+        flex-direction: column;
+        align-items: stretch;
         gap: var(--space-80);
         padding: var(--space-85);
     }
+    #settingsModal .settings-overview > * { flex-shrink: 0; }
+    #settingsModal .settings-hero-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     #settingsModal .settings-hero-copy p { font-size: var(--font-70); }
     #settingsModal .settings-hero-stats { gap: var(--space-40); }
     #settingsModal .settings-hero-stats > div {
@@ -3488,7 +3493,7 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     #settingsModal .settings-card-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         grid-template-rows: repeat(4, minmax(6.4rem, 1fr));
-        flex: 1 1 auto;
+        flex: 1 0 auto;
         gap: var(--space-55);
     }
     #settingsModal .settings-card {
