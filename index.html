@@ -893,6 +893,14 @@
                         <span class="report-field-label">الصندوق</span>
                         <select id="cashFlowCashAccount" aria-label="فلتر الصندوق" onchange="invalidateCashFlowPreview()" class="report-control app-input border focus:outline-none"></select>
                     </label>
+                    <label class="report-field report-field-narrow" for="cashFlowComparison">
+                        <span class="report-field-label">المقارنة</span>
+                        <select id="cashFlowComparison" aria-label="وضع مقارنة الفترة" onchange="onCashFlowComparisonChange()" class="report-control app-input border focus:outline-none">
+                            <option value="none">بدون مقارنة</option>
+                            <option value="previous">الفترة السابقة</option>
+                            <option value="previous_year">نفس الفترة من العام الماضي</option>
+                        </select>
+                    </label>
                     <button type="button" onclick="generateCashFlowReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
                     <div class="report-filter-summary" data-report-filter-summary="cashflow" hidden>
                         <span class="report-filter-summary-label">الفلاتر النشطة</span>
@@ -938,6 +946,14 @@
                     <label class="report-field report-field-narrow" for="expensesReportCategory">
                         <span class="report-field-label">التصنيف</span>
                         <select id="expensesReportCategory" aria-label="فلتر التصنيف" onchange="invalidateExpensesReportPreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field report-field-narrow" for="expensesReportComparison">
+                        <span class="report-field-label">المقارنة</span>
+                        <select id="expensesReportComparison" aria-label="وضع مقارنة الفترة" onchange="onExpensesComparisonChange()" class="report-control app-input border focus:outline-none">
+                            <option value="none">بدون مقارنة</option>
+                            <option value="previous">الفترة السابقة</option>
+                            <option value="previous_year">نفس الفترة من العام الماضي</option>
+                        </select>
                     </label>
                     <button type="button" onclick="generateExpensesReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
                     <div class="report-filter-summary" data-report-filter-summary="expenses" hidden>
@@ -1074,6 +1090,14 @@
                     <label class="report-field report-field-narrow" for="apartmentsReportResident">
                         <span class="report-field-label">الشقة</span>
                         <select id="apartmentsReportResident" aria-label="فلتر الشقة" onchange="invalidateApartmentsPreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field report-field-narrow" for="apartmentsReportComparison">
+                        <span class="report-field-label">المقارنة</span>
+                        <select id="apartmentsReportComparison" aria-label="وضع مقارنة الفترة" onchange="onApartmentsComparisonChange()" class="report-control app-input border focus:outline-none">
+                            <option value="none">بدون مقارنة</option>
+                            <option value="previous">الفترة السابقة</option>
+                            <option value="previous_year">نفس الفترة من العام الماضي</option>
+                        </select>
                     </label>
                     <button type="button" onclick="generateApartmentsReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
                     <div class="report-filter-summary" data-report-filter-summary="apartments" hidden>
@@ -2703,7 +2727,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-051bf3032c"></script>
+    <script src="js/telemetry.js?v=manzil-ed685a18a6"></script>
     <script src="js/state.js?v=e5413f9503"></script>
     <script src="js/access.js?v=74b1d89efb"></script>
     <script src="js/render.js?v=708c3ae2a7"></script>
@@ -2721,13 +2745,13 @@
     <script src="js/reports/core/csv-exporter.js?v=6389e57364"></script>
     <script src="js/reports/shared/charts.js?v=474cb03158"></script>
     <script src="js/reports/shared/templates.js?v=60cf8dccbe"></script>
-    <script src="js/reports/shared/comparison.js?v=4fc912e729"></script>
+    <script src="js/reports/shared/comparison.js?v=257ed588a2"></script>
     <script src="js/reports/shared/excel-exporter.js?v=51809f6710"></script>
     <script src="js/reports/shared/performance.js?v=c569867b58"></script>
     <!-- Reports Main -->
-    <script src="js/reports.js?v=59ce3e68bd"></script>
+    <script src="js/reports.js?v=ace86925b1"></script>
     <!-- Extended reports (cash flow and apartment performance) -->
-    <script src="js/reports/extended/reports-extended.js?v=ef4f271833"></script>
+    <script src="js/reports/extended/reports-extended.js?v=eb2b6b1f04"></script>
     <!-- Insight reports (payer behavior, expense variance, payment methods) -->
     <script src="js/reports/extended/reports-insights.js?v=d7ca02fed2"></script>
     <script src="js/settings.js?v=86fa26cfed"></script>

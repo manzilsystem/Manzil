@@ -264,6 +264,10 @@ function populateReportResidentFilters() {
     });
 }
 
+function reportComparisonModeLabel(value) {
+    return ({ previous: 'الفترة السابقة', previous_year: 'نفس الفترة من العام الماضي' })[value] || '';
+}
+
 const REPORT_FILTER_DESCRIPTORS = {
     landlord: [
         { id: 'reportMonthSelect', label: 'الشهر' },
@@ -278,18 +282,20 @@ const REPORT_FILTER_DESCRIPTORS = {
         { id: 'periodReportPurpose', label: 'غرض التحصيل', text: reportPurposeFilterLabel },
         { id: 'periodReportCashAccount', label: 'الصندوق', text: reportCashAccountFilterLabel },
         { id: 'periodReportResident', label: 'الشقة', text: reportResidentFilterLabel },
-        { id: 'periodReportComparison', label: 'المقارنة', text: value => ({ previous: 'الفترة السابقة', previous_year: 'نفس الفترة من العام الماضي' })[value] || '' }
+        { id: 'periodReportComparison', label: 'المقارنة', text: reportComparisonModeLabel }
     ],
     cashflow: [
         { id: 'cashFlowFrom', label: 'من شهر' },
         { id: 'cashFlowTo', label: 'إلى شهر' },
-        { id: 'cashFlowCashAccount', label: 'الصندوق', text: reportCashAccountFilterLabel }
+        { id: 'cashFlowCashAccount', label: 'الصندوق', text: reportCashAccountFilterLabel },
+        { id: 'cashFlowComparison', label: 'المقارنة', text: reportComparisonModeLabel }
     ],
     expenses: [
         { id: 'expensesReportFrom', label: 'من شهر' },
         { id: 'expensesReportTo', label: 'إلى شهر' },
         { id: 'expensesReportCashAccount', label: 'الصندوق', text: reportCashAccountFilterLabel },
-        { id: 'expensesReportCategory', label: 'التصنيف' }
+        { id: 'expensesReportCategory', label: 'التصنيف' },
+        { id: 'expensesReportComparison', label: 'المقارنة', text: reportComparisonModeLabel }
     ],
     adjustments: [
         { id: 'adjustmentsReportFrom', label: 'من شهر' },
@@ -304,7 +310,8 @@ const REPORT_FILTER_DESCRIPTORS = {
     apartments: [
         { id: 'apartmentsReportFrom', label: 'من شهر' },
         { id: 'apartmentsReportTo', label: 'إلى شهر' },
-        { id: 'apartmentsReportResident', label: 'الشقة', text: reportResidentFilterLabel }
+        { id: 'apartmentsReportResident', label: 'الشقة', text: reportResidentFilterLabel },
+        { id: 'apartmentsReportComparison', label: 'المقارنة', text: reportComparisonModeLabel }
     ],
     monthlyClose: [
         { id: 'monthlyCloseMonthSelect', label: 'شهر الإقفال' }
@@ -377,6 +384,7 @@ function clearReportFilters(tab) {
             break;
         case 'cashflow':
             setReportFilterControlValue('cashFlowCashAccount', '');
+            setReportFilterControlValue('cashFlowComparison', 'none');
             setReportFilterControlValue('cashFlowPreset', '6');
             applyCashFlowPreset();
             break;
@@ -385,6 +393,7 @@ function clearReportFilters(tab) {
             setReportFilterControlValue('expensesReportTo', range.to);
             setReportFilterControlValue('expensesReportCashAccount', '');
             setReportFilterControlValue('expensesReportCategory', '');
+            setReportFilterControlValue('expensesReportComparison', 'none');
             invalidateExpensesReportPreview();
             break;
         case 'adjustments':
@@ -401,6 +410,7 @@ function clearReportFilters(tab) {
             break;
         case 'apartments':
             setReportFilterControlValue('apartmentsReportResident', '');
+            setReportFilterControlValue('apartmentsReportComparison', 'none');
             setReportFilterControlValue('apartmentsReportPreset', '6');
             applyApartmentsPreset();
             break;
@@ -2715,6 +2725,39 @@ function renderExpensesReportHtml(report) {
         </div>`;
 }
 
+const EXPENSES_COMPARISON_METRICS = [
+    { key: 'expenseCents', label: 'إجمالي المصروفات', lowerIsBetter: true },
+    { key: 'averageCents', label: 'متوسط المصروف الشهري', lowerIsBetter: true },
+    { key: 'count', label: 'عدد الحركات', lowerIsBetter: false },
+    { key: 'monthCount', label: 'شهور بها مصروفات', lowerIsBetter: false }
+];
+
+function getExpensesComparisonMode() {
+    const select = /** @type {HTMLSelectElement | null} */ (document.getElementById('expensesReportComparison'));
+    return String(select?.value || 'none');
+}
+
+function onExpensesComparisonChange() {
+    invalidateExpensesReportPreview();
+}
+
+/**
+ * مقارنة تقرير المصروفات بفترة سابقة، على نفس منطق مقارنة تقرير الفترة.
+ * @param {Object} currentReport
+ * @param {string} cashAccountFilter
+ * @param {string} categoryFilter
+ * @returns {string}
+ */
+function buildExpensesComparisonHtml(currentReport, cashAccountFilter, categoryFilter) {
+    const mode = getExpensesComparisonMode();
+    if (!mode || mode === 'none' || typeof getComparisonRange !== 'function' || typeof buildReportComparisonHtml !== 'function') return '';
+    const range = getComparisonRange(currentReport.fromMonth, currentReport.toMonth, mode);
+    if (!range || !range.fromMonth || !range.toMonth) return '';
+    const previousReport = buildExpensesReport(range.fromMonth, range.toMonth, cashAccountFilter, categoryFilter);
+    if (!previousReport) return '';
+    return buildReportComparisonHtml(currentReport, previousReport, EXPENSES_COMPARISON_METRICS);
+}
+
 async function generateExpensesReport() {
     if (!requireManager()) return;
     const { from, to } = getExpensesReportSelection();
@@ -2730,7 +2773,7 @@ async function generateExpensesReport() {
     }
     const preview = document.getElementById('expensesReportPreview');
     if (!preview) return;
-    preview.innerHTML = renderExpensesReportHtml(report);
+    preview.innerHTML = renderExpensesReportHtml(report) + buildExpensesComparisonHtml(report, cashAccountFilter, categoryFilter);
     expensesReportSnapshot = report;
     expensesReportSignature = getExpensesReportSignature(from, to, cashAccountFilter, categoryFilter);
     setExpensesReportActionsEnabled(true);
@@ -4724,6 +4767,7 @@ if (typeof window !== 'undefined') {
     window.exportPeriodReportExcel = exportPeriodReportExcel;
     window.exportPeriodReportPdf = exportPeriodReportPdf;
     window.generateExpensesReport = generateExpensesReport;
+    window.onExpensesComparisonChange = onExpensesComparisonChange;
     window.printExpensesReport = printExpensesReport;
     window.exportExpensesReportCsv = exportExpensesReportCsv;
     window.exportExpensesReportExcel = exportExpensesReportExcel;

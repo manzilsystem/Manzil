@@ -319,6 +319,37 @@ function drawCashFlowChart(report) {
     ], { maintainAspectRatio: false });
 }
 
+const CASH_FLOW_COMPARISON_METRICS = [
+    { key: 'incomeCents', label: 'التحصيل', lowerIsBetter: false },
+    { key: 'expenseCents', label: 'المصروفات', lowerIsBetter: true },
+    { key: 'netCents', label: 'الصافي', lowerIsBetter: false },
+    { key: 'count', label: 'عدد الحركات', lowerIsBetter: false }
+];
+
+function getCashFlowComparisonMode() {
+    const select = /** @type {HTMLSelectElement | null} */ (typeof document !== 'undefined' ? document.getElementById('cashFlowComparison') : null);
+    return String(select?.value || 'none');
+}
+
+function onCashFlowComparisonChange() {
+    invalidateCashFlowPreview();
+}
+
+/**
+ * مقارنة التدفق النقدي بفترة سابقة، على نفس منطق مقارنة تقرير الفترة.
+ * @param {Object} currentReport
+ * @returns {string}
+ */
+function buildCashFlowComparisonHtml(currentReport) {
+    const mode = getCashFlowComparisonMode();
+    if (!mode || mode === 'none' || typeof getComparisonRange !== 'function' || typeof buildReportComparisonHtml !== 'function') return '';
+    const range = getComparisonRange(currentReport.fromMonth, currentReport.toMonth, mode);
+    if (!range || !range.fromMonth || !range.toMonth) return '';
+    const previousReport = buildCashFlowReport(range.fromMonth, range.toMonth, currentReport.cashAccountFilter || '');
+    if (!previousReport) return '';
+    return buildReportComparisonHtml(currentReport, previousReport, CASH_FLOW_COMPARISON_METRICS);
+}
+
 function generateCashFlowReport() {
     if (typeof requireManager === 'function' && !requireManager()) return;
     const selection = getCashFlowSelection();
@@ -336,7 +367,7 @@ function generateCashFlowReport() {
     cashFlowSnapshot = report;
     cashFlowSignature = CASH_FLOW_SIGNATURE_PREFIX + getCashFlowSignature();
     const preview = document.getElementById('cashFlowPreview');
-    if (preview) preview.innerHTML = renderCashFlowHtml(report);
+    if (preview) preview.innerHTML = renderCashFlowHtml(report) + buildCashFlowComparisonHtml(report);
     markReportPreviewStale('cashFlowPreview', false);
     setCashFlowActions(true);
     drawCashFlowChart(report);
@@ -684,6 +715,38 @@ function drawApartmentsChart(report) {
         top.map(row => row.remainingCents / 100), extendedChartColor('amber'), 'المتبقي', { maintainAspectRatio: false });
 }
 
+const APARTMENTS_COMPARISON_METRICS = [
+    { key: 'dueCents', label: 'المستحق', lowerIsBetter: false },
+    { key: 'paidCents', label: 'المحصّل', lowerIsBetter: false },
+    { key: 'remainingCents', label: 'المتبقٍ', lowerIsBetter: true },
+    { key: 'otherIncomeCents', label: 'إيرادات أخرى', lowerIsBetter: false },
+    { key: 'unitCount', label: 'عدد الشقق', lowerIsBetter: false }
+];
+
+function getApartmentsComparisonMode() {
+    const select = /** @type {HTMLSelectElement | null} */ (typeof document !== 'undefined' ? document.getElementById('apartmentsReportComparison') : null);
+    return String(select?.value || 'none');
+}
+
+function onApartmentsComparisonChange() {
+    invalidateApartmentsPreview();
+}
+
+/**
+ * مقارنة أداء الشقق بفترة سابقة، على نفس منطق مقارنة تقرير الفترة.
+ * @param {Object} currentReport
+ * @returns {string}
+ */
+function buildApartmentsComparisonHtml(currentReport) {
+    const mode = getApartmentsComparisonMode();
+    if (!mode || mode === 'none' || typeof getComparisonRange !== 'function' || typeof buildReportComparisonHtml !== 'function') return '';
+    const range = getComparisonRange(currentReport.fromMonth, currentReport.toMonth, mode);
+    if (!range || !range.fromMonth || !range.toMonth) return '';
+    const previousReport = buildApartmentPerformanceReport(range.fromMonth, range.toMonth, currentReport.residentFilter || '');
+    if (!previousReport) return '';
+    return buildReportComparisonHtml(currentReport, previousReport, APARTMENTS_COMPARISON_METRICS);
+}
+
 function generateApartmentsReport() {
     if (typeof requireManager === 'function' && !requireManager()) return;
     const selection = getApartmentsSelection();
@@ -701,7 +764,7 @@ function generateApartmentsReport() {
     apartmentsSnapshot = report;
     apartmentsSignature = APARTMENTS_SIGNATURE_PREFIX + getApartmentsSignature();
     const preview = document.getElementById('apartmentsReportPreview');
-    if (preview) preview.innerHTML = renderApartmentsHtml(report);
+    if (preview) preview.innerHTML = renderApartmentsHtml(report) + buildApartmentsComparisonHtml(report);
     markReportPreviewStale('apartmentsReportPreview', false);
     setApartmentsActions(true);
     drawApartmentsChart(report);

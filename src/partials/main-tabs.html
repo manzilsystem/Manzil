@@ -703,6 +703,14 @@
                         <span class="report-field-label">الصندوق</span>
                         <select id="cashFlowCashAccount" aria-label="فلتر الصندوق" onchange="invalidateCashFlowPreview()" class="report-control app-input border focus:outline-none"></select>
                     </label>
+                    <label class="report-field report-field-narrow" for="cashFlowComparison">
+                        <span class="report-field-label">المقارنة</span>
+                        <select id="cashFlowComparison" aria-label="وضع مقارنة الفترة" onchange="onCashFlowComparisonChange()" class="report-control app-input border focus:outline-none">
+                            <option value="none">بدون مقارنة</option>
+                            <option value="previous">الفترة السابقة</option>
+                            <option value="previous_year">نفس الفترة من العام الماضي</option>
+                        </select>
+                    </label>
                     <button type="button" onclick="generateCashFlowReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
                     <div class="report-filter-summary" data-report-filter-summary="cashflow" hidden>
                         <span class="report-filter-summary-label">الفلاتر النشطة</span>
@@ -748,6 +756,14 @@
                     <label class="report-field report-field-narrow" for="expensesReportCategory">
                         <span class="report-field-label">التصنيف</span>
                         <select id="expensesReportCategory" aria-label="فلتر التصنيف" onchange="invalidateExpensesReportPreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field report-field-narrow" for="expensesReportComparison">
+                        <span class="report-field-label">المقارنة</span>
+                        <select id="expensesReportComparison" aria-label="وضع مقارنة الفترة" onchange="onExpensesComparisonChange()" class="report-control app-input border focus:outline-none">
+                            <option value="none">بدون مقارنة</option>
+                            <option value="previous">الفترة السابقة</option>
+                            <option value="previous_year">نفس الفترة من العام الماضي</option>
+                        </select>
                     </label>
                     <button type="button" onclick="generateExpensesReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
                     <div class="report-filter-summary" data-report-filter-summary="expenses" hidden>
@@ -884,6 +900,14 @@
                     <label class="report-field report-field-narrow" for="apartmentsReportResident">
                         <span class="report-field-label">الشقة</span>
                         <select id="apartmentsReportResident" aria-label="فلتر الشقة" onchange="invalidateApartmentsPreview()" class="report-control app-input border focus:outline-none"></select>
+                    </label>
+                    <label class="report-field report-field-narrow" for="apartmentsReportComparison">
+                        <span class="report-field-label">المقارنة</span>
+                        <select id="apartmentsReportComparison" aria-label="وضع مقارنة الفترة" onchange="onApartmentsComparisonChange()" class="report-control app-input border focus:outline-none">
+                            <option value="none">بدون مقارنة</option>
+                            <option value="previous">الفترة السابقة</option>
+                            <option value="previous_year">نفس الفترة من العام الماضي</option>
+                        </select>
                     </label>
                     <button type="button" onclick="generateApartmentsReport()" class="report-action report-action-primary"><i class="fa-solid fa-eye" aria-hidden="true"></i> معاينة</button>
                     <div class="report-filter-summary" data-report-filter-summary="apartments" hidden>

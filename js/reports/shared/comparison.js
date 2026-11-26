@@ -181,15 +181,16 @@ function getComparisonRange(fromMonth, toMonth, mode, customFrom = '', customTo 
  * بناء نموذج مقارنة بين تقريرين
  * @param {Object} currentReport - التقرير الحالي
  * @param {Object} previousReport - تقرير المقارنة
+ * @param {Array} [metricsOverride] - بنود مخصصة [{key,label,lowerIsBetter}] لتقارير غير تقرير الفترة
  * @returns {Object|null}
  */
-function buildComparisonModel(currentReport, previousReport) {
+function buildComparisonModel(currentReport, previousReport, metricsOverride) {
   if (!currentReport || !previousReport) return null;
 
   const currentTotals = currentReport.totals || {};
   const previousTotals = previousReport.totals || {};
 
-  const metrics = [
+  const metrics = Array.isArray(metricsOverride) && metricsOverride.length ? metricsOverride : [
     { key: 'expectedCents', label: 'المستحق', lowerIsBetter: false },
     { key: 'collectedCents', label: 'المحصّل', lowerIsBetter: false },
     { key: 'outstandingCents', label: 'غير المحصّل', lowerIsBetter: true },
@@ -204,7 +205,7 @@ function buildComparisonModel(currentReport, previousReport) {
     .map(metric => {
       const current = currentTotals[metric.key] || 0;
       const previous = previousTotals[metric.key] || 0;
-      const isMoney = metric.key !== 'movementCount';
+      const isMoney = !['movementCount', 'count', 'monthCount', 'unitCount'].includes(metric.key);
       return {
         key: metric.key,
         label: metric.label,
@@ -227,6 +228,18 @@ function buildComparisonModel(currentReport, previousReport) {
 // ============================================
 // عرض المقارنة (HTML)
 // ============================================
+
+/**
+ * بناء HTML مقارنة جاهز لأي تقريرين بنفس الشكل
+ * @param {Object} currentReport
+ * @param {Object} previousReport
+ * @param {Array} [metrics] - بنود مخصصة [{key,label,lowerIsBetter}]
+ * @returns {string}
+ */
+function buildReportComparisonHtml(currentReport, previousReport, metrics) {
+  const comparison = buildComparisonModel(currentReport, previousReport, metrics);
+  return comparison ? renderComparisonHtml(comparison) : '';
+}
 
 /**
  * عرض جدول المقارنة
@@ -309,5 +322,6 @@ if (typeof window !== 'undefined') {
   window.formatChangeIndicator = formatChangeIndicator;
   window.getComparisonRange = getComparisonRange;
   window.buildComparisonModel = buildComparisonModel;
+  window.buildReportComparisonHtml = buildReportComparisonHtml;
   window.renderComparisonHtml = renderComparisonHtml;
 }
