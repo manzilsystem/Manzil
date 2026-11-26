@@ -304,3 +304,19 @@ test('annual summary uses owner terminology only', () => {
     assert.doesNotMatch(annualSource, /ساكن|سكان/);
     assert.match(annualSource, /الملخص السنوي/);
 });
+
+test('the documented now reference decides which months are past, not the live clock', () => {
+    const { api } = loadAnnual();
+    // getCurrentMonth ثابت على يونيو 2024 في الحاضنة؛ مرجع now وحده يجب أن يحسم.
+    const report = api.buildAnnualSummaryReport('2024', new Date('2024-03-10T12:00:00'));
+    assert.equal(report.monthCount, 3, 'مع now في مارس: 3 أشهر محسوبة فقط');
+    assert.equal(report.rows.find(row => row.key === '2024-03-01').future, false);
+    assert.equal(report.rows.find(row => row.key === '2024-04-01').future, true, 'أبريل قادم بالنسبة لمرجع مارس');
+    assert.equal(report.totals.dueCents, 90000, 'الإجماليات على يناير-مارس فقط');
+});
+
+test('without an explicit now the app clock decides past months', () => {
+    const { api } = loadAnnual();
+    const report = api.buildAnnualSummaryReport('2024');
+    assert.equal(report.monthCount, 6, 'getCurrentMonth يونيو 2024: 6 أشهر محسوبة');
+});
