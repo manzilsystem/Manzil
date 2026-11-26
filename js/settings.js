@@ -520,6 +520,10 @@ function openSettingsModal() {
     if (dueDayInput) dueDayInput.value = String(Number(state.subscriptionDueDay) || 1);
     const graceDaysInput = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsSubscriptionGraceDays'));
     if (graceDaysInput) graceDaysInput.value = String(Number(state.subscriptionGraceDays) || 0);
+    const arrearsRemindersEnabledInput = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsArrearsRemindersEnabled'));
+    if (arrearsRemindersEnabledInput) arrearsRemindersEnabledInput.checked = state.arrearsRemindersEnabled !== false;
+    const arrearsReminderDayInput = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsArrearsReminderDay'));
+    if (arrearsReminderDayInput) arrearsReminderDayInput.value = String(Number(state.arrearsReminderDay) || 5);
     const policySelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('settingsPaymentAllocationPolicy'));
     if (policySelect) policySelect.value =
         ['oldest_first', 'selected_month_first'].includes(state.paymentAllocationPolicy)
@@ -720,6 +724,13 @@ async function saveSettings() {
         flagSettingsFieldError('settingsReminderTemplate', 'reminders', 'نص رسالة التذكير أطول من 500 حرف. قصّره ثم احفظ.');
         return;
     }
+    const arrearsRemindersEnabledInput = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsArrearsRemindersEnabled'));
+    const arrearsRemindersEnabled = arrearsRemindersEnabledInput ? arrearsRemindersEnabledInput.checked : state.arrearsRemindersEnabled !== false;
+    const arrearsReminderDayRaw = Number(/** @type {HTMLInputElement | null} */ (document.getElementById('settingsArrearsReminderDay'))?.value);
+    if (!Number.isInteger(arrearsReminderDayRaw) || arrearsReminderDayRaw < 1 || arrearsReminderDayRaw > 28) {
+        flagSettingsFieldError('settingsArrearsReminderDay', 'reminders', 'يوم تنبيه التذكيرات لازم يكون رقم صحيح من 1 إلى 28.');
+        return;
+    }
     const previousState = cloneStateSnapshot();
     const buildingNameInput = /** @type {HTMLInputElement | null} */ (document.getElementById('settingsBuildingName'));
     if (buildingNameInput) state.buildingName = buildingNameInput.value.trim();
@@ -770,8 +781,26 @@ async function saveSettings() {
         toast('تم حفظ بقية الإعدادات، لكن تعذر حفظ قوالب الرسائل على الخادم. أعد المحاولة.', 'error');
         return;
     }
+    const { data: reminderScheduleRow, error: reminderScheduleError } = await supabaseClient.from('buildings')
+        .update({
+            arrears_reminders_enabled: arrearsRemindersEnabled,
+            arrears_reminder_day: arrearsReminderDayRaw
+        })
+        .eq('id', activeBuildingId)
+        .select('id')
+        .maybeSingle();
+    if (reminderScheduleError?.code === 'PGRST204') {
+        // The manual SQL adding these columns is not applied yet; keep the rest of the save successful.
+        console.warn('Arrears reminder schedule columns are not on the server yet; skipped syncing them.');
+    } else if (reminderScheduleError || !reminderScheduleRow?.id) {
+        console.error('Could not save arrears reminder schedule:', reminderScheduleError || 'manager update returned no row');
+        toast('تم حفظ بقية الإعدادات، لكن تعذر حفظ موعد تنبيه التذكيرات على الخادم. أعد المحاولة.', 'error');
+        return;
+    }
     state.receiptThankYouTemplate = receiptThankYou || null;
     state.reminderMessageTemplate = reminderTemplate || null;
+    state.arrearsRemindersEnabled = arrearsRemindersEnabled;
+    state.arrearsReminderDay = arrearsReminderDayRaw;
     try {
         localStorage.removeItem(getReceiptSettingsKey());
         localStorage.removeItem(getReminderTemplateKey());

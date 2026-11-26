@@ -724,6 +724,21 @@ async function loadState() {
     if (!isCurrentAuthSession(session, generation)) return false;
     if (buildingError) throw buildingError;
     activeBuildingVersion = Number(building.state_version) || 1;
+    // The arrears reminder schedule columns ship as manual SQL that may not be applied yet;
+    // a missing column (PGRST204) must never break loading the building.
+    let arrearsRemindersEnabled = true;
+    let arrearsReminderDay = 5;
+    const { data: reminderSchedule, error: reminderScheduleError } = await supabaseClient.from('buildings')
+        .select('arrears_reminders_enabled,arrears_reminder_day')
+        .eq('id', activeBuildingId)
+        .maybeSingle();
+    if (!isCurrentAuthSession(session, generation)) return false;
+    if (reminderScheduleError) {
+        if (reminderScheduleError.code !== 'PGRST204') console.warn('Could not load arrears reminder schedule:', reminderScheduleError);
+    } else if (reminderSchedule) {
+        arrearsRemindersEnabled = reminderSchedule.arrears_reminders_enabled !== false;
+        arrearsReminderDay = Math.min(28, Math.max(1, Number(reminderSchedule.arrears_reminder_day) || 5));
+    }
     const notificationsColumns = 'id,building_id,target_user_id,target_resident_id,kind,title,body,severity,action_path,read_at,created_at';
     const notificationsQuery = currentUserRole === 'owner'
         ? supabaseClient.from('notifications')
@@ -815,6 +830,8 @@ async function loadState() {
         subscriptionDueDay: Math.min(28, Math.max(1, Number(building.subscription_due_day) || 1)),
         subscriptionGraceDays: Math.min(31, Math.max(0, Number(building.subscription_grace_days) || 0)),
         paymentAllocationPolicy: ['oldest_first', 'selected_month_first'].includes(building.payment_allocation_policy) ? building.payment_allocation_policy : 'oldest_first',
+        arrearsRemindersEnabled,
+        arrearsReminderDay,
         receiptThankYouTemplate: building.receipt_thank_you_template ?? null,
         reminderMessageTemplate: building.arrears_reminder_template ?? null,
         floorCount: Number(building.floor_count) || 0,
