@@ -380,7 +380,7 @@ function assistantAllowedHtmlAttribute(name, value) {
     if (key === 'width' || key === 'height') return /^\d{1,4}$/.test(val);
     if (key === 'decoding' || key === 'loading') return /^[a-z]+$/.test(val);
     if (key === 'href') return /^(?:https?:\/\/|tel:|mailto:|#)/i.test(val);
-    if (key === 'src') return /^(?:\.\/)?icons\/[\w-]+\.png(?:\?v=[0-9a-f]+)?$/i.test(val);
+    if (key === 'src') return /^(?:\.\/)?icons\/[\w-]+\.(?:png|webp)(?:\?v=[0-9a-f]+)?$/i.test(val);
     if (key === 'style') return /^\s*height:\s*\d{1,3}px;?\s*$/.test(val);
     if (key === 'onclick') {
         return /^assistantVoicePlayNote\('note-\d+'\)$/.test(val) || val === 'assistantVoiceSpeakLast()';
@@ -412,7 +412,8 @@ function isSafeAssistantHtml(html) {
 // in-memory drafts or blob URLs, so they must not survive into stored history.
 // Keep the readable part of the message instead of dropping it altogether.
 function assistantStorableHtml(html) {
-    const value = String(html || '');
+    // Chats saved before the avatars moved to WebP still name the old PNG files.
+    const value = String(html || '').replace(/(icons\/assistant-abbah(?:-full)?)\.png/g, '$1.webp');
     if (isSafeAssistantHtml(value)) return value;
     const hadReviewButtons = /class=["'][^"']*assistant-action-(?:confirm|cancel)/i.test(value);
     let neutralized = value.replace(/<\s*button\b[^>]*>[\s\S]*?<\s*\/\s*button\s*>/gi, '');
@@ -3177,7 +3178,7 @@ function buildAssistantReportsAnswer(request = null, now = new Date()) {
     return { id: 'reports', title, html };
 }
 
-const ASSISTANT_HERO_SRC = 'icons/assistant-abbah-full.png';
+const ASSISTANT_HERO_SRC = 'icons/assistant-abbah-full.webp';
 
 function assistantIsOwner() {
     return typeof currentUserRole !== 'undefined' && currentUserRole === 'owner';
