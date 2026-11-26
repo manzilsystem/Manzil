@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="fonts/cairo.css?v=aecf0ab114">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/tailwind.css?v=1d5fbff66e">
-    <link rel="stylesheet" href="css/style.css?v=6c3a9158cc">
+    <link rel="stylesheet" href="css/style.css?v=7320b73592">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -190,10 +190,13 @@
                 </div>
             </div>
             <div class="flex items-center gap-1.5">
-                <button type="button" id="ownerNotificationsBtn" class="owner-notifications-btn app-card border p-2.5 rounded-xl text-xs transition relative hidden" onclick="focusOwnerNotifications()" aria-label="الإشعارات" title="الإشعارات">
-                    <i class="fa-solid fa-bell text-sm" aria-hidden="true"></i>
-                    <span id="ownerNotificationsBadge" class="manager-notifications-badge hidden" aria-hidden="true"></span>
-                </button>
+                <div class="manager-notifications-control hidden" id="ownerNotificationsControl">
+                    <button type="button" id="ownerNotificationsBtn" class="owner-notifications-btn app-card border p-2.5 rounded-xl text-xs transition relative hidden" onclick="toggleOwnerNotificationsMenu()" aria-haspopup="true" aria-expanded="false" aria-controls="ownerNotificationsMenu" aria-label="الإشعارات" title="الإشعارات">
+                        <i class="fa-solid fa-bell text-sm" aria-hidden="true"></i>
+                        <span id="ownerNotificationsBadge" class="manager-notifications-badge hidden" aria-hidden="true"></span>
+                    </button>
+                    <div class="manager-notifications-menu app-card border hidden" id="ownerNotificationsMenu" role="group" aria-label="إشعارات حسابك"></div>
+                </div>
                 <div class="manager-notifications-control hidden" id="managerNotificationsControl">
                     <button type="button" id="managerNotificationsBtn" class="app-card border p-2.5 rounded-xl text-xs transition relative" onclick="toggleManagerNotifications()" aria-haspopup="true" aria-expanded="false" aria-controls="managerNotificationsMenu" aria-label="إشعارات المدير" title="الإشعارات">
                         <i class="fa-solid fa-bell text-sm"></i>
@@ -2906,13 +2909,13 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-40e43e75bb"></script>
+    <script src="js/telemetry.js?v=manzil-c484f21dff"></script>
     <script src="js/state.js?v=6e981e1148"></script>
-    <script src="js/access.js?v=174af95fa9"></script>
+    <script src="js/access.js?v=75e573dc74"></script>
     <script src="js/render.js?v=f8126841aa"></script>
     <script src="js/crud.js?v=dcb202e00c"></script>
     <script src="js/notices.js?v=9660500dac"></script>
-    <script src="js/push.js?v=7bd2efa86c"></script>
+    <script src="js/push.js?v=e3c2daf123"></script>
     <!-- Chart.js for report visualizations (bundled locally) -->
     <script src="vendor/chart.umd.js"></script>
     <!-- SheetJS (vendor/xlsx.full.min.js) is loaded on demand by excel-exporter.js when Excel export is requested -->

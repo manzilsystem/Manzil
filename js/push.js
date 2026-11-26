@@ -171,9 +171,10 @@ function pushControlHtml() {
         disabled: 'فعّل الإشعارات لتصلك على هاتفك حتى والتطبيق مغلق.'
     }[state];
     const button = state === 'enabled' || state === 'disabled'
-        ? `<button type="button" class="push-control-btn" onclick="togglePush()">${state === 'enabled' ? 'إيقاف الإشعارات' : 'تفعيل الإشعارات'}</button>`
+        ? `<button type="button" class="push-control-btn${state === 'disabled' ? ' push-control-btn-primary' : ''}" onclick="togglePush()">${state === 'enabled' ? 'إيقاف الإشعارات' : 'تفعيل الإشعارات'}</button>`
         : '';
-    return `<div class="push-control" data-push-state="${state}"><p class="text-xs text-slate-400">${text}</p>${button}</div>`;
+    const icon = { enabled: 'fa-bell', disabled: 'fa-bell', denied: 'fa-bell-slash', unsupported: 'fa-bell-slash' }[state];
+    return `<div class="push-control" data-push-state="${state}"><i class="fa-solid ${icon} push-control-icon" aria-hidden="true"></i><p class="text-xs text-slate-400">${text}</p>${button}</div>`;
 }
 
 // PWA install prompt for owners. Chrome/Edge on Android hand us an install

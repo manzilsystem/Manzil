@@ -5345,6 +5345,8 @@ body.owner-mode .owner-theme-control {
     display: inline-flex;
 }
 .manager-notifications-control > button { position: relative; }
+.owner-bell-actions { display: grid; gap: var(--space-40); }
+.owner-bell-actions button { min-height: 2.75rem; border-radius: var(--radius-lg); font-size: var(--font-70); font-weight: var(--weight-800); }
 .manager-notifications-badge {
     position: absolute;
     top: -.35rem;
@@ -5381,6 +5383,11 @@ body.owner-mode .owner-theme-control {
 .manager-notifications-earlier-toggle { display:flex; width:100%; align-items:center; justify-content:space-between; min-height:2.75rem; padding: var(--space-none) var(--space-30); font-size: var(--font-70); font-weight: var(--weight-800); color: var(--text-muted, #94a3b8); border-top: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent); }
 .owner-notifications-btn { position: relative; min-width:2.75rem; min-height:2.75rem; }
 .push-control { display:flex; align-items:center; justify-content:space-between; gap: var(--space-60); padding: var(--space-60) var(--space-30); border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent); }
+.push-control[data-push-state] { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--space-50) var(--space-60); padding: var(--space-60); border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: var(--indigo-soft); }
+.push-control[data-push-state] p { line-height: var(--leading-160); }
+.push-control-icon { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: var(--radius-pill); }
+.push-control[data-push-state] .push-control-btn { grid-column: 1 / -1; justify-content: center; text-align: center; }
+.push-control-btn.push-control-btn-primary { background: var(--color-indigo-600); color: var(--color-white); border-color: transparent; }
 .push-control-btn { flex:0 0 auto; min-height:2.75rem; padding: var(--space-none) var(--space-70); border-radius: var(--radius-lg); font-size: var(--font-70); font-weight: var(--weight-800); color: var(--text-muted, #a5b4fc); border:1px solid var(--border-color); }
 .owner-notice-btn { display:inline-flex; align-items:center; min-height:2.75rem; padding: var(--space-none) var(--space-60); font-size: var(--font-70); font-weight: var(--weight-800); color: var(--text-muted, #a5b4fc); }
 .owner-notification-read { opacity: var(--opacity-65); }
