@@ -233,6 +233,23 @@ test('assistant resident summary uses the agreed settlement amount and linked pa
     assert.match(answer, /المتبقي من التسوية/);
 });
 
+test('follow-ups keep the topic: period-only phrases and pronoun payment questions', () => {
+    const strip = html => String(html).replace(/<[^>]+>/g, ' ');
+    const { api } = createHarness(true);
+    api.answerAssistantQuery('حصلنا كام الشهر اللي فات', NOW);
+    const again = api.answerAssistantQuery('والشهر ده', NOW);
+    assert.match(strip(again.html), /إجمالي التحصيل\s+190/);
+    const spend = createHarness(true).api;
+    spend.answerAssistantQuery('المصروفات الشهر ده', NOW);
+    const last = spend.answerAssistantQuery('طب والشهر اللي فات', NOW);
+    assert.match(strip(last.html), /إجمالي المصروفات\s+25/);
+    const person = createHarness(true).api;
+    person.answerAssistantQuery('سارة حسن عليها كام', NOW);
+    const lastPayment = person.answerAssistantQuery('وايه اخر دفعة ليها', NOW);
+    assert.match(strip(lastPayment.html), /1,920|آخر دفعة/);
+    assert.doesNotMatch(strip(lastPayment.html), /إجمالي التحصيل/);
+});
+
 test('assistant income summary keeps settlement payments separate from other purposes', () => {
     const { context, api } = createHarness(false);
     vm.runInContext(`
