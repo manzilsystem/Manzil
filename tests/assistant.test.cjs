@@ -2673,3 +2673,17 @@ test('reminder command audit: personal reminders and unknown apartments are answ
     assert.equal(api.answerAssistantQuery('ذكر شقة 7', NOW).id, 'reminder-open-request');
     assert.equal(api.answerAssistantQuery('ذكر كل المتأخرين', NOW).id, 'reminder-open-request');
 });
+
+test('manager spend and collection questions in slang answer instead of opening a draft', () => {
+    for (const [query, expected] of [
+        ['صرفنا كام الشهر اللي فات', 'إجمالي المصروفات'],
+        ['صرفنا كام من اول السنة', 'إجمالي المصروفات'],
+        ['اكتر بند صرفنا عليه', 'المصروفات'],
+        ['حصلنا كام الشهر اللي فات', 'إجمالي التحصيل']
+    ]) {
+        const { api } = createHarness(true);
+        const answer = api.answerAssistantQuery(query, NOW);
+        assert.match(answer.html, new RegExp(expected), query);
+        assert.doesNotMatch(answer.html, /أجهز مصروف/, query);
+    }
+});
