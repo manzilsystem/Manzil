@@ -1106,6 +1106,10 @@ async function openManagerNotification(notificationId) {
     await markManagerNotificationRead(notificationId);
     closeManagerNotifications();
     const target = String(notification?.actionPath || '').trim();
+    if (target === '#arrears-reminders' && typeof openArrearsRemindersList === 'function') {
+        openArrearsRemindersList('');
+        return;
+    }
     if (target.startsWith('#') && typeof switchTab === 'function') {
         switchTab(target.slice(1).replace(/^tab-/, ''));
     }
