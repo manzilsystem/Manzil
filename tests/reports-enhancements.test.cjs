@@ -216,7 +216,8 @@ test('all enhancement modules are wired into the generated shell', () => {
     assert.match(shell, new RegExp(`js/reports/shared/${module}`), `${module} must load in index.html`);
   }
   assert.match(shell, /vendor\/chart\.umd\.js/);
-  assert.match(shell, /vendor\/xlsx\.full\.min\.js/);
+  assert.doesNotMatch(shell, /<script[^>]+xlsx\.full\.min\.js/, 'SheetJS loads on demand, not with the shell');
+  assert.match(excelSource, /script\.src = 'vendor\/xlsx\.full\.min\.js'/);
 });
 
 test('report UI exposes comparison, Excel and relocated template controls', () => {
