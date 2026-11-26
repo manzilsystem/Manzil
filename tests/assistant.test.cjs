@@ -2480,7 +2480,13 @@ test('upcoming dues: manager sees apartments due within 7 days that are not over
 test('Amm Abdo understands many Egyptian phrasings and answers in the doorman voice', () => {
     const { api } = createHarness();
     const cases = {
-        greeting: ['السلام عليكم', 'صباح الخير يا عم عبده', 'ازيك يا عم عبده', 'اهلا يا باشا'],
+        greeting: ['السلام عليكم', 'صباح الخير يا عم عبده', 'اهلا يا باشا', 'مساء الخير'],
+        howru: ['ازيك يا عم عبده', 'عامل ايه', 'اخبارك ايه', 'ايه الاخبار'],
+        praise: ['برافو عليك', 'شاطر يا عم عبده', 'ماشاء الله عليك', 'يا معلم'],
+        sorry: ['معلش', 'اسف يا عم عبده', 'متزعلش مني'],
+        wait: ['استنى شوية', 'ثواني', 'لحظة'],
+        laugh: ['ههههه', 'هههه'],
+        complaint: ['انت غبي', 'مش فاهم حاجة', 'كلامك غلط'],
         thanks: ['شكرا', 'تسلم ايدك يا عم عبده', 'كتر خيرك', 'ميرسي', 'الله يبارك فيك'],
         bye: ['مع السلامة', 'في امان الله', 'تصبح على خير', 'يلا سلام'],
         ack: ['تمام', 'ماشي', 'حاضر', 'اوكي', 'طيب'],
@@ -2494,8 +2500,8 @@ test('Amm Abdo understands many Egyptian phrasings and answers in the doorman vo
             assert.equal(api.answerAssistantQuery(phrase, NOW).id, id, `${phrase} -> ${id}`);
         }
     }
-    assert.match(api.answerAssistantQuery('مع السلامة', NOW).html, /في رعاية الله يا باشا/);
-    assert.match(api.answerAssistantQuery('تمام', NOW).html, /تمام يا باشا/);
+    assert.match(api.answerAssistantQuery('مع السلامة', NOW).html, /يا باشا/);
+    assert.match(api.answerAssistantQuery('تمام', NOW).html, /يا باشا/);
     const who = api.answerAssistantQuery('انت مين', NOW);
     assert.match(who.html, /أنا عم عبده البواب/);
     assert.match(who.html, /مبخمّنش/);
@@ -2580,4 +2586,20 @@ test('title abbreviations in names become spoken titles', () => {
         assert.match(html, new RegExp(`أهلاً ${greeting || 'يا ' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[،،]`), `${name} greeting`);
         assert.match(api.answerAssistantQuery('شكرا', NOW).html, new RegExp(`تحت أمرك ${address}`), `${name} address`);
     }
+});
+
+test('small talk is warm, varied and answers the greeting in kind', () => {
+    const { api } = createHarness();
+    assert.equal(api.answerAssistantQuery('صباح الخير', NOW).title, 'صباح النور');
+    assert.equal(api.answerAssistantQuery('مساء الخير', NOW).title, 'مساء النور');
+    assert.equal(api.answerAssistantQuery('السلام عليكم', NOW).title, 'وعليكم السلام ورحمة الله');
+    assert.equal(api.answerAssistantQuery('اهلا', NOW).title, 'أهلاً بيك');
+    const replies = new Set();
+    for (let i = 0; i < 6; i += 1) replies.add(api.answerAssistantQuery('تمام', NOW).html);
+    assert.ok(replies.size >= 3, 'the same ack is not repeated word for word');
+    const complaint = api.answerAssistantQuery('انت غبي', NOW);
+    assert.match(complaint.html, /معلش يا باشا/);
+    assert.match(complaint.html, /مش هقولك رقم من عندي/, 'honest, no invented number');
+    assert.doesNotMatch(complaint.html, /\d/, 'small talk never carries numbers');
+    assert.match(api.answerAssistantQuery('عامل ايه', NOW).html, /الحمد لله|تمام/);
 });

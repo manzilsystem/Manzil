@@ -939,33 +939,105 @@ const ASSISTANT_SMALLTALK_ACK = /^(?:طيب |ماشي |يا رب )?(?:تمام|�
 const ASSISTANT_SMALLTALK_WHO = /(?:انت مين|مين انت|انتا مين|اسمك ايه|انت ايه بالظبط|بتعمل ايه هنا|انت بتشتغل ايه)/;
 const ASSISTANT_SMALLTALK_THANKS = /(?:شكرا|شكرن|تسلم|مشكور|ربنا يكرمك|الله يبارك|جزاك الله|كتر خيرك|يعطيك العافيه|ميرسي|متشكر|thanks|thank you)/i;
 
+const ASSISTANT_SMALLTALK_HOWRU = /^(?:ازيك|ازيكم|عامل ايه|عاملين ايه|اخبارك|اخبارك ايه|ايه الاخبار|ايه اخبارك|عامل اي|ايه يا عم عبده)(?:\s+(?:يا\s+\S+(?:\s+\S+)?|النهارده|دلوقتي|حاليا))*$/;
+const ASSISTANT_SMALLTALK_PRAISE = /(?:برافو|شاطر|جامد|ماشاء الله|ما شاء الله|يا معلم|عاش|كفو|تحفه|كفايه عليك|احسن واحد|بطل)/;
+const ASSISTANT_SMALLTALK_SORRY = /^(?:معلش|اسف|اسفين|متزعلش|سامحني|عفوا|غلطتي)(?:\s+.*)?$/;
+const ASSISTANT_SMALLTALK_WAIT = /^(?:استني|استنى|ثواني|لحظه|لحظة|دقيقه|دقيقة|ثانيه|ثانية)(?:\s+.*)?$/;
+const ASSISTANT_SMALLTALK_LAUGH = /^(?:ه{2,}|هه+|ha(?:ha)+|lol|😂+|🤣+)$/i;
+const ASSISTANT_SMALLTALK_COMPLAINT = /(?:مش فاهم حاجه|مش بتفهم|انت غبي|بتغلط|كلامك غلط|انت وحش|مش شغال|مفيش فايده)/;
+
+// Same intent, a few ways to say it, so the doorman does not repeat himself word for word.
+let assistantSmallTalkTurn = 0;
+function assistantPick(variants) {
+    const index = assistantSmallTalkTurn % variants.length;
+    assistantSmallTalkTurn += 1;
+    return variants[index];
+}
+
 function detectAssistantSmallTalk(normalized) {
     const text = String(normalized || '').trim();
     if (!text || text.split(/\s+/).length > 7) return null;
     if (ASSISTANT_SMALLTALK_BYE.test(text)) return 'bye';
     if (ASSISTANT_SMALLTALK_THANKS.test(text)) return 'thanks';
     if (ASSISTANT_SMALLTALK_WHO.test(text)) return 'who_are_you';
+    if (ASSISTANT_SMALLTALK_HOWRU.test(text)) return 'howru';
+    if (ASSISTANT_SMALLTALK_COMPLAINT.test(text)) return 'complaint';
+    if (ASSISTANT_SMALLTALK_PRAISE.test(text)) return 'praise';
+    if (ASSISTANT_SMALLTALK_SORRY.test(text)) return 'sorry';
+    if (ASSISTANT_SMALLTALK_WAIT.test(text)) return 'wait';
+    if (ASSISTANT_SMALLTALK_LAUGH.test(text)) return 'laugh';
     if (ASSISTANT_SMALLTALK_ACK.test(text)) return 'ack';
     return null;
+}
+
+// "وعليكم السلام" for salaam, "صباح النور" for good morning, and so on.
+function assistantGreetingTitle(rawText) {
+    const text = normalizeAssistantArabic(rawText);
+    if (/صباح/.test(text)) return 'صباح النور';
+    if (/مساء/.test(text)) return 'مساء النور';
+    if (/السلام عليكم|سلام عليكم/.test(text)) return 'وعليكم السلام ورحمة الله';
+    if (/اهلا|هاي|مرحب/.test(text)) return 'أهلاً بيك';
+    return 'وعليكم السلام';
 }
 
 function buildAssistantSmallTalkAnswer(intent) {
     const address = assistantAddress();
     const owner = assistantIsOwner();
-    if (intent === 'bye') {
-        return { id: 'bye', title: 'في رعاية الله', html: `<p class="assistant-hello">في رعاية الله ${address}. أنا هنا لو احتجتني.</p>` };
+    const say = (id, title, line) => ({ id, title, html: `<p class="assistant-hello">${line}</p>` });
+    switch (intent) {
+        case 'bye':
+            return say('bye', 'في رعاية الله', assistantPick([
+                `في رعاية الله ${address}. أنا هنا لو احتجتني.`,
+                `مع السلامة ${address}، ربنا يوفقك.`,
+                `تمام ${address}، أشوفك على خير.`
+            ]));
+        case 'ack':
+            return say('ack', 'تمام', assistantPick([
+                `تمام ${address}. قولي لو عايز حاجة تانية.`,
+                `ماشي ${address}. أنا موجود.`,
+                `حاضر ${address}، تحت أمرك.`
+            ]));
+        case 'howru':
+            return say('howru', 'الحمد لله', assistantPick([
+                `الحمد لله تمام ${address}، وإنت عامل إيه؟ تحب نبدأ بإيه؟`,
+                `كله تمام الحمد لله ${address}. اسألني عن أي حاجة في ${owner ? 'حسابك' : 'العمارة'}.`,
+                `تمام ${address}، ربنا يكرمك. محتاج إيه النهارده؟`
+            ]));
+        case 'praise':
+            return say('praise', 'ربنا يخليك', assistantPick([
+                `ربنا يخليك ${address}، ده واجبي.`,
+                `تسلم ${address}، ده من ذوقك.`,
+                `الله يكرمك ${address}. أنا بعمل اللي عليا.`
+            ]));
+        case 'sorry':
+            return say('sorry', 'ولا يهمك', assistantPick([
+                `ولا يهمك ${address}، مفيش حاجة.`,
+                `ولا تزعل نفسك ${address}، كمّل.`
+            ]));
+        case 'wait':
+            return say('wait', 'خد وقتك', assistantPick([
+                `خد وقتك ${address}، أنا مستنيك.`,
+                `براحتك ${address}، أنا هنا.`
+            ]));
+        case 'laugh':
+            return say('laugh', 'ربنا يضحكك', `ربنا يضحكك دايماً ${address} 😄 لو محتاج حاجة قولي.`);
+        case 'complaint':
+            return {
+                id: 'complaint',
+                title: 'معلش',
+                html: `<p class="assistant-hello">معلش ${address}، يمكن مفهمتش قصدك صح.</p>${assistantNote('قولها بجملة تانية أو اكتب الشقة أو الشهر، وأنا أحاول تاني. ومش هقولك رقم من عندي.')}`
+            };
+        default: {
+            const scope = owner
+                ? 'حسابك، إيصالاتك، ميعاد الدفع وإعلانات العمارة.'
+                : 'التحصيل، المتأخرات، المصروفات، الخزنة وحساب كل شقة.';
+            return {
+                id: 'who_are_you',
+                title: 'أنا عم عبده',
+                html: `<p class="assistant-hello">أنا عم عبده البواب ${address}.</p>${assistantNote('بجاوب من الأرقام اللي في التطبيق بس، ومبخمّنش.')}${assistantList([scope])}`
+            };
+        }
     }
-    if (intent === 'ack') {
-        return { id: 'ack', title: 'تمام', html: `<p class="assistant-hello">تمام ${address}. قولي لو عايز حاجة تانية.</p>` };
-    }
-    const scope = owner
-        ? 'حسابك، إيصالاتك، ميعاد الدفع وإعلانات العمارة.'
-        : 'التحصيل، المتأخرات، المصروفات، الخزنة وحساب كل شقة.';
-    return {
-        id: 'who_are_you',
-        title: 'أنا عم عبده',
-        html: `<p class="assistant-hello">أنا عم عبده البواب ${address}.</p>${assistantNote('بجاوب من الأرقام اللي في التطبيق بس، ومبخمّنش.')}${assistantList([scope])}`
-    };
 }
 
 const ASSISTANT_CLOSEST_QUESTIONS = {
@@ -3293,12 +3365,18 @@ function detectOwnerAssistantIntent(normalized) {
 function selectOwnerAssistantAnswer(intent, period, now, rawText = '') {
     switch (intent) {
         case 'greeting':
-            return { id: 'greeting', title: 'وعليكم السلام', html: buildAssistantOwnerGreetingHtml(now) };
+            return { id: 'greeting', title: assistantGreetingTitle(rawText), html: buildAssistantOwnerGreetingHtml(now) };
         case 'thanks':
             return { id: 'thanks', title: 'العفو', html: `<p class="assistant-hello">تحت أمرك ${assistantAddress()}. لو محتاج رقم من حسابك أو ميعاد الدفع، اسألني.</p>` };
         case 'bye':
         case 'ack':
         case 'who_are_you':
+        case 'howru':
+        case 'praise':
+        case 'sorry':
+        case 'wait':
+        case 'laugh':
+        case 'complaint':
             return buildAssistantSmallTalkAnswer(intent);
         case 'help':
             return buildAssistantOwnerHelpAnswer();
@@ -3640,12 +3718,18 @@ function buildAssistantCompoundAnswer(plan, now, rawText = '') {
 function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
     switch (intent) {
         case 'greeting':
-            return { id: 'greeting', title: 'وعليكم السلام', html: buildAssistantGreetingHtml(now) };
+            return { id: 'greeting', title: assistantGreetingTitle(rawText), html: buildAssistantGreetingHtml(now) };
         case 'thanks':
             return { id: 'thanks', title: 'العفو', html: `<p class="assistant-hello">تحت أمرك ${assistantAddress()}. لو محتاج أي رقم أو ملخص، اسألني.</p>` };
         case 'bye':
         case 'ack':
         case 'who_are_you':
+        case 'howru':
+        case 'praise':
+        case 'sorry':
+        case 'wait':
+        case 'laugh':
+        case 'complaint':
             return buildAssistantSmallTalkAnswer(intent);
         case 'help':
             return buildAssistantHelpAnswer();
