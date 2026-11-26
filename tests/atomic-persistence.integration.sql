@@ -877,6 +877,9 @@ $income_notification_sync$;
 \ir ../supabase/migrations/20261106203433_partial_settlement_income.sql
 
 \ir ../supabase/migrations/20261106215500_resident_lease_details.sql
+\ir ../supabase/migrations/20261119232103_period_report_rpc.sql
+\ir ../supabase/migrations/20261120090000_period_report_method_share_fix.sql
+\ir ../supabase/migrations/20261126010000_settlement_counts_subscription_payments.sql
 
 -- Tenant details are persisted atomically but remain invisible to unit owners.
 RESET ROLE;
