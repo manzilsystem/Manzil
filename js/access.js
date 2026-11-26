@@ -918,7 +918,8 @@ function renderOwnerNotificationsBell() {
     if (!button) return;
     const visible = currentUserRole === 'owner' && Boolean(activeSession);
     button.classList.toggle('hidden', !visible);
-    if (!visible) return;
+    document.getElementById('ownerNotificationsControl')?.classList.toggle('hidden', !visible);
+    if (!visible) { closeOwnerNotificationsMenu(); return; }
     const unread = (Array.isArray(state.ownerNotifications) ? state.ownerNotifications : []).filter(item => !item.readAt).length;
     const label = unread > 99 ? '99+' : String(unread);
     const badge = document.getElementById('ownerNotificationsBadge');
@@ -932,6 +933,50 @@ function renderOwnerNotificationsBell() {
         : unread === 2 ? 'إشعاران غير مقروءان'
         : `${label} غير مقروءة`;
     button.setAttribute('aria-label', unread ? `الإشعارات، ${unreadLabel}` : 'الإشعارات');
+    renderOwnerNotificationsMenu();
+}
+
+function renderOwnerNotificationsMenu() {
+    const menu = document.getElementById('ownerNotificationsMenu');
+    if (!menu) return;
+    const list = Array.isArray(state.ownerNotifications) ? state.ownerNotifications : [];
+    const unread = list.filter(item => !item.readAt).length;
+    const summary = unread
+        ? `<p class="text-xs text-slate-300 font-bold text-center py-2">${unread === 1 ? 'إشعار واحد غير مقروء' : unread === 2 ? 'إشعاران غير مقروءان' : fmtNum(unread) + ' إشعارات غير مقروءة'}</p>`
+        : `<p class="text-xs text-slate-500 text-center py-2">${list.length ? 'كل الإشعارات مقروءة' : 'لا توجد إشعارات بعد'}</p>`;
+    menu.innerHTML = `${summary}<div class="owner-bell-actions">`
+        + (unread ? '<button type="button" class="app-input border" onclick="markAllOwnerNotificationsRead()">تحديد الكل كمقروء</button>' : '')
+        + '<button type="button" class="app-input border" onclick="openOwnerNotificationsFromBell()">عرض الإشعارات</button></div>';
+}
+
+function toggleOwnerNotificationsMenu(force) {
+    const menu = document.getElementById('ownerNotificationsMenu');
+    const button = document.getElementById('ownerNotificationsBtn');
+    if (!menu || !button) return;
+    const open = typeof force === 'boolean' ? force : menu.classList.contains('hidden');
+    if (open) {
+        renderOwnerNotificationsMenu();
+        if (typeof refreshNotificationsFromServer === 'function') refreshNotificationsFromServer();
+    }
+    menu.classList.toggle('hidden', !open);
+    button.setAttribute('aria-expanded', String(open));
+}
+
+function closeOwnerNotificationsMenu() { toggleOwnerNotificationsMenu(false); }
+
+function openOwnerNotificationsFromBell() {
+    closeOwnerNotificationsMenu();
+    focusOwnerNotifications();
+}
+
+function bindOwnerNotificationsMenu() {
+    document.addEventListener('click', event => {
+        const control = document.getElementById('ownerNotificationsControl');
+        const menu = document.getElementById('ownerNotificationsMenu');
+        if (!control || !menu || menu.classList.contains('hidden')) return;
+        if (!control.contains(/** @type {Node} */ (event?.target))) closeOwnerNotificationsMenu();
+    });
+    document.addEventListener('keydown', event => { if (event?.key === 'Escape') closeOwnerNotificationsMenu(); });
 }
 
 function focusOwnerNotifications() {
@@ -1108,6 +1153,7 @@ function requestOwnerPinOnWhatsApp() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    bindOwnerNotificationsMenu();
     bindManagerNotifications();
     updateAccessSwitchButton();
 });
