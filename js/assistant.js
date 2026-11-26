@@ -13,8 +13,8 @@ const ASSISTANT_TYPING_DELAY_MS = 0;
 const ASSISTANT_HISTORY_LIMIT = 30;
 const ASSISTANT_MAX_MESSAGE_LENGTH = 1000;
 const ASSISTANT_TIME_HINT = /(يناير|فبراير|مارس|ابريل|مايو|يونيو|يوليو|اغسطس|سبتمبر|اكتوبر|نوفمبر|ديسمبر|20[0-9]{2}|الشهر|شهر|(?:^|\s)(?:السنه|سنه|عام)(?:\s|$)|النهارده|دلوقتي|حاليا|كل الفتره|كل الفترات|كل الشهور|من البدايه|من البداية|من بداية السنه|من اول السنه|السنه اللي فاتت|العام اللي فات)/;
-const ASSISTANT_RESIDENT_FOLLOWUP = /^(هو|هي|وده|دي|وكمان|ودوره|ومن زمان|ولحد دلوقتي|ولحد حاليا|وعليه)/;
 const ASSISTANT_DAY_WORD = /(?:النهارده|انهارده|اليوم|امبارح|الاسبوع (?:ده|دا|الحالي)|اخر (?:7|سبعه) ايام)/;
+const ASSISTANT_RESIDENT_FOLLOWUP = /^(هو|هي|وده|دي|وكمان|ودوره|ومن زمان|ولحد دلوقتي|ولحد حاليا|وعليه)|(?:اخر دفع(?:ه|ات)|اخر ايصال|دفع(?:ت)? امتي).*(?:ليها|ليه|بتاعها|بتاعه)|^(?:طب\s+)?و?(?:دفع|دفعت) امتي(?:\s|$)|^(?:طب\s+)?(?:وايه|ايه) اخر دفع(?:ه|ات)(?:\s|$)/;
 const ASSISTANT_PREVIOUS_MONTH = /(?:الشهر الماضي|الشهر اللي فات|الشهر اللى فات|الشهر الفات|الشهر السابق|شهر ماضي|الشهر اللي قبل|الشهر اللى قبل|(?:يناير|فبراير|مارس|ابريل|مايو|يونيو|يوليو|اغسطس|سبتمبر|اكتوبر|نوفمبر|ديسمبر)\s+(?:الماضي|اللي فات|اللى فات|السابق))/;
 const ASSISTANT_PREVIOUS_YEAR = /(?:السنه اللي فاتت|السنه اللى فاتت|العام اللي فات|العام اللى فات|السنه سابقه|العام سابق)/;
 const ASSISTANT_THOUSAND_WORD = /(?<!\p{L})(?:الاف|آلاف|الف)(?!\p{L})/u;
@@ -3792,6 +3792,7 @@ function answerAssistantQuery(text, now = new Date()) {
         return answerOwnerAssistantQuery(text, now);
     }
     if (!normalized) return withAssistantAnswerMeta(buildAssistantHelpAnswer(), resolveAssistantPeriod(text, now), null);
+    text = expandAssistantPeriodFollowUp(text);
     if (assistantOperationContext?.status === 'uncertain' && ASSISTANT_RECONCILE_WORDS.test(normalized)) {
         completeAssistantOperation(assistantOperationContext.requestId);
         assistantOperationDraft = null;
@@ -3971,10 +3972,30 @@ function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
     }
 }
 
+const ASSISTANT_TOPIC_PHRASES = {
+    income: 'اتحصل كام', today_income: 'اتحصل كام', expenses: 'المصروفات كام', window_expenses: 'المصروفات كام', summary: 'ملخص'
+};
+
+/** "والشهر اللي فات" / "وسبتمبر" / "امبارح" alone repeats the last money question for the new period. */
+function expandAssistantPeriodFollowUp(text) {
+    const topic = assistantContext.topic;
+    if (!topic || !ASSISTANT_TOPIC_PHRASES[topic]) return text;
+    const spoken = normalizeAssistantArabic(text).replace(/^(?:طب\s+)?و?(?:ال)?/, '').trim();
+    const monthNames = getAssistantMonthNames().map(name => normalizeAssistantArabic(name)).join('|');
+    const periodOnly = new RegExp(`^(?:شهر (?:ده|دا|الحالي|اللي فات|الماضي|الفات|\\d{1,2})|(?:${monthNames})(?: 20\\d{2})?|اخر (?:شهرين|\\d{1,2} شهور)|امبارح|الاسبوع (?:ده|دا)|السنه (?:دي|اللي فاتت))$`);
+    if (!periodOnly.test(spoken)) return text;
+    const topicPhrase = ASSISTANT_TOPIC_PHRASES[topic];
+    const period = /^شهر /.test(spoken) ? `ال${spoken}` : spoken;
+    return `${topicPhrase} ${period}`;
+}
+
 function withAssistantAnswerMeta(answer, period, resident, text = '') {
     answer.followUps = buildAssistantFollowUps(answer.id, period, answer.followUpQueries);
     delete answer.followUpQueries;
-    if (text) rememberAssistantContext(text, period, resident);
+    if (text) {
+        rememberAssistantContext(text, period, resident);
+        assistantContext.topic = ASSISTANT_TOPIC_PHRASES[answer.id] ? answer.id : null;
+    }
     return answer;
 }
 
