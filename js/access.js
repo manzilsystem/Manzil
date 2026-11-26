@@ -242,6 +242,29 @@ function contactOwnerManager() {
 }
 
 
+/** يفتح واتساب للمدير برسالة جاهزة تبلّغ بدفعة (المبلغ والشهر)، والمدير يسجّلها بعد التأكد. */
+function reportOwnerPayment(amountValue, monthValue) {
+    if (currentUserRole !== 'owner' || !activeSession || !activeBuildingId || !currentResidentId) return;
+    const phone = getOwnerManagerWhatsAppPhone();
+    if (!phone || phone.length < 10) {
+        toast('رقم مدير العمارة غير مسجل في إعدادات المبنى. اطلب تحديثه من الإدارة.', 'error');
+        return;
+    }
+    const resident = state.residents.find(item => item.id === currentResidentId);
+    if (!resident) return;
+    const amount = Number(amountValue);
+    const month = String(monthValue || '').trim().slice(0, 40);
+    const lines = [
+        'مرحبًا، أبلّغكم بأنني دفعت' + (Number.isFinite(amount) && amount > 0 ? ' ' + fmtNum(amount) + ' ج.م' : '') + (month ? ' عن شهر ' + month : '') + '.',
+        `العمارة: ${state.buildingName || '—'}`,
+        `الشقة: ${receiptApartmentLabel(resident)}`,
+        `الاسم: ${resident.name || '—'}`,
+        'برجاء التأكيد وتسجيل الدفعة. وسأرسل صورة التحويل لو لزم.'
+    ];
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener,noreferrer');
+}
+
+
 function printOwnerReceipt(receiptId) {
     if (currentUserRole !== 'owner' || !activeSession || !activeBuildingId || !currentResidentId) return;
     const resident = state.residents.find(item => item.id === currentResidentId);
@@ -780,6 +803,7 @@ function renderOwnerPortal() {
                 <p class="text-xs text-slate-500 mt-1">موعد الاستحقاق يوم ${subscriptionDueDay} من كل شهر · ${subscriptionGraceDays ? `فترة السماح ${esc(formatOverdueDuration(subscriptionGraceDays))}` : 'بدون فترة سماح'}</p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${paymentInstructionsHtml}</div>
+            ${managerPhoneTel ? `<button type="button" onclick="reportOwnerPayment(this.dataset.amount, this.dataset.month)" data-amount="${esc(String(remainingThisMonth > 0 ? remainingThisMonth : (debt.totalDebt > 0 ? debt.totalDebt : 0)))}" data-month="${esc(month)}" class="w-full min-h-11 bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 rounded-xl px-3 py-2.5 text-xs font-bold"><i class="fa-brands fa-whatsapp ml-1" aria-hidden="true"></i> بلّغ عن دفعة للمدير</button>` : ''}
         </section>
         <section class="app-card border rounded-3xl p-5 space-y-3" aria-labelledby="ownerReceiptsTitle">
             <div>
