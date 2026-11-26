@@ -310,7 +310,7 @@ function applyThemeToDocument(theme) {
     return next;
 }
 
-/** زر الشمس/القمر في الهيدر: يبدّل بين النهاري والليلي بنفس مسار الإعدادات (يُحفظ للمبنى). */
+/** زر واحد بأيقونة واحدة: قمر في الوضع النهاري (اضغط لليلي)، وشمس في الوضع الليلي (اضغط للنهاري). */
 function updateQuickThemeButton(theme) {
     if (typeof document.getElementById !== 'function') return;
     const icon = document.getElementById('quickThemeIcon');
@@ -318,11 +318,15 @@ function updateQuickThemeButton(theme) {
     if (!icon || !button) return;
     const isLight = theme === 'light';
     icon.className = 'fa-solid text-sm ' + (isLight ? 'fa-moon' : 'fa-sun');
-    button.setAttribute('aria-label', isLight ? 'التبديل إلى المظهر الليلي' : 'التبديل إلى المظهر النهاري');
+    button.setAttribute('data-mode', isLight ? 'light' : 'dark');
+    button.setAttribute('aria-label', 'الوضع الليلي / النهاري');
+    button.setAttribute('title', 'الوضع الليلي / النهاري');
 }
 
 function toggleQuickTheme() {
-    return setTheme(document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+    const next = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    if (currentUserRole === 'owner' && typeof setOwnerTheme === 'function') return setOwnerTheme(next);
+    return setTheme(next);
 }
 
 let state = {

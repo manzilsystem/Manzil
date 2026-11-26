@@ -788,7 +788,6 @@ function renderOwnerPortal() {
         </details>` : '')
         : '<p class="text-xs text-slate-500 text-center py-3">لا توجد إشعارات حتى الآن.</p>';
 
-    renderOwnerThemeMenu();
     renderOwnerNotificationsBell();
     portal.innerHTML = `
         <div class="owner-portal-hero app-card border rounded-3xl p-4 sm:p-5 space-y-3">
@@ -851,60 +850,6 @@ function renderOwnerPortal() {
 }
 
 
-function renderOwnerThemeMenu() {
-    const menu = document.getElementById('ownerThemeMenu');
-    if (!menu || menu.children.length) return;
-    menu.innerHTML = MANZIL_THEME_LIST.map(theme => `
-        <button type="button" class="owner-theme-option" data-owner-theme-option="${theme}" aria-pressed="false" onclick="setOwnerTheme('${theme}')">
-            <span class="owner-theme-swatch theme-preview-${theme}" aria-hidden="true"></span>
-            <span>${esc(MANZIL_THEME_NAMES[theme])}</span>
-        </button>`).join('');
-    updateOwnerThemeSelection();
-}
-
-function toggleOwnerThemeMenu(force) {
-    const menu = document.getElementById('ownerThemeMenu');
-    const button = document.getElementById('ownerThemeBtn');
-    if (!menu || !button) return;
-    const open = typeof force === 'boolean' ? force : menu.classList.contains('hidden');
-    if (open) renderOwnerThemeMenu();
-    menu.classList.toggle('hidden', !open);
-    button.setAttribute('aria-expanded', String(open));
-}
-
-function closeOwnerThemeMenu() { toggleOwnerThemeMenu(false); }
-
-function handleOwnerThemeOutsideClick(event) {
-    const control = document.getElementById('ownerThemeControl');
-    const menu = document.getElementById('ownerThemeMenu');
-    if (!control || !menu || menu.classList.contains('hidden')) return;
-    if (control.contains(event?.target)) return;
-    closeOwnerThemeMenu();
-}
-
-function handleOwnerThemeKeydown(event) {
-    if (event?.key === 'Escape') closeOwnerThemeMenu();
-}
-
-function bindOwnerThemeMenu() {
-    document.addEventListener('click', handleOwnerThemeOutsideClick);
-    document.addEventListener('keydown', handleOwnerThemeKeydown);
-}
-
-function updateOwnerThemeSelection() {
-    const active = normalizeThemeName(state.currentTheme) || 'dark';
-    document.querySelectorAll('[data-owner-theme-option]').forEach(button => {
-        const el = /** @type {HTMLElement} */ (button);
-        const isActive = el.dataset.ownerThemeOption === active;
-        el.classList.toggle('active', isActive);
-        el.setAttribute('aria-pressed', String(isActive));
-    });
-    const swatch = document.getElementById('ownerThemeSwatch');
-    if (swatch) swatch.className = `owner-theme-swatch theme-preview-${active}`;
-    const button = document.getElementById('ownerThemeBtn');
-    if (button) button.setAttribute('title', `مظهرك الحالي: ${MANZIL_THEME_NAMES[active]}`);
-}
-
 async function persistOwnerTheme(theme) {
     const { error } = await supabaseClient.rpc('set_my_theme', { p_theme: theme });
     if (error) throw error;
@@ -918,21 +863,15 @@ async function setOwnerTheme(theme) {
     const next = normalizeThemeName(theme);
     if (!next) return;
     const previous = normalizeThemeName(state.currentTheme) || 'dark';
-    if (next === previous) {
-        closeOwnerThemeMenu();
-        return;
-    }
+    if (next === previous) return;
     state.currentTheme = next;
     applyThemeToDocument(next);
-    updateOwnerThemeSelection();
-    closeOwnerThemeMenu();
     try {
         await persistOwnerTheme(next);
         toast('تم حفظ المظهر لحسابك.', 'success');
     } catch (error) {
         state.currentTheme = previous;
         applyThemeToDocument(previous);
-        updateOwnerThemeSelection();
         toast('تعذر حفظ المظهر. حاول مرة أخرى.', 'error');
         console.error('Owner theme error:', error);
     }
@@ -1169,7 +1108,6 @@ function requestOwnerPinOnWhatsApp() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    bindOwnerThemeMenu();
     bindManagerNotifications();
     updateAccessSwitchButton();
 });

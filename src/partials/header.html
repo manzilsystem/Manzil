@@ -12,13 +12,6 @@
                 </div>
             </div>
             <div class="flex items-center gap-1.5">
-                <div class="owner-theme-control" id="ownerThemeControl">
-                    <button type="button" id="ownerThemeBtn" class="owner-theme-btn app-card border" onclick="toggleOwnerThemeMenu()" aria-haspopup="true" aria-expanded="false" aria-controls="ownerThemeMenu" aria-label="تغيير مظهر البوابة" title="مظهرك المفضل">
-                        <span class="owner-theme-swatch theme-preview-dark" id="ownerThemeSwatch" aria-hidden="true"></span>
-                        <i class="fa-solid fa-palette" aria-hidden="true"></i>
-                    </button>
-                    <div class="owner-theme-menu app-card border hidden" id="ownerThemeMenu" role="group" aria-label="اختيار مظهر البوابة"></div>
-                </div>
                 <button type="button" id="ownerNotificationsBtn" class="owner-notifications-btn app-card border p-2.5 rounded-xl text-xs transition relative hidden" onclick="focusOwnerNotifications()" aria-label="الإشعارات" title="الإشعارات">
                     <i class="fa-solid fa-bell text-sm" aria-hidden="true"></i>
                     <span id="ownerNotificationsBadge" class="manager-notifications-badge hidden" aria-hidden="true"></span>
@@ -31,7 +24,7 @@
                     <div class="manager-notifications-menu app-card border hidden" id="managerNotificationsMenu" role="group" aria-label="إشعارات المدير"></div>
                 </div>
                 <button id="signupAdminBtn" type="button" onclick="openSignupRequests()" aria-label="طلبات التسجيل" class="app-card border p-2.5 rounded-xl text-xs transition hidden" title="طلبات التسجيل"><i class="fa-solid fa-user-clock text-sm"></i></button>
-                <button id="quickThemeBtn" type="button" onclick="toggleQuickTheme()" aria-label="التبديل إلى المظهر النهاري" title="المظهر" class="app-card border p-2.5 rounded-xl text-xs transition"><i id="quickThemeIcon" class="fa-solid fa-sun text-sm" aria-hidden="true"></i></button>
+                <button id="quickThemeBtn" type="button" onclick="toggleQuickTheme()" aria-label="الوضع الليلي / النهاري" title="الوضع الليلي / النهاري" data-mode="dark" class="quick-theme-btn app-card border p-2.5 rounded-xl text-xs transition"><i id="quickThemeIcon" class="fa-solid fa-sun text-sm" aria-hidden="true"></i></button>
                 <button onclick="openSettingsModal()" aria-label="فتح الإعدادات" class="app-card border p-2.5 rounded-xl text-xs transition" title="الإعدادات"><i class="fa-solid fa-gear text-sm"></i></button>
                 <button id="accessSwitchBtn" onclick="lockCurrentSession()" aria-label="تبديل المستخدم أو قفل التطبيق" class="app-card border p-2.5 rounded-xl text-xs transition hidden" title="خروج / تبديل المستخدم"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
             </div>

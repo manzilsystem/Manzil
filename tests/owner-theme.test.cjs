@@ -60,26 +60,12 @@ test('applying a theme updates the document attribute and browser chrome color',
     assert.equal(meta.attrs.content, '#0b1020');
 });
 
-test('the owner theme picker is one header button that opens a menu of every theme', () => {
-    assert.match(accessSource, /function renderOwnerThemeMenu\(\)/);
-    assert.match(accessSource, /MANZIL_THEME_LIST\.map\(theme =>/);
-    assert.match(accessSource, /data-owner-theme-option="\$\{theme\}"/);
-    assert.match(accessSource, /onclick="setOwnerTheme\('\$\{theme\}'\)"/);
-    assert.match(html, /id="ownerThemeBtn"[^>]*aria-haspopup="true"[^>]*aria-controls="ownerThemeMenu"/);
-    assert.match(html, /id="ownerThemeMenu"[^>]*aria-label="اختيار مظهر البوابة"/);
-    assert.doesNotMatch(accessSource, /ownerThemeCard/, 'the six-swatch card must stop eating portal height');
-    assert.doesNotMatch(accessSource, /id="ownerThemeCurrent"/);
-});
-
-test('the header theme button is reachable and closes on outside click and Escape', () => {
-    assert.match(accessSource, /function toggleOwnerThemeMenu\(force\)/);
-    assert.match(accessSource, /button\.setAttribute\('aria-expanded', String\(open\)\)/);
-    assert.match(accessSource, /if \(control\.contains\(event\?\.target\)\) return;/, 'clicking the button must not close its own menu');
-    assert.match(accessSource, /event\?\.key === 'Escape'\) closeOwnerThemeMenu\(\)/);
-    assert.match(accessSource, /bindOwnerThemeMenu\(\);[\s\S]*updateAccessSwitchButton\(\);/);
-    assert.match(css, /\.owner-theme-menu \{/);
-    assert.match(css, /body\.owner-mode \.owner-theme-control \{/);
-    assert.match(css, /\.owner-theme-control \{ display: none; \}/, 'managers keep their settings theme control');
+test('owners use the same sun/moon header button as managers, with no palette menu', () => {
+    assert.match(html, /id="quickThemeBtn"[^>]*onclick="toggleQuickTheme\(\)"/);
+    assert.doesNotMatch(html, /id="ownerThemeBtn"|id="ownerThemeMenu"|id="ownerThemeControl"/);
+    assert.doesNotMatch(accessSource, /renderOwnerThemeMenu|toggleOwnerThemeMenu|bindOwnerThemeMenu/);
+    assert.match(stateSource, /currentUserRole === 'owner'[\s\S]*setOwnerTheme\(next\)/);
+    assert.match(css, /body\.owner-mode header \.container > div:last-child > button:not\(#accessSwitchBtn\)[^{]*:not\(#quickThemeBtn\)/);
 });
 
 test('owner theme changes apply instantly and persist through the guarded RPC', () => {
@@ -93,13 +79,6 @@ test('owner theme changes apply instantly and persist through the guarded RPC', 
 test('owner sessions load the theme preference with the profile', () => {
     assert.match(supabaseSource, /\.select\('must_change_pin,theme_preference,full_name'\)/);
     assert.match(supabaseSource, /currentTheme: resolveUserTheme\(building\.current_theme, profile\?\.theme_preference, currentUserRole\)/);
-});
-
-test('owner theme styles stay scoped to the header picker', () => {
-    assert.doesNotMatch(css, /\.owner-theme-grid\s*\{/, 'the removed portal card must not leave dead CSS');
-    assert.match(css, /\.owner-theme-menu \{[\s\S]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
-    assert.match(css, /\.owner-theme-option\.active\s*\{/);
-    assert.match(css, /\.owner-theme-swatch\s*\{[\s\S]*background-image: linear-gradient/);
 });
 
 test('migration adds a constrained preference and a security-definer setter', () => {
