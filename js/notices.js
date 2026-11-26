@@ -283,7 +283,7 @@ function renderArrearsReminderRows() {
     if (summary) {
         const withPhone = items.filter(item => cleanPhone(item.resident?.phone)).length;
         summary.textContent = items.length
-            ? fmtNum(items.length) + ' شقة متأخرة · ' + fmtNum(withPhone) + ' برقم هاتف'
+            ? arrearsLateApartmentsLabel(items.length) + ' · ' + (withPhone === items.length ? 'كلهم برقم هاتف' : fmtNum(withPhone) + ' برقم هاتف')
             : '';
     }
     if (!items.length) {
@@ -326,20 +326,38 @@ function renderArrearsReminderRows() {
 }
 
 /** Dashboard card: shows from the first overdue day (due day + grace) when late apartments exist. */
+/** "شقة متأخرة" in speech form: شقة، شقتين، 3 شقق (3 to 10), 11 شقة. */
+function arrearsLateApartmentsLabel(count) {
+    const n = Math.max(0, Math.round(Number(count) || 0));
+    if (n === 1) return 'شقة متأخرة';
+    if (n === 2) return 'شقتين متأخرتين';
+    if (n >= 3 && n <= 10) return fmtNum(n) + ' شقق متأخرة';
+    return fmtNum(n) + ' شقة متأخرة';
+}
+
 function renderDashboardRemindersCard() {
     const card = document.getElementById('dashboardRemindersCard');
     if (!card) return;
     const text = document.getElementById('dashboardRemindersText');
     const report = currentUserRole === 'manager' && typeof buildArrearsReport === 'function' ? buildArrearsReport({}) : { residents: [] };
-    const late = (report.residents || []).filter(item => cleanPhone(item.resident?.phone));
-    if (!late.length) { card.classList.add('hidden'); return; }
+    const everyone = report.residents || [];
+    if (!everyone.length) { card.classList.add('hidden'); return; }
+    const late = everyone.filter(item => cleanPhone(item.resident?.phone));
+    const noPhone = everyone.length - late.length;
     const sent = readArrearsReminderSent();
     const today = arrearsReminderTodayKey();
     const pending = late.filter(item => sent[item.resident?.id] !== today).length;
     const followUps = late.filter(item => getArrearsReminderStatus(item.resident?.id).kind === 'followup').length;
     if (text) {
-        text.textContent = fmtNum(late.length) + ' شقة متأخرة · ' + (pending ? fmtNum(pending) + ' لم يُرسل لها تذكير اليوم' : 'تم إرسال تذكير للجميع اليوم')
-            + (followUps ? ' · ' + fmtNum(followUps) + ' محتاجين متابعة' : '');
+        // The count is every late apartment, the same number the reminders list shows. Apartments
+        // with no phone number cannot be reminded, so they are called out instead of silently dropped.
+        const parts = [arrearsLateApartmentsLabel(everyone.length)];
+        parts.push(late.length
+            ? (pending ? fmtNum(pending) + ' لم يُرسل لها تذكير اليوم' : 'تم إرسال تذكير للجميع اليوم')
+            : 'مفيش رقم هاتف مسجل لأي منهم');
+        if (followUps) parts.push(fmtNum(followUps) + ' محتاجين متابعة');
+        if (noPhone && late.length) parts.push(fmtNum(noPhone) + ' بلا رقم هاتف');
+        text.textContent = parts.join(' · ');
     }
     card.classList.remove('hidden');
 }
