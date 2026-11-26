@@ -2116,6 +2116,22 @@
 
                         <div class="settings-workspace">
                             <div class="settings-workspace-main">
+                                <section class="settings-subsection" aria-labelledby="settingsReminderScheduleTitle">
+                                    <div class="settings-subsection-heading">
+                                        <span class="settings-subsection-icon"><i class="fa-solid fa-bell" aria-hidden="true"></i></span>
+                                        <div class="settings-subsection-copy">
+                                            <h5 id="settingsReminderScheduleTitle">تنبيه موعد التذكير</h5>
+                                            <p>يوصلك تنبيه في الموعد ده بيفتح قايمة المتأخرين، وكل رسالة تتبعت بضغطة واحدة من عندك.</p>
+                                        </div>
+                                    </div>
+                                    <label class="settings-payment-toggle settings-payment-toggle-row">
+                                        <span>تفعيل تنبيه تذكيرات المتأخرات</span>
+                                        <input type="checkbox" id="settingsArrearsRemindersEnabled" checked>
+                                    </label>
+                                    <label class="settings-field"><span>يوم التنبيه</span><span class="settings-input-unit"><input type="number" id="settingsArrearsReminderDay" min="1" max="28" step="1" inputmode="numeric" placeholder="5" class="app-input border rounded-xl px-3 py-2.5"><b>من الشهر</b></span><small class="settings-field-hint">من 1 إلى 28. التنبيه يوصل الساعة 9 صباحًا في اليوم ده، ومش قبل ما يعدّي ميعاد الاستحقاق وفترة السماح.</small></label>
+                                    <p class="settings-help">التنبيه ليك انت كمدير بس، ومفيش أي رسالة بتتبعت للملاك تلقائيًا. الإعداد ده لكل عمارة لوحدها.</p>
+                                </section>
+
                                 <section class="settings-subsection" aria-labelledby="settingsReminderEditorTitle">
                                     <div class="settings-subsection-heading">
                                         <span class="settings-subsection-icon"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></span>
@@ -2907,8 +2923,8 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-915cbbaff6"></script>
-    <script src="js/state.js?v=9628c84061"></script>
+    <script src="js/telemetry.js?v=manzil-20756cd078"></script>
+    <script src="js/state.js?v=7e7c4534b5"></script>
     <script src="js/access.js?v=75e573dc74"></script>
     <script src="js/render.js?v=f8126841aa"></script>
     <script src="js/crud.js?v=dcb202e00c"></script>
@@ -2938,9 +2954,9 @@
     <!-- Annual summary report -->
     <script src="js/reports/extended/reports-annual-summary.js?v=87026e071e"></script>
     <script src="js/reports/extended/reports-cashbox-forecast.js?v=b841f17957"></script>
-    <script src="js/settings.js?v=648ab52c0a"></script>
+    <script src="js/settings.js?v=6a640828c8"></script>
     <script src="vendor/supabase.js"></script>
-    <script src="js/supabase.js?v=8e3a44c21a"></script>
+    <script src="js/supabase.js?v=fefbbd9aed"></script>
     <script src="js/manager-signup.js?v=72f7768fa8"></script>
     <script src="js/cashbox.js?v=164e56c919"></script>
     <script src="js/monthly-close.js?v=d7ca9836eb"></script>

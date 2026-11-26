@@ -336,6 +336,7 @@ let state = {
     floorCount:0, apartmentsPerFloor:0,
     paymentSettings: normalizePaymentSettings(DEFAULT_PAYMENT_SETTINGS),
     subscriptionDueDay:1, subscriptionGraceDays:0, paymentAllocationPolicy:'oldest_first',
+    arrearsRemindersEnabled:true, arrearsReminderDay:5,
     currentTheme:'dark',
     residents:[], income:[], expenses:[], notices:[], ownerNotifications:[], managerNotifications:[], auditLogs:[],
     adjustments: [],

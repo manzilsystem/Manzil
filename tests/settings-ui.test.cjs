@@ -110,7 +110,9 @@ test('settings report a failed layout rollback even when the RPC has no transpor
         settingsBankAccountNumber: { value: '100000000001' },
         settingsBankIban: { value: '' },
         settingsReceiptThankYou: { value: '' },
-        settingsReminderTemplate: { value: '' }
+        settingsReminderTemplate: { value: '' },
+        settingsArrearsRemindersEnabled: { checked: true },
+        settingsArrearsReminderDay: { value: '5' }
     };
     const sandbox = {
         state: {},
