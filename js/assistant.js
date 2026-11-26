@@ -1047,7 +1047,7 @@ function buildAssistantNoticePreview(text) {
         id: 'notice-preview',
         title: 'معاينة إعلان قبل النشر',
         html: `<div class="assistant-action-preview"><p class="assistant-notice-preview">${assistantEscape(noticeText).replace(/\n/g, '<br>')}</p>
-            <p class="assistant-note">الإعلان مسودة ولم يُنشر. بعد مراجعة النص اكتب «انشر الإعلان»، أو اكتب «إلغاء الإعلان» للتراجع.</p></div>`
+            <p class="assistant-note">ده لسه مسودة ومتنشرش. راجع النص وبعدين اكتب «انشر الإعلان»، أو «إلغاء الإعلان» لو عدلت رأيك.</p></div>`
     };
 }
 
@@ -1057,24 +1057,24 @@ async function confirmAssistantNotice() {
         return false;
     }
     if (!assistantNoticeDraft) {
-        if (typeof toast === 'function') toast('لا توجد مسودة إعلان معلقة.', 'error');
+        if (typeof toast === 'function') toast('مفيش مسودة إعلان مستنية.', 'error');
         return false;
     }
     const draft = assistantNoticeDraft;
     if (typeof publishNoticeWithRequestId !== 'function') {
-        if (typeof toast === 'function') toast('مسار نشر الإعلان غير متاح الآن.', 'error');
+        if (typeof toast === 'function') toast('مقدرتش أنشر الإعلان دلوقتي، جرّب تاني.', 'error');
         return false;
     }
     const saved = await publishNoticeWithRequestId(draft.text, draft.requestId);
     if (!saved) return false;
     assistantNoticeDraft = null;
-    if (typeof toast === 'function') toast('تم نشر الإعلان بعد التأكيد.', 'success');
+    if (typeof toast === 'function') toast('تمام، الإعلان اتنشر.', 'success');
     return true;
 }
 
 function cancelAssistantNotice(options = {}) {
     assistantNoticeDraft = null;
-    if (!options.silent && typeof toast === 'function') toast('تم إلغاء مسودة الإعلان.', 'info');
+    if (!options.silent && typeof toast === 'function') toast('تمام، لغيت مسودة الإعلان.', 'info');
     return true;
 }
 
@@ -1253,7 +1253,7 @@ function parseAssistantMutationCommand(text, now = new Date()) {
         action, type, raw,
         error: candidates.length > 1
             ? `وجدت ${candidates.length} سجلات مطابقة. حدّد المبلغ أو بيانات أدق حتى لا أختار سجلًا بالخطأ.`
-            : 'لم أجد سجلًا مطابقًا في الفترة المحددة. راجع الشهر والمالك أو المبلغ ثم أعد الطلب.'
+            : 'ملقتش سجل مطابق في الفترة دي. راجع الشهر والمالك والمبلغ وقولّي تاني.'
     };
     const record = candidates[0];
     if (type === 'resident' && action === 'delete'
@@ -1321,9 +1321,9 @@ function parseAssistantResidentEntryCommand(text) {
 
 function buildAssistantResidentEntryPreview(entry) {
     if (!entry) return null;
-    if (entry.error) return { id: 'resident-entry-needs-clarification', title: 'بيانات الشقة ناقصة أو غير صالحة', html: assistantNote(entry.error) };
+    if (entry.error) return { id: 'resident-entry-needs-clarification', title: 'بيانات الشقة ناقصة أو مش مظبوطة', html: assistantNote(entry.error) };
     if (assistantOperationContext || assistantResidentEntryDraft || assistantMutationDraft) return {
-        id: 'mutation-pending', title: 'أكمل العملية الحالية أولًا', html: assistantNote('هناك عملية أخرى قيد المراجعة أو الحفظ.')
+        id: 'mutation-pending', title: 'كمّل العملية الحالية الأول', html: assistantNote('فيه عملية تانية لسه مستنية أو بتتحفظ.')
     };
     assistantResidentEntryDraft = { ...entry, requestId: generateId() };
     const lines = [
@@ -1351,7 +1351,7 @@ function openAssistantResidentEntry() {
     startAssistantOperationContext({ ...draft, type: 'resident', action: 'create', mode: 'create' });
     if (typeof window.openResidentModal !== 'function') {
         clearAssistantOperationContext();
-        if (typeof toast === 'function') toast('نموذج الشقة غير متاح الآن.', 'error');
+        if (typeof toast === 'function') toast('نموذج الشقة مش بيفتح دلوقتي، جرّب تاني.', 'error');
         return false;
     }
     window.openResidentModal('add');
@@ -1381,7 +1381,7 @@ function openAssistantResidentEntry() {
 
 function cancelAssistantResidentEntry() {
     assistantResidentEntryDraft = null;
-    if (typeof toast === 'function') toast('تم إلغاء مسودة بيانات الشقة دون حفظ.', 'info');
+    if (typeof toast === 'function') toast('تمام، لغيت مسودة الشقة ومحفظتش حاجة.', 'info');
 }
 
 function assistantMutationRecordLabel(mutation) {
@@ -1395,10 +1395,10 @@ function assistantMutationRecordLabel(mutation) {
 
 function buildAssistantMutationPreview(mutation) {
     if (!mutation) return null;
-    if (mutation.error) return { id: 'mutation-needs-clarification', title: 'أحتاج تحديدًا أدق', html: assistantNote(mutation.error) };
+    if (mutation.error) return { id: 'mutation-needs-clarification', title: 'محتاج توضيح أكتر', html: assistantNote(mutation.error) };
     if (assistantOperationContext || assistantMutationDraft) return {
-        id: 'mutation-pending', title: 'أكمل العملية الحالية أولًا',
-        html: assistantNote('هناك عملية أخرى قيد المراجعة أو الحفظ. أكملها أو ألغِها قبل بدء تعديل أو حذف جديد.')
+        id: 'mutation-pending', title: 'كمّل العملية الحالية الأول',
+        html: assistantNote('فيه عملية تانية لسه مستنية أو بتتحفظ. كمّلها أو الغيها قبل ما نبدأ تعديل أو حذف جديد.')
     };
     assistantMutationDraft = { ...mutation, requestId: generateId(), expectedRecord: JSON.stringify(mutation.record) };
     const deleting = mutation.action === 'delete';
@@ -1432,7 +1432,7 @@ function openAssistantMutationEdit() {
             : draft.type === 'expense' ? 'openExpenseEditModal' : 'openAdjustmentModal';
     if (typeof window[opener] !== 'function') {
         clearAssistantOperationContext();
-        if (typeof toast === 'function') toast('نموذج التعديل غير متاح الآن.', 'error');
+        if (typeof toast === 'function') toast('نموذج التعديل مش بيفتح دلوقتي، جرّب تاني.', 'error');
         return false;
     }
     if (draft.type === 'adjustment') {
@@ -1478,7 +1478,7 @@ async function confirmAssistantMutationDelete() {
             : draft.type === 'expense' ? 'deleteExpense' : 'deleteAdjustment';
     if (typeof window[deleter] !== 'function') {
         clearAssistantOperationContext();
-        if (typeof toast === 'function') toast('مسار الحذف غير متاح الآن.', 'error');
+        if (typeof toast === 'function') toast('مقدرتش أكمل الحذف دلوقتي، جرّب تاني.', 'error');
         return false;
     }
     let deleteError = null;
@@ -1508,7 +1508,7 @@ async function confirmAssistantMutationDelete() {
 function cancelAssistantMutation() {
     assistantMutationDraft = null;
     if (assistantOperationContext?.action === 'edit' && assistantOperationContext.status === 'ready') clearAssistantOperationContext();
-    if (typeof toast === 'function') toast('تم إلغاء العملية دون تغيير البيانات.', 'info');
+    if (typeof toast === 'function') toast('تمام، لغيت العملية ومفيش حاجة اتغيرت.', 'info');
 }
 
 function assistantOperationMissing(operation) {
@@ -1665,7 +1665,7 @@ function buildAssistantOperationPreview(operation, now = new Date()) {
         return {
             id: 'operation-missing',
             title: `بيانات ${labels[operation.type]} ناقصة`,
-            html: `${assistantNote(`أقدر أجهز ${labels[operation.type]}، لكن ناقص: ${missing.join(' و')}.`)}${assistantNote('كمّلها في رسالة تالية — مثال: «نقدي في الخزنة الرئيسية» أو «السبب ظرف صحي». ثم راجع الملخص قبل الحفظ.')}${assistantActionButtons(operation, false)}`
+            html: `${assistantNote(`أقدر أجهز ${labels[operation.type]} يا باشا، بس ناقصني: ${missing.join(' و')}.`)}${assistantNote('كمّلها في رسالة تانية، مثلًا: «نقدي في الخزنة الرئيسية» أو «السبب ظرف صحي». وبعدين راجع الملخص قبل الحفظ.')}${assistantActionButtons(operation, false)}`
         };
     }
     const adjustmentKindLabels = { waiver: 'إعفاء', discount: 'تخفيض', settlement: 'تسوية' };
@@ -1676,12 +1676,12 @@ function buildAssistantOperationPreview(operation, now = new Date()) {
         : operation.type === 'expense'
         ? `${operation.title} · ${assistantMoney(operation.amount)} · ${operation.month} · ${operation.category || 'أخرى'} · ${ASSISTANT_CASH_LABELS[operation.cashAccountCode] || ASSISTANT_CASH_LABELS.main}`
         : `${operation.type === 'adjustment' ? `${adjustmentKindLabels[operation.kind] || 'إجراء'} · ` : ''}${assistantResidentName(operation.resident)} · شقة ${operation.resident.apartmentNumber} · ${assistantMoney(operation.amount)} · ${operation.month}${operation.type === 'income' ? ` · ${operation.purpose === 'subscription' ? 'اشتراك شهري' : operation.purpose} · ${ASSISTANT_OPERATION_PAYMENT_METHODS[operation.paymentMethod] || ''} · ${ASSISTANT_CASH_LABELS[operation.cashAccountCode] || ASSISTANT_CASH_LABELS.main}` : ''}`;
-    const assumed = operation.cashAccountAssumed ? assistantNote('لم تذكر الصندوق؛ استخدمت الخزنة الرئيسية كافتراض قابل للتعديل قبل التنفيذ.') : '';
+    const assumed = operation.cashAccountAssumed ? assistantNote('ما قلتش أنهي صندوق، فاخترت الخزنة الرئيسية. تقدر تغيّرها قبل التنفيذ.') : '';
     const balanceInfo = assistantExpenseBalanceInfo(operation);
     const balanceNotice = balanceInfo?.mainOverdraft
-        ? assistantNote(`تنبيه: رصيد الخزنة الرئيسية ${assistantMoney(balanceInfo.balance)}، وسيصبح ${assistantMoney(balanceInfo.balanceAfter)} بعد المصروف. كتابة «أكد التسجيل» تعني موافقتك الصريحة على التجاوز، وسيُسجَّل ذلك في سجل التدقيق.`)
+        ? assistantNote(`خد بالك: رصيد الخزنة الرئيسية ${assistantMoney(balanceInfo.balance)}، وهيبقى ${assistantMoney(balanceInfo.balanceAfter)} بعد المصروف. لو كتبت «أكد التسجيل» يبقى موافق على كده، وهيتسجل في سجل التدقيق.`)
         : balanceInfo?.fundInsufficient
-            ? assistantNote(`رصيد ${ASSISTANT_CASH_LABELS[balanceInfo.cashAccountCode]} (${assistantMoney(balanceInfo.balance)}) لا يكفي لهذا المصروف. اذكر صندوقًا آخر أو مبلغًا أقل قبل التسجيل.`)
+            ? assistantNote(`رصيد ${ASSISTANT_CASH_LABELS[balanceInfo.cashAccountCode]} (${assistantMoney(balanceInfo.balance)}) مش كفاية للمصروف ده. قولّي صندوق تاني أو مبلغ أقل قبل التسجيل.`)
             : '';
     return {
         id: 'operation-preview',
@@ -1727,7 +1727,7 @@ function assistantOperationSuccessHtml(operation) {
     return `<div class="assistant-operation-success" role="status">
         <p class="assistant-success-title"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> تم حفظ ${assistantEscape(typeLabel)}${assistantEscape(kind)} بنجاح</p>
         <p class="assistant-success-detail">${assistantEscape(target)}</p>
-        <p class="assistant-note">تم التنفيذ من خلال قواعد التطبيق الرسمية، وسجّل النظام العملية في سجل التدقيق. يمكنك الآن أن تسألني: «${assistantEscape(nextQuery)}» أو «آخر الحركات».</p>
+        <p class="assistant-note">تمت العملية وسجلتها في سجل التدقيق. تقدر تسألني دلوقتي: «${assistantEscape(nextQuery)}» أو «آخر الحركات».</p>
     </div>`;
 }
 
@@ -1748,7 +1748,7 @@ function openAssistantOperation() {
             console.error('Assistant operation form failed to open.', error);
         }
         if (!opened) {
-            if (typeof toast === 'function') toast('تعذر فتح النموذج؛ أكمل البيانات الناقصة في المحادثة وحاول مرة أخرى.', 'error');
+            if (typeof toast === 'function') toast('النموذج مفتحش. كمّل البيانات الناقصة هنا في الشات وجرّب تاني.', 'error');
             openAssistantModal();
             return false;
         }
@@ -1756,7 +1756,7 @@ function openAssistantOperation() {
         assistantOperationDraft = null;
         return true;
     }
-    if (typeof toast === 'function') toast('نموذج العملية غير متاح الآن.', 'error');
+    if (typeof toast === 'function') toast('نموذج العملية مش بيفتح دلوقتي، جرّب تاني.', 'error');
     return false;
 }
 
@@ -1849,7 +1849,7 @@ function requireAssistantOperationReadyForCommit(type) {
         return false;
     }
     if (assistantOperationContext.status === 'saving') {
-        if (typeof toast === 'function') toast('العملية قيد الحفظ بالفعل. انتظر نتيجة التأكيد.', 'info');
+        if (typeof toast === 'function') toast('العملية بتتحفظ دلوقتي. استنى لحظة لحد ما تخلص.', 'info');
         return false;
     }
     if (assistantOperationContext.status === 'uncertain') {
@@ -1924,7 +1924,7 @@ async function confirmAssistantOperation() {
     const openForm = assistantGlobalFunction(openerName);
     const submitForm = assistantGlobalFunction(handlerName);
     if (!openForm || !submitForm) {
-        if (typeof toast === 'function') toast('مسار الحفظ الرسمي غير متاح الآن؛ افتح النموذج وحاول مرة أخرى.', 'error');
+        if (typeof toast === 'function') toast('الحفظ مش شغال دلوقتي. افتح النموذج وجرّب تاني.', 'error');
         return false;
     }
     const collectionBefore = Array.isArray(state.income) ? state.income.length : 0;
@@ -1933,7 +1933,7 @@ async function confirmAssistantOperation() {
     const residentBefore = Array.isArray(state.residents) ? state.residents.length : 0;
     const residentSnapshotBefore = JSON.stringify(state.residents || []);
     if (assistantOperationContext) {
-        if (typeof toast === 'function') toast('هناك عملية أخرى قيد المراجعة؛ أكملها أو ألغِها قبل التأكيد.', 'error');
+        if (typeof toast === 'function') toast('فيه عملية تانية لسه مستنية. كمّلها أو الغيها قبل ما تأكد.', 'error');
         return false;
     }
     const contextDraft = draft.type === 'resident_edit'
@@ -1962,9 +1962,9 @@ async function confirmAssistantOperation() {
         if (assistantOperationContext?.requestId === draft.requestId && assistantOperationContext.status === 'ready') {
             clearAssistantOperationContext();
         }
-        if (typeof toast === 'function') toast('تعذر تشغيل مسار الحفظ الرسمي؛ لم تُسجل العملية.', 'error');
+        if (typeof toast === 'function') toast('مقدرتش أشغّل الحفظ؛ لم تُسجل العملية.', 'error');
         const detail = validationMessages[validationMessages.length - 1];
-        appendAssistantOperationFailure(`تعذر تشغيل مسار الحفظ الرسمي${detail ? `: ${detail}` : ''}. لم تُسجل العملية؛ بقيت المسودة ويمكنك المحاولة مرة أخرى.`);
+        appendAssistantOperationFailure(`مقدرتش أشغّل الحفظ${detail ? `: ${String(detail).replace(/\.+$/, '')}` : ''}. العملية متسجلتش. المسودة لسه موجودة وتقدر تجرّب تاني.`);
         return false;
     } finally {
         if (originalToast) toastHost.toast = originalToast;
@@ -1985,9 +1985,9 @@ async function confirmAssistantOperation() {
         }
     }
     if (!saved) {
-        if (typeof toast === 'function') toast('لم تُسجل العملية. راجع رسالة التحقق أو عدّل التفاصيل.', 'error');
+        if (typeof toast === 'function') toast('العملية متسجلتش. راجع الرسالة اللي ظهرت أو عدّل التفاصيل.', 'error');
         const detail = validationMessages[validationMessages.length - 1];
-        appendAssistantOperationFailure(`لم تُسجل العملية${detail ? `: ${detail}` : ''}. عدّل التفاصيل هنا أو افتح النموذج للمراجعة إذا رغبت.`);
+        appendAssistantOperationFailure(`العملية متسجلتش${detail ? `: ${String(detail).replace(/\.+$/, '')}` : ''}. عدّل التفاصيل هنا أو افتح النموذج وراجعها.`);
     }
     if (saved) {
         assistantMarkOperationDraftCompleted();
@@ -2029,7 +2029,7 @@ function cancelAssistantOperation(options = {}) {
         completeAssistantOperation(context.requestId);
         if (modalId && typeof closeModal === 'function') closeModal(modalId);
     }
-    if (!options.silent && typeof toast === 'function') toast('تم إلغاء مسودة العملية.', 'info');
+    if (!options.silent && typeof toast === 'function') toast('تمام، لغيت المسودة.', 'info');
     return true;
 }
 
@@ -2286,8 +2286,8 @@ function buildAssistantMorningBriefAnswer(now = new Date()) {
     if (upcoming.items.length) html += assistantRow('هتستحق خلال ٧ أيام', `${assistantMoney(upcoming.total)} · ${assistantNumber(upcoming.items.length)} شقة`, 'warn');
     if (arrears.overdueResidents > 0) {
         html += assistantNote(lateWithPhone > 0
-            ? `${assistantNumber(lateWithPhone)} من المتأخرين عليهم رقم هاتف. اكتب «ذكّر المتأخرين» وأفتحلك قائمة التذكيرات.`
-            : 'المتأخرون بلا أرقام هاتف مسجلة. أضف الأرقام في بيانات الشقق عشان التذكير يشتغل.');
+            ? `${assistantNumber(lateWithPhone)} من المتأخرين عندهم رقم تليفون. اكتب «ذكّر المتأخرين» وأفتحلك قائمة التذكيرات.`
+            : 'المتأخرين ملهمش أرقام تليفون مسجلة. ضيف الأرقام في بيانات الشقق عشان التذكير يشتغل.');
     }
     return { id: 'morning_brief', title: 'ملخص اليوم', html };
 }
@@ -2817,7 +2817,7 @@ function assistantUserDisplayName() {
 
 function assistantAddress() {
     const name = assistantUserDisplayName();
-    return name ? `يا ${assistantEscape(name)}` : 'يا أستاذ';
+    return name ? `يا ${assistantEscape(name)}` : 'يا باشا';
 }
 
 function assistantCents(value) {
@@ -2909,7 +2909,7 @@ function buildAssistantOwnerDueAnswer(now = new Date()) {
     const overdueNow = typeof isSubscriptionMonthOverdue === 'function' ? isSubscriptionMonthOverdue(month, now) : false;
     const status = snapshot.outstanding <= 0
         ? 'مفيش عليك حاجة في الشهر ده'
-        : overdueNow ? 'الموعد عدّى — يُرجى الدفع وتوضيح المدير' : 'لسه في وقت، المتبقي ' + assistantMoney(snapshot.outstanding);
+        : overdueNow ? 'الموعد عدّى. ادفع أو كلّم المدير' : 'لسه في وقت، المتبقي ' + assistantMoney(snapshot.outstanding);
     html += assistantRow('الحالة', status, snapshot.outstanding > 0 && overdueNow ? 'bad' : snapshot.outstanding > 0 ? 'warn' : 'good');
     if (snapshot.debt.totalDebt > 0) {
         html += assistantRow('متأخرات سابقة', assistantMoney(snapshot.debt.totalDebt), 'bad');
@@ -3203,7 +3203,7 @@ function buildAssistantGreetingHtml(now = new Date()) {
     if (assistantIsOwner()) return buildAssistantOwnerGreetingHtml(now);
     const month = getAssistantNowLabel(now);
     const residents = Array.isArray(state.residents) ? state.residents : [];
-    const hello = `أهلاً ${assistantAddress()}، أنا <strong>${assistantEscape(ASSISTANT_NAME)}</strong> بواب العمارة ومساعدك المحلي.`;
+    const hello = `أهلاً ${assistantAddress()}، أنا <strong>${assistantEscape(ASSISTANT_NAME)}</strong> بواب العمارة ومساعدك المحلي، تحت أمرك.`;
     if (!residents.length) {
         return `${assistantHeroHtml()}<p class="assistant-hello">${hello}</p>
             <p class="assistant-note">لسه مفيش شقق مسجلة. أضف الشقق والاشتراكات، وبعدها أقدر أقولك تحصيل الشهر والمتأخرات وأرصدة الخزائن.</p>`;
@@ -3215,7 +3215,7 @@ function buildAssistantGreetingHtml(now = new Date()) {
     html += assistantRow('تحصيل الشهر', assistantMoney(summary.income.total));
     html += assistantRow('غير محصل الشهر', assistantMoney(summary.outstandingTotal), summary.outstandingTotal > 0 ? 'warn' : 'good');
     html += assistantRow('إجمالي المتأخرات', assistantMoney(arrears.totalDebt), arrears.totalDebt > 0 ? 'bad' : 'good');
-    html += assistantNote('اكتب طلبك أو سؤالك مباشرةً، مثل «قيد مصروف كهرباء 300 جنيه» أو «تقرير التحصيل لشهر نوفمبر».');
+    html += assistantNote('اكتب اللي عايزه زي ما بتتكلم، مثلًا «قيد مصروف كهرباء 300 جنيه» أو «تقرير التحصيل لشهر نوفمبر».');
     return html;
 }
 
@@ -3372,7 +3372,7 @@ function answerAssistantQuery(text, now = new Date()) {
             id: cancelled ? 'operation-cancelled' : 'operation-cancel-blocked',
             title: cancelled ? 'تم إلغاء المسودة' : 'تعذّر إلغاء العملية',
             html: assistantNote(cancelled
-                ? 'تمام، لم يتم حفظ أي تغيير.'
+                ? 'تمام، محفظتش أي تغيير.'
                 : 'الحفظ جارٍ أو نتيجته غير مؤكدة، فما أقدرش أأكد الإلغاء. حدّث البيانات وراجع سجل التدقيق قبل المحاولة مرة أخرى.')
         }, resolveAssistantPeriod(text, now), null, text);
     }

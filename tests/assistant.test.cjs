@@ -660,7 +660,7 @@ test('announcement drafts use typed publish/cancel commands and responses contai
     assert.equal(publish.id, 'notice-confirm-request');
     const cancel = api.answerAssistantQuery('إلغاء الإعلان', NOW);
     assert.equal(cancel.id, 'operation-cancelled');
-    assert.match(cancel.html, /لم يتم حفظ أي تغيير/);
+    assert.match(cancel.html, /محفظتش أي تغيير/);
 });
 
 test('manager report requests return the selected report figures directly in chat', () => {
@@ -745,12 +745,12 @@ test('expense previews warn about main-vault overdraft and block an insufficient
     vm.runInContext(`getCashAccountBalance = code => ({ main: 1200, development: 300, emergency: 50 }[code] || 0)`, context);
 
     const mainVault = api.answerAssistantQuery('أضف مصروف كهرباء 1300 جنيه عن نوفمبر 2026 في الخزنة الرئيسية', NOW);
-    assert.match(mainVault.html, /سيصبح .* بعد المصروف/);
-    assert.match(mainVault.html, /سيُسجَّل ذلك في سجل التدقيق/);
+    assert.match(mainVault.html, /هيبقى .* بعد المصروف/);
+    assert.match(mainVault.html, /هيتسجل في سجل التدقيق/);
     assert.match(mainVault.html, /أكد التسجيل/);
 
     const development = api.answerAssistantQuery('أضف مصروف صيانة 400 جنيه عن نوفمبر 2026 في صندوق التطوير', NOW);
-    assert.match(development.html, /رصيد صندوق التطوير .* لا يكفي/);
+    assert.match(development.html, /رصيد صندوق التطوير .* مش كفاية/);
     assert.doesNotMatch(development.html, /أكد التسجيل/);
 });
 
@@ -989,7 +989,7 @@ test('failed official save keeps the operation draft and explains the validation
 
     assert.equal(await api.confirmAssistantOperation(), false);
     assert.match(api.chatSnapshot().at(-1).html, /اختر شهرًا واحدًا على الأقل/);
-    assert.match(api.chatSnapshot().at(-1).html, /افتح النموذج للمراجعة/);
+    assert.match(api.chatSnapshot().at(-1).html, /افتح النموذج وراجعها/);
 });
 
 test('confirmed operations return a clear in-chat result with next steps', () => {
@@ -1562,7 +1562,7 @@ test('greeting, thanks, unknown and suggestions stay friendly and safe', () => {
     const unknown = api.answerAssistantQuery('ازرق', NOW);
     assert.equal(unknown.id, 'unknown');
     assert.match(unknown.title, /مش لاقي إجابة/);
-    assert.match(unknown.html, /معلش يا أستاذ/);
+    assert.match(unknown.html, /معلش يا باشا/);
 
     assert.doesNotMatch(assistantSource, /ASSISTANT_SUGGESTIONS/);
     assert.equal(api.ASSISTANT_NAME, 'عم عبده البواب');
@@ -1754,7 +1754,7 @@ test('the assistant calls each signed-in user by their own name', () => {
     assert.match(owner.api.buildAssistantGreetingHtml(NOW), /أهلاً يا أحمد علي/);
 
     const anonymous = createHarness(true, { role: 'manager', profileName: null });
-    assert.equal(anonymous.api.assistantAddress(), 'يا أستاذ', 'an unnamed account keeps the generic address');
+    assert.equal(anonymous.api.assistantAddress(), 'يا باشا', 'an unnamed account keeps the generic address');
 });
 
 test('an owner bill answer covers their own apartment and their own due window', () => {

@@ -475,7 +475,7 @@ async function assistantVoiceStart() {
     } catch (error) {
         assistantVoiceRecognition = null;
         void assistantVoiceFinish(true);
-        assistantVoiceNotify('تعذر فتح الميكروفون، جرّب مرة تانية', 'error');
+        assistantVoiceNotify('الميكروفون مفتحش، جرّب تاني', 'error');
     }
 }
 
