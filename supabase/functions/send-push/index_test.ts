@@ -174,3 +174,91 @@ Deno.test('a non-UUID target_user_id is rejected as an invalid record', async ()
     else Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', previousKey)
   }
 })
+
+interface FetchCall { url: string; method: string; headers: Headers; body?: ArrayBuffer }
+
+async function withSendPushEnv<T>(overrides: Record<string, string>, run: () => Promise<T>): Promise<T> {
+  const env: Record<string, string> = {
+    ...webhookEnv,
+    SUPABASE_URL: 'https://example.supabase.co',
+    SUPABASE_SERVICE_ROLE_KEY: 'test-service-role-key',
+    ...overrides,
+  }
+  const keys = Object.keys(env)
+  const previous = keys.map((key) => Deno.env.get(key))
+  for (const [key, value] of Object.entries(env)) Deno.env.set(key, value)
+  try {
+    return await run()
+  } finally {
+    keys.forEach((key, index) => {
+      const value = previous[index]
+      if (value === undefined) Deno.env.delete(key)
+      else Deno.env.set(key, value)
+    })
+  }
+}
+
+async function makeSubscription(id: string): Promise<{ id: string; endpoint: string; p256dh: string; auth: string }> {
+  const receiver = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits'])
+  return {
+    id,
+    endpoint: `https://push.example.test/send/${id}`,
+    p256dh: bytesToB64url(new Uint8Array(await crypto.subtle.exportKey('raw', receiver.publicKey))),
+    auth: bytesToB64url(crypto.getRandomValues(new Uint8Array(16))),
+  }
+}
+
+Deno.test('410 and 404 subscriptions are deleted, other failures are kept, and one bad endpoint never stops the rest', async () => {
+  const vapidPair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify'])
+  const vapidJwk = await crypto.subtle.exportKey('jwk', vapidPair.privateKey)
+  const vapidPublicKey = bytesToB64url(
+    new Uint8Array([4, ...b64urlToBytes(String(vapidJwk.x)), ...b64urlToBytes(String(vapidJwk.y))]),
+  )
+  const gone410 = await makeSubscription('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+  const gone404 = await makeSubscription('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')
+  const failing = await makeSubscription('cccccccc-cccc-4ccc-8ccc-cccccccccccc')
+  const healthy = await makeSubscription('dddddddd-dddd-4ddd-8ddd-dddddddddddd')
+  const managerId = '33333333-3333-4333-8333-333333333333'
+  const subscriptions = [gone410, gone404, failing, healthy]
+
+  const calls: FetchCall[] = []
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const url = String(input)
+    calls.push({ url, method: init?.method || 'GET', headers: new Headers(init?.headers), body: init?.body as ArrayBuffer | undefined })
+    if (url.includes('/rest/v1/building_members')) return Promise.resolve(new Response(JSON.stringify([{ user_id: managerId }]), { status: 200 }))
+    if (url.includes('/rest/v1/push_subscriptions') && (init?.method || 'GET') === 'GET') {
+      return Promise.resolve(new Response(JSON.stringify(subscriptions), { status: 200 }))
+    }
+    if (url.includes('/rest/v1/push_subscriptions') && init?.method === 'DELETE') return Promise.resolve(new Response('[]', { status: 200 }))
+    if (url === gone410.endpoint) return Promise.resolve(new Response('gone', { status: 410 }))
+    if (url === gone404.endpoint) return Promise.resolve(new Response('not found', { status: 404 }))
+    if (url === failing.endpoint) return Promise.reject(new TypeError('network down'))
+    if (url === healthy.endpoint) return Promise.resolve(new Response('sent', { status: 201 }))
+    return Promise.resolve(new Response('unexpected', { status: 599 }))
+  }
+
+  try {
+    await withSendPushEnv({ VAPID_PUBLIC_KEY: vapidPublicKey, VAPID_PRIVATE_KEY: String(vapidJwk.d) }, async () => {
+      const response = await handleRequest(post({ type: 'INSERT', table: 'notifications', record: validRecord }, 'expected-secret'))
+      assertEquals(response.status, 200)
+      assertEquals(await response.json(), { sent: 1, removed: 2 })
+
+      const deletes = calls.filter((call) => call.method === 'DELETE')
+      assertEquals(deletes.length, 1, 'exactly one cleanup DELETE must run')
+      assertEquals(deletes[0].url.includes(gone410.id), true)
+      assertEquals(deletes[0].url.includes(gone404.id), true)
+      assertEquals(deletes[0].url.includes(failing.id), false, 'a network failure is not proof the subscription is gone')
+      assertEquals(deletes[0].url.includes(healthy.id), false)
+
+      const pushed = calls.filter((call) => call.url.startsWith('https://push.example.test/send/'))
+      assertEquals(pushed.length, 4, 'all endpoints are attempted even when some fail')
+      const healthyPush = pushed.find((call) => call.url === healthy.endpoint)
+      assertEquals(healthyPush?.headers.get('TTL'), '86400')
+      assertEquals(healthyPush?.headers.get('Content-Encoding'), 'aes128gcm')
+      assertEquals(healthyPush?.headers.get('Topic'), validRecord.id.replace(/-/g, ''))
+    })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
