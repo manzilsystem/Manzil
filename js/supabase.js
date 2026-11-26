@@ -501,13 +501,14 @@ async function refreshNotificationsFromServer(options = {}) {
 }
 
 function setupNotificationsAutoRefresh() {
-    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+    if (typeof document === 'undefined' || typeof document.addEventListener !== 'function'
+        || typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') refreshNotificationsFromServer();
     });
     window.addEventListener('focus', () => refreshNotificationsFromServer());
     window.addEventListener('online', () => refreshNotificationsFromServer({ force: true }));
-    if ('serviceWorker' in navigator) {
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
         navigator.serviceWorker.addEventListener('message', event => {
             if (event.data?.type === 'manzil-push-received') refreshNotificationsFromServer({ force: true });
         });
