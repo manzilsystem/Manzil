@@ -58,6 +58,15 @@ function groupOwnerPaymentsIntoReceipts(residentId) {
     }).sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
 }
 
+// Months a receipt covers, shown on its closed summary line so the owner can
+// see which month each payment went to without opening it.
+function ownerReceiptMonthsLabel(receipt) {
+    const months = Array.from(new Set((receipt.payments || []).map(payment => String(payment.month || '').trim()).filter(Boolean)));
+    if (!months.length) return '—';
+    const shown = months.slice(0, 3).join('، ');
+    return 'عن شهر ' + shown + (months.length > 3 ? ` +${months.length - 3}` : '');
+}
+
 function ownerPaymentPurposeLabel(payment) {
     if (typeof getIncomePurposeLabel === 'function') return getIncomePurposeLabel(payment?.purposeCode);
     return 'اشتراك شهري';
@@ -626,9 +635,6 @@ function renderOwnerPortal() {
         || '<p class="text-xs text-slate-500 sm:col-span-2">لم تُسجَّل بيانات السداد بعد. تواصل مع المدير لمعرفة طريقة الدفع.</p>';
     const subscriptionDueDay = Math.min(28, Math.max(1, Number(state.subscriptionDueDay) || 1));
     const subscriptionGraceDays = Math.min(31, Math.max(0, Number(state.subscriptionGraceDays) || 0));
-    const ownPayments = state.income
-        .filter(payment => payment.residentId === resident.id)
-        .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
     const ownerReceipts = groupOwnerPaymentsIntoReceipts(resident.id);
     const ownerReceiptRows = ownerReceipts.length ? ownerReceipts.map(receipt => {
         const allocationRows = receipt.payments.map(payment => `
@@ -645,6 +651,7 @@ function renderOwnerPortal() {
                     <span class="min-w-0">
                         <strong class="block text-xs">إيصال رقم ${esc(receipt.reference)}</strong>
                         <span class="block text-xs text-slate-500 mt-1">${esc(formatDate(receipt.date) || '—')} · ${esc(getIncomePaymentMethodLabel(receipt.paymentMethod))}</span>
+                        <span class="block text-xs text-slate-500 mt-0.5">${esc(ownerReceiptMonthsLabel(receipt))}</span>
                     </span>
                     <strong class="text-sm font-black text-emerald-400 shrink-0">${fmtNum(receipt.totalAmount)} ج.م</strong>
                 </summary>
@@ -702,11 +709,6 @@ function renderOwnerPortal() {
             </div>
         </div>`
         : '<div class="app-input border rounded-2xl p-3 text-xs text-slate-500">رقم تواصل المدير غير مسجل. اطلب من الإدارة تحديث رقم الهاتف في بيانات العمارة.</div>';
-    const paymentRows = ownPayments.length ? ownPayments.map(payment => `
-        <div class="flex items-center justify-between gap-3 border-b border-slate-700/50 py-2 last:border-0">
-            <div><p class="text-xs font-bold">${esc(payment.month || '—')}</p><p class="text-xs text-slate-500">${formatDate(payment.date)} · ${esc(getIncomePaymentMethodLabel(payment.paymentMethod))}</p></div>
-            <span class="text-sm font-black text-emerald-400">${fmtNum(payment.amount)} ج.م</span>
-        </div>`).join('') : '<p class="text-xs text-slate-500 text-center py-3">لا توجد دفعات مسجلة بعد.</p>';
     const notices = state.notices.length ? state.notices.slice().reverse().map(notice => `
         <article class="app-input border rounded-2xl p-3">
             <p class="text-xs leading-relaxed whitespace-pre-line">${esc(notice.text)}</p>
@@ -781,10 +783,6 @@ function renderOwnerPortal() {
             ${typeof installCardHtml === 'function' ? installCardHtml() : ''}
             ${typeof pushControlHtml === 'function' ? pushControlHtml() : ''}
             <div class="space-y-2">${notificationRows}</div>
-        </section>
-        <section class="app-card border rounded-3xl p-5 space-y-2" aria-labelledby="ownerPaymentHistoryTitle">
-            <h3 id="ownerPaymentHistoryTitle" class="font-bold text-sm">سجل الدفعات حسب الشهر</h3>
-            ${paymentRows}
         </section>
         <section class="app-card border rounded-3xl p-5 space-y-3" aria-labelledby="ownerNoticesTitle">
             <h3 id="ownerNoticesTitle" class="font-bold text-sm">إعلانات العمارة</h3>
