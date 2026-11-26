@@ -72,7 +72,27 @@ function loadAnnual(overrides = {}) {
         getMonthlyDueAmountForMonth: (resident, month) => {
             const key = monthLabelToKey(month);
             const start = String(resident.createdAt || '').slice(0, 7);
-            return key && key.slice(0, 7) >= start ? Number(resident.monthlyAmount) || 0 : 0;
+            if (!(key && key.slice(0, 7) >= start)) return 0;
+            const settlement = (state.adjustments || []).find(adjustment => adjustment.residentId === resident.id
+                && adjustment.effectiveMonth === key && adjustment.kind === 'settlement');
+            if (settlement) return Math.max(0, Number(settlement.amount) || 0);
+            return Number(resident.monthlyAmount) || 0;
+        },
+        // نفس قاعدة state.js: التحصيلات الموجبة فقط + مدفوعات التسوية المرتبطة بشهرها
+        getMonthlyDuePaidAmount: (residentId, month) => {
+            const key = monthLabelToKey(month);
+            const subscription = state.income.filter(payment => payment.residentId === residentId
+                && monthLabelToKey(payment.month) === key
+                && payment.purposeCode === 'subscription'
+                && Number(payment.amount) > 0)
+                .reduce((sum, payment) => sum + Number(payment.amount), 0);
+            const settlement = (state.adjustments || []).find(adjustment => adjustment.residentId === residentId
+                && adjustment.effectiveMonth === key && adjustment.kind === 'settlement');
+            if (!settlement) return subscription;
+            const settlementPaid = state.income.filter(payment => payment.purposeCode === 'settlement'
+                && payment.settlementAdjustmentId === settlement.id && Number(payment.amount) > 0)
+                .reduce((sum, payment) => sum + Number(payment.amount), 0);
+            return subscription + settlementPaid;
         },
         isResidentActiveInMonth: (resident, key) => key.slice(0, 7) >= String(resident.createdAt || '').slice(0, 7),
         getIncomePurposeFormCode: purpose => (purpose === 'subscription' ? 'subscription' : 'other'),
@@ -170,7 +190,9 @@ test('annual summary computes each month and totals in cents', () => {
     const feb = report.rows.find(row => row.key === '2024-02-01');
     assert.equal(feb.paidCents, 15000);
     assert.equal(feb.pct, 50);
-    assert.equal(feb.outstandingCents, 15000);
+    // أحمد دفع 150 (زيادة 50 عن مستحقه) وسارة لم تدفع شيئًا: المتبقي متأخرات سارة 200 كاملة،
+    // لأن زيادة مقيم لا تغطي متأخرات مقيم آخر.
+    assert.equal(feb.outstandingCents, 20000);
     const jul = report.rows.find(row => row.key === '2024-07-01');
     assert.equal(jul.future, true, 'بعد الشهر الحالي: شرطات');
     assert.equal(jul.pct, null);
@@ -179,9 +201,32 @@ test('annual summary computes each month and totals in cents', () => {
     assert.equal(report.totals.paidCents, 45000);
     assert.equal(report.totals.expenseCents, 5000);
     assert.equal(report.totals.netCents, 40000);
-    assert.equal(report.totals.outstandingCents, 135000);
+    assert.equal(report.totals.outstandingCents, 140000);
     // متوسط النسبة على الأشهر ذات المستحق: (100+50+0+0+0+0)/6
     assert.equal(report.avgPct, 25);
+});
+
+test('annual summary counts settlements and positive payments only, per resident', () => {
+    // شهر مارس: أحمد اتفق على تسوية 60 بدل اشتراكه 100، دفع 30 اشتراك + 20 تسوية،
+    // وله حركة سالبة -10 (عكس قيد) لا يجوز أن تنقص المحصل.
+    // سارة لم تدفع شيئًا: متأخراتها 200 كاملة ولا تغطيها زيادة غيرها.
+    const { api } = loadAnnual({
+        adjustments: [
+            { id: 'adj1', residentId: 'r1', effectiveMonth: '2024-03-01', kind: 'settlement', amount: 60 }
+        ],
+        income: [
+            { id: 'i10', residentId: 'r1', month: 'مارس 2024', amount: 30, purposeCode: 'subscription', date: '2024-03-05T12:00:00' },
+            { id: 'i11', residentId: 'r1', month: 'مارس 2024', amount: 20, purposeCode: 'settlement', settlementAdjustmentId: 'adj1', date: '2024-03-09T12:00:00' },
+            { id: 'i12', residentId: 'r1', month: 'مارس 2024', amount: -10, purposeCode: 'subscription', date: '2024-03-11T12:00:00' }
+        ],
+        expenses: []
+    });
+    const report = api.buildAnnualSummaryReport('2024', new Date('2024-06-10T12:00:00'));
+    const mar = report.rows.find(row => row.key === '2024-03-01');
+    assert.equal(mar.dueCents, 26000, 'المستحق = تسوية أحمد 60 + اشتراك سارة 200');
+    assert.equal(mar.paidCents, 5000, 'المحصل = 30 اشتراك + 20 تسوية، والحركة السالبة مستبعدة');
+    assert.equal(mar.outstandingCents, 21000, 'متبقي أحمد 10 + متبقي سارة 200');
+    assert.equal(mar.pct, 19, '50/260 ≈ 19%');
 });
 
 test('annual summary renders grid, dashes for future months and totals row', () => {

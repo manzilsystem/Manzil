@@ -124,14 +124,27 @@ function buildAnnualSummaryReport(year = '', now = new Date()) {
             rows.push({ key, label: monthLabel, future: true, dueCents: 0, paidCents: 0, pct: null, expenseCents: 0, netCents: 0, outstandingCents: 0 });
             continue;
         }
-        const dueCents = residents.reduce((sum, resident) => {
-            if (typeof isResidentActiveInMonth === 'function' && !isResidentActiveInMonth(resident, key)) return sum;
-            return sum + toCents(getMonthlyDueAmountForMonth(resident, monthLabel));
-        }, 0);
-        const paidCents = income
-            .filter(payment => monthLabelToKey(payment.month) === key &&
-                (typeof getIncomePurposeFormCode === 'function' ? getIncomePurposeFormCode(payment.purposeCode) : 'subscription') === 'subscription')
-            .reduce((sum, payment) => sum + toCents(payment.amount), 0);
+        // المستحق والمحصّل والمتبقي يحسبان لكل مقيم على حدة بنفس قاعدة
+        // كشف الحساب وتقرير الشقق: التحصيلات الموجبة فقط، ومدفوعات التسوية
+        // تُنسب لشهر تسويتها، وزيادة مقيم لا تغطي متأخرات مقيم آخر.
+        let dueCents = 0;
+        let paidCents = 0;
+        let outstandingCents = 0;
+        residents.forEach(resident => {
+            if (typeof isResidentActiveInMonth === 'function' && !isResidentActiveInMonth(resident, key)) return;
+            const residentDueCents = toCents(getMonthlyDueAmountForMonth(resident, monthLabel));
+            const residentPaidCents = typeof getMonthlyDuePaidAmount === 'function'
+                ? toCents(getMonthlyDuePaidAmount(resident.id, monthLabel))
+                : income
+                    .filter(payment => payment.residentId === resident.id &&
+                        monthLabelToKey(payment.month) === key &&
+                        (typeof getIncomePurposeFormCode === 'function' ? getIncomePurposeFormCode(payment.purposeCode) : 'subscription') === 'subscription' &&
+                        toCents(payment.amount) > 0)
+                    .reduce((sum, payment) => sum + toCents(payment.amount), 0);
+            dueCents += residentDueCents;
+            paidCents += residentPaidCents;
+            outstandingCents += Math.max(0, residentDueCents - residentPaidCents);
+        });
         const expenseCents = expenses
             .filter(expense => monthLabelToKey(expense.month) === key)
             .reduce((sum, expense) => sum + toCents(expense.amount), 0);
@@ -144,7 +157,7 @@ function buildAnnualSummaryReport(year = '', now = new Date()) {
             pct: dueCents > 0 ? Math.min(100, Math.round((paidCents / dueCents) * 100)) : null,
             expenseCents,
             netCents: paidCents - expenseCents,
-            outstandingCents: Math.max(0, dueCents - paidCents)
+            outstandingCents
         });
     }
     const past = rows.filter(row => !row.future);
@@ -212,7 +225,7 @@ function renderAnnualSummaryHtml(report) {
             ] : []
         }),
         renderReportNotes([
-            '<p>المستحق من اشتراكات الشقق النشطة كل شهر، والمحصّل من التحصيلات المسجلة على شهر الاستحقاق. الصافي = المحصّل − المصروفات. الأشهر التي لم تحل تظهر بشرطات ولا تدخل المتوسط.</p>'
+            '<p>المستحق من اشتراكات الشقق النشطة كل شهر، والمحصّل من التحصيلات الموجبة المسجلة على شهر الاستحقاق (اشتراكات وتسويات). المتبقي يجمع متأخرات كل شقة على حدة. الصافي = المحصّل − المصروفات. الأشهر التي لم تحل تظهر بشرطات ولا تدخل المتوسط.</p>'
         ])
     ].join('');
 }
