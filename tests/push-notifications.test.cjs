@@ -148,3 +148,57 @@ test('tapping the owner bell asks for a fresh list, without polling', () => {
     assert.match(body, /refreshNotificationsFromServer\(\)/);
     assert.doesNotMatch(body, /setInterval|setTimeout/);
 });
+
+function loadRefresh(query) {
+    const source = read('js/supabase.js');
+    const start = source.indexOf('const NOTIFICATIONS_REFRESH_MIN_GAP_MS');
+    const end = source.indexOf('function setupNotificationsAutoRefresh');
+    const session = { user: { id: 'u1' } };
+    const rendered = [];
+    const sandbox = {
+        currentUserRole: 'owner', activeSession: session, activeBuildingId: 'b1', supabaseStateLoaded: true,
+        navigator: { onLine: true }, console,
+        supabaseClient: { from: () => query },
+        state: { ownerNotifications: [{ id: 'old' }], managerNotifications: [{ id: 'old-m' }] },
+        mapNotification: row => ({ id: row.id, title: row.title }),
+        renderOwnerPortal: () => rendered.push('owner'), renderManagerNotifications: () => rendered.push('manager')
+    };
+    vm.createContext(sandbox);
+    vm.runInContext(source.slice(start, end) + '\nthis.refresh = refreshNotificationsFromServer;', sandbox);
+    return { sandbox, rendered };
+}
+
+test('a building switch mid-flight keeps the old list and renders nothing', async () => {
+    let resolveQuery;
+    const query = { select() { return query; }, eq() { return query; }, is() { return query; }, order() { return query; },
+        limit() { return new Promise(resolve => { resolveQuery = resolve; }); } };
+    const { sandbox, rendered } = loadRefresh(query);
+    const pending = sandbox.refresh();
+    sandbox.activeBuildingId = 'b2';
+    resolveQuery({ data: [{ id: 'n9', building_id: 'b1', title: 'متأخر', created_at: '2026-11-26T05:00:00Z' }], error: null });
+    assert.equal(await pending, false, 'stale building response is dropped');
+    assert.deepEqual(sandbox.state.ownerNotifications, [{ id: 'old' }], 'list untouched');
+    assert.deepEqual(rendered, [], 'nothing re-rendered with another building\'s news');
+});
+
+test('offline never hits the server', async () => {
+    let calls = 0;
+    const query = { select() { return query; }, eq() { return query; }, is() { return query; }, order() { return query; },
+        limit() { calls += 1; return Promise.resolve({ data: [], error: null }); } };
+    const { sandbox } = loadRefresh(query);
+    sandbox.navigator.onLine = false;
+    assert.equal(await sandbox.refresh(), false);
+    assert.equal(calls, 0);
+});
+
+test('the manager bell path refreshes the manager list only', async () => {
+    const rows = [{ id: 'm2', building_id: 'b1', title: 'جديد', created_at: '2026-11-26T05:00:00Z' }];
+    const query = { select() { return query; }, eq() { return query; }, is() { return query; }, order() { return query; },
+        limit() { return Promise.resolve({ data: rows, error: null }); } };
+    const { sandbox, rendered } = loadRefresh(query);
+    sandbox.currentUserRole = 'manager';
+    assert.equal(await sandbox.refresh(), true);
+    assert.deepEqual(sandbox.state.managerNotifications.map(n => n.id), ['m2']);
+    assert.deepEqual(sandbox.state.ownerNotifications, [{ id: 'old' }], 'owner list untouched');
+    assert.deepEqual(rendered, ['manager']);
+});
