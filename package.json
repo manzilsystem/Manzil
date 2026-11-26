@@ -8,6 +8,7 @@
     "build:index": "npm run build:css && npm run build:vendor && node scripts/build-index.mjs",
     "check:index": "node scripts/build-css.mjs --check && node scripts/build-vendor.mjs --check && node scripts/build-index.mjs --check",
     "check:supabase": "node scripts/check-supabase.cjs",
+    "check:conflicts": "node scripts/check-conflict-markers.cjs",
     "check:secrets": "node scripts/check-secrets.cjs",
     "test": "node --test tests/*.test.cjs",
     "typecheck": "tsc -p tsconfig.json",

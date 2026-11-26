@@ -29,6 +29,8 @@ jobs:
         run: npm ci
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
+      - name: Fail on leftover merge-conflict markers
+        run: npm run check:conflicts
       - name: Scan tracked files for credentials
         run: npm run check:secrets
       - name: Type-check opted-in modules
