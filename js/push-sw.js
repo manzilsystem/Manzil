@@ -16,7 +16,9 @@ self.addEventListener('push', event => {
     };
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
-            // The open, visible app already shows the notification through realtime.
+            // Every open window refetches its list: the realtime socket can be frozen in the background.
+            clients.forEach(client => client.postMessage({ type: 'manzil-push-received', id: data.id || '' }));
+            // The open, visible app shows the notification in its list, so no system popup on top of it.
             if (clients.some(client => client.visibilityState === 'visible')) return undefined;
             return self.registration.showNotification(title, options);
         })

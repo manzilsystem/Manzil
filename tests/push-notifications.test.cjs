@@ -93,3 +93,44 @@ test('notifications push trigger reads the secret from vault, is exception-safe 
     assert.match(sql, /revoke all on function private\.notify_push\(\) from public, anon, authenticated/i);
     assert.doesNotMatch(sql, /x-push-secret'\s*,\s*'[^']+'/);
 });
+
+test('in-app notification list refreshes itself on focus, visibility, online and push, without polling', () => {
+    const sw = read('js/push-sw.js');
+    assert.match(sw, /manzil-push-received/);
+    const app = read('js/supabase.js');
+    assert.match(app, /addEventListener\('visibilitychange'/);
+    assert.match(app, /addEventListener\('focus'/);
+    assert.match(app, /addEventListener\('online'/);
+    assert.match(app, /manzil-push-received/);
+    const setup = app.slice(app.indexOf('const NOTIFICATIONS_REFRESH_MIN_GAP_MS'), app.indexOf('function stopOwnerNotificationsRealtime'));
+    assert.doesNotMatch(setup, /setInterval/);
+});
+
+test('refreshNotificationsFromServer replaces the list, throttles, and ignores a stale session', async () => {
+    const source = read('js/supabase.js');
+    const start = source.indexOf('const NOTIFICATIONS_REFRESH_MIN_GAP_MS');
+    const end = source.indexOf('function setupNotificationsAutoRefresh');
+    const rows = [{ id: 'n2', building_id: 'b1', title: 'جديد', created_at: '2026-11-26T05:00:00Z' }, { id: 'n1', building_id: 'b1', title: 'قديم', created_at: '2026-11-25T05:00:00Z' }];
+    let calls = 0;
+    const query = { select() { return query; }, eq() { return query; }, is() { return query; }, order() { return query; }, limit() { calls += 1; return Promise.resolve({ data: rows, error: null }); } };
+    let rendered = 0;
+    const session = { user: { id: 'u1' } };
+    const sandbox = {
+        currentUserRole: 'owner', activeSession: session, activeBuildingId: 'b1', supabaseStateLoaded: true,
+        navigator: { onLine: true }, console,
+        supabaseClient: { from: () => query },
+        state: { ownerNotifications: [{ id: 'n1' }], managerNotifications: [] },
+        mapNotification: row => ({ id: row.id, title: row.title }),
+        renderOwnerPortal: () => { rendered += 1; }, renderManagerNotifications: () => {}
+    };
+    vm.createContext(sandbox);
+    vm.runInContext(source.slice(start, end) + '\nthis.refresh = refreshNotificationsFromServer;', sandbox);
+    assert.equal(await sandbox.refresh(), true);
+    assert.deepEqual(sandbox.state.ownerNotifications.map(n => n.id), ['n2', 'n1']);
+    assert.equal(rendered, 1);
+    assert.equal(await sandbox.refresh(), false, 'second call inside 5s is throttled');
+    assert.equal(calls, 1);
+    assert.equal(await sandbox.refresh({ force: true }), true, 'a push forces a refetch');
+    sandbox.currentUserRole = 'resident';
+    assert.equal(await sandbox.refresh({ force: true }), false);
+});
