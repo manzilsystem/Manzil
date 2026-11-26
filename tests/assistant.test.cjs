@@ -2516,6 +2516,43 @@ test('when Amm Abdo does not understand he says so and offers the three closest 
     assert.doesNotMatch(unknown.html, /\d{3,}/, 'no invented numbers in the fallback');
 });
 
+test('manager receipts and rents phrasings route to engine-backed answers', () => {
+    const { api, context } = createHarness();
+    for (const phrase of ['ايصال شقة 3', 'طلعلي ايصالات احمد', 'دفعات شقة 7', 'دفعات سارة']) {
+        const answer = api.answerAssistantQuery(phrase, NOW);
+        assert.equal(answer.id, 'resident_receipts', phrase);
+        assert.match(answer.html, /عدد الإيصالات/);
+    }
+    const flat3 = api.answerAssistantQuery('ايصالات شقة 3', NOW);
+    assert.match(flat3.html, /100/, 'amount comes from the saved payment');
+    assert.match(flat3.html, /40/);
+    vm.runInContext(`state.income.push({ id: 'oct1', residentId: 'r1', month: 'أكتوبر 2026', amount: 60, purposeCode: 'subscription', cashAccountCode: 'main', paymentMethod: 'cash', date: '2026-10-02T10:00:00.000Z' });`, context);
+    assert.match(api.answerAssistantQuery('ايصالات شقة 3', NOW).html, /أكتوبر 2026/, 'no month hint means every period');
+    assert.doesNotMatch(api.answerAssistantQuery('ايصالات شقة 3 نوفمبر 2026', NOW).html, /أكتوبر 2026/);
+    const sarahNovember = api.answerAssistantQuery('ايصالات سارة نوفمبر 2026', NOW);
+    assert.equal(sarahNovember.id, 'resident_receipts');
+    assert.match(sarahNovember.title, /نوفمبر 2026/);
+    for (const phrase of ['شقة 3 دفعت كام', 'احمد عليه كام', 'سارة لسه عليها كام', 'شقة 7 مدفعتش']) {
+        assert.equal(api.answerAssistantQuery(phrase, NOW).id, 'resident', phrase);
+    }
+    assert.equal(api.answerAssistantQuery('ايصالات الشهر ده', NOW).id, 'income');
+    assert.equal(api.answerAssistantQuery('اتحصل كام الشهر ده', NOW).id, 'income');
+    assert.equal(api.answerAssistantQuery('مين مدفعش النهارده', NOW).id, 'arrears');
+});
+
+test('today collection answer never invents a number', () => {
+    const { api, context } = createHarness();
+    const empty = api.answerAssistantQuery('اتحصل كام النهارده', NOW);
+    assert.equal(empty.id, 'today_income');
+    assert.match(empty.html, /لسه مفيش تحصيل متسجل النهارده/);
+    vm.runInContext(`state.income.push({ id: 'today1', residentId: 'r2', month: 'نوفمبر 2026', amount: 75, purposeCode: 'subscription', cashAccountCode: 'main', paymentMethod: 'cash', date: '2026-11-15T09:00:00.000Z' });`, context);
+    const filled = api.answerAssistantQuery('مين دفع النهارده', NOW);
+    assert.equal(filled.id, 'today_income');
+    assert.match(filled.html, /75/);
+    assert.match(filled.html, /سارة حسن/);
+    assert.match(filled.html, /عدد الدفعات/);
+});
+
 test('title abbreviations in names become spoken titles', () => {
     const cases = [
         ['أ/ سمير محمد', 'أستاذ سمير', 'يا أستاذ سمير'],
