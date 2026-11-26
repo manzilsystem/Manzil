@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="fonts/cairo.css?v=aecf0ab114">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/tailwind.css?v=1d5fbff66e">
-    <link rel="stylesheet" href="css/style.css?v=852fd65d5e">
+    <link rel="stylesheet" href="css/style.css?v=6c3a9158cc">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -190,13 +190,6 @@
                 </div>
             </div>
             <div class="flex items-center gap-1.5">
-                <div class="owner-theme-control" id="ownerThemeControl">
-                    <button type="button" id="ownerThemeBtn" class="owner-theme-btn app-card border" onclick="toggleOwnerThemeMenu()" aria-haspopup="true" aria-expanded="false" aria-controls="ownerThemeMenu" aria-label="تغيير مظهر البوابة" title="مظهرك المفضل">
-                        <span class="owner-theme-swatch theme-preview-dark" id="ownerThemeSwatch" aria-hidden="true"></span>
-                        <i class="fa-solid fa-palette" aria-hidden="true"></i>
-                    </button>
-                    <div class="owner-theme-menu app-card border hidden" id="ownerThemeMenu" role="group" aria-label="اختيار مظهر البوابة"></div>
-                </div>
                 <button type="button" id="ownerNotificationsBtn" class="owner-notifications-btn app-card border p-2.5 rounded-xl text-xs transition relative hidden" onclick="focusOwnerNotifications()" aria-label="الإشعارات" title="الإشعارات">
                     <i class="fa-solid fa-bell text-sm" aria-hidden="true"></i>
                     <span id="ownerNotificationsBadge" class="manager-notifications-badge hidden" aria-hidden="true"></span>
@@ -209,7 +202,7 @@
                     <div class="manager-notifications-menu app-card border hidden" id="managerNotificationsMenu" role="group" aria-label="إشعارات المدير"></div>
                 </div>
                 <button id="signupAdminBtn" type="button" onclick="openSignupRequests()" aria-label="طلبات التسجيل" class="app-card border p-2.5 rounded-xl text-xs transition hidden" title="طلبات التسجيل"><i class="fa-solid fa-user-clock text-sm"></i></button>
-                <button id="quickThemeBtn" type="button" onclick="toggleQuickTheme()" aria-label="التبديل إلى المظهر النهاري" title="المظهر" class="app-card border p-2.5 rounded-xl text-xs transition"><i id="quickThemeIcon" class="fa-solid fa-sun text-sm" aria-hidden="true"></i></button>
+                <button id="quickThemeBtn" type="button" onclick="toggleQuickTheme()" aria-label="الوضع الليلي / النهاري" title="الوضع الليلي / النهاري" data-mode="dark" class="quick-theme-btn app-card border p-2.5 rounded-xl text-xs transition"><i id="quickThemeIcon" class="fa-solid fa-sun text-sm" aria-hidden="true"></i></button>
                 <button onclick="openSettingsModal()" aria-label="فتح الإعدادات" class="app-card border p-2.5 rounded-xl text-xs transition" title="الإعدادات"><i class="fa-solid fa-gear text-sm"></i></button>
                 <button id="accessSwitchBtn" onclick="lockCurrentSession()" aria-label="تبديل المستخدم أو قفل التطبيق" class="app-card border p-2.5 rounded-xl text-xs transition hidden" title="خروج / تبديل المستخدم"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
             </div>
@@ -2913,9 +2906,9 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-a9ed0619a6"></script>
-    <script src="js/state.js?v=14a0e9f8b6"></script>
-    <script src="js/access.js?v=f0fe35e7a1"></script>
+    <script src="js/telemetry.js?v=manzil-40e43e75bb"></script>
+    <script src="js/state.js?v=6e981e1148"></script>
+    <script src="js/access.js?v=174af95fa9"></script>
     <script src="js/render.js?v=f8126841aa"></script>
     <script src="js/crud.js?v=dcb202e00c"></script>
     <script src="js/notices.js?v=9660500dac"></script>

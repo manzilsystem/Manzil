@@ -418,7 +418,6 @@ test('z-index layering tokens resolve consistently across themes and print', asy
         ['#settingsModal .settings-hero-copy', undefined, '1'],
         ['#settingsModal .settings-hero-stats', undefined, '1'],
         ['#settingsModal .settings-section-toolbar', undefined, '6'],
-        ['#ownerThemeMenu', undefined, '40'],
         ['#managerNotificationsMenu', undefined, '40'],
         ['.assistant-fab', undefined, '45']
     ];

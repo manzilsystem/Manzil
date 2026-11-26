@@ -1082,7 +1082,7 @@ body.owner-mode #printableArea > :not(#ownerPortal):not(#appCopyright) { display
 body.owner-mode #printableArea > #ownerPortal { display: block !important; }
 /* In owner mode the manager settings gear stays hidden, but the owner
    notifications bell and the lock/switch button are managed by JS. */
-body.owner-mode header .container > div:last-child > button:not(#accessSwitchBtn):not(#ownerNotificationsBtn) { display: none !important; }
+body.owner-mode header .container > div:last-child > button:not(#accessSwitchBtn):not(#ownerNotificationsBtn):not(#quickThemeBtn) { display: none !important; }
 body.owner-mode #accessSwitchBtn { display: block !important; }
 body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !important; }
 
