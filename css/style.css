@@ -528,6 +528,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .cashbox-row-sub { color: var(--text-muted); font-size: var(--font-70); line-height: var(--leading-160); overflow-wrap: anywhere; }
 .cashbox-row-amount { flex: 0 0 auto; font-size: var(--font-80); font-weight: var(--weight-800); font-variant-numeric: tabular-nums; }
 .cashbox-empty { padding: var(--space-85) var(--space-60); color: var(--text-muted); font-size: var(--font-72); text-align: center; }
+.cashbox-nowrap { white-space: nowrap; }
+.cashbox-rows-scroll { padding-inline-end: var(--space-20); -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 1.25rem), transparent); mask-image: linear-gradient(to bottom, black calc(100% - 1.25rem), transparent); }
+@media (max-width: 639px) { .cashbox-card-head .cashbox-select { flex: 1 1 100%; width: 100%; } }
+@media (min-width: 640px) {
+    .cashbox-grid { align-items: stretch; }
+    .cashbox-grid > .cashbox-card:first-child { grid-column: 1 / -1; }
+    .cashbox-grid > .cashbox-card:last-child { grid-column: 1 / -1; }
+}
+@media (min-width: 900px) { #cashboxSummaryRows { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+[data-theme="light"] #tab-cashbox .text-amber-300 { color: var(--state-warning); }
+[data-theme="light"] #tab-cashbox .text-indigo-300 { color: var(--indigo-bright); }
 .cashbox-form { display: flex; flex-direction: column; gap: var(--space-65); }
 .cashbox-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-55); }
 .cashbox-field { display: flex; flex-direction: column; gap: var(--space-25); min-width: 0; }

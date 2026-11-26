@@ -180,6 +180,13 @@ function calculateFundMovement(month) {
     return totals;
 }
 
+/** مبلغ بصيغة موحّدة: بدون كسور للأرقام الصحيحة، وخانتان عشريتان عند وجود كسر (250.50 وليس 250.5). */
+function fmtCashMoney(value) {
+    const amount = Number(value) || 0;
+    const whole = Math.round(amount * 100) % 100 === 0;
+    return whole ? fmtNum(amount) : amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function renderCashboxMovementSummary() {
     const container = document.getElementById('cashboxSummaryRows');
     if (!container) return;
@@ -195,14 +202,14 @@ function renderCashboxMovementSummary() {
             <article class="cashbox-fund">
                 <div class="cashbox-fund-head">
                     <strong class="cashbox-fund-name"><span class="cashbox-fund-dot ${tone}" aria-hidden="true"></span>${esc(getCashAccountLabel(code))}</strong>
-                    <strong class="cashbox-fund-net ${netClass}">${fmtNum(net / 100)} ج.م</strong>
+                    <strong class="cashbox-fund-net ${netClass}">${fmtCashMoney(net / 100)} ج.م</strong>
                 </div>
                 <div class="cashbox-metrics">
-                    <div class="cashbox-metric"><span class="cashbox-metric-value text-emerald-400">${fmtNum(bucket.income / 100)}</span><span class="cashbox-metric-label">تحصيلات</span></div>
-                    <div class="cashbox-metric"><span class="cashbox-metric-value text-rose-400">${fmtNum(bucket.expenses / 100)}</span><span class="cashbox-metric-label">مصروفات</span></div>
-                    <div class="cashbox-metric"><span class="cashbox-metric-value ${transfers >= 0 ? 'text-indigo-300' : 'text-amber-300'}">${fmtNum(Math.abs(transfers) / 100)}</span><span class="cashbox-metric-label">${transfers >= 0 ? 'صافي وارد' : 'صافي صادر'}</span></div>
+                    <div class="cashbox-metric"><span class="cashbox-metric-value text-emerald-400">${fmtCashMoney(bucket.income / 100)}</span><span class="cashbox-metric-label">تحصيلات</span></div>
+                    <div class="cashbox-metric"><span class="cashbox-metric-value text-rose-400">${fmtCashMoney(bucket.expenses / 100)}</span><span class="cashbox-metric-label">مصروفات</span></div>
+                    <div class="cashbox-metric"><span class="cashbox-metric-value ${transfers >= 0 ? 'text-indigo-300' : 'text-amber-300'}">${fmtCashMoney(Math.abs(transfers) / 100)}</span><span class="cashbox-metric-label">${transfers >= 0 ? 'صافي وارد' : 'صافي صادر'}</span></div>
                 </div>
-                <p class="cashbox-fund-transfers">تحويلات داخلة: <span class="font-bold text-indigo-300">${fmtNum(bucket.transfersIn / 100)}</span> ج.م · تحويلات خارجة: <span class="font-bold text-amber-300">${fmtNum(bucket.transfersOut / 100)}</span> ج.م</p>
+                <p class="cashbox-fund-transfers">تحويلات داخلة: <span class="font-bold text-indigo-300">${fmtCashMoney(bucket.transfersIn / 100)}</span> ج.م · تحويلات خارجة: <span class="font-bold text-amber-300">${fmtCashMoney(bucket.transfersOut / 100)}</span> ج.م</p>
             </article>
         `;
     }).join('');
@@ -288,16 +295,17 @@ function renderCashboxRecentMovements() {
                 : 'cashbox-tone-indigo';
         const kindIcon = item.kind === 'income' ? 'fa-circle-arrow-down'
             : item.kind === 'expense' ? 'fa-circle-arrow-up'
-                : 'fa-arrows-rotate';
+                : item.kind === 'transfer-in' ? 'fa-arrow-down-long'
+                    : 'fa-arrow-up-long';
         const amountTone = positive ? 'text-emerald-400' : 'text-rose-400';
         return `
             <article class="cashbox-row">
                 <span class="cashbox-row-icon ${kindTone}" aria-hidden="true"><i class="fa-solid ${kindIcon}"></i></span>
                 <div class="cashbox-row-main">
-                    <p class="cashbox-row-title">${esc(item.label)} · ${esc(getCashAccountLabel(item.accountCode))}</p>
+                    <p class="cashbox-row-title">${esc(item.label)} · <span class="cashbox-nowrap">${esc(getCashAccountLabel(item.accountCode))}</span></p>
                     <p class="cashbox-row-sub">${formatDate(item.at)}${item.notes ? ` · ${esc(item.notes)}` : ''}</p>
                 </div>
-                <strong class="cashbox-row-amount ${amountTone}">${positive ? '+' : '−'}${fmtNum(item.amount)} ج.م</strong>
+                <strong class="cashbox-row-amount ${amountTone}">${positive ? '+' : '−'}${fmtCashMoney(item.amount)} ج.م</strong>
             </article>
         `;
     }).join('');
@@ -308,13 +316,13 @@ function renderCashbox() {
 
     for (const code of Object.keys(CASH_ACCOUNTS)) {
         const element = document.getElementById(`cashBalance-${code}`);
-        if (element) element.textContent = `${fmtNum(getCashAccountBalance(code))} ج.م`;
+        if (element) element.textContent = `${fmtCashMoney(getCashAccountBalance(code))} ج.م`;
     }
 
     const totalBalance = Object.keys(CASH_ACCOUNTS)
         .reduce((sum, code) => sum + getCashAccountBalance(code), 0);
     const totalElement = document.getElementById('cashBalance-total');
-    if (totalElement) totalElement.textContent = `${fmtNum(totalBalance)} ج.م`;
+    if (totalElement) totalElement.textContent = `${fmtCashMoney(totalBalance)} ج.م`;
 
     renderCashboxMovementSummary();
     renderCashboxRecentMovements();
@@ -334,10 +342,10 @@ function renderCashbox() {
             <article class="cashbox-row">
                 <span class="cashbox-row-icon cashbox-tone-indigo" aria-hidden="true"><i class="fa-solid fa-arrow-left-long"></i></span>
                 <div class="cashbox-row-main">
-                    <p class="cashbox-row-title">${esc(fromLabel)} <i class="fa-solid fa-arrow-left-long mx-1 text-indigo-400" aria-hidden="true"></i> ${esc(toLabel)}</p>
+                    <p class="cashbox-row-title"><span class="cashbox-nowrap">${esc(fromLabel)}</span> <i class="fa-solid fa-arrow-left-long mx-1 text-indigo-400" aria-hidden="true"></i> <span class="cashbox-nowrap">${esc(toLabel)}</span></p>
                     <p class="cashbox-row-sub">${formatDate(transfer.transferredAt)}${transfer.notes ? ` · ${esc(transfer.notes)}` : ''}</p>
                 </div>
-                <strong class="cashbox-row-amount text-indigo-300">${fmtNum(transfer.amount)} ج.م</strong>
+                <strong class="cashbox-row-amount text-indigo-300">${fmtCashMoney(transfer.amount)} ج.م</strong>
             </article>
         `;
     }).join('');
@@ -379,7 +387,7 @@ function previewCashTransfer() {
     }
 
     if (!sufficient) {
-        summary.textContent = `الرصيد المتاح في ${getCashAccountLabel(from)} هو ${fmtNum(available)} ج.م فقط.`;
+        summary.textContent = `الرصيد المتاح في ${getCashAccountLabel(from)} هو ${fmtCashMoney(available)} ج.م فقط.`;
         summary.className = 'text-xs font-bold text-rose-400';
         return;
     }
@@ -389,7 +397,7 @@ function previewCashTransfer() {
         return;
     }
 
-    summary.textContent = `تحويل ${fmtNum(amount)} ج.م من ${getCashAccountLabel(from)} إلى ${getCashAccountLabel(to)}. الرصيد بعد التحويل: ${fmtNum(available - amount)} ج.م.`;
+    summary.textContent = `تحويل ${fmtCashMoney(amount)} ج.م من ${getCashAccountLabel(from)} إلى ${getCashAccountLabel(to)}. الرصيد بعد التحويل: ${fmtCashMoney(available - amount)} ج.م.`;
     summary.className = 'text-xs font-bold text-emerald-400';
 }
 
