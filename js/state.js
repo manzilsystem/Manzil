@@ -170,11 +170,16 @@ const DEFAULT_PAYMENT_SETTINGS = Object.freeze({
  *  حتى لا يمنع أول حفظ للإعدادات بسبب حقول فارغة. المباني القائمة تبقى كما هي تمامًا. */
 function applyNewBuildingPaymentDefaults(settings, isNewBuilding) {
     const normalized = normalizePaymentSettings(settings);
-    if (isNewBuilding !== true) return normalized;
     const empty = (method, fields) => fields.every(field => !String(method[field] || '').trim());
-    if (normalized.wallet.enabled && empty(normalized.wallet, ['provider', 'accountName', 'number'])) normalized.wallet.enabled = false;
-    if (normalized.instapay.enabled && empty(normalized.instapay, ['accountName', 'address'])) normalized.instapay.enabled = false;
-    if (normalized.bank_transfer.enabled && empty(normalized.bank_transfer, ['bankName', 'accountName', 'accountNumber', 'iban'])) normalized.bank_transfer.enabled = false;
+    const walletEmpty = empty(normalized.wallet, ['provider', 'accountName', 'number']);
+    const instapayEmpty = empty(normalized.instapay, ['accountName', 'address']);
+    const bankEmpty = empty(normalized.bank_transfer, ['bankName', 'accountName', 'accountNumber', 'iban']);
+    // إعدادات لم يلمسها أحد (الثلاث وسائل مفعّلة وفارغة كما في الافتراضي) تُعرض موقوفة حتى لو كان للمبنى تحصيلات.
+    const untouched = normalized.wallet.enabled && normalized.instapay.enabled && normalized.bank_transfer.enabled && walletEmpty && instapayEmpty && bankEmpty;
+    if (isNewBuilding !== true && !untouched) return normalized;
+    if (normalized.wallet.enabled && walletEmpty) normalized.wallet.enabled = false;
+    if (normalized.instapay.enabled && instapayEmpty) normalized.instapay.enabled = false;
+    if (normalized.bank_transfer.enabled && bankEmpty) normalized.bank_transfer.enabled = false;
     return normalized;
 }
 
