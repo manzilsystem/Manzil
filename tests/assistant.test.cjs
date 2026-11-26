@@ -133,6 +133,7 @@ function createHarness(seed = true, identity = {}, options = {}) {
     }
     const api = vm.runInContext(`({
         answerAssistantQuery,
+        assistantClosestQuestions,
         buildAssistantGreetingHtml,
         cloneStateSnapshot,
         hasPendingStateSave,
@@ -1561,8 +1562,8 @@ test('greeting, thanks, unknown and suggestions stay friendly and safe', () => {
 
     const unknown = api.answerAssistantQuery('ازرق', NOW);
     assert.equal(unknown.id, 'unknown');
-    assert.match(unknown.title, /مش لاقي إجابة/);
-    assert.match(unknown.html, /معلش يا باشا/);
+    assert.match(unknown.title, /ماوصلتش/);
+    assert.match(unknown.html, /ماوصلتش للمقصود يا باشا/);
 
     assert.doesNotMatch(assistantSource, /ASSISTANT_SUGGESTIONS/);
     assert.equal(api.ASSISTANT_NAME, 'عم عبده البواب');
@@ -2474,4 +2475,43 @@ test('upcoming dues: manager sees apartments due within 7 days that are not over
 
     const { api: ownerApi } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
     assert.notEqual(ownerApi.answerAssistantQuery('الاستحقاقات القادمة', NOW).id, 'upcoming_dues');
+});
+
+test('Amm Abdo understands many Egyptian phrasings and answers in the doorman voice', () => {
+    const { api } = createHarness();
+    const cases = {
+        greeting: ['السلام عليكم', 'صباح الخير يا عم عبده', 'ازيك يا عم عبده', 'اهلا يا باشا'],
+        thanks: ['شكرا', 'تسلم ايدك يا عم عبده', 'كتر خيرك', 'ميرسي', 'الله يبارك فيك'],
+        bye: ['مع السلامة', 'في امان الله', 'تصبح على خير', 'يلا سلام'],
+        ack: ['تمام', 'ماشي', 'حاضر', 'اوكي', 'طيب'],
+        who_are_you: ['انت مين', 'مين انت', 'اسمك ايه'],
+        arrears: ['مين لسه مدفعش', 'مين ما دفعش', 'مين لسه ما سددش', 'مين اتأخر في الدفع', 'مين عليه متأخرات؟'],
+        cashbox: ['رصيد الخزنة كام؟', 'كام في الخزنة'],
+        notices: ['فيه اعلانات جديدة؟']
+    };
+    for (const [id, phrases] of Object.entries(cases)) {
+        for (const phrase of phrases) {
+            assert.equal(api.answerAssistantQuery(phrase, NOW).id, id, `${phrase} -> ${id}`);
+        }
+    }
+    assert.match(api.answerAssistantQuery('مع السلامة', NOW).html, /في رعاية الله يا باشا/);
+    assert.match(api.answerAssistantQuery('تمام', NOW).html, /تمام يا باشا/);
+    const who = api.answerAssistantQuery('انت مين', NOW);
+    assert.match(who.html, /أنا عم عبده البواب/);
+    assert.match(who.html, /مبخمّنش/);
+});
+
+test('when Amm Abdo does not understand he says so and offers the three closest questions', () => {
+    const { api } = createHarness();
+    const answer = api.answerAssistantQuery('عايز اعرف مين دفع كتير', NOW);
+    const unknown = api.answerAssistantQuery('ازرق', NOW);
+    assert.equal(unknown.id, 'unknown');
+    assert.match(unknown.html, /ماوصلتش للمقصود يا باشا/);
+    assert.equal(unknown.followUps.length, 3, 'always three suggestions');
+    assert.equal(new Set(unknown.followUps.map(item => item.query)).size, 3);
+    const close = api.answerAssistantQuery('كاش الخزنه كد ايه يعني', NOW);
+    assert.ok(answer && close);
+    assert.deepEqual(api.assistantClosestQuestions('الخزنه فيها كام', 'manager')[0], 'رصيد الخزنة كام؟');
+    assert.equal(api.assistantClosestQuestions('اي حاجة', 'owner').length, 3);
+    assert.doesNotMatch(unknown.html, /\d{3,}/, 'no invented numbers in the fallback');
 });

@@ -200,6 +200,6 @@ test('CSV export includes a payment method column for collections', () => {
     assert.match(reports, /getIncomePaymentMethodLabel\(i\.paymentMethod\)/);
 });
 
-test('owner read-only payment history displays the recorded payment method', () => {
-    assert.match(access, /getIncomePaymentMethodLabel\(payment\.paymentMethod\)/);
+test('owner read-only receipts display the recorded payment method', () => {
+    assert.match(access, /getIncomePaymentMethodLabel\(receipt\.paymentMethod\)/);
 });

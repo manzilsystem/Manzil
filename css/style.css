@@ -5299,6 +5299,7 @@ body.owner-mode .owner-theme-control {
 .owner-notifications-btn { position: relative; min-width:2.75rem; min-height:2.75rem; }
 .push-control { display:flex; align-items:center; justify-content:space-between; gap: var(--space-60); padding: var(--space-60) var(--space-30); border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent); }
 .push-control-btn { flex:0 0 auto; min-height:2.75rem; padding: var(--space-none) var(--space-70); border-radius: var(--radius-lg); font-size: var(--font-70); font-weight: var(--weight-800); color: var(--text-muted, #a5b4fc); border:1px solid var(--border-color); }
+.owner-notice-btn { display:inline-flex; align-items:center; min-height:2.75rem; padding: var(--space-none) var(--space-60); font-size: var(--font-70); font-weight: var(--weight-800); color: var(--text-muted, #a5b4fc); }
 .owner-notification-read { opacity: var(--opacity-65); }
 @media (max-width: 640px) {
     .manager-notifications-control { position: static; }
