@@ -803,7 +803,7 @@ function renderOwnerPortal() {
             <div><h3 class="font-black text-base">ملخص ${esc(month)}</h3><p class="text-xs text-slate-500 mt-1">اشتراكك الشهري ${fmtNum(dueThisMonth)} ج.م</p></div>
             <div class="grid grid-cols-2 gap-3 text-center">
                 <div class="app-input border rounded-2xl p-3"><p class="text-xs text-slate-500">المدفوع هذا الشهر</p><p class="text-lg font-black text-emerald-400 mt-1">${fmtNum(paidThisMonth)} ج.م</p></div>
-                <div class="app-input border rounded-2xl p-3"><p class="text-xs text-slate-500">المتبقي لهذا الشهر</p><p class="text-lg font-black ${remainingThisMonth ? 'text-rose-400' : 'text-emerald-400'} mt-1">${fmtNum(remainingThisMonth)} ج.م</p></div>
+                <div class="app-input border rounded-2xl p-3"><p class="text-xs text-slate-500">المتبقي لهذا الشهر</p><p class="text-lg font-black ${remainingThisMonth ? 'text-rose-400' : 'text-emerald-400'} mt-1">${fmtNum(remainingThisMonth)} ج.م</p><p class="text-xs text-slate-500">لسه ما اتدفعش</p></div>
             </div>
             <div class="app-input border rounded-2xl p-3 flex items-center justify-between gap-3"><span class="min-w-0"><span class="block text-xs font-bold">إجمالي متأخرات حسابك</span>${ownerArrearsCount ? `<span class="block text-xs text-slate-500 mt-0.5">${ownerArrearsCount}${debt.daysOverdue ? ` · متأخر ${esc(formatOverdueDuration(debt.daysOverdue))}` : ''}</span>` : ''}</span><strong class="text-base whitespace-nowrap shrink-0 ${debt.totalDebt ? 'text-rose-400' : 'text-emerald-400'}">${fmtNum(debt.totalDebt)} ج.م</strong></div>
             ${ownerArrearsHtml}
