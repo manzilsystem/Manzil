@@ -8,6 +8,8 @@ const monthlyCloseAccounts = [
 ];
 
 function invalidateMonthlyClosePreview() {
+    // قبل أول معاينة لا شيء يُبطل: الأزرار معطلة أصلًا والنص الإرشادي قائم.
+    if (!monthlyCloseLastReport) return;
     monthlyCloseLastReport = null;
     const exportButton = /** @type {HTMLButtonElement} */ (document.getElementById('monthlyClosePdfButton'));
     if (exportButton) exportButton.disabled = true;

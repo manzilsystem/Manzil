@@ -1178,14 +1178,12 @@
                     <span class="report-card-badge report-tone-emerald">إقفال</span>
                 </div>
                 <section class="space-y-3">
-                    <div class="report-toolbar report-toolbar-split">
+                    <div class="report-toolbar no-print">
                         <label class="report-field" for="monthlyCloseMonthSelect">
                             <span class="report-field-label">شهر الإقفال</span>
                             <select id="monthlyCloseMonthSelect" onchange="invalidateMonthlyClosePreview()" class="report-control app-input border"></select>
                         </label>
                         <button type="button" id="monthlyCloseReviewButton" onclick="loadMonthlyCloseReport()" class="report-action report-action-primary"><i class="fa-solid fa-list-check" aria-hidden="true"></i> مراجعة الإقفال</button>
-                        <button type="button" id="monthlyClosePrintButton" title="نص قابل للنسخ" onclick="printMonthlyClose()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة PDF</button>
-                        <button type="button" id="monthlyClosePdfButton" onclick="exportMonthlyClosePdf()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF (صورة)</button>
                         <div class="report-filter-summary" data-report-filter-summary="monthlyClose" hidden>
                             <span class="report-filter-summary-label">الفلاتر النشطة</span>
                             <span class="report-filter-chips" data-report-filter-list></span>
@@ -1195,6 +1193,10 @@
                     <p id="monthlyCloseReportStatus" class="report-note" role="status" aria-live="polite">اختر الشهر ثم اضغط «مراجعة الإقفال».</p>
                     <div id="monthlyClosePreview" class="report-preview" aria-live="polite">
                         <p class="report-preview-empty">اختر الشهر ثم اضغط «مراجعة الإقفال».</p>
+                    </div>
+                    <div class="report-actions report-actions-2 no-print">
+                        <button type="button" id="monthlyClosePrintButton" title="نص قابل للنسخ" onclick="printMonthlyClose()" disabled class="report-action report-action-primary"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة PDF</button>
+                        <button type="button" id="monthlyClosePdfButton" onclick="exportMonthlyClosePdf()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تنزيل PDF (صورة)</button>
                     </div>
                 </section>
             </div>

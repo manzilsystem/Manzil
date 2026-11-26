@@ -687,7 +687,6 @@ function focusReportStep(step) {
     if (target === 'filters') section = panel.querySelector('.report-toolbar');
     else if (target === 'export') {
         section = panel.querySelector('.report-actions');
-        if (!section && tab === 'monthlyClose') section = document.getElementById('monthlyClosePdfButton');
     } else section = panel.querySelector('[id$="Preview"]') || panel.querySelector('.report-preview');
     if (!section) return true;
     const targetSection = /** @type {HTMLElement} */ (section);
