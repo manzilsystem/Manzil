@@ -2696,3 +2696,24 @@ test('cleaning expenses question filters by category and never lists other expen
     const now = api.answerAssistantQuery('مصروفات النظافة الشهر ده', NOW);
     assert.match(now.html, /60/);
 });
+
+test('audit #654: Egyptian month-count boundaries (1, 2, 3, 10, 11, 12) read like speech', () => {
+    const { context } = createHarness(true);
+    const count = n => vm.runInContext(`assistantMonthsCount(${n})`, context);
+    assert.equal(count(1), 'شهر');
+    assert.equal(count(2), 'شهرين');
+    assert.equal(count(3), '3 شهور');
+    assert.equal(count(10), '10 شهور');
+    assert.equal(count(11), '11 شهر', '11 must flip back to شهر, not شهور');
+    assert.equal(count(12), '12 شهر');
+});
+
+test('audit #654: naming this and last month compares this month, naming only last month does not shift twice', () => {
+    const { api } = createHarness(true, { role: 'manager' });
+    const both = api.answerAssistantQuery('قارن الشهر ده بالشهر اللي فات', NOW);
+    assert.equal(both.id, 'comparison');
+    assert.match(both.title, /نوفمبر 2026 وأكتوبر 2026/);
+    const variant = api.answerAssistantQuery('قارن الشهر الحالي بالشهر السابق', NOW);
+    assert.equal(variant.id, 'comparison');
+    assert.match(variant.title, /نوفمبر 2026 وأكتوبر 2026/, 'الحالي/السابق wording must hit the same this-vs-last branch');
+});
