@@ -727,7 +727,7 @@ function runReportQualityCheck() {
     if (note) {
         note.textContent = issues.length
             ? 'فحص الدقة: ' + issues.join('، ') + '. راجع السجلات قبل الطباعة.'
-            : 'فحص الدقة: ' + fmtNum(records.length) + ' سجل متسق، و' + fmtNum(residents.length) + ' مالك مرتبط بتقاريره.';
+            : 'فحص الدقة: راجعنا ' + fmtNum(records.length) + ' حركة و' + fmtNum(residents.length) + ' مالك، وكلها سليمة.';
     }
     if (meter) {
         meter.textContent = fmtNum(score) + '%';
@@ -1385,7 +1385,7 @@ async function generateLandlordReport() {
                     }
                 ] : []
             })}
-            ${renderReportNotes(['<p>' + note + '</p>'])}
+            ${renderReportNotes(['<p>' + note + '</p>', '<p>المحصّل هو ما دفعه الملاك فعلًا، والمتبقي ما لم يُدفع بعد، والصافي هو المحصّل بعد طرح المصروفات.</p>'])}
         </div>`;
     landlordReportMonth = m;
     landlordReportPurposeFilter = purposeFilter;

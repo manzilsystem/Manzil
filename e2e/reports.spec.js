@@ -548,7 +548,7 @@ test('the grouped report cards are clickable and free of hub layers', async ({ p
 
     await page.locator('.report-quality-check').click();
     await expect(page.locator('#reportQualityMeter')).toHaveText('100%');
-    await expect(page.locator('#reportQualityNote')).toContainText('سجل متسق');
+    await expect(page.locator('#reportQualityNote')).toContainText('وكلها سليمة');
 
     await page.locator('[data-report-nav="monthlyClose"]').click();
     await expect(page.locator('#monthlyClosePanel')).toBeVisible();
