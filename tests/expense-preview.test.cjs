@@ -53,3 +53,11 @@ test('expense over the main vault requires an explicit confirmation recorded in 
     assert.match(crud, /toast\('صرف مبلغ يتجاوز رصيد الخزنة الرئيسية يتطلب تأكيدًا صريحًا\.'/);
     assert.match(crud, /logAction\('تجاوز رصيد الخزنة'/);
 });
+
+test('expense preview stays hidden until a category is chosen and the fields have visible labels', () => {
+    assert.match(crud, /!amount[^\n]*|amount <= 0 \|\| !month \|\| !category\) \{\s*preview\.classList\.add\('hidden'\)/);
+    assert.doesNotMatch(crud, /esc\(category \|\| 'أخرى'\)/);
+    for (const label of ['وصف المصروف', 'المبلغ (ج.م)', 'الفئة']) {
+        assert.ok(html.includes(`<span class="text-slate-400">${label}`), label);
+    }
+});

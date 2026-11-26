@@ -2762,16 +2762,16 @@
             </div>
             <form id="expenseForm" novalidate onsubmit="handleExpenseSubmit(event)" class="sticky-modal-form">
                 <div class="sticky-modal-body space-y-3">
-                <input type="text" id="expenseTitle" aria-label="وصف المصروف" placeholder="وصف المصروف" oninput="previewExpense()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
-                <input type="number" id="expenseAmount" min="0.01" step="0.01" aria-label="مبلغ المصروف" placeholder="مبلغ المصروف" oninput="previewExpense()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
-                <select id="expenseCategory" aria-label="فئة المصروف" onchange="previewExpense()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
+                <label class="block text-xs space-y-1"><span class="text-slate-400">وصف المصروف</span><input type="text" id="expenseTitle" aria-label="وصف المصروف" placeholder="وصف المصروف" oninput="previewExpense()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></label>
+                <label class="block text-xs space-y-1"><span class="text-slate-400">المبلغ (ج.م)</span><input type="number" id="expenseAmount" min="0.01" step="0.01" aria-label="مبلغ المصروف" placeholder="مبلغ المصروف" oninput="previewExpense()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></label>
+                <label class="block text-xs space-y-1"><span class="text-slate-400">الفئة <span class="text-rose-400">*</span></span><select id="expenseCategory" aria-label="فئة المصروف" onchange="previewExpense()" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                     <option value="" disabled selected>اختر فئة المصروف</option>
                     <option value="كهرباء">كهرباء</option>
                     <option value="صيانة أسانسير">صيانة أسانسير</option>
                     <option value="نظافة">نظافة</option>
                     <option value="أعمال سباكة وصنايعي">أعمال سباكة وصنايعي</option>
                     <option value="أخرى">أخرى</option>
-                </select>
+                </select></label>
                 <label class="block text-xs space-y-1">
                     <span class="text-slate-400">الصندوق الذي تم الصرف منه</span>
                     <select id="expenseCashAccount" aria-label="صندوق المصروف" onchange="previewExpense()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
@@ -2854,11 +2854,11 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-01763592c8"></script>
+    <script src="js/telemetry.js?v=manzil-c46e29b8c0"></script>
     <script src="js/state.js?v=8c1fbc9a2c"></script>
     <script src="js/access.js?v=470b57b889"></script>
     <script src="js/render.js?v=2cf3677bab"></script>
-    <script src="js/crud.js?v=5ae4db4fa9"></script>
+    <script src="js/crud.js?v=4d7669842d"></script>
     <script src="js/notices.js?v=dc046ce90c"></script>
     <script src="js/push.js?v=7bd2efa86c"></script>
     <!-- Chart.js for report visualizations (bundled locally) -->
