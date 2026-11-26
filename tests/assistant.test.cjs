@@ -2748,3 +2748,21 @@ test('audit #654: naming this and last month compares this month, naming only la
     assert.equal(variant.id, 'comparison');
     assert.match(variant.title, /نوفمبر 2026 وأكتوبر 2026/, 'الحالي/السابق wording must hit the same this-vs-last branch');
 });
+
+test('day windows and last-N-months answer with exact dates instead of the whole month', () => {
+    const { api, context } = createHarness(true);
+    vm.runInContext(`state.income.push({ id: 'iy', residentId: 'r1', month: 'نوفمبر 2026', amount: 70, purposeCode: 'subscription', cashAccountCode: 'main', paymentMethod: 'cash', date: '2026-11-14T10:00:00.000Z' });
+        state.expenses.push({ id: 'ey', month: 'نوفمبر 2026', title: 'مصعد', amount: 15, category: 'صيانة', cashAccountCode: 'main', date: '2026-11-12T10:00:00.000Z' });`, context);
+    const strip = html => String(html).replace(/<[^>]+>/g, ' ');
+    const yesterday = api.answerAssistantQuery('امبارح اتحصل كام', NOW);
+    assert.match(strip(yesterday.html), /70/);
+    assert.doesNotMatch(strip(yesterday.html), /190|260/);
+    const week = api.answerAssistantQuery('الاسبوع ده صرفنا كام', NOW);
+    assert.match(strip(week.html), /15/);
+    assert.match(week.title, /آخر 7 أيام/);
+    const none = api.answerAssistantQuery('امبارح صرفنا كام', NOW);
+    assert.match(strip(none.html), /مفيش مصروفات/);
+    const months = api.answerAssistantQuery('اخر 3 شهور اتحصل كام', NOW);
+    assert.match(strip(months.html), /460/);
+    assert.match(months.title, /آخر 3 شهور/);
+});
