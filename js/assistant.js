@@ -14,6 +14,7 @@ const ASSISTANT_HISTORY_LIMIT = 30;
 const ASSISTANT_MAX_MESSAGE_LENGTH = 1000;
 const ASSISTANT_TIME_HINT = /(يناير|فبراير|مارس|ابريل|مايو|يونيو|يوليو|اغسطس|سبتمبر|اكتوبر|نوفمبر|ديسمبر|20[0-9]{2}|الشهر|شهر|(?:^|\s)(?:السنه|سنه|عام)(?:\s|$)|النهارده|دلوقتي|حاليا|كل الفتره|كل الفترات|كل الشهور|من البدايه|من البداية|من بداية السنه|من اول السنه|السنه اللي فاتت|العام اللي فات)/;
 const ASSISTANT_RESIDENT_FOLLOWUP = /^(هو|هي|وده|دي|وكمان|ودوره|ومن زمان|ولحد دلوقتي|ولحد حاليا|وعليه)/;
+const ASSISTANT_DAY_WORD = /(?:النهارده|انهارده|اليوم|امبارح|الاسبوع (?:ده|دا|الحالي)|اخر (?:7|سبعه) ايام)/;
 const ASSISTANT_PREVIOUS_MONTH = /(?:الشهر الماضي|الشهر اللي فات|الشهر اللى فات|الشهر الفات|الشهر السابق|شهر ماضي|الشهر اللي قبل|الشهر اللى قبل|(?:يناير|فبراير|مارس|ابريل|مايو|يونيو|يوليو|اغسطس|سبتمبر|اكتوبر|نوفمبر|ديسمبر)\s+(?:الماضي|اللي فات|اللى فات|السابق))/;
 const ASSISTANT_PREVIOUS_YEAR = /(?:السنه اللي فاتت|السنه اللى فاتت|العام اللي فات|العام اللى فات|السنه سابقه|العام سابق)/;
 const ASSISTANT_THOUSAND_WORD = /(?<!\p{L})(?:الاف|آلاف|الف)(?!\p{L})/u;
@@ -601,6 +602,21 @@ function resolveAssistantPeriod(text, now = new Date()) {
         }
     }
 
+    if (monthIndex < 0) {
+        const lastN = normalized.match(/(?:^|\s)اخر\s+(شهرين|\d{1,2}\s*(?:شهور|شهر|اشهر))(?:\s|$)/);
+        if (lastN) {
+            const count = lastN[1].startsWith('شهرين') ? 2 : Number(lastN[1].replace(/\D/g, ''));
+            if (count >= 1 && count <= 24) {
+                const months = [];
+                for (let step = count - 1; step >= 0; step -= 1) {
+                    const date = new Date(now.getFullYear(), now.getMonth() - step, 1);
+                    months.push(`${names[date.getMonth()]} ${date.getFullYear()}`);
+                }
+                return { type: 'all', label: `آخر ${assistantMonthsCount(count)}`, months, year: null, month: null };
+            }
+        }
+    }
+
     const wantsYear = monthIndex < 0 && (
         Boolean(explicitYear) ||
         /(?:^|\s)(?:السنه|سنه|عام|خلال سنه|هذه السنه|السنه دي)(?:\s|$)/.test(normalized)
@@ -1132,9 +1148,10 @@ function detectAssistantIntent(normalized, hasResident) {
     if (/(?:اتذكر|اتذكروا|ذكرناه|ذكرناهم|بعتنا (?:له|لهم) تذكير|اتبعتله|اتبعتلهم|بعد التذكير|متابعه (?:ال)?تذكير|متابعه التذكيرات)/.test(normalized)) return 'reminder_followup';
     if (/(متاخر|متاخرات|مستحق|مديون|مش دفع|غير مدفوع|مش دافع|مش سدد|متاخرين|عليه فلوس)/.test(normalized)) return 'arrears';
     if (/(اكبر مصروف|اعلى مصروف|اغلى مصروف|اكبر المصروفات|المصروفات الاكبر|اكبر المصاريف|اكتر (?:مصروف|بند)|اكتر حاجه صرفنا)/.test(normalized)) return 'top_expenses';
+    if (ASSISTANT_DAY_WORD.test(normalized) && /(مصروف|مصاريف|صرف|منصرف|اتصرف)/.test(normalized) && !/ملخص|متاخر/.test(normalized)) return 'window_expenses';
     if (/(مصروف|مصاريف|صرف|منصرف|اتصرف|اللي اتدفع من الخزنه)/.test(normalized)) return 'expenses';
     if (/(كهرب|نور|عداد كهرب|ميه|مياه|عداد ميه|نضافه|نظافة|نظف|صيانه|صيانة|تصليح|اسانسير|أسانسير|حراسه|حراسة|بواب|امن|أمن)/.test(normalized)) return 'expenses';
-    if (/(?:النهارده|انهارده|اليوم)/.test(normalized) && /(?:اتحصل|اتجمع|حصلنا|دفع|دفعوا|دخل|ايصالات|تحصيل)/.test(normalized) && !/ملخص|متاخر|مدفعش|مسددش/.test(normalized)) return 'today_income';
+    if (ASSISTANT_DAY_WORD.test(normalized) && /(?:اتحصل|اتجمع|حصلنا|دفع|دفعوا|دخل|ايصالات|تحصيل)/.test(normalized) && !/ملخص|متاخر|مدفعش|مسددش/.test(normalized)) return 'today_income';
     if (/(طرق التحصيل|اتدفعت بايه|دفعوا ازاي|وسيله الدفع|وسائل التحصيل|حسب طريقه الدفع)/.test(normalized)) return 'payment_breakdown';
     if (/(تحصيل|تحصيلات|ايراد|دخل|وارد|دفع|مدفوع|متحصل|المتحصلات|اللي اتجمع|اتحصل|اتجمع|حصلنا|ايصالات)/.test(normalized)) return 'income';
     if (/(خزنه|صندوق|رصيد|كاش|فلوس|سيوله|الموجود في الخزنه)/.test(normalized)) return 'cashbox';
@@ -2704,20 +2721,45 @@ function buildAssistantResidentReceiptsAnswer(resident, period) {
 }
 
 // What was recorded today (device date). Never guesses: no rows means "nothing recorded yet".
-function buildAssistantTodayIncomeAnswer(now = new Date()) {
-    const sameDay = value => {
-        const date = new Date(value || 0);
-        return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
+/** Day window for "النهارده / امبارح / الاسبوع ده": exact dates from the saved rows, never a whole month. */
+function parseAssistantDayWindow(rawText, now = new Date()) {
+    const normalized = normalizeAssistantArabic(rawText || '');
+    const startOfDay = (offset = 0) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset).getTime();
+    if (/امبارح/.test(normalized)) return { key: 'yesterday', word: 'امبارح', start: startOfDay(-1), end: startOfDay(0) };
+    if (/(?:الاسبوع (?:ده|دا|الحالي)|اخر (?:7|سبعه) ايام)/.test(normalized)) return { key: 'week', word: 'آخر 7 أيام', start: startOfDay(-6), end: startOfDay(1) };
+    return { key: 'today', word: 'النهارده', start: startOfDay(0), end: startOfDay(1) };
+}
+
+function buildAssistantTodayIncomeAnswer(now = new Date(), rawText = '') {
+    const window = parseAssistantDayWindow(rawText, now);
+    const inWindow = value => {
+        const time = new Date(value || 0).getTime();
+        return time >= window.start && time < window.end;
     };
-    const rows = (Array.isArray(state.income) ? state.income : []).filter(payment => sameDay(payment.date));
-    const title = 'تحصيل النهارده';
-    if (!rows.length) return { id: 'today_income', title, html: assistantNote('لسه مفيش تحصيل متسجل النهارده.') };
+    const rows = (Array.isArray(state.income) ? state.income : []).filter(payment => inWindow(payment.date));
+    const title = `تحصيل ${window.word}`;
+    if (!rows.length) return { id: 'today_income', title, html: assistantNote(window.key === 'today' ? 'لسه مفيش تحصيل متسجل النهارده.' : `مفيش تحصيل متسجل ${window.key === 'week' ? 'في آخر 7 أيام' : window.word}.`) };
     const totalCents = rows.reduce((sum, payment) => sum + assistantCents(payment.amount), 0);
-    let html = assistantRow('إجمالي النهارده', assistantMoney(totalCents / 100), 'good');
+    let html = assistantRow(`إجمالي ${window.word}`, assistantMoney(totalCents / 100), 'good');
     html += assistantRow('عدد الدفعات', assistantNumber(rows.length));
     html += assistantList(rows.slice(0, 6).map(payment => assistantPaymentLine(payment, true)));
-    if (rows.length > 6) html += assistantNote(`وفي ${assistantNumber(rows.length - 6)} دفعات تانية النهارده.`);
+    if (rows.length > 6) html += assistantNote(`وفي ${assistantNumber(rows.length - 6)} دفعات تانية في نفس الفترة.`);
     return { id: 'today_income', title, html };
+}
+
+function buildAssistantWindowExpensesAnswer(now = new Date(), rawText = '') {
+    const window = parseAssistantDayWindow(rawText, now);
+    const rows = (Array.isArray(state.expenses) ? state.expenses : []).filter(row => {
+        const time = new Date(row.date || 0).getTime();
+        return time >= window.start && time < window.end;
+    });
+    const title = `مصروفات ${window.word}`;
+    if (!rows.length) return { id: 'window_expenses', title, html: assistantNote(`مفيش مصروفات متسجلة ${window.key === 'week' ? 'في آخر 7 أيام' : window.word}.`) };
+    const totalCents = rows.reduce((sum, row) => sum + assistantCents(row.amount), 0);
+    let html = assistantRow(`إجمالي ${window.word}`, assistantMoney(totalCents / 100), 'bad');
+    html += assistantRow('عدد المصروفات', assistantNumber(rows.length));
+    html += assistantList(rows.slice(0, 6).map(row => `${assistantEscape(row.title || row.category || 'مصروف')} — <strong>${assistantEscape(assistantMoney(row.amount))}</strong>`));
+    return { id: 'window_expenses', title, html };
 }
 
 
@@ -3919,7 +3961,9 @@ function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
         case 'resident_receipts':
             return resident ? buildAssistantResidentReceiptsAnswer(resident, hasAssistantTimeHint(rawText) ? period : null) : buildAssistantResidentAnswer(resident, now, period);
         case 'today_income':
-            return buildAssistantTodayIncomeAnswer(now);
+            return buildAssistantTodayIncomeAnswer(now, rawText);
+        case 'window_expenses':
+            return buildAssistantWindowExpensesAnswer(now, rawText);
         case 'resident':
             return buildAssistantResidentAnswer(resident, now, period);
         default:
