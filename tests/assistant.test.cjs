@@ -2454,3 +2454,24 @@ test('a message sent during remote hydration is kept, answered and persisted', a
     assert.ok(appended.some(body => body.includes('رصيد الخزنة كام؟')), 'the user turn reaches remote history');
     assert.ok(appended.some(body => body.includes('أرصدة الخزائن')), 'the answer reaches remote history');
 });
+
+test('upcoming dues: manager sees apartments due within 7 days that are not overdue; owners do not get the building-wide list', () => {
+    const { context, api } = createHarness(true);
+    vm.runInContext('state.subscriptionDueDay = 20; state.subscriptionGraceDays = 3;', context);
+    for (const query of ['مين هيستحق الأسبوع الجاي؟', 'الاستحقاقات القادمة']) {
+        const answer = api.answerAssistantQuery(query, NOW);
+        assert.equal(answer.id, 'upcoming_dues', query);
+        assert.match(answer.html, /يستحق بعد 5 أيام|يستحق بعد ٥ أيام/);
+        assert.match(answer.html, /نوفمبر 2026/);
+    }
+    const snapshot = vm.runInContext('getAssistantUpcomingDuesSnapshot(new Date(2026, 10, 15, 12))', context);
+    assert.ok(snapshot.items.length >= 1);
+    assert.ok(snapshot.items.every(item => item.daysLeft >= -3 && item.daysLeft <= 7));
+    const far = vm.runInContext('state.subscriptionDueDay = 28; getAssistantUpcomingDuesSnapshot(new Date(2026, 10, 15, 12)).items.length', context);
+    assert.equal(far, 0);
+    const empty = api.answerAssistantQuery('الاستحقاقات القادمة', NOW);
+    assert.match(empty.html, /مفيش اشتراكات/);
+
+    const { api: ownerApi } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    assert.notEqual(ownerApi.answerAssistantQuery('الاستحقاقات القادمة', NOW).id, 'upcoming_dues');
+});
