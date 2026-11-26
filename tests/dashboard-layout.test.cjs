@@ -49,3 +49,13 @@ test('arrears warning triangle shows only when a late payer exists', () => {
     assert.match(fn, /warning\.classList\.add\('hidden'\)/);
     assert.match(fn, /if \(warning && list\.length\) warning\.classList\.remove\('hidden'\)/);
 });
+
+test('empty dashboard shows a 3-step starter card that hides once apartments exist', () => {
+    const tabs = fs.readFileSync(path.join(__dirname, '..', 'src/partials/main-tabs.html'), 'utf8');
+    const render = fs.readFileSync(path.join(__dirname, '..', 'js/render.js'), 'utf8');
+    const card = tabs.slice(tabs.indexOf('id="dashboardStarterCard"'), tabs.indexOf('</section>', tabs.indexOf('id="dashboardStarterCard"')));
+    assert.match(card, /class="hidden /);
+    for (const text of ['إعدادات المبنى', 'إضافة الشقق', 'تسجيل أول تحصيل', 'عم عبده']) assert.ok(card.includes(text), text);
+    assert.equal((card.match(/<li/g) || []).length, 3);
+    assert.match(render, /starterCard && starterCard\.classList\) starterCard\.classList\[state\.residents\.length > 0 \? 'add' : 'remove'\]\('hidden'\)/);
+});

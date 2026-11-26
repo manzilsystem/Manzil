@@ -198,6 +198,15 @@
 
         <!-- DASHBOARD -->
         <section id="tab-dashboard" class="space-y-4">
+            <section id="dashboardStarterCard" class="hidden app-card rounded-3xl border p-4 space-y-3" aria-labelledby="dashboardStarterTitle">
+                <h3 id="dashboardStarterTitle" class="text-sm font-black">ابدأ في 3 خطوات</h3>
+                <ol class="space-y-2 text-xs">
+                    <li><button type="button" onclick="openSettingsModal()" class="w-full min-h-11 flex items-center gap-3 rounded-2xl border border-slate-700/60 px-3 text-right font-bold"><span class="w-6 h-6 shrink-0 rounded-full bg-indigo-600 text-white flex items-center justify-center">1</span><span>إعدادات المبنى</span></button></li>
+                    <li><button type="button" onclick="openResidentModal('add')" class="w-full min-h-11 flex items-center gap-3 rounded-2xl border border-slate-700/60 px-3 text-right font-bold"><span class="w-6 h-6 shrink-0 rounded-full bg-indigo-600 text-white flex items-center justify-center">2</span><span>إضافة الشقق</span></button></li>
+                    <li class="min-h-11 flex items-center gap-3 rounded-2xl border border-slate-700/60 px-3 font-bold"><span class="w-6 h-6 shrink-0 rounded-full bg-indigo-600 text-white flex items-center justify-center">3</span><span>تسجيل أول تحصيل</span></li>
+                </ol>
+                <p class="text-xs text-slate-500">لو احترت في حاجة، اسأل عم عبده من الزر العائم.</p>
+            </section>
             <div class="dashboard-kpis grid grid-cols-2 lg:grid-cols-3 gap-3">
                 <div class="app-card p-4 rounded-3xl border flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-2">
@@ -2866,10 +2875,10 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-6479de6c5a"></script>
+    <script src="js/telemetry.js?v=manzil-e3eae7a2aa"></script>
     <script src="js/state.js?v=8c1fbc9a2c"></script>
     <script src="js/access.js?v=470b57b889"></script>
-    <script src="js/render.js?v=7fc4381154"></script>
+    <script src="js/render.js?v=13c195fb52"></script>
     <script src="js/crud.js?v=4d7669842d"></script>
     <script src="js/notices.js?v=dc046ce90c"></script>
     <script src="js/push.js?v=7bd2efa86c"></script>

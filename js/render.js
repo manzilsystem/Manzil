@@ -343,6 +343,8 @@ function matchesDashboardPeriod(record, period = getDashboardPeriod(), periodMon
 }
 
 function renderDashboard() {
+    const starterCard = document.getElementById('dashboardStarterCard');
+    if (starterCard && starterCard.classList) starterCard.classList[state.residents.length > 0 ? 'add' : 'remove']('hidden');
     if (typeof renderDashboardRemindersCard === 'function') renderDashboardRemindersCard();
     const period = getDashboardPeriod();
     const periodLabel = getDashboardPeriodLabel(period);
