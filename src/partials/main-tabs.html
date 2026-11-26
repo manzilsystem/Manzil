@@ -663,17 +663,6 @@
                     <button type="button" id="periodReportExcelBtn" onclick="exportPeriodReportExcel()" disabled class="report-action report-tone-emerald"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</button>
                 </div>
                 <p class="report-hint no-print">تغيير الفترة أو البيانات يعطّل الطباعة والتصدير حتى معاينة جديدة، والأرقام تطابق تقرير الملاك لكل شهر. أقصى مدة 60 شهرًا.</p>
-                <details class="report-note-fold no-print" id="periodReportTemplates">
-                    <summary class="report-note-summary">القوالب المحفوظة لفلاتر الفترة</summary>
-                    <div class="report-note report-template-body">
-                        <label class="report-field" for="templateNameInput">
-                            <span class="report-field-label">اسم القالب</span>
-                            <input id="templateNameInput" type="text" class="report-control app-input border" placeholder="مثال: تحصيل الربع الأول">
-                        </label>
-                        <button type="button" onclick="saveCurrentPeriodTemplate()" class="report-action report-action-sm"><i class="fa-solid fa-bookmark" aria-hidden="true"></i> حفظ الفلاتر الحالية</button>
-                        <div id="savedTemplatesList" class="report-template-list"></div>
-                    </div>
-                </details>
             </div>
             <div id="cashFlowPanel" class="report-panel app-card p-5 rounded-3xl border space-y-4 hidden">
                 <div class="report-card-head no-print">

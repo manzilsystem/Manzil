@@ -222,17 +222,27 @@ test('period comparison renders a comparison table when a mode is selected', asy
     await expect(page.locator('.report-comparison-block')).toContainText('مقارنة الفترات');
 });
 
-test('saved period filters can be kept as a quiet template', async ({ page }) => {
+test('report filters can be saved as a template and re-applied, surviving reload', async ({ page }) => {
     await openReports(page);
     await openReportPanel(page, 'period');
-    await page.locator('#periodReportTemplates summary').click();
-    await expect(page.locator('#templateNameInput')).toBeVisible();
-    await page.locator('#templateNameInput').fill('قالب اختبار');
-    await page.locator('button[onclick="saveCurrentPeriodTemplate()"]').click();
-    await expect(page.locator('#savedTemplatesList')).toContainText('قالب اختبار');
+    const fold = page.locator('#reportTemplates-period');
+    await fold.locator('summary').click();
+    await page.locator('#periodReportPreset').selectOption('12');
+    await fold.locator('[data-report-template-name]').fill('قالب اختبار');
+    await fold.locator('[data-report-template-save]').click();
+    await expect(fold.locator('[data-report-template-list]')).toContainText('قالب اختبار');
+
+    await page.locator('#periodReportPreset').selectOption('3');
+    await fold.locator('[data-report-template-apply]').click();
+    await expect(page.locator('#periodReportPreset')).toHaveValue('12');
 
     const count = await page.evaluate(() => window.loadReportTemplates().length);
     expect(count).toBeGreaterThan(0);
+    await page.reload();
+    await openReports(page);
+    await openReportPanel(page, 'period');
+    await page.locator('#reportTemplates-period summary').click();
+    await expect(page.locator('#reportTemplates-period [data-report-template-list]')).toContainText('قالب اختبار');
 });
 
 test('scheduled report controls are absent from the reports workspace', async ({ page }) => {
@@ -1763,4 +1773,11 @@ test('report tables are ruled, striped and readable', async ({ page }) => {
     expect(styles.striped).toBe(true);
     expect(styles.fontSize).toBeGreaterThanOrEqual(12);
     expect(styles.overflow).toBe(false);
+});
+
+test('every report type with filters offers templates next to its filters', async ({ page }) => {
+    await openReports(page);
+    for (const tab of ['landlord', 'period', 'cashflow', 'expenses', 'adjustments', 'statement', 'apartments', 'monthlyClose', 'arrears']) {
+        await expect(page.locator('#reportTemplates-' + tab)).toHaveCount(1);
+    }
 });

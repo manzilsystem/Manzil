@@ -826,6 +826,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .report-note-fold[open] > .report-note-summary { border-bottom: 1px solid var(--border-color); }
 .report-note-fold[open] > .report-note-summary::before { content: '−'; }
 .report-note-fold > .report-note { padding: var(--space-70); }
+.report-template-fold { flex: 1 1 100%; margin-top: var(--space-55); }
+.report-template-body { display: flex; flex-direction: column; gap: var(--space-70); }
+.report-template-save { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-50); }
+.report-template-save .report-control { flex: 1 1 10rem; min-width: 0; }
+.report-template-row { align-items: center; }
+.report-template-actions { display: inline-flex; flex: 0 0 auto; gap: var(--space-40); }
+.report-template-actions .report-action, .report-template-save .report-action { min-height: 2.75rem; }
 .report-note { color: var(--text-muted); font-size: var(--font-72); line-height: var(--leading-180); }
 .report-note p + p { margin-top: var(--space-20); }
 .report-table-wrap { overflow-x: auto; border: 1px solid var(--border-color); border-radius: var(--radius-85); background: color-mix(in srgb, var(--bg-input) 40%, transparent); }
