@@ -794,7 +794,7 @@ function renderOwnerPortal() {
     portal.classList.remove('hidden');
     portal.setAttribute('aria-hidden', 'false');
     document.getElementById('headerBuildingTitle').textContent = state.buildingName || 'Manzil';
-    document.getElementById('syncStatus').textContent = 'وضع المالك — قراءة فقط';
+    document.getElementById('syncStatus').textContent = 'وضع المالك';
     updateAccessSwitchButton();
 }
 
