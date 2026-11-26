@@ -284,8 +284,8 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(html, /onsubmit="sendAssistantMessage\(event\)"/);
     assert.match(html, /<button type="button" id="assistantFab"[^>]*onclick="openAssistantModal\(\)"/);
     assert.match(html, /aria-label="اسأل عم عبده البواب"/);
-    assert.match(html, /class="assistant-avatar-frame assistant-fab-avatar"><img src="icons\/assistant-abbah-full\.png\?v=/, 'the launcher shows the full-body doorman');
-    assert.match(html, /id="assistantHeadAvatar" class="assistant-avatar"><img src="icons\/assistant-abbah\.png\?v=/, 'the chat avatar uses the clear profile portrait');
+    assert.match(html, /class="assistant-avatar-frame assistant-fab-avatar"><img src="icons\/assistant-abbah-full\.webp\?v=/, 'the launcher shows the full-body doorman');
+    assert.match(html, /id="assistantHeadAvatar" class="assistant-avatar"><img src="icons\/assistant-abbah\.webp\?v=/, 'the chat avatar uses the clear profile portrait');
     assert.match(html, /class="assistant-fab-greeting"[^>]*>نورت يا بيه! عم عبده في خدمتك 👋</, 'the doorman greets before the first click');
     assert.doesNotMatch(html, /class="assistant-fab-copy"/, 'the launcher is now a bare full-body character, not a labelled chip');
     assert.match(css, /\.assistant-avatar-frame img \{[\s\S]*filter: drop-shadow\(0 14px 34px var\(--assistant-fab-shadow\)\)/, 'the portrait casts a realistic drop shadow');
@@ -310,9 +310,9 @@ test('assistant modal, launcher, script and styles are wired into the app', () =
     assert.match(css, /\.assistant-avatar \{[\s\S]*width: 3\.25rem;[\s\S]*height: 3\.25rem;[\s\S]*border-radius: var\(--radius-pill\);/, 'the chat avatar is a larger circular profile frame');
     assert.match(css, /\.assistant-avatar img \{[\s\S]*object-fit: cover;[\s\S]*object-position: center;[\s\S]*transform: none;[\s\S]*transform-origin: center;/, 'the circular frame keeps the profile portrait clear');
     assert.match(css, /\.assistant-hero \{/);
-    assert.match(assistantSource, /icons\/assistant-abbah-full\.png/, 'the greeting shows the full-body avatar');
-    assert.match(serviceWorker, /\.\/icons\/assistant-abbah\.png/);
-    assert.match(serviceWorker, /\.\/icons\/assistant-abbah-full\.png/);
+    assert.match(assistantSource, /icons\/assistant-abbah-full\.webp/, 'the greeting shows the full-body avatar');
+    assert.match(serviceWorker, /\.\/icons\/assistant-abbah\.webp/);
+    assert.match(serviceWorker, /\.\/icons\/assistant-abbah-full\.webp/);
     assert.match(assistantSource, /ASSISTANT_FAB_SCROLL_DEADZONE/, 'scroll direction drives the launcher');
     assert.match(assistantSource, /ASSISTANT_FOLLOWUPS/, 'follow-up knowledge remains available to the response logic');
     assert.match(assistantSource, /isSafeAssistantHtml/, 'a stored chat log is re-checked before it renders');
@@ -419,20 +419,25 @@ test('the assistant denies unknown roles and never answers while a save is pendi
     assert.doesNotMatch(afterRollback.html, /9000|مصروف غير محفوظ/);
 });
 
-test('avatar art is transparent PNG so it matches every theme', () => {
-    const avatars = ['icons/assistant-abbah.png', 'icons/assistant-abbah-full.png'];
+test('avatar art is transparent WebP so it matches every theme and stays small', () => {
+    const avatars = ['icons/assistant-abbah.webp', 'icons/assistant-abbah-full.webp'];
+    const size = bytes => ({ width: 1 + bytes.readUIntLE(24, 3), height: 1 + bytes.readUIntLE(27, 3) });
     for (const relative of avatars) {
         const bytes = fs.readFileSync(path.join(root, relative));
-        assert.equal(bytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', `${relative} is a PNG`);
-        const colorType = bytes.readUInt8(25);
-        assert.equal(colorType & 4, 4, `${relative} carries a real alpha channel`);
-        assert.ok(bytes.includes(Buffer.from('IEND', 'ascii')), `${relative} is not truncated`);
+        assert.equal(bytes.subarray(0, 4).toString('ascii'), 'RIFF', `${relative} is a RIFF file`);
+        assert.equal(bytes.subarray(8, 12).toString('ascii'), 'WEBP', `${relative} is a WebP`);
+        assert.equal(bytes.subarray(12, 16).toString('ascii'), 'VP8X', `${relative} uses the extended header`);
+        assert.equal(bytes.readUInt8(20) & 0x10, 0x10, `${relative} carries a real alpha channel`);
+        assert.equal(bytes.readUInt32LE(4) + 8, bytes.length, `${relative} is not truncated`);
+        assert.ok(bytes.length < 120 * 1024, `${relative} stays under 120KB (it sits in the service worker precache)`);
     }
     // The head shot is a square crop; the full-body doorman is a tall portrait.
-    const bust = fs.readFileSync(path.join(root, 'icons/assistant-abbah.png'));
-    assert.equal(bust.readUInt32BE(16), bust.readUInt32BE(20), 'the head shot stays square');
-    const full = fs.readFileSync(path.join(root, 'icons/assistant-abbah-full.png'));
-    assert.ok(full.readUInt32BE(16) < full.readUInt32BE(20), 'the doorman is a tall full-body portrait');
+    const bust = size(fs.readFileSync(path.join(root, 'icons/assistant-abbah.webp')));
+    assert.equal(bust.width, bust.height, 'the head shot stays square');
+    const full = size(fs.readFileSync(path.join(root, 'icons/assistant-abbah-full.webp')));
+    assert.ok(full.width < full.height, 'the doorman is a tall full-body portrait');
+    assert.equal(fs.existsSync(path.join(root, 'icons/assistant-abbah.png')), false, 'the old PNG is gone');
+    assert.equal(fs.existsSync(path.join(root, 'icons/assistant-abbah-full.png')), false, 'the old PNG is gone');
 });
 
 test('assistant is local-only and never touches the network', () => {
@@ -2323,8 +2328,10 @@ test('stored assistant html is checked against an allowlist, not a blacklist', (
     assert.equal(safe('<svg/onload=alert(1)>'), false);
     assert.equal(safe('<a href="javascript:alert(1)">x</a>'), false);
     assert.equal(safe('<div onclick="doBadThing()">x</div>'), false);
-    assert.equal(safe('<img src="./icons/assistant-abbah.png" alt="عم عبده">'), true);
+    assert.equal(safe('<img src="./icons/assistant-abbah.webp" alt="عم عبده">'), true);
     assert.equal(safe('<p class="assistant-note">مرحبا</p>'), true);
+    const stored = vm.runInContext(`assistantStorableHtml('<img class="assistant-hero" src="icons/assistant-abbah-full.png?v=abc123" alt="">')`, context);
+    assert.match(stored, /icons\/assistant-abbah-full\.webp\?v=abc123/, 'chats saved with the old PNG name now point at the WebP');
 });
 
 test('an in-flight save cannot be reported as a successful cancellation', () => {

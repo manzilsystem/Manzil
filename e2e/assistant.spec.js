@@ -579,7 +579,7 @@ test.describe('assistant floating launcher', () => {
     test('clears the bottom nav, shrinks on scroll down and widens on scroll up', async ({ page }) => {
         const fab = page.locator('#assistantFab');
         await expect(fab).toBeVisible();
-        await expect(fab.locator('.assistant-avatar-frame img')).toHaveAttribute('src', /^icons\/assistant-abbah-full\.png\?v=[0-9a-f]{10}$/);
+        await expect(fab.locator('.assistant-avatar-frame img')).toHaveAttribute('src', /^icons\/assistant-abbah-full\.webp\?v=[0-9a-f]{10}$/);
         await expect(fab).not.toHaveClass(/is-hidden|is-compact/);
 
         const box = await fab.boundingBox();
@@ -864,6 +864,6 @@ test('the doorman art stays transparent and the launcher shows the full body unc
         const img = document.querySelector('#assistantFab .assistant-avatar-frame img');
         return { source: img.getAttribute('src'), objectFit: getComputedStyle(img).objectFit };
     });
-    expect(launcher.source, 'the launcher shows the full-body portrait, not the cropped bust').toContain('assistant-abbah-full.png');
+    expect(launcher.source, 'the launcher shows the full-body portrait, not the cropped bust').toContain('assistant-abbah-full.webp');
     expect(launcher.objectFit, 'the whole doorman is contained, never cropped by a medallion').toBe('contain');
 });
