@@ -64,7 +64,7 @@ function insertReminderVariable(variable) {
     renderReminderPreview();
 }
 
-const SETTINGS_THEME_NAMES = { dark:'ليلي', light:'نهاري', emerald:'زمردي', ocean:'محيطي', sand:'رملي', turquoise:'فيروزي' };
+const SETTINGS_THEME_NAMES = { dark:'ليلي', light:'نهاري' };
 const SETTINGS_SECTION_ICONS = {
     building:'fa-building', payments:'fa-wallet', subscriptions:'fa-calendar-check',
     appearance:'fa-palette', backup:'fa-cloud-arrow-up', receipts:'fa-receipt',
@@ -197,7 +197,7 @@ function handleSettingsTabKeydown(event) {
     next.focus();
 }
 function updateThemeSelection() {
-    const theme = SETTINGS_THEME_NAMES[state.currentTheme] ? state.currentTheme : 'dark';
+    const theme = state.currentTheme === 'light' ? 'light' : 'dark';
     document.querySelectorAll('[data-theme-option]').forEach(button => {
         const el = /** @type {HTMLElement} */ (button);
         const active = el.dataset.themeOption === theme;

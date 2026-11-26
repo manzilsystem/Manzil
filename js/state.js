@@ -286,12 +286,14 @@ function formatOverdueDuration(days) {
     return `${value} يومًا`;
 }
 
-const MANZIL_THEME_LIST = ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise'];
-const MANZIL_THEME_NAMES = { dark:'ليلي', light:'نهاري', emerald:'زمردي', ocean:'محيطي', sand:'رملي', turquoise:'فيروزي' };
-const MANZIL_THEME_COLORS = { dark:'#0b1020', light:'#f3f6fc', emerald:'#071c18', ocean:'#071827', sand:'#211b16', turquoise:'#071f27' };
+const MANZIL_THEME_LIST = ['dark', 'light'];
+const MANZIL_THEME_NAMES = { dark:'ليلي', light:'نهاري' };
+const MANZIL_THEME_COLORS = { dark:'#0b1020', light:'#f3f6fc' };
 
+/** نهاري أو ليلي فقط. أي قيمة قديمة أو غير معروفة (زمردي، محيطي...) تُقرأ كليلي دون تعديل المخزَّن؛ الفارغ يبقى null. */
 function normalizeThemeName(value) {
-    return MANZIL_THEME_LIST.includes(value) ? value : null;
+    if (value === null || value === undefined || value === '') return null;
+    return value === 'light' ? 'light' : 'dark';
 }
 
 function resolveUserTheme(buildingTheme, profileTheme, role) {

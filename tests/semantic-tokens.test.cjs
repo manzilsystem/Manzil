@@ -1743,7 +1743,7 @@ test('the browser theme colour palette has a single source of truth', () => {
 
     assert.equal((state.match(/const MANZIL_THEME_COLORS = \{/g) || []).length, 1,
         'state.js must declare the theme colour map exactly once');
-    for (const theme of ['dark', 'light', 'emerald', 'ocean', 'sand', 'turquoise']) {
+    for (const theme of ['dark', 'light']) {
         assert.match(state, new RegExp(`${theme}:'#[0-9a-f]{6}'`),
             `MANZIL_THEME_COLORS must keep the ${theme} colour`);
     }
