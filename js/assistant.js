@@ -1157,6 +1157,15 @@ function detectAssistantCompoundIntent(normalized) {
     return domains.filter(Boolean).length >= 2 ? 'executive' : null;
 }
 
+/** Egyptian month count: شهر، شهرين، 3 شهور (3 to 10), 11 شهر. */
+function assistantMonthsCount(count) {
+    const n = Math.max(0, Math.round(Number(count) || 0));
+    if (n === 1) return 'شهر';
+    if (n === 2) return 'شهرين';
+    if (n >= 3 && n <= 10) return `${assistantNumber(n)} شهور`;
+    return `${assistantNumber(n)} شهر`;
+}
+
 function assistantRow(label, value, tone = '') {
     const className = tone ? ` is-${tone}` : '';
     return `<div class="assistant-row${className}"><span>${assistantEscape(label)}</span><strong>${assistantEscape(value)}</strong></div>`;
@@ -2503,7 +2512,7 @@ function buildAssistantArrearsAnswer() {
         html += assistantList(snapshot.residents.slice(0, 6).map(item => {
             const rawOldest = item.oldestMonth || (Array.isArray(item.unpaidMonths) ? item.unpaidMonths[0] : '');
             const oldest = rawOldest && typeof rawOldest === 'object' ? rawOldest.month : rawOldest;
-            return `${assistantEscape(assistantApartmentLabel(item.resident))} · ${assistantEscape(assistantResidentName(item.resident))} — <strong>${assistantEscape(assistantMoney(item.totalDebt))}</strong> (${assistantNumber(item.count)} شهر${oldest ? ` · أقدم: ${assistantEscape(oldest)}` : ''})`;
+            return `${assistantEscape(assistantApartmentLabel(item.resident))} · ${assistantEscape(assistantResidentName(item.resident))} — <strong>${assistantEscape(assistantMoney(item.totalDebt))}</strong> (${assistantMonthsCount(item.count)}${oldest ? ` · أقدم: ${assistantEscape(oldest)}` : ''})`;
         }));
     } else {
         html += assistantNote('تمام! مفيش أي متأخرات مسجلة حاليًا.');
@@ -2745,7 +2754,7 @@ function buildAssistantAgedArrearsAnswer(minMonths) {
     let html = assistantRow('شقق متأخرة ' + assistantNumber(minMonths) + ' شهور فأكتر', assistantNumber(aged.length), 'bad');
     html += assistantRow('إجمالي مديونيتهم', assistantMoney(total), 'bad');
     html += assistantList(aged.slice(0, 6).map(item =>
-        `${assistantEscape(assistantApartmentLabel(item.resident))} · ${assistantEscape(assistantResidentName(item.resident))} — متأخر ${assistantNumber(item.count)} شهور، عليه <strong>${assistantEscape(assistantMoney(item.totalDebt))}</strong>`));
+        `${assistantEscape(assistantApartmentLabel(item.resident))} · ${assistantEscape(assistantResidentName(item.resident))} — متأخر ${assistantMonthsCount(item.count)}، عليه <strong>${assistantEscape(assistantMoney(item.totalDebt))}</strong>`));
     if (aged.length > 6) html += assistantNote(`وفي ${assistantNumber(aged.length - 6)} تانيين في تقرير المتأخرات.`);
     html += assistantNote('الأرقام من الاشتراكات المستحقة بعد خصم المدفوع والإعفاءات.');
     return { id: 'arrears_aged', title, html };
@@ -3858,8 +3867,14 @@ function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
             return buildAssistantExecutiveAnswer(period);
         case 'change_alerts':
             return buildAssistantChangeAlertsAnswer(period, now);
-        case 'comparison':
-            return buildAssistantComparisonAnswer(period, now);
+        case 'comparison': {
+            // "الشهر ده بالشهر اللي فات" compares this month with last month. The phrase "اللي فات" must not
+            // move the base month back one more step.
+            const spoken = normalizeAssistantArabic(rawText);
+            const namesThisMonth = /(?:الشهر ده|الشهر دا|الشهر الحالي|الشهر ده)/.test(spoken);
+            const namesLastMonth = /(?:اللي فات|الماضي|السابق|اللي قبله|اللي قبل)/.test(spoken);
+            return buildAssistantComparisonAnswer(namesThisMonth && namesLastMonth ? null : period, now);
+        }
         case 'recent':
             return buildAssistantRecentAnswer();
         case 'reports':

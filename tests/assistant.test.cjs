@@ -2633,3 +2633,13 @@ test('deeper Q&A: aged arrears and collection status come from the engine figure
     for (const q of ['مين دفع الشهر ده', 'كام شقة دفعت']) assert.equal(api.answerAssistantQuery(q, NOW).id, 'collection_status', q);
     assert.notEqual(aged.html, status.html);
 });
+
+test('audit: month counts read like speech and "this month vs last month" compares this month', () => {
+    const { api } = createHarness(true, { role: 'manager' });
+    const strip = html => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    assert.match(strip(api.answerAssistantQuery('مين متأخر', NOW).html), /10 شهور/);
+    assert.doesNotMatch(strip(api.answerAssistantQuery('مين متأخر', NOW).html), /10 شهر[^و]/);
+    const comparison = api.answerAssistantQuery('قارن الشهر ده بالشهر اللي فات', NOW);
+    assert.equal(comparison.id, 'comparison');
+    assert.match(comparison.title, /نوفمبر 2026 وأكتوبر 2026/);
+});
