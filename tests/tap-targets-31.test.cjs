@@ -15,3 +15,9 @@ test('resident rented checkbox row and report search are 44px tall', () => {
     assert.match(modals, /cursor-pointer min-h-\[2\.75rem\]">\s*<input type="checkbox" id="residentIsRented"/);
     assert.match(css, /\.report-index-search \{\s*display: flex; align-items: center; gap: var\(--space-55\); min-height: 2\.75rem;/);
 });
+
+test('resident card header lets long names shrink instead of pushing the actions off-screen', () => {
+    const render = fs.readFileSync('js/render.js', 'utf8');
+    assert.match(render, /<div class="flex items-center gap-2 min-w-0 flex-1">/);
+    assert.match(render, /<div class="flex gap-1 shrink-0">/);
+});

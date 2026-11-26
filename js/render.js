@@ -785,11 +785,11 @@ function renderResidentsGrid(options) {
             .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())[0] : null;
         return `<div class="app-card p-4 rounded-3xl border space-y-3">
             <div class="flex justify-between items-start">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 min-w-0 flex-1">
                     <div class="w-11 h-11 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-sm font-black shrink-0">${esc(r.apartmentNumber||'?')}</div>
                     <div class="min-w-0"><p class="text-sm font-bold truncate">${esc(r.name)}</p><p class="text-xs text-slate-500 truncate">${r.floor ? `الدور ${esc(r.floor)} · ` : ''}${esc(r.phone||'')}</p></div>
                 </div>
-                <div class="flex gap-1">
+                <div class="flex gap-1 shrink-0">
                     <button onclick="openResidentProfile(${esc(JSON.stringify(String(r.id)))})" aria-label="عرض ملف ${esc(r.name)}" title="تفاصيل الشقة" class="text-sky-400 hover:text-sky-300 inline-flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem]"><i class="fa-solid fa-circle-info text-xs"></i></button>
                     <button onclick="editResident('${r.id}')" aria-label="تعديل بيانات ${esc(r.name)}" class="text-indigo-400 hover:text-indigo-300 inline-flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem]"><i class="fa-solid fa-pen text-xs"></i></button>
                     <button onclick="deleteResident('${r.id}')" aria-label="حذف الشقة ${esc(r.apartmentNumber)}" class="text-rose-400 hover:text-rose-300 inline-flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem]"><i class="fa-solid fa-trash text-xs"></i></button>
