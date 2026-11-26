@@ -957,6 +957,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 [data-report-nav="paymentBehavior"] { --report-tone-source: color-mix(in srgb, var(--state-danger) 60%, var(--theme-accent-sand)); --report-tone: var(--report-tone-source); --report-tone-soft: color-mix(in srgb, var(--report-tone-source) 16%, transparent); --report-tone-line: color-mix(in srgb, var(--report-tone-source) 42%, transparent); --report-glyph: '11'; }
 [data-report-nav="expenseVariance"] { --report-tone-source: color-mix(in srgb, var(--state-warning) 65%, var(--theme-accent-sand)); --report-tone: var(--report-tone-source); --report-tone-soft: color-mix(in srgb, var(--report-tone-source) 16%, transparent); --report-tone-line: color-mix(in srgb, var(--report-tone-source) 42%, transparent); --report-glyph: '12'; }
 [data-report-nav="paymentMethods"] { --report-tone-source: color-mix(in srgb, var(--indigo-bright) 70%, var(--state-info)); --report-tone: var(--report-tone-source); --report-tone-soft: color-mix(in srgb, var(--report-tone-source) 16%, transparent); --report-tone-line: color-mix(in srgb, var(--report-tone-source) 42%, transparent); --report-glyph: '13'; }
+[data-report-nav="collectionCurve"] { --report-tone-source: var(--state-info); --report-tone: var(--report-tone-source); --report-tone-soft: color-mix(in srgb, var(--report-tone-source) 16%, transparent); --report-tone-line: color-mix(in srgb, var(--report-tone-source) 42%, transparent); --report-glyph: '14'; }
 .report-view-steps { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-55); }
 .report-view-step {
     padding: var(--space-none) var(--space-none) var(--space-15); border: 0; border-bottom: 1px solid transparent; border-radius: var(--radius-none);
@@ -1247,6 +1248,9 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     body.print-payment-methods #printableArea > section:not(#tab-reports) { display: none !important; }
     body.print-payment-methods #tab-reports > :not(#paymentMethodsPanel) { display: none !important; }
     body.print-payment-methods #paymentMethodsPanel { padding: var(--space-none) !important; border: 0 !important; background: var(--print-bg) !important; box-shadow: none !important; }
+    body.print-collection-curve #printableArea > section:not(#tab-reports) { display: none !important; }
+    body.print-collection-curve #tab-reports > :not(#collectionCurvePanel) { display: none !important; }
+    body.print-collection-curve #collectionCurvePanel { padding: var(--space-none) !important; border: 0 !important; background: var(--print-bg) !important; box-shadow: none !important; }
     body.print-cashflow #cashFlowPanel .statement-table th,
     body.print-cashflow #cashFlowPanel .statement-table td,
     body.print-apartments #apartmentsPanel .statement-table th,
@@ -1256,12 +1260,15 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
     body.print-expense-variance #expenseVariancePanel .statement-table th,
     body.print-expense-variance #expenseVariancePanel .statement-table td,
     body.print-payment-methods #paymentMethodsPanel .statement-table th,
-    body.print-payment-methods #paymentMethodsPanel .statement-table td { border-color: var(--print-line) !important; }
+    body.print-payment-methods #paymentMethodsPanel .statement-table td,
+    body.print-collection-curve #collectionCurvePanel .statement-table th,
+    body.print-collection-curve #collectionCurvePanel .statement-table td { border-color: var(--print-line) !important; }
     body.print-cashflow #cashFlowPanel .report-table-wrap,
     body.print-apartments #apartmentsPanel .report-table-wrap,
     body.print-payment-behavior #paymentBehaviorPanel .report-table-wrap,
     body.print-expense-variance #expenseVariancePanel .report-table-wrap,
-    body.print-payment-methods #paymentMethodsPanel .report-table-wrap { overflow: visible !important; }
+    body.print-payment-methods #paymentMethodsPanel .report-table-wrap,
+    body.print-collection-curve #collectionCurvePanel .report-table-wrap { overflow: visible !important; }
     /* Long reports flow across pages; only whole blocks and rows stay together */
     #printableArea .report-block, #printableArea .statement-table tr { break-inside: avoid; }
     #printableArea .statement-table thead { display: table-header-group; }
