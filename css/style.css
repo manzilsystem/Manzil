@@ -4504,6 +4504,10 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
 .assistant-fab.is-compact::after { display: none; }
 body.session-locked .assistant-fab { display: none; }
 body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-bottom, 0px)); }
+/* Owner mode has no tab bar: leave room under the last card so the docked figure never rests on text. */
+body.owner-mode #ownerPortal { padding-bottom: calc(var(--space-600) + var(--space-100) + env(safe-area-inset-bottom, 0px)); }
+#ownerPortal .tabular-nums, #ownerPortal strong { white-space: nowrap; }
+#residentForm [aria-invalid="true"] { border-color: var(--state-danger); box-shadow: 0 0 0 var(--space-20) var(--state-danger-soft); }
 @media (max-width: 560px) {
     /* Phones: dock the figure low over the tab bar edge and a little smaller so it stays off the action buttons. */
     .assistant-fab { inset-inline-start: .4rem; bottom: calc(4.3rem + env(safe-area-inset-bottom, 0px)); transform: scale(.82); }
@@ -5612,11 +5616,8 @@ footer#appCopyright .copyright-divider img { width: 1.125rem; height: 1.125rem; 
     body:has(#tab-reports[data-report-view="panel"]:not(.hidden)) .assistant-fab { display: none; }
 }
 
-<<<<<<< HEAD
-=======
 /* Very narrow phones (360px): report tables tighten padding and type so 4-column tables never clip. Not applied to the export stage. */
 @media screen and (max-width: 380px) {
     body > :not([data-report-export-stage]) .sheet-table th, body > :not([data-report-export-stage]) .sheet-table td { padding-inline: var(--space-30); font-size: var(--font-70); white-space: normal; }
     body > :not([data-report-export-stage]) .sheet-table thead th { font-size: var(--font-65); }
 }
->>>>>>> 0fbabac (Insights reports: 4-column tables fit at 360px; e2e guard for the three insights reports at 360 and 390)
