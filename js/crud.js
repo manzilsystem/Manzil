@@ -3245,7 +3245,7 @@ function previewExpense() {
     const mainOverdraft = cashAccountCode === 'main' && Number.isFinite(amount) && balanceAfter < -0.000001;
     const overdraftRow = /** @type {any} */ (document.getElementById('expenseOverdraftRow'));
     const overdraftCheckbox = /** @type {any} */ (document.getElementById('expenseOverdraftConfirm'));
-    if (!title || !Number.isFinite(amount) || amount <= 0 || !month) {
+    if (!title || !Number.isFinite(amount) || amount <= 0 || !month || !category) {
         preview.classList.add('hidden');
         overdraftRow?.classList.add('hidden');
         return;
@@ -3256,7 +3256,7 @@ function previewExpense() {
     if (overdraftRow) overdraftRow.classList.toggle('hidden', !mainOverdraft);
     if (!mainOverdraft && overdraftCheckbox) overdraftCheckbox.checked = false;
     details.innerHTML = [
-        `<div class="flex justify-between gap-3"><span>الفئة</span><strong>${esc(category || 'أخرى')}</strong></div>`,
+        `<div class="flex justify-between gap-3"><span>الفئة</span><strong>${esc(category)}</strong></div>`,
         `<div class="flex justify-between gap-3"><span>الصندوق</span><strong>${esc(crudCashAccountLabel(cashAccountCode))}</strong></div>`,
         `<div class="flex justify-between gap-3"><span>مصروفات الشهر من الصندوق</span><strong>${fmtNum(monthFundExpenses)} ج.م</strong></div>`,
         `<div class="flex justify-between gap-3"><span>الرصيد قبل الصرف</span><strong>${fmtNum(accountBalance)} ج.م</strong></div>`,
