@@ -5622,3 +5622,11 @@ footer#appCopyright .copyright-divider img { width: 1.125rem; height: 1.125rem; 
     body > :not([data-report-export-stage]) .sheet-table th, body > :not([data-report-export-stage]) .sheet-table td { padding-inline: var(--space-30); font-size: var(--font-70); white-space: normal; }
     body > :not([data-report-export-stage]) .sheet-table thead th { font-size: var(--font-65); }
 }
+
+/* Modals with a fixed action bar: body scrolls, footer stays visible */
+.sticky-modal-card { display: flex; flex-direction: column; max-height: calc(100dvh - 8rem); }
+.sticky-modal-form { display: flex; flex-direction: column; flex: 1 1 auto; min-height: var(--space-none); }
+.sticky-modal-body { flex: 1 1 auto; min-height: var(--space-none); overflow-y: auto; overflow-x: hidden; padding: var(--space-125) var(--space-125) var(--space-75); }
+.sticky-modal-footer { flex: 0 0 auto; padding: var(--space-75) var(--space-125) calc(var(--space-75) + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--surface-edge, #33415566); background: inherit; }
+/* While a dialog is open, toasts sit in the free strip above it so they never cover its header or the focused field */
+body.modal-open #toastContainer { top: .5rem; }

@@ -3233,6 +3233,25 @@ function previewExpense() {
     preview.classList.remove('hidden');
 }
 
+const EXPENSE_LAST_CATEGORY_KEY = 'manzil.lastExpenseCategory';
+
+function applyDefaultExpenseCategory() {
+    const select = /** @type {HTMLSelectElement | null} */ (document.getElementById('expenseCategory'));
+    if (!select) return;
+    let last = '';
+    try { last = String(localStorage.getItem(EXPENSE_LAST_CATEGORY_KEY) || ''); } catch (error) { last = ''; }
+    const available = Array.from(select.options || []).map(option => option.value).filter(Boolean);
+    select.value = available.includes(last) ? last : '';
+}
+
+function showExpenseFieldError(fieldId, message) {
+    toast(message, 'error');
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    if (typeof field.scrollIntoView === 'function') field.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (typeof field.focus === 'function') field.focus({ preventScroll: true });
+}
+
 function openExpenseModal(options = {}) {
     if (!requireManager()) return false;
     editingExpenseId = null;
@@ -3242,6 +3261,7 @@ function openExpenseModal(options = {}) {
     /** @type {any} */ (document.getElementById('expenseNotes')).value = '';
     /** @type {any} */ (document.getElementById('expenseMonth')).value = getCurrentMonth();
     /** @type {any} */ (document.getElementById('expenseCashAccount')).value = 'main';
+    applyDefaultExpenseCategory();
     /** @type {any} */ (document.getElementById('expenseModalTitle')).textContent = 'مصروف جديد';
     /** @type {any} */ (document.getElementById('expenseSubmitButton')).textContent = 'حفظ المصروف';
     /** @type {any} */ (document.getElementById('expensePreview'))?.classList.add('hidden');
@@ -3307,9 +3327,14 @@ async function handleExpenseSubmit(e) {
         editingExpenseId = null;
         return;
     }
-    if (!title || !Number.isFinite(amount) || amount <= 0 || !month ||
-        !['main', 'development', 'emergency'].includes(cashAccountCode)) {
-        toast('أدخل وصفاً ومبلغاً أكبر من صفر واختر الشهر والصندوق', 'error');
+    const missingExpense = !title ? ['expenseTitle', 'اكتب وصف المصروف.']
+        : (!Number.isFinite(amount) || amount <= 0) ? ['expenseAmount', 'أدخل مبلغ المصروف (أكبر من صفر).']
+        : !category ? ['expenseCategory', 'اختر فئة المصروف.']
+        : !month ? ['expenseMonth', 'اختر شهر المصروف.']
+        : !['main', 'development', 'emergency'].includes(cashAccountCode) ? ['expenseCashAccount', 'اختر الصندوق الذي تم الصرف منه.']
+        : null;
+    if (missingExpense) {
+        showExpenseFieldError(missingExpense[0], missingExpense[1]);
         return;
     }
     const availableBalance = getCashAccountBalance(cashAccountCode) +
@@ -3350,6 +3375,7 @@ async function handleExpenseSubmit(e) {
             return;
         }
         if (assistantRequestId) completeAssistantOperation(assistantRequestId);
+        try { localStorage.setItem(EXPENSE_LAST_CATEGORY_KEY, String(category || '')); } catch (error) { /* storage unavailable */ }
         editingExpenseId = null;
         closeModal('expenseModal');
         /** @type {any} */ (document.getElementById('expenseForm')).reset();

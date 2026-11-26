@@ -175,6 +175,7 @@ test('an expense above a fund balance is blocked, and a main-cashbox overdraft n
     // A fund cannot spend more than it holds.
     await page.locator('#expenseTitle').fill('صيانة مصعد');
     await page.locator('#expenseAmount').fill('100');
+    await page.locator('#expenseCategory').selectOption('كهرباء');
     await page.locator('#expenseCashAccount').selectOption('development');
     await page.locator('#expenseSubmitButton').click();
     await expect(page.locator('#toastContainer')).toContainText('غير كاف');
