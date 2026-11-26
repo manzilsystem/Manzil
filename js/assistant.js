@@ -2796,7 +2796,9 @@ function parseAssistantAgedMonths(normalized) {
     if (!/(?:متاخر|متاخرين|متاخرات|مديون|مش دافع|مدفعش|ما دفعش|مدفعوش)/.test(text)) return null;
     if (!/(?:اكتر من|اكثر من|فوق|يزيد عن|زياده عن|من)\s*(?:\d+|شهر|شهرين|تلات|ثلاث|اربع|خمس|ست)/.test(text) && !/(?:\d+|شهرين|تلات|ثلاث|اربع|خمس|ست)\s*(?:شهور|اشهر|شهر)?\s*(?:او اكتر|فاكتر|فاكثر|واكتر)/.test(text)) return null;
     const words = { شهرين: 2, تلات: 3, ثلاث: 3, اربع: 4, خمس: 5, ست: 6 };
-    const digits = text.match(/(\d+)\s*(?:شهور|اشهر|شهر)?/);
+    // السنين (2024) أو أرقام الشقق مش عدد شهور: الرقم لازم يلاصق كلمة شهر
+    // أو يكون رقم صغير مستقل مش جزء من رقم أطول.
+    const digits = text.match(/(\d+)\s*(?:شهور|اشهر|شهر)/) || text.match(/(?<!\d)(\d{1,2})(?!\d)/);
     if (digits) return Math.min(Math.max(Number(digits[1]), 1), 36);
     for (const [word, value] of Object.entries(words)) if (text.includes(word)) return value;
     if (/شهر/.test(text)) return 1;

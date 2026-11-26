@@ -2783,3 +2783,18 @@ test('day windows and last-N-months answer with exact dates instead of the whole
     assert.match(strip(months.html), /460/);
     assert.match(months.title, /آخر 3 شهور/);
 });
+
+test('aged-arrears questions never read a year or apartment number as a month count', () => {
+    const { api } = createHarness(true, { role: 'manager' });
+    const byYear = api.answerAssistantQuery('مين المتاخرين من 2024', NOW);
+    assert.notEqual(byYear.id, 'arrears_aged', '2024 is a year, not a month count');
+    assert.equal(byYear.id, 'arrears', 'falls back to the plain arrears answer');
+
+    const longAged = api.answerAssistantQuery('مين متأخر اكتر من 100 شهر', NOW);
+    assert.equal(longAged.id, 'arrears_aged');
+    assert.match(longAged.title, /شهور فأكتر/, 'month-word numbers still clamp to the 36-month ceiling');
+
+    const aged = api.answerAssistantQuery('مين متأخر اكتر من 3 شهور', NOW);
+    assert.equal(aged.id, 'arrears_aged');
+    assert.match(aged.title, /شهور فأكتر/);
+});
