@@ -1847,6 +1847,10 @@ test('owners get receipts, due dates, payment methods, notices, notifications an
     const { api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
     assert.equal(api.answerAssistantQuery('إيصالاتي', NOW).id, 'my_receipts');
     assert.doesNotMatch(api.answerAssistantQuery('إيصالاتي', NOW).html, /سارة|200\.00/, 'only their own payments');
+    const lastPayment = api.answerAssistantQuery('إيه آخر دفعة دفعتها؟', NOW);
+    assert.equal(lastPayment.id, 'my_receipts');
+    assert.match(lastPayment.title, /آخر دفعة/);
+    assert.doesNotMatch(lastPayment.html, /سارة|الإدارة/, 'own last payment only, no management-scope refusal');
     assert.equal(api.answerAssistantQuery('آخر يوم للدفع كام؟', NOW).id, 'my_due_date');
     assert.equal(api.answerAssistantQuery('أقدر أدفع بإيه؟', NOW).id, 'payment_methods');
     const methods = api.answerAssistantQuery('طرق الدفع المتاحة', NOW).html;

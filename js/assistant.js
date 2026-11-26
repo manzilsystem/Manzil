@@ -3359,6 +3359,27 @@ function buildAssistantOwnerReceiptsAnswer(period, now = new Date()) {
     return { id: 'my_receipts', title, html };
 }
 
+const ASSISTANT_LAST_PAYMENT_PATTERN = /(?:^|\s)اخر (?:دفعه|ايصال)(?:\s+(?:دفعتها|دفعتو|دفعته|عملتها|ليا|لي|بتاعتي|بتاعتى|عندي|اتسجلت))?\s*[؟?!.]*\s*$/;
+
+function buildAssistantOwnerLastPaymentAnswer() {
+    const resident = assistantOwnerResident();
+    if (!resident) return buildAssistantOwnerMissingAnswer();
+    const last = (Array.isArray(state.income) ? state.income : [])
+        .filter(payment => payment.residentId === resident.id)
+        .slice()
+        .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())[0];
+    const title = 'آخر دفعة دفعتها';
+    if (!last) return { id: 'my_receipts', title, html: assistantNote('مفيش دفعات مسجلة على شقتك لحد دلوقتي.') };
+    const method = typeof getIncomePaymentMethodLabel === 'function' ? getIncomePaymentMethodLabel(last.paymentMethod) : 'نقدًا';
+    const dateLabel = assistantDateLabel(last.date);
+    let html = assistantRow('المبلغ', assistantMoney(last.amount), 'good');
+    if (dateLabel) html += assistantRow('التاريخ', dateLabel);
+    if (last.month) html += assistantRow('عن شهر', String(last.month));
+    html += assistantRow('طريقة الدفع', method);
+    html += assistantNote('الإيصال بتاعها موجود في بوابة المالك، وكل دفعاتك تقدر تسأل عنها بـ «إيصالاتي».');
+    return { id: 'my_receipts', title, html };
+}
+
 function buildAssistantOwnerDueAnswer(now = new Date()) {
     const resident = assistantOwnerResident();
     if (!resident) return buildAssistantOwnerMissingAnswer();
@@ -3540,6 +3561,8 @@ function detectOwnerAssistantIntent(normalized) {
     if (/(مساعده|ساعدني|بتعرف تعمل|تقدر تعمل|اوامر|خيارات|استخدمك|بتعرف ايه)/.test(normalized)) return 'help';
     // First-person questions about the owner's own account are never about someone else.
     if (/(?:^|\s)(?:هل )?انا (?:متاخر|مديون)|(?:^|\s)(?:عليا|علياء) متاخرات|(?:الشهر ده|الشهر دا|الشهر الحالي).*دفعت|دفعت.*(?:الشهر ده|الشهر دا|الشهر الحالي)/.test(normalized)) return 'my_bill';
+    // "آخر دفعة دفعتها" is the owner's own last receipt, not a third-person question.
+    if (ASSISTANT_LAST_PAYMENT_PATTERN.test(normalized)) return 'my_receipts';
     if (/(مين عليه|مين عليها|مين عليهم|على مين|علي مين)/.test(normalized)) return 'owner_scope';
     if (/(?:حساب|ايصالات|ايصال|دفعات|مدفوعات|متاخرات)\s+[ء-ي]{2,}(?:\s+[ء-ي]{2,})?(?:\s+(?:كام|عليه|عليها|دفع|دفعت|متاخر|مديون))?/.test(normalized)) return 'owner_scope';
     if (/^(?:[ء-ي]{2,}\s+){1,2}(?:عليه|عليها|دفع|دفعت|متاخر|مديون)/.test(normalized)) return 'owner_scope';
@@ -3579,6 +3602,7 @@ function selectOwnerAssistantAnswer(intent, period, now, rawText = '') {
         case 'my_bill':
             return buildAssistantOwnerBillAnswer(period, now);
         case 'my_receipts':
+            if (ASSISTANT_LAST_PAYMENT_PATTERN.test(normalizeAssistantArabic(rawText))) return buildAssistantOwnerLastPaymentAnswer();
             return buildAssistantOwnerReceiptsAnswer(period, now);
         case 'my_due_date':
             return buildAssistantOwnerDueAnswer(now);

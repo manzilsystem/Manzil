@@ -199,9 +199,9 @@ function renderCashboxMovementSummary() {
         const netClass = net > 0 ? 'text-emerald-400' : net < 0 ? 'text-rose-400' : 'text-slate-300';
         const tone = code === 'main' ? 'cashbox-tone-emerald' : code === 'development' ? 'cashbox-tone-sky' : 'cashbox-tone-amber';
         return `
-            <article class="cashbox-fund">
+            <article class="cashbox-fund cashbox-fund-movement">
                 <div class="cashbox-fund-head">
-                    <strong class="cashbox-fund-name"><span class="cashbox-fund-dot ${tone}" aria-hidden="true"></span>${esc(getCashAccountLabel(code))}</strong>
+                    <strong class="cashbox-fund-name"><span class="cashbox-fund-dot ${tone}" aria-hidden="true"></span>${esc(getCashAccountLabel(code))}<span class="cashbox-fund-chip">حركة الشهر</span></strong>
                     <strong class="cashbox-fund-net ${netClass}">${fmtCashMoney(net / 100)} ج.م</strong>
                 </div>
                 <div class="cashbox-metrics">
