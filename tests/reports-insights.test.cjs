@@ -467,6 +467,16 @@ test('payment methods split totals each method share within the period', () => {
     assert.equal(report.totals.topPct, 60);
 });
 
+test('insights reports follow the now reference for the current month', () => {
+    const { api } = loadInsights();
+    // ساعة الحاضنة ثابتة على مارس 2024؛ مرجع now في يناير يجعل يناير آخر شهر محسوب.
+    const jan = api.buildPaymentMethodsReport('يناير 2024', '', '', new Date('2024-01-20T12:00:00'));
+    assert.equal(jan.toKey, '2024-01-01', 'الشهر الافتراضي من المرجع لا من الساعة');
+    // بلا مرجع: الساعة (مارس 2024 في الحاضنة).
+    const appClock = api.buildPaymentMethodsReport('مارس 2024', '');
+    assert.equal(appClock.toKey, '2024-03-01');
+});
+
 test('payment methods method filter narrows the split and defaults to 6 months back', () => {
     const { api } = loadInsights({
         income: [

@@ -237,8 +237,19 @@ function insightsSubscriptionRule() {
  * @param {string} residentFilter معرّف ساكن محدد أو فارغ للكل
  * @param {Date} [now] مرجع «اليوم» لقابلية الاختبار
  */
+/**
+ * مفتاح الشهر الحالي من مرجع «now» إن وُجد، وإلا من ساعة التطبيق.
+ * @param {Date|null} [now]
+ */
+function insightsCurrentKey(now) {
+    if (now instanceof Date && !Number.isNaN(now.getTime())) {
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    }
+    return monthLabelToKey(getCurrentMonth());
+}
+
 function buildPayerBehaviorReport(residentFilter = '', now = new Date()) {
-    const currentKey = monthLabelToKey(getCurrentMonth());
+    const currentKey = insightsCurrentKey(now);
     if (!currentKey) return null;
     const income = Array.isArray(state.income) ? state.income : [];
     const rule = insightsSubscriptionRule();
@@ -953,8 +964,8 @@ const PAYMENT_METHOD_SPLIT_DEFAULT_MONTHS = 6;
  * @param {string} toMonth آخر شهر (فارغًا: الشهر الحالي)
  * @param {string} methodFilter رمز طريقة محددة أو فارغ للكل
  */
-function buildPaymentMethodsReport(fromMonth = '', toMonth = '', methodFilter = '') {
-    const currentKey = monthLabelToKey(getCurrentMonth());
+function buildPaymentMethodsReport(fromMonth = '', toMonth = '', methodFilter = '', now = null) {
+    const currentKey = insightsCurrentKey(now);
     if (!currentKey) return null;
     const toKey = monthLabelToKey(toMonth) || currentKey;
     const fromKey = monthLabelToKey(fromMonth) || insightsShiftMonthKey(toKey, -(PAYMENT_METHOD_SPLIT_DEFAULT_MONTHS - 1));
