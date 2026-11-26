@@ -275,3 +275,18 @@ test('collection curve uses owner terminology only', () => {
     assert.doesNotMatch(curveSource, /ساكن|سكان/);
     assert.match(curveSource, /التحصيل/);
 });
+
+test('the documented now reference clamps the range end, not the live clock', () => {
+    const { api } = loadCurve();
+    // getCurrentMonth ثابت على مارس 2024 في الحاضنة؛ مرجع now في يناير يجب أن يقصّ النهاية ليناير.
+    const report = api.buildCollectionCurveReport('يناير 2024', 'يونيو 2024', new Date('2024-01-15T12:00:00'));
+    assert.ok(report, 'report builds');
+    assert.equal(report.rows.length, 1, 'النهاية تُقصّ إلى يناير وفق مرجع now');
+    assert.equal(report.rows[0].key, '2024-01-01');
+});
+
+test('without an explicit now the app clock clamps the range end', () => {
+    const { api } = loadCurve();
+    const report = api.buildCollectionCurveReport('يناير 2024', 'يونيو 2024');
+    assert.equal(report.rows.length, 3, 'getCurrentMonth مارس 2024: يناير إلى مارس');
+});
