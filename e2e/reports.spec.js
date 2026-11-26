@@ -534,11 +534,11 @@ test('the grouped report cards are clickable and free of hub layers', async ({ p
     await expect(page.locator('#tab-reports')).toHaveAttribute('data-report-view', 'index');
     await expect(page.locator('.report-index')).toBeVisible();
     await expect(page.locator('.report-index-group')).toHaveCount(3);
-    await expect(page.locator('.report-index-item')).toHaveCount(14);
-    await expect(page.locator('.report-index-icon')).toHaveCount(14);
-    await expect(page.locator('.report-index-badge')).toHaveCount(14);
-    await expect(page.locator('.report-index-open')).toHaveCount(14);
-    await expect(page.locator('.report-index-state')).toHaveCount(14);
+    await expect(page.locator('.report-index-item')).toHaveCount(15);
+    await expect(page.locator('.report-index-icon')).toHaveCount(15);
+    await expect(page.locator('.report-index-badge')).toHaveCount(15);
+    await expect(page.locator('.report-index-open')).toHaveCount(15);
+    await expect(page.locator('.report-index-state')).toHaveCount(15);
     await expect(page.locator('.report-index-number')).toHaveCount(0);
     await expect(page.locator('[data-report-metric]')).toHaveCount(0);
     await expect(page.locator('#reportHub')).toHaveCount(0);
@@ -574,7 +574,7 @@ test('report search filters cards by name, function and category', async ({ page
 
     await page.locator('#reportIndexClear').click();
     await expect(search).toHaveValue('');
-    await expect(page.locator('.report-index-item:visible')).toHaveCount(14);
+    await expect(page.locator('.report-index-item:visible')).toHaveCount(15);
     await expect(page.locator('#reportIndexClear')).toBeHidden();
 
     await search.fill('أرصدة الصناديق');
@@ -585,7 +585,7 @@ test('report search filters cards by name, function and category', async ({ page
     await expect(page.locator('.report-index-item:visible')).toHaveCount(0);
     await expect(page.locator('#reportIndexEmpty')).toBeVisible();
     await page.locator('.report-index-empty-clear').click();
-    await expect(page.locator('.report-index-item:visible')).toHaveCount(14);
+    await expect(page.locator('.report-index-item:visible')).toHaveCount(15);
 });
 
 test('quality surfaces stay out of printed output', async ({ page }) => {
@@ -1497,9 +1497,9 @@ test('the grouped index keeps every report, description and open action', async 
     })));
 
     expect(cards.map(card => card.tab)).toEqual(['landlord', 'period', 'cashflow', 'expenses', 'expenseVariance',
-      'paymentMethods', 'collectionCurve', 'statement', 'apartments', 'arrears', 'paymentBehavior', 'adjustments', 'monthlyClose', 'audit']);
+      'paymentMethods', 'collectionCurve', 'annualSummary', 'statement', 'apartments', 'arrears', 'paymentBehavior', 'adjustments', 'monthlyClose', 'audit']);
     expect(cards.map(card => card.group)).toEqual(['financial', 'financial', 'financial', 'financial', 'financial', 'financial',
-      'financial', 'owners', 'owners', 'owners', 'owners', 'review', 'review', 'review']);
+      'financial', 'financial', 'owners', 'owners', 'owners', 'owners', 'review', 'review', 'review']);
     const expected = {
       landlord: { title: 'الملخص المالي الشهري', badge: 'شهري', icon: 'fa-file-invoice-dollar' },
       period: { title: 'تقرير الفترة', badge: 'فترة', icon: 'fa-calendar-days' },
@@ -1512,6 +1512,7 @@ test('the grouped index keeps every report, description and open action', async 
       expenseVariance: { title: 'انحراف المصروفات', badge: 'تحليل', icon: 'fa-arrow-trend-up' },
       paymentMethods: { title: 'توزيع طرق الدفع', badge: 'تحليل', icon: 'fa-money-bill-transfer' },
       collectionCurve: { title: 'منحنى التحصيل', badge: 'تحليل', icon: 'fa-chart-area' },
+      annualSummary: { title: 'الملخص السنوي', badge: 'تحليل', icon: 'fa-calendar-check' },
       adjustments: { title: 'تقرير الإعفاءات والتخفيضات', badge: 'قيود', icon: 'fa-tags' },
       monthlyClose: { title: 'مراجعة الإقفال الشهري', badge: 'مراجعة', icon: 'fa-clipboard-check' },
       audit: { title: 'سجل العمليات والتدقيق', badge: 'سجل', icon: 'fa-list-check', state: 'مباشر' }
