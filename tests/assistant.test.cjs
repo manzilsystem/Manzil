@@ -2643,3 +2643,16 @@ test('audit: month counts read like speech and "this month vs last month" compar
     assert.equal(comparison.id, 'comparison');
     assert.match(comparison.title, /نوفمبر 2026 وأكتوبر 2026/);
 });
+
+test('owner audit: first-person account questions and payment-date wording get a real answer', () => {
+    const { api } = createHarness(true, { role: 'owner', ownerScoped: true, residentId: 'r1' });
+    const strip = html => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    for (const q of ['ميعاد الدفع', 'امتى اخر ميعاد', 'اخر موعد للدفع']) {
+        assert.equal(api.answerAssistantQuery(q, NOW).id, 'my_due_date', q);
+    }
+    for (const q of ['هل انا متاخر', 'عليا متأخرات', 'الشهر ده دفعت ولا لا']) {
+        assert.equal(api.answerAssistantQuery(q, NOW).id, 'my_bill', q);
+    }
+    assert.equal(api.answerAssistantQuery('مين متأخر', NOW).id, 'owner_scope', 'building-wide questions stay refused for the owner');
+    assert.match(strip(api.answerAssistantQuery('اخر يوم للدفع', NOW).html), /عليك 10 شهور متأخر/);
+});
