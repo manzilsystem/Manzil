@@ -222,17 +222,27 @@ test('period comparison renders a comparison table when a mode is selected', asy
     await expect(page.locator('.report-comparison-block')).toContainText('مقارنة الفترات');
 });
 
-test('saved period filters can be kept as a quiet template', async ({ page }) => {
+test('report filters can be saved as a template and re-applied, surviving reload', async ({ page }) => {
     await openReports(page);
     await openReportPanel(page, 'period');
-    await page.locator('#periodReportTemplates summary').click();
-    await expect(page.locator('#templateNameInput')).toBeVisible();
-    await page.locator('#templateNameInput').fill('قالب اختبار');
-    await page.locator('button[onclick="saveCurrentPeriodTemplate()"]').click();
-    await expect(page.locator('#savedTemplatesList')).toContainText('قالب اختبار');
+    const fold = page.locator('#reportTemplates-period');
+    await fold.locator('summary').click();
+    await page.locator('#periodReportPreset').selectOption('12');
+    await fold.locator('[data-report-template-name]').fill('قالب اختبار');
+    await fold.locator('[data-report-template-save]').click();
+    await expect(fold.locator('[data-report-template-list]')).toContainText('قالب اختبار');
+
+    await page.locator('#periodReportPreset').selectOption('3');
+    await fold.locator('[data-report-template-apply]').click();
+    await expect(page.locator('#periodReportPreset')).toHaveValue('12');
 
     const count = await page.evaluate(() => window.loadReportTemplates().length);
     expect(count).toBeGreaterThan(0);
+    await page.reload();
+    await openReports(page);
+    await openReportPanel(page, 'period');
+    await page.locator('#reportTemplates-period summary').click();
+    await expect(page.locator('#reportTemplates-period [data-report-template-list]')).toContainText('قالب اختبار');
 });
 
 test('scheduled report controls are absent from the reports workspace', async ({ page }) => {
@@ -524,11 +534,11 @@ test('the grouped report cards are clickable and free of hub layers', async ({ p
     await expect(page.locator('#tab-reports')).toHaveAttribute('data-report-view', 'index');
     await expect(page.locator('.report-index')).toBeVisible();
     await expect(page.locator('.report-index-group')).toHaveCount(3);
-    await expect(page.locator('.report-index-item')).toHaveCount(13);
-    await expect(page.locator('.report-index-icon')).toHaveCount(13);
-    await expect(page.locator('.report-index-badge')).toHaveCount(13);
-    await expect(page.locator('.report-index-open')).toHaveCount(13);
-    await expect(page.locator('.report-index-state')).toHaveCount(13);
+    await expect(page.locator('.report-index-item')).toHaveCount(14);
+    await expect(page.locator('.report-index-icon')).toHaveCount(14);
+    await expect(page.locator('.report-index-badge')).toHaveCount(14);
+    await expect(page.locator('.report-index-open')).toHaveCount(14);
+    await expect(page.locator('.report-index-state')).toHaveCount(14);
     await expect(page.locator('.report-index-number')).toHaveCount(0);
     await expect(page.locator('[data-report-metric]')).toHaveCount(0);
     await expect(page.locator('#reportHub')).toHaveCount(0);
@@ -564,7 +574,7 @@ test('report search filters cards by name, function and category', async ({ page
 
     await page.locator('#reportIndexClear').click();
     await expect(search).toHaveValue('');
-    await expect(page.locator('.report-index-item:visible')).toHaveCount(13);
+    await expect(page.locator('.report-index-item:visible')).toHaveCount(14);
     await expect(page.locator('#reportIndexClear')).toBeHidden();
 
     await search.fill('أرصدة الصناديق');
@@ -575,7 +585,7 @@ test('report search filters cards by name, function and category', async ({ page
     await expect(page.locator('.report-index-item:visible')).toHaveCount(0);
     await expect(page.locator('#reportIndexEmpty')).toBeVisible();
     await page.locator('.report-index-empty-clear').click();
-    await expect(page.locator('.report-index-item:visible')).toHaveCount(13);
+    await expect(page.locator('.report-index-item:visible')).toHaveCount(14);
 });
 
 test('quality surfaces stay out of printed output', async ({ page }) => {
@@ -1487,9 +1497,9 @@ test('the grouped index keeps every report, description and open action', async 
     })));
 
     expect(cards.map(card => card.tab)).toEqual(['landlord', 'period', 'cashflow', 'expenses', 'expenseVariance',
-      'paymentMethods', 'statement', 'apartments', 'arrears', 'paymentBehavior', 'adjustments', 'monthlyClose', 'audit']);
+      'paymentMethods', 'collectionCurve', 'statement', 'apartments', 'arrears', 'paymentBehavior', 'adjustments', 'monthlyClose', 'audit']);
     expect(cards.map(card => card.group)).toEqual(['financial', 'financial', 'financial', 'financial', 'financial', 'financial',
-      'owners', 'owners', 'owners', 'owners', 'review', 'review', 'review']);
+      'financial', 'owners', 'owners', 'owners', 'owners', 'review', 'review', 'review']);
     const expected = {
       landlord: { title: 'الملخص المالي الشهري', badge: 'شهري', icon: 'fa-file-invoice-dollar' },
       period: { title: 'تقرير الفترة', badge: 'فترة', icon: 'fa-calendar-days' },
@@ -1501,6 +1511,7 @@ test('the grouped index keeps every report, description and open action', async 
       paymentBehavior: { title: 'سلوك السداد', badge: 'تحليل', icon: 'fa-user-clock' },
       expenseVariance: { title: 'انحراف المصروفات', badge: 'تحليل', icon: 'fa-arrow-trend-up' },
       paymentMethods: { title: 'توزيع طرق الدفع', badge: 'تحليل', icon: 'fa-money-bill-transfer' },
+      collectionCurve: { title: 'منحنى التحصيل', badge: 'تحليل', icon: 'fa-chart-area' },
       adjustments: { title: 'تقرير الإعفاءات والتخفيضات', badge: 'قيود', icon: 'fa-tags' },
       monthlyClose: { title: 'مراجعة الإقفال الشهري', badge: 'مراجعة', icon: 'fa-clipboard-check' },
       audit: { title: 'سجل العمليات والتدقيق', badge: 'سجل', icon: 'fa-list-check', state: 'مباشر' }
@@ -1763,4 +1774,11 @@ test('report tables are ruled, striped and readable', async ({ page }) => {
     expect(styles.striped).toBe(true);
     expect(styles.fontSize).toBeGreaterThanOrEqual(12);
     expect(styles.overflow).toBe(false);
+});
+
+test('every report type with filters offers templates next to its filters', async ({ page }) => {
+    await openReports(page);
+    for (const tab of ['landlord', 'period', 'cashflow', 'expenses', 'adjustments', 'statement', 'apartments', 'monthlyClose', 'arrears']) {
+        await expect(page.locator('#reportTemplates-' + tab)).toHaveCount(1);
+    }
 });

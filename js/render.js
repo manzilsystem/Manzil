@@ -63,6 +63,7 @@ function renderAll() {
     if (typeof invalidateAdjustmentsReportIfStale === 'function') invalidateAdjustmentsReportIfStale();
     if (typeof invalidateExtendedReportsIfStale === 'function') invalidateExtendedReportsIfStale();
     if (typeof invalidateInsightsReportsIfStale === 'function') invalidateInsightsReportsIfStale();
+    if (typeof invalidateCollectionCurveIfStale === 'function') invalidateCollectionCurveIfStale();
     syncReportNavStatus();
     renderCashbox();
     if (typeof renderManagerNotifications === 'function') renderManagerNotifications();
@@ -275,6 +276,7 @@ function populateSelects() {
     if (typeof populateAdjustmentsReportFilters === 'function') populateAdjustmentsReportFilters(months, current);
     if (typeof populateExtendedReportFilters === 'function') populateExtendedReportFilters(months, current);
     if (typeof populateInsightsReportFilters === 'function') populateInsightsReportFilters(months, current);
+    if (typeof populateCollectionCurveFilters === 'function') populateCollectionCurveFilters(months, current);
     if (typeof populateReportPurposeFilters === 'function') populateReportPurposeFilters();
     if (typeof populateReportCashAccountFilters === 'function') populateReportCashAccountFilters();
     if (typeof populateReportPaymentMethodFilters === 'function') populateReportPaymentMethodFilters();
@@ -784,9 +786,9 @@ function renderResidentsGrid(options) {
                     <div class="min-w-0"><p class="text-sm font-bold truncate">${esc(r.name)}</p><p class="text-xs text-slate-500 truncate">${r.floor ? `الدور ${esc(r.floor)} · ` : ''}${esc(r.phone||'')}</p></div>
                 </div>
                 <div class="flex gap-1">
-                    <button onclick="openResidentProfile(${esc(JSON.stringify(String(r.id)))})" aria-label="عرض ملف ${esc(r.name)}" title="تفاصيل الشقة" class="text-sky-400 hover:text-sky-300 p-1.5"><i class="fa-solid fa-circle-info text-xs"></i></button>
-                    <button onclick="editResident('${r.id}')" aria-label="تعديل بيانات ${esc(r.name)}" class="text-indigo-400 hover:text-indigo-300 p-1.5"><i class="fa-solid fa-pen text-xs"></i></button>
-                    <button onclick="deleteResident('${r.id}')" aria-label="حذف الشقة ${esc(r.apartmentNumber)}" class="text-rose-400 hover:text-rose-300 p-1.5"><i class="fa-solid fa-trash text-xs"></i></button>
+                    <button onclick="openResidentProfile(${esc(JSON.stringify(String(r.id)))})" aria-label="عرض ملف ${esc(r.name)}" title="تفاصيل الشقة" class="text-sky-400 hover:text-sky-300 inline-flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem]"><i class="fa-solid fa-circle-info text-xs"></i></button>
+                    <button onclick="editResident('${r.id}')" aria-label="تعديل بيانات ${esc(r.name)}" class="text-indigo-400 hover:text-indigo-300 inline-flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem]"><i class="fa-solid fa-pen text-xs"></i></button>
+                    <button onclick="deleteResident('${r.id}')" aria-label="حذف الشقة ${esc(r.apartmentNumber)}" class="text-rose-400 hover:text-rose-300 inline-flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem]"><i class="fa-solid fa-trash text-xs"></i></button>
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-2 text-center">
@@ -795,7 +797,7 @@ function renderResidentsGrid(options) {
             </div>
             <div class="flex items-center justify-between gap-2">
                 <span class="text-xs font-bold border rounded-full px-2.5 py-1 ${item.status.className}">${item.status.label}</span>
-                ${r.phone ? `<a href="tel:${esc(r.phone)}" class="text-xs text-indigo-400 hover:underline" aria-label="الاتصال بـ ${esc(r.name)}"><i class="fa-solid fa-phone ml-1"></i> اتصال</a>` : '<span></span>'}
+                ${r.phone ? `<a href="tel:${esc(r.phone)}" class="text-xs text-indigo-400 hover:underline inline-block py-2 -my-2" aria-label="الاتصال بـ ${esc(r.name)}"><i class="fa-solid fa-phone ml-1"></i> اتصال</a>` : '<span></span>'}
             </div>
             <div class="flex gap-2">
                 ${paid ? '<div class="flex-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 py-2 rounded-xl text-xs font-bold text-center"><i class="fa-solid fa-check ml-1"></i> مدفوع بالكامل</div>'

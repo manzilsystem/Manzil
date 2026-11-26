@@ -10,5 +10,5 @@
         "skipLibCheck": true,
         "types": []
     },
-    "include": ["js/telemetry.js", "js/state.js", "js/access.js", "js/notices.js", "js/app.js", "js/subscription-rates.js", "js/monthly-close.js", "js/cashbox.js", "js/backup.js", "js/assistant.js", "js/assistant-voice.js", "js/assistant-fab.js", "js/reports.js", "js/reports/extended/reports-extended.js", "js/reports/extended/reports-insights.js", "js/render.js", "js/settings.js", "js/crud.js", "js/supabase.js", "js/push.js", "js/globals.d.ts"]
+    "include": ["js/telemetry.js", "js/state.js", "js/access.js", "js/notices.js", "js/app.js", "js/subscription-rates.js", "js/monthly-close.js", "js/cashbox.js", "js/backup.js", "js/assistant.js", "js/assistant-voice.js", "js/assistant-fab.js", "js/reports.js", "js/reports/extended/reports-extended.js", "js/reports/extended/reports-insights.js", "js/reports/extended/reports-collection-curve.js", "js/render.js", "js/settings.js", "js/crud.js", "js/supabase.js", "js/push.js", "js/globals.d.ts"]
 }

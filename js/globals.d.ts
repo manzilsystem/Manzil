@@ -25,6 +25,7 @@ interface Window {
     MANZIL_RELEASE?: string;
     MANZIL_EXTENDED_REPORTS?: Record<string, unknown>;
     MANZIL_INSIGHTS_REPORTS?: Record<string, unknown>;
+    MANZIL_COLLECTION_CURVE_REPORT?: Record<string, unknown>;
     html2pdf?: () => { set: (options: Record<string, unknown>) => { from: (element: HTMLElement) => any } };
 }
 
@@ -68,9 +69,11 @@ declare function getCachedReportModel(cacheKey: string, builder: Function, inval
 
 // Reports - saved templates (js/reports/shared/templates.js)
 declare function initReportTemplatesUI(): void;
-declare function saveCurrentPeriodTemplate(): void;
-declare function applyTemplate(templateId: string): void;
-declare function deleteTemplate(templateId: string): void;
+declare function saveReportTemplateFromPanel(tab: string): any;
+declare function applyTemplate(templateId: string): boolean;
+declare function deleteTemplate(templateId: string): boolean;
+declare function loadReportTemplates(): any[];
+declare function getTemplatesForReport(reportType: string): any[];
 declare function renderTemplateList(reportType: string, containerId: string): void;
 declare function addReportTemplate(name: string, reportType: string, filters: Record<string, unknown>): any;
 declare function applyReportTemplate(templateId: string): Record<string, unknown> | null;
