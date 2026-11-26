@@ -3033,7 +3033,7 @@ function buildAssistantReportsAnswer(request = null, now = new Date()) {
         'تقرير المالك الشهري والفترة: التحصيل والمصروفات مع الفلاتر.',
         'تقارير المصروفات والإعفاءات والتخفيضات.',
         'كشف حساب المالك والإقفال الشهري والمتأخرات.'
-    ])}${assistantNote('اطلب التقرير بصيغة طبيعية، مثل «تقرير مصروفات نوفمبر» أو «كشف حساب سارة حسن»؛ سأعرض النتيجة هنا من بيانات المبنى المحلية. ويمكن فتح شاشة التقارير الرسمية للطباعة أو CSV بكتابة «افتح شاشة التقارير».')}`;
+    ])}${assistantNote('اطلب التقرير بصيغة طبيعية، مثل «تقرير مصروفات نوفمبر» أو «كشف حساب سارة حسن»؛ هعرضلك النتيجة هنا من بيانات المبنى المحلية. ولو عايز تطبع أو تنزّل CSV افتح شاشة التقارير بكتابة «افتح شاشة التقارير».')}`;
     return { id: 'reports', title, html };
 }
 
@@ -3658,7 +3658,7 @@ function answerAssistantQuery(text, now = new Date()) {
         return withAssistantAnswerMeta({
             id: 'operation-reconciled',
             title: 'تم إغلاق متابعة العملية',
-            html: assistantNote('أغلقت متابعة العملية غير المؤكدة بعد مراجعتك. تأكد من سجل التدقيق قبل أي تعديل أو حذف جديد.')
+            html: assistantNote('تمام يا باشا، قفلت متابعة العملية اللي مش متأكدة بعد مراجعتك. بصّ في سجل التدقيق قبل أي تعديل أو حذف جديد.')
         }, resolveAssistantPeriod(text, now), null, text);
     }
     if ((assistantOperationDraft || assistantNoticeDraft) && assistantIsCancellation(text)) {
@@ -3674,16 +3674,16 @@ function answerAssistantQuery(text, now = new Date()) {
         }, resolveAssistantPeriod(text, now), null, text);
     }
     if (assistantNoticeDraft && assistantIsNoticePublishRequest(text)) {
-        return withAssistantAnswerMeta({ id: 'notice-confirm-request', title: 'تأكيد نشر الإعلان', html: assistantNote('سأنشر نص الإعلان الذي راجعته الآن.') }, resolveAssistantPeriod(text, now), null, text);
+        return withAssistantAnswerMeta({ id: 'notice-confirm-request', title: 'تأكيد نشر الإعلان', html: assistantNote('تمام يا باشا، هنشر نص الإعلان اللي راجعته دلوقتي.') }, resolveAssistantPeriod(text, now), null, text);
     }
     if (assistantOperationDraft && assistantIsConfirmation(text)) {
         if (!assistantOperationCanExecute(assistantOperationDraft)) {
             return withAssistantAnswerMeta(buildAssistantOperationPreview(assistantOperationDraft, now), resolveAssistantPeriod(text, now), assistantOperationDraft.resident || null, text);
         }
-        return withAssistantAnswerMeta({ id: 'operation-confirm-request', title: 'جارٍ تسجيل العملية بعد تأكيدك', html: assistantNote('لحظة، أطبّق التحقق والحفظ بالطريقة الرسمية.') }, resolveAssistantPeriod(text, now), assistantOperationDraft.resident || null, text);
+        return withAssistantAnswerMeta({ id: 'operation-confirm-request', title: 'جارٍ تسجيل العملية بعد تأكيدك', html: assistantNote('لحظة يا باشا، براجع وبسجّل بالطريقة الرسمية.') }, resolveAssistantPeriod(text, now), assistantOperationDraft.resident || null, text);
     }
     if (assistantOperationDraft && /^(?:افتح النموذج|افتح شاشة الادخال|كمل في النموذج)$/.test(normalized)) {
-        return withAssistantAnswerMeta({ id: 'operation-open-form-request', title: 'فتح نموذج المراجعة', html: assistantNote('سأفتح شاشة التطبيق لمراجعة البيانات واستكمالها.') }, resolveAssistantPeriod(text, now), assistantOperationDraft.resident || null, text);
+        return withAssistantAnswerMeta({ id: 'operation-open-form-request', title: 'فتح نموذج المراجعة', html: assistantNote('حاضر يا باشا، هفتحلك الشاشة تراجع البيانات وتكمّلها.') }, resolveAssistantPeriod(text, now), assistantOperationDraft.resident || null, text);
     }
     if (/^(?:افتح|روح|اذهب الى|وديني الى)\s+(?:(?:شاشه|صفحه)\s+)?(?:التقارير|تقارير|التقرير|تقرير|كشف حساب|المتاخرات)(?:\s|$)/.test(normalized)) {
         const reportRequest = parseAssistantReportRequest(text, now);
@@ -3695,7 +3695,7 @@ function answerAssistantQuery(text, now = new Date()) {
         return withAssistantAnswerMeta({
             id: 'reports-open-request',
             title: 'فتح التقرير المطلوب',
-            html: assistantNote(`سأفتح تقرير ${reportLabel}${periodLabel} في شاشة التقارير الرسمية.`),
+            html: assistantNote(`حاضر يا باشا، هفتحلك تقرير ${reportLabel}${periodLabel} في شاشة التقارير.`),
             reportRequest: reportRequest || { tab: 'landlord', month: '', residentId: '' }
         }, resolveAssistantPeriod(text, now), null, text);
     }
