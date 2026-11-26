@@ -165,7 +165,40 @@ function arrearsReminderTodayKey() {
     return new Date().toISOString().slice(0, 10);
 }
 
+function hasCustomReminderTemplate() {
+    if (state.reminderMessageTemplate !== null && state.reminderMessageTemplate !== undefined) return String(state.reminderMessageTemplate).trim() !== '';
+    try { return String(localStorage.getItem(getReminderTemplateKey()) || '').trim() !== ''; } catch { return false; }
+}
+
+/** Tone picker above the list: three buttons, disabled while a custom message from Settings is in use. */
+function renderArrearsReminderTonePicker() {
+    const host = document.getElementById('arrearsReminderTone');
+    if (!host) return;
+    const custom = hasCustomReminderTemplate();
+    const current = getReminderTone();
+    const buttons = Object.keys(REMINDER_TONES).map(key => {
+        const tone = REMINDER_TONES[key];
+        const active = !custom && key === current;
+        return '<button type="button" role="radio" aria-checked="' + (active ? 'true' : 'false') + '" data-reminder-tone="' + key + '"' + (custom ? ' disabled' : '')
+            + ' onclick="setArrearsReminderTone(\'' + key + '\')" class="min-h-11 rounded-xl border text-xs font-bold px-2 ' + (active ? 'bg-emerald-600 text-white border-emerald-500' : 'app-input') + (custom ? ' opacity-50' : '') + '">'
+            + esc(tone.label) + '<span class="block text-[10px] font-normal opacity-75">' + esc(tone.hint) + '</span></button>';
+    }).join('');
+    host.innerHTML = '<p class="text-xs font-bold mb-1">نبرة الرسالة</p><div role="radiogroup" aria-label="نبرة الرسالة" class="grid grid-cols-3 gap-2">' + buttons + '</div>'
+        + (custom ? '<p class="text-[11px] text-amber-400 mt-1">عندك رسالة مخصصة في الإعدادات، وهي اللي بتتبعت. امسحها عشان تختار نبرة.</p>' : '');
+}
+
+function setArrearsReminderTone(tone) {
+    if (!requireManager()) return;
+    if (hasCustomReminderTemplate()) return;
+    if (!setReminderTone(tone)) {
+        toast('تعذر حفظ النبرة على الجهاز.', 'error');
+        return;
+    }
+    renderArrearsReminderRows();
+}
+
 function renderArrearsReminderRows() {
+    renderArrearsReminderTonePicker();
     const host = document.getElementById('arrearsRemindersList');
     const summary = document.getElementById('arrearsRemindersSummary');
     if (!host) return;
