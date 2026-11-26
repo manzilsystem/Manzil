@@ -341,7 +341,8 @@
                         <p class="cashbox-card-subtitle">أحدث 100 تحويل بين الصناديق.</p>
                     </div>
                 </div>
-                <div id="cashTransfersList" class="cashbox-rows cashbox-rows-scroll"></div>
+                <div id="cashTransfersList" class="cashbox-rows cashbox-rows-scroll is-collapsed"></div>
+                <button type="button" class="cashbox-more app-input border hidden" id="cashTransfersMore" onclick="toggleCashboxMore('cashTransfersList', 'cashTransfersMore')" aria-controls="cashTransfersList" aria-expanded="false"></button>
             </div>
 
             <div class="app-card cashbox-card p-5 rounded-3xl border">
@@ -358,7 +359,8 @@
                         <option value="emergency">صندوق الصيانة الطارئة</option>
                     </select>
                 </div>
-                <div id="cashboxRecentMovements" class="cashbox-rows"></div>
+                <div id="cashboxRecentMovements" class="cashbox-rows is-collapsed"></div>
+                <button type="button" class="cashbox-more app-input border hidden" id="cashboxRecentMore" onclick="toggleCashboxMore('cashboxRecentMovements', 'cashboxRecentMore')" aria-controls="cashboxRecentMovements" aria-expanded="false"></button>
             </div>
             </div>
         </section>

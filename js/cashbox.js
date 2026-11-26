@@ -277,6 +277,25 @@ function getCashboxMovementsAccountFilter() {
     return select?.value || 'all';
 }
 
+const CASHBOX_COLLAPSED_ROWS = 3;
+
+/** يُظهر أول 3 صفوف فقط، وزر صغير يعرض الباقي. الحالة تبقى عبر إعادة الرسم. */
+function syncCashboxMore(listId, buttonId) {
+    const list = document.getElementById(listId);
+    const button = document.getElementById(buttonId);
+    if (!list || !button) return;
+    const count = list.querySelectorAll('.cashbox-row').length;
+    const expanded = !list.classList.contains('is-collapsed');
+    button.classList.toggle('hidden', count <= CASHBOX_COLLAPSED_ROWS);
+    button.setAttribute('aria-expanded', String(expanded));
+    button.textContent = expanded ? 'عرض أقل' : `عرض الكل (${count})`;
+}
+
+function toggleCashboxMore(listId, buttonId) {
+    document.getElementById(listId)?.classList.toggle('is-collapsed');
+    syncCashboxMore(listId, buttonId);
+}
+
 function renderCashboxRecentMovements() {
     const container = document.getElementById('cashboxRecentMovements');
     if (!container) return;
@@ -286,6 +305,7 @@ function renderCashboxRecentMovements() {
         .slice(0, 10);
     if (!movements.length) {
         container.innerHTML = '<p class="cashbox-empty">لا توجد حركات مسجلة حتى الآن.</p>';
+        syncCashboxMore('cashboxRecentMovements', 'cashboxRecentMore');
         return;
     }
     container.innerHTML = movements.map(item => {
@@ -309,6 +329,7 @@ function renderCashboxRecentMovements() {
             </article>
         `;
     }).join('');
+    syncCashboxMore('cashboxRecentMovements', 'cashboxRecentMore');
 }
 
 function renderCashbox() {
@@ -332,6 +353,7 @@ function renderCashbox() {
     const transfers = Array.isArray(state.cashTransfers) ? state.cashTransfers : [];
     if (!transfers.length) {
         list.innerHTML = '<p class="cashbox-empty">لا توجد تحويلات مسجلة حتى الآن.</p>';
+        syncCashboxMore('cashTransfersList', 'cashTransfersMore');
         return;
     }
 
@@ -349,6 +371,7 @@ function renderCashbox() {
             </article>
         `;
     }).join('');
+    syncCashboxMore('cashTransfersList', 'cashTransfersMore');
 }
 
 function previewCashTransfer() {
