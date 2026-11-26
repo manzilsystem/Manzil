@@ -196,3 +196,42 @@ test('an expense above a fund balance is blocked, and a main-cashbox overdraft n
     expect(await cashboxBalances(page)).toEqual({ main: -100, development: 50, emergency: 0 });
     expect(await page.evaluate(() => state.auditLogs.some(entry => entry.action === 'تجاوز رصيد الخزنة'))).toBe(true);
 });
+
+test('with selected-month-first policy a large payment charges the selected month once and rolls to the next month', async ({ page }) => {
+    const resident = {
+        id: 'r1', name: 'أحمد', apartmentNumber: '3', monthlyAmount: 100,
+        createdAt: monthStartIso(-3)
+    };
+    const settledIncome = [-3, -2, -1].map(offset => ({
+        id: `seed${offset}`, residentId: 'r1', month: monthLabel(offset), amount: 100,
+        purposeCode: 'subscription', cashAccountCode: 'main', paymentMethod: 'cash',
+        date: monthStartIso(offset), notes: ''
+    }));
+    await seedManagerSession(page, { residents: [resident], income: settledIncome });
+    await page.evaluate(() => { state.paymentAllocationPolicy = 'selected_month_first'; });
+
+    await openIncomeWizard(page);
+    await page.locator('#incomeResident').selectOption('r1');
+    await advanceIncomeStep(page, 2);
+    // Only the current month is due; the wizard pre-selects it. Pay 250.
+    await expect(page.locator(`#incomeMonthsGrid input[data-income-month="${monthLabel(0)}"]`)).toBeChecked();
+    await page.locator('#incomeAmount').fill('250');
+    await advanceIncomeStep(page, 3);
+    await page.locator('#incomePaymentMethod').selectOption('cash');
+
+    await page.locator('#incomeSubmitButton').click();
+    await expect(page.locator('#incomeModal')).toBeHidden();
+
+    const newRows = await page.evaluate(() => state.income
+        .filter(item => !String(item.id).startsWith('seed'))
+        .map(item => ({ month: item.month, amount: item.amount })));
+    const perMonth = {};
+    for (const row of newRows) perMonth[row.month] = (perMonth[row.month] || 0) + row.amount;
+    expect(perMonth).toEqual({
+        [monthLabel(0)]: 100,
+        [monthLabel(1)]: 100,
+        [monthLabel(2)]: 50
+    });
+    expect(newRows.filter(row => row.month === monthLabel(0)).length).toBe(1);
+    expect(await cashboxBalances(page)).toEqual({ main: 750, development: 0, emergency: 0 });
+});
