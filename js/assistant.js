@@ -501,7 +501,7 @@ function normalizeAssistantArabic(value) {
         .replace(/[\u200e\u200f]/g, '')
         .replace(/دلوقتى|دلوقتي|دلوقت/g, 'حاليا')
         .replace(/الفلوس راحت فين|فلوسنا راحت فين|الفلوس اتصرفت فين|اتصرفنا في ايه/g, 'المصاريف')
-        .replace(/مين لسه مادفعش|مين ما دفعش|مين مدفعش|مين مش دافع/g, 'مين عليه متاخرات')
+        .replace(/مين (?:لسه |برضه |برضو )?(?:ما ?|م)(?:دفع|سدد|حول|جاب)(?:ش|وش)|مين مش دافع|مين لسه (?:ما )?(?:دفع|سدد)(?:ش|وش)?|مين اتاخر في (?:ال)?(?:دفع|سداد)/g, 'مين عليه متاخرات')
         .replace(/كام في الخزنه|كام في الصندوق|الخزنه فيها كام/g, 'رصيد الخزنه')
         .replace(/دفعوا ازاي|اتدفعت بايه|دفعنا ازاي|الناس دفعت ازاي/g, 'طرق التحصيل')
         .replace(/\s+/g, ' ')
@@ -933,7 +933,99 @@ function getAssistantResidentSnapshot(resident, now = new Date(), monthLabel = '
     };
 }
 
+
+const ASSISTANT_SMALLTALK_BYE = /^(?:يلا |طيب |ok )?(?:مع السلامه|في امان الله|فى امان الله|الى اللقاء|الي اللقاء|تصبح علي خير|تصبحوا علي خير|سلام عليكم ورحمه الله|باي|سلامو عليكو|اشوفك بعدين|اشوفك على خير|يلا سلام|سلام يا (?:عم عبده|باشا))(?:\s+.*)?$/;
+const ASSISTANT_SMALLTALK_ACK = /^(?:طيب |ماشي |يا رب )?(?:تمام|ماشي|حاضر|اوكي|اوك|ok|okay|طيب|حلو|جميل|كويس|عظيم|برافو|ممتاز|فهمت|وصلت|مفهوم)(?:\s+(?:يا\s+\S+|كده|خالص|جدا|الحمد لله))?$/i;
+const ASSISTANT_SMALLTALK_WHO = /(?:انت مين|مين انت|انتا مين|اسمك ايه|انت ايه بالظبط|بتعمل ايه هنا|انت بتشتغل ايه)/;
+const ASSISTANT_SMALLTALK_THANKS = /(?:شكرا|شكرن|تسلم|مشكور|ربنا يكرمك|الله يبارك|جزاك الله|كتر خيرك|يعطيك العافيه|ميرسي|متشكر|thanks|thank you)/i;
+
+function detectAssistantSmallTalk(normalized) {
+    const text = String(normalized || '').trim();
+    if (!text || text.split(/\s+/).length > 7) return null;
+    if (ASSISTANT_SMALLTALK_BYE.test(text)) return 'bye';
+    if (ASSISTANT_SMALLTALK_THANKS.test(text)) return 'thanks';
+    if (ASSISTANT_SMALLTALK_WHO.test(text)) return 'who_are_you';
+    if (ASSISTANT_SMALLTALK_ACK.test(text)) return 'ack';
+    return null;
+}
+
+function buildAssistantSmallTalkAnswer(intent) {
+    const address = assistantAddress();
+    const owner = assistantIsOwner();
+    if (intent === 'bye') {
+        return { id: 'bye', title: 'في رعاية الله', html: `<p class="assistant-hello">في رعاية الله ${address}. أنا هنا لو احتجتني.</p>` };
+    }
+    if (intent === 'ack') {
+        return { id: 'ack', title: 'تمام', html: `<p class="assistant-hello">تمام ${address}. قولي لو عايز حاجة تانية.</p>` };
+    }
+    const scope = owner
+        ? 'حسابك، إيصالاتك، ميعاد الدفع وإعلانات العمارة.'
+        : 'التحصيل، المتأخرات، المصروفات، الخزنة وحساب كل شقة.';
+    return {
+        id: 'who_are_you',
+        title: 'أنا عم عبده',
+        html: `<p class="assistant-hello">أنا عم عبده البواب ${address}.</p>${assistantNote('بجاوب من الأرقام اللي في التطبيق بس، ومبخمّنش.')}${assistantList([scope])}`
+    };
+}
+
+const ASSISTANT_CLOSEST_QUESTIONS = {
+    manager: [
+        'ملخص الشهر', 'مين عليه متأخرات؟', 'رصيد الخزنة كام؟', 'كام اتحصل الشهر ده؟',
+        'المصروفات الشهر ده', 'أكبر مصروف', 'مين هيستحق الأسبوع ده؟', 'آخر الحركات',
+        'إعلانات المبنى', 'افتح تقرير المتأخرات', 'الإعفاءات والتخفيضات', 'طرق التحصيل'
+    ],
+    owner: [
+        'عليّا كام الشهر ده؟', 'إيصالاتي', 'آخر يوم للدفع كام؟', 'طرق الدفع',
+        'إعلانات المبنى', 'إشعاراتي', 'رقم مدير العمارة', 'بيانات شقتي'
+    ]
+};
+
+function assistantBigrams(value) {
+    const text = String(value || '').replace(/[^\u0621-\u064Aa-z0-9 ]/gi, '').replace(/\s+/g, ' ').trim();
+    const grams = new Map();
+    for (let i = 0; i < text.length - 1; i += 1) {
+        const gram = text.slice(i, i + 2);
+        grams.set(gram, (grams.get(gram) || 0) + 1);
+    }
+    return grams;
+}
+
+function assistantSimilarity(a, b) {
+    const left = assistantBigrams(a);
+    const right = assistantBigrams(b);
+    let overlap = 0;
+    let total = 0;
+    left.forEach(count => { total += count; });
+    right.forEach((count, gram) => {
+        total += count;
+        overlap += Math.min(count, left.get(gram) || 0);
+    });
+    return total ? (2 * overlap) / total : 0;
+}
+
+// Three questions closest to what was typed, so "ماوصلتش" always offers a way forward.
+function assistantClosestQuestions(rawText, role = 'manager', count = 3) {
+    const catalog = ASSISTANT_CLOSEST_QUESTIONS[role] || ASSISTANT_CLOSEST_QUESTIONS.manager;
+    const typed = normalizeAssistantArabic(rawText);
+    const ranked = catalog
+        .map((question, index) => ({ question, index, score: assistantSimilarity(typed, normalizeAssistantArabic(question)) }))
+        .sort((x, y) => y.score - x.score || x.index - y.index);
+    return ranked.slice(0, count).map(item => item.question);
+}
+
+function buildAssistantNotUnderstoodAnswer(rawText, role) {
+    const questions = assistantClosestQuestions(rawText, role);
+    return {
+        id: 'unknown',
+        title: 'ماوصلتش للمقصود',
+        html: `<p class="assistant-note">ماوصلتش للمقصود ${assistantAddress()}، ومش هخمّن وأقولك رقم غلط. تقصد واحد من دول؟</p>${assistantList(questions)}`,
+        followUpQueries: questions
+    };
+}
+
 function detectAssistantIntent(normalized, hasResident) {
+    const smallTalk = detectAssistantSmallTalk(normalized);
+    if (smallTalk) return smallTalk;
     const responseMode = detectAssistantResponseMode(normalized);
     if (responseMode === 'detailed' || responseMode === 'brief') {
         if (/(?:مصروف|مصاريف|صرف|منصرف|كهرب|نظافه|نظافة|صيانه|صيانة|مياه|ميه|حراسه|حراسة)/.test(normalized)) return 'expenses';
@@ -3073,6 +3165,8 @@ function buildAssistantOwnerScopeAnswer() {
 }
 
 function detectOwnerAssistantIntent(normalized) {
+    const smallTalk = detectAssistantSmallTalk(normalized);
+    if (smallTalk) return smallTalk;
     if (/(السلام عليكم|سلام|صباح|مساء|ازيك|عامل ايه|اهلا|هاي)/.test(normalized)) return 'greeting';
     if (/(شكرا|تسلم|مشكور|ربنا يكرمك)/.test(normalized)) return 'thanks';
     if (/(خصوصيه|بياناتي|البيانات بتتخزن|بتتخزن فين|مين يقدر يشوف|امان|امن|صلاحيات|قراءة فقط|ازاي استخدم|ازاي اسجل|ازاي اطبع|ازاي اصدر)/.test(normalized)) return 'knowledge';
@@ -3093,12 +3187,16 @@ function detectOwnerAssistantIntent(normalized) {
     return 'unknown';
 }
 
-function selectOwnerAssistantAnswer(intent, period, now) {
+function selectOwnerAssistantAnswer(intent, period, now, rawText = '') {
     switch (intent) {
         case 'greeting':
             return { id: 'greeting', title: 'وعليكم السلام', html: buildAssistantOwnerGreetingHtml(now) };
         case 'thanks':
             return { id: 'thanks', title: 'العفو', html: `<p class="assistant-hello">تحت أمرك ${assistantAddress()}. لو محتاج رقم من حسابك أو ميعاد الدفع، اسألني.</p>` };
+        case 'bye':
+        case 'ack':
+        case 'who_are_you':
+            return buildAssistantSmallTalkAnswer(intent);
         case 'help':
             return buildAssistantOwnerHelpAnswer();
         case 'knowledge':
@@ -3124,18 +3222,7 @@ function selectOwnerAssistantAnswer(intent, period, now) {
         case 'owner_scope':
             return buildAssistantOwnerScopeAnswer();
         default:
-            return {
-                id: 'unknown',
-                title: 'مش لاقي إجابة واضحة',
-                html: `<p class="assistant-note">معلش ${assistantAddress()}، فهمت إنك محتاج مساعدة لكن السؤال محتاج تحديد بسيط. هل تقصد حسابك، التحصيل، المصروفات، الإعلانات، الإشعارات، أم طريقة استخدام قسم من التطبيق؟</p>${assistantList([
-                    'كام عليك في الشهر ده.',
-                    'إيصالاتك في شهر معين.',
-                    'آخر يوم للدفع وفترة السماح.',
-                    'طرق الدفع المفعّلة.',
-                    'إعلانات المبنى وإشعاراتك.',
-                    'مثال: «عايز أعرف إعدادات الاستحقاق» أو «فين النسخة الاحتياطية؟»'
-                ])}`
-            };
+            return buildAssistantNotUnderstoodAnswer(rawText, 'owner');
     }
 }
 
@@ -3191,7 +3278,7 @@ function answerOwnerAssistantQuery(text, now = new Date()) {
     if (plan.scopeReason === 'foreign-unit') {
         return withAssistantAnswerMeta(buildAssistantForeignUnitAnswer(), plan.period, null, text);
     }
-    return withAssistantAnswerMeta(selectOwnerAssistantAnswer(plan.intentIds[0], plan.period, now), plan.period, null, text);
+    return withAssistantAnswerMeta(selectOwnerAssistantAnswer(plan.intentIds[0], plan.period, now, text), plan.period, null, text);
 }
 
 function assistantHeroHtml() {
@@ -3453,6 +3540,10 @@ function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
             return { id: 'greeting', title: 'وعليكم السلام', html: buildAssistantGreetingHtml(now) };
         case 'thanks':
             return { id: 'thanks', title: 'العفو', html: `<p class="assistant-hello">تحت أمرك ${assistantAddress()}. لو محتاج أي رقم أو ملخص، اسألني.</p>` };
+        case 'bye':
+        case 'ack':
+        case 'who_are_you':
+            return buildAssistantSmallTalkAnswer(intent);
         case 'help':
             return buildAssistantHelpAnswer();
         case 'knowledge':
@@ -3502,18 +3593,7 @@ function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
         case 'resident':
             return buildAssistantResidentAnswer(resident, now, period);
         default:
-            return {
-                id: 'unknown',
-                title: 'مش لاقي إجابة واضحة',
-                html: `<p class="assistant-note">معلش ${assistantAddress()}، فهمت إنك محتاج مساعدة لكن السؤال محتاج تحديد بسيط. اذكر القسم أو الرقم أو الشهر، وأنا أرتب لك الإجابة.</p>${assistantList([
-                    'ملخص الشهر أو تحصيل شهر معين.',
-                    'مين عليه متأخرات.',
-                    'رصيد الخزنة.',
-                    'حساب مالك بالاسم أو رقم الشقة.',
-                    'الإعفاءات والتخفيضات.',
-                    'الإعدادات والنسخ الاحتياطي وسجل التدقيق.'
-                ])}`
-            };
+            return buildAssistantNotUnderstoodAnswer(rawText, 'manager');
     }
 }
 
