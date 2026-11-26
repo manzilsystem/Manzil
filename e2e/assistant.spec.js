@@ -273,7 +273,7 @@ test('typed cancellation discards a write draft without changing application sta
 
     await page.locator('#assistantInput').fill('إلغاء');
     await page.locator('#assistantInput').press('Enter');
-    await expect(page.locator('#assistantLog')).toContainText('لغيت المسودة');
+    await expect(page.locator('#assistantLog')).toContainText('تم إلغاء المسودة');
     await expect.poll(() => page.evaluate(() => JSON.stringify({ income: state.income, expenses: state.expenses, adjustments: state.adjustments }))).toBe(before);
 });
 
