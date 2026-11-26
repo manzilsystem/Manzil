@@ -420,8 +420,11 @@ function renderCashFlowChart(period = getDashboardPeriod()) {
 
 function renderUnpaidResidents() {
     const c = document.getElementById('unpaidResidentsContainer');
+    const warning = document.getElementById('unpaidResidentsWarning');
+    if (warning) warning.classList.add('hidden');
     if (!state.residents.length) { c.innerHTML = '<p class="text-slate-500 text-xs text-center py-2">أضف شقق أولاً</p>'; return; }
     const list = state.residents.map(r => ({ r, d: calculateCumulativeDebt(r.id) })).filter(x => x.d.count > 0);
+    if (warning && list.length) warning.classList.remove('hidden');
     if (!list.length) { c.innerHTML = '<p class="text-emerald-400 text-xs text-center py-2">✅ لا توجد متأخرات</p>'; return; }
     c.innerHTML = list.map(x => `
         <div class="flex items-center justify-between app-input rounded-2xl p-2.5 border">

@@ -40,3 +40,12 @@ test('dashboard keeps key numbers first and folds long lists', () => {
     assert.match(dashboard, /<details[^>]*dashboard-arrears[^>]*>[\s\S]*?id="unpaidResidentsContainer"[\s\S]*?<\/details>/);
     assert.match(dashboard, /<details[\s\S]*?id="dashboardPeriodFilter"[\s\S]*?id="cashFlowChartContainer"/);
 });
+
+test('arrears warning triangle shows only when a late payer exists', () => {
+    const tabs = fs.readFileSync(path.join(__dirname, '..', 'src/partials/main-tabs.html'), 'utf8');
+    const render = fs.readFileSync(path.join(__dirname, '..', 'js/render.js'), 'utf8');
+    assert.match(tabs, /<i id="unpaidResidentsWarning" class="hidden fa-solid fa-triangle-exclamation/);
+    const fn = render.slice(render.indexOf('function renderUnpaidResidents()'), render.indexOf('function renderExpenseBreakdown'));
+    assert.match(fn, /warning\.classList\.add\('hidden'\)/);
+    assert.match(fn, /if \(warning && list\.length\) warning\.classList\.remove\('hidden'\)/);
+});
