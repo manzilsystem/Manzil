@@ -828,7 +828,7 @@
                 <h3 id="residentModalTitle" class="font-bold text-sm">شقة جديدة</h3>
                 <button onclick="closeModal('residentModal')" aria-label="إغلاق نافذة بيانات الشقة" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <form id="residentForm" onsubmit="handleResidentSubmit(event)" class="p-5 space-y-3 max-h-[80vh] overflow-y-auto">
+            <form id="residentForm" novalidate onsubmit="handleResidentSubmit(event)" class="p-5 space-y-3 max-h-[80vh] overflow-y-auto">
                 <input type="text" id="residentName" aria-label="اسم المالك" placeholder="اسم المالك" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 <div class="grid grid-cols-2 resident-pair-grid gap-2">
                     <select id="residentFloor" aria-label="الدور" onchange="updateResidentApartmentOptions()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر الدور</option></select>
@@ -863,7 +863,7 @@
                     <p class="text-xs text-slate-500">أدخل رقم الجوال في خانة الهاتف. بعد حفظ الشقة أنشئ PIN مؤقتًا؛ سيغيّره المالك عند أول دخول.</p>
                     <button type="button" onclick="saveResidentAndProvisionOwner()" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white py-2.5 rounded-xl text-xs font-bold">حفظ الشقة وإنشاء / إعادة ضبط PIN المالك</button>
                 </details>
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">حفظ بيانات الشقة فقط</button>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">حفظ الشقة</button>
             </form>
         </div>
     </div>

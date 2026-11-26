@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="fonts/cairo.css?v=aecf0ab114">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/tailwind.css?v=6ead83baff">
-    <link rel="stylesheet" href="css/style.css?v=35d4f225c7">
+    <link rel="stylesheet" href="css/style.css?v=a409257091">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -2177,7 +2177,7 @@
                 <h3 id="residentModalTitle" class="font-bold text-sm">شقة جديدة</h3>
                 <button onclick="closeModal('residentModal')" aria-label="إغلاق نافذة بيانات الشقة" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <form id="residentForm" onsubmit="handleResidentSubmit(event)" class="p-5 space-y-3 max-h-[80vh] overflow-y-auto">
+            <form id="residentForm" novalidate onsubmit="handleResidentSubmit(event)" class="p-5 space-y-3 max-h-[80vh] overflow-y-auto">
                 <input type="text" id="residentName" aria-label="اسم المالك" placeholder="اسم المالك" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
                 <div class="grid grid-cols-2 resident-pair-grid gap-2">
                     <select id="residentFloor" aria-label="الدور" onchange="updateResidentApartmentOptions()" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"><option value="">اختر الدور</option></select>
@@ -2212,7 +2212,7 @@
                     <p class="text-xs text-slate-500">أدخل رقم الجوال في خانة الهاتف. بعد حفظ الشقة أنشئ PIN مؤقتًا؛ سيغيّره المالك عند أول دخول.</p>
                     <button type="button" onclick="saveResidentAndProvisionOwner()" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white py-2.5 rounded-xl text-xs font-bold">حفظ الشقة وإنشاء / إعادة ضبط PIN المالك</button>
                 </details>
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">حفظ بيانات الشقة فقط</button>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl font-bold transition">حفظ الشقة</button>
             </form>
         </div>
     </div>
@@ -2693,11 +2693,11 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-eb896cfaad"></script>
+    <script src="js/telemetry.js?v=manzil-9c4c767a48"></script>
     <script src="js/state.js?v=877c3f8967"></script>
-    <script src="js/access.js?v=0d7f855407"></script>
+    <script src="js/access.js?v=d67452e586"></script>
     <script src="js/render.js?v=708c3ae2a7"></script>
-    <script src="js/crud.js?v=80a83ab99f"></script>
+    <script src="js/crud.js?v=b15f8edb32"></script>
     <script src="js/notices.js?v=93c0d216cc"></script>
     <script src="js/push.js?v=93d6b20d62"></script>
     <!-- Chart.js for report visualizations (bundled locally) -->
@@ -2730,6 +2730,6 @@
     <script src="js/assistant-voice.js?v=8983a0aa4e"></script>
     <script src="js/assistant-fab.js?v=9ef655d618"></script>
     <script src="js/assistant-groq.js?v=a5ac117af0"></script>
-    <script src="js/app.js?v=fa7ab2bdf3"></script>
+    <script src="js/app.js?v=f3865f81a8"></script>
 </body>
 </html>

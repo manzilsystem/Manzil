@@ -58,6 +58,7 @@ function openModal(id) {
     if (modal.classList.contains('hidden')) {
         modalReturnFocus.set(id, document.activeElement);
     }
+    if (modal.classList.contains('hidden')) document.getElementById('toastContainer')?.replaceChildren();
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     modal.setAttribute('aria-hidden', 'false');

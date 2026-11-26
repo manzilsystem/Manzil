@@ -1089,10 +1089,30 @@ async function deleteAdjustment(id, requestId = null) {
     updateAdjustmentDueHint();
 }
 
+function validateResidentRequiredFields() {
+    // App-styled required-field messages (the form is novalidate so the browser bubble never shows).
+    const checks = [
+        ['residentName', 'اكتب اسم المالك.'],
+        ['residentApartment', 'اختر رقم الشقة.']
+    ];
+    for (const [id, message] of checks) {
+        const field = /** @type {HTMLInputElement | null} */ (document.getElementById(id));
+        if (field && !String(field.value || '').trim()) {
+            field.setAttribute('aria-invalid', 'true');
+            field.addEventListener('input', () => field.removeAttribute('aria-invalid'), { once: true });
+            field.addEventListener('change', () => field.removeAttribute('aria-invalid'), { once: true });
+            toast(message, 'error');
+            field.focus();
+            return false;
+        }
+    }
+    return true;
+}
+
 function saveResidentAndProvisionOwner() {
     if (!requireManager()) return;
     const form = /** @type {any} */ (document.getElementById('residentForm'));
-    if (!form.reportValidity()) return;
+    if (!validateResidentRequiredFields()) return;
     ownerProvisionRequested = true;
     form.requestSubmit();
 }
@@ -1373,6 +1393,7 @@ async function saveSubscriptionPriceSheet(event) {
 async function handleResidentSubmit(e) {
     if (!requireManager()) return;
     e.preventDefault();
+    if (!validateResidentRequiredFields()) return;
     if (!crudAssistantOperationReady('resident')) return;
     const previousState = cloneStateSnapshot();
     const shouldProvisionOwner = ownerProvisionRequested;
@@ -2048,7 +2069,14 @@ async function handleIncomeMonthPickerChange() {
     const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('incomeAmount'));
     const billingStartKey = getIncomeBillingStartKey(resident);
     if (billingStartKey && key < billingStartKey) {
-        const confirmed = confirm(`الشهر المختار ${label} قبل بداية محاسبة الشقة (${monthKeyToLabel(billingStartKey)}).\nهل تريد تعديل بداية المحاسبة إلى ${label} لتحصيله؟`);
+        const [fromYear, fromMonth] = key.split('-').map(Number);
+        const [toYear, toMonth] = billingStartKey.split('-').map(Number);
+        const addedMonths = Math.max(0, (toYear - fromYear) * 12 + (toMonth - fromMonth));
+        const monthly = Number(resident.monthlyAmount) || 0;
+        const addedText = monthly > 0
+            ? `\nسيضيف ذلك ${addedMonths} شهرًا، أي نحو ${fmtMoney(addedMonths * monthly)} متأخرات على الشقة.`
+            : `\nسيضيف ذلك ${addedMonths} شهرًا متأخرات على الشقة.`;
+        const confirmed = confirm(`الشهر المختار ${label} قبل بداية محاسبة الشقة (${monthKeyToLabel(billingStartKey)}).${addedText}\nهل تريد تعديل بداية المحاسبة إلى ${label} لتحصيله؟`);
         if (!confirmed) {
             incomeSelectedMonths = new Set();
             incomeAmountManual = false;
