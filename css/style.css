@@ -1044,6 +1044,29 @@ nav[aria-label="التنقل الرئيسي"] .tab-btn span { white-space: nowra
 body.session-locked > header,
 body.session-locked > main,
 body.session-locked > nav { display: none !important; }
+/* Session restore: the app shell is hidden until the building data has loaded
+   and the sign-in dialog is not up yet, so show a loading state instead of a
+   blank page. setAuthModal() adds modal-open, which removes this. */
+body.session-locked:not(.modal-open)::before {
+    content: "جاري تحميل بياناتك...";
+    position: fixed; inset: 0; z-index: var(--z-floating);
+    display: flex; align-items: flex-end; justify-content: center;
+    padding-bottom: 42vh;
+    background: var(--bg-main); color: var(--text-muted, var(--text-main));
+    font-weight: var(--weight-700); font-size: var(--font-85);
+}
+body.session-locked:not(.modal-open)::after {
+    content: "";
+    position: fixed; z-index: var(--z-floating); top: 50%; left: 50%; translate: -50% -50%;
+    width: 2.25rem; height: 2.25rem;
+    border-radius: var(--radius-circle);
+    border: .2rem solid var(--border-color); border-top-color: var(--accent-color);
+    animation: boot-spin .9s linear infinite;
+}
+@keyframes boot-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+    body.session-locked:not(.modal-open)::after { animation: none; }
+}
 body.owner-mode #printableArea > :not(#ownerPortal):not(#appCopyright) { display: none !important; }
 body.owner-mode #printableArea > #ownerPortal { display: block !important; }
 body.owner-mode header .container > div:last-child > button:not(#accessSwitchBtn) { display: none !important; }
