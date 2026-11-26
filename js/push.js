@@ -1,7 +1,7 @@
 // Web Push on this device: permission, subscription, and the row in push_subscriptions.
 // Delivery is done by the send-push Edge Function; this file only manages the device side.
-// While PUSH_VAPID_PUBLIC_KEY is empty the feature reports "not configured" and shows no button.
-const PUSH_VAPID_PUBLIC_KEY = '';
+// Public VAPID key (safe to ship). Delivery needs the DB trigger, which is a separate approved step.
+const PUSH_VAPID_PUBLIC_KEY = 'BDqVQhs-srV28ctgRroeeuOg6OTrwCgwaMF1EUZMh3vBoc_jP9YUK7uHSaUrlKlPsGo4lKmtYOlgbMvx-sRL_24';
 const PUSH_ENABLED_FLAG = 'manzil_push_enabled';
 
 function pushUrlBase64ToBytes(value) {
