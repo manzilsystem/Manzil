@@ -1634,6 +1634,9 @@ body.owner-mode nav[aria-label="التنقل الرئيسي"] { display: none !i
   font-size:var(--font-100);
   box-shadow:0 12px 28px rgba(190,139,48,.2);
 }
+/* The wide tracking is for the typed PIN digits only; spreading the Arabic
+   placeholder letters breaks their joining, so the hint uses the tightest step. */
+#ownerPinChangeModal input::placeholder { letter-spacing:var(--tracking-1); }
 #pinLockModal .auth-owner-help {
   border-color:rgba(31,185,194,.28);
   background:rgba(6,151,166,.08);
