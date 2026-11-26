@@ -383,7 +383,7 @@ function assistantAllowedHtmlAttribute(name, value) {
     if (key === 'src') return /^(?:\.\/)?icons\/[\w-]+\.(?:png|webp)(?:\?v=[0-9a-f]+)?$/i.test(val);
     if (key === 'style') return /^\s*height:\s*\d{1,3}px;?\s*$/.test(val);
     if (key === 'onclick') {
-        return /^assistantVoicePlayNote\('note-\d+'\)$/.test(val) || val === 'assistantVoiceSpeakLast()';
+        return /^assistantVoicePlayNote\('note-\d+'\)$/.test(val) || val === 'assistantVoiceSpeakLast()' || val === 'assistantShareArrearsWhatsApp()';
     }
     if (key.startsWith('data-')) return /^[\w\-]*$/.test(val);
     return false;
@@ -2557,7 +2557,29 @@ function buildAssistantArrearsAnswer() {
         html += assistantNote('تمام! مفيش أي متأخرات مسجلة حاليًا.');
     }
     html += assistantNote('المتأخرات محسوبة من الاشتراكات المستحقة بعد خصم المدفوع والإعفاءات، وليس من إجمالي المصروفات.');
+    if (snapshot.residents.length && assistantCanWrite()) {
+        html += '<div class="assistant-action-buttons" role="group" aria-label="مشاركة ملخص المتأخرات"><button type="button" class="assistant-action-confirm" onclick="assistantShareArrearsWhatsApp()"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> ابعت الملخص على واتساب</button></div>';
+    }
     return { id: 'arrears', title, html };
+}
+
+/** Plain-text arrears summary for sharing. Built from the current snapshot at click time; nothing is sent until the manager picks a chat in WhatsApp. */
+function buildAssistantArrearsWhatsAppText() {
+    const snapshot = getAssistantArrearsSnapshot();
+    const plain = value => String(value ?? '').replace(/<[^>]*>/g, '').trim();
+    const lines = [`📋 ملخص المتأخرات${state.buildingName ? ' · ' + state.buildingName : ''}`,
+        `إجمالي المتأخرات: ${plain(assistantMoney(snapshot.totalDebt))}`,
+        `شقق عليها متأخرات: ${plain(assistantNumber(snapshot.overdueResidents))}`, ''];
+    snapshot.residents.slice(0, 15).forEach(item => {
+        lines.push(`• ${plain(assistantApartmentLabel(item.resident))} · ${plain(assistantResidentName(item.resident))}: ${plain(assistantMoney(item.totalDebt))}`);
+    });
+    if (snapshot.residents.length > 15) lines.push(`… و${plain(assistantNumber(snapshot.residents.length - 15))} شقق تانية`);
+    return lines.join('\n');
+}
+
+function assistantShareArrearsWhatsApp() {
+    if (!assistantCanWrite()) return;
+    if (typeof shareTextToWhatsApp === 'function') shareTextToWhatsApp(buildAssistantArrearsWhatsAppText());
 }
 
 const ASSISTANT_UPCOMING_WINDOW_DAYS = 7;

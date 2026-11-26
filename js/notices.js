@@ -52,6 +52,11 @@ function shareNoticeToWhatsApp() {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
+/** Opens WhatsApp with the text ready; the manager chooses the chat and presses send. */
+function shareTextToWhatsApp(text) {
+    window.open(`https://wa.me/?text=${encodeURIComponent(String(text || ''))}`, '_blank', 'noopener,noreferrer');
+}
+
 function copyNoticeToClipboard() {
     if (!requireManager()) return;
     if (!state.notices.length) { toast('لا يوجد إعلان','error'); return; }
