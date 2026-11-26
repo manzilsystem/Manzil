@@ -937,6 +937,8 @@ function renderOwnerNotificationsBell() {
 }
 
 function focusOwnerNotifications() {
+    // Tapping the bell is a moment the owner expects fresh news (throttled, no polling).
+    if (typeof refreshNotificationsFromServer === 'function') refreshNotificationsFromServer();
     const title = document.getElementById('ownerNotificationsTitle');
     const section = title?.closest('section');
     if (!section) return;
