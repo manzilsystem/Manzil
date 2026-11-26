@@ -161,11 +161,24 @@ async function loadSubscriptionRateAdapter() {
     });
 }
 
+// The intro screen leaves as soon as the app is ready, after a short minimum so the logo never just flashes.
+const APP_SPLASH_MIN_MS = 500;
+function leaveAppSplash() {
+    const splash = document.getElementById('appSplash');
+    if (!splash || splash.classList.contains('app-splash-leave')) return;
+    const wait = Math.max(0, APP_SPLASH_MIN_MS - (typeof performance !== 'undefined' ? performance.now() : APP_SPLASH_MIN_MS));
+    setTimeout(() => splash.classList.add('app-splash-leave'), wait);
+}
+
 async function initApp() {
-    await loadSubscriptionRateAdapter();
-    await initSupabaseApp();
-    document.addEventListener('keydown', handleModalKeyboard);
-    document.addEventListener('keydown', handleReportViewKeydown);
+    try {
+        await loadSubscriptionRateAdapter();
+        await initSupabaseApp();
+        document.addEventListener('keydown', handleModalKeyboard);
+        document.addEventListener('keydown', handleReportViewKeydown);
+    } finally {
+        leaveAppSplash();
+    }
 }
 
 // The copyright year follows the clock, and the intro screen leaves the DOM once its fade ends.
