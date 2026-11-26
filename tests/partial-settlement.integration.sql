@@ -147,16 +147,31 @@ BEGIN
         END IF;
     END;
 
-    -- Ordinary subscription income cannot be mixed with an active settlement month.
+    -- The retired settlement_conflicts_with_subscription_income ban is gone: earlier
+    -- subscription income for a settled month now counts toward the same agreement
+    -- (owner-approved 2026-11-26, no double charging). 299 + 200 linked + 1
+    -- subscription = 500, exactly the agreement cap, so the snapshot is accepted.
+    v_payload := jsonb_set(v_payload, '{income,1,amount}', '299'::jsonb);
     v_payload := jsonb_set(v_payload, '{income,2,purpose_code}', '"subscription"'::jsonb);
+    v_result := private.persist_building_snapshot(
+        v_building, v_version, '91000000-0000-4000-8000-000000000008', v_payload
+    );
+    IF v_result->>'ok' IS DISTINCT FROM 'true' THEN
+        RAISE EXCEPTION 'subscription income on a settled month was rejected: %', v_result;
+    END IF;
+    SELECT state_version INTO v_version FROM public.buildings WHERE id = v_building;
+
+    -- One pound over the combined cap (linked payments + subscription payments
+    -- > agreement) is still rejected, so the resident can never be double-charged.
+    v_payload := jsonb_set(v_payload, '{income,2,amount}', '2'::jsonb);
     BEGIN
         PERFORM private.persist_building_snapshot(
-            v_building, v_version, '91000000-0000-4000-8000-000000000008', v_payload
+            v_building, v_version, '91000000-0000-4000-8000-000000000012', v_payload
         );
-        RAISE EXCEPTION 'subscription income was accepted for a settlement month';
+        RAISE EXCEPTION 'combined subscription and settlement overpayment was accepted';
     EXCEPTION WHEN SQLSTATE '22023' THEN
-        IF SQLERRM NOT LIKE '%settlement_conflicts_with_subscription_income%' THEN
-            RAISE EXCEPTION 'unexpected subscription/settlement rejection: %', SQLERRM;
+        IF SQLERRM NOT LIKE '%settlement_payment_exceeds_agreement%' THEN
+            RAISE EXCEPTION 'unexpected combined cap rejection: %', SQLERRM;
         END IF;
     END;
 

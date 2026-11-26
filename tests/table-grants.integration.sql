@@ -5,6 +5,10 @@
 \ir ../supabase/migrations/20261103172000_revoke_direct_financial_table_writes.sql
 \ir ../supabase/migrations/20261119232103_period_report_rpc.sql
 \ir ../supabase/migrations/20261120090000_period_report_method_share_fix.sql
+-- The lines above recreate private.get_period_report with its unpatched body, so the
+-- settlement migration runs here too; it is idempotent and skips the already-patched
+-- snapshot function applied via the atomic-persistence chain.
+\ir ../supabase/migrations/20261126010000_settlement_counts_subscription_payments.sql
 
 DO $grant_checks$
 DECLARE

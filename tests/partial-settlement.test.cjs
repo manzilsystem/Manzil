@@ -30,6 +30,8 @@ test('snapshot RPC validates linked settlement income and cumulative cap atomica
     assert.match(migration, /invalid_settlement_payment_link/);
     assert.match(migration, /settlement_payment_exceeds_agreement/);
     assert.match(migration, /settlement_conflicts_with_subscription_income/);
+    // Superseded by 20261126010000_settlement_counts_subscription_payments.sql,
+    // which retires the ban and redefines the cap; see settlement-subscription-migration.test.cjs.
     assert.match(migration, /settlement_exceeds_month_due/);
     assert.match(migration, /FOR UPDATE/);
     assert.match(migration, /COALESCE\(EXCLUDED\.settlement_adjustment_id, current_income\.settlement_adjustment_id\)/);
@@ -43,7 +45,8 @@ test('PostgreSQL integration harness applies and tests the settlement migration'
     assert.match(integration, /settlement_payment_exceeds_agreement/);
     assert.match(integration, /settlement_exceeds_month_due/);
     assert.match(integration, /settlement_conflicts_with_adjustment/);
-    assert.match(integration, /settlement_conflicts_with_subscription_income/);
+    assert.match(integration, /subscription income on a settled month was rejected/);
+    assert.match(integration, /combined subscription and settlement overpayment was accepted/);
     assert.match(integration, /unlinked settlement income was accepted/);
     assert.match(integration, /whole snapshot/);
 });

@@ -763,20 +763,22 @@ function updateAdjustmentDueHint() {
         const subscriptionPaidCents = Math.round(getPaidAmountForMonth(resident.id, adjustmentMonthKeyToLabel(monthKey)) * 100);
         const settlementPaidCents = editingAdjustmentId && typeof getSettlementPaidAmount === 'function'
             ? Math.round(getSettlementPaidAmount(editingAdjustmentId) * 100) : 0;
-        const availableCents = Math.max(0, dueCents - existingCents - subscriptionPaidCents);
-        const valid = !settlement && subscriptionPaidCents === 0 && existingCents === 0
-            && enteredCents > 0 && enteredCents >= settlementPaidCents && enteredCents <= availableCents;
+        // Product rule (approved 2026-11-26): subscription payments no longer block a
+        // settlement; they count toward it, so the agreement must at least cover them.
+        const collectedCents = settlementPaidCents + subscriptionPaidCents;
+        const valid = !settlement && existingCents === 0
+            && enteredCents > 0 && enteredCents >= collectedCents && enteredCents <= dueCents;
         hint.textContent = settlement
             ? 'يوجد اتفاق تسوية لهذا الشهر بالفعل.'
-            : subscriptionPaidCents > 0 || existingCents > 0
-                ? 'لا يمكن إنشاء تسوية مع وجود تحصيل اشتراك أو إعفاء/تخفيض مسجل لهذا الشهر.'
+            : existingCents > 0
+                ? 'لا يمكن إنشاء تسوية مع وجود إعفاء/تخفيض مسجل لهذا الشهر.'
                 : enteredCents <= 0
-                    ? `المتاح للتسوية: ${formatSubscriptionAmount(availableCents / 100)} ج.م · أدخل مبلغًا أكبر من صفر.`
-                    : enteredCents < settlementPaidCents
-                        ? `لا يمكن خفض الاتفاق عن إجمالي ما تم تحصيله (${formatSubscriptionAmount(settlementPaidCents / 100)} ج.م).`
-                        : enteredCents > availableCents
-                            ? `مبلغ التسوية يتجاوز المستحق المتاح (${formatSubscriptionAmount(availableCents / 100)} ج.م).`
-                            : `المتاح للتسوية: ${formatSubscriptionAmount(availableCents / 100)} ج.م · المدفوع من التسوية: ${formatSubscriptionAmount(settlementPaidCents / 100)} ج.م · المتبقي بعد هذا المبلغ: ${formatSubscriptionAmount(Math.max(0, enteredCents - settlementPaidCents) / 100)} ج.م`;
+                    ? `المتاح للتسوية: ${formatSubscriptionAmount((dueCents - collectedCents) / 100)} ج.م · أدخل مبلغًا أكبر من صفر.`
+                    : enteredCents < collectedCents
+                        ? `لا يمكن خفض الاتفاق عن إجمالي ما تم تحصيله (${formatSubscriptionAmount(collectedCents / 100)} ج.م).`
+                        : enteredCents > dueCents
+                            ? `مبلغ التسوية يتجاوز مستحق الشهر (${formatSubscriptionAmount(dueCents / 100)} ج.م).`
+                            : `المتاح للتسوية: ${formatSubscriptionAmount((dueCents - collectedCents) / 100)} ج.م · المدفوع مسبقًا: ${formatSubscriptionAmount(collectedCents / 100)} ج.م · المتبقي بعد هذا المبلغ: ${formatSubscriptionAmount(Math.max(0, enteredCents - collectedCents) / 100)} ج.م`;
         hint.className = valid ? 'text-xs text-slate-400' : 'text-xs text-rose-400';
         return;
     }
@@ -997,12 +999,14 @@ async function handleAdjustmentSubmit(event) {
             toast('يوجد اتفاق تسوية لهذا الشهر بالفعل.', 'error');
             return;
         }
-        if (existingDiscounts > 0 || subscriptionPaidCents > 0) {
-            toast('لا يمكن إنشاء تسوية مع وجود إعفاء/تخفيض أو تحصيل اشتراك مسجل لهذا الشهر.', 'error');
+        if (existingDiscounts > 0) {
+            toast('لا يمكن إنشاء تسوية مع وجود إعفاء/تخفيض مسجل لهذا الشهر.', 'error');
             return;
         }
-        if (amountCents < editingSettlementPaidCents || amountCents > dueCents) {
-            toast(`مبلغ التسوية يجب أن يكون بين ${formatSubscriptionAmount(editingSettlementPaidCents / 100)} و${formatSubscriptionAmount(dueCents / 100)} ج.م.`, 'error');
+        // Earlier subscription payments count toward the agreement (approved 2026-11-26).
+        const minSettlementCents = editingSettlementPaidCents + subscriptionPaidCents;
+        if (amountCents < minSettlementCents || amountCents > dueCents) {
+            toast(`مبلغ التسوية يجب أن يكون بين ${formatSubscriptionAmount(minSettlementCents / 100)} و${formatSubscriptionAmount(dueCents / 100)} ج.م.`, 'error');
             return;
         }
     } else {
