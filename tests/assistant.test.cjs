@@ -2611,3 +2611,25 @@ test('assistant routes "who was reminded but still unpaid" to the follow-up answ
     }
     assert.notEqual(api.detectAssistantIntent(api.normalizeAssistantArabic('مين متأخر'), false), 'reminder_followup');
 });
+
+test('deeper Q&A: aged arrears and collection status come from the engine figures', () => {
+    const { api } = createHarness(true, { role: 'manager' });
+    const strip = html => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    for (const q of ['مين متأخر اكتر من 3 شهور', 'مين متأخر شهرين فاكتر']) {
+        const answer = api.answerAssistantQuery(q, NOW);
+        assert.equal(answer.id, 'arrears_aged', q);
+    }
+    const none = api.answerAssistantQuery('مين متأخر اكتر من 36 شهور', NOW);
+    assert.equal(none.id, 'arrears_aged');
+    assert.match(strip(none.html), /مفيش حد متأخر/);
+    const aged = api.answerAssistantQuery('مين متأخر اكتر من 3 شهور', NOW);
+    const arrears = api.answerAssistantQuery('مين متأخر', NOW);
+    assert.equal(arrears.id, 'arrears', 'plain arrears still routes to the arrears answer');
+    const status = api.answerAssistantQuery('نسبة التحصيل الشهر ده كام', NOW);
+    assert.equal(status.id, 'collection_status');
+    const text = strip(status.html);
+    assert.match(text, /نسبة التحصيل \d+/);
+    assert.match(text, /شقق/);
+    for (const q of ['مين دفع الشهر ده', 'كام شقة دفعت']) assert.equal(api.answerAssistantQuery(q, NOW).id, 'collection_status', q);
+    assert.notEqual(aged.html, status.html);
+});

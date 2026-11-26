@@ -1123,6 +1123,8 @@ function detectAssistantIntent(normalized, hasResident) {
     if (/(سعر الاشتراك|اسعار الاشتراك|أسعار الاشتراك|تاريخ الاشتراك|ورقه الاسعار|ورقة الأسعار)/.test(normalized)) return 'building';
     if (/(مساعده|ساعدني|بتعرف|تقدر تعمل|اوامر|خيارات|ازاي|كيف|استخدمك|ممكن تساعد)/.test(normalized)) return 'help';
     if (/(تقرير|تقارير|طباعه|تصدير|كشف)/.test(normalized) && /(?:مصروف|مصاريف|صرف|مالك|فتره|فترة|اعفاء|تخفيض|تسويه|كشف حساب|تحصيل|ايراد|متاخر|مديون|مستحق)/.test(normalized)) return 'reports';
+    if (parseAssistantAgedMonths(normalized)) return 'arrears_aged';
+    if (/(?:نسبه التحصيل|نسبه المحصل|كام شقه دفعت|كام شقه سددت|مين (?:اللي )?(?:دفع|سدد)(?: ال)?(?:شهر|الشهر|كامل)?|موقف التحصيل|التحصيل واقف عند|دفعوا ولا لسه|سددوا ولا لسه)/.test(normalized) && !/(?:متاخر|اتذكر|النهارده|انهارده|اليوم)/.test(normalized)) return 'collection_status';
     if (/(تغير غير طبيعي|تغيير كبير|فرق كبير|محتاج مراجعه|محتاج مراجعة|زاد قوي|زادت قوي|نزل قوي|انخفض قوي|ايه اللي اتغير|ايه اللي زاد)/.test(normalized)) return 'change_alerts';
     if (/(مقارنه|قارن|مقابل|زاد|زادت|قل|قلت|اكتر من|اقل من)/.test(normalized)) return 'comparison';
     if (/(اعفاء|تخفيض|تسويه|خصم|خصومات|سامحنا)/.test(normalized)) return 'adjustments';
@@ -2716,6 +2718,66 @@ function buildAssistantReminderFollowUpAnswer(now = new Date()) {
     return { id: 'reminder_followup', title, html };
 }
 
+/** "متأخر أكتر من 3 شهور": the number of unpaid months, or null when the question names none. */
+function parseAssistantAgedMonths(normalized) {
+    const text = String(normalized || '');
+    if (!/(?:متاخر|متاخرين|متاخرات|مديون|مش دافع|مدفعش|ما دفعش|مدفعوش)/.test(text)) return null;
+    if (!/(?:اكتر من|اكثر من|فوق|يزيد عن|زياده عن|من)\s*(?:\d+|شهر|شهرين|تلات|ثلاث|اربع|خمس|ست)/.test(text) && !/(?:\d+|شهرين|تلات|ثلاث|اربع|خمس|ست)\s*(?:شهور|اشهر|شهر)?\s*(?:او اكتر|فاكتر|فاكثر|واكتر)/.test(text)) return null;
+    const words = { شهرين: 2, تلات: 3, ثلاث: 3, اربع: 4, خمس: 5, ست: 6 };
+    const digits = text.match(/(\d+)\s*(?:شهور|اشهر|شهر)?/);
+    if (digits) return Math.min(Math.max(Number(digits[1]), 1), 36);
+    for (const [word, value] of Object.entries(words)) if (text.includes(word)) return value;
+    if (/شهر/.test(text)) return 1;
+    return null;
+}
+
+function buildAssistantAgedArrearsAnswer(minMonths) {
+    const snapshot = getAssistantArrearsSnapshot();
+    const title = `متأخرين ${assistantNumber(minMonths)} شهور فأكتر`;
+    const aged = snapshot.residents.filter(item => (Number(item.count) || 0) >= minMonths)
+        .sort((a, b) => (b.count - a.count) || (b.totalDebt - a.totalDebt));
+    if (!aged.length) {
+        return { id: 'arrears_aged', title, html: assistantNote(snapshot.overdueResidents
+            ? `مفيش حد متأخر ${assistantNumber(minMonths)} شهور فأكتر يا باشا. المتأخرين دلوقتي ${assistantNumber(snapshot.overdueResidents)} شقة، بس أقل من كده.`
+            : 'مفيش أي متأخرات مسجلة دلوقتي يا باشا.') };
+    }
+    const total = aged.reduce((sum, item) => sum + Math.round((Number(item.totalDebt) || 0) * 100), 0) / 100;
+    let html = assistantRow('شقق متأخرة ' + assistantNumber(minMonths) + ' شهور فأكتر', assistantNumber(aged.length), 'bad');
+    html += assistantRow('إجمالي مديونيتهم', assistantMoney(total), 'bad');
+    html += assistantList(aged.slice(0, 6).map(item =>
+        `${assistantEscape(assistantApartmentLabel(item.resident))} · ${assistantEscape(assistantResidentName(item.resident))} — متأخر ${assistantNumber(item.count)} شهور، عليه <strong>${assistantEscape(assistantMoney(item.totalDebt))}</strong>`));
+    if (aged.length > 6) html += assistantNote(`وفي ${assistantNumber(aged.length - 6)} تانيين في تقرير المتأخرات.`);
+    html += assistantNote('الأرقام من الاشتراكات المستحقة بعد خصم المدفوع والإعفاءات.');
+    return { id: 'arrears_aged', title, html };
+}
+
+/** Who paid this month and how much of the due amount is collected, from the same month engine as the summary. */
+function buildAssistantCollectionStatusAnswer(period, now = new Date()) {
+    const summary = getAssistantMonthSummary(period, now);
+    const title = `موقف التحصيل · ${summary.month}`;
+    if (!(summary.dueTotal > 0)) {
+        return { id: 'collection_status', title, html: assistantNote('مفيش اشتراكات مستحقة مسجلة للفترة دي يا باشا.') };
+    }
+    const collectable = summary.paidDueTotal + summary.outstandingTotal;
+    const rate = collectable > 0 ? Math.round((summary.paidDueTotal / collectable) * 100) : 100;
+    let html = assistantRow('نسبة التحصيل', `${assistantNumber(rate)}٪`, rate >= 90 ? 'good' : rate >= 60 ? 'warn' : 'bad');
+    html += assistantRow('اتدفع من المستحق', assistantMoney(summary.paidDueTotal), 'good');
+    html += assistantRow('لسه متبقي', assistantMoney(summary.outstandingTotal), summary.outstandingTotal > 0 ? 'warn' : 'good');
+    html += assistantRow('شقق سددت كامل', assistantNumber(summary.paidUnits), 'good');
+    if (summary.partialUnits) html += assistantRow('شقق دفعت جزء', assistantNumber(summary.partialUnits), 'warn');
+    html += assistantRow('شقق لسه ما دفعتش', assistantNumber(summary.unpaidUnits - summary.partialUnits), summary.unpaidUnits - summary.partialUnits > 0 ? 'bad' : 'good');
+    const pending = summary.unpaid.slice(0, 6);
+    if (pending.length) {
+        html += assistantList(pending.map(item =>
+            `${assistantEscape(assistantApartmentLabel(item.resident))} · ${assistantEscape(assistantResidentName(item.resident))} — باقي <strong>${assistantEscape(assistantMoney(item.outstanding))}</strong>`));
+        if (summary.unpaid.length > 6) html += assistantNote(`وفي ${assistantNumber(summary.unpaid.length - 6)} تانيين في تقرير المتأخرات.`);
+    } else {
+        html += assistantNote('تمام يا باشا، كل الشقق سددت المستحق عليها.');
+    }
+    html += assistantNote('النسبة = المدفوع ÷ (المدفوع + المتبقي) بعد الإعفاءات. مش بتحسب الأغراض التانية زي التطوير.');
+    return { id: 'collection_status', title, html };
+}
+
 function buildAssistantAdjustmentsAnswer(period) {
     const allowed = new Set(period.months);
     const rows = (Array.isArray(state.adjustments) ? state.adjustments : []).filter(adjustment => {
@@ -3616,7 +3678,7 @@ function buildAssistantQueryPlan(text, now = new Date()) {
         : resolveAssistantPeriodWithContext(text, now);
     // An explicit comparison outranks a compound list: the user wants one
     // side-by-side answer, not two unrelated sections.
-    const wantsComparison = ASSISTANT_COMPARISON_REQUEST.test(normalized);
+    const wantsComparison = ASSISTANT_COMPARISON_REQUEST.test(normalized) && !parseAssistantAgedMonths(normalized);
     const compoundIntents = wantsComparison || resident || residentMatch.matches.length > 1
         ? []
         : detectAssistantCompoundIntents(normalized);
@@ -3808,6 +3870,10 @@ function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
             return buildAssistantBuildingAnswer();
         case 'reminder_followup':
             return buildAssistantReminderFollowUpAnswer(now);
+        case 'arrears_aged':
+            return buildAssistantAgedArrearsAnswer(parseAssistantAgedMonths(normalizeAssistantArabic(rawText)));
+        case 'collection_status':
+            return buildAssistantCollectionStatusAnswer(period, now);
         case 'resident_receipts':
             return resident ? buildAssistantResidentReceiptsAnswer(resident, hasAssistantTimeHint(rawText) ? period : null) : buildAssistantResidentAnswer(resident, now, period);
         case 'today_income':
