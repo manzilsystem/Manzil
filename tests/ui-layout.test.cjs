@@ -8,7 +8,8 @@ const render = fs.readFileSync('js/render.js', 'utf8');
 
 test('narrow mobile header keeps its content inside the available width', () => {
     assert.match(css, /@media \(max-width: 360px\)/);
-    assert.match(css, /header \.container > div:first-child \{ min-width: 0; flex: 1 1 auto;/);
+    assert.match(css, /header \.container > div:first-child \{ min-width: 0; flex: 1 1 9rem;/);
+    assert.match(css, /header \.container \{ flex-wrap: wrap;/, 'many header buttons wrap under the brand instead of overflowing');
     assert.match(css, /header \.container > div:last-child \{ flex-shrink: 0;/);
     assert.match(css, /header \.container > div:last-child button \{ min-width: 40px; min-height: 40px;/);
     assert.match(css, /#headerBuildingTitle \{ max-width: 28vw; \}/);

@@ -231,9 +231,23 @@ test('a new building starts with only cash on, existing buildings keep their met
     assert.equal(fresh.instapay.enabled, false);
     assert.equal(fresh.bank_transfer.enabled, false);
     const existing = JSON.parse(JSON.stringify(app.applyNewBuildingPaymentDefaults(dbDefault, false)));
-    assert.deepEqual(existing, JSON.parse(JSON.stringify(app.normalizePaymentSettings(dbDefault))));
-    assert.equal(existing.wallet.enabled, true);
+    assert.equal(existing.wallet.enabled, false, 'untouched default settings show off even when the building already has data');
+    assert.equal(existing.instapay.enabled, false);
+    const partial = JSON.parse(JSON.stringify(app.applyNewBuildingPaymentDefaults({ wallet: { enabled: true }, instapay: { enabled: true, address: 'a@instapay' }, bank_transfer: { enabled: true } }, false)));
+    assert.equal(partial.wallet.enabled, true, 'a configured existing building keeps its methods as saved');
+    assert.equal(partial.instapay.enabled, true);
     const configured = JSON.parse(JSON.stringify(app.applyNewBuildingPaymentDefaults({ wallet: { enabled: true, number: '01012345678' } }, true)));
     assert.equal(configured.wallet.enabled, true, 'a method with real details is never switched off');
     assert.match(supabaseSource, /applyNewBuildingPaymentDefaults\(building\.payment_settings, !Number\(building\.floor_count\) && !Number\(building\.apartments_per_floor\) && residents\.length === 0 && income\.length === 0\)/);
+});
+
+test('save still blocks a method the user turned on and left empty', () => {
+    const src = settingsSource.slice(settingsSource.indexOf('function getPaymentMethodSettingsError'), settingsSource.indexOf('function clearSettingsFieldErrors'));
+    const check = vm.runInNewContext(src + '; getPaymentMethodSettingsError');
+    const base = () => ({ cash: { enabled: true }, wallet: { enabled: false }, instapay: { enabled: false }, bank_transfer: { enabled: false } });
+    assert.equal(check(base()), null);
+    const wallet = base(); wallet.wallet = { enabled: true, number: '' };
+    assert.equal(check(wallet).fieldId, 'settingsWalletNumber');
+    wallet.wallet.number = '01012345678';
+    assert.equal(check(wallet), null);
 });
