@@ -2696,3 +2696,34 @@ test('cleaning expenses question filters by category and never lists other expen
     const now = api.answerAssistantQuery('مصروفات النظافة الشهر ده', NOW);
     assert.match(now.html, /60/);
 });
+
+test('assistant confirmations and report opening keep the warm Egyptian wording (#647)', () => {
+    const { api } = createHarness(true);
+    api.answerAssistantQuery('اعمل تحصيل 250 من سارة حسن شقة 7 كاش', NOW);
+    const confirmation = api.answerAssistantQuery('نعم', NOW);
+    assert.equal(confirmation.id, 'operation-confirm-request');
+    assert.match(confirmation.html, /براجع وبسجّل بالطريقة الرسمية/);
+    api.answerAssistantQuery('الغاء', NOW);
+
+    api.answerAssistantQuery('اكتب إعلان صيانة الأسانسير يوم الخميس', NOW);
+    const publish = api.answerAssistantQuery('انشر الإعلان', NOW);
+    assert.equal(publish.id, 'notice-confirm-request');
+    assert.match(publish.html, /هنشر نص الإعلان اللي راجعته دلوقتي/);
+    api.answerAssistantQuery('إلغاء الإعلان', NOW);
+
+    const openReport = api.answerAssistantQuery('افتح تقرير التحصيلات والمصروفات عن نوفمبر 2026', NOW);
+    assert.equal(openReport.id, 'reports-open-request');
+    assert.match(openReport.html, /هفتحلك تقرير/);
+});
+
+test('reconciling an uncertain operation keeps the warm Egyptian wording (#647)', () => {
+    const { context, api } = createHarness();
+    vm.runInContext(`assistantOperationContext = {
+        requestId: 'uncertain-1', type: 'expense', status: 'uncertain',
+        submitButton: null, originalSubmitLabel: null, auditHost: null,
+        originalLogAction: null, wrappedLogAction: null
+    }`, context);
+    const reconciled = api.answerAssistantQuery('تحققت من السجل', NOW);
+    assert.equal(reconciled.id, 'operation-reconciled');
+    assert.match(reconciled.html, /قفلت متابعة العملية اللي مش متأكدة بعد مراجعتك/);
+});
