@@ -725,7 +725,7 @@ function renderOwnerPortal() {
             <p class="text-xs leading-relaxed whitespace-pre-line">${esc(notification.body)}</p>
             <div class="flex items-center justify-between gap-2">
                 <span class="text-xs text-slate-500">${formatDate(notification.createdAt)}</span>
-                ${notification.readAt ? '' : `<button type="button" onclick="markOwnerNotificationRead('${esc(notification.id)}')" class="inline-flex items-center min-h-11 px-3 text-xs text-indigo-300 font-bold">تحديد كمقروء</button>`}
+                ${notification.readAt ? '' : `<button type="button" onclick="markOwnerNotificationRead('${esc(notification.id)}')" class="owner-notice-btn min-h-11">تحديد كمقروء</button>`}
             </div>
         </article>`;
     const readOwnerNotifications = ownerNotifications.filter(notification => notification.readAt);
@@ -778,7 +778,7 @@ function renderOwnerPortal() {
                     <h3 id="ownerNotificationsTitle" class="font-bold text-sm">إشعارات حسابك</h3>
                     <p class="text-xs text-slate-500 mt-1">${unreadNotifications.length} إشعار غير مقروء</p>
                 </div>
-                ${unreadNotifications.length ? '<button type="button" onclick="markAllOwnerNotificationsRead()" class="inline-flex items-center min-h-11 px-3 text-xs text-indigo-300 font-bold">قراءة الكل</button>' : ''}
+                ${unreadNotifications.length ? '<button type="button" onclick="markAllOwnerNotificationsRead()" class="owner-notice-btn min-h-11">قراءة الكل</button>' : ''}
             </div>
             ${typeof installCardHtml === 'function' ? installCardHtml() : ''}
             ${typeof pushControlHtml === 'function' ? pushControlHtml() : ''}
