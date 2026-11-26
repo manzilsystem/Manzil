@@ -120,7 +120,7 @@ test('assistant opens from the launcher and answers local questions', async ({ p
     await expect(page.locator('#assistantSoundButton')).toHaveCount(1);
     await expect(page.locator('#assistantVoiceDownloadModal')).toHaveCount(0);
     const botMessages = page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble');
-    await expect(botMessages.first()).toContainText('أهلاً يا أستاذ');
+    await expect(botMessages.first()).toContainText('أهلاً يا باشا');
     await expect(page.locator('#assistantInput')).toHaveAttribute('placeholder', /الخزنة/);
 
     await page.locator('#assistantInput').fill('رصيد الخزنة كام؟');
@@ -349,7 +349,7 @@ test('assistant reset, escape close, and launcher restore behave', async ({ page
 
     await page.getByRole('button', { name: 'بدء محادثة جديدة' }).click();
     await expect(page.locator('#assistantLog .assistant-msg')).toHaveCount(1);
-    await expect(page.locator('#assistantLog')).toContainText('أهلاً يا أستاذ');
+    await expect(page.locator('#assistantLog')).toContainText('أهلاً يا باشا');
 
     await page.keyboard.press('Escape');
     await expect(modal).toBeHidden();
@@ -490,7 +490,7 @@ test('assistant notice drafts use typed cancellation and have no in-chat action 
     await expect(page.locator('#assistantLog .assistant-msg.is-bot .assistant-bubble button:not(.assistant-voice-replay):not(.assistant-voice-play)')).toHaveCount(0);
     await page.locator('#assistantInput').fill('إلغاء الإعلان');
     await page.locator('#assistantInput').press('Enter');
-    await expect(page.locator('#assistantLog')).toContainText('لم يتم حفظ أي تغيير');
+    await expect(page.locator('#assistantLog')).toContainText('محفظتش أي تغيير');
 });
 
 test('a typed command opens the official income form for review', async ({ page }) => {
@@ -690,7 +690,7 @@ test.describe('assistant remembers the conversation', () => {
 
         await page.getByRole('button', { name: 'بدء محادثة جديدة' }).click();
         await expect(messages).toHaveCount(1);
-        await expect(page.locator('#assistantLog')).toContainText('أهلاً يا أستاذ');
+        await expect(page.locator('#assistantLog')).toContainText('أهلاً يا باشا');
     });
 });
 
