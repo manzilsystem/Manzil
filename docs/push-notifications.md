@@ -28,3 +28,8 @@ Status: code is in the repo, nothing is applied to the hosted project. The app s
 - The same notification never shows twice: the payload id is the notification `tag`, and the service worker skips showing it when the app is open and visible.
 - Sign-out removes this device's row; signing in again re-registers silently if permission is still granted.
 - Dead endpoints (404/410) are deleted by the function.
+
+
+## Trigger (replaces the dashboard webhook)
+
+Migration `20261126053000_notifications_push_trigger.sql` adds `private.notify_push()` and an AFTER INSERT trigger on `public.notifications`. It posts to send-push through pg_net with `x-push-secret` read from `vault` (secret name `push_webhook_secret`, same value as the function secret `PUSH_WEBHOOK_SECRET`). Missing secret or any error: it does nothing and the insert succeeds. To rotate, update both the function secret and the vault entry. Rollback: `drop trigger notifications_notify_push on public.notifications; drop function private.notify_push();`.
