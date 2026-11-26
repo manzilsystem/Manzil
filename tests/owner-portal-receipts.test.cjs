@@ -165,3 +165,13 @@ test('printing owner receipts is unavailable to the manager role', () => {
 test('owner portal feature refreshes the installed application cache', () => {
     assert.match(sw, /CACHE_NAME = 'manzil-[0-9a-f]{10}'/);
 });
+
+test('owner portal keeps one numeral style, lists receipts before payment methods and folds the payment details', () => {
+    assert.match(access, /toLocaleDateString\('ar-EG-u-nu-latn'/);
+    assert.doesNotMatch(access.slice(access.indexOf('function renderOwnerPortal'), access.indexOf('portal.classList.remove', access.indexOf('portal.innerHTML = `'))), /\$\{(?:esc\()?formatDate\(/, 'portal cards use the Latin-digit date helper');
+    const portal = access.slice(access.indexOf('portal.innerHTML = `'));
+    assert.ok(portal.indexOf('ownerReceiptsTitle') < portal.indexOf('ownerPaymentMethodsTitle'), 'receipts come before payment methods');
+    assert.ok(portal.indexOf('ownerNotificationsTitle') < portal.indexOf('ownerPaymentMethodsTitle'), 'notifications come before payment methods');
+    assert.match(portal, /<details class="owner-payment-methods"/);
+    assert.ok(portal.indexOf('</details>') < portal.indexOf('reportOwnerPayment('), 'the report button stays outside the fold');
+});

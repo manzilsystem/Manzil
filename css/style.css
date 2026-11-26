@@ -4574,6 +4574,19 @@ body.owner-mode .assistant-fab { bottom: calc(1.6rem + env(safe-area-inset-botto
 /* Owner mode has no tab bar: leave room under the last card so the docked figure never rests on text. */
 body.owner-mode #ownerPortal { padding-bottom: calc(var(--space-600) + var(--space-100) + env(safe-area-inset-bottom, 0px)); }
 #ownerPortal .tabular-nums, #ownerPortal strong { white-space: nowrap; }
+.owner-payment-methods > summary::-webkit-details-marker { display: none; }
+.owner-payment-methods[open] > summary > i { transform: rotate(180deg); }
+/* Owner toasts sit at the bottom so they never cover the welcome card. */
+body.owner-mode #toastContainer { top: auto; bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px)); }
+/* Light theme: the pale dark-theme accents on the owner portal need darker ink. */
+[data-theme="light"] #ownerPortal .text-emerald-300, [data-theme="light"] #ownerPortal .text-emerald-400 { color: var(--state-success); }
+[data-theme="light"] #ownerPortal .text-indigo-300, [data-theme="light"] #ownerPortal .text-indigo-400 { color: var(--indigo-bright); }
+/* Owner portal on desktop: hero and footnote span the width, the cards flow in two balanced columns with one gap. */
+@media (min-width: 1024px) {
+    body.owner-mode #printableArea > #ownerPortal { display: block !important; column-count: 2; column-gap: 1rem; }
+    body.owner-mode #ownerPortal > * { margin: var(--space-none) var(--space-none) var(--space-100); break-inside: avoid; }
+    body.owner-mode #ownerPortal > .owner-portal-hero, body.owner-mode #ownerPortal > p { column-span: all; }
+}
 #residentForm [aria-invalid="true"] { border-color: var(--state-danger); box-shadow: 0 0 0 var(--space-20) var(--state-danger-soft); }
 @media (max-width: 560px) {
     /* Phones: dock the figure low over the tab bar edge and a little smaller so it stays off the action buttons. */
