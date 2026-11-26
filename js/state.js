@@ -627,7 +627,7 @@ function calculateIncomeAllocationPreview(residentId, amount, selectedMonth, max
         const [year, monthNumber] = selectedKey.split('-').map(Number);
         const cursor = new Date(Date.UTC(year, monthNumber - 1, 1));
         for (let offset = 0; offset < limit; offset += 1) {
-            const key = `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, '0')}`;
+            const key = `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, '0')}-01`;
             if (key !== selectedKey) monthKeys.push(key);
             cursor.setUTCMonth(cursor.getUTCMonth() + 1);
         }
