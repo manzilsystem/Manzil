@@ -23,7 +23,7 @@ test('Arabic interface uses owner terminology consistently', () => {
 
     const html = read('index.html');
     assert.match(html, /اسم المالك/);
-    assert.match(html, /بيانات المالك/);
+    assert.match(html, /الشقة والغرض/);
     assert.match(html, /اختر المالك/);
     assert.match(html, /كشف حساب المالك/);
     assert.match(html, /متأخرات الملاك/);
