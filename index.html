@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="fonts/cairo.css?v=aecf0ab114">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/tailwind.css?v=cd9322de0d">
-    <link rel="stylesheet" href="css/style.css?v=5661215821">
+    <link rel="stylesheet" href="css/style.css?v=397e939bd0">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -74,11 +74,11 @@
                 <form onsubmit="submitSupabaseLogin(event)" class="auth-login-form">
                     <div class="auth-field">
                         <label id="authIdentifierLabel" for="authIdentifier">البريد الإلكتروني للمدير</label>
-                        <input type="text" id="authIdentifier" autocomplete="username" required placeholder="name@example.com" aria-label="البريد الإلكتروني للمدير" inputmode="email" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left" dir="ltr">
+                        <input type="text" id="authIdentifier" autocomplete="username" required placeholder="name@example.com" aria-label="البريد الإلكتروني للمدير" inputmode="email" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left" dir="rtl">
                     </div>
                     <div class="auth-field">
                         <label id="authPasswordLabel" for="authPassword">كلمة مرور المدير</label>
-                        <input type="password" id="authPassword" autocomplete="current-password" required placeholder="أدخل كلمة مرور المدير" aria-label="كلمة مرور المدير" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left" dir="ltr">
+                        <input type="password" id="authPassword" autocomplete="current-password" required placeholder="أدخل كلمة مرور المدير" aria-label="كلمة مرور المدير" class="w-full app-input border rounded-2xl px-3 py-3 text-sm text-left" dir="rtl">
                     </div>
                     <button type="submit" class="auth-submit">تسجيل الدخول</button>
                 </form>
@@ -118,9 +118,9 @@
             <div class="w-14 h-14 bg-amber-500/20 text-amber-400 rounded-2xl mx-auto flex items-center justify-center text-xl"><i class="fa-solid fa-key"></i></div>
             <h3 id="ownerPinChangeTitle" class="text-lg font-black">غيّر الرمز المؤقت</h3>
             <p class="text-xs text-slate-400">أدخل PIN الحالي (6 أرقام للحسابات الحالية أو 8 أرقام إذا كان مؤقتًا)، ثم اختر PIN جديدًا من 6 أرقام ولا تشاركه مع أحد.</p>
-            <input type="password" id="currentOwnerPin" inputmode="numeric" minlength="6" maxlength="8" autocomplete="current-password" required placeholder="PIN الحالي — 6 أو 8 أرقام" aria-label="PIN الحالي من 6 أو 8 أرقام" class="w-full app-input border rounded-2xl px-3 py-3 text-center text-lg tracking-[0.5em] focus:outline-none focus:border-indigo-500" dir="ltr">
-            <input type="password" id="newOwnerPin" inputmode="numeric" minlength="6" maxlength="6" autocomplete="new-password" required placeholder="PIN جديد — 6 أرقام" aria-label="PIN جديد من 6 أرقام" class="w-full app-input border rounded-2xl px-3 py-3 text-center text-lg tracking-[0.5em] focus:outline-none focus:border-indigo-500" dir="ltr">
-            <input type="password" id="confirmOwnerPin" inputmode="numeric" minlength="6" maxlength="6" autocomplete="new-password" required placeholder="أعد كتابة PIN" aria-label="تأكيد PIN الجديد" class="w-full app-input border rounded-2xl px-3 py-3 text-center text-lg tracking-[0.5em] focus:outline-none focus:border-indigo-500" dir="ltr">
+            <input type="password" id="currentOwnerPin" inputmode="numeric" minlength="6" maxlength="8" autocomplete="current-password" required placeholder="PIN الحالي — 6 أو 8 أرقام" aria-label="PIN الحالي من 6 أو 8 أرقام" class="w-full app-input border rounded-2xl px-3 py-3 text-center text-lg tracking-[0.5em] focus:outline-none focus:border-indigo-500" dir="rtl">
+            <input type="password" id="newOwnerPin" inputmode="numeric" minlength="6" maxlength="6" autocomplete="new-password" required placeholder="PIN جديد — 6 أرقام" aria-label="PIN جديد من 6 أرقام" class="w-full app-input border rounded-2xl px-3 py-3 text-center text-lg tracking-[0.5em] focus:outline-none focus:border-indigo-500" dir="rtl">
+            <input type="password" id="confirmOwnerPin" inputmode="numeric" minlength="6" maxlength="6" autocomplete="new-password" required placeholder="أعد كتابة PIN" aria-label="تأكيد PIN الجديد" class="w-full app-input border rounded-2xl px-3 py-3 text-center text-lg tracking-[0.5em] focus:outline-none focus:border-indigo-500" dir="rtl">
             <p id="ownerPinChangeError" class="text-xs text-rose-400 hidden" role="alert"></p>
             <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-2xl">حفظ الرمز والدخول</button>
         </form>
@@ -2852,7 +2852,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-bbc031b721"></script>
+    <script src="js/telemetry.js?v=manzil-75c2f9f5ba"></script>
     <script src="js/state.js?v=e5413f9503"></script>
     <script src="js/access.js?v=7d6defc630"></script>
     <script src="js/render.js?v=2cf3677bab"></script>
