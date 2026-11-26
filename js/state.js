@@ -301,7 +301,23 @@ function applyThemeToDocument(theme) {
     const next = normalizeThemeName(theme) || 'dark';
     document.body.setAttribute('data-theme', next);
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', MANZIL_THEME_COLORS[next]);
+    updateQuickThemeButton(next);
     return next;
+}
+
+/** زر الشمس/القمر في الهيدر: يبدّل بين النهاري والليلي بنفس مسار الإعدادات (يُحفظ للمبنى). */
+function updateQuickThemeButton(theme) {
+    if (typeof document.getElementById !== 'function') return;
+    const icon = document.getElementById('quickThemeIcon');
+    const button = document.getElementById('quickThemeBtn');
+    if (!icon || !button) return;
+    const isLight = theme === 'light';
+    icon.className = 'fa-solid text-sm ' + (isLight ? 'fa-moon' : 'fa-sun');
+    button.setAttribute('aria-label', isLight ? 'التبديل إلى المظهر الليلي' : 'التبديل إلى المظهر النهاري');
+}
+
+function toggleQuickTheme() {
+    return setTheme(document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
 }
 
 let state = {

@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="fonts/cairo.css?v=aecf0ab114">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/tailwind.css?v=fb2946d5c7">
-    <link rel="stylesheet" href="css/style.css?v=00439e6f98">
+    <link rel="stylesheet" href="css/style.css?v=793481e4a3">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -201,6 +201,7 @@
                     <div class="manager-notifications-menu app-card border hidden" id="managerNotificationsMenu" role="group" aria-label="إشعارات المدير"></div>
                 </div>
                 <button id="signupAdminBtn" type="button" onclick="openSignupRequests()" aria-label="طلبات التسجيل" class="app-card border p-2.5 rounded-xl text-xs transition hidden" title="طلبات التسجيل"><i class="fa-solid fa-user-clock text-sm"></i></button>
+                <button id="quickThemeBtn" type="button" onclick="toggleQuickTheme()" aria-label="التبديل إلى المظهر النهاري" title="المظهر" class="app-card border p-2.5 rounded-xl text-xs transition"><i id="quickThemeIcon" class="fa-solid fa-sun text-sm" aria-hidden="true"></i></button>
                 <button onclick="openSettingsModal()" aria-label="فتح الإعدادات" class="app-card border p-2.5 rounded-xl text-xs transition" title="الإعدادات"><i class="fa-solid fa-gear text-sm"></i></button>
                 <button id="accessSwitchBtn" onclick="lockCurrentSession()" aria-label="تبديل المستخدم أو قفل التطبيق" class="app-card border p-2.5 rounded-xl text-xs transition hidden" title="خروج / تبديل المستخدم"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
             </div>
@@ -2904,8 +2905,8 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-e8b31e6347"></script>
-    <script src="js/state.js?v=8c1fbc9a2c"></script>
+    <script src="js/telemetry.js?v=manzil-8fa87bd437"></script>
+    <script src="js/state.js?v=4dbaf567a2"></script>
     <script src="js/access.js?v=470b57b889"></script>
     <script src="js/render.js?v=13c195fb52"></script>
     <script src="js/crud.js?v=4d7669842d"></script>
