@@ -156,6 +156,18 @@ const DEFAULT_PAYMENT_SETTINGS = Object.freeze({
     bank_transfer: { enabled: true, bankName: '', accountName: '', accountNumber: '', iban: '' }
 });
 
+/** مبنى جديد لم يُضبط بعد: وسائل الدفع الإلكترونية المفعّلة بلا أي بيانات تُعرض موقوفة،
+ *  حتى لا يمنع أول حفظ للإعدادات بسبب حقول فارغة. المباني القائمة تبقى كما هي تمامًا. */
+function applyNewBuildingPaymentDefaults(settings, isNewBuilding) {
+    const normalized = normalizePaymentSettings(settings);
+    if (isNewBuilding !== true) return normalized;
+    const empty = (method, fields) => fields.every(field => !String(method[field] || '').trim());
+    if (normalized.wallet.enabled && empty(normalized.wallet, ['provider', 'accountName', 'number'])) normalized.wallet.enabled = false;
+    if (normalized.instapay.enabled && empty(normalized.instapay, ['accountName', 'address'])) normalized.instapay.enabled = false;
+    if (normalized.bank_transfer.enabled && empty(normalized.bank_transfer, ['bankName', 'accountName', 'accountNumber', 'iban'])) normalized.bank_transfer.enabled = false;
+    return normalized;
+}
+
 function normalizePaymentSettings(value) {
     const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
     const text = (input, max = 120) => String(input ?? '').trim().slice(0, max);

@@ -808,7 +808,7 @@ async function loadState() {
         defaultSubscription: Number(building.default_subscription) || 0,
         startingBalance: Number(building.starting_balance) || 0,
         currentTheme: resolveUserTheme(building.current_theme, profile?.theme_preference, currentUserRole),
-        paymentSettings: getBuildingPaymentSettings(building.payment_settings),
+        paymentSettings: applyNewBuildingPaymentDefaults(building.payment_settings, !Number(building.floor_count) && !Number(building.apartments_per_floor) && residents.length === 0 && income.length === 0),
         subscriptionDueDay: Math.min(28, Math.max(1, Number(building.subscription_due_day) || 1)),
         subscriptionGraceDays: Math.min(31, Math.max(0, Number(building.subscription_grace_days) || 0)),
         paymentAllocationPolicy: ['oldest_first', 'selected_month_first'].includes(building.payment_allocation_policy) ? building.payment_allocation_policy : 'oldest_first',
