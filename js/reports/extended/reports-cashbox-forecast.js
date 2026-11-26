@@ -101,6 +101,17 @@ function cashForecastShiftKey(key, offset) {
 }
 
 /**
+ * مفتاح الشهر الحالي من مرجع «now» إن وُجد، وإلا من ساعة التطبيق.
+ * @param {Date|null} [now]
+ */
+function cashForecastCurrentKey(now) {
+    if (now instanceof Date && !Number.isNaN(now.getTime())) {
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    }
+    return monthLabelToKey(getCurrentMonth());
+}
+
+/**
  * يبني توقع الخزنة. خط الأساس: آخر 6 أشهر مغلقة قبل الشهر الحالي؛
  * نسبة التحصيل لكل شهر فيه مستحق = المحصّل ÷ المستحق (بحد أقصى 100%)،
  * والمتوسط على الأشهر ذات المستحق فقط. متوسط المصروفات على الأشهر الستة كلها.
@@ -108,9 +119,9 @@ function cashForecastShiftKey(key, offset) {
  * @param {string|number} [horizon] عدد الشهور القادمة (3 أو 6)
  * @param {Date} [now] مرجع «اليوم» لقابلية الاختبار
  */
-function buildCashboxForecastReport(horizon = 3, now = new Date()) {
+function buildCashboxForecastReport(horizon = 3, now = null) {
     const months = Number(horizon) === 6 ? 6 : 3;
-    const currentKey = monthLabelToKey(getCurrentMonth());
+    const currentKey = cashForecastCurrentKey(now);
     if (!currentKey) return null;
     const residents = Array.isArray(state.residents) ? state.residents : [];
     const income = Array.isArray(state.income) ? state.income : [];
@@ -119,10 +130,21 @@ function buildCashboxForecastReport(horizon = 3, now = new Date()) {
         if (typeof isResidentActiveInMonth === 'function' && !isResidentActiveInMonth(resident, key)) return sum;
         return sum + toCents(getMonthlyDueAmountForMonth(resident, monthKeyToLabel(key)));
     }, 0);
-    const paidForKey = key => income
-        .filter(payment => monthLabelToKey(payment.month) === key &&
-            (typeof getIncomePurposeFormCode === 'function' ? getIncomePurposeFormCode(payment.purposeCode) : 'subscription') === 'subscription')
-        .reduce((sum, payment) => sum + toCents(payment.amount), 0);
+    // نسبة التحصيل التاريخية بنفس قاعدة كشف الحساب: موجب فقط لكل مقيم،
+    // ومدفوعات التسوية منسوبة لشهرها، وإلا قلّلت التسويات والعكسيات النسبة
+    // وخُيّل للتوقع أن التحصيل أسوأ من الواقع.
+    const paidForKey = key => residents.reduce((sum, resident) => {
+        if (typeof isResidentActiveInMonth === 'function' && !isResidentActiveInMonth(resident, key)) return sum;
+        if (typeof getMonthlyDuePaidAmount === 'function') {
+            return sum + toCents(getMonthlyDuePaidAmount(resident.id, monthKeyToLabel(key)));
+        }
+        return sum + income
+            .filter(payment => payment.residentId === resident.id &&
+                monthLabelToKey(payment.month) === key &&
+                (typeof getIncomePurposeFormCode === 'function' ? getIncomePurposeFormCode(payment.purposeCode) : 'subscription') === 'subscription' &&
+                toCents(payment.amount) > 0)
+            .reduce((inner, payment) => inner + toCents(payment.amount), 0);
+    }, 0);
     const expenseForKey = key => expenses
         .filter(expense => monthLabelToKey(expense.month) === key)
         .reduce((sum, expense) => sum + toCents(expense.amount), 0);

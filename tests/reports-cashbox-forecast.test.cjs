@@ -80,7 +80,27 @@ function loadForecast(overrides = {}) {
         getMonthlyDueAmountForMonth: (resident, month) => {
             const key = monthLabelToKey(month);
             const start = String(resident.createdAt || '').slice(0, 7);
-            return key && key.slice(0, 7) >= start ? Number(resident.monthlyAmount) || 0 : 0;
+            if (!(key && key.slice(0, 7) >= start)) return 0;
+            const settlement = (state.adjustments || []).find(adjustment => adjustment.residentId === resident.id
+                && adjustment.effectiveMonth === key && adjustment.kind === 'settlement');
+            if (settlement) return Math.max(0, Number(settlement.amount) || 0);
+            return Number(resident.monthlyAmount) || 0;
+        },
+        // نفس قاعدة state.js: التحصيلات الموجبة فقط + مدفوعات التسوية المرتبطة بشهرها
+        getMonthlyDuePaidAmount: (residentId, month) => {
+            const key = monthLabelToKey(month);
+            const subscription = state.income.filter(payment => payment.residentId === residentId
+                && monthLabelToKey(payment.month) === key
+                && payment.purposeCode === 'subscription'
+                && Number(payment.amount) > 0)
+                .reduce((sum, payment) => sum + Number(payment.amount), 0);
+            const settlement = (state.adjustments || []).find(adjustment => adjustment.residentId === residentId
+                && adjustment.effectiveMonth === key && adjustment.kind === 'settlement');
+            if (!settlement) return subscription;
+            const settlementPaid = state.income.filter(payment => payment.purposeCode === 'settlement'
+                && payment.settlementAdjustmentId === settlement.id && Number(payment.amount) > 0)
+                .reduce((sum, payment) => sum + Number(payment.amount), 0);
+            return subscription + settlementPaid;
         },
         isResidentActiveInMonth: (resident, key) => key.slice(0, 7) >= String(resident.createdAt || '').slice(0, 7),
         getIncomePurposeFormCode: purpose => (purpose === 'subscription' ? 'subscription' : 'other'),
@@ -195,6 +215,40 @@ test('cashbox forecast projects balances and finds the first deficit month', () 
     const poor = poorApi.buildCashboxForecastReport(3, new Date('2024-07-10T12:00:00'));
     assert.equal(poor.firstDeficitLabel, 'أغسطس 2024');
     assert.equal(poor.endBalanceCents, 10000, '-50000 + 3×20000');
+});
+
+test('cashbox forecast baseline counts settlements and ignores reversals', () => {
+    // فبراير: أحمد اتفق على تسوية 80 بدل 100، دفع 50 اشتراك + 20 تسوية،
+    // وله عكس قيد -10 لا يجوز أن ينقص المحصل. سارة دفعت 200 كاملة.
+    // المحصل الصحيح 270 من مستحق 280 ≈ 96%، لا 240 من 300 (80%).
+    const { api } = loadForecast({
+        adjustments: [
+            { id: 'adj1', residentId: 'r1', effectiveMonth: '2024-02-01', kind: 'settlement', amount: 80 }
+        ],
+        income: [
+            { id: 'i20', residentId: 'r1', month: 'فبراير 2024', amount: 50, purposeCode: 'subscription', date: '2024-02-05T12:00:00' },
+            { id: 'i21', residentId: 'r1', month: 'فبراير 2024', amount: 20, purposeCode: 'settlement', settlementAdjustmentId: 'adj1', date: '2024-02-09T12:00:00' },
+            { id: 'i22', residentId: 'r1', month: 'فبراير 2024', amount: -10, purposeCode: 'subscription', date: '2024-02-11T12:00:00' },
+            { id: 'i23', residentId: 'r2', month: 'فبراير 2024', amount: 200, purposeCode: 'subscription', date: '2024-02-06T12:00:00' }
+        ]
+    });
+    const report = api.buildCashboxForecastReport(3, new Date('2024-07-10T12:00:00'));
+    const feb = report.baseline.find(row => row.key === '2024-02-01');
+    assert.equal(feb.dueCents, 28000, 'المستحق = تسوية أحمد 80 + اشتراك سارة 200');
+    assert.equal(feb.paidCents, 27000, 'المحصل = 50 اشتراك + 20 تسوية + 200 سارة، والعكسية مستبعدة');
+    assert.equal(Math.round(feb.rate * 100), 96);
+});
+
+test('cashbox forecast baseline window follows the now reference', () => {
+    const { api } = loadForecast();
+    // ساعة الحاضنة ثابتة على يوليو 2024؛ مرجع now في مارس يجب أن يحرك النافذة.
+    const march = api.buildCashboxForecastReport(3, new Date('2024-03-15T12:00:00'));
+    assert.equal(march.baseline[0].key, '2023-09-01', 'خط الأساس يبدأ قبل 6 أشهر من مارس');
+    assert.equal(march.baseline[5].key, '2024-02-01');
+    assert.equal(march.projections[0].key, '2024-04-01', 'التوقع يبدأ من الشهر التالي للمرجع');
+    // بلا مرجع now: النافذة من ساعة التطبيق (يوليو 2024 في الحاضنة).
+    const appClock = api.buildCashboxForecastReport(3);
+    assert.equal(appClock.baseline[5].key, '2024-06-01');
 });
 
 test('cashbox forecast honors the six-month horizon', () => {
