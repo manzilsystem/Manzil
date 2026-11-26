@@ -28,7 +28,13 @@ test.describe('390px: no horizontal overflow', () => {
         test('tab ' + tab, async ({ page }) => {
             await seed(page);
             await page.evaluate(t => switchTab(t), tab);
-            await page.waitForTimeout(300);
+            // No fixed sleep: wait until the tab is actually shown and webfonts settled
+            // before measuring layout, so slow runners do not flake.
+            await page.waitForFunction(t => {
+                const panel = document.getElementById('tab-' + t);
+                return Boolean(panel) && !panel.classList.contains('hidden');
+            }, tab);
+            await page.evaluate(() => (document.fonts ? document.fonts.ready : null));
             const m = await overflow(page);
             expect(m.sw).toBe(m.cw);
             expect(m.bw).toBeLessThanOrEqual(m.cw);
