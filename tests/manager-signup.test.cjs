@@ -48,7 +48,7 @@ function setup({ table = {}, rpc = {}, signUp, profile, store = {} } = {}) {
 }
 
 function fillForm(t, overrides = {}) {
-    const v = { signupFullName: 'محمد', signupEmail: 'A@B.co', signupPhone: '01012345678', signupBuildingName: 'برج الهدى', signupPassword: 'password1', ...overrides };
+    const v = { signupFullName: 'محمد', signupEmail: 'A@B.co', signupPhone: '01012345678', signupBuildingName: 'برج الهدى', signupPassword: 'password1', signupPasswordConfirm: 'password1', ...overrides };
     for (const [k, val] of Object.entries(v)) t.get(k).value = val;
 }
 
@@ -79,6 +79,14 @@ test('signup validates fields, then signs up and inserts a pending request', asy
     assert.deepEqual(JSON.parse(JSON.stringify(t.calls.inserts[0].row)), { user_id: 'u1', full_name: 'محمد', phone: '01012345678', building_name: 'برج الهدى' });
     assert.equal(t.calls.signOuts, 1);
     assert.match(t.get('managerSignupMessage').textContent, /بانتظار التفعيل/);
+});
+
+test('signup rejects mismatched password confirmation', async () => {
+    const t = setup();
+    fillForm(t, { signupPasswordConfirm: 'different1' });
+    await t.api.submitManagerSignup({ preventDefault() {} });
+    assert.equal(t.calls.inserts.length, 0);
+    assert.match(t.get('managerSignupMessage').textContent, /مش متطابقتين/);
 });
 
 test('signup with email confirmation on keeps the data locally and tells the user to check email', async () => {

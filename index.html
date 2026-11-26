@@ -158,11 +158,19 @@
             <p class="text-xs text-slate-400 text-center">بعد التسجيل، طلبك بيتراجع وبيتفعّل لك مبنى جديد.</p>
             <p id="managerSignupMessage" class="hidden text-xs font-bold text-center leading-6" role="alert" aria-live="polite"></p>
             <form id="managerSignupForm" onsubmit="submitManagerSignup(event)" class="space-y-2" novalidate>
-                <input id="signupFullName" type="text" autocomplete="name" maxlength="80" aria-label="الاسم" placeholder="الاسم" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm">
-                <input id="signupEmail" type="email" autocomplete="email" inputmode="email" aria-label="البريد الإلكتروني" placeholder="البريد الإلكتروني" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm text-left" dir="ltr">
-                <input id="signupPhone" type="tel" autocomplete="tel" inputmode="tel" aria-label="رقم الجوال" placeholder="رقم الجوال" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm text-left" dir="ltr">
-                <input id="signupBuildingName" type="text" maxlength="80" aria-label="اسم المبنى" placeholder="اسم المبنى" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm">
-                <input id="signupPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" aria-label="كلمة المرور" placeholder="كلمة المرور (8 حروف على الأقل)" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm text-left" dir="ltr">
+                <div><label for="signupFullName" class="block text-xs font-bold text-slate-300 mb-1">الاسم</label>
+                <input id="signupFullName" type="text" autocomplete="name" maxlength="80" aria-label="الاسم" placeholder="الاسم" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm"></div>
+                <div><label for="signupEmail" class="block text-xs font-bold text-slate-300 mb-1">البريد الإلكتروني</label>
+                <input id="signupEmail" type="email" autocomplete="email" inputmode="email" aria-label="البريد الإلكتروني" placeholder="البريد الإلكتروني" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm text-left" dir="ltr"></div>
+                <div><label for="signupPhone" class="block text-xs font-bold text-slate-300 mb-1">رقم الجوال</label>
+                <input id="signupPhone" type="tel" autocomplete="tel" inputmode="tel" aria-label="رقم الجوال" placeholder="رقم الجوال" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm text-left" dir="ltr"></div>
+                <div><label for="signupBuildingName" class="block text-xs font-bold text-slate-300 mb-1">اسم المبنى</label>
+                <input id="signupBuildingName" type="text" maxlength="80" aria-label="اسم المبنى" placeholder="اسم المبنى" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm"></div>
+                <div><label for="signupPassword" class="block text-xs font-bold text-slate-300 mb-1">كلمة المرور</label>
+                <input id="signupPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" aria-label="كلمة المرور" placeholder="كلمة المرور (8 حروف على الأقل)" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm text-left" dir="ltr"></div>
+                <div><label for="signupPasswordConfirm" class="block text-xs font-bold text-slate-300 mb-1">تأكيد كلمة المرور</label>
+                <input id="signupPasswordConfirm" type="password" autocomplete="new-password" minlength="8" maxlength="128" aria-label="تأكيد كلمة المرور" placeholder="اكتب كلمة المرور تاني" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm text-left" dir="ltr"></div>
+                <p class="text-xs text-slate-400 text-center leading-6">هنراجع طلبك ونفعّل مبناك، وهنتواصل معاك أول ما يجهز.</p>
                 <button id="managerSignupSubmit" type="submit" class="w-full min-h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-sm font-bold">إرسال الطلب</button>
             </form>
             <button type="button" onclick="closeManagerSignup()" class="w-full min-h-11 app-input border rounded-2xl text-sm font-bold text-slate-300">رجوع لتسجيل الدخول</button>
@@ -2905,7 +2913,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-2aab66152a"></script>
+    <script src="js/telemetry.js?v=manzil-48cac7b30a"></script>
     <script src="js/state.js?v=14a0e9f8b6"></script>
     <script src="js/access.js?v=9a9b182115"></script>
     <script src="js/render.js?v=13c195fb52"></script>
@@ -2939,7 +2947,7 @@
     <script src="js/settings.js?v=86fa26cfed"></script>
     <script src="vendor/supabase.js"></script>
     <script src="js/supabase.js?v=8e3a44c21a"></script>
-    <script src="js/manager-signup.js?v=a8e740f980"></script>
+    <script src="js/manager-signup.js?v=72f7768fa8"></script>
     <script src="js/cashbox.js?v=630080f12a"></script>
     <script src="js/monthly-close.js?v=d7ca9836eb"></script>
     <script src="js/backup.js?v=65b179f1d7"></script>

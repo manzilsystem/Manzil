@@ -38,6 +38,7 @@ function validateManagerSignupInput(input) {
     if (!input.phone) return ['signupPhone', 'رقم الجوال غير صحيح. اكتب رقمًا مصريًا (01012345678) أو دوليًا يبدأ بـ +'];
     if (input.buildingName.length < 2) return ['signupBuildingName', 'اكتب اسم المبنى.'];
     if (input.password.length < 8) return ['signupPassword', 'كلمة المرور 8 حروف على الأقل.'];
+    if (input.password !== input.passwordConfirm) return ['signupPasswordConfirm', 'كلمتا المرور مش متطابقتين.'];
     return null;
 }
 
@@ -49,7 +50,8 @@ function readManagerSignupInput() {
         email: val('signupEmail').toLowerCase(),
         phone: typeof normalizeOwnerPhone === 'function' ? normalizeOwnerPhone(rawPhone) : '',
         buildingName: val('signupBuildingName'),
-        password: String(/** @type {any} */ (document.getElementById('signupPassword'))?.value || '')
+        password: String(/** @type {any} */ (document.getElementById('signupPassword'))?.value || ''),
+        passwordConfirm: String(/** @type {any} */ (document.getElementById('signupPasswordConfirm'))?.value || '')
     };
 }
 
