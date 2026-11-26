@@ -92,3 +92,85 @@ Deno.test('vapidAuthorization signs an ES256 JWT for the push service origin', a
   assertEquals(claims.exp, 1000 + 12 * 60 * 60)
   assertEquals(match?.[4], publicKey)
 })
+
+const webhookEnv = {
+  PUSH_WEBHOOK_SECRET: 'expected-secret',
+  VAPID_PUBLIC_KEY: 'test-public-key',
+  VAPID_PRIVATE_KEY: 'test-private-key',
+  VAPID_SUBJECT: 'mailto:ops@example.test',
+}
+
+async function withWebhookEnv<T>(run: () => Promise<T>): Promise<T> {
+  const keys = Object.keys(webhookEnv)
+  const previous = keys.map((key) => Deno.env.get(key))
+  for (const [key, value] of Object.entries(webhookEnv)) Deno.env.set(key, value)
+  try {
+    return await run()
+  } finally {
+    keys.forEach((key, index) => {
+      const value = previous[index]
+      if (value === undefined) Deno.env.delete(key)
+      else Deno.env.set(key, value)
+    })
+  }
+}
+
+const validRecord = {
+  id: '11111111-1111-4111-8111-111111111111',
+  building_id: '22222222-2222-4222-8222-222222222222',
+  title: 'تنبيه',
+  body: 'نص',
+  action_path: '/#arrears',
+}
+
+Deno.test('a non-INSERT webhook event is skipped without a send', () =>
+  withWebhookEnv(async () => {
+    for (const type of ['UPDATE', 'DELETE', 'SELECT']) {
+      const response = await handleRequest(post({ type, table: 'notifications', record: validRecord }, 'expected-secret'))
+      assertEquals(response.status, 200)
+      assertEquals(await response.json(), { sent: 0, skipped: 'not_a_notification_insert' })
+    }
+  }))
+
+Deno.test('an INSERT on another table is skipped without a send', () =>
+  withWebhookEnv(async () => {
+    const response = await handleRequest(post({ type: 'INSERT', table: 'notices', record: validRecord }, 'expected-secret'))
+    assertEquals(response.status, 200)
+    assertEquals(await response.json(), { sent: 0, skipped: 'not_a_notification_insert' })
+  }))
+
+Deno.test('an INSERT without a record is skipped without a send', () =>
+  withWebhookEnv(async () => {
+    const response = await handleRequest(post({ type: 'INSERT', table: 'notifications' }, 'expected-secret'))
+    assertEquals(response.status, 200)
+    assertEquals(await response.json(), { sent: 0, skipped: 'not_a_notification_insert' })
+  }))
+
+Deno.test('a notification insert with non-UUID ids is rejected as an invalid record', () =>
+  withWebhookEnv(async () => {
+    const badBuilding = await handleRequest(post({ type: 'INSERT', table: 'notifications', record: { ...validRecord, building_id: 'building-1' } }, 'expected-secret'))
+    assertEquals(badBuilding.status, 400)
+    assertEquals((await badBuilding.json()).error, 'invalid_record')
+    const badId = await handleRequest(post({ type: 'INSERT', table: 'notifications', record: { ...validRecord, id: '42' } }, 'expected-secret'))
+    assertEquals(badId.status, 400)
+    assertEquals((await badId.json()).error, 'invalid_record')
+  }))
+
+Deno.test('a non-UUID target_user_id is rejected as an invalid record', async () => {
+  const previousUrl = Deno.env.get('SUPABASE_URL')
+  const previousKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  Deno.env.set('SUPABASE_URL', 'https://example.supabase.co')
+  Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role-key')
+  try {
+    await withWebhookEnv(async () => {
+      const response = await handleRequest(post({ type: 'INSERT', table: 'notifications', record: { ...validRecord, target_user_id: 'owner-7' } }, 'expected-secret'))
+      assertEquals(response.status, 400)
+      assertEquals((await response.json()).error, 'invalid_record')
+    })
+  } finally {
+    if (previousUrl === undefined) Deno.env.delete('SUPABASE_URL')
+    else Deno.env.set('SUPABASE_URL', previousUrl)
+    if (previousKey === undefined) Deno.env.delete('SUPABASE_SERVICE_ROLE_KEY')
+    else Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', previousKey)
+  }
+})
