@@ -1183,15 +1183,33 @@ function assistantNote(text) {
 function parseAssistantReminderCommand(text) {
     if (!assistantCanWrite()) return null;
     const normalized = replaceAssistantNumberWords(normalizeAssistantArabic(String(text || '')));
-    if (!/^(?:(?:ابعت|ابعتلي|ارسل|بعت|جهز|جهزلي|جهز لي)\s+)?(?:تذكير|تذكيرات|ذكر|ذكرني)(?:\s|$)/.test(normalized)) return null;
+    if (!/^(?:(?:ابعت|ابعتلي|ارسل|بعت|جهز|جهزلي|جهز لي)\s+)?(?:تذكير|تذكيرات|ذكر|ذكرني|فكرني)(?:\s|$)/.test(normalized)) return null;
+    // "ذكرني بكره..." is a reminder for the manager himself, not for residents. The app has no personal reminders yet.
+    if (/^(?:ذكرني|فكرني)(?:\s|$)/.test(normalized)) return { personal: true };
     if (/(?:المتاخرين|المتاخرات|الكل|كل الشقق|كل المتاخر)/.test(normalized) && !/(?:شقه|وحده)\s*\d/.test(normalized)) return { residentId: '' };
     const match = resolveAssistantResident(text);
     if (match.resident) return { residentId: match.resident.id };
     if (match.matches.length > 1) return { ambiguous: true };
+    const apartment = normalized.match(/(?:شقه|وحده)\s*(\d+)/);
+    if (apartment) return { notFound: apartment[1] };
     return { residentId: '' };
 }
 
 function buildAssistantReminderAnswer(request) {
+    if (request.personal) {
+        return {
+            id: 'reminder-personal-unsupported',
+            title: 'تذكير شخصي',
+            html: assistantNote('التذكيرات الشخصية لنفسك لسه مش موجودة في التطبيق يا باشا، ومش هوعدك بتنبيه مش هيحصل. اللي أقدر أعمله دلوقتي تذكير الملاك المتأخرين: قولي «ذكّر المتأخرين» أو «ذكّر شقة 7».')
+        };
+    }
+    if (request.notFound) {
+        return {
+            id: 'reminder-apartment-missing',
+            title: 'الشقة مش موجودة',
+            html: assistantNote(`مالقيتش شقة ${assistantNumber(request.notFound)} في العمارة يا باشا. اكتب رقم الشقة تاني أو قولي «ذكّر المتأخرين».`)
+        };
+    }
     if (request.ambiguous) {
         return {
             id: 'reminder-choice',
