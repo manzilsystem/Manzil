@@ -534,11 +534,11 @@ test('the grouped report cards are clickable and free of hub layers', async ({ p
     await expect(page.locator('#tab-reports')).toHaveAttribute('data-report-view', 'index');
     await expect(page.locator('.report-index')).toBeVisible();
     await expect(page.locator('.report-index-group')).toHaveCount(3);
-    await expect(page.locator('.report-index-item')).toHaveCount(13);
-    await expect(page.locator('.report-index-icon')).toHaveCount(13);
-    await expect(page.locator('.report-index-badge')).toHaveCount(13);
-    await expect(page.locator('.report-index-open')).toHaveCount(13);
-    await expect(page.locator('.report-index-state')).toHaveCount(13);
+    await expect(page.locator('.report-index-item')).toHaveCount(14);
+    await expect(page.locator('.report-index-icon')).toHaveCount(14);
+    await expect(page.locator('.report-index-badge')).toHaveCount(14);
+    await expect(page.locator('.report-index-open')).toHaveCount(14);
+    await expect(page.locator('.report-index-state')).toHaveCount(14);
     await expect(page.locator('.report-index-number')).toHaveCount(0);
     await expect(page.locator('[data-report-metric]')).toHaveCount(0);
     await expect(page.locator('#reportHub')).toHaveCount(0);
@@ -574,7 +574,7 @@ test('report search filters cards by name, function and category', async ({ page
 
     await page.locator('#reportIndexClear').click();
     await expect(search).toHaveValue('');
-    await expect(page.locator('.report-index-item:visible')).toHaveCount(13);
+    await expect(page.locator('.report-index-item:visible')).toHaveCount(14);
     await expect(page.locator('#reportIndexClear')).toBeHidden();
 
     await search.fill('أرصدة الصناديق');
@@ -585,7 +585,7 @@ test('report search filters cards by name, function and category', async ({ page
     await expect(page.locator('.report-index-item:visible')).toHaveCount(0);
     await expect(page.locator('#reportIndexEmpty')).toBeVisible();
     await page.locator('.report-index-empty-clear').click();
-    await expect(page.locator('.report-index-item:visible')).toHaveCount(13);
+    await expect(page.locator('.report-index-item:visible')).toHaveCount(14);
 });
 
 test('quality surfaces stay out of printed output', async ({ page }) => {
