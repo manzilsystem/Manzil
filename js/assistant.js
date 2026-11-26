@@ -941,6 +941,7 @@ function detectAssistantIntent(normalized, hasResident) {
     }
     if (/(تقرير|تقارير|طباعه|تصدير|كشف)/.test(normalized) && /(?:مصروف|مصاريف|صرف|مالك|فتره|فترة|اعفاء|تخفيض|تسويه|كشف حساب|تحصيل|ايراد|متاخر|مديون|مستحق)/.test(normalized)) return 'reports';
     if (/(?:ملخص اليوم|ملخص النهارده|ملخص الصباح|بريف|ابدا يومي|اخبار النهارده|ايه الجديد النهارده)/.test(normalized)) return 'morning_brief';
+    if (assistantCanWrite() && /(?:الاستحقاقات القادمه|الاستحقاق القادم|اللي هيستحق|مين هيستحق|هتستحق|هيستحقوا|قرب ميعاده|قرب موعد|استحقاق الاسبوع|استحقاقات الاسبوع|استحقاقات قريبه)/.test(normalized)) return 'upcoming_dues';
     if (hasResident) {
         if (/(السلام عليكم|سلام|صباح|مساء|ازيك|عامل ايه|اهلا)/.test(normalized)) return 'greeting';
         if (/(شكرا|تسلم|مشكور|ربنا يكرمك)/.test(normalized)) return 'thanks';
@@ -2281,6 +2282,8 @@ function buildAssistantMorningBriefAnswer(now = new Date()) {
     html += assistantRow('شقق لم تسدد هذا الشهر', assistantNumber(summary.unpaidUnits), summary.unpaidUnits > 0 ? 'warn' : 'good');
     html += assistantRow('المتأخرات (بعد فترة السماح)', arrears.overdueResidents > 0 ? `${assistantMoney(arrears.totalDebt)} · ${assistantNumber(arrears.overdueResidents)} شقة` : 'لا يوجد', arrears.overdueResidents > 0 ? 'bad' : 'good');
     html += assistantRow('إجمالي السيولة', assistantMoney(cash.total), cash.total >= 0 ? 'good' : 'bad');
+    const upcoming = getAssistantUpcomingDuesSnapshot(now);
+    if (upcoming.items.length) html += assistantRow('هتستحق خلال ٧ أيام', `${assistantMoney(upcoming.total)} · ${assistantNumber(upcoming.items.length)} شقة`, 'warn');
     if (arrears.overdueResidents > 0) {
         html += assistantNote(lateWithPhone > 0
             ? `${assistantNumber(lateWithPhone)} من المتأخرين عليهم رقم هاتف. اكتب «ذكّر المتأخرين» وأفتحلك قائمة التذكيرات.`
@@ -2338,6 +2341,62 @@ function buildAssistantArrearsAnswer() {
     }
     html += assistantNote('المتأخرات محسوبة من الاشتراكات المستحقة بعد خصم المدفوع والإعفاءات، وليس من إجمالي المصروفات.');
     return { id: 'arrears', title, html };
+}
+
+const ASSISTANT_UPCOMING_WINDOW_DAYS = 7;
+
+/** Apartments that still owe a month which is not overdue yet (due within the window, or inside the grace period). */
+function getAssistantUpcomingDuesSnapshot(now = new Date(), windowDays = ASSISTANT_UPCOMING_WINDOW_DAYS) {
+    const names = getAssistantMonthNames();
+    const labels = [0, 1].map(offset => {
+        const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+        return `${names[d.getMonth()]} ${d.getFullYear()}`;
+    });
+    const dayMs = 86400000;
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const limit = today.getTime() + windowDays * dayMs;
+    const residents = Array.isArray(state.residents) ? state.residents : [];
+    const items = [];
+    labels.forEach(label => {
+        const dueDate = typeof getSubscriptionDueDate === 'function' ? getSubscriptionDueDate(label) : null;
+        if (!dueDate) return;
+        const overdue = typeof isSubscriptionMonthOverdue === 'function' ? isSubscriptionMonthOverdue(label, now) : false;
+        if (overdue || dueDate.getTime() > limit) return;
+        const daysLeft = Math.round((dueDate.getTime() - today.getTime()) / dayMs);
+        residents.forEach(resident => {
+            const outstanding = typeof getMonthOutstanding === 'function' ? Number(getMonthOutstanding(resident, label)) || 0 : 0;
+            if (outstanding > 0) items.push({ resident, month: label, outstanding, daysLeft, dueDate });
+        });
+    });
+    items.sort((a, b) => a.daysLeft - b.daysLeft || b.outstanding - a.outstanding);
+    return {
+        items,
+        total: items.reduce((sum, item) => sum + Math.round(item.outstanding * 100), 0) / 100,
+        windowDays
+    };
+}
+
+function assistantDaysLeftLabel(daysLeft) {
+    if (daysLeft < 0) return 'في فترة السماح';
+    if (daysLeft === 0) return 'يستحق اليوم';
+    if (daysLeft === 1) return 'يستحق بكرة';
+    return `يستحق بعد ${assistantNumber(daysLeft)} أيام`;
+}
+
+function buildAssistantUpcomingDuesAnswer(now = new Date()) {
+    const snapshot = getAssistantUpcomingDuesSnapshot(now);
+    let html = '';
+    if (!snapshot.items.length) {
+        html += assistantNote(`مفيش اشتراكات هتستحق خلال ${assistantNumber(snapshot.windowDays)} أيام ولسه ما اتسددتش.`);
+        return { id: 'upcoming_dues', title: 'الاستحقاقات القادمة', html };
+    }
+    html += assistantRow('شقق هتستحق قريب', assistantNumber(snapshot.items.length), 'warn');
+    html += assistantRow('إجمالي المبالغ', assistantMoney(snapshot.total));
+    html += assistantList(snapshot.items.slice(0, 6).map(item =>
+        `${assistantEscape(assistantApartmentLabel(item.resident))} · ${assistantEscape(assistantResidentName(item.resident))} — <strong>${assistantEscape(assistantMoney(item.outstanding))}</strong> (${assistantEscape(item.month)} · ${assistantEscape(assistantDaysLeftLabel(item.daysLeft))})`));
+    if (snapshot.items.length > 6) html += assistantNote(`و${assistantNumber(snapshot.items.length - 6)} شقق أخرى.`);
+    html += assistantNote('دي شقق لسه ما تأخرتش بعد فترة السماح. التذكير المبكر بيقلل المتأخرات.');
+    return { id: 'upcoming_dues', title: 'الاستحقاقات القادمة', html };
 }
 
 function buildAssistantManagerTasksAnswer(period) {
@@ -3424,6 +3483,8 @@ function selectAssistantAnswer(intent, period, resident, now, rawText = '') {
             return buildAssistantSummaryAnswer(period);
         case 'morning_brief':
             return buildAssistantMorningBriefAnswer(now);
+        case 'upcoming_dues':
+            return buildAssistantUpcomingDuesAnswer(now);
         case 'executive':
             return buildAssistantExecutiveAnswer(period);
         case 'change_alerts':
