@@ -2477,7 +2477,6 @@ test('upcoming dues: manager sees apartments due within 7 days that are not over
     assert.notEqual(ownerApi.answerAssistantQuery('الاستحقاقات القادمة', NOW).id, 'upcoming_dues');
 });
 
-<<<<<<< HEAD
 test('Amm Abdo understands many Egyptian phrasings and answers in the doorman voice', () => {
     const { api } = createHarness();
     const cases = {
@@ -2515,7 +2514,8 @@ test('when Amm Abdo does not understand he says so and offers the three closest 
     assert.deepEqual(api.assistantClosestQuestions('الخزنه فيها كام', 'manager')[0], 'رصيد الخزنة كام؟');
     assert.equal(api.assistantClosestQuestions('اي حاجة', 'owner').length, 3);
     assert.doesNotMatch(unknown.html, /\d{3,}/, 'no invented numbers in the fallback');
-=======
+});
+
 test('manager receipts and rents phrasings route to engine-backed answers', () => {
     const { api, context } = createHarness();
     for (const phrase of ['ايصال شقة 3', 'طلعلي ايصالات احمد', 'دفعات شقة 7', 'دفعات سارة']) {
@@ -2551,7 +2551,6 @@ test('today collection answer never invents a number', () => {
     assert.match(filled.html, /75/);
     assert.match(filled.html, /سارة حسن/);
     assert.match(filled.html, /عدد الدفعات/);
->>>>>>> 09509e8 (Assistant: resident receipts answer, today's collection, more manager phrasings)
 });
 
 test('title abbreviations in names become spoken titles', () => {
