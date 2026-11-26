@@ -20,8 +20,8 @@
     <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=c705893f36">
     <link rel="stylesheet" href="fonts/cairo.css?v=aecf0ab114">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/tailwind.css?v=aea143ed99">
-    <link rel="stylesheet" href="css/style.css?v=15eea71656">
+    <link rel="stylesheet" href="css/tailwind.css?v=a3268cfe75">
+    <link rel="stylesheet" href="css/style.css?v=88b4ac5c72">
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 session-locked" data-theme="dark">
 
@@ -1501,7 +1501,7 @@
         <div class="app-card border w-full max-w-6xl h-[92dvh] max-h-[94dvh] rounded-3xl shadow-2xl overflow-hidden animate-fadeIn flex flex-col">
             <div class="settings-modal-header px-5 py-4 flex justify-between items-center">
                 <h3 id="noticeModalTitle" class="font-bold text-sm"><i class="fa-solid fa-bullhorn ml-2"></i> لوحة الإعلانات</h3>
-                <button onclick="closeModal('noticeModal')" aria-label="إغلاق نافذة الإعلانات" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button onclick="closeModal('noticeModal')" aria-label="إغلاق نافذة الإعلانات" class="text-white/80 hover:text-white inline-flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -m-2"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div class="p-5 space-y-4">
                 <div>
@@ -2204,7 +2204,7 @@
         <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn max-h-[90vh] overflow-y-auto">
             <div class="bg-emerald-700 text-white px-5 py-4 flex justify-between items-center">
                 <h3 id="backupModalTitle" class="font-bold text-sm"><i class="fa-solid fa-cloud-arrow-down ml-2"></i> النسخ الاحتياطي والاستعادة</h3>
-                <button onclick="closeModal('backupModal')" aria-label="إغلاق" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button onclick="closeModal('backupModal')" aria-label="إغلاق" class="text-white/80 hover:text-white inline-flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -m-2"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div class="p-5 space-y-4">
                 <section class="rounded-2xl border border-emerald-500/30 p-4 space-y-2">
@@ -2265,7 +2265,7 @@
         <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
             <div class="bg-rose-800 text-white px-5 py-4 flex justify-between items-center">
                 <h3 id="restoreConfirmTitle" class="font-bold text-sm"><i class="fa-solid fa-triangle-exclamation ml-2"></i> تأكيد استعادة قاعدة البيانات</h3>
-                <button type="button" onclick="cancelDatabaseRestore()" aria-label="إلغاء الاستعادة" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button type="button" onclick="cancelDatabaseRestore()" aria-label="إلغاء الاستعادة" class="text-white/80 hover:text-white inline-flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -m-2"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div class="p-5 space-y-3">
                 <p class="text-xs leading-6 text-rose-300">سيتم استبدال قاعدة بيانات الإنتاج بالكامل، بما يشمل جميع المباني والحسابات والسجلات، بحالة النسخة المختارة. لا يمكن التراجع عن العملية من الواجهة.</p>
@@ -2288,7 +2288,7 @@
         <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn max-h-[90vh] overflow-y-auto">
             <div class="bg-indigo-700 text-white px-5 py-4 flex justify-between items-center">
                 <h3 id="guideModalTitle" class="font-bold text-sm"><i class="fa-solid fa-book-open ml-2"></i> دليل الاستخدام</h3>
-                <button onclick="closeModal('guideModal')" aria-label="إغلاق دليل الاستخدام" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button onclick="closeModal('guideModal')" aria-label="إغلاق دليل الاستخدام" class="text-white/80 hover:text-white inline-flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -m-2"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div class="p-5 space-y-4 text-xs leading-relaxed">
                 <section class="guide-step">
@@ -2324,7 +2324,7 @@
         <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
             <div class="bg-indigo-700 text-white px-5 py-4 flex justify-between items-center">
                 <h3 id="residentModalTitle" class="font-bold text-sm">شقة جديدة</h3>
-                <button onclick="closeModal('residentModal')" aria-label="إغلاق نافذة بيانات الشقة" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button onclick="closeModal('residentModal')" aria-label="إغلاق نافذة بيانات الشقة" class="text-white/80 hover:text-white inline-flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -m-2"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <form id="residentForm" novalidate onsubmit="handleResidentSubmit(event)" class="p-5 space-y-3 max-h-[80vh] overflow-y-auto">
                 <input type="text" id="residentName" aria-label="اسم المالك" placeholder="اسم المالك" required class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none">
@@ -2338,7 +2338,7 @@
                 <label class="block text-xs space-y-1"><span class="text-slate-400">بداية المحاسبة (مطلوب للشقة الجديدة)</span><input type="month" id="residentBillingStart" aria-label="بداية محاسبة الشقة" class="w-full app-input border rounded-2xl px-3 py-2.5 text-sm focus:outline-none"></label>
                 <p class="text-xs text-slate-500 -mt-1">الشهر الحالي مختار تلقائيًا؛ اختر شهرًا أقدم لتحصيل متأخرات سابقة.</p>
                 <section class="app-input border rounded-2xl p-3 space-y-3">
-                    <label class="flex items-center gap-2 text-xs font-bold cursor-pointer">
+                    <label class="flex items-center gap-2 text-xs font-bold cursor-pointer min-h-[2.75rem]">
                         <input type="checkbox" id="residentIsRented" onchange="toggleResidentTenantFields()" class="w-4 h-4">
                         الشقة مؤجرة
                     </label>
@@ -2388,7 +2388,7 @@
                     <h3 id="subscriptionRateModalTitle" class="font-bold text-sm">تاريخ الاشتراك</h3>
                     <p id="subscriptionRateResidentSummary" class="text-xs text-white/75 mt-1"></p>
                 </div>
-                <button type="button" onclick="closeModal('subscriptionRateModal')" aria-label="إغلاق سجل الاشتراك" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button type="button" onclick="closeModal('subscriptionRateModal')" aria-label="إغلاق سجل الاشتراك" class="text-white/80 hover:text-white inline-flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -m-2"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div class="p-5 space-y-4">
                 <div class="app-input border rounded-2xl overflow-hidden">
@@ -2549,7 +2549,7 @@
         <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn sticky-modal-card">
             <div class="bg-emerald-700 text-white px-5 py-4 flex justify-between items-center">
                 <h3 id="incomeModalTitle" class="font-bold text-sm"><i class="fa-solid fa-hand-holding-dollar ml-2"></i> تحصيل جديد</h3>
-                <button onclick="closeModal('incomeModal')" aria-label="إغلاق نافذة التحصيل" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button onclick="closeModal('incomeModal')" aria-label="إغلاق نافذة التحصيل" class="text-white/80 hover:text-white inline-flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -m-2"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <form id="incomeForm" novalidate onsubmit="handleIncomeSubmit(event)" class="sticky-modal-form">
                 <div id="incomeWizardBody" class="sticky-modal-body space-y-3">
@@ -2685,7 +2685,7 @@
                     <h3 id="incomeEditModalTitle" class="font-bold text-sm">تعديل التحصيل</h3>
                     <p id="incomeEditResidentSummary" class="text-xs text-white/75 mt-1"></p>
                 </div>
-                <button type="button" onclick="closeModal('incomeEditModal')" aria-label="إغلاق تعديل التحصيل" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button type="button" onclick="closeModal('incomeEditModal')" aria-label="إغلاق تعديل التحصيل" class="text-white/80 hover:text-white inline-flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -m-2"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <form id="incomeEditForm" onsubmit="handleIncomeEditSubmit(event)" class="p-5 space-y-3">
                 <label class="block text-xs space-y-1">
@@ -2740,7 +2740,7 @@
                     <h3 id="incomeReceiptTitle" class="font-bold text-sm">إيصال استلام</h3>
                     <p id="incomeReceiptSubtitle" class="text-xs text-white/75 mt-1"></p>
                 </div>
-                <button type="button" onclick="closeModal('incomeReceiptModal')" aria-label="إغلاق الإيصال" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button type="button" onclick="closeModal('incomeReceiptModal')" aria-label="إغلاق الإيصال" class="text-white/80 hover:text-white inline-flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -m-2"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div id="incomeReceiptContent" class="p-5 space-y-3 max-h-[65vh] overflow-y-auto"></div>
             <div class="p-5 pt-0 grid grid-cols-3 gap-2">
@@ -2756,7 +2756,7 @@
         <div class="app-card border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn sticky-modal-card">
             <div class="bg-rose-700 text-white px-5 py-4 flex justify-between items-center">
                 <h3 id="expenseModalTitle" class="font-bold text-sm"><i class="fa-solid fa-receipt ml-2"></i> مصروف جديد</h3>
-                <button onclick="closeModal('expenseModal')" aria-label="إغلاق نافذة المصروف" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button onclick="closeModal('expenseModal')" aria-label="إغلاق نافذة المصروف" class="text-white/80 hover:text-white inline-flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -m-2"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <form id="expenseForm" novalidate onsubmit="handleExpenseSubmit(event)" class="sticky-modal-form">
                 <div class="sticky-modal-body space-y-3">
@@ -2852,7 +2852,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/telemetry.js?v=manzil-89bb268050"></script>
+    <script src="js/telemetry.js?v=manzil-d16dc0a1d1"></script>
     <script src="js/state.js?v=e5413f9503"></script>
     <script src="js/access.js?v=74b1d89efb"></script>
     <script src="js/render.js?v=ecc0bbcf19"></script>
