@@ -2687,3 +2687,12 @@ test('manager spend and collection questions in slang answer instead of opening 
         assert.doesNotMatch(answer.html, /أجهز مصروف/, query);
     }
 });
+
+test('cleaning expenses question filters by category and never lists other expenses', () => {
+    const { api } = createHarness(true);
+    const answer = api.answerAssistantQuery('مصروفات النظافة الشهر اللي فات', NOW);
+    assert.doesNotMatch(answer.html, /أسانسير/);
+    assert.match(answer.html, /مفيش مصروفات/);
+    const now = api.answerAssistantQuery('مصروفات النظافة الشهر ده', NOW);
+    assert.match(now.html, /60/);
+});
