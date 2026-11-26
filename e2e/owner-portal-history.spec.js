@@ -44,5 +44,5 @@ test('a receipt that covers several months lists them on the closed line', async
     await renderOwner(page, split);
     const receipt = page.locator('#ownerReceiptsTitle').locator('xpath=ancestor::section').locator('details', { has: page.locator('summary strong', { hasText: 'إيصال رقم' }) });
     await expect(receipt).toHaveCount(1);
-    await expect(receipt).toContainText('عن شهر 2026-01، 2026-02، 2026-03 +1');
+    await expect(receipt).toContainText('عن شهور 2026-01، 2026-02، 2026-03 +1');
 });

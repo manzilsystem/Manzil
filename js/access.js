@@ -64,7 +64,18 @@ function ownerReceiptMonthsLabel(receipt) {
     const months = Array.from(new Set((receipt.payments || []).map(payment => String(payment.month || '').trim()).filter(Boolean)));
     if (!months.length) return '—';
     const shown = months.slice(0, 3).join('، ');
-    return 'عن شهر ' + shown + (months.length > 3 ? ` +${months.length - 3}` : '');
+    return (months.length > 1 ? 'عن شهور ' : 'عن شهر ') + shown + (months.length > 3 ? ` +${months.length - 3}` : '');
+}
+
+// Arabic count agreement for owner-facing figures: one singular, two dual,
+// 3–10 plural, 11 and up singular with tanwin.
+function ownerCountLabel(count, forms) {
+    const value = Math.max(0, Math.floor(Number(count) || 0));
+    if (value === 0) return forms.zero || '';
+    if (value === 1) return forms.one;
+    if (value === 2) return forms.two;
+    if (value <= 10) return `${fmtNum(value)} ${forms.few}`;
+    return `${fmtNum(value)} ${forms.many}`;
 }
 
 function ownerPaymentPurposeLabel(payment) {
@@ -694,12 +705,15 @@ function renderOwnerPortal() {
                         <span class="text-xs">${esc(item.month)}${item.daysOverdue ? ` <span class="text-xs text-slate-500">· متأخر ${esc(formatOverdueDuration(item.daysOverdue))}</span>` : ''}</span>
                         <strong class="text-xs text-rose-400">${fmtNum(item.amount)} ج.م</strong>
                     </div>`).join('')}
-                ${ownerArrears.length > 12 ? `<p class="text-xs text-slate-500 pt-2">تم عرض أقدم 12 شهرًا من أصل ${fmtNum(ownerArrears.length)} شهر.</p>` : ''}
+                ${ownerArrears.length > 12 ? `<p class="text-xs text-slate-500 pt-2">تم عرض أقدم 12 شهرًا من أصل ${fmtNum(ownerArrears.length)} شهرًا.</p>` : ''}
             </div>
         </details>`
         // The summary row above already shows a zero total, so a second
         // "no arrears" line would only repeat it.
         : '';
+    const ownerArrearsCount = ownerCountLabel(debt.count, {
+        one: 'شهر واحد', two: 'شهران', few: 'شهور', many: 'شهرًا'
+    });
     const managerPhone = String(state.managerPhone || '').trim();
     const managerPhoneTel = managerPhone.replace(/[^0-9+]/g, '');
     const managerContact = managerPhoneTel
@@ -757,7 +771,7 @@ function renderOwnerPortal() {
                 <div class="app-input border rounded-2xl p-3"><p class="text-xs text-slate-500">المدفوع هذا الشهر</p><p class="font-black text-emerald-400 mt-1">${fmtNum(paidThisMonth)} ج.م</p></div>
                 <div class="app-input border rounded-2xl p-3"><p class="text-xs text-slate-500">المتبقي لهذا الشهر</p><p class="font-black ${remainingThisMonth ? 'text-rose-400' : 'text-emerald-400'} mt-1">${fmtNum(remainingThisMonth)} ج.م</p></div>
             </div>
-            <div class="app-input border rounded-2xl p-3 flex items-center justify-between gap-3"><span class="text-xs font-bold min-w-0">إجمالي متأخرات حسابك (${debt.count} شهر${debt.daysOverdue ? ` · متأخر ${esc(formatOverdueDuration(debt.daysOverdue))}` : ''})</span><strong class="text-sm whitespace-nowrap shrink-0 ${debt.totalDebt ? 'text-rose-400' : 'text-emerald-400'}">${fmtNum(debt.totalDebt)} ج.م</strong></div>
+            <div class="app-input border rounded-2xl p-3 flex items-center justify-between gap-3"><span class="text-xs font-bold min-w-0">إجمالي متأخرات حسابك${ownerArrearsCount ? ` (${ownerArrearsCount}${debt.daysOverdue ? ` · متأخر ${esc(formatOverdueDuration(debt.daysOverdue))}` : ''})` : ''}</span><strong class="text-sm whitespace-nowrap shrink-0 ${debt.totalDebt ? 'text-rose-400' : 'text-emerald-400'}">${fmtNum(debt.totalDebt)} ج.م</strong></div>
             ${ownerArrearsHtml}
         </section>
         <section class="app-card border rounded-3xl p-5 space-y-3" aria-labelledby="ownerPaymentMethodsTitle">
@@ -770,7 +784,7 @@ function renderOwnerPortal() {
         <section class="app-card border rounded-3xl p-5 space-y-3" aria-labelledby="ownerReceiptsTitle">
             <div>
                 <h3 id="ownerReceiptsTitle" class="font-bold text-sm">إيصالات السداد</h3>
-                <p class="text-xs text-slate-500 mt-1">${ownerReceipts.length} إيصال مسجل لحساب شقتك</p>
+                <p class="text-xs text-slate-500 mt-1">${ownerCountLabel(ownerReceipts.length, { zero: 'لا توجد إيصالات بعد', one: 'إيصال واحد مسجل لحساب شقتك', two: 'إيصالان مسجلان لحساب شقتك', few: 'إيصالات مسجلة لحساب شقتك', many: 'إيصال مسجل لحساب شقتك' })}</p>
             </div>
             <div class="space-y-2">${ownerReceiptRows}</div>
         </section>
@@ -778,7 +792,7 @@ function renderOwnerPortal() {
             <div class="flex items-center justify-between gap-3">
                 <div>
                     <h3 id="ownerNotificationsTitle" class="font-bold text-sm">إشعارات حسابك</h3>
-                    <p class="text-xs text-slate-500 mt-1">${unreadNotifications.length} إشعار غير مقروء</p>
+                    <p class="text-xs text-slate-500 mt-1">${ownerCountLabel(unreadNotifications.length, { zero: ownerNotifications.length ? 'كل الإشعارات مقروءة' : 'لا توجد إشعارات بعد', one: 'إشعار واحد غير مقروء', two: 'إشعاران غير مقروءان', few: 'إشعارات غير مقروءة', many: 'إشعار غير مقروء' })}</p>
                 </div>
                 ${unreadNotifications.length ? '<button type="button" onclick="markAllOwnerNotificationsRead()" class="owner-notice-btn min-h-11">قراءة الكل</button>' : ''}
             </div>
