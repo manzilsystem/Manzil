@@ -176,6 +176,37 @@ test('collection curve measures cumulative collection against each milestone', (
     assert.equal(report.totals.paidCents, 60000);
 });
 
+test('collection curve counts settlement payments and ignores reversals', () => {
+    // مارس: تسوية أحمد 60 عن الشهر، دفع 20 تسوية بتاريخ 8 مارس (سُجلت
+    // بشهر أبريل لكنها تُنسب لشهر التسوية)، وعكس قيد -10 لا يدخل المنحنى.
+    const { api } = loadCurve({
+        adjustments: [
+            { id: 'adj1', residentId: 'r1', effectiveMonth: '2024-03-01', kind: 'settlement', amount: 60 }
+        ],
+        income: [
+            { id: 'i30', residentId: 'r1', month: 'أبريل 2024', amount: 20, purposeCode: 'settlement', settlementAdjustmentId: 'adj1', date: '2024-03-08T12:00:00' },
+            { id: 'i31', residentId: 'r1', month: 'مارس 2024', amount: -10, purposeCode: 'subscription', date: '2024-03-09T12:00:00' }
+        ]
+    });
+    const report = api.buildCollectionCurveReport('مارس 2024', 'مارس 2024', new Date('2024-03-31T12:00:00'));
+    const mar = report.rows.find(row => row.key === '2024-03-01');
+    assert.equal(mar.paidCents, 2000, 'المحصل = دفعة التسوية فقط، والعكسية مستبعدة');
+    assert.equal(mar.withinCents, 2000, 'دفعة التسوية على المنحنى بتاريخها الفعلي يوم 8');
+    assert.equal(mar.milestones[0].cents, 0, 'قبل يوم الاستحقاق (5) لا شيء');
+    assert.equal(mar.milestones[1].cents, 2000, 'نهاية السماح (15) تشمل دفعة يوم 8');
+});
+
+test('collection curve range end clamps to the now reference', () => {
+    const { api } = loadCurve();
+    // ساعة الحاضنة ثابتة على مارس 2024؛ مرجع now في يناير يقصّ النهاية ليناير.
+    const jan = api.buildCollectionCurveReport('يناير 2024', 'يونيو 2024', new Date('2024-01-15T12:00:00'));
+    assert.equal(jan.rows.length, 1, 'النهاية تُقصّ إلى يناير وفق المرجع');
+    assert.equal(jan.rows[0].key, '2024-01-01');
+    // بلا مرجع now: القصّ من ساعة التطبيق (مارس 2024 في الحاضنة).
+    const appClock = api.buildCollectionCurveReport('يناير 2024', 'يونيو 2024');
+    assert.equal(appClock.rows.length, 3, 'يناير إلى مارس وفق ساعة التطبيق');
+});
+
 test('collection curve rejects periods over twelve months and inverted ranges', () => {
     const { api } = loadCurve();
     assert.equal(api.buildCollectionCurveReport('فبراير 2024', 'يناير 2024'), null);
