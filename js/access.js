@@ -697,7 +697,9 @@ function renderOwnerPortal() {
                 ${ownerArrears.length > 12 ? `<p class="text-xs text-slate-500 pt-2">تم عرض أقدم 12 شهرًا من أصل ${fmtNum(ownerArrears.length)} شهر.</p>` : ''}
             </div>
         </details>`
-        : '<p class="text-xs text-emerald-400 text-center">لا توجد شهور متأخرة.</p>';
+        // The summary row above already shows a zero total, so a second
+        // "no arrears" line would only repeat it.
+        : '';
     const managerPhone = String(state.managerPhone || '').trim();
     const managerPhoneTel = managerPhone.replace(/[^0-9+]/g, '');
     const managerContact = managerPhoneTel
@@ -761,7 +763,7 @@ function renderOwnerPortal() {
         <section class="app-card border rounded-3xl p-5 space-y-3" aria-labelledby="ownerPaymentMethodsTitle">
             <div>
                 <h3 id="ownerPaymentMethodsTitle" class="font-bold text-sm">طرق سداد الاشتراك</h3>
-                <p class="text-xs text-slate-500 mt-1">موعد الاستحقاق يوم ${subscriptionDueDay} من كل شهر · فترة السماح ${subscriptionGraceDays} يوم</p>
+                <p class="text-xs text-slate-500 mt-1">موعد الاستحقاق يوم ${subscriptionDueDay} من كل شهر · ${subscriptionGraceDays ? `فترة السماح ${esc(formatOverdueDuration(subscriptionGraceDays))}` : 'بدون فترة سماح'}</p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${paymentInstructionsHtml}</div>
         </section>
