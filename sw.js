@@ -10,7 +10,6 @@ const APP_SHELL = [
     './fonts/cairo-v700.woff2?v=d74379269b',
     './fonts/cairo-v900.woff2?v=bb8cb81865',
     './vendor/chart.umd.js?v=c6d8bdd707',
-    './vendor/xlsx.full.min.js?v=c9506197ca',
     './vendor/supabase.js?v=8816af04d9',
     './css/style.css?v=6226af4de2',
     './js/sw-register.js?v=27964153c8',
