@@ -53,7 +53,7 @@ function createOwnerAccess(role = 'owner', phone = '01012345678') {
         encodeURIComponent
     };
     const api = vm.runInNewContext(
-        access + String.fromCharCode(10) + '({ groupOwnerPaymentsIntoReceipts, getOwnerManagerWhatsAppPhone, contactOwnerManager, printOwnerReceipt })',
+        access + String.fromCharCode(10) + '({ groupOwnerPaymentsIntoReceipts, getOwnerManagerWhatsAppPhone, contactOwnerManager, reportOwnerPayment, printOwnerReceipt })',
         sandbox,
         { filename: 'js/access.js' }
     );
@@ -117,6 +117,23 @@ test('manager cannot use the owner-only contact action and missing manager phone
     assert.match(missingPhone.messages[0].message, /رقم مدير العمارة غير مسجل/);
 });
 
+test('owner can report a payment to the manager on WhatsApp with amount and month', () => {
+    assert.match(access, /onclick="reportOwnerPayment\(this\.dataset\.amount, this\.dataset\.month\)"/);
+    const { api, opened } = createOwnerAccess();
+    api.reportOwnerPayment('350', 'نوفمبر 2026');
+    assert.equal(opened.length, 1);
+    const url = new URL(opened[0]);
+    assert.equal(url.pathname, '/201012345678');
+    const message = url.searchParams.get('text');
+    assert.match(message, /دفعت 350 ج\.م عن شهر نوفمبر 2026/);
+    assert.match(message, /الشقة: شقة 3/);
+    const noAmount = createOwnerAccess();
+    noAmount.api.reportOwnerPayment('abc', '');
+    assert.doesNotMatch(new URL(noAmount.opened[0]).searchParams.get('text'), /ج\.م/);
+    const manager = createOwnerAccess('manager');
+    manager.api.reportOwnerPayment('100', 'x');
+    assert.equal(manager.opened.length, 0);
+});
 
 test('owner can print a unit-scoped receipt with all distributed months and save it as PDF', () => {
     const { api, opened, printDocument, printWindow } = createOwnerAccess();
