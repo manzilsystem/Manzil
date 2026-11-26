@@ -2880,7 +2880,11 @@ function buildAssistantBuildingAnswer() {
     let html = '';
     html += assistantRow('العمارة', String(state.buildingName || 'بدون اسم'));
     html += assistantRow('مدير المبنى', String(state.managerName || 'غير مسجل'));
-    html += assistantRow('عدد الشقق', assistantNumber(residents.length));
+    // Registered apartments are not the building capacity: say which number this is.
+    const capacity = (Number(state.floorCount) || 0) * (Number(state.apartmentsPerFloor) || 0);
+    html += assistantRow('شقق مسجلة في التطبيق', capacity > residents.length
+        ? `${assistantNumber(residents.length)} من ${assistantNumber(capacity)}`
+        : assistantNumber(residents.length));
     html += assistantRow('الأدوار', assistantNumber(state.floorCount || 0));
     html += assistantRow('شقق لكل دور', assistantNumber(state.apartmentsPerFloor || 0));
     html += assistantRow('الاشتراك الافتراضي', assistantMoney(state.defaultSubscription || 0));

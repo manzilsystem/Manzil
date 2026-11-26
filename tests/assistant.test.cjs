@@ -1537,7 +1537,8 @@ test('recent movements, building data, reports guide and help intents answer', (
     assert.equal(building.id, 'building');
     assert.match(building.html, /عمارة النور/);
     assert.match(building.html, /أ\. محمد/);
-    assert.match(building.html, /عدد الشقق/);
+    assert.match(building.html, /شقق مسجلة في التطبيق/);
+    assert.match(building.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '), /2 من 20/, 'registered apartments are shown against the building capacity');
 
     const reports = api.answerAssistantQuery('التقارير', NOW);
     assert.equal(reports.id, 'reports');
