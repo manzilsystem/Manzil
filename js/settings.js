@@ -40,14 +40,14 @@ function renderReminderPreview() {
 function resetReceiptTemplate() {
     const input = /** @type {HTMLInputElement | HTMLTextAreaElement | null} */ (document.getElementById('settingsReceiptThankYou'));
     if (!input) return;
-    input.value = DEFAULT_RECEIPT_THANK_YOU;
+    input.value = '';
     renderReceiptPreview();
 }
 
 function resetReminderTemplate() {
     const input = /** @type {HTMLInputElement | HTMLTextAreaElement | null} */ (document.getElementById('settingsReminderTemplate'));
     if (!input) return;
-    input.value = DEFAULT_REMINDER_TEMPLATE.slice(0, 500);
+    input.value = '';
     renderReminderPreview();
 }
 
@@ -167,6 +167,7 @@ function switchSettingsTab(tab) {
         reminders: 'التذكيرات', account: 'الحساب والصلاحيات'
     };
     if (tab === 'backup') loadSettingsBackupSummary();
+    if (tab === 'account') renderSettingsOwnerAccess();
     const title = titles[tab];
     const titleNode = document.getElementById('settingsCurrentSectionTitle');
     if (titleNode) titleNode.textContent = title;
@@ -728,7 +729,7 @@ async function saveSettings() {
     const arrearsRemindersEnabled = arrearsRemindersEnabledInput ? arrearsRemindersEnabledInput.checked : state.arrearsRemindersEnabled !== false;
     const arrearsReminderDayRaw = Number(/** @type {HTMLInputElement | null} */ (document.getElementById('settingsArrearsReminderDay'))?.value);
     if (!Number.isInteger(arrearsReminderDayRaw) || arrearsReminderDayRaw < 1 || arrearsReminderDayRaw > 28) {
-        flagSettingsFieldError('settingsArrearsReminderDay', 'reminders', 'يوم تنبيه التذكيرات لازم يكون رقم صحيح من 1 إلى 28.');
+        flagSettingsFieldError('settingsArrearsReminderDay', 'reminders', 'يجب أن يكون يوم تنبيه التذكيرات رقمًا صحيحًا من 1 إلى 28.');
         return;
     }
     const previousState = cloneStateSnapshot();

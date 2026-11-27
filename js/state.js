@@ -34,7 +34,9 @@ const recentToasts = new Map();
 function toast(msg, type = 'success', action) {
     const toastKey = type + '|' + msg;
     const toastNow = Date.now();
-    if (recentToasts.has(toastKey) && toastNow - recentToasts.get(toastKey) < 3000) return;
+    // Explicit save feedback (success) is never swallowed; only repeated errors/info are deduped.
+    const dedupable = type !== 'success' && !action;
+    if (dedupable && recentToasts.has(toastKey) && toastNow - recentToasts.get(toastKey) < 3000) return;
     recentToasts.set(toastKey, toastNow);
     if (recentToasts.size > 50) recentToasts.forEach((time, key) => { if (toastNow - time >= 3000) recentToasts.delete(key); });
     const colors = { success: 'bg-emerald-600 text-white border-emerald-500', error: 'bg-rose-600 text-white border-rose-500', info: 'bg-indigo-600 text-white border-indigo-500' };
