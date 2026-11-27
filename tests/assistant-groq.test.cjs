@@ -51,8 +51,12 @@ test('the Groq bridge keeps the deterministic engine intact and hides the key', 
         'the browser never sees the Groq host or key');
     assert.match(clientSource, /assistantGroqIsLocalHost/);
     assert.match(clientSource, /\/api\/groq\/chat/, 'localhost uses a same-origin dev route');
+    assert.match(clientSource, /\/api\/groq\/speak/, 'localhost TTS uses the same-origin dev route');
     assert.match(clientSource, /\/functions\/v1\/assistant-groq/, 'production uses the Supabase function');
     assert.match(clientSource, /assistantGroqTranscribe/);
+    assert.match(clientSource, /assistantGroqSpeak/, 'Groq audio is the primary reply voice');
+    assert.ok(clientSource.includes(".replace(/أ\\s*\\/\\s*/g, 'أستاذ ')"),
+        'the أ/ abbreviation is expanded in text and speech');
     assert.match(assistantSource, /assistantGlobalFunction\('assistantGroqAnswer'\)/,
         'assistant.js uses a small optional hook');
     assert.doesNotMatch(assistantSource, /\bfetch\s*\(/, 'assistant.js still has no network code');
@@ -90,6 +94,13 @@ test('facts are extracted from rendered local text and model output is escaped',
     assert.doesNotMatch(api.assistantGroqEscape('<img src=x onerror="alert(1)">'), /<img/);
 });
 
+test('أ/ is expanded to أستاذ in rendered facts and questions', () => {
+    const { api } = bareModule(clientSource);
+    assert.equal(api.assistantGroqExpandAbbreviations('أ/سمير الشافعي'), 'أستاذ سمير الشافعي');
+    assert.equal(api.assistantGroqExpandAbbreviations('  أ /  سمير   الشافعي  '), 'أستاذ سمير الشافعي');
+    assert.equal(api.assistantGroqPlainText('<p>أ/سمير الشافعي: 100 جنيه</p>', fakeDocument()), 'أستاذ سمير الشافعي: 100 جنيه');
+});
+
 test('the browser hook sends only approved facts through the same-origin proxy', async () => {
     const calls = [];
     const fetch = async (url, options) => {
@@ -97,6 +108,9 @@ test('the browser hook sends only approved facts through the same-origin proxy',
         if (url === '/api/groq/health') return { ok: true, json: async () => ({ enabled: true }) };
         if (url === '/api/groq/chat') {
             return { ok: true, json: async () => ({ content: 'الخزنة فيها 100 جنيه.\nراجع التقارير.' }) };
+        }
+        if (url === '/api/groq/speak') {
+            return { ok: true, blob: async () => ({ size: 128 }) };
         }
         throw new Error(`unexpected fetch: ${url}`);
     };
@@ -125,6 +139,16 @@ test('the browser hook sends only approved facts through the same-origin proxy',
     assert.match(sent.facts, /الخزنة الرئيسية: 100 جنيه/);
     assert.equal(sent.messages, undefined, 'the server owns the system prompt');
     assert.doesNotMatch(JSON.stringify(sent), /api\.groq\.com|gsk_/);
+
+    const audio = await sandbox.assistantGroqSpeak('أ/سمير الشافعي: الخزنة 100 جنيه');
+    assert.equal(audio.size, 128);
+    assert.equal(calls[2].url, '/api/groq/speak');
+    assert.equal(calls[2].options.headers.Accept, 'audio/wav');
+    const speech = JSON.parse(calls[2].options.body);
+    assert.equal(speech.action, 'speak');
+    assert.equal(speech.text, 'أستاذ سمير الشافعي: الخزنة 100 جنيه');
+    assert.doesNotMatch(JSON.stringify(speech), /api\.groq\.com|gsk_/);
+
     assert.equal(await sandbox.assistantGroqAnswer('سجل تحصيل', {
         id: 'operation-confirm-request', html: '<p>جارٍ الحفظ</p>'
     }), null);
@@ -152,6 +176,7 @@ test('a static localhost preview never probes the missing dev routes', async () 
     assert.equal(await sandbox.assistantGroqHealth, false);
     assert.equal(sandbox.assistantGroqAnswer, undefined);
     assert.equal(sandbox.assistantGroqTranscribe, undefined);
+    assert.equal(sandbox.assistantGroqSpeak, undefined);
 });
 
 test('a custom-port dev proxy is detected from the marker injected into its HTML', () => {
@@ -171,6 +196,9 @@ test('production uses the authenticated Supabase function instead of a local pro
         calls.push({ url, options });
         requestCount += 1;
         if (String(url).includes('/functions/v1/assistant-groq')) {
+            if (typeof options.body === 'string' && JSON.parse(options.body).action === 'speak') {
+                return { ok: true, blob: async () => ({ size: 256 }) };
+            }
             return { ok: true, json: async () => requestCount === 2
                 ? { text: 'رصيد الخزنة كام؟' } : { content: 'الخزنة فيها 100 جنيه.' } };
         }
@@ -200,6 +228,12 @@ test('production uses the authenticated Supabase function instead of a local pro
     assert.equal(calls[1].options.headers.Authorization, 'Bearer fake-jwt');
     assert.equal(calls[1].options.headers['Content-Type'], undefined, 'FormData sets its own boundary');
     assert.match(String(calls[1].options.body), /\[object FormData\]|formData|FormData/);
+
+    const audio = await sandbox.assistantGroqSpeak('أ/سمير الشافعي');
+    assert.equal(audio.size, 256);
+    assert.equal(calls[2].url, 'https://proj.supabase.co/functions/v1/assistant-groq');
+    assert.equal(calls[2].options.headers.Authorization, 'Bearer fake-jwt');
+    assert.equal(JSON.parse(calls[2].options.body).text, 'أستاذ سمير الشافعي');
 });
 
 test('the dev proxy forwards the key server-side and never returns it', async () => {
@@ -215,12 +249,18 @@ test('the dev proxy forwards the key server-side and never returns it', async ()
         request.on('end', () => {
             upstreamAuth = String(request.headers.authorization || '');
             upstreamPath = String(request.url || '');
-            response.writeHead(200, { 'Content-Type': 'application/json' });
             if (upstreamPath.includes('/audio/transcriptions')) {
+                response.writeHead(200, { 'Content-Type': 'application/json' });
                 response.end(JSON.stringify({ text: 'رصيد الخزنة كام؟' }));
                 return;
             }
             upstreamBody = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+            if (upstreamPath.includes('/audio/speech')) {
+                response.writeHead(200, { 'Content-Type': 'audio/wav' });
+                response.end(Buffer.alloc(128));
+                return;
+            }
+            response.writeHead(200, { 'Content-Type': 'application/json' });
             response.end(JSON.stringify({ choices: [{ message: { content: 'رد تجريبي من Groq' } }] }));
         });
     });
@@ -252,6 +292,8 @@ test('the dev proxy forwards the key server-side and never returns it', async ()
         }
         assert.ok(health, `dev server did not start: ${stderr}`);
         assert.equal(health.enabled, true);
+        assert.equal(health.ttsModel, 'canopylabs/orpheus-arabic-saudi');
+        assert.equal(health.ttsVoice, 'abdullah');
         assert.doesNotMatch(JSON.stringify(health), /gsk_/);
 
         const indexResponse = await fetch(`${base}/index.html`);
@@ -283,6 +325,22 @@ test('the dev proxy forwards the key server-side and never returns it', async ()
         assert.equal((await transcription.json()).text, 'رصيد الخزنة كام؟');
         assert.equal(upstreamAuth, `Bearer ${fakeKey}`);
         assert.match(upstreamPath, /\/audio\/transcriptions$/);
+
+        const speech = await fetch(`${base}/api/groq/speak`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'speak', text: 'أ/سمير الشافعي: الخزنة 100 جنيه' })
+        });
+        assert.equal(speech.status, 200);
+        assert.equal(speech.headers.get('content-type'), 'audio/wav');
+        assert.equal((await speech.arrayBuffer()).byteLength, 128);
+        assert.equal(upstreamAuth, `Bearer ${fakeKey}`);
+        assert.match(upstreamPath, /\/audio\/speech$/);
+        assert.equal(upstreamBody.model, 'canopylabs/orpheus-arabic-saudi');
+        assert.equal(upstreamBody.voice, 'abdullah');
+        assert.equal(upstreamBody.input, 'أستاذ سمير الشافعي: الخزنة 100 جنيه');
+        assert.equal(upstreamBody.response_format, 'wav');
+        assert.doesNotMatch(Buffer.from(upstreamBody.input).toString('utf8'), /gsk_/);
 
         const invalid = await fetch(`${base}/api/groq/chat`, {
             method: 'POST',

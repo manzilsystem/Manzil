@@ -3,8 +3,9 @@
 // Browser dictation gives instant feedback and stays the fallback. When the
 // Groq bridge is available, the finished recording is optionally transcribed
 // server-side for better Egyptian Arabic; audio is never written to storage.
-// Reading aloud uses the browser's own ar-EG voice. Operation confirmations
-// are never executed from speech alone — they land in the composer for review.
+// Reading aloud uses Groq's male Arabic voice first, with the browser's own
+// ar-EG voice only as a fallback. Operation confirmations are never executed
+// from speech alone — they land in the composer for review.
 
 const ASSISTANT_VOICE_LANGS = Object.freeze(['ar-EG', 'ar-SA', 'ar']);
 const ASSISTANT_VOICE_PHRASES = Object.freeze([
@@ -33,6 +34,7 @@ let assistantVoiceSoundEnabled = true;
 let assistantVoicePendingSpeak = false;
 let assistantVoiceLastReply = '';
 let assistantVoiceActiveAudio = null;
+let assistantVoiceSpeakSeq = 0;
 let assistantVoiceNoteSeq = 0;
 const assistantVoiceNotes = new Map();
 let assistantVoicePendingReviewNote = null;
@@ -46,6 +48,12 @@ function assistantVoiceEscape(text) {
     return String(text).replace(/[&<>"']/g, char => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }[char] || char));
+}
+
+// أ/ is the written abbreviation for أستاذ; expand it before speaking so the
+// fallback voice never says the letter name instead of the full word.
+function assistantVoiceExpandAbbreviations(text) {
+    return String(text || '').replace(/أ\s*\/\s*/g, 'أستاذ ').replace(/\s+/g, ' ').trim();
 }
 
 function assistantVoiceDiscardPendingNote(pending) {
@@ -221,6 +229,11 @@ function assistantVoiceNoteHtml(text, durationMs, url) {
 }
 
 function assistantVoiceStopSpeech() {
+    assistantVoiceSpeakSeq += 1;
+    if (assistantVoiceActiveAudio) {
+        try { assistantVoiceActiveAudio.pause(); } catch (error) { /* already stopped */ }
+        assistantVoiceActiveAudio = null;
+    }
     try {
         window.speechSynthesis?.cancel();
     } catch (error) {
@@ -228,7 +241,7 @@ function assistantVoiceStopSpeech() {
     }
 }
 
-const ASSISTANT_VOICE_MALE_HINTS = /(?:\bmale\b|majed|maged|tarik|tarek|hamed|hamid|shakir|naayf|fahad|omar|ahmed|maged|ماجد|طارق|شاكر|حامد|فهد|عمر|أحمد|رجل)/i;
+const ASSISTANT_VOICE_MALE_HINTS = /(?:\bmale\b|majed|maged|tarik|tarek|hamed|hamid|shakir|naayf|fahad|omar|ahmed|ماجد|طارق|شاكر|حامد|فهد|عمر|أحمد|رجل|ذك|رجالي|كريم|حسن|عم عبده)/i;
 const ASSISTANT_VOICE_FEMALE_HINTS = /(?:female|zariyah|laila|leila|salma|hoda|hala|mariam|maryam|amira|zeina|noura|fatima|sara|لينا|ليلى|سلمى|هدى|هالة|مريم|أميرة|زينة|نورة|فاطمة|سارة)/i;
 
 // Picks the best Arabic voice the device offers. Assistant is a man, so a male-looking voice wins;
@@ -244,13 +257,12 @@ function assistantVoicePick(voices) {
     return { voice, male: Boolean(male.length) && male.includes(voice) };
 }
 
-function assistantVoiceSpeakText(text, onEnd) {
-    const speech = String(text || '').trim();
-    if (!speech || typeof SpeechSynthesisUtterance === 'undefined' || !window.speechSynthesis) {
+function assistantVoiceBrowserSpeak(speech, onEnd, seq) {
+    if (seq !== assistantVoiceSpeakSeq
+        || typeof SpeechSynthesisUtterance === 'undefined' || !window.speechSynthesis) {
         if (typeof onEnd === 'function') onEnd();
         return;
     }
-    assistantVoiceStopSpeech();
     const utterance = new SpeechSynthesisUtterance(speech);
     utterance.lang = ASSISTANT_VOICE_LANGS[0];
     try {
@@ -266,9 +278,59 @@ function assistantVoiceSpeakText(text, onEnd) {
         // Voice lists are optional; the default voice still reads Arabic text.
     }
     utterance.rate = 0.96;
-    utterance.onend = () => { if (typeof onEnd === 'function') onEnd(); };
-    utterance.onerror = () => { if (typeof onEnd === 'function') onEnd(); };
+    utterance.onend = () => { if (seq === assistantVoiceSpeakSeq && typeof onEnd === 'function') onEnd(); };
+    utterance.onerror = () => { if (seq === assistantVoiceSpeakSeq && typeof onEnd === 'function') onEnd(); };
     window.speechSynthesis.speak(utterance);
+}
+
+async function assistantVoiceSpeakText(text, onEnd) {
+    const speech = assistantVoiceExpandAbbreviations(text);
+    if (!speech) {
+        if (typeof onEnd === 'function') onEnd();
+        return;
+    }
+    assistantVoiceStopSpeech();
+    const seq = assistantVoiceSpeakSeq;
+    let ended = false;
+    const finish = () => {
+        if (ended || seq !== assistantVoiceSpeakSeq) return;
+        ended = true;
+        if (typeof onEnd === 'function') onEnd();
+    };
+    const fallback = () => assistantVoiceBrowserSpeak(speech, finish, seq);
+
+    if (typeof globalThis.assistantGroqSpeak === 'function') {
+        try {
+            const blob = await globalThis.assistantGroqSpeak(speech);
+            if (seq !== assistantVoiceSpeakSeq) return;
+            if (!blob || typeof Audio === 'undefined' || typeof URL.createObjectURL !== 'function') {
+                fallback();
+                return;
+            }
+            const url = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            assistantVoiceActiveAudio = audio;
+            const release = () => {
+                if (assistantVoiceActiveAudio === audio) assistantVoiceActiveAudio = null;
+                try { URL.revokeObjectURL(url); } catch (error) { /* already released */ }
+            };
+            audio.onended = () => { release(); finish(); };
+            audio.onerror = () => { release(); fallback(); };
+            if (typeof audio.play === 'function') {
+                const playing = audio.play();
+                if (playing && typeof playing.catch === 'function') {
+                    playing.catch(() => { release(); fallback(); });
+                }
+            } else {
+                release();
+                fallback();
+            }
+        } catch (error) {
+            fallback();
+        }
+        return;
+    }
+    fallback();
 }
 
 function assistantVoicePlayNote(id) {
@@ -324,7 +386,7 @@ function assistantVoiceResponseText(answer) {
     } catch (error) {
         first = String(answer.html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
     }
-    return [title, first].filter(Boolean).join('. ')
+    return assistantVoiceExpandAbbreviations([title, first].filter(Boolean).join('. '))
         .replace(/ج\.\s?م/g, 'جنيه')
         .replace(/\s+/g, ' ')
         .slice(0, ASSISTANT_VOICE_MAX_SPEAK_CHARS);

@@ -36,10 +36,15 @@ function assistantGroqCanRewrite(answer) {
         && typeof answer.html === 'string' && answer.html.trim());
 }
 
+// أ/ is the written abbreviation for أستاذ in both chat text and speech.
+function assistantGroqExpandAbbreviations(value) {
+    return String(value || '').replace(/أ\s*\/\s*/g, 'أستاذ ').replace(/\s+/g, ' ').trim();
+}
+
 function assistantGroqPlainText(html, doc) {
     const holder = doc.createElement('div');
     holder.innerHTML = String(html || '');
-    return String(holder.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 5000);
+    return assistantGroqExpandAbbreviations(holder.textContent).slice(0, 5000);
 }
 
 function assistantGroqEscape(value) {
@@ -115,12 +120,13 @@ if (assistantGroqConfiguredEndpoint) {
             const data = await assistantGroqPost(endpoint, {
                 action: 'chat',
                 answerId: localAnswer.id,
-                question: String(text || '').slice(0, 1000),
+                question: assistantGroqExpandAbbreviations(text).slice(0, 1000),
                 facts,
                 role
             }, '/api/groq/chat').catch(() => null);
             if (!data) return null;
-            const content = typeof data.content === 'string' ? data.content.trim() : '';
+            const content = typeof data.content === 'string'
+                ? assistantGroqExpandAbbreviations(data.content) : '';
             if (!content || content.length > 4000) return null;
             return {
                 id: localAnswer.id,
@@ -143,9 +149,34 @@ if (assistantGroqConfiguredEndpoint) {
                 const response = await fetch(url, { method: 'POST', headers, body: form });
                 if (!response.ok) return '';
                 const data = await response.json();
-                return typeof data?.text === 'string' ? data.text.trim().slice(0, 1000) : '';
+                return typeof data?.text === 'string'
+                    ? assistantGroqExpandAbbreviations(data.text).slice(0, 1000) : '';
             } catch (error) {
                 return '';
+            }
+        };
+
+        // Groq returns raw WAV bytes; the browser never sees the key or the
+        // Groq origin. The voice module creates and revokes the blob URL.
+        globalThis.assistantGroqSpeak = async function assistantGroqSpeak(text) {
+            const speech = assistantGroqExpandAbbreviations(text).slice(0, 540);
+            if (!speech || !endpoint) return null;
+            try {
+                const headers = {
+                    ...await assistantGroqAuthHeaders(endpoint),
+                    'Content-Type': 'application/json',
+                    Accept: 'audio/wav'
+                };
+                const response = await fetch(endpoint.local ? '/api/groq/speak' : endpoint.url, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ action: 'speak', text: speech })
+                });
+                if (!response.ok) return null;
+                const blob = await response.blob();
+                return blob && blob.size > 0 ? blob : null;
+            } catch (error) {
+                return null;
             }
         };
     };
@@ -181,6 +212,7 @@ if (typeof module !== 'undefined' && module.exports) {
         assistantGroqIsLocalHost,
         assistantGroqUseLocalProxy,
         assistantGroqCanRewrite,
+        assistantGroqExpandAbbreviations,
         assistantGroqPlainText,
         assistantGroqEscape,
         assistantGroqEndpoint

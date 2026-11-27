@@ -24,6 +24,10 @@ function createHarness(extra = {}) {
         Map,
         URL: { createObjectURL: () => 'blob:voice', revokeObjectURL: url => revoked.push(url) },
         Blob: function Blob() { this.size = 1; },
+        Audio: class AudioStub { play() { return Promise.resolve(); } pause() {} },
+        SpeechSynthesisUtterance: class SpeechSynthesisUtteranceStub {
+            constructor(text) { this.text = String(text); }
+        },
         window: { addEventListener() {}, speechSynthesis: undefined },
         document: {
             addEventListener() {},
@@ -60,7 +64,9 @@ function createHarness(extra = {}) {
     const api = vm.runInContext(`({
         assistantVoiceNeedsReview,
         assistantVoicePick,
+        assistantVoiceExpandAbbreviations,
         assistantVoiceResponseText,
+        assistantVoiceSpeakText,
         assistantVoiceNoteHtml,
         assistantVoiceWaveHtml,
         assistantVoiceReadSoundPreference,
@@ -87,8 +93,12 @@ test('voice notes keep browser dictation and TTS with optional Groq refinement',
     assert.match(voiceSource, /assistantVoiceFinaliseRecorder/, 'the recording is kept in memory as a blob URL');
     assert.match(voiceSource, /URL\.createObjectURL/);
     assert.match(voiceSource, /globalThis\.assistantGroqTranscribe/, 'Groq Whisper may refine the final transcript');
-    assert.match(voiceSource, /SpeechSynthesisUtterance/, 'replies are read with built-in text to speech');
+    assert.match(voiceSource, /globalThis\.assistantGroqSpeak/, 'Groq audio is the primary reply voice');
+    assert.match(voiceSource, /assistantVoiceBrowserSpeak/, 'browser speech is only a fallback');
+    assert.match(voiceSource, /ASSISTANT_VOICE_MALE_HINTS/, 'the fallback prefers a male Arabic voice');
     assert.match(voiceSource, /utterance\.lang = ASSISTANT_VOICE_LANGS\[0\]/);
+    assert.ok(voiceSource.includes("replace(/أ\\s*\\/\\s*/g, 'أستاذ ')"),
+        'أ/ is expanded before speaking');
     assert.doesNotMatch(voiceSource, /\bfetch\s*\(|XMLHttpRequest|WebSocket|https?:\/\//);
     assert.doesNotMatch(voiceSource, /localStorage/);
     assert.doesNotMatch(html, /connect-src[^>]*huggingface|connect-src[^>]*groq/i, 'no speech API origin is added to the CSP');
@@ -118,6 +128,7 @@ test('spoken replies are short, plain text, and never read raw HTML', () => {
     assert.match(text, /جنيه/);
     assert.doesNotMatch(text, /<[^>]+>/);
     assert.doesNotMatch(text, /سرّ المالك/, 'only the title and first line are read aloud');
+    assert.equal(api.assistantVoiceExpandAbbreviations('أ/سمير الشافعي'), 'أستاذ سمير الشافعي');
     assert.match(voiceSource, /ASSISTANT_VOICE_MAX_SPEAK_CHARS = 420/);
     assert.match(voiceSource, /assistantVoiceStopSpeech\(\)/, 'a new reply cancels the previous speech');
 });
@@ -297,4 +308,56 @@ test('the doorman voice prefers a male Arabic voice and falls back honestly', ()
     assert.equal(none.voice, null);
     assert.equal(none.male, false);
     assert.match(voiceSource, /utterance\.pitch = 0\.8/);
+});
+
+test('Groq audio is the primary reply voice and browser speech is fallback only', async () => {
+    const groqCalls = [];
+    const played = [];
+    const spoken = [];
+    class FakeAudio {
+        constructor(url) { this.url = url; played.push(this); }
+        play() { return Promise.resolve(); }
+        pause() { this.paused = true; }
+    }
+    const primary = createHarness({
+        assistantGroqSpeak: async text => { groqCalls.push(text); return { size: 256 }; },
+        Audio: FakeAudio,
+        window: {
+            addEventListener() {},
+            speechSynthesis: {
+                getVoices: () => [{ lang: 'ar-EG', name: 'Kareem Male' }],
+                speak: utterance => spoken.push(utterance),
+                cancel() {}
+            }
+        }
+    });
+    await primary.api.assistantVoiceSpeakText('أ/سمير الشافعي: الخزنة 100 جنيه');
+    assert.deepEqual(groqCalls, ['أستاذ سمير الشافعي: الخزنة 100 جنيه']);
+    assert.equal(played.length, 1, 'the Groq WAV is played through an in-memory blob URL');
+    assert.equal(spoken.length, 0, 'the browser voice is not used when Groq answers');
+
+    const fallbackSpoken = [];
+    const fallback = createHarness({
+        assistantGroqSpeak: async () => null,
+        Audio: FakeAudio,
+        window: {
+            addEventListener() {},
+            speechSynthesis: {
+                getVoices: () => [
+                    { lang: 'ar-EG', name: 'Arabic Female' },
+                    { lang: 'ar-SA', name: 'Sultan Male' }
+                ],
+                speak: utterance => {
+                    fallbackSpoken.push(utterance);
+                    utterance.onend?.();
+                },
+                cancel() {}
+            }
+        }
+    });
+    await fallback.api.assistantVoiceSpeakText('رصيد الخزنة كام؟');
+    assert.equal(fallbackSpoken.length, 1, 'browser TTS runs only after Groq fails');
+    assert.equal(fallbackSpoken[0].text, 'رصيد الخزنة كام؟');
+    assert.equal(fallbackSpoken[0].lang, 'ar-SA', 'the male Arabic voice wins even when it is not Egyptian');
+    assert.equal(fallbackSpoken[0].voice.name, 'Sultan Male', 'the fallback prefers a male Arabic voice');
 });

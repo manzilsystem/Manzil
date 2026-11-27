@@ -30,7 +30,10 @@ Deno.test('health is public and never reveals a key', async () => {
   const response = await call({ action: 'health' })
   assertEquals(response.status, 200)
   const text = await response.text()
-  assertEquals(JSON.parse(text).enabled, Boolean(Deno.env.get('GROQ_API_KEY')))
+  const body = JSON.parse(text)
+  assertEquals(body.enabled, Boolean(Deno.env.get('GROQ_API_KEY')))
+  assertEquals(body.ttsModel, 'canopylabs/orpheus-arabic-saudi')
+  assertEquals(body.ttsVoice, 'abdullah')
   assertEquals(/gsk_|secret|password|token/i.test(text), false)
 })
 
@@ -43,6 +46,10 @@ Deno.test('data actions require a Supabase JWT', async () => {
   audio.append('audio', new File([new Uint8Array(1024)], 'voice.webm', { type: 'audio/webm' }))
   const transcribe = await handleRequest(new Request(endpoint, { method: 'POST', body: audio }))
   assertEquals(transcribe.status, 401)
+
+  const speak = await call({ action: 'speak', text: 'أ/سمير الشافعي' })
+  assertEquals(speak.status, 401)
+  assertEquals(await speak.json(), { error: 'unauthorized' })
 })
 
 Deno.test('unknown actions are rejected after authentication is checked', async () => {
