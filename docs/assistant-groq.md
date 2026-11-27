@@ -22,6 +22,8 @@ npx supabase secrets set \
   GROQ_API_KEY=... \
   GROQ_MODEL=qwen/qwen3.8-27b \
   GROQ_TRANSCRIBE_MODEL=whisper-large-v3-turbo \
+  GROQ_TTS_MODEL=canopylabs/orpheus-arabic-saudi \
+  GROQ_TTS_VOICE=abdullah \
   --project-ref musvcrkljccubwbcrtjs
 
 npx supabase functions deploy assistant-groq --project-ref musvcrkljccubwbcrtjs
@@ -32,6 +34,7 @@ npx supabase functions deploy assistant-groq --project-ref musvcrkljccubwbcrtjs
 - المتصفح ينادي `POST {SUPABASE_URL}/functions/v1/assistant-groq` بجلسة Supabase الحالية (`Authorization: Bearer <JWT>`).
 - الدالة تتحقق من الـ JWT مقابل GoTrue قبل أي استخدام للمفتاح، وتسمح بـ `action: health` للفحص العام فقط.
 - `action: chat` يستقبل `answerId` و`question` و`facts` و`role` فقط؛ الـ system prompt مخبّأ في السيرفر.
+- `action: speak` يستقبل `text` فقط ويُرجع WAV خام من Groq؛ النص يُقسَّم إلى مقاطع لا يتجاوز كل منها 180 حرفًا، ثم تُدمج في ملف واحد. لا تُحفظ الاستجابة على السيرفر.
 - `action: transcribe` يستقبل ملف صوت (`multipart/form-data`) ويستخدم Whisper (`whisper-large-v3-turbo`) مع تلميح عام للهجة المصرية. الحد الأقصى 8 MiB.
 - المفتاح لا يُعاد في أي استجابة، وأخطاء Groq تُختصر إلى رموز عامة.
 
@@ -41,8 +44,10 @@ npx supabase functions deploy assistant-groq --project-ref musvcrkljccubwbcrtjs
 
 - أثناء الضغط المطوّل على المايك يعمل `SpeechRecognition` في المتصفح (`ar-EG` أولًا) لإظهار الكلام فورًا، وهو كمان البديل عند تعذّر الاتصال.
 - بعد انتهاء التسجيل، إن كانت الدالة متاحة، يُرسل الملف إلى Whisper فيُستخدم النص الناتج بدل نص المتصفح؛ وإن فشل الإرسال يُستخدم نص المتصفح.
-- قراءة الردود تظل عبر `speechSynthesis` باللغة `ar-EG`، لأن نموذج TTS العربي في Groq يحتاج قبول شروط على مستوى المؤسسة ولم يُفعّل.
-- لا تُحفظ المقاطع الصوتية في Supabase ولا في المتصفح بعد إنهاء الجلسة؛ تُستخدم كائنات `blob:` في الذاكرة فقط.
+- **قراءة ردود عم عبده أصبحت من Groq**: الدالة تطلب WAV من `canopylabs/orpheus-arabic-saudi` بالصوت الرجالي `abdullah`، والمتصفح يشغّله من كائن `blob:` في الذاكرة. صوت المتصفح (`ar-EG`، مع تفضيل صوت رجالي إن وُجد) يعمل كبديل فقط إذا فشل طلب Groq أو لم تُقبل شروط النموذج بعد.
+- النصوص مكتوبة بعامية مصرية قريبة من رسائل واتساب («أزاي»، «كام»، «تمام»، «حاضر»، «يا فندم»). النطق هو اللهجة العربية المتاحة في Groq (سعودية)، لكن الكلام نفسه مصري ودود. القاعدة `أ/ = أستاذ` تُطبَّق في النص وفي النطق: `أ/سمير الشافعي` تُقرأ `أستاذ سمير الشافعي`.
+- نموذج Orpheus يحتاج **قبول شروط من أدمن مؤسسة Groq** مرة واحدة على [رابط النموذج](https://console.groq.com/playground?model=canopylabs%2Forpheus-arabic-saudi). قبل القبول يُرجع `speak` الخطأ `tts_terms_required` ويعود المتصفح للبديل؛ بعد القبول لا يحتاج الأمر أي تعديل في الكود.
+- لا تُحفظ المقاطع الصوتية في Supabase ولا في المتصفح بعد انتهاء الجلسة؛ كائنات `blob:` تُلغى فور انتهاء التشغيل أو عند مقاطعة الرد.
 - أوامر التسجيل والتأكيد والإلغاء تُوضع دائمًا في خانة الكتابة للمراجعة قبل التنفيذ، سواء جاءت مكتوبة أو بالصوت.
 
 ## التطوير المحلي
@@ -51,11 +56,14 @@ npx supabase functions deploy assistant-groq --project-ref musvcrkljccubwbcrtjs
 # .env في جذر المشروع
 GROQ_API_KEY=...
 GROQ_MODEL=qwen/qwen3.8-27b
+GROQ_TRANSCRIBE_MODEL=whisper-large-v3-turbo
+GROQ_TTS_MODEL=canopylabs/orpheus-arabic-saudi
+GROQ_TTS_VOICE=abdullah
 
 npm run dev:groq        # http://127.0.0.1:8787
 ```
 
-الخادم `scripts/groq-dev-server.mjs` يقدّم الواجهة ويمرّر `/api/groq/chat` و`/api/groq/transcribe` إلى Groq بالمفتاح من `.env`، ويضيف علامة في صفحته ليعرف المتصفح أن هذه النسخة تملك تلك المسارات. أي سيرفر ثابت آخر على localhost (مثل سيرفر الاختبارات) لا يُفعّل الجسر، فلا يُصدر طلبات فاشلة ولا 404 في الكونسول. على أي نطاق غير localhost يُستخدم Edge Function بدلًا من ذلك.
+الخادم `scripts/groq-dev-server.mjs` يقدّم الواجهة ويمرّر `/api/groq/chat` و`/api/groq/speak` و`/api/groq/transcribe` إلى Groq بالمفتاح من `.env`، ويضيف علامة في صفحته ليعرف المتصفح أن هذه النسخة تملك تلك المسارات. أي سيرفر ثابت آخر على localhost (مثل سيرفر الاختبارات) لا يُفعّل الجسر، فلا يُصدر طلبات فاشلة ولا 404 في الكونسول. على أي نطاق غير localhost يُستخدم Edge Function بدلًا من ذلك.
 
 ## الاختبارات والمراقبة
 

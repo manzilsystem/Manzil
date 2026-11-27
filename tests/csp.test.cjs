@@ -34,6 +34,11 @@ test('CSP blocks plugins, framing, base hijacking and cross-origin forms', () =>
     assert.deepEqual(tokens('worker-src'), ["'self'"]);
 });
 
+test('CSP allows in-memory Groq audio but no new network origins', () => {
+    assert.deepEqual([...tokens('media-src')].sort(), ["'self'", 'blob:'].sort());
+    assert.ok(!tokens('media-src').some(token => token.startsWith('http')));
+});
+
 test('CSP allows only the CDNs and Supabase origins the app actually uses', () => {
     // Tailwind is built locally via PostCSS and JS libraries are self-hosted.
     assert.ok(!tokens('script-src').includes('https://cdn.tailwindcss.com'));

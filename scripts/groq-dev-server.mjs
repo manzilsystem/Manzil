@@ -13,6 +13,10 @@ const port = Number(process.env.GROQ_DEV_PORT || 8787);
 const apiBase = String(process.env.GROQ_API_BASE || 'https://api.groq.com/openai/v1').replace(/\/+$/, '');
 const defaultModel = process.env.GROQ_MODEL || 'qwen/qwen3.8-27b';
 const transcribeModel = process.env.GROQ_TRANSCRIBE_MODEL || 'whisper-large-v3-turbo';
+const ttsModel = process.env.GROQ_TTS_MODEL || 'canopylabs/orpheus-arabic-saudi';
+const ttsVoice = process.env.GROQ_TTS_VOICE || 'abdullah';
+const maxSpeechChars = 180;
+const maxSpeechChunks = 3;
 const allowedModels = new Set([
     'openai/gpt-oss-20b',
     'openai/gpt-oss-120b',
@@ -27,8 +31,10 @@ const maxAnswerChars = 6000;
 const maxAudioBytes = 8 * 1024 * 1024;
 
 const ASSISTANT_GROQ_SYSTEM = [
-    'أنت «عم عبده» البوّاب، مساعد عربي ودود ومختصر في تطبيق إدارة عمارة.',
-    'ردّ بلهجة مصرية طبيعية مفهومة، بجمل قصيرة، من غير عناوين إضافية ولا وسوم HTML.',
+    'أنت «عم عبده»، بوّاب ذكي وودود في تطبيق إدارة عمارة، وصوتك رجالي هادي.',
+    'كلّم المستخدم بالعامية المصرية زي رسالة صوتية على واتساب: جمل قصيرة، خفيفة، ودودة، من غير فصحى ولا عناوين ولا وسوم HTML.',
+    'استخدم كلمات مصرية بسيطة زي: أزاي، كام، تمام، حاضر، خلاص، يا فندم. ما تطوّلش الكلام.',
+    '«أ/» تعني «أستاذ»؛ فمثلاً «أ/سمير الشافعي» معناها «أستاذ سمير الشافعي»، وانطقها كده.',
     'الرد المعتمد الموجود في رسالة المستخدم هو المصدر الوحيد للمعلومات.',
     'انسخ كل الأرقام والتواريخ وأسماء الشقق والسكان كما هي، بالحرف، ولا تحسبها من جديد.',
     'لا تضف أي رقم أو اسم أو تقرير أو إجراء أو وعد غير موجود في الرد المعتمد.',
@@ -95,6 +101,101 @@ function cleanText(value, limit) {
     return text && text.length <= limit ? text : null;
 }
 
+// Spoken and written forms share the same abbreviation rule: أ/ = أستاذ.
+function speechText(value) {
+    if (typeof value !== 'string') return '';
+    return value.replace(/أ\s*\/\s*/g, 'أستاذ ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, maxSpeechChars * maxSpeechChunks);
+}
+
+function splitSpeech(text) {
+    const sentences = text.split(/(?<=[.!?؟])\s+/).filter(Boolean);
+    const parts = [];
+    for (const sentence of sentences) {
+        if (sentence.length <= maxSpeechChars) {
+            parts.push(sentence);
+            continue;
+        }
+        let current = '';
+        for (const word of sentence.split(/\s+/)) {
+            if (current && current.length + 1 + word.length > maxSpeechChars) {
+                parts.push(current);
+                current = word;
+            } else {
+                current = current ? `${current} ${word}` : word;
+            }
+        }
+        if (current) parts.push(current);
+    }
+    return parts.slice(0, maxSpeechChunks);
+}
+
+function readWav(bytes) {
+    if (bytes.length < 44) return null;
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const tag = offset => String.fromCharCode(...bytes.slice(offset, offset + 4));
+    if (tag(0) !== 'RIFF' || tag(8) !== 'WAVE') return null;
+    let offset = 12;
+    let format = null;
+    let dataOffset = -1;
+    let dataSize = 0;
+    while (offset + 8 <= bytes.length) {
+        const id = tag(offset);
+        const size = view.getUint32(offset + 4, true);
+        const start = offset + 8;
+        if (id === 'fmt ' && start + 16 <= bytes.length) {
+            format = {
+                audioFormat: view.getUint16(start, true),
+                channels: view.getUint16(start + 2, true),
+                sampleRate: view.getUint32(start + 4, true),
+                byteRate: view.getUint32(start + 8, true),
+                blockAlign: view.getUint16(start + 12, true),
+                bitsPerSample: view.getUint16(start + 14, true)
+            };
+        } else if (id === 'data') {
+            dataOffset = start;
+            dataSize = Math.min(size, bytes.length - start);
+            break;
+        }
+        offset = start + size + (size % 2);
+    }
+    if (!format || dataOffset < 0) return null;
+    return { format, data: bytes.slice(dataOffset, dataOffset + dataSize) };
+}
+
+function mergeWav(chunks) {
+    const infos = chunks.map(readWav);
+    if (infos.some(info => !info)) return chunks[0];
+    const first = infos[0];
+    const total = infos.reduce((sum, info) => sum + info.data.length, 0);
+    const output = new Uint8Array(44 + total);
+    const view = new DataView(output.buffer);
+    const write = (offset, value) => {
+        for (let index = 0; index < value.length; index += 1) output[offset + index] = value.charCodeAt(index);
+    };
+    write(0, 'RIFF');
+    view.setUint32(4, 36 + total, true);
+    write(8, 'WAVE');
+    write(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, first.format.audioFormat, true);
+    view.setUint16(22, first.format.channels, true);
+    view.setUint32(24, first.format.sampleRate, true);
+    view.setUint32(28, first.format.byteRate, true);
+    view.setUint16(32, first.format.blockAlign, true);
+    view.setUint16(34, first.format.bitsPerSample, true);
+    write(36, 'data');
+    view.setUint32(40, total, true);
+    let cursor = 44;
+    for (const info of infos) {
+        output.set(info.data, cursor);
+        cursor += info.data.length;
+    }
+    return output;
+}
+
 function validateChatRequest(body) {
     if (!body || typeof body !== 'object' || Array.isArray(body)) return null;
     if (body.action !== 'chat') return null;
@@ -103,9 +204,9 @@ function validateChatRequest(body) {
     const facts = cleanText(body.facts, 5000);
     if (!id || !question || !facts || !allowedModels.has(defaultModel)) return null;
     const role = body.role === 'owner' ? 'مالك شقة (حقوقه فقط)' : 'مدير المبنى';
-    const userPrompt = `دور المستخدم: ${role}.\nسؤاله: ${question}.\n`
+    const userPrompt = `دور المستخدم: ${role}.\nسؤاله: ${speechText(question)}.\n`
         + `الرد المعتمد من بيانات التطبيق (المصدر الوحيد للمعلومات): ${facts}.\n`
-        + 'أعد كتابة الرد بلهجة مصرية طبيعية مع الحفاظ الحرفي على الأرقام والتواريخ والأسماء.';
+        + 'أعد كتابة الرد بعامية مصرية زي رسالة واتساب، مع الحفاظ الحرفي على الأرقام والتواريخ والأسماء.';
     return {
         messages: [
             { role: 'system', content: ASSISTANT_GROQ_SYSTEM },
@@ -168,6 +269,61 @@ async function handleChat(request, response) {
     }
 }
 
+async function handleSpeak(request, response) {
+    const apiKey = process.env.GROQ_API_KEY || '';
+    if (!apiKey) {
+        sendJson(response, 503, { error: 'groq_not_configured' });
+        return;
+    }
+    let body;
+    try {
+        body = JSON.parse((await readBody(request)).toString('utf8'));
+    } catch (error) {
+        sendJson(response, 400, { error: error?.message === 'too_large' ? 'request_too_large' : 'invalid_request' });
+        return;
+    }
+    const text = speechText(body?.text);
+    if (!text) {
+        sendJson(response, 400, { error: 'invalid_text' });
+        return;
+    }
+
+    const audios = [];
+    try {
+        for (const chunk of splitSpeech(text)) {
+            const upstream = await fetch(`${apiBase}/audio/speech`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model: ttsModel, voice: ttsVoice, input: chunk, response_format: 'wav' }),
+                signal: AbortSignal.timeout(30000)
+            });
+            if (!upstream.ok) {
+                const detail = await upstream.text().catch(() => '');
+                if (detail.includes('model_terms_required')) {
+                    sendJson(response, 503, { error: 'tts_terms_required' });
+                    return;
+                }
+                sendJson(response, 502, { error: 'groq_upstream_failed', status: upstream.status });
+                return;
+            }
+            audios.push(new Uint8Array(await upstream.arrayBuffer()));
+        }
+    } catch (error) {
+        const reason = error?.name === 'TimeoutError' ? 'groq_timeout' : 'groq_unreachable';
+        sendJson(response, 502, { error: reason });
+        return;
+    }
+
+    const wav = audios.length === 1 ? audios[0] : mergeWav(audios);
+    response.writeHead(200, {
+        'Content-Type': 'audio/wav',
+        'Content-Length': String(wav.length),
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff'
+    });
+    response.end(Buffer.from(wav));
+}
+
 async function handleTranscribe(request, response, pathname) {
     const apiKey = process.env.GROQ_API_KEY || '';
     if (!apiKey) {
@@ -201,7 +357,7 @@ async function handleTranscribe(request, response, pathname) {
         upstreamForm.append('file', new Blob([bytes], { type: audio.type || 'audio/webm' }), audio.name || 'voice.webm');
         upstreamForm.append('model', transcribeModel);
         upstreamForm.append('language', 'ar');
-        upstreamForm.append('prompt', 'كلام بالعامية المصرية عن مصروفات وتحصيلات وخزنة وشقق وإيجارات ومتأخرات في عمارة.');
+        upstreamForm.append('prompt', 'كلام بالعامية المصرية عن مصروفات وتحصيلات وخزنة وشقق وإيجارات ومتأخرات في عمارة. «أ/» تعني «أستاذ».');
         const upstream = await fetch(`${apiBase}/audio/transcriptions`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${apiKey}` },
@@ -213,7 +369,7 @@ async function handleTranscribe(request, response, pathname) {
             return;
         }
         const data = await upstream.json();
-        const text = typeof data?.text === 'string' ? data.text.replace(/\s+/g, ' ').trim() : '';
+        const text = typeof data?.text === 'string' ? speechText(data.text) : '';
         if (!text || text.length > 1000) {
             sendJson(response, 502, { error: 'groq_empty_transcript' });
             return;
@@ -274,11 +430,20 @@ const server = http.createServer((request, response) => {
         return;
     }
     if (pathname === '/api/groq/health' && request.method === 'GET') {
-        sendJson(response, 200, { enabled: Boolean(process.env.GROQ_API_KEY), model: defaultModel });
+        sendJson(response, 200, {
+            enabled: Boolean(process.env.GROQ_API_KEY),
+            model: defaultModel,
+            ttsModel,
+            ttsVoice
+        });
         return;
     }
     if (pathname === '/api/groq/chat' && request.method === 'POST') {
         void handleChat(request, response);
+        return;
+    }
+    if (pathname === '/api/groq/speak' && request.method === 'POST') {
+        void handleSpeak(request, response);
         return;
     }
     if (pathname === '/api/groq/transcribe' && request.method === 'POST') {
@@ -302,4 +467,4 @@ server.listen(port, '127.0.0.1', () => {
     console.log(`Manzil + Groq dev server: http://127.0.0.1:${port}/ (${state})`);
 });
 
-export { server, validateChatRequest };
+export { server, validateChatRequest, speechText, splitSpeech };

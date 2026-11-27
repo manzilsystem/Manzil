@@ -10,6 +10,10 @@ const corsHeaders = {
 const groqApiBase = (Deno.env.get('GROQ_API_BASE') || 'https://api.groq.com/openai/v1').replace(/\/+$/, '')
 const chatModel = Deno.env.get('GROQ_MODEL') || 'qwen/qwen3.8-27b'
 const transcribeModel = Deno.env.get('GROQ_TRANSCRIBE_MODEL') || 'whisper-large-v3-turbo'
+const ttsModel = Deno.env.get('GROQ_TTS_MODEL') || 'canopylabs/orpheus-arabic-saudi'
+const ttsVoice = Deno.env.get('GROQ_TTS_VOICE') || 'abdullah'
+const maxSpeechChars = 180
+const maxSpeechChunks = 3
 
 // Only read-only answers may be rephrased. Confirmation, cancellation, denial
 // and report-opening answers keep their exact local wording and behaviour.
@@ -22,8 +26,10 @@ const REWRITABLE_IDS = new Set([
 ])
 
 const SYSTEM_PROMPT = [
-  'أنت «عم عبده» البوّاب، مساعد عربي ودود ومختصر في تطبيق إدارة عمارة.',
-  'ردّ بلهجة مصرية طبيعية مفهومة، بجمل قصيرة، من غير عناوين إضافية ولا وسوم HTML.',
+  'أنت «عم عبده»، بوّاب ذكي وودود في تطبيق إدارة عمارة، وصوتك رجالي هادي.',
+  'كلّم المستخدم بالعامية المصرية زي رسالة صوتية على واتساب: جمل قصيرة، خفيفة، ودودة، من غير فصحى ولا عناوين ولا وسوم HTML.',
+  'استخدم كلمات مصرية بسيطة زي: أزاي، كام، تمام، حاضر، خلاص، يا فندم. ما تطوّلش الكلام.',
+  '«أ/» تعني «أستاذ»؛ فمثلاً «أ/سمير الشافعي» معناها «أستاذ سمير الشافعي»، وانطقها كده.',
   'الرد المعتمد الموجود في رسالة المستخدم هو المصدر الوحيد للمعلومات.',
   'انسخ كل الأرقام والتواريخ وأسماء الشقق والسكان كما هي، بالحرف، ولا تحسبها من جديد.',
   'لا تضف أي رقم أو اسم أو تقرير أو إجراء أو وعد غير موجود في الرد المعتمد.',
@@ -32,6 +38,18 @@ const SYSTEM_PROMPT = [
 ].join('\n')
 
 type JsonRecord = Record<string, unknown>
+
+type WavInfo = {
+  format: {
+    audioFormat: number
+    channels: number
+    sampleRate: number
+    byteRate: number
+    blockAlign: number
+    bitsPerSample: number
+  }
+  data: Uint8Array
+}
 
 function json(status: number, body: JsonRecord, extra: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
@@ -44,6 +62,103 @@ function cleanText(value: unknown, limit: number): string | null {
   if (typeof value !== 'string') return null
   const text = value.replace(/\s+/g, ' ').trim()
   return text && text.length <= limit ? text : null
+}
+
+// Spoken and written forms share the same abbreviation rule: أ/ = أستاذ.
+function speechText(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  return value
+    .replace(/أ\s*\/\s*/g, 'أستاذ ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxSpeechChars * maxSpeechChunks)
+}
+
+function splitSpeech(text: string): string[] {
+  const sentences = text.split(/(?<=[.!?؟])\s+/).filter(Boolean)
+  const parts: string[] = []
+  for (const sentence of sentences) {
+    if (sentence.length <= maxSpeechChars) {
+      parts.push(sentence)
+      continue
+    }
+    let current = ''
+    for (const word of sentence.split(/\s+/)) {
+      if (current && current.length + 1 + word.length > maxSpeechChars) {
+        parts.push(current)
+        current = word
+      } else {
+        current = current ? `${current} ${word}` : word
+      }
+    }
+    if (current) parts.push(current)
+  }
+  return parts.slice(0, maxSpeechChunks)
+}
+
+function readWav(bytes: Uint8Array): WavInfo | null {
+  if (bytes.length < 44) return null
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  const tag = (offset: number) => String.fromCharCode(...bytes.slice(offset, offset + 4))
+  if (tag(0) !== 'RIFF' || tag(8) !== 'WAVE') return null
+  let offset = 12
+  let format: WavInfo['format'] | null = null
+  let dataOffset = -1
+  let dataSize = 0
+  while (offset + 8 <= bytes.length) {
+    const id = tag(offset)
+    const size = view.getUint32(offset + 4, true)
+    const start = offset + 8
+    if (id === 'fmt ' && start + 16 <= bytes.length) {
+      format = {
+        audioFormat: view.getUint16(start, true),
+        channels: view.getUint16(start + 2, true),
+        sampleRate: view.getUint32(start + 4, true),
+        byteRate: view.getUint32(start + 8, true),
+        blockAlign: view.getUint16(start + 12, true),
+        bitsPerSample: view.getUint16(start + 14, true),
+      }
+    } else if (id === 'data') {
+      dataOffset = start
+      dataSize = Math.min(size, bytes.length - start)
+      break
+    }
+    offset = start + size + (size % 2)
+  }
+  if (!format || dataOffset < 0) return null
+  return { format, data: bytes.slice(dataOffset, dataOffset + dataSize) }
+}
+
+function mergeWav(chunks: Uint8Array[]): Uint8Array {
+  const infos = chunks.map(readWav)
+  if (infos.some((info) => !info)) return chunks[0]
+  const first = infos[0] as WavInfo
+  const total = infos.reduce((sum, info) => sum + (info as WavInfo).data.length, 0)
+  const output = new Uint8Array(44 + total)
+  const view = new DataView(output.buffer)
+  const write = (offset: number, value: string) => {
+    for (let index = 0; index < value.length; index += 1) output[offset + index] = value.charCodeAt(index)
+  }
+  write(0, 'RIFF')
+  view.setUint32(4, 36 + total, true)
+  write(8, 'WAVE')
+  write(12, 'fmt ')
+  view.setUint32(16, 16, true)
+  view.setUint16(20, first.format.audioFormat, true)
+  view.setUint16(22, first.format.channels, true)
+  view.setUint32(24, first.format.sampleRate, true)
+  view.setUint32(28, first.format.byteRate, true)
+  view.setUint16(32, first.format.blockAlign, true)
+  view.setUint16(34, first.format.bitsPerSample, true)
+  write(36, 'data')
+  view.setUint32(40, total, true)
+  let cursor = 44
+  for (const info of infos) {
+    const data = (info as WavInfo).data
+    output.set(data, cursor)
+    cursor += data.length
+  }
+  return output
 }
 
 async function readJson(request: Request): Promise<JsonRecord | null> {
@@ -88,9 +203,9 @@ async function rewriteAnswer(body: JsonRecord): Promise<Response> {
   if (!apiKey) return json(503, { error: 'groq_not_configured' })
 
   const role = body.role === 'owner' ? 'مالك شقة (حقوقه فقط)' : 'مدير المبنى'
-  const userPrompt = `دور المستخدم: ${role}.\nسؤاله: ${question}.\n`
+  const userPrompt = `دور المستخدم: ${role}.\nسؤاله: ${speechText(question)}.\n`
     + `الرد المعتمد من بيانات التطبيق (المصدر الوحيد للمعلومات): ${facts}.\n`
-    + 'أعد كتابة الرد بلهجة مصرية طبيعية مع الحفاظ الحرفي على الأرقام والتواريخ والأسماء.'
+    + 'أعد كتابة الرد بعامية مصرية زي رسالة واتساب، مع الحفاظ الحرفي على الأرقام والتواريخ والأسماء.'
 
   try {
     const upstream = await fetch(`${groqApiBase}/chat/completions`, {
@@ -123,6 +238,51 @@ async function rewriteAnswer(body: JsonRecord): Promise<Response> {
   }
 }
 
+async function synthesizeSpeech(body: JsonRecord): Promise<Response> {
+  const apiKey = Deno.env.get('GROQ_API_KEY')
+  if (!apiKey) return json(503, { error: 'groq_not_configured' })
+  const text = speechText(body.text)
+  if (!text) return json(400, { error: 'invalid_text' })
+
+  const chunks = splitSpeech(text)
+  const audios: Uint8Array[] = []
+  try {
+    for (const chunk of chunks) {
+      const upstream = await fetch(`${groqApiBase}/audio/speech`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: ttsModel,
+          voice: ttsVoice,
+          input: chunk,
+          response_format: 'wav',
+        }),
+        signal: AbortSignal.timeout(30000),
+      })
+      if (!upstream.ok) {
+        const detail = await upstream.text().catch(() => '')
+        if (detail.includes('model_terms_required')) return json(503, { error: 'tts_terms_required' })
+        return json(502, { error: 'groq_upstream_failed', status: upstream.status })
+      }
+      audios.push(new Uint8Array(await upstream.arrayBuffer()))
+    }
+  } catch (error) {
+    const reason = error instanceof Error && error.name === 'TimeoutError' ? 'groq_timeout' : 'groq_unreachable'
+    return json(502, { error: reason })
+  }
+
+  const wav = audios.length === 1 ? audios[0] : mergeWav(audios)
+  const audio = wav.buffer.slice(wav.byteOffset, wav.byteOffset + wav.byteLength) as ArrayBuffer
+  return new Response(audio, {
+    status: 200,
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'audio/wav',
+      'Content-Length': String(wav.length),
+    },
+  })
+}
+
 async function transcribeAudio(request: Request): Promise<Response> {
   const apiKey = Deno.env.get('GROQ_API_KEY')
   if (!apiKey) return json(503, { error: 'groq_not_configured' })
@@ -142,7 +302,7 @@ async function transcribeAudio(request: Request): Promise<Response> {
   upstreamForm.append('file', audio, audio.name || 'voice.webm')
   upstreamForm.append('model', transcribeModel)
   upstreamForm.append('language', 'ar')
-  upstreamForm.append('prompt', 'كلام بالعامية المصرية عن مصروفات وتحصيلات وخزنة وشقق وإيجارات ومتأخرات في عمارة.')
+  upstreamForm.append('prompt', 'كلام بالعامية المصرية عن مصروفات وتحصيلات وخزنة وشقق وإيجارات ومتأخرات في عمارة. «أ/» تعني «أستاذ».')
 
   try {
     const upstream = await fetch(`${groqApiBase}/audio/transcriptions`, {
@@ -156,7 +316,7 @@ async function transcribeAudio(request: Request): Promise<Response> {
     const record = data && typeof data === 'object' ? data as JsonRecord : null
     const text = typeof record?.text === 'string' ? record.text.replace(/\s+/g, ' ').trim() : ''
     if (!text || text.length > 1000) return json(502, { error: 'groq_empty_transcript' })
-    return json(200, { text })
+    return json(200, { text: speechText(text) })
   } catch (error) {
     const reason = error instanceof Error && error.name === 'TimeoutError' ? 'groq_timeout' : 'groq_unreachable'
     return json(502, { error: reason })
@@ -175,11 +335,17 @@ export async function handleRequest(request: Request): Promise<Response> {
 
   const body = await readJson(request).catch(() => null)
   if (body?.action === 'health') {
-    return json(200, { enabled: Boolean(Deno.env.get('GROQ_API_KEY')), model: chatModel })
+    return json(200, {
+      enabled: Boolean(Deno.env.get('GROQ_API_KEY')),
+      model: chatModel,
+      ttsModel,
+      ttsVoice,
+    })
   }
 
   if (!(await isAuthenticated(request))) return json(401, { error: 'unauthorized' })
   if (body?.action === 'chat') return rewriteAnswer(body)
+  if (body?.action === 'speak') return synthesizeSpeech(body)
   return json(400, { error: 'invalid_action' })
 }
 
