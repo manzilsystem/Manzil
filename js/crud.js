@@ -1615,6 +1615,7 @@ async function provisionOwnerAccess(residentId) {
         return;
     }
     renderAll();
+    if (typeof renderSettingsOwnerAccess === 'function') renderSettingsOwnerAccess();
     const phoneDisplay = /** @type {any} */ (document.getElementById('ownerTempPinPhone'));
     const resident = state.residents.find(item => item.id === residentId);
     phoneDisplay.textContent = data.phone;
